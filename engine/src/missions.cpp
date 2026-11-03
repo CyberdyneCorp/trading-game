@@ -52,32 +52,41 @@ std::uint32_t total_bars(const GeneratorSpec& g) {
   return n;
 }
 
-// The spec's example: a range, a breakout that fails, then a sharp reversal.
+// Segments use designated initializers in Segment's declaration order:
+// bars, drift, vol, jump_prob, jump_mean, volume_mult, funding_bias, iv_mult, anchor, reversion,
+// band, momentum, vol_decay, random_direction (generator v2, design D3a).
+
+// A range with support/resistance, a breakout on a rumor that was already expected (no surprise,
+// so no fundamental support), a credible denial, and the breakout fails back into the range.
 MissionDef false_breakout() {
   MissionDef m;
   m.gen.segments = {
-      {70, 0.0000, 0.0060, 0.00, 0.0, 1.0, 0.0},      // range (warm-up + early decisions)
-      {6, 0.0060, 0.0070, 0.00, 0.0, 1.8, 0.0002},    // breakout
-      {4, 0.0000, 0.0090, 0.00, 0.0, 1.5, 0.0003},    // stall, crowded longs pay funding
-      {14, -0.0070, 0.0100, 0.08, -0.025, 2.0, 0.0},  // failure
-      {46, 0.0002, 0.0070, 0.02, 0.0, 1.0, 0.0},      // chop
+      {.bars = 70, .vol = 0.0060, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.025},
+      {.bars = 6, .drift = 0.0060, .vol = 0.0070, .volume_mult = 1.8, .funding_bias = 0.0002, .momentum = 0.1},
+      {.bars = 4, .vol = 0.0090, .volume_mult = 1.5, .funding_bias = 0.0003},
+      {.bars = 14, .drift = -0.0070, .vol = 0.0100, .jump_prob = 0.08, .jump_mean = -0.025, .volume_mult = 2.0},
+      {.bars = 46, .drift = 0.0002, .vol = 0.0070, .jump_prob = 0.02, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03},
   };
-  // A positive rumor right before the breakout; the market usually sells the news.
+  // The rumor matches expectations (surprise 0): it moves price briefly but not the fair value.
+  // The denial is a credible negative surprise: the fair value drops and pulls price with it.
   m.gen.events = {{{72, NewsKind::InstitutionalAdoption, 1, 45, 1, 1}, 0.15, 0.25, 0.004, 6, 1.6, 1.2},
                   {{82, NewsKind::RumorDenied, -1, 85, 1, -1}, 0.2, 0.7, 0.003, 5, 1.3, 1.1}};
   m.info = {"m01-false-breakout", total_bars(m.gen), 60, 5, true};
   return m;
 }
 
-// Strong uptrend where holding a long costs a lot of funding.
+// Strong uptrend with pullbacks to its average; crowded longs pay rising funding and become
+// squeeze candidates (generator crowding), then the trend unwinds.
 MissionDef funding_squeeze() {
   MissionDef m;
   m.gen.funding_base = 0.0003;
+  m.gen.squeeze_prob = 0.04;
   m.gen.segments = {
-      {60, 0.0005, 0.0060, 0.00, 0.0, 1.0, 0.0002},
-      {50, 0.0018, 0.0070, 0.01, 0.02, 1.4, 0.0009},
-      {30, -0.0010, 0.0110, 0.05, -0.03, 1.8, -0.0004},
-      {20, 0.0000, 0.0080, 0.00, 0.0, 1.0, 0.0},
+      {.bars = 60, .drift = 0.0005, .vol = 0.0060, .funding_bias = 0.0002, .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.05},
+      {.bars = 50, .drift = 0.0018, .vol = 0.0070, .jump_prob = 0.01, .jump_mean = 0.02, .volume_mult = 1.4, .funding_bias = 0.0009,
+       .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.08},
+      {.bars = 30, .drift = -0.0010, .vol = 0.0110, .jump_prob = 0.05, .jump_mean = -0.03, .volume_mult = 1.8, .funding_bias = -0.0004},
+      {.bars = 20, .vol = 0.0080, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03},
   };
   // An inflow headline at the top of the squeeze; a rate decision that disappoints.
   m.gen.events = {{{100, NewsKind::LiquidityInflow, 1, 70, 1, 1}, 0.3, 0.5, 0.002, 4, 1.2, 1.0},
@@ -87,14 +96,17 @@ MissionDef funding_squeeze() {
   return m;
 }
 
-// Calm market, then a volatility shock with gaps: leverage and liquidation lesson.
+// A calm, slowly compressing market (Bollinger squeeze), then a volatility shock with gaps:
+// leverage and liquidation lesson.
 MissionDef volatility_shock() {
   MissionDef m;
   m.gen.segments = {
-      {80, 0.0003, 0.0035, 0.00, 0.0, 0.8, 0.0},
-      {3, -0.0150, 0.0250, 0.60, -0.06, 4.0, -0.0010},
-      {25, 0.0010, 0.0200, 0.15, 0.03, 2.5, 0.0},
-      {42, 0.0001, 0.0080, 0.02, 0.0, 1.2, 0.0},
+      {.bars = 80, .drift = 0.0003, .vol = 0.0035, .volume_mult = 0.8, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.02,
+       .vol_decay = 0.995},
+      {.bars = 3, .drift = -0.0150, .vol = 0.0250, .jump_prob = 0.60, .jump_mean = -0.06, .volume_mult = 4.0, .funding_bias = -0.0010},
+      {.bars = 25, .drift = 0.0010, .vol = 0.0200, .jump_prob = 0.15, .jump_mean = 0.03, .volume_mult = 2.5},
+      {.bars = 42, .drift = 0.0001, .vol = 0.0080, .jump_prob = 0.02, .volume_mult = 1.2, .anchor = Anchor::Level, .reversion = 0.006,
+       .band = 0.03},
   };
   // The shock arrives with an exchange incident headline (credible, very negative surprise).
   m.gen.events = {{{79, NewsKind::ExchangeIncident, -1, 90, 0, -2}, 0.05, 0.85, 0.006, 6, 1.8, 1.5}};
@@ -102,14 +114,17 @@ MissionDef volatility_shock() {
   return m;
 }
 
-// Options I/II: buy calls/puts around a quiet range, a breakout with an IV spike, then an IV crush.
+// Options I/II: a quiet range compresses before a rate decision (implied vol bid up), then a
+// breakout whose direction is drawn per seed, tilted by the decision's surprise, then an IV crush.
 MissionDef options_buyer() {
   MissionDef m;
   m.gen.segments = {
-      {70, 0.0000, 0.0045, 0.00, 0.0, 1.0, 0.0, 1.0},
-      {12, 0.0000, 0.0050, 0.00, 0.0, 1.0, 0.0, 1.35},     // event approaching: implied vol bid up
-      {20, 0.0045, 0.0110, 0.05, 0.02, 2.2, 0.0002, 1.2},  // breakout
-      {38, 0.0002, 0.0050, 0.01, 0.0, 1.0, 0.0, 0.75},     // IV crush after the event
+      {.bars = 70, .vol = 0.0045, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.02},
+      {.bars = 12, .vol = 0.0050, .iv_mult = 1.35, .anchor = Anchor::Level, .reversion = 0.01, .band = 0.015, .vol_decay = 0.97},
+      {.bars = 20, .drift = 0.0045, .vol = 0.0110, .jump_prob = 0.05, .jump_mean = 0.02, .volume_mult = 2.2, .funding_bias = 0.0002,
+       .iv_mult = 1.2, .momentum = 0.1, .random_direction = true},
+      {.bars = 38, .drift = 0.0002, .vol = 0.0050, .jump_prob = 0.01, .iv_mult = 0.75, .anchor = Anchor::Level, .reversion = 0.006,
+       .band = 0.03},
   };
   // The event the implied vol was pricing: a rate decision, announced before the breakout.
   m.gen.events = {{{81, NewsKind::RateDecision, 1, 100, 0, 1}, 0.2, 0.6, 0.004, 8, 1.4, 1.0}};
@@ -119,15 +134,16 @@ MissionDef options_buyer() {
   return m;
 }
 
-// Options III: writing options. Rich premium in a range, until a jump tests the margin.
+// Options III: writing options. Rich premium in a mean-reverting range, until a jump tests the margin.
 MissionDef options_writer() {
   MissionDef m;
   m.gen.iv_premium = 0.35;
   m.gen.segments = {
-      {80, 0.0000, 0.0050, 0.00, 0.0, 1.0, 0.0, 1.0},
-      {40, 0.0000, 0.0045, 0.00, 0.0, 0.9, 0.0, 1.0},
-      {3, -0.0200, 0.0200, 0.70, -0.05, 3.5, -0.0008, 1.8},  // jump
-      {27, 0.0005, 0.0120, 0.05, 0.0, 1.6, 0.0, 1.3},
+      {.bars = 80, .vol = 0.0050, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.025},
+      {.bars = 40, .vol = 0.0045, .volume_mult = 0.9, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.025},
+      {.bars = 3, .drift = -0.0200, .vol = 0.0200, .jump_prob = 0.70, .jump_mean = -0.05, .volume_mult = 3.5, .funding_bias = -0.0008,
+       .iv_mult = 1.8},
+      {.bars = 27, .drift = 0.0005, .vol = 0.0120, .jump_prob = 0.05, .volume_mult = 1.6, .iv_mult = 1.3},
   };
   // A network outage is announced as the jump hits.
   m.gen.events = {{{119, NewsKind::NetworkOutage, -1, 80, 0, -2}, 0.05, 0.8, 0.005, 5, 1.6, 1.4}};

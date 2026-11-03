@@ -1,8 +1,18 @@
 #pragma once
 
-// Deterministic synthetic market generator (spec: market-generator, minimal v1).
-// Regime segments with volatility clustering and jumps; volume tied to |return|;
-// funding follows recent drift. Same spec + seed => identical bars on every target.
+// Deterministic synthetic market generator (spec: market-generator; design D3, D3a).
+// Same spec + seed => identical bars on every target.
+//
+// v2 ("market structure"): on top of regime segments with volatility clustering and jumps, each
+// bar's log-return gets structural terms that give technical and fundamental reads a small,
+// probabilistic edge without making them certain:
+//   - a hidden fair value that news moves (surprise x credibility) and price is slowly pulled to;
+//   - per-segment anchors: ranges revert to a fixed level with soft walls (support/resistance),
+//     trends revert to their own moving average (pullbacks);
+//   - momentum (trend persistence), volatility compression (squeeze) and segments whose direction
+//     is drawn per seed, tilted toward the fair value (breakouts);
+//   - crowding: when funding is extreme, a squeeze against the crowded side becomes possible.
+// Volume is tied to |return|; funding follows recent drift.
 
 #include <cstdint>
 #include <string>
@@ -12,6 +22,15 @@
 
 namespace tradelab {
 
+constexpr std::uint32_t kGeneratorVersion = 2;
+
+enum class Anchor : std::uint8_t {
+  None,   // no structural pull besides the fair value
+  Level,  // the log price at segment start: range with support/resistance
+  Trend,  // an EMA of log price: trend with pullbacks to its average
+};
+
+// Fields are declared in the order missions use designated initializers.
 struct Segment {
   std::uint32_t bars = 0;
   double drift = 0.0;        // mean log-return per bar
@@ -21,6 +40,12 @@ struct Segment {
   double volume_mult = 1.0;
   double funding_bias = 0.0;  // added to the funding rate in this segment
   double iv_mult = 1.0;       // implied-vol multiplier in this segment (event premium / crush)
+  Anchor anchor = Anchor::None;
+  double reversion = 0.0;      // per-bar pull toward the anchor (fraction of the log gap)
+  double band = 0.0;           // Level anchor: half-width (log) of the range; beyond it walls push back
+  double momentum = 0.0;       // AR(1) weight on the previous bar's return
+  double vol_decay = 1.0;      // per-bar factor on this segment's volatility (< 1 compresses)
+  bool random_direction = false;  // drift/jump sign drawn per seed, tilted by the fair-value gap
 };
 
 // A scripted event: the headline (NewsItem) plus its seeded reaction model. The reaction direction
@@ -34,6 +59,7 @@ struct ScriptedEvent {
   std::uint32_t duration = 6;  // bars affected after release
   double vol_mult = 1.5;       // volatility multiplier while active
   double iv_mult = 1.0;        // implied-vol multiplier while active
+  double fair_impact = 0.03;   // log fair-value shift per unit of surprise at full credibility
 };
 
 struct GeneratorSpec {
@@ -43,6 +69,12 @@ struct GeneratorSpec {
   double funding_sensitivity = 0.5;
   double iv_premium = 0.10;      // implied over realized
   double bars_per_year = 8760.0;  // hourly bars
+  double fair_pull = 0.006;      // per-bar pull toward the hidden fair value (all segments)
+  double tilt = 25.0;            // random-direction segments: P(up) = 1 / (1 + exp(-tilt * gap))
+  double wall = 0.15;            // Level anchor: pull per unit of log distance beyond the band
+  double squeeze_funding = 0.0006;  // |funding| above which the crowded side can be squeezed
+  double squeeze_prob = 0.06;
+  double squeeze_size = 0.02;    // log size of a squeeze jump against the crowd
   std::vector<ScriptedEvent> events;  // release steps are absolute bar indices
   std::vector<Segment> segments;
 };

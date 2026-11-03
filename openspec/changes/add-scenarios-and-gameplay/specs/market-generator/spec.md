@@ -13,6 +13,25 @@ The generator SHALL produce positive OHLCV bars from a seeded return process wit
 - **WHEN** any seed is used
 - **THEN** every generated bar SHALL satisfy low ≤ open, close ≤ high and low > 0
 
+### Requirement: Readable market structure
+The generator SHALL provide, per segment, a hidden fair value moved by fundamental drift, information jumps and news surprises weighted by credibility; range anchors with support/resistance walls; trend anchors with pullbacks to the average; momentum; volatility compression; segments whose direction is drawn per seed and tilted toward the fair value; and crowding squeezes against the side paying extreme funding. The resulting edges SHALL be probabilistic: under the generator's calibration tests, setups that match their regime SHALL win more often than chance and never with certainty, and a structure-free random walk SHALL show no edge.
+
+#### Scenario: Range fade edge is modest
+- **WHEN** a range segment is generated for 200 seeds and the player buys RSI(14) < 30 or sells RSI(14) > 70
+- **THEN** the share of trades in profit five bars later SHALL lie between 58% and 72%
+
+#### Scenario: No edge without structure
+- **WHEN** a segment with no anchor and no fair-value pull is generated for 200 seeds
+- **THEN** the same RSI rules SHALL win 50% ± 5% of the time
+
+#### Scenario: Expected news is priced in
+- **WHEN** an event's actual value equals its expectation
+- **THEN** it SHALL NOT move the fair value, and price 25 bars later SHALL be up less often than after a positive surprise
+
+#### Scenario: Breakout direction is not guaranteed
+- **WHEN** a random-direction breakout follows a credible positive surprise
+- **THEN** it SHALL go up in more than 60% and less than 85% of seeds
+
 ### Requirement: Funding and IV dynamics
 Synthetic scenarios SHALL generate a funding-rate series from a declared rule linking it to recent drift and positioning parameters, and an IV base level linked to the generator's volatility state plus a declared premium, both computed only from state up to the current step.
 

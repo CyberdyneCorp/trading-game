@@ -109,8 +109,8 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"80731b3c1a5b4f15325fa7cc3429bd4f29780f68fc45d33d495eb455ab57c9c6\","
-        "\"eventsDigest\":\"26c295991bfa9917e97388bd7f8d087ed6c5b41ff0405b9cf6b7d552881aec7c\"}");
+        "\"digest\":\"5285f701789c3a30f5d85f55a20cd8d09a23427e6720979f3a7d849387b1a983\","
+        "\"eventsDigest\":\"f619f50b3b52492d9dbfa47b45b8ff90547e93583c284a84c0661b46ea03e5e3\"}");
 }
 
 TEST_CASE("Option missions: chain exposed at the decision step, trades settle through the C ABI") {
@@ -141,8 +141,8 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"050d466bd20bdce6ae6980267657c5554473ec316d82131289c036b51fd7c1ca\","
-        "\"eventsDigest\":\"d9a87d6b7729273a34948561895c1bc7c57374c23cb167c0d2b0d88b14038c31\"}");
+        "\"digest\":\"cdbad44a928c9206428966ada8365e035d96aaf821163bfa69a69b9118854dd4\","
+        "\"eventsDigest\":\"acdd778cc1750c8cc3eed026821e947e77be54d2b7ca959330e6bf7a239c2d0e\"}");
 }
 
 TEST_CASE("News: same headline, seeded reactions include none and reversals (spec Events)") {
