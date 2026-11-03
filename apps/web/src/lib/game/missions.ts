@@ -31,7 +31,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			objectives: COMMON_PT,
 			topic: 'Futuros I · long e short, ordens e stops',
 			reveal:
-				'Este cenário foi desenhado como um ROMPIMENTO FALSO: o preço rompe o topo do range, atrai compradores e reverte com força. Quem entrou no rompimento sem stop sofreu; quem esperou confirmação ou protegeu a posição limitou o dano.'
+				'Este cenário foi desenhado como um ROMPIMENTO FALSO: o preço rompe o topo do range, atrai compradores e reverte com força. Quem entrou no rompimento sem stop sofreu; quem esperou confirmação ou protegeu a posição limitou o dano. O rumor da alta já era esperado (sem surpresa) e não mudou o valor justo; o desmentido, crível e negativo, mudou. Dentro do range, comprar perto do suporte e vender perto da resistência teve vantagem pequena.'
 		},
 		en: {
 			title: 'Mission 01 · Range',
@@ -39,7 +39,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			objectives: COMMON_EN,
 			topic: 'Futures I · long and short, orders and stops',
 			reveal:
-				'This scenario was designed as a FALSE BREAKOUT: price breaks the top of the range, attracts buyers and reverses hard. Buying the breakout without a stop hurt; waiting for confirmation or protecting the position limited the damage.'
+				'This scenario was designed as a FALSE BREAKOUT: price breaks the top of the range, attracts buyers and reverses hard. Buying the breakout without a stop hurt; waiting for confirmation or protecting the position limited the damage. The rally rumor was already expected (no surprise) and did not move fair value; the credible negative denial did. Inside the range, buying near support and selling near resistance had a small edge.'
 		}
 	},
 	'm02-funding-squeeze': {
@@ -49,7 +49,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			objectives: [...COMMON_PT.slice(0, 2), 'Mantenha a distância até a liquidação acima de 10%.'],
 			topic: 'Futuros III · funding e custo de carregar posição',
 			reveal:
-				'Este cenário foi desenhado como um APERTO DE FUNDING: a alta veio com longs lotados pagando funding alto, seguida de uma correção. Carregar long por muito tempo custou caro mesmo quando o preço subiu.'
+				'Este cenário foi desenhado como um APERTO DE FUNDING: a alta veio com longs lotados pagando funding alto, seguida de uma correção. Carregar long por muito tempo custou caro mesmo quando o preço subiu. Na tendência, os recuos até a média (EMA) foram compras melhores que os topos, e funding extremo tornou provável um aperto contra os longs lotados.'
 		},
 		en: {
 			title: 'Mission 02 · Momentum',
@@ -57,7 +57,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			objectives: [...COMMON_EN.slice(0, 2), 'Keep the distance to liquidation above 10%.'],
 			topic: 'Futures III · funding and the cost of carry',
 			reveal:
-				'This scenario was designed as a FUNDING SQUEEZE: the rally came with crowded longs paying high funding, followed by a correction. Carrying a long for long cost a lot even while price rose.'
+				'This scenario was designed as a FUNDING SQUEEZE: the rally came with crowded longs paying high funding, followed by a correction. Carrying a long for long cost a lot even while price rose. In the trend, pullbacks to the average (EMA) were better buys than the highs, and extreme funding made a squeeze against crowded longs likely.'
 		}
 	},
 	'm03-volatility-shock': {
@@ -71,7 +71,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			],
 			topic: 'Futuros II · margem, alavancagem e preço de liquidação',
 			reveal:
-				'Este cenário foi desenhado como um CHOQUE DE VOLATILIDADE: depois de um longo período calmo, gaps e quedas bruscas atravessam stops e liquidam posições muito alavancadas.'
+				'Este cenário foi desenhado como um CHOQUE DE VOLATILIDADE: depois de um longo período calmo, gaps e quedas bruscas atravessam stops e liquidam posições muito alavancadas. Antes do choque a volatilidade foi se comprimindo (Bandas de Bollinger e ATR estreitando): mercado quieto não é mercado seguro.'
 		},
 		en: {
 			title: 'Mission 03 · Quiet market',
@@ -83,7 +83,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			],
 			topic: 'Futures II · margin, leverage and liquidation price',
 			reveal:
-				'This scenario was designed as a VOLATILITY SHOCK: after a long calm period, gaps and sharp drops cut through stops and liquidate highly leveraged positions.'
+				'This scenario was designed as a VOLATILITY SHOCK: after a long calm period, gaps and sharp drops cut through stops and liquidate highly leveraged positions. Before the shock, volatility kept compressing (Bollinger bands and ATR narrowing): a quiet market is not a safe market.'
 		}
 	}
 };
@@ -99,7 +99,7 @@ texts['m04-options-buyer'] = {
 		],
 		topic: 'Opções I e II · payoff, prêmio, IV e gregas',
 		reveal:
-			'Este cenário foi desenhado com um EVENTO: a IV sobe antes do rompimento e despenca depois (IV crush). Quem comprou opções caras perto do evento pôde perder mesmo acertando a direção; quem comprou cedo ou com strike adequado aproveitou o movimento.'
+			'Este cenário foi desenhado com um EVENTO: a IV sobe antes do rompimento e despenca depois (IV crush). Quem comprou opções caras perto do evento pôde perder mesmo acertando a direção; quem comprou cedo ou com strike adequado aproveitou o movimento. A direção do rompimento não era garantida: a surpresa positiva da decisão inclinava as chances para cima, mas em parte das sementes o rompimento foi para baixo.'
 	},
 	en: {
 		title: 'Mission 04 · Calls and puts',
@@ -111,7 +111,7 @@ texts['m04-options-buyer'] = {
 		],
 		topic: 'Options I and II · payoff, premium, IV and Greeks',
 		reveal:
-			'This scenario was designed around an EVENT: IV rises before the breakout and collapses afterwards (IV crush). Buying expensive options near the event could lose even with the right direction; buying early or with a sensible strike captured the move.'
+			'This scenario was designed around an EVENT: IV rises before the breakout and collapses afterwards (IV crush). Buying expensive options near the event could lose even with the right direction; buying early or with a sensible strike captured the move. The breakout direction was not guaranteed: the decision’s positive surprise tilted the odds upward, but on some seeds the breakout went down.'
 	}
 };
 

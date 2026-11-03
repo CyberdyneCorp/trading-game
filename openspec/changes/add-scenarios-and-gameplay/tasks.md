@@ -18,7 +18,8 @@
 - [ ] 2.2 Fuzz tests for import (libFuzzer on native)
 
 ## 3. Generator
-- [ ] 3.1 Regime/vol/jump process, volume, funding, IV base
+- [ ] 3.1 Regime/vol/jump process, volume, funding, IV base — segments, vol clustering, jumps, volume, funding, IV done; Markov regime transitions pending (missions script their segments)
+- [x] 3.1a Generator v2 market structure (fair value, range/trend anchors, momentum, compression, tilted breakouts, crowding squeezes) with calibration tests; missions m01–m05 redesigned; execution policy v5
 - [x] 3.2 Event model with seeded reaction distributions
 - [ ] 3.3 Player-independence and branch-label tests
 - [ ] 3.4 Calibration report notebook + first report

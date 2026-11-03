@@ -20,6 +20,15 @@ Scenarios must travel to browsers, desktops and iPads, work offline, be verifiab
 - `engine/generator/`: Markov regime switching + GARCH(1,1)-like variance + compound Poisson jumps; volume as log-normal tied to |return| and regime; funding = clamp(k·EMA(drift) + baseline + noise); IV base = sqrt(variance state)·(1 + premium) + event shocks.
 - Runs offline at authoring time to bake bars into packs (fast load, inspectable), and at play time only for seeded sandbox variants. Both paths use the same deterministic code.
 
+### D3a. Generator v2: readable market structure
+Goal: technical and fundamental reads earn a small, probabilistic edge (about 55–70% in their setting), never a certainty, while a structure-free random walk gives none. Each bar's log-return = segment drift × direction + transient news reaction + structure + σ·z + jumps + crowding squeeze, where structure is:
+- **Fair value** (hidden log level): moves with segment drift (fundamental flow), with 75% of information jumps, and by `fair_impact × surprise × credibility` on the bar after a news release. Expected news (surprise 0) leaves it unchanged ("priced in"). Price is pulled toward it by `fair_pull` per bar.
+- **Anchors**: `Level` (log price at segment start) with reversion and soft walls beyond `band` → support/resistance and false breakouts; `Trend` (EMA20 of log price) with reversion → pullbacks to the average.
+- **Momentum** (AR(1) on the previous return), **volatility compression** (`vol_decay` per bar, also lowers IV → Bollinger/ATR squeeze), and **random-direction segments** whose sign is drawn per seed with P(up) = 1/(1 + e^(−tilt·(fair − price))), so breakouts lean on fundamentals but can fail.
+- **Crowding**: when |funding| exceeds `squeeze_funding`, a squeeze jump against the paying side happens with `squeeze_prob`. Squeezes are positioning, not information: they do not move the fair value and tend to retrace.
+- Calibration is enforced by engine tests over 200 seeds with explicit bands (random walk ≈ 50%; range RSI fades, trend pullback buys, news-tilted breakouts and post-surprise drift inside their bands; shorting overbought in an uptrend stays below 57%).
+- Every change to the generator changes every seed's market, so it bumps the execution-policy version (v5) and the goldens; unfinished runs from older versions are flagged by the existing policy-mismatch path.
+
 ### D4. Masking
 - Factor `100 / firstPlayableOpen` computed from the first playable bar only. Strike grids generated after masking. Rounding declared per pack (half-even to tick).
 
