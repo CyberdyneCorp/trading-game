@@ -45,6 +45,9 @@ if(NOT EMSCRIPTEN)
   add_library(tradelab_capi SHARED src/capi_shared.cpp)
   target_link_libraries(tradelab_capi PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,tradelab::engine>")
   set_target_properties(tradelab_capi PROPERTIES OUTPUT_NAME tradelab)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_options(tradelab_capi PRIVATE -Wl,--no-undefined)  # fail at link time, not at dlopen
+  endif()
 endif()
 target_compile_options(tradelab_engine PRIVATE
   ${TRADELAB_DETERMINISM_FLAGS} -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
