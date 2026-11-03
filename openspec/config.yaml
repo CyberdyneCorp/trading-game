@@ -1,0 +1,46 @@
+schema: spec-driven
+
+context: |
+  Product: Cyberdyne TradeLab (working name) - an educational trading game with a
+  retro phosphor-terminal look. Players learn to trade linear perpetual futures
+  (long/short, leverage, funding, liquidation) and European options (long and
+  short calls/puts) in short missions over masked historical or synthetic markets.
+  All money is virtual. No real order routing, ever.
+  Full product vision: docs/product-spec.md (source for anything not yet in a spec).
+
+  Architecture:
+  - engine/: deterministic simulation core in C++20 (CMake). Pure library: no I/O,
+    no wall clock, no threads, no locale. Fixed-point int64 money/prices/quantities.
+    Own RNG and own math kernels so results are bit-identical on every target.
+  - bindings/: wasm (Emscripten, for web), python (nanobind, for server replay),
+    swift (Swift C++ interop, iOS/iPadOS), jni (Android, later).
+  - apps/web: TypeScript + SvelteKit. First client to ship. Engine runs in a Web Worker.
+  - apps/desktop: C++20 + Dear ImGui + SDL3 (Metal/Vulkan/GL via SDL GPU or backends).
+  - apps/ios: Swift + SwiftUI, iPad-first layouts, full offline play.
+  - apps/android: Kotlin + Jetpack Compose - deferred (not in the first roadmap phases).
+  - services/api: Python + FastAPI, hexagonal architecture, PostgreSQL, object
+    storage for packs. Deployed on Coolify. Uses the engine via the python binding
+    to re-simulate runs; never trusts client-reported scores or balances.
+  - Identity: CyberdyneAuth (OIDC provider, auth-code + PKCE mandatory, RS256 JWKS,
+    discovery at https://auth.backend.coolify.cyberdynecorp.ai/.well-known/openid-configuration).
+    No local password store.
+
+  Conventions:
+  - Specs, code, commits and docs in English. Game UI ships PT-BR first with i18n
+    from day one (en-US second).
+  - Every engine behavior change ships golden vectors that pass on all bindings.
+  - Frontend: MVVM. Backend: hexagonal (ports/adapters).
+  - Cognitive complexity targets: frontend 8-12, backend 15 per function.
+
+rules:
+  proposal:
+    - Always include a Non-goals section
+    - State which client(s) and which engine version(s) are affected
+  specs:
+    - Any engine requirement must be testable by a golden vector or property test
+    - Never specify behavior that uses information from after the current decision step
+  design:
+    - Record numeric representation (scale, rounding mode) for any new monetary quantity
+  tasks:
+    - Each bug fix task includes a regression test
+    - Each task that changes behavior updates docs or specs in the same PR
