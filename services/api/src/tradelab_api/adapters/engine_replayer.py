@@ -1,0 +1,28 @@
+"""Replayer adapter over the Python engine binding (same deterministic core as the clients)."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any
+
+import tradelab_engine as te
+
+from ..domain.models import Action
+
+
+class EngineReplayer:
+    def supported_policy(self) -> int:
+        return int(te.engine_version()["executionPolicy"])
+
+    def replay(self, mission_id: str, seed: int, actions: Sequence[Action]) -> dict[str, Any]:
+        try:
+            result = te.replay(mission_id, seed, actions)
+        except (te.InvalidAction, te.EngineError, KeyError, TypeError) as exc:
+            raise ValueError(str(exc)) from exc
+        return {"digest": result.digest, "status": result.status, "debrief": result.debrief}
+
+    def missions(self) -> list[dict[str, Any]]:
+        return te.missions()
+
+
+ACTION_KINDS = te.ACTION_KINDS
