@@ -10,6 +10,9 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<link rel="manifest" href="manifest.webmanifest" />
+	<link rel="apple-touch-icon" href="icons/icon-192.png" />
+	<meta name="theme-color" content="#0B1010" />
 	<title>TradeLab</title>
 	<meta name="description" content="Educational derivatives trading game — virtual money only" />
 </svelte:head>

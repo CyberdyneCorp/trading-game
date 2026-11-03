@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { GameSession } from '#lib/game/session.svelte.ts';
 	import { settings } from '#lib/game/settings.svelte.ts';
+	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { t } from '#lib/game/i18n.svelte.ts';
 	import Briefing from '#lib/components/Briefing.svelte';
 	import CrtOverlay from '#lib/components/CrtOverlay.svelte';
@@ -13,6 +14,7 @@
 
 	onMount(() => {
 		settings.load();
+		pwa.init();
 		const seed = Number(new URLSearchParams(location.search).get('seed'));
 		if (Number.isInteger(seed) && seed > 0) session.fixedSeed = seed;
 		void session.init();
