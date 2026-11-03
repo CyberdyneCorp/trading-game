@@ -29,6 +29,23 @@ bool mission_valid(const Scenario& s) {
   return m.warmup_bars + 2 <= s.bars.size();
 }
 
+bool series_valid(const Scenario& s, const OptionSeries& x, std::uint32_t index) {
+  const bool ids_ok = x.id == index + 1;  // ids are 1..n in order (stable references in commands)
+  const bool steps_ok = x.list_step < x.expiry_step && x.expiry_step < s.bars.size();
+  return ids_ok && steps_ok && on_grid(x.strike.raw, s.contract.tick_size.raw);
+}
+
+bool options_valid(const Scenario& s) {
+  const OptionSpec& o = s.options;
+  if (o.series.empty()) return true;
+  if (o.multiplier.raw <= 0 || o.premium_tick.raw <= 0 || o.lot_size.raw <= 0 || o.minutes_per_step == 0) return false;
+  if (!o.iv_base.empty() && o.iv_base.size() != s.bars.size()) return false;
+  for (std::uint32_t i = 0; i < o.series.size(); ++i) {
+    if (!series_valid(s, o.series[i], i)) return false;
+  }
+  return o.im_floor.raw > 0 && o.mm_base.raw > 0 && o.settlement_bars >= 1;
+}
+
 }  // namespace
 
 ScenarioError validate(const Scenario& s) {
@@ -39,6 +56,7 @@ ScenarioError validate(const Scenario& s) {
   }
   if (s.funding_rate.size() != s.bars.size()) return ScenarioError::FundingLengthMismatch;
   if (!mission_valid(s)) return ScenarioError::InvalidMission;
+  if (!options_valid(s)) return ScenarioError::InvalidOptions;
   return ScenarioError::Ok;
 }
 

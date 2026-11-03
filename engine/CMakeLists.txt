@@ -26,6 +26,8 @@ add_library(tradelab_engine STATIC
   src/fixed.cpp
   src/generator.cpp
   src/missions.cpp
+  src/options_exec.cpp
+  src/options_pricing.cpp
   src/prng.cpp
   src/scenario.cpp
   src/sha256.cpp
@@ -48,7 +50,7 @@ if(EMSCRIPTEN)
   target_link_options(tradelab_wasm PRIVATE
     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createTradelab -sSINGLE_FILE=1
     -sENVIRONMENT=web,worker,node -sALLOW_MEMORY_GROWTH=1 -sFILESYSTEM=0
-    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_missions','_tl_run_create','_tl_run_destroy','_tl_place_order','_tl_place_order_ex','_tl_cancel_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_missions','_tl_run_create','_tl_run_destroy','_tl_place_order','_tl_place_order_ex','_tl_place_option_order','_tl_cancel_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_malloc','_free']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString']")
 endif()
 
@@ -68,6 +70,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_brackets.cpp
     tests/test_engine.cpp
     tests/test_missions.cpp
+    tests/test_options.cpp
     tests/test_prng.cpp
     tests/test_sha256.cpp
     tests/test_serialize.cpp

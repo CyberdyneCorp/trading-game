@@ -7,6 +7,8 @@
 #include "json_out.hpp"
 #include "tradelab/engine.hpp"
 #include "tradelab/generator.hpp"
+#include "tradelab/options.hpp"
+#include "options_exec.hpp"
 
 using tradelab::detail::JsonOut;
 
@@ -26,7 +28,7 @@ const char* reason_name(Reason r) {
       "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
       "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
       "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled"};
+      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call"};
   const auto i = static_cast<std::size_t>(r);
   return i < std::size(kNames) ? kNames[i] : "unknown";
 }
@@ -44,7 +46,7 @@ const char* type_name(OrderType t) {
 
 const char* event_name(EventType t) {
   static constexpr const char* kNames[] = {"order",    "fill",         "funding",         "liquidation",
-                                           "bankrupt", "run_finished", "leverage_changed"};
+                                           "bankrupt", "run_finished", "leverage_changed", "option_settlement", "margin_call"};
   return kNames[static_cast<std::size_t>(t)];
 }
 
@@ -101,7 +103,7 @@ void write_orders(JsonOut& j, const RunState& st) {
     j.field("qty", o.qty).field("filled", o.filled).field("price", o.price);
     j.field("reduceOnly", o.reduce_only).field("status", status_name(o.status)).field("placedStep", o.placed_step);
     j.field("parentId", o.parent_id).field("ocoGroup", o.oco_group).field("trailDistance", o.trail_distance);
-    j.field("bracketStop", o.bracket_stop).field("bracketTp", o.bracket_tp);
+    j.field("bracketStop", o.bracket_stop).field("bracketTp", o.bracket_tp).field("series", o.series);
     j.end_obj();
   }
   j.end_arr();
@@ -113,7 +115,8 @@ void write_event(JsonOut& j, const Event& e) {
   j.field("side", side_name(e.side)).field("qty", e.qty).field("price", e.price).field("requested", e.requested);
   j.field("amount", e.amount).field("pnl", e.pnl);
   j.field("ambiguous", (e.flags & kFlagAmbiguousIntrabar) != 0).field("gap", (e.flags & kFlagGapFill) != 0);
-  j.field("capacityLimited", (e.flags & kFlagCapacityFromBarVolume) != 0);
+  j.field("capacityLimited", (e.flags & kFlagCapacityFromBarVolume) != 0).field("series", e.series);
+  j.field("approximate", (e.flags & kFlagMarkFromLastPrice) != 0);
   j.end_obj();
 }
 
@@ -122,10 +125,39 @@ void write_totals(JsonOut& j, const RunState& st) {
   j.key("totals").begin_obj();
   j.field("realizedPnl", st.realized_pnl).field("feesPaid", st.fees_paid).field("fundingNet", st.funding_net);
   j.field("insuranceAbsorbed", st.insurance_absorbed).field("turnover", m.turnover);
+  j.field("optionCash", st.option_cash).field("optionRealized", st.option_realized);
   j.field("peakEquity", m.peak_equity).field("maxDrawdown", m.max_drawdown);
   j.field("peakLeverageBp", m.peak_leverage_bp).field("minLiqDistanceBp", m.min_liq_distance_bp);
   j.field("liquidations", m.liquidations).field("fills", m.fills).field("ambiguousFills", m.ambiguous_fills);
   j.end_obj();
+}
+
+void write_quote(JsonOut& j, const OptionSeries& s, const OptionQuote& q) {
+  j.begin_obj().field("id", s.id).field("kind", s.kind == OptionKind::Call ? "call" : "put").field("strike", s.strike);
+  j.field("listStep", s.list_step).field("expiryStep", s.expiry_step).field("listed", q.listed);
+  j.field("bid", q.bid).field("ask", q.ask).field("mid", q.mid).field("iv", q.iv);
+  j.field("delta", q.delta).field("gamma", q.gamma).field("theta", q.theta).field("vega", q.vega);
+  j.field("ivFromRealized", q.iv_from_realized).end_obj();
+}
+
+// Chain at the current decision step only: listed, unexpired series quoted from the current close.
+void write_options(JsonOut& j, const Scenario& sc, const RunState& st) {
+  const OptionSpec& o = sc.options;
+  const Price f = sc.bars[st.step].close;
+  const detail::OptionBook b = detail::option_book(sc, st, st.step);
+  j.key("options").begin_obj().field("enabled", !o.series.empty()).field("allowShort", o.allow_short);
+  j.field("multiplier", o.multiplier).field("premiumTick", o.premium_tick).field("lotSize", o.lot_size);
+  j.field("longValue", b.long_value).field("shortValue", b.short_value);
+  j.field("initialMargin", b.initial_margin).field("maintenanceMargin", b.maintenance_margin);
+  j.key("chain").begin_arr();
+  for (const OptionSeries& s : o.series) {
+    if (st.step >= s.list_step && st.step < s.expiry_step) write_quote(j, s, quote(sc, s, st.step, f));
+  }
+  j.end_arr().key("positions").begin_arr();
+  for (const OptionPosition& p : st.option_positions) {
+    j.begin_obj().field("series", p.series).field("qty", p.qty).field("avgPremium", p.avg_premium).end_obj();
+  }
+  j.end_arr().end_obj();
 }
 
 const char* state_json(tl_run& r) {
@@ -141,6 +173,7 @@ const char* state_json(tl_run& r) {
   write_bars(j, sc, st.step);
   write_account(j, sc, st);
   write_orders(j, st);
+  write_options(j, sc, st);
   j.key("events").begin_arr();
   for (const Event& e : st.events) write_event(j, e);
   j.end_arr();
@@ -259,6 +292,22 @@ const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int
     return error_json(*run, "invalid_tick");
   }
   c.reduce_only = reduce_only != 0;
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
+                                  const char* qty, const char* premium) {
+  if ((type != 0 && type != 1) || side < 0 || side > 1) return error_json(*run, "unsupported_order_type");
+  Command c = next_command(*run, CommandType::PlaceOptionOrder, client_id);
+  c.series = series;
+  c.side = static_cast<OrderSide>(side);
+  c.order_type = static_cast<OrderType>(type);
+  const auto q = parse_decimal<Qty>(qty == nullptr ? "" : qty);
+  if (!q.ok()) return error_json(*run, "invalid_quantity");
+  c.qty = q.value();
+  if (c.order_type == OrderType::Limit && !parse_optional_price(premium, &c.price, true)) {
+    return error_json(*run, "invalid_tick");
+  }
   return result_json(*run, apply_command(run->scenario, run->state, c));
 }
 

@@ -52,6 +52,10 @@ enum class Reason : std::uint8_t {
   Expired = 21,
   InvalidBracket = 22,
   OcoSiblingFilled = 23,
+  SeriesNotListed = 24,
+  ShortOptionsNotAllowed = 25,
+  NoBid = 26,
+  MarginCall = 27,
 };
 
 enum class EventType : std::uint8_t {
@@ -62,6 +66,8 @@ enum class EventType : std::uint8_t {
   Bankrupt = 4,
   RunFinished = 5,
   LeverageChanged = 6,
+  OptionSettlement = 7,
+  MarginCall = 8,
 };
 
 enum class RunStatus : std::uint8_t { Active = 0, Finished = 1, Bankrupt = 2 };

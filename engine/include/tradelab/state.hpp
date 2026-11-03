@@ -29,6 +29,7 @@ struct Order {
   std::uint32_t parent_id = 0;  // child of a bracket entry
   std::uint32_t oco_group = 0;  // siblings share it; a fill on one reduces the others
   Price trail_distance;         // TrailingStop: distance from the best close
+  std::uint32_t series = 0;     // 0 = perpetual; otherwise an option series id
 
   [[nodiscard]] bool active() const {
     return status == OrderStatus::Accepted || status == OrderStatus::PartiallyFilled ||
@@ -45,6 +46,12 @@ struct Position {
   [[nodiscard]] bool is_long() const { return qty.raw > 0; }
 };
 
+struct OptionPosition {
+  std::uint32_t series = 0;
+  Qty qty;              // signed: > 0 long, < 0 short (contracts)
+  Price avg_premium;    // average open premium per unit
+};
+
 struct Event {
   std::uint64_t seq = 0;
   std::uint32_t step = 0;
@@ -59,6 +66,7 @@ struct Event {
   Price requested;  // requested limit or trigger price (debrief: requested vs executed)
   Money amount;     // fee, funding, realized P&L or margin lost depending on type
   Money pnl;        // realized P&L of a fill (before fees)
+  std::uint32_t series = 0;  // option series id (0 = perpetual)
 };
 
 struct Metrics {
@@ -102,6 +110,9 @@ struct RunState {
   Money fees_paid;
   Money funding_net;        // > 0 received
   Money insurance_absorbed;  // shortfall beyond isolated margin absorbed by the simulated fund
+  std::vector<OptionPosition> option_positions;
+  Money option_cash;      // net option premiums and settlements credited to the wallet (excl. fees)
+  Money option_realized;  // realized option P&L (premium differences and settlement vs. average)
   Metrics metrics;
 
   std::vector<Event> events;  // full event log of the run

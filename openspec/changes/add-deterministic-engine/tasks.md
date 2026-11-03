@@ -34,11 +34,11 @@
 - [x] 5.5 Property tests: reconciliation (SIM08), non-negative balances; goldens FUT01–FUT04
 
 ## 6. Options
-- [ ] 6.1 Series listing, Black-76 pricing, spread, quantization
-- [ ] 6.2 IV model (realized-vol base, term, skew, smile, event shocks) — past data only
-- [ ] 6.3 Greeks
-- [ ] 6.4 Buy/write, option margin, margin call and buy-back
-- [ ] 6.5 Expiry settlement; goldens OPT01–OPT04
+- [x] 6.1 Series listing, Black-76 pricing, spread, quantization
+- [x] 6.2 IV model (realized-vol base, term, skew, smile, event shocks) — past data only
+- [x] 6.3 Greeks
+- [x] 6.4 Buy/write, option margin, margin call and buy-back
+- [x] 6.5 Expiry settlement; goldens OPT01–OPT04
 
 ## 7. Indicators
 - [ ] 7.1 SMA, EMA, RSI, ATR, volume with warm-up states and gap policy

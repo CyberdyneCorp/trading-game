@@ -50,6 +50,16 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 - Trailing stop-market: trigger initialized from the decision-step close ± distance, ratcheted at each close (never loosened), effective from the next bar. Percentage trails are a later extension.
 - Policy v2 changed only the state serialization (new order fields); v1 event streams are unchanged.
 
+### D6c. Options (execution-policy v3)
+- Pricing: Black-76, zero rate, forward = perp close (display) or next open (execution). T from remaining steps × `minutes_per_step`. IV = base × term(T) + skew·ln(K/F) + smile·ln(K/F)², floor 5%. Base = scenario `iv_base[t]` (published at the close of t; the generator derives it from its volatility state + premium + per-segment event multiplier) or, when absent, annualized realized vol of the last 48 closes ≤ t (flag `ivFromRealized`).
+- Quotes: mid quantized half-even to the premium tick; half-spread = max(spread × mid, 1 tick); bid floored (may be 0 → no bid), ask ceiled (≥ 1 tick). Greeks quantized (delta/gamma Rate, theta per step and vega per vol point in Price).
+- Execution: option orders (market/limit) execute only at the next bar's open against a quote with F = open and IV published at the previous close — never intrabar, because the premium path inside a bar is unobservable. No capacity limit for options in v3 (documented approximation).
+- Fees: `fee_rate` × underlying notional, capped at 12.5% of premium notional (venue-style).
+- Margin: buyers pay premium (no margin). Writers: IM = max(im_base·F − OTM, im_floor·F) + ask; MM = mm_base·F + mid, per unit. Account option equity = wallet − isolated perp margin + longs at bid − shorts at ask. Below total MM after a step → `margin_call` event, buy back the short with the largest MM at the ask until satisfied; any shortfall is absorbed by the simulated insurance fund (wallet never negative).
+- Settlement at the expiry close: TWAP of the last `settlement_bars` closes; with 1 bar it is the close and flagged approximate (sub-bar data not yet in scenarios).
+- Reconciliation: wallet = initial + perp realized − fees + funding + option_cash (premiums and settlements).
+- Policy v3 adds the instrument (series) field to order/event serialization.
+
 ### D7. Digest and checkpoints
 - Canonical little-endian binary serialization of `RunState`; SHA-256 (vendored, constant-time not required). Checkpoint = serialized state + engine version + policy version.
 

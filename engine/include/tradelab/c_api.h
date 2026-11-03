@@ -31,6 +31,9 @@ const char* tl_place_order(tl_run* run, uint32_t client_id, int32_t type, int32_
 const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
                               const char* price, int32_t reduce_only, const char* attach_stop,
                               const char* attach_tp, const char* trail_distance);
+/* Option order on series `series`: type 0 market, 1 limit (premium); executes at the next bar's open. */
+const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
+                                  const char* qty, const char* premium);
 const char* tl_cancel_order(tl_run* run, uint32_t client_id, uint32_t order_id);
 const char* tl_set_leverage(tl_run* run, uint32_t client_id, int32_t leverage);
 const char* tl_close_position(tl_run* run, uint32_t client_id);

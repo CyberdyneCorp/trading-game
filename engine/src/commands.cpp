@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "accounting.hpp"
+#include "options_exec.hpp"
 
 namespace tradelab {
 namespace {
@@ -188,6 +189,7 @@ CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
     case CommandType::CancelOrder: return cancel_order(st, c);
     case CommandType::SetLeverage: return set_leverage(sc, st, c);
     case CommandType::ClosePosition: return close_position(sc, st, c);
+    case CommandType::PlaceOptionOrder: return detail::place_option_order(sc, st, c, account_view(sc, st).available);
   }
   return reject(Reason::UnsupportedOrderType);
 }
@@ -223,7 +225,7 @@ namespace detail {
 Money order_margin_excluding(const Scenario& sc, const RunState& st, std::uint32_t exclude_id) {
   Money total{};
   for (const Order& o : st.orders) {
-    if (!o.active() || o.id == exclude_id) continue;
+    if (!o.active() || o.id == exclude_id || o.series != 0) continue;
     const Qty inc = increasing_qty(st, o.side, o.remaining(), o.reduce_only);
     if (inc.raw > 0) total = Money::from_raw(total.raw + required_margin(sc, st, o, inc).raw);
   }
@@ -262,7 +264,14 @@ AccountView account_view(const Scenario& sc, const RunState& st) {
   v.equity = Money::from_raw(st.wallet.raw + v.unrealized.raw);
   v.position_margin = p.margin;
   v.order_margin = detail::order_margin_excluding(sc, st, 0);
-  v.available = Money::from_raw(std::max<std::int64_t>(0, st.wallet.raw - p.margin.raw - v.order_margin.raw));
+  const detail::OptionBook ob = detail::option_book(sc, st, st.step);
+  v.option_long_value = ob.long_value;
+  v.option_short_value = ob.short_value;
+  v.option_initial_margin = ob.initial_margin;
+  v.option_maintenance_margin = ob.maintenance_margin;
+  v.equity = Money::from_raw(v.equity.raw + ob.long_value.raw - ob.short_value.raw);
+  const std::int64_t free = st.wallet.raw - p.margin.raw - v.order_margin.raw - ob.initial_margin.raw;
+  v.available = Money::from_raw(std::max<std::int64_t>(0, free));
   v.notional = detail::notional(sc, p.qty, v.mark, Rounding::HalfEven);
   v.has_liquidation = detail::liquidation_price(sc, p, &v.liquidation_price);
   const std::uint32_t interval = sc.contract.funding_interval;
