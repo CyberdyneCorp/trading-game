@@ -10,13 +10,14 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kExecutionPolicyVersion = 2;  // v2: brackets/OCO, trailing stops
+constexpr std::uint32_t kExecutionPolicyVersion = 3;  // v2: brackets/OCO, trailing; v3: options
 
 enum class CommandType : std::uint8_t {
   PlaceOrder = 0,
   CancelOrder = 1,
   SetLeverage = 2,
   ClosePosition = 3,
+  PlaceOptionOrder = 4,  // order_type Market or Limit; price = premium limit; series required
 };
 
 struct Command {
@@ -34,6 +35,7 @@ struct Command {
   Price attach_stop;           // PlaceOrder bracket: protective stop for the filled quantity
   Price attach_tp;             // PlaceOrder bracket: take-profit for the filled quantity
   Price trail_distance;        // TrailingStop
+  std::uint32_t series = 0;    // PlaceOptionOrder
 };
 
 // Live account figures at the current decision point (all derived, never stored).
@@ -49,6 +51,10 @@ struct AccountView {
   Price liquidation_price;
   Rate next_funding_rate;     // published rate for the next funding boundary
   std::uint32_t next_funding_step = 0;
+  Money option_long_value;    // long options marked at bid
+  Money option_short_value;   // short options marked at ask (liability)
+  Money option_initial_margin;
+  Money option_maintenance_margin;
 };
 
 RunState start_run(const Scenario& sc, std::uint64_t seed);

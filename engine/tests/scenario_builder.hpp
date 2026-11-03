@@ -54,6 +54,26 @@ inline Scenario make_scenario(std::initializer_list<BarSpec> bars, std::uint32_t
   return s;
 }
 
+// Adds an option chain: constant 50% implied vol, ids 1.. for each (kind, strike) at one expiry.
+inline void add_options(Scenario& s, std::uint32_t expiry, std::initializer_list<const char*> strikes, bool allow_short = false) {
+  OptionSpec& o = s.options;
+  o.multiplier = Q("1");
+  o.premium_tick = P("0.01");
+  o.lot_size = Q("0.1");
+  o.fee_rate = R("0.0003");
+  o.spread = R("0.02");
+  o.iv_base.assign(s.bars.size(), parse_decimal<Vol>("0.5").value());
+  o.im_base = R("0.15");
+  o.im_floor = R("0.10");
+  o.mm_base = R("0.075");
+  o.allow_short = allow_short;
+  std::uint32_t id = 1;
+  for (const char* k : strikes) {
+    o.series.push_back({id++, OptionKind::Call, P(k), 0, expiry});
+    o.series.push_back({id++, OptionKind::Put, P(k), 0, expiry});
+  }
+}
+
 // Issues commands with automatic sequence numbers and client ids.
 class Driver {
  public:
@@ -87,6 +107,15 @@ class Driver {
     c.qty = Q(qty);
     c.trail_distance = P(distance);
     c.reduce_only = reduce_only;
+    return apply_command(sc_, st_, c);
+  }
+  CommandResult option(std::uint32_t series, OrderSide side, const char* qty, const char* limit = nullptr) {
+    Command c = base(CommandType::PlaceOptionOrder);
+    c.series = series;
+    c.side = side;
+    c.order_type = limit == nullptr ? OrderType::Market : OrderType::Limit;
+    c.qty = Q(qty);
+    if (limit != nullptr) c.price = P(limit);
     return apply_command(sc_, st_, c);
   }
   CommandResult leverage(int lev) {

@@ -16,6 +16,7 @@
 #include <algorithm>
 
 #include "accounting.hpp"
+#include "options_exec.hpp"
 
 namespace tradelab {
 namespace {
@@ -169,7 +170,7 @@ void open_gap_orders(BarCtx& c) {
   const Price open = c.bar.open;
   for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
     Order& o = c.st.orders[i];
-    if (!o.active() || o.type == OrderType::Market) continue;
+    if (!o.active() || o.series != 0 || o.type == OrderType::Market) continue;
     const bool buy = o.side == OrderSide::Buy;
     if (is_stop(o)) {
       if (buy ? open >= o.price : open <= o.price) execute(c, o, {taker_price(c.sc, open, o.side), false, kFlagGapFill});
@@ -183,7 +184,8 @@ void open_phase(BarCtx& c) {
   open_gap_liquidation(c);
   open_gap_orders(c);
   for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
-    if (c.st.orders[i].active() && c.st.orders[i].type == OrderType::Market) execute_market(c, c.st.orders[i]);
+    const Order& o = c.st.orders[i];
+    if (o.active() && o.series == 0 && o.type == OrderType::Market) execute_market(c, c.st.orders[i]);
   }
 }
 
@@ -193,7 +195,7 @@ bool favorable_exit_reachable(const BarCtx& c) {
   const Position& p = c.st.position;
   const Price tick = c.sc.contract.tick_size;
   for (const Order& o : c.st.orders) {
-    if (!o.active() || o.type == OrderType::Market || is_stop(o)) continue;
+    if (!o.active() || o.series != 0 || o.type == OrderType::Market || is_stop(o)) continue;
     if (p.is_long() && o.side == OrderSide::Sell && c.bar.high.raw >= o.price.raw + tick.raw) return true;
     if (!p.is_long() && o.side == OrderSide::Buy && c.bar.low.raw <= o.price.raw - tick.raw) return true;
   }
@@ -205,7 +207,7 @@ Order* nearest_adverse_stop(BarCtx& c) {
   const bool is_long = c.st.position.is_long();
   Order* best = nullptr;
   for (Order& o : c.st.orders) {
-    if (!o.active() || !is_stop(o)) continue;
+    if (!o.active() || o.series != 0 || !is_stop(o)) continue;
     if (is_long != (o.side == OrderSide::Sell)) continue;
     const bool reached = is_long ? c.bar.low <= o.price : c.bar.high >= o.price;
     if (!reached) continue;
@@ -240,7 +242,7 @@ void favorable_exits(BarCtx& c) {
   for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
     Order& o = c.st.orders[i];
     if (c.st.position.flat()) return;
-    if (!o.active() || (o.type != OrderType::Limit && o.type != OrderType::TakeProfit)) continue;
+    if (!o.active() || o.series != 0 || (o.type != OrderType::Limit && o.type != OrderType::TakeProfit)) continue;
     const bool closes = c.st.position.is_long() == (o.side == OrderSide::Sell);
     if (!closes) continue;
     const bool reached = o.side == OrderSide::Sell ? c.bar.high.raw >= o.price.raw + tick.raw
@@ -259,7 +261,7 @@ bool entry_reached(const BarCtx& c, const Order& o) {
 void entries(BarCtx& c) {
   for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
     Order& o = c.st.orders[i];
-    if (!o.active() || o.reduce_only || o.type == OrderType::Market || !entry_reached(c, o)) continue;
+    if (!o.active() || o.series != 0 || o.reduce_only || o.type == OrderType::Market || !entry_reached(c, o)) continue;
     const bool stop = is_stop(o);
     const Exec ex = stop ? Exec{taker_price(c.sc, o.price, o.side), false, kFlagAmbiguousIntrabar}
                          : Exec{o.price, true, kFlagAmbiguousIntrabar};
@@ -320,7 +322,8 @@ void emit_status(RunState& st, EventType type) {
 
 void finish_or_bankrupt(BarCtx& c) {
   RunState& st = c.st;
-  if (st.position.flat() && !has_entry_orders(st) && !can_afford_min_order(c.sc, st)) {
+  const bool exposed = !st.position.flat() || !st.option_positions.empty();
+  if (!exposed && !has_entry_orders(st) && !can_afford_min_order(c.sc, st)) {
     st.status = RunStatus::Bankrupt;
     emit_status(st, EventType::Bankrupt);
     return;
@@ -352,6 +355,7 @@ void update_trailing(BarCtx& c) {
 void close_phase(BarCtx& c, std::uint32_t index) {
   if (index % c.sc.contract.funding_interval == 0) detail::apply_funding(c.sc, c.st, index);
   close_liquidation(c);
+  detail::option_close_phase(c.sc, c.st, index);
   update_trailing(c);
   update_metrics(c);
   finish_or_bankrupt(c);
@@ -377,6 +381,7 @@ void advance(const Scenario& sc, RunState& st) {
   st.step = index;  // events of this step are stamped with the bar being processed
   BarCtx c{sc, st, sc.bars[index], bar_capacity(sc, sc.bars[index])};
   open_phase(c);
+  detail::option_open_phase(sc, st, index);
   intrabar_phase(c);
   close_phase(c, index);
 }

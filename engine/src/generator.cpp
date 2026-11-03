@@ -68,11 +68,15 @@ void generate_market(const GeneratorSpec& spec, std::uint64_t seed, Scenario& ou
   GenState g{spec.start_price};
   out.bars.clear();
   out.funding_rate.clear();
+  out.options.iv_base.clear();
   for (const Segment& seg : spec.segments) {
     for (std::uint32_t i = 0; i < seg.bars; ++i) {
       // The rate for bar i is published at the close of bar i-1, so it may only use state up to i-1.
       out.funding_rate.push_back(funding_for(spec, seg, g));
       out.bars.push_back(make_bar(seg, spec, g, rng, out.contract.tick_size));
+      // Implied vol known at the close of this bar: generator vol state, annualized, plus premium.
+      const double iv = seg.vol * det::sqrt(g.variance) * det::sqrt(spec.bars_per_year) * (1.0 + spec.iv_premium) * seg.iv_mult;
+      out.options.iv_base.push_back(Vol::from_raw(static_cast<std::int64_t>(std::floor(iv * Vol::kScale + 0.5))));
     }
   }
 }

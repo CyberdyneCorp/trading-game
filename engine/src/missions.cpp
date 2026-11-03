@@ -2,16 +2,27 @@
 // scenario packs (add-scenarios-and-gameplay); texts live in client i18n catalogs by mission id.
 
 #include <algorithm>
+#include <cmath>  // floor: exact
 
 #include "tradelab/generator.hpp"
 
 namespace tradelab {
 namespace {
 
+struct OptionChainDef {
+  std::uint32_t list_offset = 0;              // decision steps after warm-up
+  std::vector<std::uint32_t> expiry_offsets;  // bars after listing
+  std::int32_t strikes_each_side = 2;
+  double strike_step = 5.0;
+};
+
 struct MissionDef {
   MissionInfo info;
   GeneratorSpec gen;
   std::uint32_t funding_interval = 8;
+  bool options = false;
+  bool allow_short_options = false;
+  OptionChainDef chain;
 };
 
 ContractSpec default_contract() {
@@ -83,7 +94,74 @@ MissionDef volatility_shock() {
   return m;
 }
 
-std::vector<MissionDef> all_missions() { return {false_breakout(), funding_squeeze(), volatility_shock()}; }
+// Options I/II: buy calls/puts around a quiet range, a breakout with an IV spike, then an IV crush.
+MissionDef options_buyer() {
+  MissionDef m;
+  m.gen.segments = {
+      {70, 0.0000, 0.0045, 0.00, 0.0, 1.0, 0.0, 1.0},
+      {12, 0.0000, 0.0050, 0.00, 0.0, 1.0, 0.0, 1.35},     // event approaching: implied vol bid up
+      {20, 0.0045, 0.0110, 0.05, 0.02, 2.2, 0.0002, 1.2},  // breakout
+      {38, 0.0002, 0.0050, 0.01, 0.0, 1.0, 0.0, 0.75},     // IV crush after the event
+  };
+  m.info = {"m04-options-buyer", total_bars(m.gen), 60, 3, true};
+  m.options = true;
+  m.chain = {0, {36, 76}, 2, 5.0};
+  return m;
+}
+
+// Options III: writing options. Rich premium in a range, until a jump tests the margin.
+MissionDef options_writer() {
+  MissionDef m;
+  m.gen.iv_premium = 0.35;
+  m.gen.segments = {
+      {80, 0.0000, 0.0050, 0.00, 0.0, 1.0, 0.0, 1.0},
+      {40, 0.0000, 0.0045, 0.00, 0.0, 0.9, 0.0, 1.0},
+      {3, -0.0200, 0.0200, 0.70, -0.05, 3.5, -0.0008, 1.8},  // jump
+      {27, 0.0005, 0.0120, 0.05, 0.0, 1.6, 0.0, 1.3},
+  };
+  m.info = {"m05-options-writer", total_bars(m.gen), 60, 3, true};
+  m.options = true;
+  m.allow_short_options = true;
+  m.chain = {0, {48, 88}, 3, 5.0};
+  return m;
+}
+
+std::vector<MissionDef> all_missions() {
+  return {false_breakout(), funding_squeeze(), volatility_shock(), options_buyer(), options_writer()};
+}
+
+OptionSpec default_option_spec(bool allow_short) {
+  OptionSpec o;
+  o.multiplier = Qty::from_raw(Qty::kScale);
+  o.premium_tick = Price::from_raw(Price::kScale / 100);
+  o.lot_size = Qty::from_raw(Qty::kScale / 10);
+  o.fee_rate = Rate::from_raw(3'000'000);           // 0.03% of underlying notional
+  o.spread = Rate::from_raw(300'000'000);           // 3% half-spread on the model mid
+  o.skew = Vol::from_raw(-10'000'000);              // -0.10
+  o.smile = Vol::from_raw(40'000'000);              // 0.40
+  o.term_slope = Vol::from_raw(15'000'000);         // 0.15
+  o.im_base = Rate::from_raw(1'500'000'000);        // 15%
+  o.im_floor = Rate::from_raw(1'000'000'000);       // 10%
+  o.mm_base = Rate::from_raw(750'000'000);          // 7.5%
+  o.allow_short = allow_short;
+  return o;
+}
+
+// Strike grid centered on the close at the listing step (known at listing: no lookahead).
+void add_chain(Scenario& out, const OptionChainDef& def, std::uint32_t warmup) {
+  const std::uint32_t list = warmup + def.list_offset;
+  const double close = static_cast<double>(out.bars[list].close.raw) / Price::kScale;
+  const double center = std::floor(close / def.strike_step + 0.5) * def.strike_step;
+  std::uint32_t id = 1;
+  for (const std::uint32_t exp : def.expiry_offsets) {
+    for (std::int32_t k = -def.strikes_each_side; k <= def.strikes_each_side; ++k) {
+      const auto cents = static_cast<std::int64_t>(std::floor((center + k * def.strike_step) * 100.0 + 0.5));
+      const auto strike = Price::from_raw(cents * (Price::kScale / 100));
+      out.options.series.push_back({id++, OptionKind::Call, strike, list, list + exp});
+      out.options.series.push_back({id++, OptionKind::Put, strike, list, list + exp});
+    }
+  }
+}
 
 }  // namespace
 
@@ -107,7 +185,10 @@ bool build_mission(const std::string& id, std::uint64_t seed, Scenario& out) {
   out.mission.leverage_cap = it->info.leverage_cap;
   out.mission.warmup_bars = it->info.warmup_bars;
   out.mission.allow_short = it->info.allow_short;
+  if (it->options) out.options = default_option_spec(it->allow_short_options);
   generate_market(it->gen, seed, out);
+  if (it->options) add_chain(out, it->chain, it->info.warmup_bars);
+  else out.options.iv_base.clear();
   return validate(out) == ScenarioError::Ok;
 }
 

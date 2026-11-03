@@ -20,6 +20,7 @@ struct Segment {
   double jump_mean = 0.0;    // signed mean jump size (log)
   double volume_mult = 1.0;
   double funding_bias = 0.0;  // added to the funding rate in this segment
+  double iv_mult = 1.0;       // implied-vol multiplier in this segment (event premium / crush)
 };
 
 struct GeneratorSpec {
@@ -27,6 +28,8 @@ struct GeneratorSpec {
   double base_volume = 5000.0;
   double funding_base = 0.0001;   // per funding boundary
   double funding_sensitivity = 0.5;
+  double iv_premium = 0.10;      // implied over realized
+  double bars_per_year = 8760.0;  // hourly bars
   std::vector<Segment> segments;
 };
 

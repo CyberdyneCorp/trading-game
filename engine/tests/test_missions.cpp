@@ -90,7 +90,8 @@ TEST_CASE("C ABI: same mission, seed and commands produce identical digests") {
   CHECK(play() == play());
 }
 
-// Policy v2 changed the state digest (new order fields); the event stream digest is unchanged from v1.
+// Policy v2 changed the state digest (new order fields). Policy v3 adds the instrument (series) field
+// to orders and events, so both digests changed again; perpetual behavior tests are unchanged.
 TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run* run = tl_run_create("m01-false-breakout", 2026);
   tl_set_leverage(run, 1, 5);
@@ -106,6 +107,38 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"78017c602a784ff8d2902bc6e9a0e026b603969d74533d97bef8a12baf6dc080\","
-        "\"eventsDigest\":\"9c5add5f1877cccb615beac8ace07382478d0502d1fdd73a019059349f465162\"}");
+        "\"digest\":\"37a5211b22154bf1ab499d883f5ce7639374cc5f385595a546486b2a6a04e4b5\","
+        "\"eventsDigest\":\"c44f93d25fce536790e6dda6c9647877cc1f732977161d33f4fa9d1cd1f97174\"}");
+}
+
+TEST_CASE("Option missions: chain exposed at the decision step, trades settle through the C ABI") {
+  tl_run* run = tl_run_create("m04-options-buyer", 9);
+  REQUIRE(run != nullptr);
+  std::string s = tl_state(run);
+  CHECK(s.find("\"enabled\":true") != std::string::npos);
+  CHECK(s.find("\"kind\":\"call\"") != std::string::npos);
+  CHECK(s.find("\"allowShort\":false") != std::string::npos);
+  std::string r = tl_place_option_order(run, 1, 6, 0, 0, "5", nullptr);  // buy the ATM-ish call of expiry 1
+  CHECK(r.find("\"accepted\":true") != std::string::npos);
+  r = tl_place_option_order(run, 2, 6, 1, 0, "10", nullptr);  // would open a short: not allowed here
+  CHECK(r.find("short_options_not_allowed") != std::string::npos);
+  s = tl_advance(run, 1);
+  CHECK(s.find("\"positions\":[{\"series\":6") != std::string::npos);
+  s = tl_advance(run, 200);
+  CHECK(s.find("\"type\":\"option_settlement\"") != std::string::npos);
+  CHECK(s.find("\"positions\":[]") != std::string::npos);
+  tl_run_destroy(run);
+}
+
+TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
+  tl_run* run = tl_run_create("m05-options-writer", 77);
+  tl_place_option_order(run, 1, 7, 1, 0, "20", nullptr);   // write calls
+  tl_place_option_order(run, 2, 8, 1, 1, "10", "0.50");    // write puts with a limit
+  tl_advance(run, 30);
+  tl_place_option_order(run, 3, 7, 0, 0, "10", nullptr);   // buy back half
+  const std::string s = tl_advance(run, 1000);
+  tl_run_destroy(run);
+  CHECK(s.substr(s.find("\"digest\"")) ==
+        "\"digest\":\"1d219a1e4638ec7aa5729f8382edce50ef5ce193f9493effa7d169a38c79572d\","
+        "\"eventsDigest\":\"d9a87d6b7729273a34948561895c1bc7c57374c23cb167c0d2b0d88b14038c31\"}");
 }

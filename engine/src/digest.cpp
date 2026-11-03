@@ -23,6 +23,7 @@ void write_order(Writer& w, const Order& o) {
   w.u32(o.parent_id);
   w.u32(o.oco_group);
   w.fixed(o.trail_distance);
+  w.u32(o.series);
 }
 
 void write_event(Writer& w, const Event& e) {
@@ -39,6 +40,7 @@ void write_event(Writer& w, const Event& e) {
   w.fixed(e.requested);
   w.fixed(e.amount);
   w.fixed(e.pnl);
+  w.u32(e.series);
 }
 
 void write_metrics(Writer& w, const Metrics& m) {
@@ -74,6 +76,14 @@ Digest state_digest(const RunState& st) {
   w.fixed(st.fees_paid);
   w.fixed(st.funding_net);
   w.fixed(st.insurance_absorbed);
+  w.u32(static_cast<std::uint32_t>(st.option_positions.size()));
+  for (const OptionPosition& p : st.option_positions) {
+    w.u32(p.series);
+    w.fixed(p.qty);
+    w.fixed(p.avg_premium);
+  }
+  w.fixed(st.option_cash);
+  w.fixed(st.option_realized);
   write_metrics(w, st.metrics);
   w.u64(st.rng.state());
   w.u64(st.rng.inc());
