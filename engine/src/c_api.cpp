@@ -172,13 +172,24 @@ void write_series(JsonOut& j, std::string_view name, const Series& series) {
   j.end_arr();
 }
 
-// MVP indicators over closed bars 0..step (null while warming up).
+constexpr std::uint32_t kVwapSession = 24;  // one day of hourly bars
+
+// Indicators over closed bars 0..step (null while warming up).
 void write_indicators(JsonOut& j, const Scenario& sc, std::uint32_t step) {
   j.key("indicators").begin_obj().field("version", kIndicatorVersion);
   write_series(j, "sma20", sma(sc, step, 20));
   write_series(j, "ema50", ema(sc, step, 50));
   write_series(j, "rsi14", rsi(sc, step, 14));
   write_series(j, "atr14", atr(sc, step, 14));
+  write_series(j, "vwap", vwap(sc, step, kVwapSession));
+  const Macd m = macd(sc, step, 12, 26, 9);
+  write_series(j, "macd", m.line);
+  write_series(j, "macdSignal", m.signal);
+  write_series(j, "macdHist", m.histogram);
+  const Adx a = adx(sc, step, 14);
+  write_series(j, "plusDi14", a.plus_di);
+  write_series(j, "minusDi14", a.minus_di);
+  write_series(j, "adx14", a.adx);
   j.end_obj();
 }
 

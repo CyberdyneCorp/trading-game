@@ -31,7 +31,7 @@ test('plays a full mission: plan, order, protection, advance to debrief', async 
 	page.on('pageerror', (e) => errors.push(String(e)));
 	await openTerminal(page, 4242);
 
-	await page.getByRole('button', { name: '2%?' }).click();
+	await page.getByTestId('ticket-stop').getByRole('button', { name: '2%', exact: true }).click();
 	await page.getByRole('button', { name: /Enviar ordem/ }).click();
 	await expect(page.getByRole('dialog')).toBeVisible();
 	await page.locator('textarea').fill('Range: espero rompimento para cima');
@@ -112,8 +112,8 @@ test('regression: resuming twice keeps orders, leverage and progress', async ({ 
 
 test('regression: a pending stop/target survives a reload and attaches on fill', async ({ page }) => {
 	await openTerminal(page, 4242);
-	await page.locator('label:has-text("Stop loss") input').first().fill('90.00');
-	await page.locator('label:has-text("Take profit") input').first().fill('130.00');
+	await page.getByLabel('Stop loss').first().fill('90.00');
+	await page.getByLabel('Take profit').first().fill('130.00');
 	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
 	await page.getByRole('button', { name: /Enviar ordem/ }).click();
 	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
@@ -154,7 +154,7 @@ test('trailing stop can protect an open position and shows on the order list', a
 	await expect(page.getByText(/aceita não significa executada/).first()).toBeVisible();
 	await advance(page);
 	await expect(page.getByText(/Execução #1/)).toBeVisible();
-	await page.locator('label:has-text("Trailing stop") input').fill('2.00');
+	await page.getByLabel(/Trailing stop/).fill('2.00');
 	await page.getByRole('button', { name: /Enviar stop\/alvo/ }).click();
 	await expect(page.locator('.orders').getByText('TRAIL')).toBeVisible();
 });
@@ -226,4 +226,72 @@ test('news appear only once released (no lookahead), with fictional headlines', 
 	for (let i = 0; i < 12; i++) await advance(page); // to step 72: the rumor is published
 	await expect(page.getByText(/gestora fictícia Arbor teria comprado/i)).toBeVisible();
 	await expect(page.getByText(/nega rumor/i)).toHaveCount(0); // published at 82: still the future
+});
+
+test('stop and target presets: ATR stop, R-multiple target, distance and reward/risk shown', async ({ page }) => {
+	await openTerminal(page, 4242);
+	const stop = page.getByTestId('ticket-stop');
+	const tp = page.getByTestId('ticket-tp');
+	await stop.getByRole('button', { name: '2×ATR' }).click();
+	const stopValue = Number(await stop.locator('input').inputValue());
+	expect(stopValue).toBeGreaterThan(0);
+	await expect(stop.getByText(/2\.0×ATR/)).toBeVisible();
+	await tp.getByRole('button', { name: '2R', exact: true }).click();
+	expect(Number(await tp.locator('input').inputValue())).toBeGreaterThan(stopValue);
+	await expect(tp.getByText(/R:R 1:2\.0/)).toBeVisible();
+	// A stop on the wrong side is flagged and blocks submission.
+	await stop.locator('input').fill('999');
+	await expect(stop.getByText(/O stop precisa ficar </)).toBeVisible();
+	await expect(page.getByRole('button', { name: /Enviar ordem/ })).toBeDisabled();
+});
+
+test('a stop can be marked on the chart; Esc cancels picking', async ({ page }) => {
+	await openTerminal(page, 4242);
+	const stop = page.getByTestId('ticket-stop');
+	await stop.getByRole('button', { name: 'Marcar no gráfico', exact: true }).click();
+	await expect(page.getByText(/Clique no gráfico para marcar/)).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(page.getByText(/Clique no gráfico para marcar/)).toHaveCount(0);
+	await expect(stop.locator('input')).toHaveValue('');
+
+	await stop.getByRole('button', { name: 'Marcar no gráfico', exact: true }).click();
+	const canvas = page.locator('.canvas-box canvas');
+	const box = (await canvas.boundingBox())!;
+	await canvas.click({ position: { x: box.width / 3, y: box.height * 0.5 } });
+	await expect(page.getByText(/Clique no gráfico para marcar/)).toHaveCount(0);
+	expect(Number(await stop.locator('input').inputValue())).toBeGreaterThan(0);
+	// Space must not advance while a pick is pending, and does again afterwards.
+	const bar = await page.getByText(/Barra \d+ de/).textContent();
+	await stop.getByRole('button', { name: 'Marcar no gráfico', exact: true }).click();
+	await page.keyboard.press('Space');
+	await expect(page.getByText(/Barra \d+ de/)).toHaveText(bar!);
+});
+
+test('oscillator pane switches between RSI, MACD and ADX; VWAP overlay toggles', async ({ page }) => {
+	const errors: string[] = [];
+	page.on('pageerror', (e) => errors.push(String(e)));
+	await openTerminal(page, 4242);
+	const osc = page.getByTestId('osc-select');
+	await osc.selectOption('macd');
+	await expect(page.locator('.readout').getByText(/^MACD -?\d/)).toBeVisible();
+	await osc.selectOption('adx');
+	await expect(page.locator('.readout').getByText(/ADX \d+,\d · \+DI/)).toBeVisible();
+	await osc.selectOption('none');
+	await page.getByLabel('VWAP').check();
+	await expect(page.locator('.readout').getByText(/VWAP \d/)).toBeVisible();
+	expect(errors).toEqual([]);
+});
+
+test('an open position without a stop is flagged until protected', async ({ page }) => {
+	await openTerminal(page, 31);
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await expect(page.getByText(/Posição sem stop/)).toBeVisible();
+	await page.getByTestId('protect-stop').getByRole('button', { name: '1×ATR' }).click();
+	await page.getByRole('button', { name: /Enviar stop\/alvo/ }).click();
+	await expect(page.locator('.orders').getByText('STOP')).toBeVisible();
+	await expect(page.getByText(/Posição sem stop/)).toHaveCount(0);
 });

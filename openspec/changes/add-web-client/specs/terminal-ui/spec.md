@@ -41,6 +41,24 @@ The ticket SHALL accept size as quantity, notional, % of equity or risk budget; 
 - **WHEN** the player changes leverage from 3× to 10×
 - **THEN** margin and liquidation price in the ticket SHALL update before submission
 
+### Requirement: Stop and target tools
+Stop-loss and take-profit fields (new orders and protection of an open position) SHALL offer one-click presets — stop at 1× and 2× ATR(14), beyond the 10-bar swing low/high, at 1% and 2%; target at 1R, 2R and 3R of the stop distance — and a "mark on chart" mode where a click on the price pane sets the level (Escape cancels; Space SHALL NOT advance while marking). Each level SHALL show its distance from the entry in price, percent and ATR multiples, and the target SHALL show its reward/risk ratio. A stop on the profit side or a target on the loss side SHALL be flagged and block submission. Draft entry, stop, target and estimated liquidation SHALL be previewed on the chart before submission. An open position without a reduce-only stop or trailing stop SHALL show an "unprotected" warning. Presets SHALL be disabled while their input (e.g. ATR) is warming up.
+
+#### Scenario: ATR stop with a 2R target
+- **WHEN** the player clicks "2×ATR" and then "2R" on a buy ticket
+- **THEN** the stop SHALL be two ATRs below the estimated entry, the target twice that distance above it, and the ticket SHALL show "R:R 1:2.0"
+
+#### Scenario: Stop on the wrong side
+- **WHEN** a buy ticket has a stop above the estimated entry
+- **THEN** the ticket SHALL explain the problem and the submit button SHALL be disabled
+
+### Requirement: Indicator panes
+The chart SHALL offer SMA20, EMA50 and session VWAP as price overlays and a lower pane selectable between RSI(14) with 30/70 guides, MACD(12,26,9) with histogram, ADX(14) with +DI/−DI and a 25 guide, or volume only. Values SHALL come from the engine (spec indicators) and appear in the hover readout formatted for the locale.
+
+#### Scenario: Switch oscillator
+- **WHEN** the player selects MACD in the lower pane
+- **THEN** the pane SHALL draw the MACD line, signal and histogram for the visible bars and the readout SHALL show the hovered values
+
 ### Requirement: Option chain and option ticket
 The option chain SHALL list listed series by expiry and strike with bid, ask, IV and delta, labeled "simulated premiums". The option ticket SHALL show premium, max loss for buys, margin for writes, breakeven, a payoff-at-expiry diagram and Greeks before submission.
 

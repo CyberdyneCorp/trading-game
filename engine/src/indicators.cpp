@@ -5,6 +5,8 @@
 namespace tradelab {
 namespace {
 
+constexpr std::int64_t kHundred = 100 * Price::kScale;
+
 Price avg(i128 sum, std::uint32_t n) { return Price::from_raw(static_cast<std::int64_t>(div_round(sum, n, Rounding::HalfEven))); }
 
 std::int64_t true_range(const Scenario& sc, std::uint32_t i) {
@@ -29,6 +31,58 @@ Price rsi_value(std::int64_t gain, std::int64_t loss) {
   // 100 - 100 / (1 + gain/loss) = 100 * gain / (gain + loss)
   return Price::from_raw(static_cast<std::int64_t>(
       div_round(static_cast<i128>(gain) * 100 * Price::kScale, static_cast<i128>(gain) + loss, Rounding::HalfEven)));
+}
+
+// 100 * num / den in Price units (0 when den is 0).
+Price percent(std::int64_t num, std::int64_t den) {
+  if (den == 0) return Price{};
+  return Price::from_raw(static_cast<std::int64_t>(div_round(static_cast<i128>(num) * kHundred, den, Rounding::HalfEven)));
+}
+
+// EMA of an already-computed series: seeded with the SMA of its first `period` values.
+Series ema_of(const Series& in, std::uint32_t period) {
+  Series out(in.size(), std::nullopt);
+  std::size_t start = 0;
+  while (start < in.size() && !in[start]) ++start;
+  const std::size_t seed_at = start + period - 1;
+  if (period == 0 || seed_at >= in.size()) return out;
+  i128 sum = 0;
+  for (std::size_t i = start; i <= seed_at; ++i) {
+    const std::optional<Price>& v = in[i];
+    if (!v) return out;  // inputs are contiguous once warm; a gap means nothing to seed
+    sum += v->raw;
+  }
+  std::int64_t e = avg(sum, period).raw;
+  out[seed_at] = Price::from_raw(e);
+  for (std::size_t i = seed_at + 1; i < in.size(); ++i) {
+    const std::optional<Price>& v = in[i];
+    if (!v) break;
+    e += static_cast<std::int64_t>(div_round(static_cast<i128>(v->raw - e) * 2, period + 1, Rounding::HalfEven));
+    out[i] = Price::from_raw(e);
+  }
+  return out;
+}
+
+std::optional<Price> minus(const std::optional<Price>& a, const std::optional<Price>& b) {
+  if (!a.has_value() || !b.has_value()) return std::nullopt;
+  return Price::from_raw(a->raw - b->raw);
+}
+
+struct DirectionalMove {
+  std::int64_t plus = 0;
+  std::int64_t minus = 0;
+};
+
+DirectionalMove directional_move(const Scenario& sc, std::uint32_t i) {
+  const std::int64_t up = sc.bars[i].high.raw - sc.bars[i - 1].high.raw;
+  const std::int64_t down = sc.bars[i - 1].low.raw - sc.bars[i].low.raw;
+  return {up > down && up > 0 ? up : 0, down > up && down > 0 ? down : 0};
+}
+
+// DX from the smoothed directional moves (true range cancels out of +DI / -DI).
+std::int64_t dx(const DirectionalMove& s) {
+  const std::int64_t diff = s.plus > s.minus ? s.plus - s.minus : s.minus - s.plus;
+  return percent(diff, s.plus + s.minus).raw;
 }
 
 }  // namespace
@@ -93,6 +147,70 @@ Series atr(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
     out[i] = Price::from_raw(a);
   }
   return out;
+}
+
+Series vwap(const Scenario& sc, std::uint32_t last, std::uint32_t session) {
+  Series out = empty(last);
+  if (session == 0) return out;
+  i128 num = 0;  // sum((H + L + C) * volume); the /3 is applied once at the end
+  i128 den = 0;
+  for (std::uint32_t i = 0; i <= last; ++i) {
+    if (i % session == 0) num = den = 0;
+    const Bar& b = sc.bars[i];
+    const i128 typical3 = static_cast<i128>(b.high.raw) + b.low.raw + b.close.raw;
+    num += typical3 * b.volume.raw;
+    den += b.volume.raw;
+    out[i] = den == 0 ? Price::from_raw(static_cast<std::int64_t>(div_round(typical3, 3, Rounding::HalfEven)))
+                      : Price::from_raw(static_cast<std::int64_t>(div_round(num, den * 3, Rounding::HalfEven)));
+  }
+  return out;
+}
+
+Macd macd(const Scenario& sc, std::uint32_t last, std::uint32_t fast, std::uint32_t slow, std::uint32_t signal) {
+  Macd m{empty(last), empty(last), empty(last)};
+  const Series f = ema(sc, last, fast);
+  const Series s = ema(sc, last, slow);
+  for (std::uint32_t i = 0; i <= last; ++i) m.line[i] = minus(f[i], s[i]);
+  m.signal = ema_of(m.line, signal);
+  for (std::uint32_t i = 0; i <= last; ++i) m.histogram[i] = minus(m.line[i], m.signal[i]);
+  return m;
+}
+
+Adx adx(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
+  Adx a{empty(last), empty(last), empty(last)};
+  if (period == 0 || last < period) return a;
+  DirectionalMove dm;
+  std::int64_t tr = 0;
+  i128 plus = 0;
+  i128 minus = 0;
+  i128 trs = 0;
+  for (std::uint32_t i = 1; i <= period; ++i) {
+    const DirectionalMove d = directional_move(sc, i);
+    plus += d.plus;
+    minus += d.minus;
+    trs += true_range(sc, i);
+  }
+  dm = {avg(plus, period).raw, avg(minus, period).raw};
+  tr = avg(trs, period).raw;
+  i128 dx_sum = 0;
+  std::int64_t smoothed = 0;
+  for (std::uint32_t i = period; i <= last; ++i) {
+    if (i > period) {
+      const DirectionalMove d = directional_move(sc, i);
+      dm = {wilder(dm.plus, d.plus, period), wilder(dm.minus, d.minus, period)};
+      tr = wilder(tr, true_range(sc, i), period);
+    }
+    a.plus_di[i] = percent(dm.plus, tr);
+    a.minus_di[i] = percent(dm.minus, tr);
+    const std::uint32_t k = i - period;  // DX index
+    if (k + 1 < period) {
+      dx_sum += dx(dm);
+      continue;
+    }
+    smoothed = k + 1 == period ? avg(dx_sum + dx(dm), period).raw : wilder(smoothed, dx(dm), period);
+    a.adx[i] = Price::from_raw(smoothed);
+  }
+  return a;
 }
 
 }  // namespace tradelab
