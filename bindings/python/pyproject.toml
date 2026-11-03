@@ -1,0 +1,19 @@
+[project]
+name = "tradelab-engine"
+version = "0.1.0"
+description = "Python binding of the TradeLab deterministic engine (ctypes over the C ABI)"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tradelab_engine"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

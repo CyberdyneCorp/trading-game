@@ -38,6 +38,14 @@ add_library(tradelab_engine STATIC
 )
 add_library(tradelab::engine ALIAS tradelab_engine)
 target_include_directories(tradelab_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set_target_properties(tradelab_engine PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Shared library exposing the C ABI (c_api.h) for the Python binding used by the game server.
+if(NOT EMSCRIPTEN)
+  add_library(tradelab_capi SHARED src/capi_shared.cpp)
+  target_link_libraries(tradelab_capi PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,tradelab::engine>")
+  set_target_properties(tradelab_capi PROPERTIES OUTPUT_NAME tradelab)
+endif()
 target_compile_options(tradelab_engine PRIVATE
   ${TRADELAB_DETERMINISM_FLAGS} -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
 if(EMSCRIPTEN)
