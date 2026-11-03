@@ -163,7 +163,11 @@
 			if (e.key === 'Escape' || e.key.toLowerCase() === 'p') patterns = false;
 			return;
 		}
-		if (e.key === 'Escape') help = patterns = false;
+		if (help) {
+			// Help is modal too: Space must not advance the market behind it.
+			if (e.key === 'Escape' || e.key === '?') help = false;
+			return;
+		}
 		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
 		const actions: Record<string, () => void> = {
 			// While auto-advance runs, Space takes control back instead of advancing.

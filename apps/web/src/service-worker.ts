@@ -9,6 +9,7 @@
 import { self } from '$app/service-worker';
 import { assets, immutable, prerendered } from '$app/manifest';
 import { version } from '$app/env';
+import { swRoute } from '#lib/game/swRoutes.ts';
 
 const CACHE = `tradelab-${version}`;
 const SHELL = new URL('./', self.registration.scope).href;
@@ -54,6 +55,7 @@ async function cacheFirst(request: Request): Promise<Response> {
 
 self.addEventListener('fetch', (event) => {
 	const { request } = event;
-	if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
-	event.respondWith(request.mode === 'navigate' ? navigate(request) : cacheFirst(request));
+	const route = swRoute(request.method, request.mode, new URL(request.url), self.location.origin);
+	if (route === 'network') return;
+	event.respondWith(route === 'navigate' ? navigate(request) : cacheFirst(request));
 });

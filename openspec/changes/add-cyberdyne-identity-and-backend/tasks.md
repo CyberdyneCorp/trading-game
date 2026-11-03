@@ -8,10 +8,10 @@
 
 ## 2. API skeleton
 - [ ] 2.1 FastAPI hexagonal layout, settings, health, Alembic migrations — done: `domain/`, `ports.py`, `application/`, `adapters/`, `http/`, `TRADELAB_*` settings (`config.py`), `GET /api/v1/health`; pending: Alembic (tables are created at startup by `Base.metadata.create_all` in `adapters/db.py`)
-- [x] 2.2 OIDC adapter: discovery cache, JWKS cache with kid refresh, claim validation (aud, type, iss, exp, sub) — `adapters/oidc.py`; tests cover wrong aud, `type=refresh`, foreign iss, expired, key rotation
+- [x] 2.2 OIDC adapter: discovery cache and JWKS cache sharing a TTL, with kid refresh, claim validation (aud, type, iss, exp, sub) — `adapters/oidc.py`; tests cover wrong aud, `type=refresh`, foreign iss, expired, key rotation
 - [ ] 2.3 BFF login/callback/logout/refresh, `__Host-` session store, CSRF; regression test: CyberdyneAuth parent-domain cookie alone → 401 — not started; the API reads only `Authorization: Bearer` today (cookies are ignored by construction, but no regression test exists)
 - [ ] 2.4 Roles/permissions resolver with fail-closed fallback — not started (no staff endpoints yet)
-- [ ] 2.5 Idempotency, rate limits, size limits — done: `Idempotency-Key` required on `POST /sync/batches` and `DELETE /me/data` (400 missing, 409 reused with another body, per-player keys), `Content-Length` > `TRADELAB_MAX_BODY_BYTES` → 413, > 50 runs per batch → 413, ≤ 20,000 actions per run; pending: per-user rate limits, a body limit that also covers requests without `Content-Length`
+- [ ] 2.5 Idempotency, rate limits, size limits — done: `Idempotency-Key` required on `POST /sync/batches` and `DELETE /me/data` (400 missing, 409 reused with another body, per-player keys), body above `TRADELAB_MAX_BODY_BYTES` (declared or streamed) → 413, malformed `Content-Length` → 400, > 50 runs per batch → 413, ≤ 20,000 actions per run; pending: per-user rate limits
 
 ## 3. Domain
 - [ ] 3.1 Catalog + pack metadata + range/ETag delivery with entitlement gate — not started; only `GET /api/v1/missions` (the engine's built-in missions) exists
