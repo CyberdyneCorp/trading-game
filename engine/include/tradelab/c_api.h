@@ -1,0 +1,44 @@
+/* Stable C ABI used by the WASM, Python and JNI bindings.
+ *
+ * Every function returning `const char*` returns UTF-8 JSON owned by the run (or a static
+ * buffer for run-less calls), valid until the next call on the same run. Monetary values
+ * are decimal strings of fixed-point integers; never parse them into floats for state.
+ * Only bars up to the current decision step are ever serialized (no lookahead).
+ */
+#ifndef TRADELAB_C_API_H
+#define TRADELAB_C_API_H
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct tl_run tl_run; /* NOLINT(readability-identifier-naming): C ABI */
+
+/* Order types: 0 market, 1 limit, 2 stop-market, 3 take-profit. Sides: 0 buy, 1 sell. */
+
+const char* tl_version(void);
+const char* tl_missions(void);
+
+/* Returns NULL for an unknown mission id. */
+tl_run* tl_run_create(const char* mission_id, uint32_t seed);
+void tl_run_destroy(tl_run* run);
+
+const char* tl_place_order(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
+                           const char* price, int32_t reduce_only);
+const char* tl_cancel_order(tl_run* run, uint32_t client_id, uint32_t order_id);
+const char* tl_set_leverage(tl_run* run, uint32_t client_id, int32_t leverage);
+const char* tl_close_position(tl_run* run, uint32_t client_id);
+
+/* Advances up to `steps` bars (stops early if the run ends) and returns the state. */
+const char* tl_advance(tl_run* run, int32_t steps);
+const char* tl_state(tl_run* run);
+/* Available once the run is finished or bankrupt; otherwise {"error":"run_active"}. */
+const char* tl_debrief(tl_run* run);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* TRADELAB_C_API_H */

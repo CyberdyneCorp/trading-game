@@ -14,7 +14,7 @@
 ## 3. Simulation core
 - [ ] 3.1 Scenario model + validation; RunState; Command/Event types; IDL → C++/TS types
 - [ ] 3.2 Step loop with phases in spec order; event sequence numbering
-- [ ] 3.3 Command idempotency (client command id) and sequence/step validation
+- [x] 3.3 Command idempotency (client command id) and sequence/step validation
 - [ ] 3.4 Property test: no-lookahead (mutate future, compare prefix) — SIM01
 - [ ] 3.5 RunState checkpoint save/restore with version check; resume-equals-uninterrupted test
 
@@ -27,11 +27,11 @@
 - [ ] 4.6 Goldens SIM03–SIM07
 
 ## 5. Perpetual futures
-- [ ] 5.1 One-way positions, average entry, flips
+- [x] 5.1 One-way positions, average entry, flips
 - [ ] 5.2 Isolated margin, leverage caps, add/remove margin
-- [ ] 5.3 Liquidation price + liquidation (adverse extreme first, gap handling, insurance fund)
-- [ ] 5.4 Funding from series or synthetic rule
-- [ ] 5.5 Property tests: reconciliation (SIM08), non-negative balances; goldens FUT01–FUT04
+- [x] 5.3 Liquidation price + liquidation (adverse extreme first, gap handling, insurance fund)
+- [x] 5.4 Funding from series or synthetic rule
+- [x] 5.5 Property tests: reconciliation (SIM08), non-negative balances; goldens FUT01–FUT04
 
 ## 6. Options
 - [ ] 6.1 Series listing, Black-76 pricing, spread, quantization
