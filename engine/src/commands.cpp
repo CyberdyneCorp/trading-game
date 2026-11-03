@@ -183,6 +183,26 @@ CommandResult close_position(const Scenario& sc, RunState& st, const Command& c)
   return place_order(sc, st, m);
 }
 
+// Spec perpetual-futures "Isolated margin and leverage": add at any decision point; remove only
+// while the position stays at or above its initial margin.
+CommandResult adjust_margin(const Scenario& sc, RunState& st, const Command& c) {
+  Position& p = st.position;
+  if (p.flat()) return reject(Reason::PositionClosed);
+  if (c.margin_delta.raw == 0) return reject(Reason::InvalidQuantity);
+  if (c.margin_delta.raw > 0 && c.margin_delta > account_view(sc, st).available) return reject(Reason::InsufficientMargin);
+  if (c.margin_delta.raw < 0) {
+    const Money im = detail::initial_margin(detail::notional(sc, p.qty, p.entry, Rounding::Ceil), st.leverage);
+    if (p.margin.raw + c.margin_delta.raw < im.raw) return reject(Reason::MarginBelowInitial);
+  }
+  p.margin = Money::from_raw(p.margin.raw + c.margin_delta.raw);
+  Event ev;
+  ev.type = EventType::MarginAdjusted;
+  ev.amount = c.margin_delta;
+  ev.qty = detail::abs_qty(p.qty);
+  detail::push_event(st, ev);
+  return CommandResult{true, Reason::None, 0, Reason::None};
+}
+
 CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
   switch (c.type) {
     case CommandType::PlaceOrder: return place_order(sc, st, c);
@@ -190,6 +210,7 @@ CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
     case CommandType::SetLeverage: return set_leverage(sc, st, c);
     case CommandType::ClosePosition: return close_position(sc, st, c);
     case CommandType::PlaceOptionOrder: return detail::place_option_order(sc, st, c, account_view(sc, st).available);
+    case CommandType::AdjustMargin: return adjust_margin(sc, st, c);
   }
   return reject(Reason::UnsupportedOrderType);
 }

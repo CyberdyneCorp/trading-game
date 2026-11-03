@@ -27,6 +27,7 @@ export type EngineRequest =
 			qty: string;
 			premium: string | null;
 	  }
+	| { kind: 'margin'; clientId: number; amount: string }
 	| { kind: 'cancel'; clientId: number; orderId: number }
 	| { kind: 'leverage'; clientId: number; leverage: number }
 	| { kind: 'close'; clientId: number }

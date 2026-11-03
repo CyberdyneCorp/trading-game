@@ -81,7 +81,8 @@ export type EventTypeName =
 	| 'run_finished'
 	| 'leverage_changed'
 	| 'option_settlement'
-	| 'margin_call';
+	| 'margin_call'
+	| 'margin_adjusted';
 
 export interface EngineEvent {
 	seq: number;

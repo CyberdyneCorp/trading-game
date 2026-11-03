@@ -14,6 +14,8 @@ enum class ErrorCode : std::uint16_t {
   InvalidScale = 4,
   TruncatedInput = 5,
   NonCanonicalEncoding = 6,
+  IncompatiblePolicy = 7,
+  ScenarioMismatch = 8,
 };
 
 // Minimal expected-like type (C++20 has no std::expected; exceptions are disabled on wasm).

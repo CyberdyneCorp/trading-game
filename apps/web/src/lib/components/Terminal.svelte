@@ -133,7 +133,14 @@
 		<TopBar {session} onHelp={() => (help = true)} />
 		<div class="main">
 			<section class="panel chart"><Chart game={session.state} /></section>
-			<RightRail state={session.state} plannedRisk={Number(session.state.position.qty) !== 0 ? lastPlannedRisk : null} />
+			<RightRail
+				game={session.state}
+				plannedRisk={Number(session.state.position.qty) !== 0 ? lastPlannedRisk : null}
+				onMargin={async (amount) => {
+					const r = await session.adjustMargin(amount);
+					if (r && !r.accepted) notify(r.reason);
+				}}
+			/>
 		</div>
 		<div class="bottom">
 			<div class="stack">

@@ -56,6 +56,7 @@ enum class Reason : std::uint8_t {
   ShortOptionsNotAllowed = 25,
   NoBid = 26,
   MarginCall = 27,
+  MarginBelowInitial = 28,
 };
 
 enum class EventType : std::uint8_t {
@@ -68,6 +69,7 @@ enum class EventType : std::uint8_t {
   LeverageChanged = 6,
   OptionSettlement = 7,
   MarginCall = 8,
+  MarginAdjusted = 9,
 };
 
 enum class RunStatus : std::uint8_t { Active = 0, Finished = 1, Bankrupt = 2 };
