@@ -51,12 +51,16 @@ A trailing stop-market SHALL track the best close observed since activation by a
 - **THEN** the trail SHALL be updated from the close, not the high
 
 ### Requirement: Brackets, OCO and reduce-only
-Exit orders of a bracket SHALL be reduce-only and SHALL share the filled entry quantity. Partial entry fills SHALL create protection only for the filled quantity. A fill on one exit SHALL reduce its sibling by the same quantity. When the position reaches zero, all reduce-only orders for that market SHALL be cancelled. A reduce-only order SHALL never increase or flip a position.
+Exit orders of a bracket SHALL be reduce-only and SHALL share the filled entry quantity. Partial entry fills SHALL create protection only for the filled quantity. A fill on one exit SHALL reduce its sibling by the same quantity. When the position reaches zero, all other reduce-only orders for that market SHALL be cancelled with reason `position_closed`, after the fill event that closed it; the order whose fill closed the position SHALL end `filled` and SHALL NOT be reported as cancelled. A reduce-only order SHALL never increase or flip a position.
 
 #### Scenario: Partial OCO (SIM06)
 - **WHEN** an entry for 10 contracts fills 6, then the stop fills 4
 - **THEN** the take-profit SHALL be reduced to 2 and the position SHALL be 2
 - **AND** no order SHALL be able to flip the position to the opposite side
+
+#### Scenario: Closing order is filled, not cancelled
+- **WHEN** a reduce-only stop fills and closes the position while its take-profit sibling is resting
+- **THEN** the stop SHALL have no `cancelled` update, and the take-profit's `cancelled` (`position_closed`) update SHALL come after the stop's fill event
 
 ### Requirement: Conservative OHLC intrabar policy
 When only OHLC data is available the engine SHALL: process the open (gaps) first; for an existing position whose stop and target are both reachable within the same bar, fill the stop; for an entry filled intrabar, not credit a favorable exit in the same bar but allow the adverse stop; evaluate liquidation against the adverse extreme before any favorable exit; never infer an unobserved path. Every fill decided under ambiguity SHALL carry the flag `ambiguousIntrabar`.

@@ -5,6 +5,7 @@
 	import { fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { OSCILLATORS, type Oscillator, type Palette } from './chartPanes.ts';
+	import { candleRange, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
 	import { patternName } from '#lib/game/candlePatterns.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
 
@@ -116,21 +117,9 @@
 		return { priceH, volTop: priceH + 4, volH: volH - 4, oscTop: priceH + volH + 8, oscH: oscH - 4 };
 	}
 
-	function priceRange(lv: Level[]): [number, number] {
-		let lo = Infinity;
-		let hi = -Infinity;
-		for (const b of visible) {
-			lo = Math.min(lo, b[2]);
-			hi = Math.max(hi, b[1]);
-		}
-		for (const l of lv) {
-			if (l.price > 0 && l.price > lo * 0.8 && l.price < hi * 1.2) {
-				lo = Math.min(lo, l.price);
-				hi = Math.max(hi, l.price);
-			}
-		}
-		const pad = (hi - lo) * 0.08 || 1;
-		return [lo - pad, hi + pad];
+	function scaleFor(lv: Level[]): [number, number] {
+		const [lo, hi] = candleRange(visible.map((b) => b[2]), visible.map((b) => b[1]));
+		return priceRange(lo, hi, lv.map((l) => l.price));
 	}
 
 	function draw(): void {
@@ -144,7 +133,7 @@
 		ctx.imageSmoothingEnabled = false;
 
 		const lv = levels();
-		const [lo, hi] = priceRange(lv);
+		const [lo, hi] = scaleFor(lv);
 		const plotW = width - AXIS_W;
 		const { priceH, volTop, volH, oscTop, oscH } = layout();
 		scale = { lo, hi, priceH };
@@ -167,7 +156,7 @@
 		if (showBb) drawBands(ctx, x, y);
 		if (showPatterns) drawPatterns(ctx, slotW, x, y);
 		if (showVwap) drawLine(ctx, game.indicators.vwap, cssVar('--vwap'), x, y);
-		for (const l of lv) drawLevel(ctx, l, plotW, y);
+		drawLevels(ctx, lv, plotW, priceH, y, lo, hi);
 		if (osc !== 'none') {
 			const pane = { top: oscTop, h: oscH, width: plotW, first, count: visible.length, x, slotW };
 			OSCILLATORS[osc](ctx, pane, game.indicators, palette());
@@ -387,23 +376,32 @@
 		}
 	}
 
-	function drawLevel(ctx: CanvasRenderingContext2D, l: Level, plotW: number, y: (p: number) => number) {
-		const yy = y(l.price);
-		if (yy < 0 || yy > height) return;
+	// Lines at their price (or pinned to the edge with an arrow when off-scale); tags spread apart so
+	// nearby levels (ENTRY? on ENTRY) stay readable.
+	function drawLevels(ctx: CanvasRenderingContext2D, lv: Level[], plotW: number, priceH: number, y: (p: number) => number, lo: number, hi: number) {
+		const shown = lv.filter((l) => l.price > 0);
+		const pins = shown.map((l) => pinOf(l.price, lo, hi));
+		const lineY = shown.map((l, i) => (pins[i] === 'above' ? 4.5 : pins[i] === 'below' ? priceH - 3.5 : y(l.price)));
+		const tagY = spreadLabels(lineY, 0, priceH);
+		ctx.font = '11px "IBM Plex Mono", monospace';
+		shown.forEach((l, i) => drawLevel(ctx, l, plotW, lineY[i], tagY[i], pins[i]));
+	}
+
+	function drawLevel(ctx: CanvasRenderingContext2D, l: Level, plotW: number, yy: number, tag: number, pin: Pin) {
 		ctx.strokeStyle = l.color;
-		ctx.setLineDash(l.dash);
+		ctx.setLineDash(pin ? [2, 6] : l.dash);
 		ctx.beginPath();
-		ctx.moveTo(0, yy);
+		ctx.moveTo(pin ? plotW * 0.6 : 0, yy);
 		ctx.lineTo(plotW, yy);
 		ctx.stroke();
 		ctx.setLineDash([]);
-		ctx.font = '11px "IBM Plex Mono", monospace';
 		ctx.fillStyle = l.color;
-		const w = ctx.measureText(l.label).width;
-		ctx.fillText(l.label, plotW - w - 4, yy - 4);
-		ctx.fillRect(plotW, yy - 8, AXIS_W, 16);
+		const label = pin === 'above' ? `${l.label} ▲` : pin === 'below' ? `${l.label} ▼` : l.label;
+		const w = ctx.measureText(label).width;
+		ctx.fillText(label, plotW - w - 4, tag - 4);
+		ctx.fillRect(plotW, tag - 8, AXIS_W, 16);
 		ctx.fillStyle = cssVar('--bg');
-		ctx.fillText(l.price.toFixed(2), plotW + 6, yy + 4);
+		ctx.fillText(l.price.toFixed(2), plotW + 6, tag + 4);
 	}
 
 	function drawHover(ctx: CanvasRenderingContext2D, slotW: number, priceH: number, x: (i: number) => number) {

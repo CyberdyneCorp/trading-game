@@ -6,6 +6,7 @@
 	import { missionText } from '#lib/game/missions.ts';
 	import Chart from './Chart.svelte';
 	import { describeEvent } from './EventFeed.svelte';
+	import type { EngineTrade } from '#lib/engine/types.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const s = $derived(session.state!);
@@ -14,6 +15,13 @@
 	// Engine report (authoritative; the server recomputes the same thing from the same commands).
 	const a = $derived({ netPnl: Number(d.netPnl), dims: d.score.dims, total: d.score.total, findings: d.findings, lesson: d.lesson });
 	const trades = $derived(d.trades);
+	// "▲ COMPRA P 100 · exp 96" for option trades, "▲ LONG" for the perpetual.
+	function tradeLabel(tr: EngineTrade): string {
+		const arrow = tr.side === 'long' ? '▲' : '▼';
+		if (!tr.series) return `${arrow} ${tr.side === 'long' ? 'LONG' : 'SHORT'}`;
+		const series = tr.kind && tr.strike ? `${tr.kind === 'call' ? 'C' : 'P'} ${fmtPrice(tr.strike, L)} · exp ${tr.expiryStep}` : `OPT#${tr.series}`;
+		return `${arrow} ${t(tr.side === 'long' ? 'trade.optBuy' : 'trade.optWrite')} ${series}`;
+	}
 	const cal = $derived({
 		resolved: d.calibration.resolved,
 		score: d.score.dims.calibration.score,
@@ -122,7 +130,7 @@
 						{@const r = tr.rBp == null ? null : tr.rBp / 10000}
 						<tr>
 							<td>{tr.n}</td>
-							<td class={tr.side === 'long' ? 'up' : 'down'}>{tr.side === 'long' ? '▲ LONG' : '▼ SHORT'} {Number(tr.qty)}</td>
+							<td class={tr.side === 'long' ? 'up' : 'down'}>{tradeLabel(tr)} × {Number(tr.qty)}</td>
 							<td class="num">{fmtPrice(tr.entryAvg, L)} <span class="muted">@{tr.entryStep}</span></td>
 							<td class="num">{Number(tr.exitAvg) > 0 ? fmtPrice(tr.exitAvg, L) : '—'}</td>
 							<td class="num {net >= 0 ? 'up' : 'down'}">{signMark(net)} {fmtMoney(net, L, true)}</td>

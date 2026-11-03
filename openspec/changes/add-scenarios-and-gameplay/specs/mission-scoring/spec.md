@@ -9,11 +9,19 @@ Defines how a mission attempt is graded so that the score rewards risk disciplin
 ### Requirement: Score dimensions
 The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 1) from the command log with integer arithmetic only.
 
-Plan coherence SHALL be non-applicable when the attempt has no exposure-increasing entries. Otherwise, in scoring version 1, it SHALL be `70 × min(plans, entries) / entries + 30 × plans with an invalidation level / plans`, where skipped plans do not count as plans, and 0 when no plan was recorded.
+Entries are exposure-increasing fills of the perpetual and of each option series (buying or writing to open). Plan coherence SHALL be non-applicable when the attempt has no entries. Otherwise, in scoring version 1, it SHALL be `70 × min(plans, entries) / entries + 30 × plans with an invalidation level / plans`, where skipped plans do not count as plans, and 0 when no plan was recorded.
 
 #### Scenario: Renormalization
 - **WHEN** a mission has no calibration questions
 - **THEN** the remaining weights SHALL be scaled to sum to 100%
+
+#### Scenario: Options trades count
+- **WHEN** the player only buys an option and holds it to expiry
+- **THEN** it SHALL count as an entry (the attempt is not "waiting"), and the debrief SHALL list it as a trade in its series with its premium, settlement value, net result and exit reason `expiry`
+
+#### Scenario: Skipped plan has no R
+- **WHEN** a trade's plan was skipped
+- **THEN** the trade SHALL have no planned risk and no R multiple, even if the client sent a risk estimate with the skipped plan
 
 #### Scenario: Waiting the whole mission (EDU02)
 - **WHEN** the player never trades
@@ -22,7 +30,7 @@ Plan coherence SHALL be non-applicable when the attempt has no exposure-increasi
 ### Requirement: Risk dimension
 The risk dimension SHALL evaluate adherence to planned risk, leverage relative to the mission cap and to the stop distance, distance kept from liquidation, drawdown versus mission budget and exposure under declared uncertainty. Using higher leverage SHALL never increase the risk score.
 
-Scoring version 1 SHALL start at 100 and subtract: 40 if any liquidation occurred; 20 per entry without a reduce-only stop or trailing stop placed around it (at most 40); 20 if any plan declared a planned risk above 2% of initial capital; 15 if any order was accepted with a stop beyond the liquidation price; 15 if the maximum drawdown exceeded 20% of initial capital; floored at 0.
+Scoring version 1 SHALL start at 100 and subtract: 40 if any liquidation occurred; 20 per perpetual entry without a reduce-only stop or trailing stop placed around it (at most 40; option entries are not counted: a bought option's premium is its maximum loss, and written options are policed by margin calls); 20 if any plan declared a planned risk above 2% of initial capital; 15 if any order was accepted with a stop beyond the liquidation price; 15 if the maximum drawdown exceeded 20% of initial capital; floored at 0.
 
 #### Scenario: Leverage never rewarded
 - **WHEN** two attempts have identical decisions except one used 10× and the other 3× with the same planned risk

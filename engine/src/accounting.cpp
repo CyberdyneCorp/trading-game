@@ -96,12 +96,13 @@ void apply_fill(const Scenario& sc, RunState& st, const FillSpec& f) {
   Position& p = st.position;
   Money pnl{};
   Qty rest = f.qty;
+  bool closed = false;
   const bool opposite_dir = !p.flat() && (p.is_long() != (f.side == OrderSide::Buy));
   if (opposite_dir) {
     const Qty closing = Qty::from_raw(std::min(rest.raw, abs_qty(p.qty).raw));
     pnl = reduce(sc, st, closing, f.price);
     rest = Qty::from_raw(rest.raw - closing.raw);
-    if (p.flat()) cancel_orphan_reduce_only(st, Reason::PositionClosed);
+    closed = p.flat();
   }
   if (rest.raw > 0) increase(sc, st, f.side, rest, f.price);
 
@@ -124,11 +125,13 @@ void apply_fill(const Scenario& sc, RunState& st, const FillSpec& f) {
   ev.pnl = pnl;
   ev.flags = f.flags;
   push_event(st, ev);
+  // After the fill event, and never the order being filled: it ends `filled`, not `cancelled`.
+  if (closed) cancel_orphan_reduce_only(st, Reason::PositionClosed, f.order_id);
 }
 
-void cancel_orphan_reduce_only(RunState& st, Reason reason) {
+void cancel_orphan_reduce_only(RunState& st, Reason reason, std::uint32_t keep_order) {
   for (Order& o : st.orders) {
-    if (!o.active() || !o.reduce_only) continue;
+    if (!o.active() || !o.reduce_only || (keep_order != 0 && o.id == keep_order)) continue;
     o.status = OrderStatus::Cancelled;
     emit_order_update(st, o, reason);
   }

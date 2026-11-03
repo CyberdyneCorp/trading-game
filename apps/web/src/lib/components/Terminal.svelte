@@ -2,7 +2,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { OrderSideName } from '#lib/engine/types.ts';
-	import { t } from '#lib/game/i18n.svelte.ts';
+	import { reasonText, t } from '#lib/game/i18n.svelte.ts';
 	import { AutoPlay, type PauseReason } from '#lib/game/autoplay.svelte.ts';
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
@@ -133,7 +133,7 @@
 	}
 
 	function notify(reason: string) {
-		session.notice = { tone: 'error', text: `✖ ${reason}` };
+		session.notice = { tone: 'error', text: `✖ ${reasonText(reason)}` };
 	}
 
 	function onSubmit(d: OrderDraft) {

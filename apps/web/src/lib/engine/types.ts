@@ -258,6 +258,12 @@ export interface EngineFinding {
 
 export interface EngineTrade {
 	n: number;
+	/** 0 = perpetual; otherwise the option series (prices are premiums). */
+	series: number;
+	/** Option rows only. */
+	kind?: 'call' | 'put';
+	strike?: Decimal;
+	expiryStep?: number;
 	side: 'long' | 'short';
 	entryStep: number;
 	exitStep: number | null;
@@ -268,7 +274,7 @@ export interface EngineTrade {
 	fees: Decimal;
 	net: Decimal;
 	bars: number;
-	reason: 'stop' | 'target' | 'manual' | 'liquidation' | 'open';
+	reason: 'stop' | 'target' | 'manual' | 'liquidation' | 'open' | 'expiry';
 	plannedRisk: Decimal;
 	rBp: number | null;
 	planRespected: boolean | null;

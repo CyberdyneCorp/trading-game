@@ -204,6 +204,21 @@ test('options mission: buy a call from the chain with a plan, hold to expiry, se
 	await expect(page.getByText(/Vencimento OPT#/).first()).toBeVisible();
 });
 
+test('regression: an options trade is listed in the debrief (was "you did not trade")', async ({ page }) => {
+	await page.goto('/?seed=12');
+	await page.getByRole('button', { name: /Iniciar missão/ }).nth(3).click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await answerIfAsked(page);
+	await page.locator('.chain table').first().locator('tbody tr').nth(2).locator('td').nth(6).getByRole('button').click();
+	await page.getByRole('button', { name: /Enviar ordem de opção/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) await advance(page, 'Shift+Space');
+	await expect(page.getByText(/Missão concluída/)).toBeVisible();
+	await expect(page.getByText(/COMPRA P 100/)).toBeVisible();
+	await expect(page.locator('.trades').getByText('vencimento')).toBeVisible();
+	await expect(page.getByText(/Você não operou/)).toHaveCount(0);
+});
+
 test('isolated margin can be added and removed only down to the initial margin', async ({ page }) => {
 	await openTerminal(page, 31);
 	await page.locator('label:has-text("Alavancagem") input').first().fill('5');
@@ -217,7 +232,7 @@ test('isolated margin can be added and removed only down to the initial margin',
 	await expect(page.getByText(/Margem isolada ajustada: \+100,00 cr/)).toBeVisible();
 	await page.getByRole('button', { name: '− margem' }).click();
 	await page.getByRole('button', { name: '− margem' }).click();
-	await expect(page.getByText(/margin_below_initial/)).toBeVisible();
+	await expect(page.getByText(/margem ficaria abaixo da inicial/)).toBeVisible(); // reason codes are translated
 });
 
 test('news appear only once released (no lookahead), with fictional headlines', async ({ page }) => {

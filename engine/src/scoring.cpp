@@ -10,6 +10,7 @@ constexpr std::int64_t kBp = 10000;
 std::int64_t abs64(std::int64_t v) { return v < 0 ? -v : v; }
 std::int64_t sign_of(OrderSide s) { return s == OrderSide::Buy ? 1 : -1; }
 bool perp_fill(const Event& e) { return e.type == EventType::Fill && e.series == 0; }
+bool option_fill(const Event& e) { return e.type == EventType::Fill && e.series != 0; }
 
 std::int64_t round_div(i128 num, i128 den) { return static_cast<std::int64_t>(div_round(num, den, Rounding::HalfEven)); }
 
@@ -26,6 +27,7 @@ struct OpenTrade {
 OpenTrade open_trade(std::uint32_t n, const Event& e, std::int64_t qty_abs) {
   OpenTrade t;
   t.row.n = n;
+  t.row.series = e.series;
   t.row.is_long = e.side == OrderSide::Buy;
   t.row.entry_step = e.step;
   t.row.qty = Qty::from_raw(qty_abs);
@@ -35,10 +37,10 @@ OpenTrade open_trade(std::uint32_t n, const Event& e, std::int64_t qty_abs) {
   return t;
 }
 
-const PlanRecord* plan_for(const RunState& st, std::uint32_t entry_step, std::uint32_t after) {
+const PlanRecord* plan_for(const RunState& st, std::uint32_t entry_step, std::uint32_t after, bool option) {
   const PlanRecord* best = nullptr;
   for (const PlanRecord& p : st.plans) {
-    if (!p.option && p.step <= entry_step && p.step >= after) best = &p;
+    if (!p.skipped && p.option == option && p.step <= entry_step && p.step >= after) best = &p;
   }
   return best;
 }
@@ -50,7 +52,8 @@ ExitReason exit_reason(const TradeRow& t, const Event& fill) {
 }
 
 std::optional<bool> respected(const TradeRow& t, const PlanRecord* plan) {
-  if (plan == nullptr || plan->invalidation.raw == 0 || t.exit_avg.raw == 0 || t.reason == ExitReason::Open) {
+  // The invalidation is an underlying price; it can't be compared with an option premium.
+  if (plan == nullptr || t.series != 0 || plan->invalidation.raw == 0 || t.exit_avg.raw == 0 || t.reason == ExitReason::Open) {
     return std::nullopt;
   }
   const std::int64_t tol = plan->invalidation.raw / 100;  // 1%
@@ -62,7 +65,7 @@ TradeRow finalize(const RunState& st, OpenTrade& o, std::uint32_t after) {
   if (o.exit_qty > 0) t.exit_avg = Price::from_raw(round_div(o.exit_notional, o.exit_qty));
   t.net = Money::from_raw(t.pnl.raw - t.fees.raw);
   t.bars = t.exit_step.value_or(st.step) - t.entry_step;
-  const PlanRecord* plan = plan_for(st, t.entry_step, after);
+  const PlanRecord* plan = plan_for(st, t.entry_step, after, t.series != 0);
   if (plan != nullptr && plan->planned_risk.raw > 0) {
     t.planned_risk = plan->planned_risk;
     if (t.exit_step) t.r_bp = round_div(static_cast<i128>(t.net.raw) * kBp, plan->planned_risk.raw);
@@ -86,6 +89,19 @@ struct Walker {
     out.push_back(finalize(st, t, last_exit));
     last_exit = step;
     cur.reset();
+  }
+
+  // Expiry settles whatever is left of an option position at its settlement value.
+  void on_settlement(const Event& e) {
+    if (!cur) return;
+    const std::int64_t q = abs64(e.qty.raw);
+    if (q > 0) {
+      cur->exit_notional += static_cast<i128>(q) * round_div(static_cast<i128>(abs64(e.amount.raw)) * Qty::kScale, q);
+      cur->exit_qty += q;
+    }
+    cur->row.pnl = Money::from_raw(cur->row.pnl.raw + e.pnl.raw);
+    pos = 0;
+    close(e.step, ExitReason::Expiry);
   }
 
   void on_liquidation(const Event& e) {
@@ -162,7 +178,23 @@ void note_fill(const RunState& st, const Event& e, bool grows, Facts& f) {
   f.capacity += (e.flags & kFlagCapacityFromBarVolume) != 0 ? 1 : 0;
 }
 
+// Opening an option position is an entry too. A bought option is protected by construction (the
+// premium is the maximum loss); a written one has no stop, but its risk is checked through margin
+// calls, so it is not counted as an unprotected entry either.
+void count_option_entries(const RunState& st, Facts& f) {
+  std::vector<std::pair<std::uint32_t, std::int64_t>> pos;  // series -> signed qty
+  for (const Event& e : st.events) {
+    if (!option_fill(e)) continue;
+    auto it = std::find_if(pos.begin(), pos.end(), [&e](const auto& p) { return p.first == e.series; });
+    if (it == pos.end()) it = pos.insert(pos.end(), {e.series, 0});
+    const std::int64_t q = sign_of(e.side) * e.qty.raw;
+    f.entries += grows_exposure(it->second, q) ? 1 : 0;
+    it->second += q;
+  }
+}
+
 void count_fills(const RunState& st, Facts& f) {
+  count_option_entries(st, f);
   std::int64_t pos = 0;
   for (const Event& e : st.events) {
     if (e.type == EventType::Liquidation) {
@@ -308,15 +340,45 @@ LessonCode pick_lesson(const ScoreReport& r) {
 
 }  // namespace
 
-std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
-  (void)sc;
-  Walker w{st, {}, std::nullopt};
-  for (const Event& e : st.events) {
-    if (e.type == EventType::Liquidation) w.on_liquidation(e);
-    else if (perp_fill(e)) w.on_fill(e);
+// Option rows carry their contract (expired series are no longer in the live chain).
+void describe_series(const Scenario& sc, TradeRow& t) {
+  if (t.series == 0) return;
+  for (const OptionSeries& s : sc.options.series) {
+    if (s.id != t.series) continue;
+    t.is_call = s.kind == OptionKind::Call;
+    t.strike = s.strike;
+    t.expiry_step = s.expiry_step;
   }
-  if (w.cur) w.out.push_back(finalize(st, *w.cur, w.last_exit));
-  return w.out;
+}
+
+std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
+  Walker perp{st, {}, std::nullopt};
+  std::vector<std::pair<std::uint32_t, Walker>> options;  // one walker per option series
+  const auto option_walker = [&](std::uint32_t series) -> Walker& {
+    for (auto& [id, w] : options) {
+      if (id == series) return w;
+    }
+    return options.emplace_back(series, Walker{st, {}, std::nullopt}).second;
+  };
+  for (const Event& e : st.events) {
+    if (e.type == EventType::Liquidation) perp.on_liquidation(e);
+    else if (perp_fill(e)) perp.on_fill(e);
+    else if (option_fill(e)) option_walker(e.series).on_fill(e);
+    else if (e.type == EventType::OptionSettlement) option_walker(e.series).on_settlement(e);
+  }
+  std::vector<TradeRow> rows;
+  const auto take = [&](Walker& w) {
+    if (w.cur) w.out.push_back(finalize(st, *w.cur, w.last_exit));
+    rows.insert(rows.end(), w.out.begin(), w.out.end());
+  };
+  take(perp);
+  for (auto& [id, w] : options) take(w);
+  std::stable_sort(rows.begin(), rows.end(), [](const TradeRow& a, const TradeRow& b) { return a.entry_step < b.entry_step; });
+  for (std::size_t i = 0; i < rows.size(); ++i) {
+    rows[i].n = static_cast<std::uint32_t>(i + 1);
+    describe_series(sc, rows[i]);
+  }
+  return rows;
 }
 
 ScoreReport score_run(const Scenario& sc, const RunState& st) {
