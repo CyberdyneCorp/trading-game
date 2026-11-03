@@ -165,6 +165,13 @@ export interface Indicators {
 	ema50: (Decimal | null)[];
 	rsi14: (Decimal | null)[];
 	atr14: (Decimal | null)[];
+	vwap: (Decimal | null)[];
+	macd: (Decimal | null)[];
+	macdSignal: (Decimal | null)[];
+	macdHist: (Decimal | null)[];
+	plusDi14: (Decimal | null)[];
+	minusDi14: (Decimal | null)[];
+	adx14: (Decimal | null)[];
 }
 
 export interface NewsView {

@@ -43,6 +43,7 @@
 ## 7. Indicators
 - [x] 7.1 SMA, EMA, RSI, ATR, volume with warm-up states and gap policy
 - [x] 7.2 Reference-value tests against a published dataset
+- [x] 7.3 VWAP (24-bar sessions), MACD(12,26,9), ADX(14) with +DI/−DI; indicator version 2; hand-computed tests and no-lookahead checks
 
 ## 8. Bindings
 - [ ] 8.1 C ABI facade

@@ -13,6 +13,14 @@
 		estimate: TicketEstimate;
 		increases: boolean;
 	}
+
+	/** Draft levels the chart previews while the player edits the ticket. */
+	export interface TicketPreview {
+		entry: number;
+		stop: number | null;
+		takeProfit: number | null;
+		liquidation: number | null;
+	}
 </script>
 
 <script lang="ts">
@@ -20,12 +28,32 @@
 	import { costsOf, estimate, estimatedMarketEntry, qtyForRisk } from '#lib/game/sizing.ts';
 	import { fmtMoney, fmtPrice, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import {
+		distanceOf,
+		rewardRisk,
+		stopFromAtr,
+		stopFromPct,
+		stopOnLosingSide,
+		swingStop,
+		targetFromR,
+		targetOnWinningSide,
+		type BarTuple
+	} from '#lib/game/stops.ts';
+	import LevelField, { type LevelChip } from './LevelField.svelte';
 
 	let {
 		session,
 		side = $bindable('buy'),
-		onSubmit
-	}: { session: GameSession; side?: OrderSideName; onSubmit: (d: OrderDraft) => void } = $props();
+		preview = $bindable(null),
+		onSubmit,
+		onPick
+	}: {
+		session: GameSession;
+		side?: OrderSideName;
+		preview?: TicketPreview | null;
+		onSubmit: (d: OrderDraft) => void;
+		onPick?: (set: (price: number) => void) => void;
+	} = $props();
 
 	const s = $derived(session.state!);
 	const L = $derived(i18n.locale);
@@ -35,6 +63,11 @@
 	const mark = $derived(num(s.account.mark));
 	const cap = $derived(s.contract.leverageCap);
 	const posQty = $derived(num(s.position.qty));
+	const atr = $derived.by(() => {
+		const v = s.indicators.atr14[s.indicators.atr14.length - 1];
+		return v != null ? Number(v) : null;
+	});
+	const bars = $derived(s.bars.map((b) => b.slice(0, 5).map(Number) as BarTuple));
 
 	let type = $state<'market' | 'limit' | 'stop_market'>('market');
 	let sizeBy = $state<'qty' | 'risk'>('risk');
@@ -59,10 +92,12 @@
 	const est = $derived(estimate({ side, qty, entry, leverage, stop }, k));
 	const shortBlocked = $derived(!s.contract.allowShort && side === 'sell' && posQty <= 0);
 	const increases = $derived(posQty === 0 || posQty > 0 === (side === 'buy') || qty > Math.abs(posQty));
-	const stopWrongSide = $derived(stop != null && (side === 'buy' ? stop >= entry : stop <= entry));
+	const tp = $derived(tpInput ? num(tpInput) : null);
+	const stopWrongSide = $derived(stop != null && !stopOnLosingSide(side, entry, stop));
+	const tpWrongSide = $derived(tp != null && !targetOnWinningSide(side, entry, tp));
 	const needsPrice = $derived(type !== 'market');
 	const canSubmit = $derived(
-		!session.busy && qty > 0 && !shortBlocked && !stopWrongSide && (!needsPrice || num(priceInput) > 0)
+		!session.busy && qty > 0 && !shortBlocked && !stopWrongSide && !tpWrongSide && (!needsPrice || num(priceInput) > 0)
 	);
 
 	function submit() {
@@ -80,16 +115,56 @@
 		});
 	}
 
-	// Suggest a stop 2% away when switching sides (player can edit freely).
-	function suggestStop() {
-		const d = 0.02 * mark;
-		stopInput = priceToTick(side === 'buy' ? mark - d : mark + d, tick);
+	$effect(() => {
+		preview = qty > 0 ? { entry, stop, takeProfit: tp, liquidation: est.liquidation } : null;
+	});
+
+	function stopChips(sd: OrderSideName, from: number): LevelChip[] {
+		return [
+			{ label: '1×ATR', title: t('level.atrTitle', { n: 1 }), value: stopFromAtr(sd, from, atr, 1) },
+			{ label: '2×ATR', title: t('level.atrTitle', { n: 2 }), value: stopFromAtr(sd, from, atr, 2) },
+			{ label: 'Swing', title: t('level.swingTitle'), value: swingStop(sd, from, bars, tick) },
+			{ label: '1%', title: t('level.pctTitle', { n: 1 }), value: stopFromPct(sd, from, 1) },
+			{ label: '2%', title: t('level.pctTitle', { n: 2 }), value: stopFromPct(sd, from, 2) }
+		];
 	}
+
+	function targetChips(sd: OrderSideName, from: number, stopAt: number | null): LevelChip[] {
+		return [1, 2, 3].map((r) => ({ label: `${r}R`, title: t('level.rTitle', { n: r }), value: targetFromR(sd, from, stopAt, r) }));
+	}
+
+	function stopHint(from: number, level: number | null): string | null {
+		const d = distanceOf(from, level, atr);
+		if (!d) return null;
+		const atrPart = d.atr != null ? ` · ${d.atr.toFixed(1)}×ATR` : '';
+		return `${fmtPrice(String(d.abs), L)} · ${d.pct.toFixed(2)}%${atrPart}`;
+	}
+
+	function targetHint(sd: OrderSideName, from: number, stopAt: number | null, level: number | null): string | null {
+		const base = stopHint(from, level);
+		const rr = rewardRisk(sd, from, stopAt, level);
+		return base && rr != null ? `${base} · R:R 1:${rr.toFixed(1)}` : base;
+	}
+
+	const stopWarn = $derived(stopWrongSide ? t('level.stopSide', { side: side === 'buy' ? '<' : '>', price: fmtPrice(String(entry), L) }) : null);
+	const tpWarn = $derived(tpWrongSide ? t('level.tpSide', { side: side === 'buy' ? '>' : '<', price: fmtPrice(String(entry), L) }) : null);
 
 	// Protection for an existing position.
 	let protStop = $state('');
 	let protTp = $state('');
 	let protTrail = $state('');
+	const posSide = $derived<OrderSideName>(posQty > 0 ? 'buy' : 'sell');
+	const posEntry = $derived(num(s.position.entry));
+	const protStopN = $derived(protStop ? num(protStop) : null);
+	const protTpN = $derived(protTp ? num(protTp) : null);
+	const protStopWarn = $derived(
+		protStopN != null && !stopOnLosingSide(posSide, mark, protStopN) ? t('level.protStopSide', { price: fmtPrice(s.account.mark, L) }) : null
+	);
+	const protTpWarn = $derived(
+		protTpN != null && !targetOnWinningSide(posSide, mark, protTpN) ? t('level.protTpSide', { price: fmtPrice(s.account.mark, L) }) : null
+	);
+	const hasStop = $derived(s.orders.some((o) => o.reduceOnly && (o.type === 'stop_market' || o.type === 'trailing_stop')));
+	const trailChips = $derived<LevelChip[]>([1, 2, 3].map((m) => ({ label: `${m}×ATR`, title: t('level.trailTitle', { n: m }), value: atr != null ? m * atr : null })));
 	async function protect() {
 		const exit: OrderSideName = posQty > 0 ? 'sell' : 'buy';
 		const size = s.position.qty.replace('-', '');
@@ -134,14 +209,6 @@
 			</label>
 		{/if}
 		<label>
-			{t('ticket.stopLoss')}
-			<input inputmode="decimal" bind:value={stopInput} placeholder="—" />
-		</label>
-		<label>
-			{t('ticket.takeProfit')}
-			<input inputmode="decimal" bind:value={tpInput} placeholder="—" />
-		</label>
-		<label>
 			{t('ticket.sizeBy')}
 			<select bind:value={sizeBy}>
 				<option value="risk">{t('ticket.sizeRisk')}</option>
@@ -160,8 +227,30 @@
 			</label>
 		{/if}
 	</div>
+	<div class="levels">
+		<LevelField
+			testid="ticket-stop"
+			label={t('ticket.stopLoss')}
+			bind:value={stopInput}
+			{tick}
+			chips={stopChips(side, entry)}
+			hint={stopHint(entry, stop)}
+			warn={stopWarn}
+			{onPick}
+		/>
+		<LevelField
+			testid="ticket-tp"
+			label={t('ticket.takeProfit')}
+			bind:value={tpInput}
+			{tick}
+			chips={targetChips(side, entry, stop)}
+			hint={targetHint(side, entry, stop, tp)}
+			warn={tpWarn}
+			{onPick}
+		/>
+	</div>
 	{#if sizeBy === 'risk' && stop == null}
-		<p class="small muted">↳ {t('ticket.stopLoss')} <button class="link" onclick={suggestStop}>2%?</button></p>
+		<p class="small attention">↳ {t('ticket.riskNeedsStop')}</p>
 	{/if}
 
 	<dl class="kv est">
@@ -174,7 +263,6 @@
 	</dl>
 	{#if est.stopBeyondLiquidation}<p class="warnbox" role="alert">⚠ {t('ticket.stopBeyondLiq')}</p>{/if}
 	{#if stop == null && qty > 0}<p class="small attention">{t('ticket.noStop')}</p>{/if}
-	{#if stopWrongSide}<p class="small attention">⚠ stop {side === 'buy' ? '<' : '>'} {fmtPrice(String(entry), L)}</p>{/if}
 	<p class="small muted">{t('ticket.attachNote')}</p>
 
 	<button class="primary submit {side}" onclick={submit} disabled={!canSubmit}>
@@ -184,13 +272,36 @@
 	{#if posQty !== 0}
 		<hr />
 		<h3>{t('ticket.protect')}</h3>
-		<div class="grid">
-			<label>{t('ticket.stopLoss')}<input inputmode="decimal" bind:value={protStop} /></label>
-			<label>{t('ticket.takeProfit')}<input inputmode="decimal" bind:value={protTp} /></label>
-			<label class="full">{t('ticket.trail')}<input inputmode="decimal" bind:value={protTrail} placeholder="2.00" /></label>
+		{#if !hasStop}<p class="warnbox" role="status">⚠ {t('ticket.unprotected')}</p>{/if}
+		<div class="levels">
+			<LevelField
+				testid="protect-stop"
+				label={t('ticket.stopLoss')}
+				bind:value={protStop}
+				{tick}
+				chips={stopChips(posSide, mark)}
+				hint={stopHint(posEntry, protStopN)}
+				warn={protStopWarn}
+				{onPick}
+			/>
+			<LevelField
+				testid="protect-tp"
+				label={t('ticket.takeProfit')}
+				bind:value={protTp}
+				{tick}
+				chips={targetChips(posSide, posEntry, protStopN)}
+				hint={targetHint(posSide, posEntry, protStopN, protTpN)}
+				warn={protTpWarn}
+				{onPick}
+			/>
+			<div class="full">
+				<LevelField testid="protect-trail" label={t('ticket.trail')} bind:value={protTrail} {tick} chips={trailChips} />
+			</div>
 		</div>
 		<div class="row">
-			<button onclick={protect} disabled={session.busy || (!protStop && !protTp && !protTrail)}>{t('ticket.protectSubmit')}</button>
+			<button onclick={protect} disabled={session.busy || !!protStopWarn || !!protTpWarn || (!protStop && !protTp && !protTrail)}>
+				{t('ticket.protectSubmit')}
+			</button>
 			<button class="warn" onclick={() => session.closePosition()} disabled={session.busy}>✕ {t('ticket.close')} <kbd>X</kbd></button>
 		</div>
 	{/if}
@@ -222,8 +333,14 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 0.35rem 0.5rem;
 	}
-	.grid .full {
+	.grid .full,
+	.levels .full {
 		grid-column: 1 / -1;
+	}
+	.levels {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.45rem 0.5rem;
 	}
 	label {
 		font-size: 0.78rem;
@@ -261,14 +378,6 @@
 		display: flex;
 		gap: 0.4rem;
 		flex-wrap: wrap;
-	}
-	.link {
-		background: none;
-		border: none;
-		color: var(--info);
-		text-decoration: underline;
-		padding: 0;
-		min-height: 0;
 	}
 	hr {
 		border: none;

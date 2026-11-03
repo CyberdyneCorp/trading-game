@@ -19,6 +19,7 @@
 - [ ] 4.1 Limit, trailing, bracket/OCO in ticket
 - [x] 4.2 Option chain, option ticket with payoff diagram and Greeks
 - [x] 4.3 Indicators UI with warm-up state
+- [x] 4.3a Indicator panes (RSI/MACD/ADX selector, VWAP overlay) and stop/target tools (ATR/swing/% presets, R targets, mark on chart, chart preview, unprotected-position warning)
 - [ ] 4.4 Journal, lessons runner, curriculum map, progress, catalog + download
 - [ ] 4.5 CSV import wizard
 - [ ] 4.6 All required states; colorblind palette; i18n PT-BR + en-US

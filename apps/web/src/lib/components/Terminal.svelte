@@ -8,7 +8,7 @@
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
 	import HelpOverlay from './HelpOverlay.svelte';
-	import OrderTicket, { type OrderDraft } from './OrderTicket.svelte';
+	import OrderTicket, { type OrderDraft, type TicketPreview } from './OrderTicket.svelte';
 	import OptionChain from './OptionChain.svelte';
 	import OptionTicket, { type OptionDraft } from './OptionTicket.svelte';
 	import type { OptionQuoteView } from '#lib/engine/types.ts';
@@ -23,6 +23,14 @@
 	let help = $state(false);
 	let side = $state<OrderSideName>('buy');
 	let lastPlannedRisk = $state<number | null>(null);
+	let preview = $state<TicketPreview | null>(null);
+	// Pending "mark on chart" request from a stop/target field: the chart calls it with a price.
+	let pick = $state<((price: number) => void) | null>(null);
+
+	function onPicked(price: number) {
+		pick?.(price);
+		pick = null;
+	}
 	let tab = $state<'perp' | 'options'>('perp');
 	let optSeries = $state<number | null>(null);
 	let optSide = $state<'buy' | 'sell'>('buy');
@@ -113,7 +121,7 @@
 
 	// Advance (Space) never shares a key with submission (Enter inside the ticket).
 	function onKey(e: KeyboardEvent) {
-		if (draft || optDraft || session.pendingQuestion) return;
+		if (draft || optDraft || session.pendingQuestion || pick) return;
 		if (e.key === 'Escape') help = false;
 		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
 		const actions: Record<string, () => void> = {
@@ -137,7 +145,13 @@
 	<div class="terminal">
 		<TopBar {session} onHelp={() => (help = true)} />
 		<div class="main">
-			<section class="panel chart"><Chart game={session.state} /></section>
+			<section class="panel chart"><Chart
+					game={session.state}
+					preview={tab === 'perp' ? preview : null}
+					picking={pick != null}
+					{onPicked}
+					onCancelPick={() => (pick = null)}
+				/></section>
 			<RightRail
 				game={session.state}
 				plannedRisk={Number(session.state.position.qty) !== 0 ? lastPlannedRisk : null}
@@ -158,7 +172,7 @@
 				{#if tab === 'options' && optionsOn}
 					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
 				{:else}
-					<OrderTicket {session} bind:side {onSubmit} />
+					<OrderTicket {session} bind:side bind:preview {onSubmit} onPick={(set) => (pick = set)} />
 				{/if}
 			</div>
 			<div class="stack">

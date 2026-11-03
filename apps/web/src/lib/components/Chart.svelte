@@ -4,8 +4,22 @@
 	import type { GameState } from '#lib/engine/types.ts';
 	import { fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { OSCILLATORS, type Oscillator, type Palette } from './chartPanes.ts';
+	import type { TicketPreview } from './OrderTicket.svelte';
 
-	let { game }: { game: GameState } = $props();
+	let {
+		game,
+		preview = null,
+		picking = false,
+		onPicked,
+		onCancelPick
+	}: {
+		game: GameState;
+		preview?: TicketPreview | null;
+		picking?: boolean;
+		onPicked?: (price: number) => void;
+		onCancelPick?: () => void;
+	} = $props();
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 	let box: HTMLDivElement | undefined = $state();
@@ -15,6 +29,11 @@
 	let zoom = $state(100); // visible bars
 	let showSma = $state(true);
 	let showEma = $state(true);
+	let showVwap = $state(false);
+	let osc = $state<Oscillator>('rsi');
+	let hoverY = $state<number | null>(null);
+	// Price scale of the last frame, used to turn a click into a price while picking.
+	let scale = { lo: 0, hi: 1, priceH: 1 };
 
 	// Bars still needed before an indicator has a value (spec indicators "Warm-up").
 	function warming(series: (string | null)[], need: number): number {
@@ -60,7 +79,36 @@
 				dash: [3, 3]
 			});
 		}
+		return out.concat(draftLevels());
+	}
+
+	// Ticket draft: what the order would look like, drawn faint and labelled with "?".
+	function draftLevels(): Level[] {
+		if (!preview) return [];
+		const out: Level[] = [{ price: preview.entry, label: 'ENTRY?', color: cssVar('--muted'), dash: [1, 4] }];
+		if (preview.stop) out.push({ price: preview.stop, label: 'SL?', color: cssVar('--attention'), dash: [1, 4] });
+		if (preview.takeProfit) out.push({ price: preview.takeProfit, label: 'TP?', color: cssVar('--accent'), dash: [1, 4] });
+		if (preview.liquidation) out.push({ price: preview.liquidation, label: 'LIQ?', color: cssVar('--danger'), dash: [1, 4] });
 		return out;
+	}
+
+	function palette(): Palette {
+		return {
+			up: cssVar('--up'),
+			down: cssVar('--down'),
+			info: cssVar('--info'),
+			attention: cssVar('--attention'),
+			muted: cssVar('--muted'),
+			line: cssVar('--line')
+		};
+	}
+
+	// Vertical split: price, volume strip, optional oscillator pane.
+	function layout() {
+		const oscH = osc === 'none' ? 0 : Math.floor(height * 0.24);
+		const volH = Math.floor(height * (osc === 'none' ? 0.2 : 0.12));
+		const priceH = height - oscH - volH - 8;
+		return { priceH, volTop: priceH + 4, volH: volH - 4, oscTop: priceH + volH + 8, oscH: oscH - 4 };
 	}
 
 	function priceRange(lv: Level[]): [number, number] {
@@ -93,9 +141,8 @@
 		const lv = levels();
 		const [lo, hi] = priceRange(lv);
 		const plotW = width - AXIS_W;
-		const priceH = Math.floor(height * 0.78);
-		const volTop = priceH + 8;
-		const volH = height - volTop - 4;
+		const { priceH, volTop, volH, oscTop, oscH } = layout();
+		scale = { lo, hi, priceH };
 		const slots = visible.length + futureSlots();
 		const slotW = plotW / slots;
 		const y = (p: number) => Math.round(((hi - p) / (hi - lo)) * (priceH - 8)) + 4.5;
@@ -112,8 +159,38 @@
 		drawNews(ctx, x, priceH);
 		if (showSma) drawLine(ctx, game.indicators.sma20, cssVar('--attention'), x, y);
 		if (showEma) drawLine(ctx, game.indicators.ema50, cssVar('--info'), x, y);
+		if (showVwap) drawLine(ctx, game.indicators.vwap, cssVar('--vwap'), x, y);
 		for (const l of lv) drawLevel(ctx, l, plotW, y);
-		drawHover(ctx, slotW, priceH, x);
+		if (osc !== 'none') {
+			const pane = { top: oscTop, h: oscH, width: plotW, first, count: visible.length, x, slotW };
+			OSCILLATORS[osc](ctx, pane, game.indicators, palette());
+		}
+		drawHover(ctx, slotW, osc === 'none' ? priceH : oscTop + oscH, x);
+		drawPick(ctx, plotW, priceH, y);
+	}
+
+	function priceAt(py: number): number {
+		const { lo, hi, priceH } = scale;
+		return hi - ((py - 4.5) / (priceH - 8)) * (hi - lo);
+	}
+
+	// While picking a stop/target: horizontal crosshair with the price under the mouse.
+	function drawPick(ctx: CanvasRenderingContext2D, plotW: number, priceH: number, y: (p: number) => number) {
+		if (!picking || hoverY == null || hoverY > priceH) return;
+		const price = priceAt(hoverY);
+		const color = cssVar('--attention');
+		ctx.strokeStyle = color;
+		ctx.setLineDash([4, 2]);
+		ctx.beginPath();
+		ctx.moveTo(0, y(price));
+		ctx.lineTo(plotW, y(price));
+		ctx.stroke();
+		ctx.setLineDash([]);
+		ctx.fillStyle = color;
+		ctx.fillRect(plotW, y(price) - 8, AXIS_W, 16);
+		ctx.fillStyle = cssVar('--bg');
+		ctx.font = '11px "IBM Plex Mono", monospace';
+		ctx.fillText(price.toFixed(2), plotW + 6, y(price) + 4);
 	}
 
 	function drawGrid(ctx: CanvasRenderingContext2D, lo: number, hi: number, plotW: number, priceH: number, y: (p: number) => number) {
@@ -293,11 +370,29 @@
 		const slotW = (width - AXIS_W) / (visible.length + futureSlots());
 		const i = Math.floor((e.clientX - rect.left) / slotW);
 		hover = i >= 0 && i < visible.length ? i : null;
+		hoverY = e.clientY - rect.top;
+	}
+
+	function onClick(e: MouseEvent) {
+		if (!picking || !canvas) return;
+		const py = e.clientY - canvas.getBoundingClientRect().top;
+		if (py > scale.priceH) return;
+		const price = priceAt(py);
+		if (price > 0) onPicked?.(price);
+	}
+
+	function onKeydown(e: KeyboardEvent) {
+		if (picking && e.key === 'Escape') onCancelPick?.();
 	}
 
 	function onWheel(e: WheelEvent) {
 		e.preventDefault();
 		zoom = Math.min(Math.max(30, zoom + (e.deltaY > 0 ? 10 : -10)), Math.max(30, bars.length));
+	}
+
+	function fmtOsc(v: string | null | undefined, digits: number): string {
+		const opts = { minimumFractionDigits: digits, maximumFractionDigits: digits };
+		return v != null ? Number(v).toLocaleString(i18n.locale, opts) : '—';
 	}
 
 	const hoverBar = $derived(hover != null ? visible[hover] : visible[visible.length - 1]);
@@ -317,10 +412,12 @@
 
 	$effect(() => {
 		// Redraw on any dependency change (game, size, hover, zoom, locale).
-		void [game, width, height, hover, zoom, i18n.locale, visible, showSma, showEma];
+		void [game, width, height, hover, hoverY, zoom, i18n.locale, visible, showSma, showEma, showVwap, osc, preview, picking];
 		draw();
 	});
 </script>
+
+<svelte:window onkeydown={onKeydown} />
 
 <div class="chart-wrap">
 	<div class="readout num" aria-hidden="true">
@@ -335,19 +432,41 @@
 			{@const atrV = game.indicators.atr14[hoverIndex]}
 			<span class="info">RSI14 {rsiV != null ? Number(rsiV).toFixed(1) : '—'}</span>
 			<span class="muted">ATR14 {atrV != null ? fmtPrice(atrV, i18n.locale) : '—'}</span>
+			{@const ind = game.indicators}
+			{#if showVwap}<span class="vwap">VWAP {ind.vwap[hoverIndex] != null ? fmtPrice(ind.vwap[hoverIndex]!, i18n.locale) : '—'}</span>{/if}
+			{#if osc === 'macd'}
+				<span class="muted">MACD {fmtOsc(ind.macd[hoverIndex], 3)} / {fmtOsc(ind.macdSignal[hoverIndex], 3)}</span>
+			{:else if osc === 'adx'}
+				<span class="muted">ADX {fmtOsc(ind.adx14[hoverIndex], 1)} · +DI {fmtOsc(ind.plusDi14[hoverIndex], 1)} · −DI {fmtOsc(ind.minusDi14[hoverIndex], 1)}</span>
+			{/if}
 		{/if}
 		<label class="toggle attention"><input type="checkbox" bind:checked={showSma} /> SMA20</label>
 		<label class="toggle info"><input type="checkbox" bind:checked={showEma} /> EMA50</label>
+		<label class="toggle vwap"><input type="checkbox" bind:checked={showVwap} /> VWAP</label>
+		<label class="toggle">
+			<span class="sr-only">{t('chart.osc')}</span>
+			<select bind:value={osc} aria-label={t('chart.osc')} data-testid="osc-select">
+				<option value="rsi">RSI</option>
+				<option value="macd">MACD</option>
+				<option value="adx">ADX</option>
+				<option value="none">{t('chart.oscNone')}</option>
+			</select>
+		</label>
 		{#if warming(game.indicators.ema50, 50) > 0}
 			<span class="muted">{t('chart.warming', { name: 'EMA50', n: warming(game.indicators.ema50, 50) })}</span>
 		{/if}
+		{#if picking}<span class="attention" role="status">⌖ {t('chart.pickHint')}</span>{/if}
 	</div>
-	<div class="canvas-box" bind:this={box}>
+	<div class="canvas-box" class:picking bind:this={box}>
 		<canvas
 			bind:this={canvas}
 			style="width:{width}px;height:{height}px"
 			onmousemove={onMove}
-			onmouseleave={() => (hover = null)}
+			onmouseleave={() => {
+				hover = null;
+				hoverY = null;
+			}}
+			onclick={onClick}
 			onwheel={onWheel}
 			aria-hidden="true"
 		></canvas>
@@ -399,5 +518,16 @@
 		display: block;
 		image-rendering: pixelated;
 		cursor: crosshair;
+	}
+	.vwap {
+		color: var(--vwap);
+	}
+	.picking canvas {
+		cursor: cell;
+	}
+	.toggle select {
+		font-size: 0.78rem;
+		padding: 0 0.3rem;
+		min-height: 0;
 	}
 </style>
