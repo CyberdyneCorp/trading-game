@@ -31,7 +31,8 @@ CSS/Canvas post-effects (scanline overlay, subtle bloom via filter) behind a set
 
 - **Persistence:** the slice stores the action log in `localStorage` and resumes by deterministic replay (digest verified). Spec requires IndexedDB with per-command transactional commits (task 2.2) — open.
 - ~~Brackets sent by the client after the fill~~ — resolved: the engine owns brackets/OCO (execution-policy v2).
-- **Scoring:** the debrief computes a preview score in TypeScript (risk + plan coherence, understanding/calibration renormalized). The authoritative scorer belongs in `engine/scoring` (add-scenarios-and-gameplay D2).
+- **Scoring:** the debrief computes a preview score in TypeScript: risk, plan coherence and calibration (Brier over questions asked every 15 bars, horizon 5, scored 100·(1−Brier), n/a below 3 resolved). Understanding is still n/a. The per-trade table (flat-to-flat trades, R = net / planned risk) is also TS. The authoritative scorer belongs in `engine/scoring` (add-scenarios-and-gameplay D2).
+- **Mission texts:** titles/taglines are neutral; what the scenario was designed to teach is revealed only in the debrief.
 - **Imports:** SvelteKit 3 uses `#lib/...` subpath imports with explicit extensions.
 - **Adapter:** `adapter-static` until the BFF lands (then `adapter-node`).
 - **Chart:** custom Canvas2D renderer as designed (D3); the 5,000-bar budget is not yet measured.

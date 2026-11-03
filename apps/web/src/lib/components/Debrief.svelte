@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { analyze, describeFinding, describeLesson } from '#lib/game/analysis.ts';
+	import { buildTrades } from '#lib/game/trades.ts';
+	import { calibrationScore } from '#lib/game/calibration.ts';
 	import { fmtMoney, fmtPct, fmtPrice, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
@@ -11,7 +13,9 @@
 	const s = $derived(session.state!);
 	const d = $derived(session.debrief!);
 	const L = $derived(i18n.locale);
-	const a = $derived(analyze(s, d, session.journal, session.stopWarnings));
+	const a = $derived(analyze(s, d, session.journal, session.stopWarnings, session.questions));
+	const trades = $derived(buildTrades(s, session.journal));
+	const cal = $derived(calibrationScore(session.questions, s.bars));
 	const bankrupt = $derived(s.status === 'bankrupt');
 	const hold = $derived(num(d.buyAndHoldPnl));
 	const timeline = $derived(
@@ -76,6 +80,8 @@
 		<section class="panel">
 			<h2 class="panel-title">{t('debrief.reveal')}</h2>
 			<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
+			<h3>{t('debrief.scenario')}</h3>
+			<p class="reveal">{missionText(s.mission, L).reveal}</p>
 			<p class="muted small">{fmtPrice(d.startPrice, L)} → {fmtPrice(d.endPrice, L)}</p>
 		</section>
 	</div>
@@ -91,6 +97,46 @@
 		</ul>
 		<p><strong>{t('debrief.nextLesson')}:</strong> <span class="info">{describeLesson(a.lesson, L)}</span></p>
 		<p class="muted small">{t('debrief.disclaimer')}</p>
+	</section>
+
+	<section class="panel">
+		<h2 class="panel-title">{t('debrief.trades')}</h2>
+		{#if trades.length === 0}
+			<p class="muted">{t('debrief.noTrades')}</p>
+		{:else}
+			<table class="trades">
+				<thead>
+					<tr>
+						<th>#</th><th>{t('trade.side')}</th><th class="num">{t('trade.entry')}</th><th class="num">{t('trade.exit')}</th>
+						<th class="num">{t('trade.net')}</th><th class="num">R</th><th class="num">{t('trade.bars')}</th>
+						<th>{t('trade.reason')}</th><th>{t('trade.plan')}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each trades as tr (tr.n)}
+						<tr>
+							<td>{tr.n}</td>
+							<td class={tr.side === 'long' ? 'up' : 'down'}>{tr.side === 'long' ? '▲ LONG' : '▼ SHORT'} {tr.qty}</td>
+							<td class="num">{fmtPrice(String(tr.entryAvg), L)} <span class="muted">@{tr.entryStep}</span></td>
+							<td class="num">{tr.exitAvg != null ? fmtPrice(String(tr.exitAvg), L) : '—'}</td>
+							<td class="num {tr.net >= 0 ? 'up' : 'down'}">{signMark(tr.net)} {fmtMoney(tr.net, L, true)}</td>
+							<td class="num">{tr.r != null ? `${tr.r >= 0 ? '+' : ''}${tr.r.toFixed(2)}R` : '—'}</td>
+							<td class="num">{tr.bars}</td>
+							<td>{t(`trade.${tr.exitReason}`)}</td>
+							<td class={tr.planRespected === false ? 'down' : tr.planRespected ? 'up' : 'muted'}>
+								{tr.planRespected == null ? '—' : tr.planRespected ? '✔ ' + t('trade.respected') : '✖ ' + t('trade.violated')}
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		{/if}
+		<h3>{t('debrief.calibrationTitle')}</h3>
+		<p class="muted">
+			{cal.score != null
+				? t('debrief.calibrationLine', { n: cal.resolved, brier: (cal.brier ?? 0).toFixed(3) })
+				: t('debrief.calibrationNa')}
+		</p>
 	</section>
 
 	<section class="panel chart-panel">
@@ -152,6 +198,24 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
+	}
+	.trades {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.85rem;
+	}
+	.trades th,
+	.trades td {
+		padding: 0.2rem 0.4rem;
+		border-bottom: 1px solid var(--line);
+		text-align: left;
+	}
+	.trades .num {
+		text-align: right;
+	}
+	.reveal {
+		border-left: 3px solid var(--attention);
+		padding-left: 0.6rem;
 	}
 	.chart-panel {
 		height: 380px;

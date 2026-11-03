@@ -3,6 +3,7 @@
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { OrderSideName } from '#lib/engine/types.ts';
 	import { t } from '#lib/game/i18n.svelte.ts';
+	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
 	import EventFeed from './EventFeed.svelte';
 	import HelpOverlay from './HelpOverlay.svelte';
@@ -56,7 +57,7 @@
 
 	// Advance (Space) never shares a key with submission (Enter inside the ticket).
 	function onKey(e: KeyboardEvent) {
-		if (draft) return;
+		if (draft || session.pendingQuestion) return;
 		if (e.key === 'Escape') help = false;
 		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
 		const actions: Record<string, () => void> = {
@@ -96,6 +97,9 @@
 	</div>
 {/if}
 
+{#if session.pendingQuestion && !draft}
+	<CalibrationDialog {session} />
+{/if}
 {#if draft && session.state}
 	<PlanDialog {draft} step={session.state.step} onConfirm={onPlan} onCancel={() => (draft = null)} />
 {/if}

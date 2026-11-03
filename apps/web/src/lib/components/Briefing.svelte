@@ -37,7 +37,7 @@
 			{#each txt.objectives as o (o)}<li>{o}</li>{/each}
 		</ul>
 		<p class="rules">{t('brief.rules')}</p>
-		<p class="muted small">{txt.lesson}</p>
+		<p class="muted small">{txt.topic}</p>
 		<div class="actions">
 			<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
 			<!-- svelte-ignore a11y_autofocus -->
