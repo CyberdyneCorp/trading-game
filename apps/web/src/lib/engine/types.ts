@@ -69,6 +69,7 @@ export interface OrderView {
 	trailDistance: Decimal;
 	bracketStop: Decimal;
 	bracketTp: Decimal;
+	series: number;
 }
 
 export type EventTypeName =
@@ -78,7 +79,9 @@ export type EventTypeName =
 	| 'liquidation'
 	| 'bankrupt'
 	| 'run_finished'
-	| 'leverage_changed';
+	| 'leverage_changed'
+	| 'option_settlement'
+	| 'margin_call';
 
 export interface EngineEvent {
 	seq: number;
@@ -96,6 +99,8 @@ export interface EngineEvent {
 	ambiguous: boolean;
 	gap: boolean;
 	capacityLimited: boolean;
+	series: number;
+	approximate: boolean;
 }
 
 export interface Totals {
@@ -111,6 +116,46 @@ export interface Totals {
 	liquidations: number;
 	fills: number;
 	ambiguousFills: number;
+	optionCash: Decimal;
+	optionRealized: Decimal;
+}
+
+export interface OptionQuoteView {
+	id: number;
+	kind: 'call' | 'put';
+	strike: Decimal;
+	listStep: number;
+	expiryStep: number;
+	listed: boolean;
+	bid: Decimal;
+	ask: Decimal;
+	mid: Decimal;
+	iv: Decimal;
+	delta: Decimal;
+	gamma: Decimal;
+	theta: Decimal;
+	vega: Decimal;
+	ivFromRealized: boolean;
+}
+
+export interface OptionPositionView {
+	series: number;
+	qty: Decimal; // signed
+	avgPremium: Decimal;
+}
+
+export interface OptionsView {
+	enabled: boolean;
+	allowShort: boolean;
+	multiplier: Decimal;
+	premiumTick: Decimal;
+	lotSize: Decimal;
+	longValue: Decimal;
+	shortValue: Decimal;
+	initialMargin: Decimal;
+	maintenanceMargin: Decimal;
+	chain: OptionQuoteView[];
+	positions: OptionPositionView[];
 }
 
 export interface GameState {
@@ -128,6 +173,7 @@ export interface GameState {
 	account: Account;
 	position: Position;
 	orders: OrderView[];
+	options: OptionsView;
 	events: EngineEvent[];
 	totals: Totals;
 	digest: string;

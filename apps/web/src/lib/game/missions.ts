@@ -88,6 +88,60 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 	}
 };
 
+texts['m04-options-buyer'] = {
+	'pt-BR': {
+		title: 'Missão 04 · Calls e puts',
+		tagline: 'Pela primeira vez você pode comprar opções. O prêmio é o seu risco máximo — escolha bem o que paga.',
+		objectives: [
+			'Antes de comprar, escreva em que cenário o trade perde (movimento, tempo ou volatilidade).',
+			'Compare o prêmio com o movimento necessário até o ponto de equilíbrio.',
+			'Observe a volatilidade implícita (IV) antes e depois do evento.'
+		],
+		topic: 'Opções I e II · payoff, prêmio, IV e gregas',
+		reveal:
+			'Este cenário foi desenhado com um EVENTO: a IV sobe antes do rompimento e despenca depois (IV crush). Quem comprou opções caras perto do evento pôde perder mesmo acertando a direção; quem comprou cedo ou com strike adequado aproveitou o movimento.'
+	},
+	en: {
+		title: 'Mission 04 · Calls and puts',
+		tagline: 'For the first time you can buy options. The premium is your maximum risk — choose carefully what you pay.',
+		objectives: [
+			'Before buying, write the scenario in which the trade loses (move, time or volatility).',
+			'Compare the premium with the move needed to reach breakeven.',
+			'Watch implied volatility (IV) before and after the event.'
+		],
+		topic: 'Options I and II · payoff, premium, IV and Greeks',
+		reveal:
+			'This scenario was designed around an EVENT: IV rises before the breakout and collapses afterwards (IV crush). Buying expensive options near the event could lose even with the right direction; buying early or with a sensible strike captured the move.'
+	}
+};
+
+texts['m05-options-writer'] = {
+	'pt-BR': {
+		title: 'Missão 05 · Vendendo prêmio',
+		tagline: 'Agora você pode vender opções e receber o prêmio. Receber pouco para arriscar muito exige margem.',
+		objectives: [
+			'Antes de vender, calcule a margem e o pior cenário.',
+			'Mantenha folga sobre a margem de manutenção: abaixo dela há recompra forçada.',
+			'Theta trabalha a favor do vendedor — até o mercado se mover.'
+		],
+		topic: 'Opções III · venda de opções, margem e chamada de margem',
+		reveal:
+			'Este cenário foi desenhado com prêmio farto em um mercado lateral seguido de um SALTO. Vender opções rendeu theta por muitas barras; sem tamanho controlado, o salto gerou chamada de margem e recompra no pior momento.'
+	},
+	en: {
+		title: 'Mission 05 · Selling premium',
+		tagline: 'Now you can sell options and collect the premium. Collecting little to risk a lot needs margin.',
+		objectives: [
+			'Before selling, compute the margin and the worst case.',
+			'Keep a buffer above maintenance margin: below it there is a forced buy-back.',
+			'Theta works for the seller — until the market moves.'
+		],
+		topic: 'Options III · writing options, margin and margin calls',
+		reveal:
+			'This scenario was designed with rich premium in a sideways market followed by a JUMP. Selling options earned theta for many bars; without controlled size, the jump triggered a margin call and a buy-back at the worst moment.'
+	}
+};
+
 export function missionText(id: string, locale: Locale): MissionText {
 	return texts[id]?.[locale] ?? { title: id, tagline: '', objectives: [], topic: '', reveal: '' };
 }

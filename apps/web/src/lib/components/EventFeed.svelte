@@ -43,7 +43,14 @@
 	export function describeEvent(e: EngineEvent, L: Locale): { text: string; tone: string } | null {
 		switch (e.type) {
 			case 'fill':
-				return { text: fillLine(e, L), tone: e.side === 'buy' ? 'info' : 'attention' };
+				return { text: (e.series ? `OPT#${e.series} ` : '') + fillLine(e, L), tone: e.side === 'buy' ? 'info' : 'attention' };
+			case 'option_settlement':
+				return {
+					text: t('feed.settlement', { series: e.series, price: fmtPrice(e.price, L), value: fmtPrice(e.requested, L), amount: fmtMoney(e.amount, L, true) }) + (e.approximate ? ` [${t('feed.approxSettle')}]` : ''),
+					tone: Number(e.amount) >= 0 ? 'up' : 'down'
+				};
+			case 'margin_call':
+				return { text: '⚠ ' + t('feed.marginCall', { mm: fmtMoney(e.amount, L) }), tone: 'down' };
 			case 'order': {
 				const text = orderLine(e, L);
 				return text ? { text, tone: 'muted' } : null;
@@ -59,6 +66,7 @@
 			case 'leverage_changed':
 				return { text: t('feed.leverage', { lev: Math.round(Number(e.amount) * 1e8) }), tone: 'muted' };
 		}
+		return null;
 	}
 </script>
 

@@ -108,7 +108,7 @@ export function buildTrades(state: GameState, journal: PlanEntry[]): TradeRow[] 
 			close(e.step, 'liquidation');
 			continue;
 		}
-		if (e.type !== 'fill') continue;
+		if (e.type !== 'fill' || e.series) continue; // option trades are listed separately
 		const q = (e.side === 'buy' ? 1 : -1) * n(e.qty);
 		const next = pos + q;
 		if (cur === null) cur = openTrade(out.length + 1, e, q);

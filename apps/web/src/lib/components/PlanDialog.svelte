@@ -9,8 +9,16 @@
 		draft,
 		step,
 		onConfirm,
-		onCancel
-	}: { draft: OrderDraft; step: number; onConfirm: (p: PlanEntry) => void; onCancel: () => void } = $props();
+		onCancel,
+		optionLabel = null
+	}: {
+		draft: OrderDraft;
+		step: number;
+		onConfirm: (p: PlanEntry) => void;
+		onCancel: () => void;
+		optionLabel?: string | null;
+	} = $props();
+	let loseScenario = $state('');
 
 	let thesis = $state('');
 	let invalidation = $state('');
@@ -31,7 +39,9 @@
 			target: !skipped && target ? Number(target) : null,
 			confidence: skipped ? 0 : confidence,
 			plannedRisk: draft.estimate.plannedRisk,
-			skipped
+			skipped,
+			loseScenario: skipped || !optionLabel ? undefined : loseScenario.trim(),
+			instrument: optionLabel ?? undefined
 		});
 	}
 
@@ -47,7 +57,7 @@
 		<h2 id="plan-title">{t('plan.title')}</h2>
 		<p class="muted">{t('plan.why')}</p>
 		<p class={draft.side === 'buy' ? 'up' : 'down'}>
-			{draft.side === 'buy' ? '▲ LONG' : '▼ SHORT'} {draft.qty} · {draft.leverage}x ·
+			{optionLabel ? `${draft.side === 'buy' ? '▲' : '▼'} ${optionLabel} × ${draft.qty}` : `${draft.side === 'buy' ? '▲ LONG' : '▼ SHORT'} ${draft.qty} · ${draft.leverage}x`} ·
 			{t('rail.plannedRisk')}: {draft.estimate.plannedRisk != null ? fmtMoney(draft.estimate.plannedRisk, i18n.locale) : '—'}
 		</p>
 		<label>
@@ -59,6 +69,9 @@
 			<label>{t('plan.invalidation')}<input inputmode="decimal" bind:value={invalidation} /></label>
 			<label>{t('plan.target')}<input inputmode="decimal" bind:value={target} /></label>
 		</div>
+		{#if optionLabel}
+			<label>{t('opt.loseScenario')}<textarea rows="2" bind:value={loseScenario}></textarea></label>
+		{/if}
 		<label>
 			{t('plan.confidence')}: <strong>{confidence}%</strong>
 			<input type="range" min="50" max="95" step="5" bind:value={confidence} />

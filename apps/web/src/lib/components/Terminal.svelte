@@ -8,6 +8,9 @@
 	import EventFeed from './EventFeed.svelte';
 	import HelpOverlay from './HelpOverlay.svelte';
 	import OrderTicket, { type OrderDraft } from './OrderTicket.svelte';
+	import OptionChain from './OptionChain.svelte';
+	import OptionTicket, { type OptionDraft } from './OptionTicket.svelte';
+	import type { OptionQuoteView } from '#lib/engine/types.ts';
 	import OrdersPanel from './OrdersPanel.svelte';
 	import PlanDialog from './PlanDialog.svelte';
 	import RightRail from './RightRail.svelte';
@@ -19,6 +22,54 @@
 	let help = $state(false);
 	let side = $state<OrderSideName>('buy');
 	let lastPlannedRisk = $state<number | null>(null);
+	let tab = $state<'perp' | 'options'>('perp');
+	let optSeries = $state<number | null>(null);
+	let optSide = $state<'buy' | 'sell'>('buy');
+	let optDraft = $state<OptionDraft | null>(null);
+	const optQuote = $derived<OptionQuoteView | null>(session.state?.options.chain.find((q) => q.id === optSeries) ?? null);
+	const optionsOn = $derived(session.state?.options.enabled ?? false);
+
+	function pickOption(q: OptionQuoteView, side: 'buy' | 'sell') {
+		optSeries = q.id;
+		optSide = side;
+		tab = 'options';
+	}
+
+	async function sendOption(d: OptionDraft) {
+		const res = await session.placeOptionOrder(d.series, d.side, d.type, d.qty, d.premium);
+		if (!res) return;
+		if (!res.accepted) return notify(res.reason);
+		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${d.side} ${d.label} × ${d.qty}` };
+	}
+
+	function onOptionSubmit(d: OptionDraft) {
+		if (d.opensExposure) optDraft = d;
+		else void sendOption(d);
+	}
+
+	// Plan dialog reuses the perp draft shape; for options only side/qty/risk matter.
+	const optPlanDraft = $derived<OrderDraft | null>(
+		optDraft
+			? {
+					side: optDraft.side,
+					type: 'market',
+					qty: optDraft.qty,
+					price: null,
+					leverage: 1,
+					stop: null,
+					takeProfit: null,
+					estimate: { notional: 0, margin: 0, fee: 0, liquidation: null, plannedRisk: optDraft.risk, stopBeyondLiquidation: false },
+					increases: true
+				}
+			: null
+	);
+
+	function onOptionPlan(p: PlanEntry) {
+		const d = optDraft;
+		optDraft = null;
+		session.recordPlan(p);
+		if (d) void sendOption(d);
+	}
 
 	async function send(d: OrderDraft) {
 		const s = session.state;
@@ -57,7 +108,7 @@
 
 	// Advance (Space) never shares a key with submission (Enter inside the ticket).
 	function onKey(e: KeyboardEvent) {
-		if (draft || session.pendingQuestion) return;
+		if (draft || optDraft || session.pendingQuestion) return;
 		if (e.key === 'Escape') help = false;
 		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
 		const actions: Record<string, () => void> = {
@@ -85,8 +136,23 @@
 			<RightRail state={session.state} plannedRisk={Number(session.state.position.qty) !== 0 ? lastPlannedRisk : null} />
 		</div>
 		<div class="bottom">
-			<OrderTicket {session} bind:side {onSubmit} />
 			<div class="stack">
+				{#if optionsOn}
+					<div class="tabs" role="tablist">
+						<button role="tab" aria-selected={tab === 'perp'} class:primary={tab === 'perp'} onclick={() => (tab = 'perp')}>{t('opt.tabPerp')}</button>
+						<button role="tab" aria-selected={tab === 'options'} class:primary={tab === 'options'} onclick={() => (tab = 'options')}>{t('opt.tabOptions')}</button>
+					</div>
+				{/if}
+				{#if tab === 'options' && optionsOn}
+					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
+				{:else}
+					<OrderTicket {session} bind:side {onSubmit} />
+				{/if}
+			</div>
+			<div class="stack">
+				{#if optionsOn}
+					<OptionChain game={session.state} selected={optSeries} onPick={pickOption} />
+				{/if}
 				<OrdersPanel {session} />
 				{#if session.notice}
 					<div class="notice {session.notice.tone}" role="status">{session.notice.text}</div>
@@ -99,6 +165,9 @@
 
 {#if session.pendingQuestion && !draft}
 	<CalibrationDialog {session} />
+{/if}
+{#if optDraft && optPlanDraft && session.state}
+	<PlanDialog draft={optPlanDraft} step={session.state.step} optionLabel={optDraft.label} onConfirm={onOptionPlan} onCancel={() => (optDraft = null)} />
 {/if}
 {#if draft && session.state}
 	<PlanDialog {draft} step={session.state.step} onConfirm={onPlan} onCancel={() => (draft = null)} />
@@ -138,6 +207,11 @@
 		flex-direction: column;
 		gap: 0.5rem;
 		min-height: 0;
+	}
+	.tabs {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.3rem;
 	}
 	.notice {
 		padding: 0.4rem 0.6rem;

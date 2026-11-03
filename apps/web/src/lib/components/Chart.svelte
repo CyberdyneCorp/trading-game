@@ -42,7 +42,7 @@
 			out.push({ price: Number(game.account.liquidationPrice), label: 'LIQ', color: cssVar('--danger'), dash: [6, 3] });
 		}
 		for (const o of game.orders) {
-			if (o.type === 'market') continue;
+			if (o.type === 'market' || o.series) continue; // option limits are premiums, not underlying prices
 			const isStop = o.type === 'stop_market' || o.type === 'trailing_stop';
 			const kind = { stop_market: 'STOP', trailing_stop: 'TRAIL', take_profit: 'TP', limit: 'LMT' }[o.type];
 			out.push({

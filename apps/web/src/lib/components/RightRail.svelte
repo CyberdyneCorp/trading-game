@@ -3,6 +3,7 @@
 	import { fmtMoney, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
+	import { positionGreeks, seriesLabel } from '#lib/game/optionsMath.ts';
 
 	let { state, plannedRisk }: { state: GameState; plannedRisk: number | null } = $props();
 
@@ -18,6 +19,11 @@
 	const funding = $derived(num(a.nextFundingRate));
 	const fundingIn = $derived(a.nextFundingStep - state.step);
 	const levEff = $derived(equity > 0 ? num(a.notional) / equity : 0);
+	const opts = $derived(state.options);
+	const greeks = $derived(positionGreeks(opts));
+	function quoteOf(series: number) {
+		return opts.chain.find((q) => q.id === series);
+	}
 </script>
 
 <aside class="rail">
@@ -63,6 +69,32 @@
 			<dl class="kv"><dt>{t('rail.plannedRisk')}</dt><dd>{fmtMoney(plannedRisk, L)}</dd></dl>
 		{/if}
 	</section>
+
+	{#if opts.enabled && opts.positions.length > 0}
+		<section class="panel">
+			<h2 class="panel-title">{t('opt.positions')}</h2>
+			<ul class="opts">
+				{#each opts.positions as p (p.series)}
+					{@const q = quoteOf(p.series)}
+					{@const qty = num(p.qty)}
+					{@const markPx = q ? num(qty > 0 ? q.bid : q.ask) : 0}
+					{@const pnl = (markPx - num(p.avgPremium)) * qty * num(opts.multiplier)}
+					<li>
+						<span class={qty > 0 ? 'up' : 'down'}>{qty > 0 ? '▲' : '▼'} {q ? seriesLabel(q) : `#${p.series}`} × {Math.abs(qty)}</span>
+						<span class="num {pnl >= 0 ? 'up' : 'down'}">{signMark(pnl)} {fmtMoney(pnl, L, true)}</span>
+					</li>
+				{/each}
+			</ul>
+			<dl class="kv">
+				<dt>{t('opt.value')}</dt><dd>{fmtMoney(num(opts.longValue) - num(opts.shortValue), L, true)}</dd>
+				{#if num(opts.initialMargin) > 0}
+					<dt>{t('opt.marginUsed')}</dt><dd>{fmtMoney(opts.initialMargin, L)} / {fmtMoney(opts.maintenanceMargin, L)}</dd>
+				{/if}
+				<dt>{t('opt.bookGreeks')}</dt>
+				<dd class="small">Δ {greeks.delta.toFixed(2)} · Γ {greeks.gamma.toFixed(3)} · Θ {greeks.theta.toFixed(2)} · ν {greeks.vega.toFixed(2)}</dd>
+			</dl>
+		</section>
+	{/if}
 
 	<section class="panel">
 		<h2 class="panel-title">Funding</h2>
@@ -116,6 +148,20 @@
 		font-size: 1.5rem;
 		color: var(--danger);
 		text-align: left;
+	}
+	.opts {
+		list-style: none;
+		margin: 0 0 0.3rem;
+		padding: 0;
+		font-size: 0.82rem;
+	}
+	.opts li {
+		display: flex;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+	.small {
+		font-size: 0.75rem;
 	}
 	.objectives {
 		margin: 0;

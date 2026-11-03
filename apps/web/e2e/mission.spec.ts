@@ -184,3 +184,21 @@ test('Space pressed while an order is in flight is queued, not lost', async ({ p
 	await expect(page.getByText(/Execução #1/)).toBeVisible();
 	await expect(page.locator('.turn')).toContainText('Barra 2');
 });
+
+test('options mission: buy a call from the chain with a plan, hold to expiry, see settlement', async ({ page }) => {
+	await page.goto('/?seed=12');
+	await page.getByRole('button', { name: /Iniciar missão/ }).nth(3).click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await answerIfAsked(page);
+	await expect(page.getByText(/PRÊMIOS SIMULADOS/).first()).toBeVisible();
+	await page.locator('.chain table').first().locator('tbody tr').nth(2).locator('td').nth(3).getByRole('button').click();
+	await expect(page.getByText(/Perda máxima \(prêmio\)/)).toBeVisible();
+	await page.getByRole('button', { name: /Enviar ordem de opção/ }).click();
+	await page.locator('textarea').first().fill('Compra de call antes de possível rompimento');
+	await page.locator('textarea').nth(1).fill('Perde se não romper antes do vencimento ou se a IV cair');
+	await page.getByRole('button', { name: /Registrar plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/OPÇÕES EM CARTEIRA/i)).toBeVisible();
+	for (let i = 0; i < 60 && !(await page.getByText(/Vencimento OPT#/).count()); i++) await advance(page, 'Shift+Space');
+	await expect(page.getByText(/Vencimento OPT#/).first()).toBeVisible();
+});
