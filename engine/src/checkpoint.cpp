@@ -125,6 +125,28 @@ void visit(Ar& a, CommandRecord& c) {
 }
 
 template <typename Ar>
+void visit(Ar& a, PlanRecord& p) {
+  a.u32(p.step);
+  a.en(p.side);
+  a.flag(p.skipped);
+  a.flag(p.option);
+  a.flag(p.has_lose_scenario);
+  a.fx(p.invalidation);
+  a.fx(p.target);
+  a.u32(p.confidence_pct);
+  a.fx(p.planned_risk);
+}
+
+template <typename Ar>
+void visit(Ar& a, CalibrationAnswer& x) {
+  a.u32(x.step);
+  a.fx(x.threshold);
+  a.u32(x.horizon);
+  a.u32(x.p_bp);
+  a.flag(x.skipped);
+}
+
+template <typename Ar>
 void visit(Ar& a, Metrics& m) {
   a.fx(m.peak_equity);
   a.fx(m.max_drawdown);
@@ -166,6 +188,8 @@ void visit(Ar& a, RunState& st) {
   a.fx(st.option_cash);
   a.fx(st.option_realized);
   visit(a, st.metrics);
+  visit_seq(a, st.plans);
+  visit_seq(a, st.answers);
   visit_seq(a, st.events);
   visit_seq(a, st.command_log);
   std::uint64_t rs = st.rng.state();

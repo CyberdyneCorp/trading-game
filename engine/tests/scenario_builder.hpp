@@ -123,6 +123,21 @@ class Driver {
     c.margin_delta = M(delta);
     return apply_command(sc_, st_, c);
   }
+  CommandResult plan(OrderSide side, const char* invalidation, const char* risk, bool skipped = false) {
+    Command c = base(CommandType::RecordPlan);
+    c.plan.side = side;
+    c.plan.skipped = skipped;
+    if (invalidation != nullptr) c.plan.invalidation = P(invalidation);
+    if (risk != nullptr) c.plan.planned_risk = M(risk);
+    c.plan.confidence_pct = 60;
+    return apply_command(sc_, st_, c);
+  }
+  CommandResult answer(std::uint32_t p_bp, bool skipped = false) {
+    Command c = base(CommandType::AnswerQuestion);
+    c.p_bp = p_bp;
+    c.skipped = skipped;
+    return apply_command(sc_, st_, c);
+  }
   CommandResult leverage(int lev) {
     Command c = base(CommandType::SetLeverage);
     c.leverage = lev;

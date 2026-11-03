@@ -10,6 +10,7 @@
 #include "tradelab/generator.hpp"
 #include "tradelab/indicators.hpp"
 #include "tradelab/options.hpp"
+#include "tradelab/scoring.hpp"
 #include "options_exec.hpp"
 
 using tradelab::detail::JsonOut;
@@ -30,7 +31,7 @@ const char* reason_name(Reason r) {
       "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
       "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
       "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial"};
+      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan"};
   const auto i = static_cast<std::size_t>(r);
   return i < std::size(kNames) ? kNames[i] : "unknown";
 }
@@ -199,6 +200,74 @@ void write_news(JsonOut& j, const Scenario& sc, std::uint32_t step) {
   j.end_arr();
 }
 
+void write_calibration_state(JsonOut& j, const Scenario& sc, const RunState& st) {
+  j.key("calibration").begin_obj().field("due", question_due(sc, st)).field("horizon", kQuestionHorizon);
+  j.field("every", kQuestionEvery).field("threshold", sc.bars[st.step].close).field("answered", static_cast<std::uint32_t>(st.answers.size()));
+  j.end_obj();
+}
+
+const char* finding_name(FindingCode c) {
+  static constexpr const char* kNames[] = {"waited",          "liquidated", "stop_beyond_liq", "no_stop",   "gap_slippage",
+                                           "funding_cost",    "ambiguous",  "capacity",        "good_process_loss",
+                                           "lucky_win",       "no_plan",    "oversized",       "bankrupt"};
+  return kNames[static_cast<std::size_t>(c)];
+}
+
+const char* tone_name(FindingTone t) {
+  static constexpr const char* kNames[] = {"good", "warn", "bad", "info"};
+  return kNames[static_cast<std::size_t>(t)];
+}
+
+const char* lesson_name(LessonCode l) {
+  static constexpr const char* kNames[] = {"futures2", "risk", "futures3", "orders", "structure", "evaluation"};
+  return kNames[static_cast<std::size_t>(l)];
+}
+
+const char* exit_name(ExitReason e) {
+  static constexpr const char* kNames[] = {"stop", "target", "manual", "liquidation", "open"};
+  return kNames[static_cast<std::size_t>(e)];
+}
+
+void write_dim(JsonOut& j, std::string_view name, const Dimension& d) {
+  j.key(name).begin_obj().field("weight", d.weight).key("score");
+  if (d.score) j.num(*d.score); else j.null();
+  j.end_obj();
+}
+
+void write_trade(JsonOut& j, const TradeRow& t) {
+  j.begin_obj().field("n", t.n).field("side", t.is_long ? "long" : "short").field("entryStep", t.entry_step).key("exitStep");
+  if (t.exit_step) j.num(*t.exit_step); else j.null();
+  j.field("qty", t.qty).field("entryAvg", t.entry_avg).field("exitAvg", t.exit_avg).field("pnl", t.pnl);
+  j.field("fees", t.fees).field("net", t.net).field("bars", t.bars).field("reason", exit_name(t.reason));
+  j.field("plannedRisk", t.planned_risk).key("rBp");
+  if (t.r_bp) j.num(*t.r_bp); else j.null();
+  j.key("planRespected");
+  if (t.plan_respected) j.boolean(*t.plan_respected); else j.null();
+  j.end_obj();
+}
+
+void write_score(JsonOut& j, const ScoreReport& r) {
+  j.key("score").begin_obj().field("version", kScoringVersion).key("total");
+  if (r.total) j.num(*r.total); else j.null();
+  j.key("dims").begin_obj();
+  write_dim(j, "risk", r.risk);
+  write_dim(j, "plan", r.plan);
+  write_dim(j, "understanding", r.understanding);
+  write_dim(j, "calibration", r.calibration);
+  j.end_obj().end_obj();
+  j.key("findings").begin_arr();
+  for (const Finding& f : r.findings) {
+    j.begin_obj().field("code", finding_name(f.code)).field("tone", tone_name(f.tone)).field("step", f.step);
+    j.field("count", f.count).field("price", f.price).field("requested", f.requested).field("amount", f.amount).end_obj();
+  }
+  j.end_arr().field("lesson", lesson_name(r.lesson)).field("entries", r.entries).field("netPnl", r.net_pnl);
+  j.key("calibration").begin_obj().field("resolved", r.resolved_answers).key("brierBp");
+  if (r.brier_bp) j.num(*r.brier_bp); else j.null();
+  j.end_obj().key("trades").begin_arr();
+  for (const TradeRow& t : r.trades) write_trade(j, t);
+  j.end_arr();
+}
+
 const char* state_json(tl_run& r) {
   const Scenario& sc = r.scenario;
   const RunState& st = r.state;
@@ -215,6 +284,7 @@ const char* state_json(tl_run& r) {
   write_options(j, sc, st);
   write_indicators(j, sc, st.step);
   write_news(j, sc, st.step);
+  write_calibration_state(j, sc, st);
   j.key("events").begin_arr();
   for (const Event& e : st.events) write_event(j, e);
   j.end_arr();
@@ -388,6 +458,31 @@ const char* tl_adjust_margin(tl_run* run, uint32_t client_id, const char* amount
   return result_json(*run, apply_command(run->scenario, run->state, c));
 }
 
+const char* tl_record_plan(tl_run* run, uint32_t client_id, int32_t side, int32_t skipped, int32_t option,
+                           int32_t has_lose_scenario, const char* invalidation, const char* target,
+                           int32_t confidence_pct, const char* planned_risk) {
+  Command c = next_command(*run, CommandType::RecordPlan, client_id);
+  c.plan.side = side == 1 ? OrderSide::Sell : OrderSide::Buy;
+  c.plan.skipped = skipped != 0;
+  c.plan.option = option != 0;
+  c.plan.has_lose_scenario = has_lose_scenario != 0;
+  c.plan.confidence_pct = static_cast<std::uint32_t>(std::max(0, confidence_pct));
+  const auto risk = parse_decimal<Money>(planned_risk == nullptr || planned_risk[0] == '\0' ? "0" : planned_risk);
+  if (!risk.ok() || !parse_optional_price(invalidation, &c.plan.invalidation, false) ||
+      !parse_optional_price(target, &c.plan.target, false)) {
+    return error_json(*run, "invalid_plan");
+  }
+  c.plan.planned_risk = risk.value();
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_answer_question(tl_run* run, uint32_t client_id, int32_t p_bp, int32_t skipped) {
+  Command c = next_command(*run, CommandType::AnswerQuestion, client_id);
+  c.p_bp = static_cast<std::uint32_t>(std::max(0, p_bp));
+  c.skipped = skipped != 0;
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
 const char* tl_checkpoint(tl_run* run) {
   JsonOut j;
   j.begin_obj().field("checkpoint", to_hex_bytes(save_checkpoint(run->state, run->scenario.id)));
@@ -448,6 +543,7 @@ const char* tl_debrief(tl_run* run) {
   j.field("buyAndHoldPnl", buy_and_hold(sc)).field("flatPnl", Money{});
   j.field("syntheticMarket", true).field("seed", run->state.seed);
   j.field("startPrice", sc.bars[sc.mission.warmup_bars].close).field("endPrice", sc.bars.back().close);
+  write_score(j, score_run(sc, run->state));
   j.end_obj();
   run->buffer = j.text();
   return run->buffer.c_str();

@@ -12,7 +12,7 @@ import type {
 	OrderTypeName
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
-import { nextQuestionStep, questionDue, type CalibrationQuestion } from './calibration.ts';
+import { stepsUntilNextQuestion } from './calibration.ts';
 import { newRunId, openDb, RunStore } from './storage.ts';
 
 export type Screen = 'loading' | 'menu' | 'briefing' | 'terminal' | 'debrief';
@@ -32,6 +32,18 @@ type Action =
 	  }
 	| { k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null }
 	| { k: 'margin'; amount: string }
+	| {
+			k: 'plan';
+			side: OrderSideName;
+			skipped: boolean;
+			option: boolean;
+			lose: boolean;
+			inv: string | null;
+			target: string | null;
+			conf: number;
+			risk: string | null;
+	  }
+	| { k: 'ans'; pBp: number; skipped: boolean }
 	| { k: 'cancel'; id: number }
 	| { k: 'close' }
 	| { k: 'adv'; n: number };
@@ -66,9 +78,8 @@ export class GameSession {
 	journal = $state<PlanEntry[]>([]);
 	notice = $state<Notice | null>(null);
 	stopWarnings = $state(0);
-	questions = $state<CalibrationQuestion[]>([]);
-	/** A calibration question waiting for an answer blocks advancing. */
-	pendingQuestion = $derived(this.state != null && questionDue(this.state, this.questions));
+	/** A calibration question due now (engine schedule) blocks advancing until answered. */
+	pendingQuestion = $derived(this.state?.calibration.due ?? false);
 	busy = $state(false);
 	saved = $state<RunSummary | null>(null);
 	/** False when IndexedDB is unavailable (e.g. some private modes): runs cannot be resumed. */
@@ -78,7 +89,7 @@ export class GameSession {
 	private engine: EngineClient | null = null;
 	private log: Action[] = [];
 	private clientId = 1;
-	private store: RunStore<Action, PlanEntry, CalibrationQuestion> | null = null;
+	private store: RunStore<Action, PlanEntry, never> | null = null;
 	private runId = '';
 	private policy = 0;
 
@@ -180,7 +191,6 @@ export class GameSession {
 		this.log = [...run.actions];
 		this.journal = r.journal;
 		this.stopWarnings = r.stopWarnings;
-		this.questions = r.questions;
 		if (r.executionPolicy !== this.policy) {
 			this.notice = { tone: 'warn', text: `run recorded with execution policy v${r.executionPolicy}; engine is v${this.policy}` };
 		} else if (this.state && r.digest && r.actions === run.actions.length && this.state.digest !== r.digest) {
@@ -250,18 +260,29 @@ export class GameSession {
 		return this.command({ k: 'close' });
 	}
 
-	/** Records the answer (probability the close in `horizon` bars ends above the threshold). */
-	answerQuestion(p: number | null): void {
-		const s = this.state;
-		if (!s || !this.pendingQuestion) return;
-		this.questions = [...this.questions, { step: s.step, threshold: s.account.mark, horizon: 5, p }];
-		this.persist();
+	/** Calibration answer (probability the close in `horizon` bars ends above the threshold). */
+	async answerQuestion(p: number | null): Promise<void> {
+		if (!this.pendingQuestion) return;
+		await this.command({ k: 'ans', pBp: p == null ? 0 : Math.round(p * 10000), skipped: p == null });
 		this.flushQueue();
 	}
 
-	recordPlan(plan: PlanEntry): void {
+	/** Structured plan goes to the engine (scored there); the free text stays in the local journal. */
+	async recordPlan(plan: PlanEntry): Promise<void> {
 		this.journal = [...this.journal, plan];
 		this.persist();
+		const price = (v: number | null) => (v != null && v > 0 ? v.toFixed(2) : null);
+		await this.command({
+			k: 'plan',
+			side: plan.side,
+			skipped: plan.skipped,
+			option: plan.instrument != null,
+			lose: !!plan.loseScenario,
+			inv: price(plan.invalidation),
+			target: price(plan.target),
+			conf: plan.confidence,
+			risk: plan.plannedRisk != null && plan.plannedRisk > 0 ? plan.plannedRisk.toFixed(2) : null
+		});
 	}
 
 	async advance(n: number): Promise<void> {
@@ -270,7 +291,7 @@ export class GameSession {
 			this.queued += n; // e.g. Space pressed while an order is in flight: run it afterwards
 			return;
 		}
-		const steps = this.stepsUntilQuestion(n);
+		const steps = this.state ? stepsUntilNextQuestion(this.state, n) : n;
 		this.busy = true;
 		try {
 			await this.exec({ k: 'adv', n: steps }, true);
@@ -286,17 +307,24 @@ export class GameSession {
 	}
 
 	private queued = 0;
+	private hold = 0;
 
-	// Never jump over a calibration question: stop on its step so it is asked before its bars exist.
-	private stepsUntilQuestion(n: number): number {
-		const s = this.state;
-		if (!s) return n;
-		const q = nextQuestionStep(s, this.questions);
-		return q != null && q > s.step ? Math.min(n, q - s.step) : n;
+	/**
+	 * Runs several commands as one player intent (e.g. plan + order). Queued advances wait until the
+	 * whole sequence is done, so an advance can never slip between the plan and its order.
+	 */
+	async sequence(fn: () => Promise<void>): Promise<void> {
+		this.hold += 1;
+		try {
+			await fn();
+		} finally {
+			this.hold -= 1;
+			this.flushQueue();
+		}
 	}
 
 	private flushQueue(): void {
-		if (this.queued <= 0 || this.busy || this.pendingQuestion) return;
+		if (this.queued <= 0 || this.busy || this.hold > 0 || this.pendingQuestion) return;
 		const n = this.queued;
 		this.queued = 0;
 		void this.advance(n);
@@ -311,7 +339,6 @@ export class GameSession {
 		this.notice = null;
 		this.debrief = null;
 		this.stopWarnings = 0;
-		this.questions = [];
 		this.queued = 0;
 	}
 
@@ -372,6 +399,21 @@ export class GameSession {
 								qty: a.qty,
 								premium: a.premium
 							})
+						: a.k === 'plan'
+						? await e.request({
+								kind: 'plan',
+								clientId,
+								side: a.side,
+								skipped: a.skipped,
+								option: a.option,
+								loseScenario: a.lose,
+								invalidation: a.inv,
+								target: a.target,
+								confidence: a.conf,
+								plannedRisk: a.risk
+							})
+						: a.k === 'ans'
+						? await e.request({ kind: 'answer', clientId, pBp: a.pBp, skipped: a.skipped })
 						: a.k === 'margin'
 						? await e.request({ kind: 'margin', clientId, amount: a.amount })
 						: a.k === 'cancel'
@@ -391,7 +433,6 @@ export class GameSession {
 		void this.store
 			.updateRun(this.runId, {
 				journal: $state.snapshot(this.journal),
-				questions: $state.snapshot(this.questions),
 				stopWarnings: this.stopWarnings,
 				digest: this.state.digest,
 				status: this.state.status

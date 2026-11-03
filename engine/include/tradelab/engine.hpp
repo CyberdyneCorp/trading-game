@@ -10,7 +10,12 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kExecutionPolicyVersion = 3;  // v2: brackets/OCO, trailing; v3: options
+constexpr std::uint32_t kExecutionPolicyVersion = 4;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers
+
+// Calibration questions (spec mission-scoring "Calibration"): asked every kQuestionEvery steps from
+// the first decision step while the resolving bar exists; resolved kQuestionHorizon bars later.
+constexpr std::uint32_t kQuestionEvery = 15;
+constexpr std::uint32_t kQuestionHorizon = 5;
 
 enum class CommandType : std::uint8_t {
   PlaceOrder = 0,
@@ -19,6 +24,8 @@ enum class CommandType : std::uint8_t {
   ClosePosition = 3,
   PlaceOptionOrder = 4,  // order_type Market or Limit; price = premium limit; series required
   AdjustMargin = 5,      // add (> 0) or remove (< 0) isolated margin on the open perpetual position
+  RecordPlan = 6,        // structured plan for the next exposure-increasing order
+  AnswerQuestion = 7,    // calibration answer for the question due at this step
 };
 
 struct Command {
@@ -38,6 +45,9 @@ struct Command {
   Price trail_distance;        // TrailingStop
   std::uint32_t series = 0;    // PlaceOptionOrder
   Money margin_delta;          // AdjustMargin
+  PlanRecord plan;             // RecordPlan (step is set by the engine)
+  std::uint32_t p_bp = 0;      // AnswerQuestion: probability in basis points
+  bool skipped = false;        // AnswerQuestion skipped
 };
 
 // Live account figures at the current decision point (all derived, never stored).
@@ -64,6 +74,9 @@ CommandResult apply_command(const Scenario& sc, RunState& st, const Command& cmd
 void advance(const Scenario& sc, RunState& st);
 
 AccountView account_view(const Scenario& sc, const RunState& st);
+
+// True when a calibration question is due at the current step and has not been answered yet.
+bool question_due(const Scenario& sc, const RunState& st);
 std::uint32_t last_decision_step(const Scenario& sc);
 
 Digest state_digest(const RunState& st);

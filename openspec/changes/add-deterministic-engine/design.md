@@ -60,6 +60,11 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 - Reconciliation: wallet = initial + perp realized − fees + funding + option_cash (premiums and settlements).
 - Policy v3 adds the instrument (series) field to order/event serialization.
 
+### D6d. Plans, calibration answers and scoring (execution-policy v4)
+- `RecordPlan` stores the structured plan (side, invalidation, target, confidence, planned risk, skipped, option, has-lose-scenario) at the decision step; free text never reaches the engine (spec: no subjective grading).
+- `AnswerQuestion` is accepted only when a question is due: every 15 steps from the first decision step, while the resolving bar (t+5) exists, once per step. Threshold = close at t; skipped answers are kept but not scored.
+- `engine/scoring` (version 1) derives entries from a position walk over perp fills, protection from reduce-only stops placed in [t-1, t+2] (bracket children included), and computes risk/plan/calibration with renormalization, findings, next lesson and flat-to-flat trades with R = net / planned risk. Integer arithmetic only, so client and server agree exactly.
+
 ### D7. Digest and checkpoints
 - Canonical little-endian binary serialization of `RunState`; SHA-256 (vendored, constant-time not required). Checkpoint = serialized state + engine version + policy version.
 

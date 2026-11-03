@@ -201,6 +201,7 @@ export interface GameState {
 	options: OptionsView;
 	indicators: Indicators;
 	news: NewsView[];
+	calibration: { due: boolean; horizon: number; every: number; threshold: Decimal; answered: number };
 	events: EngineEvent[];
 	totals: Totals;
 	digest: string;
@@ -214,6 +215,54 @@ export interface CommandResult {
 	warning: string | null;
 }
 
+export interface EngineFinding {
+	code:
+		| 'waited'
+		| 'liquidated'
+		| 'stop_beyond_liq'
+		| 'no_stop'
+		| 'gap_slippage'
+		| 'funding_cost'
+		| 'ambiguous'
+		| 'capacity'
+		| 'good_process_loss'
+		| 'lucky_win'
+		| 'no_plan'
+		| 'oversized'
+		| 'bankrupt';
+	tone: 'good' | 'warn' | 'bad' | 'info';
+	step: number;
+	count: number;
+	price: Decimal;
+	requested: Decimal;
+	amount: Decimal;
+}
+
+export interface EngineTrade {
+	n: number;
+	side: 'long' | 'short';
+	entryStep: number;
+	exitStep: number | null;
+	qty: Decimal;
+	entryAvg: Decimal;
+	exitAvg: Decimal;
+	pnl: Decimal;
+	fees: Decimal;
+	net: Decimal;
+	bars: number;
+	reason: 'stop' | 'target' | 'manual' | 'liquidation' | 'open';
+	plannedRisk: Decimal;
+	rBp: number | null;
+	planRespected: boolean | null;
+}
+
+export interface ScoreDimension {
+	weight: number;
+	score: number | null;
+}
+
+export type LessonCode = 'futures2' | 'risk' | 'futures3' | 'orders' | 'structure' | 'evaluation';
+
 export interface DebriefData {
 	mission: string;
 	alias: string;
@@ -225,6 +274,17 @@ export interface DebriefData {
 	seed: number;
 	startPrice: Decimal;
 	endPrice: Decimal;
+	score: {
+		version: number;
+		total: number | null;
+		dims: { risk: ScoreDimension; plan: ScoreDimension; understanding: ScoreDimension; calibration: ScoreDimension };
+	};
+	findings: EngineFinding[];
+	lesson: LessonCode;
+	entries: number;
+	netPnl: Decimal;
+	calibration: { resolved: number; brierBp: number | null };
+	trades: EngineTrade[];
 }
 
 export const ORDER_TYPE_CODE: Record<OrderTypeName, number> = {

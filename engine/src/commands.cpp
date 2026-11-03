@@ -203,6 +203,24 @@ CommandResult adjust_margin(const Scenario& sc, RunState& st, const Command& c) 
   return CommandResult{true, Reason::None, 0, Reason::None};
 }
 
+CommandResult record_plan(RunState& st, const Command& c) {
+  const PlanRecord& p = c.plan;
+  if (p.confidence_pct > 100 || p.invalidation.raw < 0 || p.target.raw < 0 || p.planned_risk.raw < 0) {
+    return reject(Reason::InvalidPlan);
+  }
+  PlanRecord rec = p;
+  rec.step = st.step;
+  st.plans.push_back(rec);
+  return CommandResult{true, Reason::None, 0, Reason::None};
+}
+
+CommandResult answer_question(const Scenario& sc, RunState& st, const Command& c) {
+  if (!question_due(sc, st)) return reject(Reason::NoQuestionDue);
+  if (!c.skipped && c.p_bp > 10000) return reject(Reason::InvalidPlan);
+  st.answers.push_back({st.step, sc.bars[st.step].close, kQuestionHorizon, c.skipped ? 0 : c.p_bp, c.skipped});
+  return CommandResult{true, Reason::None, 0, Reason::None};
+}
+
 CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
   switch (c.type) {
     case CommandType::PlaceOrder: return place_order(sc, st, c);
@@ -211,6 +229,8 @@ CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
     case CommandType::ClosePosition: return close_position(sc, st, c);
     case CommandType::PlaceOptionOrder: return detail::place_option_order(sc, st, c, account_view(sc, st).available);
     case CommandType::AdjustMargin: return adjust_margin(sc, st, c);
+    case CommandType::RecordPlan: return record_plan(st, c);
+    case CommandType::AnswerQuestion: return answer_question(sc, st, c);
   }
   return reject(Reason::UnsupportedOrderType);
 }
@@ -239,6 +259,16 @@ CommandResult apply_command(const Scenario& sc, RunState& st, const Command& cmd
   const CommandResult result = dispatch(sc, st, cmd);
   st.command_log.push_back(CommandRecord{cmd.client_id, result});
   return result;
+}
+
+bool question_due(const Scenario& sc, const RunState& st) {
+  if (st.status != RunStatus::Active || st.step < sc.mission.warmup_bars) return false;
+  if ((st.step - sc.mission.warmup_bars) % kQuestionEvery != 0) return false;
+  if (st.step + kQuestionHorizon >= sc.bars.size()) return false;
+  for (const CalibrationAnswer& a : st.answers) {
+    if (a.step == st.step) return false;
+  }
+  return true;
 }
 
 namespace detail {

@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { analyze, describeFinding, describeLesson } from '#lib/game/analysis.ts';
-	import { buildTrades } from '#lib/game/trades.ts';
-	import { calibrationScore } from '#lib/game/calibration.ts';
+	import { describeFinding, describeLesson } from '#lib/game/analysis.ts';
 	import { fmtMoney, fmtPct, fmtPrice, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
@@ -13,9 +11,14 @@
 	const s = $derived(session.state!);
 	const d = $derived(session.debrief!);
 	const L = $derived(i18n.locale);
-	const a = $derived(analyze(s, d, session.journal, session.stopWarnings, session.questions));
-	const trades = $derived(buildTrades(s, session.journal));
-	const cal = $derived(calibrationScore(session.questions, s.bars));
+	// Engine report (authoritative; the server recomputes the same thing from the same commands).
+	const a = $derived({ netPnl: Number(d.netPnl), dims: d.score.dims, total: d.score.total, findings: d.findings, lesson: d.lesson });
+	const trades = $derived(d.trades);
+	const cal = $derived({
+		resolved: d.calibration.resolved,
+		score: d.score.dims.calibration.score,
+		brier: d.calibration.brierBp == null ? null : d.calibration.brierBp / 10000
+	});
 	const bankrupt = $derived(s.status === 'bankrupt');
 	const hold = $derived(num(d.buyAndHoldPnl));
 	const timeline = $derived(
@@ -115,15 +118,17 @@
 				</thead>
 				<tbody>
 					{#each trades as tr (tr.n)}
+						{@const net = Number(tr.net)}
+						{@const r = tr.rBp == null ? null : tr.rBp / 10000}
 						<tr>
 							<td>{tr.n}</td>
-							<td class={tr.side === 'long' ? 'up' : 'down'}>{tr.side === 'long' ? '▲ LONG' : '▼ SHORT'} {tr.qty}</td>
-							<td class="num">{fmtPrice(String(tr.entryAvg), L)} <span class="muted">@{tr.entryStep}</span></td>
-							<td class="num">{tr.exitAvg != null ? fmtPrice(String(tr.exitAvg), L) : '—'}</td>
-							<td class="num {tr.net >= 0 ? 'up' : 'down'}">{signMark(tr.net)} {fmtMoney(tr.net, L, true)}</td>
-							<td class="num">{tr.r != null ? `${tr.r >= 0 ? '+' : ''}${tr.r.toFixed(2)}R` : '—'}</td>
+							<td class={tr.side === 'long' ? 'up' : 'down'}>{tr.side === 'long' ? '▲ LONG' : '▼ SHORT'} {Number(tr.qty)}</td>
+							<td class="num">{fmtPrice(tr.entryAvg, L)} <span class="muted">@{tr.entryStep}</span></td>
+							<td class="num">{Number(tr.exitAvg) > 0 ? fmtPrice(tr.exitAvg, L) : '—'}</td>
+							<td class="num {net >= 0 ? 'up' : 'down'}">{signMark(net)} {fmtMoney(net, L, true)}</td>
+							<td class="num">{r != null ? `${r >= 0 ? '+' : ''}${r.toFixed(2)}R` : '—'}</td>
 							<td class="num">{tr.bars}</td>
-							<td>{t(`trade.${tr.exitReason}`)}</td>
+							<td>{t(`trade.${tr.reason}`)}</td>
 							<td class={tr.planRespected === false ? 'down' : tr.planRespected ? 'up' : 'muted'}>
 								{tr.planRespected == null ? '—' : tr.planRespected ? '✔ ' + t('trade.respected') : '✖ ' + t('trade.violated')}
 							</td>
