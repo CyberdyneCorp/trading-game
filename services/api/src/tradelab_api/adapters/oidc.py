@@ -2,7 +2,8 @@
 
 Everything is derived from the issuer's discovery document: issuer string, JWKS URI and algorithms.
 Nothing is hard-coded. JWKS is cached with a TTL and refetched once on an unknown `kid`. Tokens
-must be `type == "access"`, unexpired, from the discovered issuer and for our audience.
+must be `type == "access"`, unexpired, from the discovered issuer and for our audience. The
+discovery document shares the JWKS TTL, so an issuer that moves its `jwks_uri` is picked up.
 """
 
 from __future__ import annotations
@@ -39,6 +40,8 @@ class OidcVerifier:
         return self._meta
 
     def _refresh_keys(self) -> None:
+        if time.monotonic() - self._fetched_at > self._ttl:
+            self._meta = None  # discovery expires with the keys
         jwks = self._http.get(self._discovery()["jwks_uri"])
         jwks.raise_for_status()
         self._keys = {k["kid"]: PyJWK(k) for k in jwks.json().get("keys", []) if "kid" in k}

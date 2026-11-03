@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
 import tradelab_engine as te
+from conftest import DISCOVERY
+
+from tradelab_api.adapters.oidc import OidcVerifier
 
 POLICY = te.engine_version()["executionPolicy"]
 LOG: list[dict[str, Any]] = [
@@ -119,6 +123,29 @@ def test_bad_logs_and_unsupported_policies_are_rejected_per_run(client, auth):
 def test_oversized_batch_is_rejected(client, auth):
     runs = [run_body(run_id=f"run-{i:04d}-abcd", actions=[]) for i in range(51)]
     assert sync(client, auth, runs).status_code == 413
+
+
+def test_regression_body_limit_counts_streamed_bytes_not_only_content_length(idp, client_with):
+    # Before: only Content-Length was checked, so a chunked body skipped the limit and a
+    # non-numeric header raised a 500.
+    small = client_with(max_body_bytes=64)
+    headers = {"Authorization": f"Bearer {idp.token()}", "Idempotency-Key": "k-1", "Content-Type": "application/json"}
+    chunks = iter([b'{"deviceId": "dev-1", ', b'"runs": [], "padding": "' + b"x" * 100 + b'"}'])
+    assert small.post("/api/v1/sync/batches", content=chunks, headers=headers).status_code == 413
+    assert small.post("/api/v1/sync/batches", content=b"{}",
+                      headers={**headers, "Content-Length": "abc"}).status_code == 400
+    assert small.post("/api/v1/sync/batches", content=b"x" * 100, headers=headers).status_code == 413
+    assert small.get("/api/v1/health").status_code == 200
+
+
+def test_regression_discovery_is_refetched_after_the_ttl(idp):
+    # Before: the discovery document was cached forever, only the JWKS had a TTL.
+    http = httpx.Client(transport=httpx.MockTransport(idp.handler))
+    verifier = OidcVerifier(DISCOVERY, "tradelab-api", client=http, ttl=0.0)
+    verifier.verify(idp.token())
+    first = idp.discovery_hits
+    verifier.verify(idp.token())
+    assert idp.discovery_hits > first
 
 
 def test_progress_export_and_erase(client, auth):

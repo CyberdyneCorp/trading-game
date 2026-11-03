@@ -314,6 +314,21 @@ test('candle pattern cheat sheet opens with P, filters by bias, and blocks Space
 	await expect(sheet).toBeVisible();
 });
 
+test('regression: Space does not advance behind the help overlay', async ({ page }) => {
+	await openTerminal(page, 4243);
+	const bar = await page.getByText(/Barra \d+ de/).textContent();
+	await page.keyboard.press('?');
+	const help = page.getByRole('dialog', { name: 'Atalhos' });
+	await expect(help).toBeVisible();
+	await page.keyboard.press('Space');
+	await page.keyboard.press('b');
+	await expect(page.getByText(/Barra \d+ de/)).toHaveText(bar!);
+	await page.keyboard.press('?');
+	await expect(help).toHaveCount(0);
+	await page.keyboard.press('Space');
+	await expect(page.getByText(/Barra \d+ de/)).not.toHaveText(bar!);
+});
+
 test('Bollinger bands overlay shows its range in the readout', async ({ page }) => {
 	await openTerminal(page, 4242);
 	await page.getByLabel('BB20').check();

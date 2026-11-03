@@ -29,6 +29,7 @@ class FakeIdP:
     def __init__(self) -> None:
         self.keys: dict[str, Any] = {}
         self.jwks_hits = 0
+        self.discovery_hits = 0
         self.rotate()
 
     def rotate(self) -> str:
@@ -39,6 +40,7 @@ class FakeIdP:
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("openid-configuration"):
+            self.discovery_hits += 1
             return httpx.Response(200, json={"issuer": ISSUER, "jwks_uri": f"{ISSUER}/jwks.json",
                                              "id_token_signing_alg_values_supported": ["RS256"]})
         self.jwks_hits += 1
@@ -62,16 +64,25 @@ def idp() -> FakeIdP:
     return FakeIdP()
 
 
-@pytest.fixture
-def client(idp: FakeIdP) -> TestClient:
+def build_client(idp: FakeIdP, **settings: Any) -> TestClient:
     http = httpx.Client(transport=httpx.MockTransport(idp.handler))
     verifier = OidcVerifier(DISCOVERY, "tradelab-api", client=http)
     # TRADELAB_TEST_DATABASE_URL runs the same suite against PostgreSQL (CI does); default: SQLite.
     url = os.environ.get("TRADELAB_TEST_DATABASE_URL", "sqlite+pysqlite:///:memory:")
     if not url.startswith("sqlite"):
         _reset(url)
-    app = create_app(Settings(database_url=url), verifier, EngineReplayer(), ACTION_KINDS)
+    app = create_app(Settings(database_url=url, **settings), verifier, EngineReplayer(), ACTION_KINDS)
     return TestClient(app)
+
+
+@pytest.fixture
+def client(idp: FakeIdP) -> TestClient:
+    return build_client(idp)
+
+
+@pytest.fixture
+def client_with(idp: FakeIdP) -> Callable[..., TestClient]:
+    return lambda **settings: build_client(idp, **settings)
 
 
 def _reset(url: str) -> None:

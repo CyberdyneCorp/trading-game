@@ -33,7 +33,7 @@
 - [ ] 4.9 Remappable shortcuts; option-chain and journal shortcuts
 
 ## 5. Offline PWA
-- [ ] 5.1 Web manifest, icons, service worker precache (shell, fonts, i18n, versioned engine WASM); API network-only — manifest, icons and precache of the versioned build done (`src/service-worker.ts`); no network-only rule for `/api/*` yet (every same-origin GET is cache-first), needed before the BFF lands
+- [x] 5.1 Web manifest, icons, service worker precache (shell, fonts, i18n, versioned engine WASM); API network-only — `src/service-worker.ts`, routing in `src/lib/game/swRoutes.ts` (`/api/*` never cached; unit-tested)
 - [ ] 5.2 OPFS pack store with verify-then-install, quota display, `storage.persist()`, eviction detection — `storage.persist()` requested at mission start and its result shown in settings; OPFS store, quota display and eviction detection pending
 - [ ] 5.3 Resumable pack downloads (Range; Background Fetch where available)
 - [ ] 5.4 Engine-version pinning for unfinished runs + cache GC; update prompt after mission — update prompt (menu only) and policy-mismatch warning done; keeping old engine builds for unfinished runs pending
