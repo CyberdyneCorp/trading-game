@@ -181,6 +181,24 @@ void write_indicators(JsonOut& j, const Scenario& sc, std::uint32_t step) {
   j.end_obj();
 }
 
+const char* news_kind_name(NewsKind k) {
+  static constexpr const char* kNames[] = {"rate_decision",  "regulation_rumor",       "exchange_incident", "network_outage",
+                                           "liquidity_inflow", "institutional_adoption", "rumor_denied"};
+  return kNames[static_cast<std::size_t>(k)];
+}
+
+// Only news published at or before the current step: the future never crosses the ABI.
+void write_news(JsonOut& j, const Scenario& sc, std::uint32_t step) {
+  j.key("news").begin_arr();
+  for (const NewsItem& n : sc.news) {
+    if (n.release_step > step) continue;
+    j.begin_obj().field("step", n.release_step).field("kind", news_kind_name(n.kind)).field("tone", std::int32_t{n.tone});
+    j.field("credibility", std::uint32_t{n.credibility}).field("expectation", std::int32_t{n.expectation});
+    j.field("actual", std::int32_t{n.actual}).end_obj();
+  }
+  j.end_arr();
+}
+
 const char* state_json(tl_run& r) {
   const Scenario& sc = r.scenario;
   const RunState& st = r.state;
@@ -196,6 +214,7 @@ const char* state_json(tl_run& r) {
   write_orders(j, st);
   write_options(j, sc, st);
   write_indicators(j, sc, st.step);
+  write_news(j, sc, st.step);
   j.key("events").begin_arr();
   for (const Event& e : st.events) write_event(j, e);
   j.end_arr();

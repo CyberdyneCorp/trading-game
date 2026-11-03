@@ -6,6 +6,7 @@
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
 	import EventFeed from './EventFeed.svelte';
+	import NewsPanel from './NewsPanel.svelte';
 	import HelpOverlay from './HelpOverlay.svelte';
 	import OrderTicket, { type OrderDraft } from './OrderTicket.svelte';
 	import OptionChain from './OptionChain.svelte';
@@ -165,7 +166,10 @@
 					<div class="notice {session.notice.tone}" role="status">{session.notice.text}</div>
 				{/if}
 			</div>
-			<EventFeed events={session.state.events} />
+			<div class="stack">
+				<NewsPanel news={session.state.news} />
+				<EventFeed events={session.state.events} />
+			</div>
 		</div>
 	</div>
 {/if}

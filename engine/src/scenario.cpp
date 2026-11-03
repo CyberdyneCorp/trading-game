@@ -46,6 +46,14 @@ bool options_valid(const Scenario& s) {
   return o.im_floor.raw > 0 && o.mm_base.raw > 0 && o.settlement_bars >= 1;
 }
 
+bool news_valid(const Scenario& s) {
+  for (const NewsItem& n : s.news) {
+    if (n.release_step >= s.bars.size() || n.credibility > 100) return false;
+    if (n.expectation < -2 || n.expectation > 2 || n.actual < -2 || n.actual > 2 || n.tone < -1 || n.tone > 1) return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 ScenarioError validate(const Scenario& s) {
@@ -57,6 +65,7 @@ ScenarioError validate(const Scenario& s) {
   if (s.funding_rate.size() != s.bars.size()) return ScenarioError::FundingLengthMismatch;
   if (!mission_valid(s)) return ScenarioError::InvalidMission;
   if (!options_valid(s)) return ScenarioError::InvalidOptions;
+  if (!news_valid(s)) return ScenarioError::InvalidNews;
   return ScenarioError::Ok;
 }
 

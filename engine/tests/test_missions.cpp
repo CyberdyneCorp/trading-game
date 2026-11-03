@@ -92,6 +92,7 @@ TEST_CASE("C ABI: same mission, seed and commands produce identical digests") {
 
 // Policy v2 changed the state digest (new order fields). Policy v3 adds the instrument (series) field
 // to orders and events, so both digests changed again; perpetual behavior tests are unchanged.
+// Mission m01 later gained news events, which changed its generated market (content, not policy).
 TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run* run = tl_run_create("m01-false-breakout", 2026);
   tl_set_leverage(run, 1, 5);
@@ -107,8 +108,8 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"37a5211b22154bf1ab499d883f5ce7639374cc5f385595a546486b2a6a04e4b5\","
-        "\"eventsDigest\":\"c44f93d25fce536790e6dda6c9647877cc1f732977161d33f4fa9d1cd1f97174\"}");
+        "\"digest\":\"246d3a3cfea679afdcef14b2df32308c1476ad1934e700fa3c1cd46303dda8b2\","
+        "\"eventsDigest\":\"26c295991bfa9917e97388bd7f8d087ed6c5b41ff0405b9cf6b7d552881aec7c\"}");
 }
 
 TEST_CASE("Option missions: chain exposed at the decision step, trades settle through the C ABI") {
@@ -141,4 +142,48 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   CHECK(s.substr(s.find("\"digest\"")) ==
         "\"digest\":\"1d219a1e4638ec7aa5729f8382edce50ef5ce193f9493effa7d169a38c79572d\","
         "\"eventsDigest\":\"d9a87d6b7729273a34948561895c1bc7c57374c23cb167c0d2b0d88b14038c31\"}");
+}
+
+TEST_CASE("News: same headline, seeded reactions include none and reversals (spec Events)") {
+  ScriptedEvent ev;
+  ev.item = {10, NewsKind::RateDecision, 1, 100, 0, 1};  // positive surprise, positive tone
+  ev.p_none = 0.2;
+  ev.p_align = 0.6;
+  int none = 0;
+  int up = 0;
+  int down = 0;
+  for (std::uint64_t seed = 1; seed <= 1000; ++seed) {
+    const int r = sample_reaction(ev, seed, 0);
+    none += r == 0 ? 1 : 0;
+    up += r > 0 ? 1 : 0;
+    down += r < 0 ? 1 : 0;
+  }
+  CHECK(none == doctest::Approx(200).epsilon(0.25));
+  CHECK(up == doctest::Approx(480).epsilon(0.15));    // 0.8 * 0.6
+  CHECK(down == doctest::Approx(320).epsilon(0.2));   // 0.8 * 0.4: good news can still sell off
+}
+
+TEST_CASE("News: only released items are serialized; events never depend on the player") {
+  tl_run* run = tl_run_create("m01-false-breakout", 4);
+  std::string s = tl_state(run);
+  CHECK(s.find("\"news\":[]") != std::string::npos);  // nothing released at the first decision
+  s = tl_advance(run, 12);                              // step 72: rumor published
+  CHECK(s.find("\"kind\":\"institutional_adoption\"") != std::string::npos);
+  CHECK(s.find("rumor_denied") == std::string::npos);   // released at 82: still in the future
+  tl_run_destroy(run);
+
+  Scenario a;
+  Scenario b;
+  REQUIRE(build_mission("m03-volatility-shock", 8, a));
+  REQUIRE(build_mission("m03-volatility-shock", 8, b));
+  RunState trader = start_run(a, 8);
+  Command c;
+  c.seq = 1;
+  c.client_id = 1;
+  c.decision_step = trader.step;
+  c.qty = parse_decimal<Qty>("100").value();
+  c.side = OrderSide::Sell;
+  (void)apply_command(a, trader, c);
+  for (int i = 0; i < 30; ++i) advance(a, trader);
+  for (std::size_t i = 0; i < a.bars.size(); ++i) CHECK(a.bars[i].close == b.bars[i].close);
 }

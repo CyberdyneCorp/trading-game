@@ -167,6 +167,22 @@ export interface Indicators {
 	atr14: (Decimal | null)[];
 }
 
+export interface NewsView {
+	step: number;
+	kind:
+		| 'rate_decision'
+		| 'regulation_rumor'
+		| 'exchange_incident'
+		| 'network_outage'
+		| 'liquidity_inflow'
+		| 'institutional_adoption'
+		| 'rumor_denied';
+	tone: number;
+	credibility: number;
+	expectation: number;
+	actual: number;
+}
+
 export interface GameState {
 	mission: string;
 	alias: string;
@@ -184,6 +200,7 @@ export interface GameState {
 	orders: OrderView[];
 	options: OptionsView;
 	indicators: Indicators;
+	news: NewsView[];
 	events: EngineEvent[];
 	totals: Totals;
 	digest: string;

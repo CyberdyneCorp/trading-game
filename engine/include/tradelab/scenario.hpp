@@ -78,6 +78,27 @@ struct OptionSpec {
   bool allow_short = false;
 };
 
+enum class NewsKind : std::uint8_t {
+  RateDecision = 0,
+  RegulationRumor = 1,
+  ExchangeIncident = 2,
+  NetworkOutage = 3,
+  LiquidityInflow = 4,
+  InstitutionalAdoption = 5,
+  RumorDenied = 6,
+};
+
+// What the player can see about a news item once released (spec: market-generator "Events").
+// The market's reaction is not part of the scenario data: it is baked into the generated bars.
+struct NewsItem {
+  std::uint32_t release_step = 0;  // visible from this decision step (published at its close)
+  NewsKind kind = NewsKind::RateDecision;
+  std::int8_t tone = 0;            // headline sentiment shown to the player: -1, 0, +1
+  std::uint8_t credibility = 100;  // 0..100
+  std::int8_t expectation = 0;     // what the market expected: -2..2 (shown)
+  std::int8_t actual = 0;          // what was announced: -2..2 (shown); surprise = actual - expectation
+};
+
 struct Scenario {
   std::string id;
   std::string alias;  // masked market name shown to the player
@@ -89,6 +110,7 @@ struct Scenario {
   // Published (visible) from the close of bar i-1.
   std::vector<Rate> funding_rate;
   OptionSpec options;  // empty series => perpetual-only scenario
+  std::vector<NewsItem> news;
 };
 
 enum class ScenarioError : std::uint8_t {
@@ -100,6 +122,7 @@ enum class ScenarioError : std::uint8_t {
   InvalidMission,
   FundingLengthMismatch,
   InvalidOptions,
+  InvalidNews,
 };
 
 ScenarioError validate(const Scenario& s);

@@ -19,7 +19,7 @@
 
 ## 3. Generator
 - [ ] 3.1 Regime/vol/jump process, volume, funding, IV base
-- [ ] 3.2 Event model with seeded reaction distributions
+- [x] 3.2 Event model with seeded reaction distributions
 - [ ] 3.3 Player-independence and branch-label tests
 - [ ] 3.4 Calibration report notebook + first report
 

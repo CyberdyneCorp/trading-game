@@ -247,6 +247,13 @@ const pt = {
 	'pwa.persisted': 'persistente',
 	'pwa.notPersisted': 'o navegador pode apagar dados offline',
 	'pwa.notDurable': 'Armazenamento indisponível (modo privado?): partidas não poderão ser retomadas.',
+	'news.title': 'Notícias',
+	'news.fictional': 'FICTÍCIAS',
+	'news.none': 'Nenhuma notícia divulgada.',
+	'news.expected': 'esperado',
+	'news.actual': 'anunciado',
+	'news.credibility': 'credibilidade',
+	'news.note': 'A reação do mercado depende da surpresa e do posicionamento — notícia boa não garante alta.',
 	'common.yes': 'Sim',
 	'common.no': 'Não'
 } as const;
@@ -495,6 +502,13 @@ const en: Record<MessageKey, string> = {
 	'pwa.persisted': 'persistent',
 	'pwa.notPersisted': 'the browser may clear offline data',
 	'pwa.notDurable': 'Storage unavailable (private mode?): runs cannot be resumed.',
+	'news.title': 'News',
+	'news.fictional': 'FICTIONAL',
+	'news.none': 'No news released.',
+	'news.expected': 'expected',
+	'news.actual': 'announced',
+	'news.credibility': 'credibility',
+	'news.note': 'The market reacts to surprise and positioning — good news does not guarantee a rally.',
 	'common.yes': 'Yes',
 	'common.no': 'No'
 };
