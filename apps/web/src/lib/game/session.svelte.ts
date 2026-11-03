@@ -30,6 +30,7 @@ interface SavedRun {
 	journal: PlanEntry[];
 	stopWarnings: number;
 	digest: string;
+	protection?: Protection | null;
 }
 
 export interface Protection {
@@ -93,25 +94,47 @@ export class GameSession {
 	fixedSeed: number | null = null;
 
 	async startMission(missionId: string, seed = this.fixedSeed ?? Math.floor(Math.random() * 1_000_000_000)): Promise<void> {
-		this.resetRun(missionId, seed);
-		this.state = await this.eng().request({ kind: 'start', missionId, seed });
-		this.persist();
-		this.screen = 'briefing';
+		await this.exclusive(async () => {
+			this.resetRun(missionId, seed);
+			this.state = await this.eng().request({ kind: 'start', missionId, seed });
+			this.persist();
+			this.screen = 'briefing';
+		});
+	}
+
+	// Start/resume/commands share one engine run: never let two of them interleave
+	// (e.g. Space re-activating a still-focused "Resume" button during replay).
+	private async exclusive(fn: () => Promise<void>): Promise<void> {
+		if (this.busy) return;
+		this.busy = true;
+		try {
+			await fn();
+		} finally {
+			this.busy = false;
+		}
 	}
 
 	async resume(): Promise<void> {
+		await this.exclusive(() => this.replaySaved());
+	}
+
+	private async replaySaved(): Promise<void> {
 		const s = this.saved;
 		if (!s) return;
 		this.resetRun(s.missionId, s.seed);
 		this.state = await this.eng().request({ kind: 'start', missionId: s.missionId, seed: s.seed });
 		for (const a of s.log) await this.exec(a, false);
+		// Keep the replayed history: the next save must contain the full log, not only new actions.
+		this.log = [...s.log];
 		this.journal = s.journal;
 		this.stopWarnings = s.stopWarnings;
+		this.protection = s.protection ?? null;
 		if (this.state && s.digest && this.state.digest !== s.digest) {
 			this.notice = { tone: 'warn', text: `replay digest mismatch (${s.digest.slice(0, 8)})` };
 		}
 		this.screen = this.state?.status === 'active' ? 'terminal' : 'debrief';
 		if (this.screen === 'debrief') await this.loadDebrief();
+		this.saved = null;
 	}
 
 	enterTerminal(): void {
@@ -146,6 +169,12 @@ export class GameSession {
 	async closePosition(): Promise<CommandResult | null> {
 		this.protection = null;
 		return this.command({ k: 'close' });
+	}
+
+	/** Pending stop/target to attach once the entry fills; saved so a reload never drops it. */
+	setProtection(p: Protection | null): void {
+		this.protection = p;
+		this.persist();
 	}
 
 	recordPlan(plan: PlanEntry): void {
@@ -250,7 +279,8 @@ export class GameSession {
 			log: this.log,
 			journal: this.journal,
 			stopWarnings: this.stopWarnings,
-			digest: this.state.digest
+			digest: this.state.digest,
+			protection: this.protection
 		};
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

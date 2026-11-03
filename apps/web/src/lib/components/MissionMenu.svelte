@@ -21,7 +21,7 @@
 	{#if session.saved}
 		<section class="panel resume">
 			<span>{missionText(session.saved.missionId, i18n.locale).title} · seed {session.saved.seed}</span>
-			<button class="primary" onclick={() => session.resume()}>▶ {t('menu.resume')}</button>
+			<button class="primary" onclick={() => session.resume()} disabled={session.busy}>▶ {t('menu.resume')}</button>
 		</section>
 	{/if}
 
@@ -38,7 +38,7 @@
 					<span class="tag muted">{m.totalBars - m.warmupBars} {t('menu.bars')}</span>
 					<span class="tag attention">{t('top.synthetic')}</span>
 				</p>
-				<button class="primary" onclick={() => session.startMission(m.id)}>{t('menu.start')}</button>
+				<button class="primary" onclick={() => session.startMission(m.id)} disabled={session.busy}>{t('menu.start')}</button>
 			</article>
 		{/each}
 	</div>
