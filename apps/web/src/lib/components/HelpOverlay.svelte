@@ -7,6 +7,7 @@
 		['B', 'help.buy'],
 		['S', 'help.sell'],
 		['X', 'help.close'],
+		['P', 'help.patterns'],
 		['?', 'help.help'],
 		['Esc', 'help.escape']
 	];

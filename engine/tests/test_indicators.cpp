@@ -85,6 +85,18 @@ TEST_CASE("ADX: directional indicators from bar n, ADX after 2n bars") {
   CHECK(*a.adx[4] == P("51.2987013"));   // Wilder: (57.14285714 + 45.45454545) / 2
 }
 
+TEST_CASE("Bollinger bands: SMA middle and k population standard deviations") {
+  const Scenario s = closes({"2", "4", "4", "4", "5", "5", "7", "9"});
+  const Bollinger b = bollinger(s, 7, 8, 2);
+  CHECK_FALSE(b.upper[6].has_value());
+  CHECK(*b.middle[7] == P("5"));
+  CHECK(*b.upper[7] == P("9"));  // stdev of the classic dataset is exactly 2
+  CHECK(*b.lower[7] == P("1"));
+  const Bollinger flat = bollinger(closes({"3", "3", "3"}), 2, 3, 2);
+  CHECK(*flat.upper[2] == P("3"));  // zero variance collapses the bands
+  CHECK(*flat.lower[2] == P("3"));
+}
+
 TEST_CASE("Indicators at t ignore bars after t") {
   const Scenario s = closes({"10", "11", "12", "11", "10", "50", "1"});
   for (auto f : {&sma, &ema, &rsi, &atr}) {
@@ -103,4 +115,5 @@ TEST_CASE("Composite indicators at t ignore bars after t") {
   same(vwap(s, 4, 3), vwap(s, 6, 3));
   same(macd(s, 4, 2, 3, 2).histogram, macd(s, 6, 2, 3, 2).histogram);
   same(adx(s, 4, 2).adx, adx(s, 6, 2).adx);
+  same(bollinger(s, 4, 3, 2).upper, bollinger(s, 6, 3, 2).upper);
 }

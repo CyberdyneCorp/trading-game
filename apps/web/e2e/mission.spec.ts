@@ -295,3 +295,27 @@ test('an open position without a stop is flagged until protected', async ({ page
 	await expect(page.locator('.orders').getByText('STOP')).toBeVisible();
 	await expect(page.getByText(/Posição sem stop/)).toHaveCount(0);
 });
+
+test('candle pattern cheat sheet opens with P, filters by bias, and blocks Space behind it', async ({ page }) => {
+	await openTerminal(page, 4242);
+	const bar = await page.getByText(/Barra \d+ de/).textContent();
+	await page.keyboard.press('p');
+	const sheet = page.getByRole('dialog', { name: 'Padrões de candle' });
+	await expect(sheet).toBeVisible();
+	await expect(sheet.getByTestId('pattern-hammer')).toBeVisible();
+	await sheet.getByRole('radio', { name: 'Baixa' }).click();
+	await expect(sheet.getByTestId('pattern-shooting-star')).toBeVisible();
+	await expect(sheet.getByTestId('pattern-hammer')).toHaveCount(0);
+	await page.keyboard.press('Space');
+	await expect(page.getByText(/Barra \d+ de/)).toHaveText(bar!);
+	await page.keyboard.press('Escape');
+	await expect(sheet).toHaveCount(0);
+	await page.getByRole('button', { name: /Padrões/ }).click();
+	await expect(sheet).toBeVisible();
+});
+
+test('Bollinger bands overlay shows its range in the readout', async ({ page }) => {
+	await openTerminal(page, 4242);
+	await page.getByLabel('BB20').check();
+	await expect(page.locator('.readout').getByText(/^BB \d+,\d+–\d+,\d+/)).toBeVisible();
+});

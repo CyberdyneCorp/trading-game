@@ -13,6 +13,7 @@
 	import OptionTicket, { type OptionDraft } from './OptionTicket.svelte';
 	import type { OptionQuoteView } from '#lib/engine/types.ts';
 	import OrdersPanel from './OrdersPanel.svelte';
+	import PatternSheet from './PatternSheet.svelte';
 	import PlanDialog from './PlanDialog.svelte';
 	import RightRail from './RightRail.svelte';
 	import TopBar from './TopBar.svelte';
@@ -21,6 +22,7 @@
 
 	let draft = $state<OrderDraft | null>(null);
 	let help = $state(false);
+	let patterns = $state(false);
 	let side = $state<OrderSideName>('buy');
 	let lastPlannedRisk = $state<number | null>(null);
 	let preview = $state<TicketPreview | null>(null);
@@ -122,14 +124,20 @@
 	// Advance (Space) never shares a key with submission (Enter inside the ticket).
 	function onKey(e: KeyboardEvent) {
 		if (draft || optDraft || session.pendingQuestion || pick) return;
-		if (e.key === 'Escape') help = false;
+		if (patterns) {
+			// The sheet is modal: only P / Esc (close) reach the game, so Space cannot advance behind it.
+			if (e.key === 'Escape' || e.key.toLowerCase() === 'p') patterns = false;
+			return;
+		}
+		if (e.key === 'Escape') help = patterns = false;
 		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
 		const actions: Record<string, () => void> = {
 			' ': () => session.advance(e.shiftKey ? 5 : 1),
 			b: () => (side = 'buy'),
 			s: () => (side = 'sell'),
 			x: () => void session.closePosition(),
-			'?': () => (help = !help)
+			'?': () => (help = !help),
+			p: () => (patterns = !patterns)
 		};
 		const fn = actions[e.key.toLowerCase()];
 		if (fn) {
@@ -143,7 +151,7 @@
 
 {#if session.state}
 	<div class="terminal">
-		<TopBar {session} onHelp={() => (help = true)} />
+		<TopBar {session} onHelp={() => (help = true)} onPatterns={() => (patterns = true)} />
 		<div class="main">
 			<section class="panel chart"><Chart
 					game={session.state}
@@ -203,6 +211,9 @@
 {/if}
 {#if help}
 	<HelpOverlay onClose={() => (help = false)} />
+{/if}
+{#if patterns}
+	<PatternSheet onClose={() => (patterns = false)} />
 {/if}
 
 <style>

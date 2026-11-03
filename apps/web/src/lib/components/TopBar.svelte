@@ -4,7 +4,7 @@
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
-	let { session, onHelp }: { session: GameSession; onHelp: () => void } = $props();
+	let { session, onHelp, onPatterns }: { session: GameSession; onHelp: () => void; onPatterns: () => void } = $props();
 	const s = $derived(session.state);
 	const playable = $derived(s ? s.lastDecisionStep - s.warmupBars + 1 : 0);
 	const turn = $derived(s ? s.step - s.warmupBars + 1 : 0);
@@ -30,6 +30,7 @@
 			<button onclick={() => session.advance(5)} disabled={session.busy || s.status !== 'active'}>
 				▶▶ {t('top.advance5')} <kbd>⇧Space</kbd>
 			</button>
+			<button onclick={onPatterns} title="P">{t('patterns.open')} <kbd>P</kbd></button>
 			<button onclick={onHelp} aria-label={t('top.help')}>?</button>
 			<button onclick={() => session.backToMenu()}>{t('top.menu')}</button>
 		</div>
