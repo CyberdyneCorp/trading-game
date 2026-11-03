@@ -8,6 +8,7 @@
 		['S', 'help.sell'],
 		['X', 'help.close'],
 		['P', 'help.patterns'],
+		['A', 'help.auto'],
 		['?', 'help.help'],
 		['Esc', 'help.escape']
 	];

@@ -3,6 +3,7 @@
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { OrderSideName } from '#lib/engine/types.ts';
 	import { t } from '#lib/game/i18n.svelte.ts';
+	import { AutoPlay, type PauseReason } from '#lib/game/autoplay.svelte.ts';
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
 	import EventFeed from './EventFeed.svelte';
@@ -24,6 +25,33 @@
 	let help = $state(false);
 	let patterns = $state(false);
 	let patternFocus = $state<string | null>(null);
+
+	const NOTABLE: Partial<Record<string, PauseReason>> = {
+		fill: 'fill',
+		liquidation: 'liquidation',
+		margin_call: 'margin_call',
+		option_settlement: 'option_settlement'
+	};
+
+	// Auto-advance: same advance as Space; waits while any dialog is open, pauses on notable bars.
+	const auto = new AutoPlay({
+		ready: () =>
+			!draft && !optDraft && !pick && !patterns && !help && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
+		finished: () => session.state?.status !== 'active',
+		advance: () => session.advance(1),
+		notable: () => {
+			const s = session.state;
+			if (!s) return null;
+			const hit = s.events.find((e) => e.step === s.step && NOTABLE[e.type]);
+			if (hit) return NOTABLE[hit.type] ?? null;
+			return s.news.some((n) => n.step === s.step) ? 'news' : null;
+		}
+	});
+	$effect(() => () => auto.stop());
+	$effect(() => {
+		const r = auto.paused;
+		if (r && r !== 'finished') session.notice = { tone: 'warn', text: `⏸ ${t('auto.paused', { reason: t(`auto.reason.${r}`) })}` };
+	});
 
 	function openPattern(id: string | null) {
 		patternFocus = id;
@@ -138,7 +166,9 @@
 		if (e.key === 'Escape') help = patterns = false;
 		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
 		const actions: Record<string, () => void> = {
-			' ': () => session.advance(e.shiftKey ? 5 : 1),
+			// While auto-advance runs, Space takes control back instead of advancing.
+			' ': () => (auto.running ? auto.stop() : session.advance(e.shiftKey ? 5 : 1)),
+			a: () => auto.toggle(),
 			b: () => (side = 'buy'),
 			s: () => (side = 'sell'),
 			x: () => void session.closePosition(),
@@ -157,7 +187,7 @@
 
 {#if session.state}
 	<div class="terminal">
-		<TopBar {session} onHelp={() => (help = true)} onPatterns={() => openPattern(null)} />
+		<TopBar {session} {auto} onHelp={() => (help = true)} onPatterns={() => openPattern(null)} />
 		<div class="main">
 			<section class="panel chart"><Chart
 					game={session.state}

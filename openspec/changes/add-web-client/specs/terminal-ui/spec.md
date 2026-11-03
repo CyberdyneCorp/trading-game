@@ -72,6 +72,17 @@ Patterns detected by the engine SHALL be marked on the chart (a bracket under bu
 - **WHEN** the player opens the sheet and selects "bearish"
 - **THEN** only bearish patterns SHALL be listed, each with its drawing and confirmation hint
 
+### Requirement: Auto-advance
+The terminal SHALL offer an auto-advance mode (button and `A`) that advances one bar per tick at a selectable speed (1×, 2×, 4×, 10×) using the same command as a manual advance. It SHALL wait without advancing while any dialog, calibration question, chart pick or pending command blocks play, and resume afterwards. With "pause on events" enabled (the default) it SHALL stop by itself on a fill, liquidation, margin call, option settlement or newly released news, and say why; it SHALL always stop when the mission ends. While it runs, Space SHALL stop it instead of advancing.
+
+#### Scenario: Pause on fill
+- **WHEN** auto-advance is running and a pending market order fills on the next bar
+- **THEN** auto-advance SHALL stop after that bar and show "paused: order filled"
+
+#### Scenario: Never skip a question
+- **WHEN** a calibration question is due during auto-advance
+- **THEN** no bar SHALL advance until it is answered, after which auto-advance SHALL continue
+
 ### Requirement: Option chain and option ticket
 The option chain SHALL list listed series by expiry and strike with bid, ask, IV and delta, labeled "simulated premiums". The option ticket SHALL show premium, max loss for buys, margin for writes, breakeven, a payoff-at-expiry diagram and Greeks before submission.
 
