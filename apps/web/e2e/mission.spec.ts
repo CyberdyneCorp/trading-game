@@ -5,6 +5,7 @@ async function answerIfAsked(page: Page, pct?: number) {
 	if (await dialog.count()) {
 		if (pct != null) await dialog.locator('input[type=range]').fill(String(pct));
 		await dialog.getByRole('button', { name: /Responder/ }).click();
+		await expect(dialog).toBeHidden(); // the answer goes through the engine asynchronously
 	}
 }
 

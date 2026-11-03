@@ -84,6 +84,26 @@ Digest state_digest(const RunState& st) {
   }
   w.fixed(st.option_cash);
   w.fixed(st.option_realized);
+  w.u32(static_cast<std::uint32_t>(st.plans.size()));
+  for (const PlanRecord& p : st.plans) {
+    w.u32(p.step);
+    w.u8(static_cast<std::uint8_t>(p.side));
+    w.boolean(p.skipped);
+    w.boolean(p.option);
+    w.boolean(p.has_lose_scenario);
+    w.fixed(p.invalidation);
+    w.fixed(p.target);
+    w.u32(p.confidence_pct);
+    w.fixed(p.planned_risk);
+  }
+  w.u32(static_cast<std::uint32_t>(st.answers.size()));
+  for (const CalibrationAnswer& a : st.answers) {
+    w.u32(a.step);
+    w.fixed(a.threshold);
+    w.u32(a.horizon);
+    w.u32(a.p_bp);
+    w.boolean(a.skipped);
+  }
   write_metrics(w, st.metrics);
   w.u64(st.rng.state());
   w.u64(st.rng.inc());

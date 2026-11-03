@@ -93,6 +93,7 @@ TEST_CASE("C ABI: same mission, seed and commands produce identical digests") {
 // Policy v2 changed the state digest (new order fields). Policy v3 adds the instrument (series) field
 // to orders and events, so both digests changed again; perpetual behavior tests are unchanged.
 // Mission m01 later gained news events, which changed its generated market (content, not policy).
+// Policy v4 adds plans and calibration answers to the state digest (event digests unchanged).
 TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run* run = tl_run_create("m01-false-breakout", 2026);
   tl_set_leverage(run, 1, 5);
@@ -108,7 +109,7 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"246d3a3cfea679afdcef14b2df32308c1476ad1934e700fa3c1cd46303dda8b2\","
+        "\"digest\":\"80731b3c1a5b4f15325fa7cc3429bd4f29780f68fc45d33d495eb455ab57c9c6\","
         "\"eventsDigest\":\"26c295991bfa9917e97388bd7f8d087ed6c5b41ff0405b9cf6b7d552881aec7c\"}");
 }
 
@@ -140,7 +141,7 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"1d219a1e4638ec7aa5729f8382edce50ef5ce193f9493effa7d169a38c79572d\","
+        "\"digest\":\"050d466bd20bdce6ae6980267657c5554473ec316d82131289c036b51fd7c1ca\","
         "\"eventsDigest\":\"d9a87d6b7729273a34948561895c1bc7c57374c23cb167c0d2b0d88b14038c31\"}");
 }
 
@@ -186,4 +187,23 @@ TEST_CASE("News: only released items are serialized; events never depend on the 
   (void)apply_command(a, trader, c);
   for (int i = 0; i < 30; ++i) advance(a, trader);
   for (std::size_t i = 0; i < a.bars.size(); ++i) CHECK(a.bars[i].close == b.bars[i].close);
+}
+
+TEST_CASE("C ABI: plans, answers and the score report in the debrief") {
+  tl_run* run = tl_run_create("m01-false-breakout", 5);
+  std::string s = tl_state(run);
+  CHECK(s.find("\"calibration\":{\"due\":true") != std::string::npos);
+  std::string r = tl_answer_question(run, 1, 6000, 0);
+  CHECK(r.find("\"accepted\":true") != std::string::npos);
+  r = tl_record_plan(run, 2, 0, 0, 0, 0, "95.5", "110", 70, "100");
+  CHECK(r.find("\"accepted\":true") != std::string::npos);
+  r = tl_record_plan(run, 3, 0, 0, 0, 0, "abc", nullptr, 70, "100");
+  CHECK(r.find("invalid_plan") != std::string::npos);
+  tl_place_order_ex(run, 4, 0, 0, "10", nullptr, 0, "95.5", "110", nullptr);
+  tl_advance(run, 1000);
+  const std::string d = tl_debrief(run);
+  CHECK(d.find("\"score\":{\"version\":1") != std::string::npos);
+  CHECK(d.find("\"trades\":[{\"n\":1") != std::string::npos);
+  CHECK(d.find("\"lesson\":") != std::string::npos);
+  tl_run_destroy(run);
 }

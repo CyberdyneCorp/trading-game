@@ -57,6 +57,8 @@ enum class Reason : std::uint8_t {
   NoBid = 26,
   MarginCall = 27,
   MarginBelowInitial = 28,
+  NoQuestionDue = 29,
+  InvalidPlan = 30,
 };
 
 enum class EventType : std::uint8_t {

@@ -17,6 +17,8 @@ interface Api {
 	option: Fn;
 	cancel: Fn;
 	margin: Fn;
+	plan: Fn;
+	answer: Fn;
 	leverage: Fn;
 	close: Fn;
 	advance: Fn;
@@ -43,6 +45,10 @@ async function load(): Promise<Api> {
 		option: w('tl_place_option_order', 'number', ['number', 'number', 'number', 'number', 'number', 'string', 'string']),
 		cancel: w('tl_cancel_order', 'number', ['number', 'number', 'number']),
 		margin: w('tl_adjust_margin', 'number', ['number', 'number', 'string']),
+		plan: w('tl_record_plan', 'number', [
+			'number', 'number', 'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string'
+		]),
+		answer: w('tl_answer_question', 'number', ['number', 'number', 'number', 'number']),
 		leverage: w('tl_set_leverage', 'number', ['number', 'number', 'number']),
 		close: w('tl_close_position', 'number', ['number', 'number']),
 		advance: w('tl_advance', 'number', ['number', 'number']),
@@ -106,6 +112,24 @@ async function handle(req: EngineRequest): Promise<unknown> {
 					req.premium ?? ''
 				)
 			);
+		case 'plan':
+			return withState(
+				a,
+				a.plan(
+					requireRun(),
+					req.clientId,
+					SIDE_CODE[req.side],
+					req.skipped ? 1 : 0,
+					req.option ? 1 : 0,
+					req.loseScenario ? 1 : 0,
+					req.invalidation ?? '',
+					req.target ?? '',
+					req.confidence,
+					req.plannedRisk ?? ''
+				)
+			);
+		case 'answer':
+			return withState(a, a.answer(requireRun(), req.clientId, req.pBp, req.skipped ? 1 : 0));
 		case 'margin':
 			return withState(a, a.margin(requireRun(), req.clientId, req.amount));
 		case 'cancel':

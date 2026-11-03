@@ -2,7 +2,10 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function answerIfAsked(page: Page) {
 	const dialog = page.getByRole('dialog', { name: /Pergunta de calibração/ });
-	if (await dialog.count()) await dialog.getByRole('button', { name: /Responder/ }).click();
+	if (await dialog.count()) {
+		await dialog.getByRole('button', { name: /Responder/ }).click();
+		await expect(dialog).toBeHidden();
+	}
 }
 
 async function waitForServiceWorker(page: Page) {

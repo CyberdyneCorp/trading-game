@@ -25,8 +25,8 @@
 
 ## 4. Gameplay rules and scoring
 - [ ] 4.1 Mission schema (objectives, permissions, leverage cap, warnings)
-- [ ] 4.2 Plan/journal/wait decision records in the command log
-- [ ] 4.3 `engine/scoring`: dimensions, renormalization, Brier, golden tests EDU01/EDU02
+- [ ] 4.2 Plan/journal/wait decision records in the command log — plans and calibration answers are engine commands; explicit wait records pending
+- [x] 4.3 `engine/scoring`: dimensions, renormalization, Brier, golden tests EDU01/EDU02
 - [ ] 4.4 Debrief aggregates + Greek attribution + next-lesson mapping
 
 ## 5. Content

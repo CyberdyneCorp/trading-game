@@ -41,6 +41,13 @@ const char* tl_close_position(tl_run* run, uint32_t client_id);
 /* Adds (> 0) or removes (< 0) isolated margin on the open perpetual position (decimal string). */
 const char* tl_adjust_margin(tl_run* run, uint32_t client_id, const char* amount);
 
+/* Structured plan before an exposure-increasing order (free text never reaches the engine). */
+const char* tl_record_plan(tl_run* run, uint32_t client_id, int32_t side, int32_t skipped, int32_t option,
+                           int32_t has_lose_scenario, const char* invalidation, const char* target,
+                           int32_t confidence_pct, const char* planned_risk);
+/* Calibration answer for the question due now: probability in basis points (0..10000). */
+const char* tl_answer_question(tl_run* run, uint32_t client_id, int32_t p_bp, int32_t skipped);
+
 /* Checkpoint of the full run state as {"checkpoint":"<hex>","step":n}. */
 const char* tl_checkpoint(tl_run* run);
 /* Rebuilds the mission scenario and restores a checkpoint; NULL if incompatible or damaged. */

@@ -28,6 +28,19 @@ export type EngineRequest =
 			premium: string | null;
 	  }
 	| { kind: 'margin'; clientId: number; amount: string }
+	| {
+			kind: 'plan';
+			clientId: number;
+			side: OrderSideName;
+			skipped: boolean;
+			option: boolean;
+			loseScenario: boolean;
+			invalidation: string | null;
+			target: string | null;
+			confidence: number;
+			plannedRisk: string | null;
+	  }
+	| { kind: 'answer'; clientId: number; pBp: number; skipped: boolean }
 	| { kind: 'cancel'; clientId: number; orderId: number }
 	| { kind: 'leverage'; clientId: number; leverage: number }
 	| { kind: 'close'; clientId: number }

@@ -80,6 +80,30 @@ struct Metrics {
   Money turnover;           // sum of fill notionals
 };
 
+// Structured plan recorded before an exposure-increasing order (spec gameplay-loop "Plan before
+// advance"). Free text never reaches the engine: it is not scored (spec mission-scoring).
+struct PlanRecord {
+  std::uint32_t step = 0;
+  OrderSide side = OrderSide::Buy;
+  bool skipped = false;
+  bool option = false;
+  bool has_lose_scenario = false;
+  Price invalidation;  // 0 = none
+  Price target;        // 0 = none
+  std::uint32_t confidence_pct = 0;
+  Money planned_risk;  // 0 = unknown
+};
+
+// Calibration answer: probability (basis points) that the close `horizon` bars after `step` ends
+// above `threshold` (the close at `step`). Skipped answers are kept but not scored.
+struct CalibrationAnswer {
+  std::uint32_t step = 0;
+  Price threshold;
+  std::uint32_t horizon = 0;
+  std::uint32_t p_bp = 0;
+  bool skipped = false;
+};
+
 struct CommandResult {
   bool accepted = false;
   Reason reason = Reason::None;
@@ -115,6 +139,8 @@ struct RunState {
   Money option_realized;  // realized option P&L (premium differences and settlement vs. average)
   Metrics metrics;
 
+  std::vector<PlanRecord> plans;
+  std::vector<CalibrationAnswer> answers;
   std::vector<Event> events;  // full event log of the run
   std::vector<CommandRecord> command_log;  // idempotency: client id -> original outcome
   Pcg32 rng{0, Stream::Slippage};

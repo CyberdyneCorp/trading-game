@@ -68,8 +68,10 @@
 	function onOptionPlan(p: PlanEntry) {
 		const d = optDraft;
 		optDraft = null;
-		session.recordPlan(p);
-		if (d) void sendOption(d);
+		void session.sequence(async () => {
+			await session.recordPlan(p);
+			if (d) await sendOption(d);
+		});
 	}
 
 	async function send(d: OrderDraft) {
@@ -98,8 +100,10 @@
 	function onPlan(p: PlanEntry) {
 		const d = draft;
 		draft = null;
-		session.recordPlan(p);
-		if (d) void send(d);
+		void session.sequence(async () => {
+			await session.recordPlan(p);
+			if (d) await send(d);
+		});
 	}
 
 	function typing(e: KeyboardEvent): boolean {
