@@ -1,0 +1,82 @@
+name: engine
+
+on:
+  pull_request:
+    paths: ["engine/**", "tools/check_engine_bans.py", ".github/workflows/engine.yml"]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-24.04, cxx: clang++-18 }
+          - { name: macos-arm64, os: macos-14, cxx: clang++ }
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja (linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+      - name: Debug build + tests
+        working-directory: engine
+        env: { CXX: "${{ matrix.cxx }}" }
+        run: |
+          cmake --preset native-debug
+          cmake --build --preset native-debug
+          ctest --preset native-debug
+      - name: Release build + tests (digests must equal debug)
+        working-directory: engine
+        env: { CXX: "${{ matrix.cxx }}" }
+        run: |
+          cmake --preset native-release
+          cmake --build --preset native-release
+          ctest --preset native-release
+
+  wasm:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: mymindstorm/setup-emsdk@v14
+        with: { version: 6.0.13 }  # same version verified locally
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: WASM build + tests under node
+        working-directory: engine
+        run: |
+          cmake --preset wasm-release
+          cmake --build --preset wasm-release
+          ctest --preset wasm-release
+
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build clang-tidy-18
+      - name: Banned APIs
+        run: python3 tools/check_engine_bans.py engine/src engine/include
+      - name: clang-tidy (incl. cognitive complexity <= 15)
+        working-directory: engine
+        env: { CXX: clang++-18 }
+        run: |
+          cmake --preset native-debug
+          clang-tidy-18 -p build/native-debug --quiet src/*.cpp
+
+  openspec:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install -g @fission-ai/openspec@1.13.2
+      - run: openspec validate --all --strict

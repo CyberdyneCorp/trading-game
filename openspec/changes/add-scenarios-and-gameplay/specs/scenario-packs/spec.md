@@ -7,7 +7,7 @@ Defines the immutable, signed scenario pack that carries market data, instrument
 ## ADDED Requirements
 
 ### Requirement: Pack manifest
-Every pack SHALL include a manifest with: scenarioId, schemaVersion, packVersion, mode (`historical`, `synthetic`, `branch`), engineCompatibility range, executionPolicyVersion, scoringVersion, timeframe, step duration, priceScale, quantityScale, alias policy, instrument specs (perpetual contract and option series), cost model, liquidity model, funding model, IV model, margin model, mission rules, file list with SHA-256 hashes and sizes, signingKeyId, signature, provenance and license. Monetary values SHALL be serialized as decimal strings of scaled integers.
+Every pack SHALL include a manifest with: scenarioId, schemaVersion, packVersion, mode (`historical`, `synthetic`, `branch`), engineCompatibility range, executionPolicyVersion, scoringVersion, timeframe, step duration, display precision, alias policy, instrument specs (perpetual contract and option series), cost model, liquidity model, funding model, IV model, margin model, mission rules, file list with SHA-256 hashes and sizes, signingKeyId, signature, provenance and license. Monetary values SHALL be serialized as decimal strings of scaled integers.
 
 #### Scenario: Missing field
 - **WHEN** a manifest lacks the funding model

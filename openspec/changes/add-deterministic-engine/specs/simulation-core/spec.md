@@ -36,11 +36,15 @@ State, indicators, option prices, liquidation thresholds and any data exposed to
 - **THEN** every event, indicator value, option quote and score component emitted up to step `t` SHALL be unchanged
 
 ### Requirement: Fixed-point numerics
-Prices, quantities, money, fees, funding rates, margin and option premiums SHALL be represented as signed 64-bit integers with scales declared by the scenario. Every rounding SHALL use a rule declared per quantity (e.g. fees round up against the player, sizes round down to lot). Overflow SHALL be detected and reported as an engine error, never wrapped silently.
+Prices, quantities, money, fees, funding rates, margin and option premiums SHALL be represented as signed 64-bit integers with fixed scales per quantity type, versioned with the execution policy. Scenario tick sizes, lot sizes and other price- or quantity-denominated parameters SHALL be exact multiples of those scales, and a scenario violating this SHALL be rejected. Every rounding SHALL use a rule declared per quantity (e.g. fees round up against the player, sizes round down to lot). Overflow SHALL be detected and reported as an engine error, never wrapped silently.
 
 #### Scenario: Fee rounding
 - **WHEN** a fee computes to a value between two representable units
 - **THEN** it SHALL be rounded toward the direction that costs the player more
+
+#### Scenario: Tick finer than engine scale
+- **WHEN** a scenario declares a tick size that is not an exact multiple of the price scale
+- **THEN** the scenario SHALL be rejected with reason `invalid_scale`
 
 #### Scenario: Overflow
 - **WHEN** a command would make any quantity exceed the int64 range
