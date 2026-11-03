@@ -2,7 +2,7 @@ name: engine
 
 on:
   pull_request:
-    paths: ["engine/**", "tools/check_engine_bans.py", ".github/workflows/engine.yml"]
+    paths: ["engine/**", "bindings/**", "tools/check_engine_bans.py", ".github/workflows/engine.yml"]
   push:
     branches: [main]
 
@@ -62,6 +62,22 @@ jobs:
           cmake --preset wasm-release
           cmake --build --preset wasm-release
           ctest --preset wasm-release
+
+  python:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Build the C ABI shared library
+        working-directory: engine
+        env: { CXX: clang++-18 }
+        run: |
+          cmake --preset native-release -DTRADELAB_BUILD_TESTS=OFF
+          cmake --build --preset native-release --target tradelab_capi
+      - name: Python binding tests (cross-binding goldens)
+        working-directory: bindings/python
+        run: uv run --python 3.12 --with pytest pytest -q
 
   lint:
     runs-on: ubuntu-24.04
