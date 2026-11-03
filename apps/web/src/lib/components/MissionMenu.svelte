@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import { settings } from '#lib/game/settings.svelte.ts';
@@ -64,6 +65,18 @@
 		<h2 class="panel-title">{t('menu.settings')}</h2>
 		<label><input type="checkbox" bind:checked={settings.crt} onchange={() => settings.save()} /> {t('settings.crt')}</label>
 		<label><input type="checkbox" bind:checked={settings.colorblind} onchange={() => settings.save()} /> {t('settings.palette')}</label>
+		<label>
+			<input type="checkbox" checked={!sound.muted} onchange={(e) => sound.setMuted(!e.currentTarget.checked)} data-testid="sound-on" />
+			{t('sound.on')}
+		</label>
+		<label class="volume">
+			{t('sound.music')}
+			<input type="range" min="0" max="1" step="0.05" value={sound.musicVolume} oninput={(e) => sound.setMusicVolume(Number(e.currentTarget.value))} />
+		</label>
+		<label class="volume">
+			{t('sound.effects')}
+			<input type="range" min="0" max="1" step="0.05" value={sound.sfxVolume} oninput={(e) => sound.setSfxVolume(Number(e.currentTarget.value))} />
+		</label>
 		{#if session.persisted !== null}
 			<span class="muted">{t('pwa.storage')}: {session.persisted ? t('pwa.persisted') : t('pwa.notPersisted')}</span>
 		{/if}

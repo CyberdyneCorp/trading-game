@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
@@ -23,7 +24,7 @@
 			<span class="muted">{t('top.market')}</span>
 			<strong class="alias">{s.alias}</strong>
 			<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
-			<span class="muted mission">{missionText(s.mission, i18n.locale).title}</span>
+			<span class="muted mission" title={missionText(s.mission, i18n.locale).title}>{missionText(s.mission, i18n.locale).title}</span>
 			{#if !pwa.online}<span class="tag attention" title={t('pwa.offlineNote')}>{t('pwa.offline')}</span>{/if}
 		</div>
 		<div class="turn num">
@@ -59,6 +60,13 @@
 				</label>
 			</div>
 			<button onclick={onPatterns} title="P">{t('patterns.open')} <kbd>P</kbd></button>
+			<button
+				onclick={() => sound.toggleMute()}
+				aria-label={sound.muted ? t('sound.unmute') : t('sound.mute')}
+				aria-pressed={!sound.muted}
+				title="M"
+				data-testid="sound-toggle">{sound.muted ? '♪✕' : '♪'}</button
+			>
 			<button onclick={onHelp} aria-label={t('top.help')}>?</button>
 			<button onclick={() => session.backToMenu()}>{t('top.menu')}</button>
 		</div>
@@ -69,7 +77,7 @@
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 1.2rem;
+		gap: 0.8rem;
 		flex-wrap: wrap;
 		padding: 0.4rem 0.8rem;
 	}
@@ -79,11 +87,16 @@
 		color: var(--accent);
 		text-shadow: 0 0 8px rgba(57, 255, 136, 0.5);
 	}
+	/* The market/mission block shrinks first (the mission title truncates), so the controls stay on
+	   one row on desktop instead of wrapping and shrinking the chart. */
 	.market {
 		display: flex;
 		gap: 0.5rem;
 		align-items: baseline;
-		flex-wrap: wrap;
+		flex: 1 1 0;
+		min-width: 8rem;
+		overflow: hidden;
+		white-space: nowrap;
 	}
 	.alias {
 		font-family: var(--font-pixel);
@@ -92,9 +105,12 @@
 	}
 	.mission {
 		font-size: 0.85rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
 	}
 	.turn {
-		margin-left: auto;
+		white-space: nowrap;
 	}
 	.actions {
 		display: flex;

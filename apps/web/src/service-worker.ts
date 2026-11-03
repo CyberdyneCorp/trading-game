@@ -9,11 +9,11 @@
 import { self } from '$app/service-worker';
 import { assets, immutable, prerendered } from '$app/manifest';
 import { version } from '$app/env';
-import { swRoute } from '#lib/game/swRoutes.ts';
+import { AUDIO_CACHE, isAudio, rangeResponse, swRoute } from '#lib/game/swRoutes.ts';
 
 const CACHE = `tradelab-${version}`;
 const SHELL = new URL('./', self.registration.scope).href;
-const FILES = [...immutable, ...assets, ...prerendered].map((f) => new URL(f.path, self.registration.scope).href);
+const FILES = [...immutable, ...assets.filter((f) => !isAudio(f.path)), ...prerendered].map((f) => new URL(f.path, self.registration.scope).href);
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll([...new Set([SHELL, ...FILES])])));
@@ -22,7 +22,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
 	event.waitUntil(
 		(async () => {
-			for (const key of await caches.keys()) if (key !== CACHE) await caches.delete(key);
+			for (const key of await caches.keys()) if (key !== CACHE && key !== AUDIO_CACHE) await caches.delete(key);
 			await self.clients.claim();
 		})()
 	);
@@ -53,9 +53,20 @@ async function cacheFirst(request: Request): Promise<Response> {
 	return res;
 }
 
+// Audio streams from the network the first time while the whole file is cached in the background;
+// later (and offline) it is served from the cache, honouring the Range header.
+async function media(request: Request, event: FetchEvent): Promise<Response> {
+	const cache = await caches.open(AUDIO_CACHE);
+	const hit = await cache.match(request.url);
+	if (hit) return rangeResponse(hit, request.headers.get('range'));
+	event.waitUntil(cache.add(request.url).catch(() => undefined));
+	return fetch(request);
+}
+
 self.addEventListener('fetch', (event) => {
 	const { request } = event;
 	const route = swRoute(request.method, request.mode, new URL(request.url), self.location.origin);
 	if (route === 'network') return;
+	if (route === 'media') return event.respondWith(media(request, event));
 	event.respondWith(route === 'navigate' ? navigate(request) : cacheFirst(request));
 });

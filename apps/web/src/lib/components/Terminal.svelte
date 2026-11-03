@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { OrderSideName } from '#lib/engine/types.ts';
@@ -173,6 +174,7 @@
 			// While auto-advance runs, Space takes control back instead of advancing.
 			' ': () => (auto.running ? auto.stop() : session.advance(e.shiftKey ? 5 : 1)),
 			a: () => auto.toggle(),
+			m: () => sound.toggleMute(),
 			b: () => (side = 'buy'),
 			s: () => (side = 'sell'),
 			x: () => void session.closePosition(),

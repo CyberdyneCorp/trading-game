@@ -91,6 +91,11 @@ export class GameSession {
 	private clientId = 1;
 	private store: RunStore<Action, PlanEntry, never> | null = null;
 	private runId = '';
+
+	/** Identifies the current run (changes on a new mission; kept on resume). */
+	get currentRunId(): string {
+		return this.runId;
+	}
 	private policy = 0;
 
 	async init(): Promise<void> {

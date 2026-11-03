@@ -30,6 +30,7 @@ Add `?seed=123` to the URL to replay the same synthetic market.
 | `Space` | Advance 1 bar (pauses auto-advance while it runs) |
 | `Shift+Space` | Advance 5 bars |
 | `A` | Auto-advance on/off (speeds 1×/2×/4×/10× in the top bar) |
+| `M` | Sound on/off (music and effects; volumes in the menu settings) |
 | `B` / `S` | Ticket side: buy / sell |
 | `X` | Close position |
 | `P` | Candle and chart pattern cheat sheet |
@@ -71,6 +72,7 @@ mindmap
       Process vs outcome debrief
     Play
       Auto-advance
+      Music and sound effects
       Offline PWA
       PT-BR and English
       Reproducible seeds
@@ -87,6 +89,7 @@ mindmap
 | Candle patterns | 29 single- and multi-candle patterns detected in context (e.g. hammer vs hanging man), marked on the chart and linked to a cheat sheet that also covers 9 chart patterns. |
 | Coaching | Pre-trade plan (side, invalidation, target, risk), calibration questions ("what's the probability that…?"), debrief that scores **process, not P&L**. |
 | Auto-advance | Plays bars on a timer, waits for any open dialog, pauses on fills, liquidation, margin calls, option expiry and news. |
+| Sound | Music follows the moment: menu theme, in-game theme, and a tense theme when you are near liquidation or under a margin call. Closing a trade plays a win or loss sting. `M` mutes; music and effects volumes are separate. Audio (`apps/web/static/audio`, MP3 96 kbps) is cached on first play, not at install. |
 | Offline | Installable PWA; every action is committed to IndexedDB before it reaches the engine, so a reload resumes exactly where you were. |
 
 ### Missions

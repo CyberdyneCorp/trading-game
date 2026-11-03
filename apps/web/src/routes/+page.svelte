@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { GameSession } from '#lib/game/session.svelte.ts';
 	import { settings } from '#lib/game/settings.svelte.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { t } from '#lib/game/i18n.svelte.ts';
+	import { sound } from '#lib/game/sound.svelte.ts';
+	import { moodFor, StingTracker } from '#lib/game/audioRules.ts';
 	import Briefing from '#lib/components/Briefing.svelte';
 	import CrtOverlay from '#lib/components/CrtOverlay.svelte';
 	import Debrief from '#lib/components/Debrief.svelte';
@@ -11,14 +13,32 @@
 	import Terminal from '#lib/components/Terminal.svelte';
 
 	const session = new GameSession();
+	const stings = new StingTracker();
+
+	// Music follows the screen and the account's danger; stings follow trades that close.
+	$effect(() => sound.setMood(moodFor(session.screen, session.state, untrack(() => sound.mood))));
+	$effect(() => {
+		const g = session.state;
+		if (!g) return;
+		const sting = stings.observe(session.currentRunId, g.events);
+		if (sting) sound.sting(sting);
+	});
 
 	onMount(() => {
 		settings.load();
 		pwa.init();
+		// Browsers only allow audio after a user gesture.
+		const unlock = () => sound.unlock();
+		window.addEventListener('pointerdown', unlock);
+		window.addEventListener('keydown', unlock);
 		const seed = Number(new URLSearchParams(location.search).get('seed'));
 		if (Number.isInteger(seed) && seed > 0) session.fixedSeed = seed;
 		void session.init();
-		return () => session.dispose();
+		return () => {
+			window.removeEventListener('pointerdown', unlock);
+			window.removeEventListener('keydown', unlock);
+			session.dispose();
+		};
 	});
 </script>
 

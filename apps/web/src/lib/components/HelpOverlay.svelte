@@ -9,6 +9,7 @@
 		['X', 'help.close'],
 		['P', 'help.patterns'],
 		['A', 'help.auto'],
+		['M', 'help.sound'],
 		['?', 'help.help'],
 		['Esc', 'help.escape']
 	];
