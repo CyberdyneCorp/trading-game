@@ -89,13 +89,16 @@
 	// Protection for an existing position.
 	let protStop = $state('');
 	let protTp = $state('');
+	let protTrail = $state('');
 	async function protect() {
 		const exit: OrderSideName = posQty > 0 ? 'sell' : 'buy';
 		const size = s.position.qty.replace('-', '');
 		if (protStop) await session.placeOrder('stop_market', exit, size, priceToTick(num(protStop), tick), true);
 		if (protTp) await session.placeOrder('take_profit', exit, size, priceToTick(num(protTp), tick), true);
+		if (protTrail) await session.placeOrder('trailing_stop', exit, size, null, true, { trail: priceToTick(num(protTrail), tick) });
 		protStop = '';
 		protTp = '';
+		protTrail = '';
 	}
 </script>
 
@@ -184,9 +187,10 @@
 		<div class="grid">
 			<label>{t('ticket.stopLoss')}<input inputmode="decimal" bind:value={protStop} /></label>
 			<label>{t('ticket.takeProfit')}<input inputmode="decimal" bind:value={protTp} /></label>
+			<label class="full">{t('ticket.trail')}<input inputmode="decimal" bind:value={protTrail} placeholder="2.00" /></label>
 		</div>
 		<div class="row">
-			<button onclick={protect} disabled={session.busy || (!protStop && !protTp)}>{t('ticket.protectSubmit')}</button>
+			<button onclick={protect} disabled={session.busy || (!protStop && !protTp && !protTrail)}>{t('ticket.protectSubmit')}</button>
 			<button class="warn" onclick={() => session.closePosition()} disabled={session.busy}>✕ {t('ticket.close')} <kbd>X</kbd></button>
 		</div>
 	{/if}

@@ -69,6 +69,26 @@ class Driver {
     c.reduce_only = reduce_only;
     return apply_command(sc_, st_, c);
   }
+  CommandResult bracket(OrderType t, OrderSide side, const char* qty, const char* price, const char* stop,
+                        const char* tp) {
+    Command c = base(CommandType::PlaceOrder);
+    c.order_type = t;
+    c.side = side;
+    c.qty = Q(qty);
+    if (price != nullptr) c.price = P(price);
+    if (stop != nullptr) c.attach_stop = P(stop);
+    if (tp != nullptr) c.attach_tp = P(tp);
+    return apply_command(sc_, st_, c);
+  }
+  CommandResult trailing(OrderSide side, const char* qty, const char* distance, bool reduce_only = true) {
+    Command c = base(CommandType::PlaceOrder);
+    c.order_type = OrderType::TrailingStop;
+    c.side = side;
+    c.qty = Q(qty);
+    c.trail_distance = P(distance);
+    c.reduce_only = reduce_only;
+    return apply_command(sc_, st_, c);
+  }
   CommandResult leverage(int lev) {
     Command c = base(CommandType::SetLeverage);
     c.leverage = lev;
@@ -101,6 +121,21 @@ class Driver {
   RunState st_;
   std::uint64_t seq_ = 0;
 };
+
+inline const Order* find_order(const RunState& st, std::uint32_t id) {
+  for (const Order& o : st.orders) {
+    if (o.id == id) return &o;
+  }
+  return nullptr;
+}
+
+inline std::vector<const Order*> children_of(const RunState& st, std::uint32_t parent) {
+  std::vector<const Order*> out;
+  for (const Order& o : st.orders) {
+    if (o.parent_id == parent) out.push_back(&o);
+  }
+  return out;
+}
 
 inline const Event* last_of(const RunState& st, EventType t) {
   for (auto it = st.events.rbegin(); it != st.events.rend(); ++it) {

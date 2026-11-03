@@ -10,7 +10,8 @@
 		liquidation: 'liquidation',
 		insufficient_capacity: 'capacity',
 		insufficient_margin: 'margin',
-		expired: 'expired'
+		expired: 'expired',
+		oco_sibling_filled: 'OCO sibling filled'
 	};
 
 	function flags(e: EngineEvent): string {
@@ -32,7 +33,7 @@
 
 	function orderLine(e: EngineEvent, L: Locale): string | null {
 		if (e.status === 'accepted') {
-			return t('feed.accepted', { id: e.orderId, type: e.requested !== '0.00000000' ? 'LMT/STOP' : 'MKT', side: e.side, qty: fmtQty(e.qty, L) });
+			return t('feed.accepted', { id: e.orderId, type: e.requested !== '0.00000000' ? 'LMT/STOP/TP' : 'MKT', side: e.side, qty: fmtQty(e.qty, L) });
 		}
 		if (e.status === 'cancelled') return t('feed.cancelled', { id: e.orderId, reason: reasons[e.reason] ?? e.reason });
 		if (e.status === 'expired') return t('feed.expired', { id: e.orderId });

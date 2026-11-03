@@ -4,7 +4,7 @@
 export type Decimal = string;
 export type RunStatus = 'active' | 'finished' | 'bankrupt';
 export type OrderSideName = 'buy' | 'sell';
-export type OrderTypeName = 'market' | 'limit' | 'stop_market' | 'take_profit';
+export type OrderTypeName = 'market' | 'limit' | 'stop_market' | 'take_profit' | 'trailing_stop';
 
 export interface MissionInfo {
 	id: string;
@@ -64,6 +64,11 @@ export interface OrderView {
 	reduceOnly: boolean;
 	status: string;
 	placedStep: number;
+	parentId: number;
+	ocoGroup: number;
+	trailDistance: Decimal;
+	bracketStop: Decimal;
+	bracketTp: Decimal;
 }
 
 export type EventTypeName =
@@ -153,6 +158,7 @@ export const ORDER_TYPE_CODE: Record<OrderTypeName, number> = {
 	market: 0,
 	limit: 1,
 	stop_market: 2,
-	take_profit: 3
+	take_profit: 3,
+	trailing_stop: 4
 };
 export const SIDE_CODE: Record<OrderSideName, number> = { buy: 0, sell: 1 };

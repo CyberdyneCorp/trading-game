@@ -26,7 +26,7 @@ const char* reason_name(Reason r) {
       "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
       "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
       "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired"};
+      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled"};
   const auto i = static_cast<std::size_t>(r);
   return i < std::size(kNames) ? kNames[i] : "unknown";
 }
@@ -38,7 +38,7 @@ const char* status_name(OrderStatus s) {
 }
 
 const char* type_name(OrderType t) {
-  static constexpr const char* kNames[] = {"market", "limit", "stop_market", "take_profit"};
+  static constexpr const char* kNames[] = {"market", "limit", "stop_market", "take_profit", "trailing_stop"};
   return kNames[static_cast<std::size_t>(t)];
 }
 
@@ -100,6 +100,8 @@ void write_orders(JsonOut& j, const RunState& st) {
     j.begin_obj().field("id", o.id).field("type", type_name(o.type)).field("side", side_name(o.side));
     j.field("qty", o.qty).field("filled", o.filled).field("price", o.price);
     j.field("reduceOnly", o.reduce_only).field("status", status_name(o.status)).field("placedStep", o.placed_step);
+    j.field("parentId", o.parent_id).field("ocoGroup", o.oco_group).field("trailDistance", o.trail_distance);
+    j.field("bracketStop", o.bracket_stop).field("bracketTp", o.bracket_tp);
     j.end_obj();
   }
   j.end_arr();
@@ -166,6 +168,15 @@ const char* error_json(tl_run& r, const char* code) {
   return r.buffer.c_str();
 }
 
+// Empty or null means "not set" unless required. Returns false on a malformed value.
+bool parse_optional_price(const char* text, Price* out, bool required) {
+  if (text == nullptr || text[0] == '\0') return !required;
+  const auto p = parse_decimal<Price>(text);
+  if (!p.ok()) return false;
+  *out = p.value();
+  return true;
+}
+
 Command next_command(tl_run& r, CommandType type, std::uint32_t client_id) {
   Command c;
   c.type = type;
@@ -228,17 +239,24 @@ void tl_run_destroy(tl_run* run) { delete run; }
 
 const char* tl_place_order(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
                            const char* price, int32_t reduce_only) {
-  if (type < 0 || type > 3 || side < 0 || side > 1) return error_json(*run, "unsupported_order_type");
+  return tl_place_order_ex(run, client_id, type, side, qty, price, reduce_only, nullptr, nullptr, nullptr);
+}
+
+const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
+                              const char* price, int32_t reduce_only, const char* attach_stop,
+                              const char* attach_tp, const char* trail_distance) {
+  if (type < 0 || type > 4 || side < 0 || side > 1) return error_json(*run, "unsupported_order_type");
   Command c = next_command(*run, CommandType::PlaceOrder, client_id);
   c.order_type = static_cast<OrderType>(type);
   c.side = static_cast<OrderSide>(side);
   const auto q = parse_decimal<Qty>(qty == nullptr ? "" : qty);
   if (!q.ok()) return error_json(*run, "invalid_quantity");
   c.qty = q.value();
-  if (c.order_type != OrderType::Market) {
-    const auto p = parse_decimal<Price>(price == nullptr ? "" : price);
-    if (!p.ok()) return error_json(*run, "invalid_tick");
-    c.price = p.value();
+  const bool needs_price = c.order_type != OrderType::Market && c.order_type != OrderType::TrailingStop;
+  if (needs_price && !parse_optional_price(price, &c.price, true)) return error_json(*run, "invalid_tick");
+  if (!parse_optional_price(attach_stop, &c.attach_stop, false) || !parse_optional_price(attach_tp, &c.attach_tp, false) ||
+      !parse_optional_price(trail_distance, &c.trail_distance, false)) {
+    return error_json(*run, "invalid_tick");
   }
   c.reduce_only = reduce_only != 0;
   return result_json(*run, apply_command(run->scenario, run->state, c));

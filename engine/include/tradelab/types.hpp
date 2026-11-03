@@ -14,6 +14,7 @@ enum class OrderType : std::uint8_t {
   Limit = 1,
   StopMarket = 2,
   TakeProfit = 3,  // limit order on the exit side, always reduce-only
+  TrailingStop = 4,  // stop-market whose trigger ratchets with closes (effective next bar)
 };
 
 enum class OrderStatus : std::uint8_t {
@@ -49,6 +50,8 @@ enum class Reason : std::uint8_t {
   StopBeyondLiquidation = 19,  // informational flag on accepted orders
   ShortNotAllowed = 20,
   Expired = 21,
+  InvalidBracket = 22,
+  OcoSiblingFilled = 23,
 };
 
 enum class EventType : std::uint8_t {

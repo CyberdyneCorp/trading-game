@@ -30,7 +30,7 @@ CSS/Canvas post-effects (scanline overlay, subtle bloom via filter) behind a set
 ## Phase 1 slice: deliberate deviations (to close before MVP)
 
 - **Persistence:** the slice stores the action log in `localStorage` and resumes by deterministic replay (digest verified). Spec requires IndexedDB with per-command transactional commits (task 2.2) — open.
-- **Brackets:** stop/target attached to an entry are sent by the client as reduce-only orders after the entry fills. Engine-level bracket/OCO (order-execution "Brackets, OCO and reduce-only") replaces this in add-deterministic-engine task 4.4.
+- ~~Brackets sent by the client after the fill~~ — resolved: the engine owns brackets/OCO (execution-policy v2).
 - **Scoring:** the debrief computes a preview score in TypeScript (risk + plan coherence, understanding/calibration renormalized). The authoritative scorer belongs in `engine/scoring` (add-scenarios-and-gameplay D2).
 - **Imports:** SvelteKit 3 uses `#lib/...` subpath imports with explicit extensions.
 - **Adapter:** `adapter-static` until the BFF lands (then `adapter-node`).

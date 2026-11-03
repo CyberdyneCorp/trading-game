@@ -35,7 +35,9 @@ async function load(): Promise<Api> {
 		missions: w('tl_missions', 'number', []),
 		create: w('tl_run_create', 'number', ['string', 'number']),
 		destroy: w('tl_run_destroy', null, ['number']),
-		place: w('tl_place_order', 'number', ['number', 'number', 'number', 'number', 'string', 'string', 'number']),
+		place: w('tl_place_order_ex', 'number', [
+			'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string', 'string', 'string'
+		]),
 		cancel: w('tl_cancel_order', 'number', ['number', 'number', 'number']),
 		leverage: w('tl_set_leverage', 'number', ['number', 'number', 'number']),
 		close: w('tl_close_position', 'number', ['number', 'number']),
@@ -81,7 +83,10 @@ async function handle(req: EngineRequest): Promise<unknown> {
 					SIDE_CODE[req.side],
 					req.qty,
 					req.price ?? '',
-					req.reduceOnly ? 1 : 0
+					req.reduceOnly ? 1 : 0,
+					req.attachStop ?? '',
+					req.attachTp ?? '',
+					req.trailDistance ?? ''
 				)
 			);
 		case 'cancel':

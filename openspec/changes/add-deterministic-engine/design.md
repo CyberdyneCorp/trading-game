@@ -43,6 +43,13 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 - Option settlement: Deribit-style TWAP over a declared window (default 30 min); mean of closes / expiry close fallback flagged `settlementApproximated`. Scenarios built for options chapters should include 1-minute sub-bars around expiries so settlement is exact.
 - Short-option margin (default, scenario-overridable): IM = `max(0.15·F − OTM, 0.10·F)·m·q + ask·m·q`; MM = `0.075·F·m·q + mark·m·q`.
 
+### D6b. Brackets, OCO and trailing (execution-policy v2)
+- An entry may carry `attach_stop`/`attach_tp`. Each fill that grows exposure creates or grows reduce-only children (stop-market, take-profit) for exactly the increased quantity, sharing an OCO group = parent id. A fill on one child reduces its siblings by the same quantity; flat position cancels all reduce-only orders.
+- Children can be created mid-bar, so `RunState::orders` is a `std::deque` (stable references) and matching iterates by index.
+- An entry filled intrabar gets its children immediately; the post-entry adverse sweep may hit the child stop, but a same-bar take-profit is never credited.
+- Trailing stop-market: trigger initialized from the decision-step close ± distance, ratcheted at each close (never loosened), effective from the next bar. Percentage trails are a later extension.
+- Policy v2 changed only the state serialization (new order fields); v1 event streams are unchanged.
+
 ### D7. Digest and checkpoints
 - Canonical little-endian binary serialization of `RunState`; SHA-256 (vendored, constant-time not required). Checkpoint = serialized state + engine version + policy version.
 

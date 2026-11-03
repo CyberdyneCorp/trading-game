@@ -17,7 +17,17 @@ export type Screen = 'loading' | 'menu' | 'briefing' | 'terminal' | 'debrief';
 
 type Action =
 	| { k: 'lev'; lev: number }
-	| { k: 'order'; type: OrderTypeName; side: OrderSideName; qty: string; price: string | null; ro: boolean }
+	| {
+			k: 'order';
+			type: OrderTypeName;
+			side: OrderSideName;
+			qty: string;
+			price: string | null;
+			ro: boolean;
+			stop?: string | null;
+			tp?: string | null;
+			trail?: string | null;
+	  }
 	| { k: 'cancel'; id: number }
 	| { k: 'close' }
 	| { k: 'adv'; n: number };
@@ -30,13 +40,13 @@ interface SavedRun {
 	journal: PlanEntry[];
 	stopWarnings: number;
 	digest: string;
-	protection?: Protection | null;
 }
 
-export interface Protection {
-	side: OrderSideName; // entry side
-	stop: string | null;
-	takeProfit: string | null;
+/** Optional order extras: bracket exits (engine-side OCO) and trailing distance. */
+export interface OrderExtras {
+	stop?: string | null;
+	takeProfit?: string | null;
+	trail?: string | null;
 }
 
 export interface Notice {
@@ -64,7 +74,6 @@ export class GameSession {
 	state = $state<GameState | null>(null);
 	debrief = $state<DebriefData | null>(null);
 	journal = $state<PlanEntry[]>([]);
-	protection = $state<Protection | null>(null);
 	notice = $state<Notice | null>(null);
 	stopWarnings = $state(0);
 	busy = $state(false);
@@ -128,7 +137,6 @@ export class GameSession {
 		this.log = [...s.log];
 		this.journal = s.journal;
 		this.stopWarnings = s.stopWarnings;
-		this.protection = s.protection ?? null;
 		if (this.state && s.digest && this.state.digest !== s.digest) {
 			this.notice = { tone: 'warn', text: `replay digest mismatch (${s.digest.slice(0, 8)})` };
 		}
@@ -155,9 +163,20 @@ export class GameSession {
 		side: OrderSideName,
 		qty: string,
 		price: string | null,
-		reduceOnly = false
+		reduceOnly = false,
+		extras: OrderExtras = {}
 	): Promise<CommandResult | null> {
-		const res = await this.command({ k: 'order', type, side, qty, price, ro: reduceOnly });
+		const res = await this.command({
+			k: 'order',
+			type,
+			side,
+			qty,
+			price,
+			ro: reduceOnly,
+			stop: extras.stop ?? null,
+			tp: extras.takeProfit ?? null,
+			trail: extras.trail ?? null
+		});
 		if (res?.warning === 'stop_beyond_liquidation') this.stopWarnings += 1;
 		return res;
 	}
@@ -167,14 +186,7 @@ export class GameSession {
 	}
 
 	async closePosition(): Promise<CommandResult | null> {
-		this.protection = null;
 		return this.command({ k: 'close' });
-	}
-
-	/** Pending stop/target to attach once the entry fills; saved so a reload never drops it. */
-	setProtection(p: Protection | null): void {
-		this.protection = p;
-		this.persist();
 	}
 
 	recordPlan(plan: PlanEntry): void {
@@ -187,7 +199,6 @@ export class GameSession {
 		this.busy = true;
 		try {
 			await this.exec({ k: 'adv', n }, true);
-			await this.attachProtection();
 			this.persist();
 			if (this.state && this.state.status !== 'active') {
 				await this.loadDebrief();
@@ -204,7 +215,6 @@ export class GameSession {
 		this.log = [];
 		this.clientId = 1;
 		this.journal = [];
-		this.protection = null;
 		this.notice = null;
 		this.debrief = null;
 		this.stopWarnings = 0;
@@ -240,30 +250,23 @@ export class GameSession {
 			a.k === 'lev'
 				? await e.request({ kind: 'leverage', clientId, leverage: a.lev })
 				: a.k === 'order'
-					? await e.request({ kind: 'order', clientId, type: a.type, side: a.side, qty: a.qty, price: a.price, reduceOnly: a.ro })
+					? await e.request({
+							kind: 'order',
+							clientId,
+							type: a.type,
+							side: a.side,
+							qty: a.qty,
+							price: a.price,
+							reduceOnly: a.ro,
+							attachStop: a.stop ?? null,
+							attachTp: a.tp ?? null,
+							trailDistance: a.trail ?? null
+						})
 					: a.k === 'cancel'
 						? await e.request({ kind: 'cancel', clientId, orderId: a.id })
 						: await e.request({ kind: 'close', clientId });
 		this.state = r.state;
 		return r.result;
-	}
-
-	// UI-level bracket: once the entry has filled, send the planned stop and target as reduce-only.
-	private async attachProtection(): Promise<void> {
-		const p = this.protection;
-		const s = this.state;
-		if (!p || !s) return;
-		const qty = Number(s.position.qty);
-		if (qty === 0) return;
-		const filledLong = qty > 0;
-		if (filledLong !== (p.side === 'buy')) return;
-		this.protection = null;
-		const exitSide: OrderSideName = filledLong ? 'sell' : 'buy';
-		const size = s.position.qty.replace('-', '');
-		if (p.stop) await this.exec({ k: 'order', type: 'stop_market', side: exitSide, qty: size, price: p.stop, ro: true }, true);
-		if (p.takeProfit) {
-			await this.exec({ k: 'order', type: 'take_profit', side: exitSide, qty: size, price: p.takeProfit, ro: true }, true);
-		}
 	}
 
 	private async loadDebrief(): Promise<void> {
@@ -279,8 +282,7 @@ export class GameSession {
 			log: this.log,
 			journal: this.journal,
 			stopWarnings: this.stopWarnings,
-			digest: this.state.digest,
-			protection: this.protection
+			digest: this.state.digest
 		};
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

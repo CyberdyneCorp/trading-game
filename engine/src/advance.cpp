@@ -7,7 +7,11 @@
 //      distance from the open), then favorable take-profits
 //   3. intrabar entries (resting limits/stops); a position entered intrabar is then checked
 //      against the adverse extreme without crediting favorable exits (conservative)
-//   4. close: funding at boundaries, liquidation at the close, metrics, finish/bankruptcy
+//   4. close: funding at boundaries, liquidation at the close, trailing triggers ratchet from the
+//      close (effective next bar), metrics, finish/bankruptcy
+//
+// Bracket entries spawn reduce-only stop/take-profit children for each filled quantity; exits in
+// one OCO group reduce each other. Children are appended while matching, hence index loops.
 
 #include <algorithm>
 
@@ -58,6 +62,58 @@ Qty executable_qty(const BarCtx& c, const Order& o, bool* capacity_limited) {
   return std::min(q, c.capacity);
 }
 
+bool is_stop(const Order& o) { return o.type == OrderType::StopMarket || o.type == OrderType::TrailingStop; }
+
+// Adds q to the parent's active child of `type`, or creates it (reduce-only, OCO group = parent id).
+void grow_child(RunState& st, const Order& parent, OrderType type, Price px, Qty q) {
+  for (Order& ch : st.orders) {
+    if (ch.parent_id == parent.id && ch.type == type && ch.active()) {
+      ch.qty = Qty::from_raw(ch.qty.raw + q.raw);
+      detail::emit_order_update(st, ch, Reason::None);
+      return;
+    }
+  }
+  Order ch;
+  ch.id = st.next_order_id++;
+  ch.seq = parent.seq;
+  ch.type = type;
+  ch.side = opposite(parent.side);
+  ch.qty = q;
+  ch.price = px;
+  ch.reduce_only = true;
+  ch.placed_step = st.step;
+  ch.parent_id = parent.id;
+  ch.oco_group = parent.id;
+  st.orders.push_back(ch);
+  detail::emit_order_update(st, ch, Reason::None);
+}
+
+void attach_bracket(RunState& st, const Order& parent, Qty q) {
+  if (parent.bracket_stop.raw > 0) grow_child(st, parent, OrderType::StopMarket, parent.bracket_stop, q);
+  if (parent.bracket_tp.raw > 0) grow_child(st, parent, OrderType::TakeProfit, parent.bracket_tp, q);
+}
+
+// A fill of q on one exit reduces every sibling in its OCO group by q.
+void reduce_oco_siblings(RunState& st, const Order& filled, Qty q) {
+  if (filled.oco_group == 0) return;
+  for (Order& sib : st.orders) {
+    if (!sib.active() || sib.id == filled.id || sib.oco_group != filled.oco_group) continue;
+    sib.qty = Qty::from_raw(std::max(sib.filled.raw, sib.qty.raw - q.raw));
+    if (sib.remaining().raw > 0) continue;
+    sib.status = OrderStatus::Cancelled;
+    detail::emit_order_update(st, sib, Reason::OcoSiblingFilled);
+  }
+}
+
+// Quantity by which a fill grew exposure (same direction, or the new side after a flip).
+Qty exposure_increase(const Position& before, const Position& after) {
+  const Qty b = abs_qty(before.qty);
+  const Qty a = abs_qty(after.qty);
+  const bool flipped = before.qty.raw != 0 && after.qty.raw != 0 && (before.qty.raw > 0) != (after.qty.raw > 0);
+  if (flipped) return a;
+  return Qty::from_raw(std::max<std::int64_t>(0, a.raw - b.raw));
+}
+
 struct Exec {
   Price price;
   bool maker = false;
@@ -83,9 +139,12 @@ bool execute(BarCtx& c, Order& o, const Exec& ex) {
   c.capacity = Qty::from_raw(c.capacity.raw - q.raw);
   o.status = o.remaining().raw == 0 ? OrderStatus::Filled : OrderStatus::PartiallyFilled;
   detail::emit_order_update(c.st, o, Reason::None);
-  const bool increased = abs_qty(c.st.position.qty) > abs_qty(before.qty) ||
-                         (before.qty.raw != 0 && (before.qty.raw > 0) != (c.st.position.qty.raw > 0));
-  if (increased && (ex.flags & kFlagGapFill) == 0) c.entered_intrabar = true;
+  reduce_oco_siblings(c.st, o, q);
+  const Qty inc = exposure_increase(before, c.st.position);
+  if (inc.raw > 0) {
+    if ((ex.flags & kFlagGapFill) == 0) c.entered_intrabar = true;
+    attach_bracket(c.st, o, inc);
+  }
   return true;
 }
 
@@ -108,10 +167,11 @@ void open_gap_liquidation(BarCtx& c) {
 
 void open_gap_orders(BarCtx& c) {
   const Price open = c.bar.open;
-  for (Order& o : c.st.orders) {
+  for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
+    Order& o = c.st.orders[i];
     if (!o.active() || o.type == OrderType::Market) continue;
     const bool buy = o.side == OrderSide::Buy;
-    if (o.type == OrderType::StopMarket) {
+    if (is_stop(o)) {
       if (buy ? open >= o.price : open <= o.price) execute(c, o, {taker_price(c.sc, open, o.side), false, kFlagGapFill});
     } else if (buy ? open <= o.price : open >= o.price) {
       execute(c, o, {open, true, kFlagGapFill});
@@ -122,8 +182,8 @@ void open_gap_orders(BarCtx& c) {
 void open_phase(BarCtx& c) {
   open_gap_liquidation(c);
   open_gap_orders(c);
-  for (Order& o : c.st.orders) {
-    if (o.active() && o.type == OrderType::Market) execute_market(c, o);
+  for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
+    if (c.st.orders[i].active() && c.st.orders[i].type == OrderType::Market) execute_market(c, c.st.orders[i]);
   }
 }
 
@@ -133,7 +193,7 @@ bool favorable_exit_reachable(const BarCtx& c) {
   const Position& p = c.st.position;
   const Price tick = c.sc.contract.tick_size;
   for (const Order& o : c.st.orders) {
-    if (!o.active() || o.type == OrderType::Market || o.type == OrderType::StopMarket) continue;
+    if (!o.active() || o.type == OrderType::Market || is_stop(o)) continue;
     if (p.is_long() && o.side == OrderSide::Sell && c.bar.high.raw >= o.price.raw + tick.raw) return true;
     if (!p.is_long() && o.side == OrderSide::Buy && c.bar.low.raw <= o.price.raw - tick.raw) return true;
   }
@@ -145,7 +205,7 @@ Order* nearest_adverse_stop(BarCtx& c) {
   const bool is_long = c.st.position.is_long();
   Order* best = nullptr;
   for (Order& o : c.st.orders) {
-    if (!o.active() || o.type != OrderType::StopMarket) continue;
+    if (!o.active() || !is_stop(o)) continue;
     if (is_long != (o.side == OrderSide::Sell)) continue;
     const bool reached = is_long ? c.bar.low <= o.price : c.bar.high >= o.price;
     if (!reached) continue;
@@ -177,7 +237,8 @@ void exit_sweep(BarCtx& c, bool post_entry) {
 
 void favorable_exits(BarCtx& c) {
   const Price tick = c.sc.contract.tick_size;
-  for (Order& o : c.st.orders) {
+  for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
+    Order& o = c.st.orders[i];
     if (c.st.position.flat()) return;
     if (!o.active() || (o.type != OrderType::Limit && o.type != OrderType::TakeProfit)) continue;
     const bool closes = c.st.position.is_long() == (o.side == OrderSide::Sell);
@@ -191,14 +252,15 @@ void favorable_exits(BarCtx& c) {
 bool entry_reached(const BarCtx& c, const Order& o) {
   const Price tick = c.sc.contract.tick_size;
   const bool buy = o.side == OrderSide::Buy;
-  if (o.type == OrderType::StopMarket) return buy ? c.bar.high >= o.price : c.bar.low <= o.price;
+  if (is_stop(o)) return buy ? c.bar.high >= o.price : c.bar.low <= o.price;
   return buy ? c.bar.low.raw <= o.price.raw - tick.raw : c.bar.high.raw >= o.price.raw + tick.raw;
 }
 
 void entries(BarCtx& c) {
-  for (Order& o : c.st.orders) {
+  for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
+    Order& o = c.st.orders[i];
     if (!o.active() || o.reduce_only || o.type == OrderType::Market || !entry_reached(c, o)) continue;
-    const bool stop = o.type == OrderType::StopMarket;
+    const bool stop = is_stop(o);
     const Exec ex = stop ? Exec{taker_price(c.sc, o.price, o.side), false, kFlagAmbiguousIntrabar}
                          : Exec{o.price, true, kFlagAmbiguousIntrabar};
     execute(c, o, ex);
@@ -273,9 +335,24 @@ void finish_or_bankrupt(BarCtx& c) {
   emit_status(st, EventType::RunFinished);
 }
 
+// Trailing triggers follow the best close (never loosen); computed at the close of bar t, so they
+// only take effect from bar t+1 (spec order-execution "Trailing stop").
+void update_trailing(BarCtx& c) {
+  const Price close = c.bar.close;
+  const Price tick = c.sc.contract.tick_size;
+  for (Order& o : c.st.orders) {
+    if (!o.active() || o.type != OrderType::TrailingStop) continue;
+    const bool sell = o.side == OrderSide::Sell;
+    const Price raw = Price::from_raw(sell ? close.raw - o.trail_distance.raw : close.raw + o.trail_distance.raw);
+    const Price cand = detail::unwrap(round_to_step(raw, tick, sell ? Rounding::Floor : Rounding::Ceil));
+    if (sell ? cand > o.price : cand < o.price) o.price = cand;
+  }
+}
+
 void close_phase(BarCtx& c, std::uint32_t index) {
   if (index % c.sc.contract.funding_interval == 0) detail::apply_funding(c.sc, c.st, index);
   close_liquidation(c);
+  update_trailing(c);
   update_metrics(c);
   finish_or_bankrupt(c);
 }

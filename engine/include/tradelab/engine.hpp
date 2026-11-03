@@ -10,7 +10,7 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kExecutionPolicyVersion = 1;
+constexpr std::uint32_t kExecutionPolicyVersion = 2;  // v2: brackets/OCO, trailing stops
 
 enum class CommandType : std::uint8_t {
   PlaceOrder = 0,
@@ -31,6 +31,9 @@ struct Command {
   bool reduce_only = false;
   std::uint32_t order_id = 0;  // CancelOrder
   std::int32_t leverage = 1;   // SetLeverage
+  Price attach_stop;           // PlaceOrder bracket: protective stop for the filled quantity
+  Price attach_tp;             // PlaceOrder bracket: take-profit for the filled quantity
+  Price trail_distance;        // TrailingStop
 };
 
 // Live account figures at the current decision point (all derived, never stored).

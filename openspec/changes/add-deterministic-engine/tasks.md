@@ -19,12 +19,12 @@
 - [ ] 3.5 RunState checkpoint save/restore with version check; resume-equals-uninterrupted test
 
 ## 4. Order execution
-- [ ] 4.1 Market, limit, stop-market, take-profit, trailing (close-based)
+- [x] 4.1 Market, limit, stop-market, take-profit, trailing (close-based)
 - [ ] 4.2 Lifecycle states and events; rejection reasons enum
 - [ ] 4.3 Costs: fees, spread, slippage, tick/lot; capacity with priority
-- [ ] 4.4 Bracket/OCO, reduce-only, orphan cancellation
+- [x] 4.4 Bracket/OCO, reduce-only, orphan cancellation
 - [ ] 4.5 Conservative intrabar policy with `ambiguousIntrabar` flags
-- [ ] 4.6 Goldens SIM03–SIM07
+- [x] 4.6 Goldens SIM03–SIM07
 
 ## 5. Perpetual futures
 - [x] 5.1 One-way positions, average entry, flips

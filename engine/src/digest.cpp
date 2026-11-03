@@ -18,6 +18,11 @@ void write_order(Writer& w, const Order& o) {
   w.boolean(o.reduce_only);
   w.u32(o.placed_step);
   w.u8(static_cast<std::uint8_t>(o.status));
+  w.fixed(o.bracket_stop);
+  w.fixed(o.bracket_tp);
+  w.u32(o.parent_id);
+  w.u32(o.oco_group);
+  w.fixed(o.trail_distance);
 }
 
 void write_event(Writer& w, const Event& e) {

@@ -90,6 +90,7 @@ TEST_CASE("C ABI: same mission, seed and commands produce identical digests") {
   CHECK(play() == play());
 }
 
+// Policy v2 changed the state digest (new order fields); the event stream digest is unchanged from v1.
 TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run* run = tl_run_create("m01-false-breakout", 2026);
   tl_set_leverage(run, 1, 5);
@@ -105,6 +106,6 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"e2164f32b0a2f4490387c7cf48083f7ced9791f98c0c6169aaf672e366fe00cf\","
+        "\"digest\":\"78017c602a784ff8d2902bc6e9a0e026b603969d74533d97bef8a12baf6dc080\","
         "\"eventsDigest\":\"9c5add5f1877cccb615beac8ace07382478d0502d1fdd73a019059349f465162\"}");
 }
