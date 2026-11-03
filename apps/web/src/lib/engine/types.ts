@@ -158,6 +158,14 @@ export interface OptionsView {
 	positions: OptionPositionView[];
 }
 
+export interface Indicators {
+	version: number;
+	sma20: (Decimal | null)[];
+	ema50: (Decimal | null)[];
+	rsi14: (Decimal | null)[];
+	atr14: (Decimal | null)[];
+}
+
 export interface GameState {
 	mission: string;
 	alias: string;
@@ -174,6 +182,7 @@ export interface GameState {
 	position: Position;
 	orders: OrderView[];
 	options: OptionsView;
+	indicators: Indicators;
 	events: EngineEvent[];
 	totals: Totals;
 	digest: string;

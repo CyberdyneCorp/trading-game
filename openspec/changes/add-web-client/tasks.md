@@ -18,7 +18,7 @@
 ## 4. Phase 2 MVP
 - [ ] 4.1 Limit, trailing, bracket/OCO in ticket
 - [x] 4.2 Option chain, option ticket with payoff diagram and Greeks
-- [ ] 4.3 Indicators UI with warm-up state
+- [x] 4.3 Indicators UI with warm-up state
 - [ ] 4.4 Journal, lessons runner, curriculum map, progress, catalog + download
 - [ ] 4.5 CSV import wizard
 - [ ] 4.6 All required states; colorblind palette; i18n PT-BR + en-US

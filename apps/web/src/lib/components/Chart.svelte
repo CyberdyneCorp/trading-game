@@ -13,6 +13,14 @@
 	let height = $state(400);
 	let hover = $state<number | null>(null);
 	let zoom = $state(100); // visible bars
+	let showSma = $state(true);
+	let showEma = $state(true);
+
+	// Bars still needed before an indicator has a value (spec indicators "Warm-up").
+	function warming(series: (string | null)[], need: number): number {
+		const have = series.filter((v) => v != null).length;
+		return have > 0 ? 0 : Math.max(0, need - game.bars.length);
+	}
 
 	const FUTURE_SLOTS = 12;
 	const AXIS_W = 72;
@@ -101,6 +109,8 @@
 		drawVolume(ctx, slotW, volTop, volH, x);
 		drawCandles(ctx, slotW, x, y);
 		drawFills(ctx, x, y);
+		if (showSma) drawLine(ctx, game.indicators.sma20, cssVar('--attention'), x, y);
+		if (showEma) drawLine(ctx, game.indicators.ema50, cssVar('--info'), x, y);
 		for (const l of lv) drawLevel(ctx, l, plotW, y);
 		drawHover(ctx, slotW, priceH, x);
 	}
@@ -209,6 +219,25 @@
 		ctx.textAlign = 'start';
 	}
 
+	function drawLine(ctx: CanvasRenderingContext2D, series: (string | null)[], color: string, x: (i: number) => number, y: (p: number) => number) {
+		ctx.strokeStyle = color;
+		ctx.globalAlpha = 0.8;
+		ctx.beginPath();
+		let started = false;
+		for (let i = 0; i < visible.length; i++) {
+			const v = series[first + i];
+			if (v == null) {
+				started = false;
+				continue;
+			}
+			if (started) ctx.lineTo(x(i), y(Number(v)));
+			else ctx.moveTo(x(i), y(Number(v)));
+			started = true;
+		}
+		ctx.stroke();
+		ctx.globalAlpha = 1;
+	}
+
 	function drawLevel(ctx: CanvasRenderingContext2D, l: Level, plotW: number, y: (p: number) => number) {
 		const yy = y(l.price);
 		if (yy < 0 || yy > height) return;
@@ -268,7 +297,7 @@
 
 	$effect(() => {
 		// Redraw on any dependency change (game, size, hover, zoom, locale).
-		void [game, width, height, hover, zoom, i18n.locale, visible];
+		void [game, width, height, hover, zoom, i18n.locale, visible, showSma, showEma];
 		draw();
 	});
 </script>
@@ -282,6 +311,15 @@
 			L {fmtPrice(String(hoverBar[2]), i18n.locale)}
 			C {fmtPrice(String(hoverBar[3]), i18n.locale)}
 			<span class="muted">V {fmtQty(String(hoverBar[4]), i18n.locale)}</span>
+			{@const rsiV = game.indicators.rsi14[hoverIndex]}
+			{@const atrV = game.indicators.atr14[hoverIndex]}
+			<span class="info">RSI14 {rsiV != null ? Number(rsiV).toFixed(1) : '—'}</span>
+			<span class="muted">ATR14 {atrV != null ? fmtPrice(atrV, i18n.locale) : '—'}</span>
+		{/if}
+		<label class="toggle attention"><input type="checkbox" bind:checked={showSma} /> SMA20</label>
+		<label class="toggle info"><input type="checkbox" bind:checked={showEma} /> EMA50</label>
+		{#if warming(game.indicators.ema50, 50) > 0}
+			<span class="muted">{t('chart.warming', { name: 'EMA50', n: warming(game.indicators.ema50, 50) })}</span>
 		{/if}
 	</div>
 	<div class="canvas-box" bind:this={box}>
@@ -321,6 +359,15 @@
 		display: flex;
 		gap: 0.8rem;
 		flex-wrap: wrap;
+	}
+	.toggle {
+		display: inline-flex;
+		gap: 0.25rem;
+		align-items: center;
+		font-size: 0.8rem;
+	}
+	.toggle input {
+		width: auto;
 	}
 	.canvas-box {
 		flex: 1;
