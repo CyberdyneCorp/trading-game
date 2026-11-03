@@ -1,0 +1,74 @@
+<script lang="ts">
+	import type { GameSession } from '#lib/game/session.svelte.ts';
+	import { missionText } from '#lib/game/missions.ts';
+	import { fmtMoney, fmtPct, num } from '#lib/game/format.ts';
+	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+
+	let { session }: { session: GameSession } = $props();
+	const s = $derived(session.state!);
+	const L = $derived(i18n.locale);
+	const c = $derived(s.contract);
+	const txt = $derived(missionText(s.mission, L));
+</script>
+
+<main class="brief">
+	<div class="panel">
+		<p class="muted">{t('brief.title')} · {s.alias}</p>
+		<h1>{txt.title}</h1>
+		<p class="tagline">{txt.tagline}</p>
+		<dl class="kv">
+			<dt>{t('brief.mode')}</dt><dd class="attention">{t('brief.modeSynthetic', { seed: session.seed })}</dd>
+			<dt>{t('brief.capital')}</dt><dd>{fmtMoney(s.initialBalance, L)}</dd>
+			<dt>{t('brief.instrument')}</dt><dd>{t('brief.instrumentValue')}</dd>
+			<dt>{t('brief.leverage')}</dt><dd>1x – {c.leverageCap}x</dd>
+			<dt>{t('brief.mmr')}</dt><dd>{fmtPct(num(c.maintenanceMargin), L)}</dd>
+			<dt>{t('brief.costs')}</dt>
+			<dd>
+				{t('brief.costsValue', {
+					taker: fmtPct(num(c.takerFee), L, 3),
+					maker: fmtPct(num(c.makerFee), L, 3),
+					slip: fmtPct(num(c.halfSpread) + num(c.slippage), L, 3),
+					funding: c.fundingInterval
+				})}
+			</dd>
+		</dl>
+		<h3>{t('brief.objectives')}</h3>
+		<ul>
+			{#each txt.objectives as o (o)}<li>{o}</li>{/each}
+		</ul>
+		<p class="rules">{t('brief.rules')}</p>
+		<p class="muted small">{txt.lesson}</p>
+		<div class="actions">
+			<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
+			<!-- svelte-ignore a11y_autofocus -->
+			<button class="primary" onclick={() => session.enterTerminal()} autofocus>▶ {t('brief.go')}</button>
+		</div>
+	</div>
+</main>
+
+<style>
+	.brief {
+		max-width: 760px;
+		margin: 3rem auto;
+		padding: 0 1rem;
+	}
+	.tagline {
+		font-size: 1.05rem;
+	}
+	.kv {
+		margin: 1rem 0;
+	}
+	.rules {
+		border-left: 3px solid var(--info);
+		padding-left: 0.7rem;
+		color: var(--info);
+	}
+	.actions {
+		display: flex;
+		justify-content: space-between;
+		margin-top: 1rem;
+	}
+	.small {
+		font-size: 0.8rem;
+	}
+</style>

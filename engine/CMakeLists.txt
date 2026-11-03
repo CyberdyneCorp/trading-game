@@ -17,9 +17,17 @@ if(NOT EMSCRIPTEN)
 endif()
 
 add_library(tradelab_engine STATIC
+  src/accounting.cpp
+  src/c_api.cpp
+  src/advance.cpp
+  src/commands.cpp
   src/det_math.cpp
+  src/digest.cpp
   src/fixed.cpp
+  src/generator.cpp
+  src/missions.cpp
   src/prng.cpp
+  src/scenario.cpp
   src/sha256.cpp
   src/serialize.cpp
 )
@@ -29,6 +37,19 @@ target_compile_options(tradelab_engine PRIVATE
   ${TRADELAB_DETERMINISM_FLAGS} -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
 if(EMSCRIPTEN)
   target_compile_options(tradelab_engine PRIVATE -fno-exceptions -fno-rtti)
+endif()
+
+# Browser module: ES6, single file (wasm embedded) for the Phase 1 slice; runs inside a Web Worker.
+if(EMSCRIPTEN)
+  add_executable(tradelab_wasm src/wasm_main.cpp)
+  target_link_libraries(tradelab_wasm PRIVATE tradelab::engine)
+  target_compile_options(tradelab_wasm PRIVATE ${TRADELAB_DETERMINISM_FLAGS} -fno-exceptions -fno-rtti)
+  set_target_properties(tradelab_wasm PROPERTIES OUTPUT_NAME tradelab SUFFIX .mjs)
+  target_link_options(tradelab_wasm PRIVATE
+    -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createTradelab -sSINGLE_FILE=1
+    -sENVIRONMENT=web,worker,node -sALLOW_MEMORY_GROWTH=1 -sFILESYSTEM=0
+    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_missions','_tl_run_create','_tl_run_destroy','_tl_place_order','_tl_cancel_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_malloc','_free']"
+    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString']")
 endif()
 
 if(TRADELAB_BUILD_TESTS)
@@ -44,6 +65,8 @@ if(TRADELAB_BUILD_TESTS)
     tests/main.cpp
     tests/test_fixed.cpp
     tests/test_det_math.cpp
+    tests/test_engine.cpp
+    tests/test_missions.cpp
     tests/test_prng.cpp
     tests/test_sha256.cpp
     tests/test_serialize.cpp

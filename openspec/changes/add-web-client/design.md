@@ -27,6 +27,15 @@ CSS/Canvas post-effects (scanline overlay, subtle bloom via filter) behind a set
 ### D5. i18n
 `svelte-i18n` or Paraglide (compile-time) — pick Paraglide for tree-shaken catalogs; PT-BR default.
 
+## Phase 1 slice: deliberate deviations (to close before MVP)
+
+- **Persistence:** the slice stores the action log in `localStorage` and resumes by deterministic replay (digest verified). Spec requires IndexedDB with per-command transactional commits (task 2.2) — open.
+- **Brackets:** stop/target attached to an entry are sent by the client as reduce-only orders after the entry fills. Engine-level bracket/OCO (order-execution "Brackets, OCO and reduce-only") replaces this in add-deterministic-engine task 4.4.
+- **Scoring:** the debrief computes a preview score in TypeScript (risk + plan coherence, understanding/calibration renormalized). The authoritative scorer belongs in `engine/scoring` (add-scenarios-and-gameplay D2).
+- **Imports:** SvelteKit 3 uses `#lib/...` subpath imports with explicit extensions.
+- **Adapter:** `adapter-static` until the BFF lands (then `adapter-node`).
+- **Chart:** custom Canvas2D renderer as designed (D3); the 5,000-bar budget is not yet measured.
+
 ## Risks
 - Canvas text rendering of pixel fonts across DPRs → bitmap atlas at integer scales.
 - Safari WASM + worker quirks → Playwright WebKit in CI.
