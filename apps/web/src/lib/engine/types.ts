@@ -159,6 +159,13 @@ export interface OptionsView {
 	positions: OptionPositionView[];
 }
 
+export interface PatternHitView {
+	step: number; // bar that completes the pattern
+	id: string; // matches the cheat sheet ids
+	bars: number;
+	bias: -1 | 0 | 1;
+}
+
 export interface Indicators {
 	version: number;
 	sma20: (Decimal | null)[];
@@ -174,6 +181,8 @@ export interface Indicators {
 	plusDi14: (Decimal | null)[];
 	minusDi14: (Decimal | null)[];
 	adx14: (Decimal | null)[];
+	patternVersion: number;
+	patterns: PatternHitView[];
 }
 
 export interface NewsView {

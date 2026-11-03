@@ -464,6 +464,260 @@ export const CANDLE_PATTERNS: CandlePattern[] = [
 	}
 ];
 
+// Multi-candle combinations whose meaning depends on the candles before them.
+export const MORE_CANDLE_PATTERNS: CandlePattern[] = [
+	{
+		id: 'three-inside-up',
+		bias: 'bullish',
+		context: 'down',
+		candles: [
+			[60, 62, 30, 32],
+			[36, 46, 34, 44],
+			[44, 66, 42, 64]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Três de dentro de alta',
+				what: 'Harami de alta (candle pequeno dentro da baixa grande) seguido de um terceiro candle que fecha acima da abertura do primeiro.',
+				means: 'É o harami já confirmado: a queda perdeu força e os compradores retomaram o terreno.',
+				confirm: 'O próprio terceiro candle é a confirmação; stop abaixo da mínima do padrão.'
+			},
+			en: {
+				name: 'Three inside up',
+				what: 'A bullish harami (small candle inside a large bearish one) followed by a third candle closing above the first one’s open.',
+				means: 'A harami that has already been confirmed: the decline lost steam and buyers took ground back.',
+				confirm: 'The third candle is the confirmation; stop below the pattern low.'
+			}
+		}
+	},
+	{
+		id: 'three-inside-down',
+		bias: 'bearish',
+		context: 'up',
+		candles: [
+			[40, 70, 38, 68],
+			[64, 66, 54, 56],
+			[56, 58, 34, 36]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Três de dentro de baixa',
+				what: 'Harami de baixa seguido de um terceiro candle que fecha abaixo da abertura do primeiro.',
+				means: 'Harami de baixa confirmado: a alta perdeu força e os vendedores assumiram.',
+				confirm: 'O terceiro candle confirma; stop acima da máxima do padrão.'
+			},
+			en: {
+				name: 'Three inside down',
+				what: 'A bearish harami followed by a third candle closing below the first one’s open.',
+				means: 'A confirmed bearish harami: the rally lost steam and sellers took over.',
+				confirm: 'The third candle confirms; stop above the pattern high.'
+			}
+		}
+	},
+	{
+		id: 'three-outside-up',
+		bias: 'bullish',
+		context: 'down',
+		candles: [
+			[46, 48, 38, 40],
+			[37, 56, 35, 54],
+			[54, 68, 52, 66]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Três de fora de alta',
+				what: 'Engolfo de alta seguido de mais um candle de alta fechando acima do engolfo.',
+				means: 'Engolfo confirmado: os compradores mantiveram o controle no candle seguinte.',
+				confirm: 'Stop abaixo da mínima do engolfo; ganha força em suporte.'
+			},
+			en: {
+				name: 'Three outside up',
+				what: 'A bullish engulfing followed by another bullish candle closing above it.',
+				means: 'A confirmed engulfing: buyers kept control on the next candle.',
+				confirm: 'Stop below the engulfing low; stronger at support.'
+			}
+		}
+	},
+	{
+		id: 'three-outside-down',
+		bias: 'bearish',
+		context: 'up',
+		candles: [
+			[54, 62, 52, 60],
+			[63, 65, 44, 46],
+			[46, 48, 32, 34]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Três de fora de baixa',
+				what: 'Engolfo de baixa seguido de mais um candle de baixa fechando abaixo do engolfo.',
+				means: 'Engolfo de baixa confirmado: os vendedores mantiveram o controle.',
+				confirm: 'Stop acima da máxima do engolfo; ganha força em resistência.'
+			},
+			en: {
+				name: 'Three outside down',
+				what: 'A bearish engulfing followed by another bearish candle closing below it.',
+				means: 'A confirmed bearish engulfing: sellers kept control.',
+				confirm: 'Stop above the engulfing high; stronger at resistance.'
+			}
+		}
+	},
+	{
+		id: 'bullish-kicker',
+		bias: 'bullish',
+		context: 'down',
+		candles: [
+			[60, 62, 40, 42],
+			[64, 86, 63, 84]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Kicker de alta',
+				what: 'Candle de baixa seguido de um candle de alta forte que abre acima da abertura anterior (com gap).',
+				means: 'Mudança brusca de sentimento, normalmente por notícia: um dos sinais mais fortes.',
+				confirm: 'Em mercados 24/7 gaps são raros, então o padrão aparece pouco; quando aparece, respeite a mínima do candle de alta.'
+			},
+			en: {
+				name: 'Bullish kicker',
+				what: 'A bearish candle followed by a strong bullish candle that opens above the previous open (a gap).',
+				means: 'An abrupt change in sentiment, usually news-driven: one of the strongest signals.',
+				confirm: 'Gaps are rare in 24/7 markets, so it shows up seldom; when it does, respect the bullish candle’s low.'
+			}
+		}
+	},
+	{
+		id: 'bearish-kicker',
+		bias: 'bearish',
+		context: 'up',
+		candles: [
+			[40, 62, 38, 60],
+			[36, 37, 14, 16]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Kicker de baixa',
+				what: 'Candle de alta seguido de um candle de baixa forte que abre abaixo da abertura anterior (com gap).',
+				means: 'Mudança brusca de sentimento para baixa, normalmente por notícia.',
+				confirm: 'Raro em mercados 24/7; quando aparece, stop acima da máxima do candle de baixa.'
+			},
+			en: {
+				name: 'Bearish kicker',
+				what: 'A bullish candle followed by a strong bearish candle that opens below the previous open (a gap).',
+				means: 'An abrupt bearish change in sentiment, usually news-driven.',
+				confirm: 'Rare in 24/7 markets; when it appears, stop above the bearish candle’s high.'
+			}
+		}
+	},
+	{
+		id: 'bullish-abandoned-baby',
+		bias: 'bullish',
+		context: 'down',
+		candles: [
+			[60, 62, 38, 40],
+			[31, 34, 28, 31],
+			[40, 60, 39, 58]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Bebê abandonado de alta',
+				what: 'Baixa forte, doji isolado por gaps abaixo, e alta forte com gap acima do doji.',
+				means: 'Versão extrema da estrela da manhã: a venda se esgotou e virou de uma vez.',
+				confirm: 'Muito raro sem gaps (mercados 24/7). Stop abaixo do doji.'
+			},
+			en: {
+				name: 'Bullish abandoned baby',
+				what: 'A strong bearish candle, a doji isolated by gaps below it, then a strong bullish candle gapping above the doji.',
+				means: 'An extreme morning star: selling exhausted and flipped at once.',
+				confirm: 'Very rare without gaps (24/7 markets). Stop below the doji.'
+			}
+		}
+	},
+	{
+		id: 'bearish-abandoned-baby',
+		bias: 'bearish',
+		context: 'up',
+		candles: [
+			[40, 62, 38, 60],
+			[69, 72, 66, 69],
+			[61, 62, 40, 42]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Bebê abandonado de baixa',
+				what: 'Alta forte, doji isolado por gaps acima, e baixa forte com gap abaixo do doji.',
+				means: 'Versão extrema da estrela da tarde: a compra se esgotou e virou de uma vez.',
+				confirm: 'Muito raro sem gaps. Stop acima do doji.'
+			},
+			en: {
+				name: 'Bearish abandoned baby',
+				what: 'A strong bullish candle, a doji isolated by gaps above it, then a strong bearish candle gapping below the doji.',
+				means: 'An extreme evening star: buying exhausted and flipped at once.',
+				confirm: 'Very rare without gaps. Stop above the doji.'
+			}
+		}
+	},
+	{
+		id: 'rising-three-methods',
+		bias: 'bullish',
+		context: 'up',
+		candles: [
+			[30, 52, 28, 50],
+			[48, 49, 43, 44],
+			[45, 46, 40, 41],
+			[42, 44, 37, 38],
+			[40, 62, 39, 60]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Três métodos de alta',
+				what: 'Alta longa, três candles pequenos de correção contidos nela, e nova alta longa fechando acima da primeira.',
+				means: 'Pausa ordenada dentro da tendência de alta: os vendedores não conseguiram desfazer o primeiro candle.',
+				confirm: 'Padrão de continuação: stop abaixo da mínima da correção.'
+			},
+			en: {
+				name: 'Rising three methods',
+				what: 'A long bullish candle, three small pullback candles contained in it, and another long bullish candle closing above the first.',
+				means: 'An orderly pause inside an uptrend: sellers could not undo the first candle.',
+				confirm: 'A continuation pattern: stop below the pullback low.'
+			}
+		}
+	},
+	{
+		id: 'falling-three-methods',
+		bias: 'bearish',
+		context: 'down',
+		candles: [
+			[70, 72, 48, 50],
+			[52, 57, 51, 56],
+			[55, 60, 54, 59],
+			[58, 63, 57, 62],
+			[60, 61, 36, 38]
+		],
+		text: {
+			'pt-BR': {
+				name: 'Três métodos de baixa',
+				what: 'Baixa longa, três candles pequenos de repique contidos nela, e nova baixa longa fechando abaixo da primeira.',
+				means: 'Pausa ordenada dentro da tendência de baixa: os compradores não conseguiram desfazer o primeiro candle.',
+				confirm: 'Padrão de continuação: stop acima da máxima do repique.'
+			},
+			en: {
+				name: 'Falling three methods',
+				what: 'A long bearish candle, three small bounce candles contained in it, and another long bearish candle closing below the first.',
+				means: 'An orderly pause inside a downtrend: buyers could not undo the first candle.',
+				confirm: 'A continuation pattern: stop above the bounce high.'
+			}
+		}
+	}
+];
+
+/** Every candlestick pattern in the reference (single, double, triple and longer). */
+export const ALL_CANDLE_PATTERNS: CandlePattern[] = [...CANDLE_PATTERNS, ...MORE_CANDLE_PATTERNS];
+
+/** Localized name of a candle pattern id (falls back to the id). */
+export function patternName(id: string, locale: Locale): string {
+	return ALL_CANDLE_PATTERNS.find((p) => p.id === id)?.text[locale].name ?? id;
+}
+
 /** Three small candles that set the trend context before a pattern (schematic). */
 export function contextCandles(context: 'up' | 'down' | null, first: Candle): Candle[] {
 	if (!context) return [];

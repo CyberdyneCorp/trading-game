@@ -27,6 +27,7 @@ add_library(tradelab_engine STATIC
   src/fixed.cpp
   src/generator.cpp
   src/indicators.cpp
+  src/candle_patterns.cpp
   src/missions.cpp
   src/options_exec.cpp
   src/options_pricing.cpp
@@ -87,6 +88,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_indicators.cpp
     tests/test_missions.cpp
     tests/test_generator.cpp
+    tests/test_candle_patterns.cpp
     tests/test_options.cpp
     tests/test_prng.cpp
     tests/test_scoring.cpp
