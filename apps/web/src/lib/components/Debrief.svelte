@@ -58,6 +58,7 @@
 				<dt>{t('rail.realized')}</dt><dd>{fmtMoney(s.totals.realizedPnl, L, true)}</dd>
 				<dt>{t('rail.fees')}</dt><dd>{fmtMoney(s.totals.feesPaid, L)}</dd>
 				<dt>{t('rail.funding')}</dt><dd>{fmtMoney(s.totals.fundingNet, L, true)}</dd>
+				{#if s.options.enabled}<dt>{t('opt.realized')}</dt><dd>{fmtMoney(s.totals.optionRealized, L, true)}</dd>{/if}
 				<dt>{t('debrief.maxDrawdown')}</dt><dd>{fmtMoney(s.totals.maxDrawdown, L)}</dd>
 				<dt>{t('debrief.peakExposure')}</dt><dd>{(s.totals.peakLeverageBp / 10000).toFixed(1)}x</dd>
 				<dt>{t('debrief.vsFlat')}</dt><dd>{fmtMoney(0, L)}</dd>

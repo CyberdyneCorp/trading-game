@@ -14,6 +14,7 @@ interface Api {
 	create: Fn;
 	destroy: Fn;
 	place: Fn;
+	option: Fn;
 	cancel: Fn;
 	leverage: Fn;
 	close: Fn;
@@ -38,6 +39,7 @@ async function load(): Promise<Api> {
 		place: w('tl_place_order_ex', 'number', [
 			'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string', 'string', 'string'
 		]),
+		option: w('tl_place_option_order', 'number', ['number', 'number', 'number', 'number', 'number', 'string', 'string']),
 		cancel: w('tl_cancel_order', 'number', ['number', 'number', 'number']),
 		leverage: w('tl_set_leverage', 'number', ['number', 'number', 'number']),
 		close: w('tl_close_position', 'number', ['number', 'number']),
@@ -87,6 +89,19 @@ async function handle(req: EngineRequest): Promise<unknown> {
 					req.attachStop ?? '',
 					req.attachTp ?? '',
 					req.trailDistance ?? ''
+				)
+			);
+		case 'option':
+			return withState(
+				a,
+				a.option(
+					requireRun(),
+					req.clientId,
+					req.series,
+					SIDE_CODE[req.side],
+					req.type === 'limit' ? 1 : 0,
+					req.qty,
+					req.premium ?? ''
 				)
 			);
 		case 'cancel':

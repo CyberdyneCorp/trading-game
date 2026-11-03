@@ -7,6 +7,7 @@
 #include "json_out.hpp"
 #include "tradelab/engine.hpp"
 #include "tradelab/generator.hpp"
+#include "tradelab/indicators.hpp"
 #include "tradelab/options.hpp"
 #include "options_exec.hpp"
 
@@ -160,6 +161,25 @@ void write_options(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.end_arr().end_obj();
 }
 
+void write_series(JsonOut& j, std::string_view name, const Series& series) {
+  j.key(name).begin_arr();
+  for (const auto& v : series) {
+    if (v) j.dec(*v);
+    else j.null();
+  }
+  j.end_arr();
+}
+
+// MVP indicators over closed bars 0..step (null while warming up).
+void write_indicators(JsonOut& j, const Scenario& sc, std::uint32_t step) {
+  j.key("indicators").begin_obj().field("version", kIndicatorVersion);
+  write_series(j, "sma20", sma(sc, step, 20));
+  write_series(j, "ema50", ema(sc, step, 50));
+  write_series(j, "rsi14", rsi(sc, step, 14));
+  write_series(j, "atr14", atr(sc, step, 14));
+  j.end_obj();
+}
+
 const char* state_json(tl_run& r) {
   const Scenario& sc = r.scenario;
   const RunState& st = r.state;
@@ -174,6 +194,7 @@ const char* state_json(tl_run& r) {
   write_account(j, sc, st);
   write_orders(j, st);
   write_options(j, sc, st);
+  write_indicators(j, sc, st.step);
   j.key("events").begin_arr();
   for (const Event& e : st.events) write_event(j, e);
   j.end_arr();

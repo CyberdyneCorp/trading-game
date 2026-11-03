@@ -25,6 +25,7 @@ add_library(tradelab_engine STATIC
   src/digest.cpp
   src/fixed.cpp
   src/generator.cpp
+  src/indicators.cpp
   src/missions.cpp
   src/options_exec.cpp
   src/options_pricing.cpp
@@ -69,6 +70,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_det_math.cpp
     tests/test_brackets.cpp
     tests/test_engine.cpp
+    tests/test_indicators.cpp
     tests/test_missions.cpp
     tests/test_options.cpp
     tests/test_prng.cpp

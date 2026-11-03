@@ -41,8 +41,8 @@
 - [x] 6.5 Expiry settlement; goldens OPT01–OPT04
 
 ## 7. Indicators
-- [ ] 7.1 SMA, EMA, RSI, ATR, volume with warm-up states and gap policy
-- [ ] 7.2 Reference-value tests against a published dataset
+- [x] 7.1 SMA, EMA, RSI, ATR, volume with warm-up states and gap policy
+- [x] 7.2 Reference-value tests against a published dataset
 
 ## 8. Bindings
 - [ ] 8.1 C ABI facade

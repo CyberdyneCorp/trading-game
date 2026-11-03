@@ -24,10 +24,10 @@
 				{#each orders as o (o.id)}
 					<tr>
 						<td class="muted">#{o.id}</td>
-						<td>{typeLabel[o.type]}</td>
+						<td>{o.series ? `OPT#${o.series} ` : ''}{typeLabel[o.type]}</td>
 						<td class={o.side === 'buy' ? 'up' : 'down'}>{o.side === 'buy' ? '▲' : '▼'} {o.side.toUpperCase()}</td>
 						<td class="num">{fmtQty(o.qty, i18n.locale)}</td>
-						<td class="num">{o.type === 'market' ? '@open' : fmtPrice(o.price, i18n.locale)}</td>
+						<td class="num">{o.type === 'market' ? '@open' : (o.series ? 'prêmio ' : '') + fmtPrice(o.price, i18n.locale)}</td>
 						<td>
 							{#if o.reduceOnly}<span class="tag info" title="reduce-only">{t('orders.reduceOnly')}</span>{/if}
 							{#if o.parentId}<span class="tag muted" title={t('orders.child', { id: o.parentId })}>OCO ↳#{o.parentId}</span>{/if}

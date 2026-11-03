@@ -14,6 +14,8 @@ export interface PlanEntry {
 	confidence: number;
 	plannedRisk: number | null;
 	skipped: boolean;
+	loseScenario?: string;
+	instrument?: string; // option series label; absent = perpetual
 }
 
 export type FindingCode =
@@ -67,7 +69,7 @@ interface Facts {
 const n = (d: string) => Number(d);
 
 function collectFacts(state: GameState, stopWarnings: number): Facts {
-	const fills = state.events.filter((e) => e.type === 'fill');
+	const fills = state.events.filter((e) => e.type === 'fill' && !e.series);
 	const entries = fills.filter((e) => n(e.pnl) === 0 && !isExit(state, e));
 	const stopOrderIds = new Set(
 		state.events.filter((e) => e.type === 'order' && e.status === 'accepted' && n(e.requested) > 0).map((e) => e.orderId)

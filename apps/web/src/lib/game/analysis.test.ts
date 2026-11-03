@@ -1,26 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { DebriefData, EngineEvent, GameState } from '#lib/engine/types.ts';
+import type { DebriefData } from '#lib/engine/types.ts';
+import { ev, game } from './fixtures.test-util.ts';
 import { analyze, type PlanEntry } from './analysis.ts';
-
-function ev(p: Partial<EngineEvent>): EngineEvent {
-	return {
-		seq: 1, step: 0, type: 'order', orderId: 0, status: 'accepted', reason: 'none', side: 'buy',
-		qty: '0', price: '0', requested: '0', amount: '0', pnl: '0', ambiguous: false, gap: false, capacityLimited: false,
-		...p
-	};
-}
-
-function game(events: EngineEvent[], extra: Partial<GameState> = {}): GameState {
-	return {
-		mission: 'm01-false-breakout', alias: 'K1A', status: 'finished', step: 10, lastDecisionStep: 9, warmupBars: 0,
-		totalBars: 11, initialBalance: '10000', leverage: 1,
-		contract: {} as GameState['contract'], bars: [], account: {} as GameState['account'],
-		position: { qty: '0', entry: '0', margin: '0' }, orders: [], events,
-		totals: { realizedPnl: '0', feesPaid: '0', fundingNet: '0', insuranceAbsorbed: '0', turnover: '0', peakEquity: '10000',
-			maxDrawdown: '0', peakLeverageBp: 0, minLiqDistanceBp: -1, liquidations: 0, fills: 0, ambiguousFills: 0 },
-		digest: '', eventsDigest: '', ...extra
-	};
-}
 
 const debrief = (equity: string): DebriefData => ({
 	mission: 'm01', alias: 'K1A', status: 'finished', finalEquity: equity, buyAndHoldPnl: '0', flatPnl: '0',

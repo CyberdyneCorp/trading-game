@@ -29,6 +29,7 @@ type Action =
 			tp?: string | null;
 			trail?: string | null;
 	  }
+	| { k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null }
 	| { k: 'cancel'; id: number }
 	| { k: 'close' }
 	| { k: 'adv'; n: number };
@@ -187,6 +188,16 @@ export class GameSession {
 		return res;
 	}
 
+	async placeOptionOrder(
+		series: number,
+		side: OrderSideName,
+		type: 'market' | 'limit',
+		qty: string,
+		premium: string | null
+	): Promise<CommandResult | null> {
+		return this.command({ k: 'opt', series, side, type, qty, premium });
+	}
+
 	async cancel(orderId: number): Promise<CommandResult | null> {
 		return this.command({ k: 'cancel', id: orderId });
 	}
@@ -303,7 +314,17 @@ export class GameSession {
 							attachTp: a.tp ?? null,
 							trailDistance: a.trail ?? null
 						})
-					: a.k === 'cancel'
+					: a.k === 'opt'
+						? await e.request({
+								kind: 'option',
+								clientId,
+								series: a.series,
+								side: a.side,
+								type: a.type,
+								qty: a.qty,
+								premium: a.premium
+							})
+						: a.k === 'cancel'
 						? await e.request({ kind: 'cancel', clientId, orderId: a.id })
 						: await e.request({ kind: 'close', clientId });
 		this.state = r.state;

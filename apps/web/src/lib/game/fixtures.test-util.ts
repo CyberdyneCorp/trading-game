@@ -4,6 +4,7 @@ export function ev(p: Partial<EngineEvent>): EngineEvent {
 	return {
 		seq: 1, step: 0, type: 'order', orderId: 0, status: 'accepted', reason: 'none', side: 'buy',
 		qty: '0', price: '0', requested: '0', amount: '0', pnl: '0', ambiguous: false, gap: false, capacityLimited: false,
+		series: 0, approximate: false,
 		...p
 	};
 }
@@ -19,7 +20,11 @@ export function game(events: EngineEvent[], extra: Partial<GameState> = {}): Gam
 		contract: {} as GameState['contract'], bars: [], account: {} as GameState['account'],
 		position: { qty: '0', entry: '0', margin: '0' }, orders: [], events,
 		totals: { realizedPnl: '0', feesPaid: '0', fundingNet: '0', insuranceAbsorbed: '0', turnover: '0', peakEquity: '10000',
-			maxDrawdown: '0', peakLeverageBp: 0, minLiqDistanceBp: -1, liquidations: 0, fills: 0, ambiguousFills: 0 },
+			maxDrawdown: '0', peakLeverageBp: 0, minLiqDistanceBp: -1, liquidations: 0, fills: 0, ambiguousFills: 0,
+			optionCash: '0', optionRealized: '0' },
+		indicators: { version: 1, sma20: [], ema50: [], rsi14: [], atr14: [] },
+		options: { enabled: false, allowShort: false, multiplier: '1', premiumTick: '0.01', lotSize: '0.1', longValue: '0',
+			shortValue: '0', initialMargin: '0', maintenanceMargin: '0', chain: [], positions: [] },
 		digest: '', eventsDigest: '', ...extra
 	};
 }

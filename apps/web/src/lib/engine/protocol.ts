@@ -18,6 +18,15 @@ export type EngineRequest =
 			attachTp: string | null;
 			trailDistance: string | null;
 	  }
+	| {
+			kind: 'option';
+			clientId: number;
+			series: number;
+			side: OrderSideName;
+			type: 'market' | 'limit';
+			qty: string;
+			premium: string | null;
+	  }
 	| { kind: 'cancel'; clientId: number; orderId: number }
 	| { kind: 'leverage'; clientId: number; leverage: number }
 	| { kind: 'close'; clientId: number }
