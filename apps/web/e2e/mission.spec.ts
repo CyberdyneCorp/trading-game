@@ -88,3 +88,39 @@ test('regression: resuming twice keeps orders, leverage and progress', async ({ 
 	await expect(page.getByText('Sem posição · Alavancagem 3x')).toBeVisible();
 	await expect(page.getByText(/replay digest mismatch/)).toHaveCount(0);
 });
+
+test('regression: a pending stop/target survives a reload and attaches on fill', async ({ page }) => {
+	await openTerminal(page, 4242);
+	await page.locator('label:has-text("Stop loss") input').first().fill('90.00');
+	await page.locator('label:has-text("Take profit") input').first().fill('130.00');
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await expect(page.getByText(/aceita não significa executada/).first()).toBeVisible();
+
+	await page.reload(); // before the market entry fills
+	await page.getByRole('button', { name: /Continuar partida/ }).click();
+	await expect(page.locator('.turn')).toBeVisible();
+	await page.keyboard.press('Space');
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await expect(page.locator('.orders').getByText('STOP')).toBeVisible();
+	await expect(page.locator('.orders').getByText('TP', { exact: true })).toBeVisible();
+});
+
+test('regression: Space during resume does not replay the run twice', async ({ page }) => {
+	await openTerminal(page, 4242);
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await expect(page.getByText(/aceita não significa executada/).first()).toBeVisible();
+	await page.reload();
+	const resume = page.getByRole('button', { name: /Continuar partida/ });
+	await resume.click();
+	await page.keyboard.press('Space'); // focus may still be on the resume button mid-replay
+	await expect(page.locator('.turn')).toBeVisible();
+	await page.keyboard.press('Space');
+	await expect(page.locator('.orders tr')).toHaveCount(0); // the single market order filled, none duplicated
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await expect(page.getByText(/Execução #2/)).toHaveCount(0);
+	await expect(page.getByText(/replay digest mismatch/)).toHaveCount(0);
+});

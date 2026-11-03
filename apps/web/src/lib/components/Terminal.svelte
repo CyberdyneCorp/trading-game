@@ -29,7 +29,7 @@
 		const res = await session.placeOrder(d.type, d.side, d.qty, d.price);
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason);
-		if (d.stop || d.takeProfit) session.protection = { side: d.side, stop: d.stop, takeProfit: d.takeProfit };
+		if (d.stop || d.takeProfit) session.setProtection({ side: d.side, stop: d.stop, takeProfit: d.takeProfit });
 		lastPlannedRisk = d.estimate.plannedRisk;
 		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${d.side} ${d.qty}` };
 	}
