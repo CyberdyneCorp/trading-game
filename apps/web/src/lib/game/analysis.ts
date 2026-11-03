@@ -3,6 +3,7 @@
 
 import type { DebriefData, EngineEvent, GameState } from '#lib/engine/types.ts';
 import type { Locale } from './i18n.svelte';
+import { calibrationScore, type CalibrationQuestion } from './calibration.ts';
 
 export interface PlanEntry {
 	step: number;
@@ -164,7 +165,13 @@ function pickLesson(codes: Set<FindingCode>): LessonCode {
 	return 'evaluation';
 }
 
-export function analyze(state: GameState, debrief: DebriefData, journal: PlanEntry[], stopWarnings: number): Analysis {
+export function analyze(
+	state: GameState,
+	debrief: DebriefData,
+	journal: PlanEntry[],
+	stopWarnings: number,
+	questions: CalibrationQuestion[] = []
+): Analysis {
 	const facts = collectFacts(state, stopWarnings);
 	const netPnl = n(debrief.finalEquity) - n(state.initialBalance);
 	const findings: Finding[] = [];
@@ -175,7 +182,7 @@ export function analyze(state: GameState, debrief: DebriefData, journal: PlanEnt
 		risk: { weight: 35, score: riskScore(state, facts, journal) },
 		plan: { weight: 25, score: planScore(facts, journal) },
 		understanding: { weight: 25, score: null },
-		calibration: { weight: 15, score: null }
+		calibration: { weight: 15, score: calibrationScore(questions, state.bars).score }
 	};
 	return {
 		netPnl,

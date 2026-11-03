@@ -32,7 +32,7 @@
 			<article class="panel card">
 				<h3>{txt.title}</h3>
 				<p>{txt.tagline}</p>
-				<p class="muted small">{txt.lesson}</p>
+				<p class="muted small">{txt.topic}</p>
 				<p class="small">
 					<span class="tag info">{t('menu.leverageCap')} {m.leverageCap}x</span>
 					<span class="tag muted">{m.totalBars - m.warmupBars} {t('menu.bars')}</span>

@@ -12,6 +12,7 @@ import type {
 	OrderTypeName
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
+import { nextQuestionStep, questionDue, type CalibrationQuestion } from './calibration.ts';
 
 export type Screen = 'loading' | 'menu' | 'briefing' | 'terminal' | 'debrief';
 
@@ -40,6 +41,7 @@ interface SavedRun {
 	journal: PlanEntry[];
 	stopWarnings: number;
 	digest: string;
+	questions?: CalibrationQuestion[];
 }
 
 /** Optional order extras: bracket exits (engine-side OCO) and trailing distance. */
@@ -76,6 +78,9 @@ export class GameSession {
 	journal = $state<PlanEntry[]>([]);
 	notice = $state<Notice | null>(null);
 	stopWarnings = $state(0);
+	questions = $state<CalibrationQuestion[]>([]);
+	/** A calibration question waiting for an answer blocks advancing. */
+	pendingQuestion = $derived(this.state != null && questionDue(this.state, this.questions));
 	busy = $state(false);
 	saved = $state<SavedRun | null>(null);
 
@@ -137,6 +142,7 @@ export class GameSession {
 		this.log = [...s.log];
 		this.journal = s.journal;
 		this.stopWarnings = s.stopWarnings;
+		this.questions = s.questions ?? [];
 		if (this.state && s.digest && this.state.digest !== s.digest) {
 			this.notice = { tone: 'warn', text: `replay digest mismatch (${s.digest.slice(0, 8)})` };
 		}
@@ -189,16 +195,30 @@ export class GameSession {
 		return this.command({ k: 'close' });
 	}
 
+	/** Records the answer (probability the close in `horizon` bars ends above the threshold). */
+	answerQuestion(p: number | null): void {
+		const s = this.state;
+		if (!s || !this.pendingQuestion) return;
+		this.questions = [...this.questions, { step: s.step, threshold: s.account.mark, horizon: 5, p }];
+		this.persist();
+		this.flushQueue();
+	}
+
 	recordPlan(plan: PlanEntry): void {
 		this.journal = [...this.journal, plan];
 		this.persist();
 	}
 
 	async advance(n: number): Promise<void> {
-		if (!this.state || this.state.status !== 'active' || this.busy) return;
+		if (!this.state || this.state.status !== 'active' || this.pendingQuestion) return;
+		if (this.busy) {
+			this.queued += n; // e.g. Space pressed while an order is in flight: run it afterwards
+			return;
+		}
+		const steps = this.stepsUntilQuestion(n);
 		this.busy = true;
 		try {
-			await this.exec({ k: 'adv', n }, true);
+			await this.exec({ k: 'adv', n: steps }, true);
 			this.persist();
 			if (this.state && this.state.status !== 'active') {
 				await this.loadDebrief();
@@ -207,6 +227,24 @@ export class GameSession {
 		} finally {
 			this.busy = false;
 		}
+		this.flushQueue();
+	}
+
+	private queued = 0;
+
+	// Never jump over a calibration question: stop on its step so it is asked before its bars exist.
+	private stepsUntilQuestion(n: number): number {
+		const s = this.state;
+		if (!s) return n;
+		const q = nextQuestionStep(s, this.questions);
+		return q != null && q > s.step ? Math.min(n, q - s.step) : n;
+	}
+
+	private flushQueue(): void {
+		if (this.queued <= 0 || this.busy || this.pendingQuestion) return;
+		const n = this.queued;
+		this.queued = 0;
+		void this.advance(n);
 	}
 
 	private resetRun(missionId: string, seed: number): void {
@@ -218,6 +256,8 @@ export class GameSession {
 		this.notice = null;
 		this.debrief = null;
 		this.stopWarnings = 0;
+		this.questions = [];
+		this.queued = 0;
 	}
 
 	private eng(): EngineClient {
@@ -234,6 +274,7 @@ export class GameSession {
 			return res;
 		} finally {
 			this.busy = false;
+			queueMicrotask(() => this.flushQueue());
 		}
 	}
 
@@ -282,7 +323,8 @@ export class GameSession {
 			log: this.log,
 			journal: this.journal,
 			stopWarnings: this.stopWarnings,
-			digest: this.state.digest
+			digest: this.state.digest,
+			questions: this.questions
 		};
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
