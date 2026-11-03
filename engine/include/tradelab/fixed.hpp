@@ -109,7 +109,19 @@ constexpr Result<F> checked_neg(F a) {
   return F{-a.raw};
 }
 
-constexpr bool checked_mul_i128(i128 a, i128 b, i128* out) { return !__builtin_mul_overflow(a, b, out); }
+// Portable checked 128-bit multiply. __builtin_mul_overflow on __int128 makes clang call
+// __muloti4 (compiler-rt only), which libgcc-based Linux toolchains do not provide.
+constexpr bool checked_mul_i128(i128 a, i128 b, i128* out) {
+  using u128 = unsigned __int128;
+  const u128 ua = a < 0 ? u128(0) - static_cast<u128>(a) : static_cast<u128>(a);
+  const u128 ub = b < 0 ? u128(0) - static_cast<u128>(b) : static_cast<u128>(b);
+  const bool negative = (a < 0) != (b < 0);
+  const u128 limit = negative ? (u128(1) << 127U) : (u128(1) << 127U) - 1;
+  if (ua != 0 && ub > limit / ua) return false;
+  const u128 mag = ua * ub;
+  *out = negative ? static_cast<i128>(u128(0) - mag) : static_cast<i128>(mag);
+  return true;
+}
 
 // v * 10^exp (exp >= 0) or v / 10^-exp rounded, with 128-bit overflow detection.
 constexpr bool shift_decimal(i128 v, int exp, Rounding mode, i128* out) {

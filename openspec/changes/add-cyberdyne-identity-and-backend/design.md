@@ -30,7 +30,8 @@ All: `trusted: true`, scopes `openid email profile offline_access roles`, `acces
 
 ### D3. Backend shape
 - `services/api`: FastAPI, hexagonal: `domain/` (runs, progress, packs), `application/` (use cases), `ports/` (RunRepository, PackStore, IdentityVerifier, EngineReplayer, Clock), `adapters/` (Postgres via SQLAlchemy 2 + Alembic, S3-compatible storage, CyberdyneAuth OIDC/JWKS, nanobind engine).
-- Re-simulation runs in a worker pool (process-based) to isolate engine crashes; multiple engine wheel versions installed side-by-side as `tradelab_engine_v{major}_{policy}`.
+- Re-simulation uses `bindings/python` (ctypes over the engine's C ABI, `libtradelab`) instead of nanobind: the same ABI the WASM build uses, no compiled Python extension to maintain. A replay is bit-identical to the client run (cross-binding golden test). Each sync replays the full action log in-process (milliseconds per run today); a process pool and multiple engine/policy versions side-by-side remain future work: runs recorded under another execution policy are rejected with `unsupported_policy` for now.
+- The action log the server stores is exactly the client's IndexedDB log (format in `bindings/python/tradelab_engine/replay.py`), keyed by (run_id, seq): re-sent identical actions are no-ops, a different action at an existing seq is a conflict for that run, gaps are not accepted.
 - Postgres tables: `players(sub pk)`, `runs`, `run_commands (run_id, seq) pk`, `run_results`, `progress_achievements`, `preferences`, `idempotency_keys`, `imports`, `packs`, `pack_versions`, `webhook_receipts`.
 - Deployed on Coolify; object storage = MinIO (S3 API) buckets `tradelab-packs` (immutable, by digest) and `tradelab-imports` (private, per-user prefix, lifecycle-expired). Packs are streamed through the API (entitlement check + range support), never via public bucket URLs; presigned GET URLs with short TTL are an allowed optimization.
 

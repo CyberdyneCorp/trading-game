@@ -7,19 +7,19 @@
 - [ ] 1.4 Spike: desktop loopback + iOS auth session end-to-end against staging
 
 ## 2. API skeleton
-- [ ] 2.1 FastAPI hexagonal layout, settings, health, Alembic migrations
-- [ ] 2.2 OIDC adapter: discovery cache, JWKS cache with kid refresh, claim validation (aud, type, iss, exp)
+- [ ] 2.1 FastAPI hexagonal layout, settings, health, Alembic migrations — layout/settings/health done; tables created at startup, Alembic pending
+- [x] 2.2 OIDC adapter: discovery cache, JWKS cache with kid refresh, claim validation (aud, type, iss, exp)
 - [ ] 2.3 BFF login/callback/logout/refresh, `__Host-` session store, CSRF; regression test: CyberdyneAuth parent-domain cookie alone → 401
 - [ ] 2.4 Roles/permissions resolver with fail-closed fallback
-- [ ] 2.5 Idempotency middleware, rate limits, size limits
+- [ ] 2.5 Idempotency middleware, rate limits, size limits — idempotency keys and size/batch limits done; rate limits pending
 
 ## 3. Domain
 - [ ] 3.1 Catalog + pack metadata + range/ETag delivery with entitlement gate
-- [ ] 3.2 Runs, commands, completion, server re-simulation worker (nanobind engine)
-- [ ] 3.3 Progress (union of achievements), preferences (LWW)
-- [ ] 3.4 Sync batches (D6)
+- [x] 3.2 Runs, commands, completion, server re-simulation worker (nanobind engine)
+- [ ] 3.3 Progress (union of achievements), preferences (LWW) — progress per mission done; preferences pending
+- [x] 3.4 Sync batches (D6)
 - [ ] 3.5 CSV import validation endpoint (private)
-- [ ] 3.6 Export and delete my data; webhook-driven erasure
+- [ ] 3.6 Export and delete my data; webhook-driven erasure — export/delete done; webhook pending
 
 ## 4. Tests
 - [ ] 4.1 Unit + integration (testcontainers Postgres), contract tests from OpenAPI

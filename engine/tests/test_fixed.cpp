@@ -112,3 +112,19 @@ TEST_CASE("round_to_step for ticks and lots") {
   CHECK(round_to_step(px("100.07"), px("0.05"), Rounding::Ceil).value() == px("100.1"));
   CHECK(round_to_step(px("1"), Price{}, Rounding::Floor).error() == ErrorCode::InvalidScale);
 }
+
+TEST_CASE("regression: checked 128-bit multiply detects overflow without runtime helpers") {
+  i128 out = 0;
+  const i128 max = static_cast<i128>((static_cast<unsigned __int128>(1) << 127U) - 1);
+  const i128 min = -max - 1;
+  CHECK(checked_mul_i128(3, -7, &out));
+  CHECK(out == -21);
+  CHECK(checked_mul_i128(min, 1, &out));
+  CHECK(out == min);
+  CHECK_FALSE(checked_mul_i128(min, -1, &out));
+  CHECK_FALSE(checked_mul_i128(max, 2, &out));
+  CHECK(checked_mul_i128(max / 2, 2, &out));
+  CHECK_FALSE(checked_mul_i128(static_cast<i128>(1) << 64U, static_cast<i128>(1) << 63U, &out));
+  CHECK(checked_mul_i128(-(static_cast<i128>(1) << 63U), static_cast<i128>(1) << 64U, &out));  // == min
+  CHECK(out == min);
+}
