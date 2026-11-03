@@ -10,7 +10,7 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kExecutionPolicyVersion = 5;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2
+constexpr std::uint32_t kExecutionPolicyVersion = 6;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order
 
 // Calibration questions (spec mission-scoring "Calibration"): asked every kQuestionEvery steps from
 // the first decision step while the resolving bar exists; resolved kQuestionHorizon bars later.

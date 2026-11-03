@@ -312,3 +312,29 @@ TEST_CASE("SIM02 (native): same scenario, seed and commands -> identical digests
   };
   CHECK(run() == run());
 }
+
+TEST_CASE("Regression: the order that closes a position ends filled, and orphans are cancelled after its fill") {
+  // Before: apply_fill cancelled every active reduce-only order as soon as the position went flat,
+  // including the stop being filled, so the log read "cancelled: position_closed" then "filled".
+  Scenario sc = make_scenario({{"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"},
+                               {"100", "100", "94", "95"},
+                               {"95", "95", "95", "95"}});
+  Driver d(sc);
+  d.order(OrderType::Market, OrderSide::Buy, "1");
+  d.step();
+  const auto stop = d.order(OrderType::StopMarket, OrderSide::Sell, "1", "96", true);
+  const auto tp = d.order(OrderType::TakeProfit, OrderSide::Sell, "1", "110", true);
+  d.step();
+  REQUIRE(d.state().position.flat());
+  std::uint64_t fill_seq = 0;
+  std::uint64_t tp_cancel_seq = 0;
+  for (const Event& e : d.state().events) {
+    if (e.type == EventType::Fill && e.order_id == stop.order_id) fill_seq = e.seq;
+    if (e.type != EventType::OrderUpdate) continue;
+    if (e.order_id == stop.order_id) CHECK(e.status != OrderStatus::Cancelled);
+    if (e.order_id == tp.order_id && e.status == OrderStatus::Cancelled) tp_cancel_seq = e.seq;
+  }
+  REQUIRE(fill_seq != 0);
+  CHECK(tp_cancel_seq > fill_seq);
+}

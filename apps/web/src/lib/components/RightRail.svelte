@@ -141,6 +141,10 @@
 		min-width: 0;
 		overflow: auto;
 	}
+	/* Panels keep their height and the rail scrolls; shrinking them clipped the position details. */
+	.rail > :global(*) {
+		flex-shrink: 0;
+	}
 	.big {
 		font-family: var(--font-pixel);
 		font-size: 2rem;

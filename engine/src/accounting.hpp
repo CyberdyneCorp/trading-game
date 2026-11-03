@@ -49,7 +49,9 @@ void apply_fill(const Scenario& sc, RunState& st, const FillSpec& f);
 void liquidate(const Scenario& sc, RunState& st, Price px, std::uint8_t flags);
 
 // Cancels every active reduce-only order (position flat or flipped).
-void cancel_orphan_reduce_only(RunState& st, Reason reason);
+// Cancels active reduce-only orders left without a position, except `keep_order` (the order being
+// filled, which ends `filled`). 0 keeps none.
+void cancel_orphan_reduce_only(RunState& st, Reason reason, std::uint32_t keep_order = 0);
 
 void apply_funding(const Scenario& sc, RunState& st, std::uint32_t bar);
 

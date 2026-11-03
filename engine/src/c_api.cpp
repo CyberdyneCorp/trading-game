@@ -245,7 +245,7 @@ const char* lesson_name(LessonCode l) {
 }
 
 const char* exit_name(ExitReason e) {
-  static constexpr const char* kNames[] = {"stop", "target", "manual", "liquidation", "open"};
+  static constexpr const char* kNames[] = {"stop", "target", "manual", "liquidation", "open", "expiry"};
   return kNames[static_cast<std::size_t>(e)];
 }
 
@@ -256,10 +256,13 @@ void write_dim(JsonOut& j, std::string_view name, const Dimension& d) {
 }
 
 void write_trade(JsonOut& j, const TradeRow& t) {
-  j.begin_obj().field("n", t.n).field("side", t.is_long ? "long" : "short").field("entryStep", t.entry_step).key("exitStep");
+  j.begin_obj().field("n", t.n).field("series", t.series).field("side", t.is_long ? "long" : "short").field("entryStep", t.entry_step).key("exitStep");
   if (t.exit_step) j.num(*t.exit_step); else j.null();
   j.field("qty", t.qty).field("entryAvg", t.entry_avg).field("exitAvg", t.exit_avg).field("pnl", t.pnl);
   j.field("fees", t.fees).field("net", t.net).field("bars", t.bars).field("reason", exit_name(t.reason));
+  if (t.series != 0) {
+    j.field("kind", t.is_call ? "call" : "put").field("strike", t.strike).field("expiryStep", t.expiry_step);
+  }
   j.field("plannedRisk", t.planned_risk).key("rBp");
   if (t.r_bp) j.num(*t.r_bp); else j.null();
   j.key("planRespected");

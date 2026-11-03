@@ -2,17 +2,8 @@
 	import type { EngineEvent } from '#lib/engine/types.ts';
 	import type { Locale } from '#lib/game/i18n.svelte.ts';
 	import { fmtMoney, fmtPrice, fmtQty } from '#lib/game/format.ts';
-	import { t } from '#lib/game/i18n.svelte.ts';
+	import { reasonText, t } from '#lib/game/i18n.svelte.ts';
 
-	const reasons: Record<string, string> = {
-		user_cancelled: 'user',
-		position_closed: 'position closed / reduce-only orphan',
-		liquidation: 'liquidation',
-		insufficient_capacity: 'capacity',
-		insufficient_margin: 'margin',
-		expired: 'expired',
-		oco_sibling_filled: 'OCO sibling filled'
-	};
 
 	function flags(e: EngineEvent): string {
 		const f: string[] = [];
@@ -35,7 +26,7 @@
 		if (e.status === 'accepted') {
 			return t('feed.accepted', { id: e.orderId, type: e.requested !== '0.00000000' ? 'LMT/STOP/TP' : 'MKT', side: e.side, qty: fmtQty(e.qty, L) });
 		}
-		if (e.status === 'cancelled') return t('feed.cancelled', { id: e.orderId, reason: reasons[e.reason] ?? e.reason });
+		if (e.status === 'cancelled') return t('feed.cancelled', { id: e.orderId, reason: reasonText(e.reason) });
 		if (e.status === 'expired') return t('feed.expired', { id: e.orderId });
 		return null;
 	}

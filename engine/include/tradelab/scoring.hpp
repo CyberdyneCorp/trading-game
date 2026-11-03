@@ -47,10 +47,17 @@ struct Finding {
 
 enum class LessonCode : std::uint8_t { Futures2 = 0, Risk, Futures3, Orders, Structure, Evaluation };
 
-enum class ExitReason : std::uint8_t { Stop = 0, Target, Manual, Liquidation, Open };
+enum class ExitReason : std::uint8_t { Stop = 0, Target, Manual, Liquidation, Open, Expiry };
 
+// One round trip: a perpetual position (series 0) or an option position in one series, from the
+// fill that opens it to the fill, liquidation or expiry settlement that closes it. Option prices
+// are premiums (the exit at expiry is the settlement value per contract).
 struct TradeRow {
   std::uint32_t n = 0;
+  std::uint32_t series = 0;
+  bool is_call = false;             // option rows only
+  Price strike;                     // option rows only
+  std::uint32_t expiry_step = 0;    // option rows only
   bool is_long = true;
   std::uint32_t entry_step = 0;
   std::optional<std::uint32_t> exit_step;
