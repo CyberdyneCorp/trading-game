@@ -105,6 +105,8 @@ export class GameSession {
 		this.resetRun(s.missionId, s.seed);
 		this.state = await this.eng().request({ kind: 'start', missionId: s.missionId, seed: s.seed });
 		for (const a of s.log) await this.exec(a, false);
+		// Keep the replayed history: the next save must contain the full log, not only new actions.
+		this.log = [...s.log];
 		this.journal = s.journal;
 		this.stopWarnings = s.stopWarnings;
 		if (this.state && s.digest && this.state.digest !== s.digest) {

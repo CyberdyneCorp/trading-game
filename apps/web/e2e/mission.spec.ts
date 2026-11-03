@@ -63,3 +63,28 @@ test('reload mid-run resumes the same state by deterministic replay', async ({ p
 	await expect(page.locator('.rail .big')).toHaveText(equityBefore);
 	await expect(page.getByText(/replay digest mismatch/)).toHaveCount(0);
 });
+
+test('regression: resuming twice keeps orders, leverage and progress', async ({ page }) => {
+	await openTerminal(page, 2026);
+	await page.locator('label:has-text("Alavancagem") input').first().fill('3');
+	await page.locator('label:has-text("Tipo") select').selectOption('stop_market');
+	await page.locator('label:has-text("Gatilho") input').fill('150.00');
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await expect(page.getByText(/aceita não significa executada/).first()).toBeVisible();
+
+	const resume = async (advances: number) => {
+		for (let i = 0; i < advances; i++) await page.keyboard.press('Space');
+		await page.waitForTimeout(300);
+		const turn = await page.locator('.turn').innerText();
+		await page.reload();
+		await page.getByRole('button', { name: /Continuar partida/ }).click();
+		await expect(page.locator('.turn')).toHaveText(turn);
+	};
+	await resume(2);
+	await resume(3);
+	await expect(page.locator('.orders').getByText('STOP')).toBeVisible();
+	await expect(page.getByText('Sem posição · Alavancagem 3x')).toBeVisible();
+	await expect(page.getByText(/replay digest mismatch/)).toHaveCount(0);
+});
