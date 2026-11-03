@@ -39,7 +39,7 @@ export interface CommandResponse {
 }
 
 export type EngineResponse<K extends EngineRequest['kind']> = K extends 'init'
-	? { version: string; missions: MissionInfo[] }
+	? { version: { engine: string; executionPolicy: number }; missions: MissionInfo[] }
 	: K extends 'start' | 'advance'
 		? GameState
 		: K extends 'debrief'

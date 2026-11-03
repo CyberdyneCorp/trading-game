@@ -2,6 +2,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import { settings } from '#lib/game/settings.svelte.ts';
+	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, t, type Locale } from '#lib/game/i18n.svelte.ts';
 
 	let { session }: { session: GameSession } = $props();
@@ -17,6 +18,22 @@
 		<h1 class="glow">TRADELAB</h1>
 		<p class="muted">{t('app.subtitle')}</p>
 	</header>
+
+	{#if pwa.updateReady}
+		<section class="panel banner info" role="status">
+			<span>⟳ {t('pwa.update')}</span>
+			<button class="primary" onclick={() => pwa.apply()}>{t('pwa.apply')}</button>
+		</section>
+	{/if}
+	{#if !pwa.online}
+		<p class="panel banner attention" role="status"><span class="tag attention">{t('pwa.offline')}</span> {t('pwa.offlineNote')}</p>
+	{/if}
+	{#if !session.durable}
+		<p class="panel banner down" role="alert">⚠ {t('pwa.notDurable')}</p>
+	{/if}
+	{#if pwa.iosHint}
+		<p class="panel banner muted">{t('pwa.iosHint')}</p>
+	{/if}
 
 	{#if session.saved}
 		<section class="panel resume">
@@ -47,6 +64,9 @@
 		<h2 class="panel-title">{t('menu.settings')}</h2>
 		<label><input type="checkbox" bind:checked={settings.crt} onchange={() => settings.save()} /> {t('settings.crt')}</label>
 		<label><input type="checkbox" bind:checked={settings.colorblind} onchange={() => settings.save()} /> {t('settings.palette')}</label>
+		{#if session.persisted !== null}
+			<span class="muted">{t('pwa.storage')}: {session.persisted ? t('pwa.persisted') : t('pwa.notPersisted')}</span>
+		{/if}
 		<span>
 			{t('settings.language')}:
 			<button class:primary={i18n.locale === 'pt-BR'} onclick={() => setLocale('pt-BR')}>PT-BR</button>
@@ -82,6 +102,13 @@
 	}
 	.card button {
 		margin-top: auto;
+	}
+	.banner {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+		margin: 0.6rem 0;
 	}
 	.resume {
 		display: flex;

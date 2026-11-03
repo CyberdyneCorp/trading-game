@@ -29,7 +29,8 @@ CSS/Canvas post-effects (scanline overlay, subtle bloom via filter) behind a set
 
 ## Phase 1 slice: deliberate deviations (to close before MVP)
 
-- **Persistence:** the slice stores the action log in `localStorage` and resumes by deterministic replay (digest verified). Spec requires IndexedDB with per-command transactional commits (task 2.2) — open.
+- ~~Persistence in localStorage~~ — resolved: IndexedDB (`runs`, `actions[runId, seq]`, `meta`); each action is committed in its own transaction before the engine sees it; resume replays the gap-free prefix; v1 localStorage saves are migrated.
+- **PWA:** hand-written `src/service-worker.ts` (SvelteKit 3 `$app/manifest`) instead of Workbox: precache of the versioned build, network-first navigations with cached-shell fallback, cache-first assets, `SKIP_WAITING` only on the player's request from the menu. The WASM engine is embedded in the JS chunks (single file), so it is versioned with the build; keeping older engine builds for unfinished runs is still open (a run recorded under another execution policy shows a warning).
 - ~~Brackets sent by the client after the fill~~ — resolved: the engine owns brackets/OCO (execution-policy v2).
 - **Scoring:** the debrief computes a preview score in TypeScript: risk, plan coherence and calibration (Brier over questions asked every 15 bars, horizon 5, scored 100·(1−Brier), n/a below 3 resolved). Understanding is still n/a. The per-trade table (flat-to-flat trades, R = net / planned risk) is also TS. The authoritative scorer belongs in `engine/scoring` (add-scenarios-and-gameplay D2).
 - **Mission texts:** titles/taglines are neutral; what the scenario was designed to teach is revealed only in the debrief.

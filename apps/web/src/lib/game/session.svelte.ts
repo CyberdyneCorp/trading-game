@@ -13,6 +13,7 @@ import type {
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
 import { nextQuestionStep, questionDue, type CalibrationQuestion } from './calibration.ts';
+import { newRunId, openDb, RunStore } from './storage.ts';
 
 export type Screen = 'loading' | 'menu' | 'briefing' | 'terminal' | 'debrief';
 
@@ -34,15 +35,11 @@ type Action =
 	| { k: 'close' }
 	| { k: 'adv'; n: number };
 
-interface SavedRun {
-	v: 1;
+/** Summary of the resumable run shown on the menu. */
+export interface RunSummary {
 	missionId: string;
 	seed: number;
-	log: Action[];
-	journal: PlanEntry[];
-	stopWarnings: number;
-	digest: string;
-	questions?: CalibrationQuestion[];
+	actions: number;
 }
 
 /** Optional order extras: bracket exits (engine-side OCO) and trailing distance. */
@@ -55,17 +52,6 @@ export interface OrderExtras {
 export interface Notice {
 	tone: 'ok' | 'warn' | 'error';
 	text: string;
-}
-
-const STORAGE_KEY = 'tradelab.run.v1';
-
-function loadSaved(): SavedRun | null {
-	try {
-		const raw = localStorage.getItem(STORAGE_KEY);
-		return raw ? (JSON.parse(raw) as SavedRun) : null;
-	} catch {
-		return null;
-	}
 }
 
 export class GameSession {
@@ -83,22 +69,54 @@ export class GameSession {
 	/** A calibration question waiting for an answer blocks advancing. */
 	pendingQuestion = $derived(this.state != null && questionDue(this.state, this.questions));
 	busy = $state(false);
-	saved = $state<SavedRun | null>(null);
+	saved = $state<RunSummary | null>(null);
+	/** False when IndexedDB is unavailable (e.g. some private modes): runs cannot be resumed. */
+	durable = $state(true);
+	persisted = $state<boolean | null>(null);
 
 	private engine: EngineClient | null = null;
 	private log: Action[] = [];
 	private clientId = 1;
+	private store: RunStore<Action, PlanEntry, CalibrationQuestion> | null = null;
+	private runId = '';
+	private policy = 0;
 
 	async init(): Promise<void> {
 		try {
 			this.engine = new EngineClient();
 			const info = await this.engine.request({ kind: 'init' });
 			this.missions = info.missions;
-			this.saved = loadSaved();
+			this.policy = info.version.executionPolicy;
+			await this.openStore();
+			await this.refreshSaved();
 			this.screen = 'menu';
 		} catch (e) {
 			this.error = e instanceof Error ? e.message : String(e);
 		}
+	}
+
+	private async openStore(): Promise<void> {
+		try {
+			this.store = new RunStore(await openDb());
+			await this.store.migrateLegacy(typeof localStorage === 'undefined' ? undefined : localStorage, this.policy);
+		} catch {
+			this.store = null;
+			this.durable = false;
+		}
+	}
+
+	private async refreshSaved(): Promise<void> {
+		const run = await this.store?.activeRun().catch(() => null);
+		this.saved =
+			run && run.record.status === 'active'
+				? { missionId: run.record.missionId, seed: run.record.seed, actions: run.actions.length }
+				: null;
+	}
+
+	/** Asks the browser to keep offline data (spec web-client "Persistent offline storage"). */
+	private async requestPersistence(): Promise<void> {
+		if (this.persisted !== null || typeof navigator === 'undefined' || !navigator.storage?.persist) return;
+		this.persisted = await navigator.storage.persist().catch(() => false);
 	}
 
 	dispose(): void {
@@ -112,7 +130,23 @@ export class GameSession {
 		await this.exclusive(async () => {
 			this.resetRun(missionId, seed);
 			this.state = await this.eng().request({ kind: 'start', missionId, seed });
-			this.persist();
+			this.runId = newRunId();
+			await this.store
+				?.createRun({
+					runId: this.runId,
+					missionId,
+					seed,
+					createdAt: Date.now(),
+					executionPolicy: this.policy,
+					journal: [],
+					questions: [],
+					stopWarnings: 0,
+					digest: this.state.digest,
+					status: 'active',
+					actions: 0
+				})
+				.catch(() => (this.durable = false));
+			void this.requestPersistence();
 			this.screen = 'briefing';
 		});
 	}
@@ -134,18 +168,22 @@ export class GameSession {
 	}
 
 	private async replaySaved(): Promise<void> {
-		const s = this.saved;
-		if (!s) return;
-		this.resetRun(s.missionId, s.seed);
-		this.state = await this.eng().request({ kind: 'start', missionId: s.missionId, seed: s.seed });
-		for (const a of s.log) await this.exec(a, false);
-		// Keep the replayed history: the next save must contain the full log, not only new actions.
-		this.log = [...s.log];
-		this.journal = s.journal;
-		this.stopWarnings = s.stopWarnings;
-		this.questions = s.questions ?? [];
-		if (this.state && s.digest && this.state.digest !== s.digest) {
-			this.notice = { tone: 'warn', text: `replay digest mismatch (${s.digest.slice(0, 8)})` };
+		const run = await this.store?.activeRun();
+		if (!run) return;
+		const r = run.record;
+		this.resetRun(r.missionId, r.seed);
+		this.runId = r.runId;
+		this.state = await this.eng().request({ kind: 'start', missionId: r.missionId, seed: r.seed });
+		for (const a of run.actions) await this.exec(a, false);
+		// Keep the replayed history so the next action gets the right sequence number.
+		this.log = [...run.actions];
+		this.journal = r.journal;
+		this.stopWarnings = r.stopWarnings;
+		this.questions = r.questions;
+		if (r.executionPolicy !== this.policy) {
+			this.notice = { tone: 'warn', text: `run recorded with execution policy v${r.executionPolicy}; engine is v${this.policy}` };
+		} else if (this.state && r.digest && r.actions === run.actions.length && this.state.digest !== r.digest) {
+			this.notice = { tone: 'warn', text: `replay digest mismatch (${r.digest.slice(0, 8)})` };
 		}
 		this.screen = this.state?.status === 'active' ? 'terminal' : 'debrief';
 		if (this.screen === 'debrief') await this.loadDebrief();
@@ -157,8 +195,8 @@ export class GameSession {
 	}
 
 	backToMenu(): void {
-		this.saved = loadSaved();
 		this.screen = 'menu';
+		void this.refreshSaved();
 	}
 
 	async setLeverage(lev: number): Promise<CommandResult | null> {
@@ -291,7 +329,11 @@ export class GameSession {
 
 	// Runs one action against the engine. `live` = user action (logged); replay passes false.
 	private async exec(a: Action, live: boolean): Promise<CommandResult | null> {
-		if (live) this.log.push(a);
+		if (live) {
+			// Commit before the engine sees it: an action shown as accepted is never lost.
+			await this.store?.appendAction(this.runId, this.log.length, a).catch(() => (this.durable = false));
+			this.log.push(a);
+		}
 		const e = this.eng();
 		if (a.k === 'adv') {
 			this.state = await e.request({ kind: 'advance', steps: a.n });
@@ -335,22 +377,17 @@ export class GameSession {
 		this.debrief = await this.eng().request({ kind: 'debrief' });
 	}
 
+	// Header fields only (journal, questions, digest, status); actions are committed in exec().
 	private persist(): void {
-		if (!this.state) return;
-		const data: SavedRun = {
-			v: 1,
-			missionId: this.missionId,
-			seed: this.seed,
-			log: this.log,
-			journal: this.journal,
-			stopWarnings: this.stopWarnings,
-			digest: this.state.digest,
-			questions: this.questions
-		};
-		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-		} catch {
-			// Storage can be unavailable (private mode); the run still works, just not resumable.
-		}
+		if (!this.state || !this.store || !this.runId) return;
+		void this.store
+			.updateRun(this.runId, {
+				journal: $state.snapshot(this.journal),
+				questions: $state.snapshot(this.questions),
+				stopWarnings: this.stopWarnings,
+				digest: this.state.digest,
+				status: this.state.status
+			})
+			.catch(() => (this.durable = false));
 	}
 }

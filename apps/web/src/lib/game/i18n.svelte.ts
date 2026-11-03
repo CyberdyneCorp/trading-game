@@ -234,6 +234,15 @@ const pt = {
 	'opt.tabPerp': 'Perpétuo',
 	'opt.tabOptions': 'Opções',
 	'opt.realized': 'P&L realizado em opções',
+	'pwa.update': 'Nova versão disponível.',
+	'pwa.apply': 'Atualizar agora',
+	'pwa.offline': 'OFFLINE',
+	'pwa.offlineNote': 'Sem conexão: missões, lições e debriefs continuam funcionando.',
+	'pwa.iosHint': 'No iPhone/iPad, use Compartilhar → Adicionar à Tela de Início para jogar offline sem o Safari apagar os dados.',
+	'pwa.storage': 'Armazenamento',
+	'pwa.persisted': 'persistente',
+	'pwa.notPersisted': 'o navegador pode apagar dados offline',
+	'pwa.notDurable': 'Armazenamento indisponível (modo privado?): partidas não poderão ser retomadas.',
 	'common.yes': 'Sim',
 	'common.no': 'Não'
 } as const;
@@ -469,6 +478,15 @@ const en: Record<MessageKey, string> = {
 	'opt.tabPerp': 'Perpetual',
 	'opt.tabOptions': 'Options',
 	'opt.realized': 'Realized option P&L',
+	'pwa.update': 'A new version is available.',
+	'pwa.apply': 'Update now',
+	'pwa.offline': 'OFFLINE',
+	'pwa.offlineNote': 'No connection: missions, lessons and debriefs keep working.',
+	'pwa.iosHint': 'On iPhone/iPad, use Share → Add to Home Screen to play offline without Safari clearing your data.',
+	'pwa.storage': 'Storage',
+	'pwa.persisted': 'persistent',
+	'pwa.notPersisted': 'the browser may clear offline data',
+	'pwa.notDurable': 'Storage unavailable (private mode?): runs cannot be resumed.',
 	'common.yes': 'Yes',
 	'common.no': 'No'
 };

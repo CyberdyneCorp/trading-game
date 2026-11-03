@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
+	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
 	let { session, onHelp }: { session: GameSession; onHelp: () => void } = $props();
@@ -17,6 +18,7 @@
 			<strong class="alias">{s.alias}</strong>
 			<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
 			<span class="muted mission">{missionText(s.mission, i18n.locale).title}</span>
+			{#if !pwa.online}<span class="tag attention" title={t('pwa.offlineNote')}>{t('pwa.offline')}</span>{/if}
 		</div>
 		<div class="turn num">
 			{t('top.step')} <strong>{Math.max(0, turn)}</strong> {t('top.of')} {playable} · 1h
