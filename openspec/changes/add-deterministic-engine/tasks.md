@@ -1,21 +1,22 @@
 # Tasks: add-deterministic-engine
 
 ## 1. Skeleton and toolchain
-- [ ] 1.1 CMake project `engine/` (C++20, presets for native/wasm), clang-tidy + cognitive-complexity gate (≤ 15)
-- [ ] 1.2 Compiler flags: `-ffp-contract=off`, no fast-math, `-fno-exceptions -fno-rtti` for wasm; CI check that forbids `std::exp/log/erf/*_distribution` in `engine/src`
-- [ ] 1.3 CI matrix: linux-x86_64, macos-arm64, wasm (node), python wheel
+- [x] 1.1 CMake project `engine/` (C++20, presets for native/wasm), clang-tidy + cognitive-complexity gate (≤ 15)
+- [x] 1.2 Compiler flags: `-ffp-contract=off`, no fast-math, `-fno-exceptions -fno-rtti` for wasm; CI check that forbids `std::exp/log/erf/*_distribution` in `engine/src`
+- [ ] 1.3 CI matrix: linux-x86_64, macos-arm64, wasm (node), python wheel — workflow written (native+wasm+lint+openspec); pending first GitHub run and python wheel (8.3)
 
 ## 2. Numerics and determinism
-- [ ] 2.1 `Fixed<Scale>` types with `__int128` mul/div and explicit rounding modes; overflow detection
-- [ ] 2.2 Deterministic kernels `det::exp/log/sqrt/cos/norm_cdf` + accuracy tests against high-precision reference tables
-- [ ] 2.3 PCG32 PRNG with stream ids; Box-Muller normals
-- [ ] 2.4 Canonical serialization, SHA-256 digest, checkpoint save/restore
+- [x] 2.1 `Fixed<Scale>` types with `__int128` mul/div and explicit rounding modes; overflow detection
+- [x] 2.2 Deterministic kernels `det::exp/log/sqrt/cos/norm_cdf` + accuracy tests against high-precision reference tables
+- [x] 2.3 PCG32 PRNG with stream ids; Box-Muller normals
+- [x] 2.4 Canonical serialization primitives (LE writer/reader) + SHA-256 digest
 
 ## 3. Simulation core
 - [ ] 3.1 Scenario model + validation; RunState; Command/Event types; IDL → C++/TS types
 - [ ] 3.2 Step loop with phases in spec order; event sequence numbering
 - [ ] 3.3 Command idempotency (client command id) and sequence/step validation
 - [ ] 3.4 Property test: no-lookahead (mutate future, compare prefix) — SIM01
+- [ ] 3.5 RunState checkpoint save/restore with version check; resume-equals-uninterrupted test
 
 ## 4. Order execution
 - [ ] 4.1 Market, limit, stop-market, take-profit, trailing (close-based)

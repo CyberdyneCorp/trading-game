@@ -19,7 +19,8 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 - Alternative considered: Rust (v0.1). Rejected: desktop would need a second systems language and FFI for its main dependency.
 
 ### D2. Numerics
-- `Fixed<Scale>` int64 types: `Price` (scenario `priceScale`, e.g. 1e-4), `Qty` (`quantityScale`, e.g. 1e-6), `Money` (1e-6 credits), `Rate` (1e-10, funding/fees), `Vol` (1e-6).
+- `Fixed<Tag, Decimals>` int64 types with engine-wide scales (execution-policy v1): `Price` 1e-8, `Qty` 1e-8, `Money` 1e-8 credits, `Rate` 1e-10 (funding/fees/margin rates), `Vol` 1e-8. Fixed scales keep types compile-time checked; scenarios express granularity through tick/lot sizes that must be multiples of these scales. Headroom: int64 at 1e-8 holds up to ~9.2e10 units; intermediate products use `__int128`.
+- Decimal strings (`"123.45"`) are the only text form: strict parser (no exponent, no excess fractional digits — never silent rounding).
 - Multiplication/division use `__int128` intermediates with explicit rounding mode per call site (`floor`, `ceil`, `half_even`, `against_player`). Rounding modes are part of the execution-policy version.
 - Overflow checks on every arithmetic op in debug and on boundary ops (notional, P&L) in release.
 
