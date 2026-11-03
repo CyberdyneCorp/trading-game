@@ -9,10 +9,10 @@ on:
 permissions:
   contents: read
 
-# A newer push to the same PR/branch supersedes older runs (macOS runners are scarce).
+# A newer push to the same PR supersedes its older runs (macOS runners are scarce); main never cancels.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}  # main is always fully verified
 
 jobs:
   web:
