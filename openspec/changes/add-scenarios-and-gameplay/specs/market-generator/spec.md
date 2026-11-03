@@ -22,29 +22,37 @@ The generator SHALL provide, per segment, a hidden fair value moved by fundament
 
 #### Scenario: No edge without structure
 - **WHEN** a segment with no anchor and no fair-value pull is generated for 200 seeds
-- **THEN** the same RSI rules SHALL win 50% ± 5% of the time
+- **THEN** the same RSI rules SHALL win close to 50% of the time (the calibration test accepts roughly 35%–66%)
+
+#### Scenario: Trend pullbacks, not tops
+- **WHEN** a Trend-anchored uptrend segment is generated for 200 seeds
+- **THEN** buying a close below EMA(20) SHALL be up five bars later in more than 57% and less than 72% of cases, and shorting RSI(14) > 70 SHALL win less than 57% of the time
 
 #### Scenario: Expected news is priced in
 - **WHEN** an event's actual value equals its expectation
-- **THEN** it SHALL NOT move the fair value, and price 25 bars later SHALL be up less often than after a positive surprise
+- **THEN** it SHALL NOT move the fair value, and price 25 bars later SHALL be up less often than after a positive surprise (which SHALL leave price higher 25 bars later in more than 55% and less than 80% of seeds)
 
 #### Scenario: Breakout direction is not guaranteed
-- **WHEN** a random-direction breakout follows a credible positive surprise
-- **THEN** it SHALL go up in more than 60% and less than 85% of seeds
+- **WHEN** a random-direction breakout follows a compressing range and a credible positive surprise
+- **THEN** it SHALL go up in more than 60% and less than 85% of seeds, after a negative surprise in more than 15% and less than 40%, and ATR(14) SHALL on average more than double from the squeeze to the end of the breakout
+
+#### Scenario: Crowded longs get squeezed
+- **WHEN** a segment declares a positive funding bias that pushes funding above `squeeze_funding`
+- **THEN** bars falling more than 1.5% SHALL be more than three times as frequent as in the same segment without the bias, and these squeeze jumps SHALL NOT move the fair value
 
 ### Requirement: Funding and IV dynamics
-Synthetic scenarios SHALL generate a funding-rate series from a declared rule linking it to recent drift and positioning parameters, and an IV base level linked to the generator's volatility state plus a declared premium, both computed only from state up to the current step.
+Synthetic scenarios SHALL generate a funding-rate series from a declared rule linking it to recent drift and positioning parameters, and an IV base level linked to the generator's volatility state plus a declared premium, both computed only from state up to the current step. In generator v2 the rate for bar `i` is `clamp(funding_base + funding_sensitivity × 0.01 × EMA(returns) + segment funding_bias, ±0.3%)` from state at the close of bar `i−1`, quantized to 1e-6; the IV base at bar `i` is the annualized segment volatility × compression × √(variance state) × (1 + iv_premium) × segment and event IV multipliers.
 
 #### Scenario: Funding squeeze regime
 - **WHEN** a scenario declares a crowded-long regime
 - **THEN** generated funding SHALL be positive on average during that regime within the declared bounds
 
 ### Requirement: Events
-Each scripted event SHALL declare release step, lead time, credibility, prior expectation, surprise, impact channels (drift, volatility, jumps, volume, spread, capacity, funding, IV), intensity distribution and duration. Reactions SHALL be sampled from seeded distributions that include no reaction, reversal and "buy the rumor, sell the news" outcomes, and SHALL NOT be determined by the event text's sentiment alone.
+Each scripted event SHALL declare release step, lead time, credibility, prior expectation, surprise, impact channels (drift, volatility, jumps, volume, spread, capacity, funding, IV), intensity distribution and duration. Reactions SHALL be sampled from seeded distributions that include no reaction, reversal and "buy the rumor, sell the news" outcomes, and SHALL NOT be determined by the event text's sentiment alone. The reaction SHALL start on the bar after publication. Independently of the transient reaction, a surprise SHALL move the hidden fair value by `fair_impact × surprise × credibility`; an expected outcome (surprise 0) SHALL leave it unchanged.
 
 #### Scenario: Same event, different reactions
-- **WHEN** the same positive-surprise event is generated under 1,000 seeds
-- **THEN** the share of negative next-bar returns SHALL be greater than zero and SHALL match the declared distribution within tolerance
+- **WHEN** the reaction of the same positive-surprise event (`p_none` 0.2, `p_align` 0.6) is sampled under 1,000 seeds
+- **THEN** about 20% SHALL be no reaction, 48% along the surprise and 32% reversed, each within the test tolerance, so good news can still sell off
 
 ### Requirement: Player independence
 Generated prices, events and liquidity SHALL NOT depend on the player's positions, orders or score.

@@ -21,14 +21,14 @@ The player SHALL hold at most one net position per market. An order on the oppos
 - **THEN** 5 SHALL be closed with realized P&L and a short of 3 SHALL be opened if margin allows
 
 ### Requirement: Isolated margin and leverage
-Each position SHALL have isolated margin. Initial margin SHALL equal `notional / leverage` where notional uses the fill price. Leverage SHALL be chosen per market from 1× up to the lower of the contract maximum and the mission cap. The player SHALL be able to add margin to a position at any decision point and to remove margin only while the position remains above initial margin.
+Each position SHALL have isolated margin. Initial margin SHALL equal `notional / leverage` where notional uses the fill price. Leverage SHALL be chosen per market from 1× up to the lower of the contract maximum and the mission cap; changing it with an open position SHALL re-size the isolated margin to the new initial margin and be rejected with `insufficient_margin` if the available balance cannot cover an increase. The player SHALL be able to add margin to a position at any decision point and to remove margin only while the position stays at or above initial margin, otherwise the change SHALL be rejected with reason `margin_below_initial`.
 
 #### Scenario: Leverage above mission cap
 - **WHEN** the mission cap is 5× and the player selects 10×
 - **THEN** the change SHALL be rejected with reason `leverage_above_cap`
 
 ### Requirement: Account balances
-The engine SHALL expose wallet balance, unrealized P&L (marked at the last close), equity (wallet balance + unrealized P&L), position margin, order margin reserved, option margin, and available balance (wallet balance − position margin − order margin − option margin, floored at zero). Realized P&L, fees and funding SHALL each be reported separately and SHALL reconcile exactly with wallet balance changes.
+The engine SHALL expose wallet balance, unrealized P&L (marked at the last close), equity (wallet balance + unrealized P&L + long options at bid − short options at ask), position margin, order margin reserved, option initial and maintenance margin, and available balance (wallet balance − position margin − order margin − option initial margin, floored at zero). Realized P&L, fees and funding SHALL each be reported separately and SHALL reconcile exactly with wallet balance changes.
 
 #### Scenario: Exact reconciliation (SIM08)
 - **WHEN** any sequence of fills, fees and funding payments is applied

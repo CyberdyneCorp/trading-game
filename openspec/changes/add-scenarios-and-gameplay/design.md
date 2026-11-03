@@ -13,12 +13,12 @@ Scenarios must travel to browsers, desktops and iPads, work offline, be verifiab
 - Web verifies with WebCrypto Ed25519; native with libsodium/CryptoKit; server with `cryptography`.
 
 ### D2. Scoring and debrief live in the engine repo
-- `engine/scoring/` (C++20, separate target, versioned by `scoringVersion`) computes score dimensions, debrief aggregates and Greek attribution from the event stream. Same golden approach as the engine. Clients display; the server recomputes.
-- Mission rules/rubrics are data in the pack, not code.
+- Scoring (C++20, `engine/src/scoring.cpp` + `engine/include/tradelab/scoring.hpp`, part of the engine library, versioned by `kScoringVersion` = 1) computes score dimensions, findings, per-trade rows (R multiple, plan respected) and the next-lesson code from the run state and command log; the C ABI debrief adds P&L aggregates and buy-and-hold/flat comparisons. Greek attribution is not built yet. Same golden approach as the engine. Clients render codes as text; the server (`services/api`) recomputes by replaying the action log through the Python binding.
+- Mission rules/rubrics are data in the pack, not code. Until packs exist, the five built-in missions live in `engine/src/missions.cpp` (generator spec, rules, option chain) with their texts in the client catalogs (`apps/web/src/lib/game/missions.ts`).
 
 ### D3. Generator
-- `engine/generator/`: Markov regime switching + GARCH(1,1)-like variance + compound Poisson jumps; volume as log-normal tied to |return| and regime; funding = clamp(k·EMA(drift) + baseline + noise); IV base = sqrt(variance state)·(1 + premium) + event shocks.
-- Runs offline at authoring time to bake bars into packs (fast load, inspectable), and at play time only for seeded sandbox variants. Both paths use the same deterministic code.
+- `engine/src/generator.cpp` (`engine/include/tradelab/generator.hpp`): regime segments (scripted per mission today; Markov switching pending) + GARCH(1,1)-like variance (`v ← 0.85·v + 0.15·z²`) + Bernoulli-per-bar jumps; volume log-normal tied to |return| and segment volume multiplier; funding = clamp(baseline + k·EMA(return) + segment bias, ±0.3%) with no noise term; IV base = annualized segment vol·√variance·(1 + premium)·segment/event IV multipliers.
+- Target: runs offline at authoring time to bake bars into packs (fast load, inspectable), and at play time only for seeded sandbox variants. Both paths use the same deterministic code. Today, with no packs, the built-in missions are generated at play time from the run seed.
 
 ### D3a. Generator v2: readable market structure
 Goal: technical and fundamental reads earn a small, probabilistic edge (about 55–70% in their setting), never a certainty, while a structure-free random walk gives none. Each bar's log-return = segment drift × direction + transient news reaction + structure + σ·z + jumps + crowding squeeze, where structure is:

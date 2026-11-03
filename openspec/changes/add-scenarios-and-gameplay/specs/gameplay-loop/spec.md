@@ -21,7 +21,7 @@ The market SHALL advance only when the player explicitly advances (one step or a
 - **THEN** the market SHALL stay at the same step and the order SHALL remain `accepted`
 
 ### Requirement: Plan before advance
-When the player opens or increases a position, the client SHALL request a structured plan (hypothesis direction, invalidation level, target or exit rule, confidence, planned risk); for options also the scenario in which the trade loses. The plan SHALL be recorded with the decision step before the next advance. Skipping the plan SHALL be allowed but SHALL be recorded and SHALL make plan-coherence non-applicable for that trade rather than scored.
+When the player submits an order that opens or increases a position, the client SHALL request a structured plan (hypothesis direction, invalidation level, target or exit rule, confidence, planned risk); for options also the scenario in which the trade loses. The plan SHALL be recorded as an engine command at the current decision step, before the order it belongs to and before the next advance. Skipping the plan SHALL be allowed and SHALL be recorded; a skipped plan SHALL count as an unplanned entry, which lowers plan coherence (see mission-scoring) and shows the trade without a plan in the debrief. Free-text thesis and journal notes SHALL stay local and SHALL NOT be sent to the engine.
 
 #### Scenario: Plan recorded before outcome
 - **WHEN** the player records a plan and then advances
@@ -35,7 +35,7 @@ Advancing without trading SHALL be recorded as a `wait` decision and SHALL recei
 - **THEN** the score SHALL NOT be reduced for lack of turnover
 
 ### Requirement: Liquidation warnings
-Clients SHALL warn at decision points when a position's liquidation price is within a mission-declared distance (in ATR or percent) of the last close, and SHALL warn on the order ticket when a stop lies beyond the liquidation price.
+Clients SHALL warn at decision points when a position's liquidation price is within a mission-declared distance (in ATR or percent) of the last close, and SHALL warn on the order ticket when a stop lies beyond the liquidation price. The engine SHALL accept such an order with the warning `stop_beyond_liquidation`, and the risk score SHALL reflect it.
 
 #### Scenario: Stop beyond liquidation warning
 - **WHEN** a player places a long stop below the liquidation price

@@ -13,9 +13,9 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 ## Decisions
 
 ### D1. C++20, header-light static library, C ABI facade
-- `engine/include/tradelab/*.hpp` (C++ API) plus `engine/include/tradelab/c_api.h` (stable C ABI: opaque handles, JSON/flatbuffer-free binary command and event encoding).
+- `engine/include/tradelab/*.hpp` (C++ API) plus `engine/include/tradelab/c_api.h` (stable C ABI: opaque `tl_run` handle; commands take scalars and decimal strings, results and state are returned as UTF-8 JSON with monetary values as decimal strings). A run is created from a built-in mission id and a seed (`tl_run_create`); the scenario is generated inside the engine. JSON was chosen over a binary encoding to keep the bindings trivial; state never round-trips through it (only checkpoints, which are hex-encoded canonical binary).
 - C ABI is what WASM, JNI and Python bind to; Swift uses C++ interop directly against the C++ API but goldens run through both.
-- No exceptions across the ABI: `Result<T, EngineError>` internally, error codes externally. Built with `-fno-exceptions -fno-rtti` for WASM size.
+- No exceptions across the ABI: `Result<T>` with a stable `ErrorCode` internally, reason/error strings externally. Built with `-fno-exceptions -fno-rtti` for WASM.
 - Alternative considered: Rust (v0.1). Rejected: desktop would need a second systems language and FFI for its main dependency.
 
 ### D2. Numerics
@@ -30,17 +30,18 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 - x87 is excluded (x86-64 SSE2 only). Verified by the golden matrix, not by reasoning.
 
 ### D4. PRNG
-- PCG32 (or xoshiro256**) with explicit stream ids per purpose (`market`, `events`, `slippage`). Normal variates via engine Box-Muller using `det::log`/`det::sqrt`/`det::cos` kernels. Never `std::*_distribution`.
+- PCG32 (XSH-RR) with explicit stream ids per purpose (`Market` 1, `Events` 2, `Slippage` 3, `Sandbox` 4; never renumbered). Normal variates via engine Box-Muller using `det::log`/`det::sqrt`/`det::cos` kernels. Never `std::*_distribution` (enforced by `tools/check_engine_bans.py`).
 
 ### D5. Data model and step loop
-- `Scenario` (immutable, validated), `RunState` (positions, orders, balances, rng, step), `Command`, `Event`.
-- `Engine::advance(RunState&, span<Command>) -> EventBatch` implements the fixed step sequence from the spec. Each phase is a separate function (`apply_commands`, `release_events`, `open_and_gaps`, `liquidations_and_triggers`, `fills`, `funding`, `expiries`, `mark_and_margin`, `close_bar`) to keep per-function complexity ≤ 15.
-- Event-sequence numbers are global per run.
+- `Scenario` (immutable, validated), `RunState` (positions, orders, balances, rng, step, full event log), `Command`, `Event`.
+- `start_run(sc, seed)`, `apply_command(sc, st, cmd) -> CommandResult` (at the current decision point, before advancing) and `advance(sc, st)` (one bar) implement the fixed step sequence from the spec. `advance` runs `open_phase` (gap liquidation, gap-triggered stops/limits, market orders), `option_open_phase`, `intrabar_phase` (adverse exits, favorable exits, entries, post-entry adverse sweep) and `close_phase` (funding, close liquidation, option expiry and margin call, trailing ratchet, metrics, finish/bankruptcy), each split into small functions to keep per-function complexity ≤ 15.
+- News items are scenario data published at their release step; their market reaction is baked into the generated bars, so there is no engine-side event release phase.
+- Event-sequence numbers are global per run; events are appended to `RunState::events`.
 
 ### D6. Liquidation & margin formulas (execution-policy v1)
-- Isolated long liquidation price: `L = (q·m·E − M) / (q·m·(1 − mmr))`; short: `L = (q·m·E + M) / (q·m·(1 + mmr))` where `q` quantity, `m` multiplier, `E` entry, `M` isolated margin (after funding), `mmr` tier rate. Rounded toward the side that liquidates earlier (conservative).
+- Isolated long liquidation price: `L = (q·m·E − M) / (q·m·(1 − mmr))`; short: `L = (q·m·E + M) / (q·m·(1 + mmr))` where `q` quantity, `m` multiplier, `E` entry, `M` isolated margin (after funding), `mmr` maintenance rate. Rounded toward the side that liquidates earlier (conservative). The contract currently has a single `maintenance_margin` rate; notional tiers are pending (tasks 5.6).
 - Liquidation forfeits full isolated margin (simplified vs. real exchanges that return residual; confirmed by product 2026-11-02). Bankruptcy check after each step: no positions/orders and available < IM + fees of min quantity at mission cap → `account_bankrupt`, run ends (game over).
-- Option settlement: Deribit-style TWAP over a declared window (default 30 min); mean of closes / expiry close fallback flagged `settlementApproximated`. Scenarios built for options chapters should include 1-minute sub-bars around expiries so settlement is exact.
+- Option settlement target: Deribit-style TWAP over a declared window (default 30 min); mean of closes / expiry close fallback flagged approximate. Scenarios built for options chapters should include 1-minute sub-bars around expiries so settlement is exact (sub-bars not implemented yet, task 6.6; see D6c for what v3 does).
 - Short-option margin (default, scenario-overridable): IM = `max(0.15·F − OTM, 0.10·F)·m·q + ask·m·q`; MM = `0.075·F·m·q + mark·m·q`.
 
 ### D6b. Brackets, OCO and trailing (execution-policy v2)
@@ -65,24 +66,28 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 - `AnswerQuestion` is accepted only when a question is due: every 15 steps from the first decision step, while the resolving bar (t+5) exists, once per step. Threshold = close at t; skipped answers are kept but not scored.
 - `engine/scoring` (version 1) derives entries from a position walk over perp fills, protection from reduce-only stops placed in [t-1, t+2] (bracket children included), and computes risk/plan/calibration with renormalization, findings, next lesson and flat-to-flat trades with R = net / planned risk. Integer arithmetic only, so client and server agree exactly.
 
+### D6e. Generator v2 (execution-policy v5)
+- Missions' bars come from the seeded market generator (`generator.hpp`, stream `Market`), which also emits the funding series and the `iv_base` series. Generator v2 changed the generated bars, so the policy version was bumped to 5; execution rules are unchanged from v4.
+
 ### D7. Digest and checkpoints
-- Canonical little-endian binary serialization of `RunState`; SHA-256 (vendored, constant-time not required). Checkpoint = serialized state + engine version + policy version.
+- Canonical little-endian binary serialization of `RunState`; SHA-256 (vendored, constant-time not required). State digest covers the policy version, seed, step, status, leverage, balances, position, orders, option positions, plans, answers, metrics and RNG state; the events digest covers the full event log.
+- Checkpoint = header (magic, checkpoint format 1, execution-policy version, scenario id) + serialized state. Loading fails with `IncompatiblePolicy`, `ScenarioMismatch`, `TruncatedInput` or `NonCanonicalEncoding`. The engine semver is not stored (reported by `tl_version`).
 
 ### D8. Golden vectors
-- `fixtures/golden/<name>/{scenario.bin,commands.bin,expected.events.sha256,expected.state.sha256}` plus a human-readable `.md` describing intent.
-- Generated by a native tool, reviewed by a human, then frozen. CI replays them on: linux-x86_64 (clang), macos-arm64 (AppleClang), wasm (node), python (nanobind). Swift added in `add-native-clients`.
-- Property tests (RapidCheck): reconciliation invariant, non-negative balances, reduce-only never flips, no-lookahead (mutate future, compare prefix).
+- Goldens are SHA-256 digests frozen inside the doctest suite rather than a fixtures directory: kernel outputs (`test_det_math`), normal variates (`test_prng`), an option quote grid (OPT01, `test_options`) and scripted mission runs through the C ABI (`test_missions`, state + events digests). `bindings/python/tests` repeats a scripted run and checks the same digests. Update procedure: `engine/README.md`.
+- CI runs them on: linux-x86_64 (clang 18), macos-arm64 (AppleClang), debug and release, wasm (node), python (ctypes). Swift added in `add-native-clients`.
+- Property-style tests are seeded randomized loops (engine `Pcg32`, stream `Sandbox`) in doctest, not RapidCheck: reconciliation and non-negative balances (SIM08, with and without options), checkpoint resume. No-lookahead is checked by mutating future bars and comparing digests (SIM01, indicators, patterns, OPT04).
 
 ### D9. Bindings in this change
-- WASM: Emscripten, `-sMODULARIZE -sEXPORT_ES6`, used from a Web Worker; TypeScript types generated from a small IDL (`engine/idl/*.yaml`) to avoid hand-maintained duplicates.
-- Python: nanobind wheel `tradelab_engine`, consumed by `services/api` for server re-simulation.
+- WASM: Emscripten target `tradelab_wasm` (`-sMODULARIZE -sEXPORT_ES6 -sSINGLE_FILE`, exports the `tl_*` functions), built by `apps/web/scripts/build-engine.sh` into `apps/web/src/lib/engine/wasm/tradelab.mjs` and used from a Web Worker. TypeScript types are currently hand-written (`apps/web/src/lib/engine/types.ts`); generating them from a small IDL (`engine/idl/*.yaml`) is pending (tasks 3.1, 8.2).
+- Python: pure-Python package `tradelab_engine` (`bindings/python/`) using ctypes over the C ABI in the shared library `libtradelab` (CMake target `tradelab_capi`), located via `TRADELAB_LIB`, the package directory or the engine build tree. Consumed by `services/api` (its image builds the library) for server re-simulation. ctypes was chosen over nanobind: the C ABI already exists for WASM, so no compiled extension or per-platform wheel is needed.
 
 ## Risks / Trade-offs
 
 - **Kernel accuracy vs. determinism** → kernels target ~1e-12 relative error; premiums are quantized to tick so any residual difference would show up as a golden failure, not a silent drift.
 - **Simplified liquidation (full margin forfeit)** → may overstate losses vs. some venues; disclosed in UI and debrief.
 - **OHLC conservatism penalizes favorable exits** → flagged `ambiguousIntrabar`; sub-bar data replaces it when licensed.
-- **WASM bundle size** → target < 400 KB gzipped; measured in CI.
+- **WASM bundle size** → target < 400 KB gzipped (single-file module is ~66 KB gzipped today); not yet measured in CI (task 8.2).
 
 ## Open Questions
 

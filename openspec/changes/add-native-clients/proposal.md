@@ -6,9 +6,11 @@ Desktop (C++20) and iPad/iPhone (SwiftUI) clients bring full offline play and na
 
 ## What Changes
 
-- `apps/desktop`: C++20, Dear ImGui (docking) + SDL3, linking the engine directly; GPU rendering with a CRT post-process shader; offline packs, SQLite storage, loopback OIDC sign-in, sync. macOS, Windows, Linux.
-- `apps/ios`: Swift + SwiftUI, engine via Swift C++ interop; iPad terminal layout (keyboard/trackpad), iPhone tabbed layout; offline packs, SQLite storage, `ASWebAuthenticationSession`, Keychain, background-safe persistence.
-- Swift binding added to the golden-vector CI matrix.
+Nothing below exists yet; this change is planned for Phases 3–4.
+
+- `apps/desktop`: C++20, Dear ImGui (docking) + SDL3, linking the engine's static library (`tradelab::engine`) directly; GPU rendering with a CRT post-process shader; offline packs, SQLite storage, loopback OIDC sign-in, sync. macOS, Windows, Linux.
+- `apps/ios`: Swift + SwiftUI, engine via Swift C++ interop (XCFramework built by CMake); iPad terminal layout (keyboard/trackpad), iPhone tabbed layout; offline packs, SQLite storage, `ASWebAuthenticationSession`, Keychain, background-safe persistence.
+- Swift binding (`bindings/swift/`) added to the golden-vector CI matrix, which today covers native C++, WASM and the Python binding (`.github/workflows/engine.yml`).
 
 ## Capabilities
 
@@ -27,6 +29,6 @@ None. (Both implement `terminal-ui`, `offline-sync` and `player-identity` from e
 
 ## Impact
 
-- New: `apps/desktop/`, `apps/ios/`, `bindings/swift/`.
+- New: `apps/desktop/`, `apps/ios/`, `bindings/swift/`, and shared golden-vector fixtures extracted from the engine tests (golden digests currently live inline in `engine/tests` and `bindings/python/tests`).
 - CI: macOS runners for Xcode builds, Windows runner for MSVC/Clang-cl, golden matrix + Swift.
 - Requires Apple developer account, Windows code-signing certificate, macOS notarization.

@@ -73,11 +73,11 @@ Patterns detected by the engine SHALL be marked on the chart (a bracket under bu
 - **THEN** only bearish patterns SHALL be listed, each with its drawing and confirmation hint
 
 ### Requirement: Auto-advance
-The terminal SHALL offer an auto-advance mode (button and `A`) that advances one bar per tick at a selectable speed (1×, 2×, 4×, 10×) using the same command as a manual advance. It SHALL wait without advancing while any dialog, calibration question, chart pick or pending command blocks play, and resume afterwards. With "pause on events" enabled (the default) it SHALL stop by itself on a fill, liquidation, margin call, option settlement or newly released news, and say why; it SHALL always stop when the mission ends. While it runs, Space SHALL stop it instead of advancing.
+The terminal SHALL offer an auto-advance mode (button and `A`) that advances one bar per tick at a selectable speed (1× = 1.5 s, 2× = 0.8 s, 4× = 0.4 s, 10× = 0.15 s per bar; default 2×) using the same command as a manual advance. It SHALL wait without advancing while any dialog, calibration question, chart pick or pending command blocks play, and resume afterwards. With "pause on events" enabled (the default) it SHALL stop by itself on a fill, liquidation, margin call, option settlement or newly released news, and say why; it SHALL always stop when the mission ends. While it runs, Space SHALL stop it instead of advancing.
 
 #### Scenario: Pause on fill
 - **WHEN** auto-advance is running and a pending market order fills on the next bar
-- **THEN** auto-advance SHALL stop after that bar and show "paused: order filled"
+- **THEN** auto-advance SHALL stop after that bar and show a notice naming the reason ("Auto paused: order filled")
 
 #### Scenario: Never skip a question
 - **WHEN** a calibration question is due during auto-advance

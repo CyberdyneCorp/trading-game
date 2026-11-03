@@ -15,10 +15,14 @@ TradeLab SHALL authenticate users exclusively through CyberdyneAuth using OpenID
 - **AND** on success the game profile SHALL be bound to the returned `sub`
 
 ### Requirement: Discovery-driven token validation
-The game API SHALL validate access tokens using values derived from the issuer's `/.well-known/openid-configuration` (issuer, JWKS URI, algorithms), caching JWKS with a TTL and refreshing on unknown `kid`. It SHALL require `type` = `access`, a valid signature (RS256), `exp`, matching `iss`, and `aud` equal to the TradeLab API audience. It SHALL NOT hard-code issuer strings or keys.
+The game API SHALL validate access tokens using values derived from the issuer's `/.well-known/openid-configuration` (issuer, JWKS URI, signing algorithms excluding `none`; CyberdyneAuth uses RS256), caching JWKS with a TTL and refreshing on unknown `kid`. It SHALL require `type` = `access`, a valid signature, `exp` (with a small clock-skew leeway), `sub`, matching `iss`, and `aud` equal to the configured TradeLab API audience (`tradelab-api`). It SHALL NOT hard-code issuer strings or keys. Native clients SHALL present the token as `Authorization: Bearer`.
 
 #### Scenario: Token for another service
 - **WHEN** a request carries a valid CyberdyneAuth token whose `aud` is a different product
+- **THEN** the API SHALL respond 401
+
+#### Scenario: Not an access token
+- **WHEN** a request carries a correctly signed token whose `type` is not `access`, whose `iss` is not the discovered issuer, or that has expired
 - **THEN** the API SHALL respond 401
 
 #### Scenario: Key rotation
@@ -73,6 +77,10 @@ Expired sessions SHALL NOT block offline practice with installed packs. Remote o
 
 ### Requirement: Logout and deletion
 Logout SHALL revoke the refresh token at CyberdyneAuth, end the BFF session, stop sync, and offer the user an explicit choice to keep or delete local data. When CyberdyneAuth emits a verified `user_deleted` webhook, or the user requests deletion in-game, the API SHALL erase that user's game data within the retention policy and log the erasure.
+
+#### Scenario: Deletion requested in-game
+- **WHEN** a player calls `DELETE /api/v1/me/data` with an idempotency key
+- **THEN** all of that player's runs, action logs and idempotency records SHALL be erased, the number of deleted runs returned, and a retry with the same key SHALL return the same response
 
 #### Scenario: User deleted upstream
 - **WHEN** a signed `user_deleted` webhook for `sub` S is received

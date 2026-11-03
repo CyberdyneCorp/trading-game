@@ -12,9 +12,9 @@ Every client (web, desktop, iPad, later Android) and the server must produce exa
 - Order execution: market, limit, stop-market, take-profit limit, trailing stop-market, bracket/OCO, reduce-only; costs, slippage, shared capacity; conservative OHLC intrabar policy.
 - Linear perpetual futures: one-way positions, isolated margin, leverage caps, maintenance margin tiers, liquidation, funding.
 - European cash-settled options on the perp price: Black-76 pricing, scenario IV model, Greeks, buying and writing, account-level margin for short options, expiry settlement.
-- MVP indicators: SMA, EMA, RSI, ATR, volume — with explicit warm-up.
-- State digest, checkpoints and golden-vector harness that runs on every binding in CI.
-- Bindings: WASM (Emscripten) and Python (nanobind) in this change; Swift and JNI arrive with their clients.
+- Indicators: SMA, EMA, RSI, ATR, session VWAP, Bollinger bands, MACD, ADX with +DI/−DI and volume — with explicit warm-up — plus context-aware candlestick pattern detection.
+- State digest, checkpoints and golden digests (frozen in the tests) that run on every target in CI.
+- Stable C ABI (JSON out, decimal strings in) with bindings: WASM (Emscripten ES module) and Python (ctypes over the C ABI) in this change; Swift and JNI arrive with their clients.
 
 ## Capabilities
 
@@ -23,7 +23,7 @@ Every client (web, desktop, iPad, later Android) and the server must produce exa
 - `order-execution`: order types, lifecycle states, intrabar policy, costs, capacity, OCO and reduce-only rules.
 - `perpetual-futures`: contract model, margin, leverage, liquidation, funding, P&L.
 - `options`: option series, pricing, IV model, Greeks, settlement, short-option margin.
-- `indicators`: MVP indicator definitions and warm-up rules.
+- `indicators`: indicator and candle-pattern definitions, warm-up rules.
 
 ### Modified Capabilities
 None (greenfield).
@@ -38,8 +38,8 @@ None (greenfield).
 
 ## Impact
 
-- New: `engine/`, `bindings/wasm/`, `bindings/python/`, `fixtures/golden/`.
-- Toolchain: CMake ≥ 3.28, Clang ≥ 17 / AppleClang 15, Emscripten 3.1.x pinned, Python 3.12 + nanobind.
-- CI: matrix build (linux-x86_64, macos-arm64, wasm, python) comparing golden digests.
-- Engine version is semver; scenario manifests declare compatible engine and execution-policy versions.
+- New: `engine/` (library, C ABI, WASM target `tradelab_wasm`, shared library `tradelab_capi`), `bindings/python/`, `apps/web/scripts/build-engine.sh`, `tools/check_engine_bans.py`.
+- Toolchain: CMake ≥ 3.28, Ninja, Clang 18 (Linux CI) / AppleClang (macOS), Emscripten pinned in CI (6.0.13), Python ≥ 3.12 (ctypes, no compiled extension), doctest (fetched, tests only).
+- CI (`.github/workflows/engine.yml`): linux-x86_64 and macos-arm64 (debug + release), wasm (tests under node), python, lint (banned APIs + clang-tidy) and openspec, all checking the same golden digests.
+- Engine version is semver, reported with a separate execution-policy version (currently 5) by `tl_version`; checkpoints record the policy version. Scenarios are currently built inside the engine from mission ids and a seed (no external scenario manifests yet).
 - Consumers: `add-web-client`, `add-cyberdyne-identity-and-backend` (server replay), `add-native-clients`.
