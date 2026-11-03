@@ -124,3 +124,16 @@ test('regression: Space during resume does not replay the run twice', async ({ p
 	await expect(page.getByText(/Execução #2/)).toHaveCount(0);
 	await expect(page.getByText(/replay digest mismatch/)).toHaveCount(0);
 });
+
+test('trailing stop can protect an open position and shows on the order list', async ({ page }) => {
+	await openTerminal(page, 31);
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await expect(page.getByText(/aceita não significa executada/).first()).toBeVisible();
+	await page.keyboard.press('Space');
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await page.locator('label:has-text("Trailing stop") input').fill('2.00');
+	await page.getByRole('button', { name: /Enviar stop\/alvo/ }).click();
+	await expect(page.locator('.orders').getByText('TRAIL')).toBeVisible();
+});

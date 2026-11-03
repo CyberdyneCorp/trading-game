@@ -45,6 +45,10 @@ Reason validate_shape(const Scenario& sc, const Command& c) {
   if (c.qty.raw <= 0 || c.qty.raw % k.lot_size.raw != 0) return Reason::InvalidQuantity;
   if (!c.reduce_only && c.qty < k.min_qty) return Reason::InvalidQuantity;
   if (c.order_type == OrderType::Market) return Reason::None;
+  if (c.order_type == OrderType::TrailingStop) {
+    const bool ok = c.trail_distance.raw > 0 && c.trail_distance.raw % k.tick_size.raw == 0;
+    return ok ? Reason::None : Reason::InvalidTick;
+  }
   if (c.price.raw <= 0 || c.price.raw % k.tick_size.raw != 0) return Reason::InvalidTick;
   return Reason::None;
 }
@@ -64,14 +68,41 @@ Money required_margin(const Scenario& sc, const RunState& st, const Order& o, Qt
 
 Reason stop_warning(const Scenario& sc, const RunState& st, const Order& o) {
   Price liq;
-  if (o.type != OrderType::StopMarket || !o.reduce_only || !detail::liquidation_price(sc, st.position, &liq)) {
+  const bool stop = o.type == OrderType::StopMarket || o.type == OrderType::TrailingStop;
+  if (!stop || !o.reduce_only || !detail::liquidation_price(sc, st.position, &liq)) {
     return Reason::None;
   }
   const bool beyond = st.position.is_long() ? o.price <= liq : o.price >= liq;
   return beyond ? Reason::StopBeyondLiquidation : Reason::None;
 }
 
-Order make_order(const RunState& st, const Command& c) {
+bool on_tick(Price p, Price tick) { return p.raw > 0 && p.raw % tick.raw == 0; }
+
+// Bracket exits must sit on the right side of the entry reference price.
+Reason validate_bracket(const Scenario& sc, const RunState& st, const Command& c, const Order& o) {
+  const bool has_stop = c.attach_stop.raw != 0;
+  const bool has_tp = c.attach_tp.raw != 0;
+  if (!has_stop && !has_tp) return Reason::None;
+  if (o.reduce_only || o.type == OrderType::TrailingStop) return Reason::InvalidBracket;
+  const Price tick = sc.contract.tick_size;
+  if ((has_stop && !on_tick(c.attach_stop, tick)) || (has_tp && !on_tick(c.attach_tp, tick))) return Reason::InvalidTick;
+  const Price ref = o.type == OrderType::Market ? sc.bars[st.step].close : o.price;
+  const bool buy = o.side == OrderSide::Buy;
+  const bool stop_ok = !has_stop || (buy ? c.attach_stop < ref : c.attach_stop > ref);
+  const bool tp_ok = !has_tp || (buy ? c.attach_tp > ref : c.attach_tp < ref);
+  return stop_ok && tp_ok ? Reason::None : Reason::InvalidBracket;
+}
+
+// Initial trailing trigger from the decision-step close.
+Price initial_trail(const Scenario& sc, const RunState& st, OrderSide side, Price dist) {
+  const Price close = sc.bars[st.step].close;
+  const bool sell = side == OrderSide::Sell;
+  const Price raw = Price::from_raw(sell ? close.raw - dist.raw : close.raw + dist.raw);
+  const Price px = detail::unwrap(round_to_step(raw, sc.contract.tick_size, sell ? Rounding::Floor : Rounding::Ceil));
+  return std::max(px, sc.contract.tick_size);
+}
+
+Order make_order(const Scenario& sc, const RunState& st, const Command& c) {
   Order o;
   o.id = st.next_order_id;
   o.seq = c.seq;
@@ -81,13 +112,20 @@ Order make_order(const RunState& st, const Command& c) {
   o.price = c.order_type == OrderType::Market ? Price{} : c.price;
   o.reduce_only = c.reduce_only || c.order_type == OrderType::TakeProfit;
   o.placed_step = st.step;
+  o.bracket_stop = c.attach_stop;
+  o.bracket_tp = c.attach_tp;
+  if (c.order_type == OrderType::TrailingStop) {
+    o.trail_distance = c.trail_distance;
+    o.price = initial_trail(sc, st, c.side, c.trail_distance);
+  }
   return o;
 }
 
 CommandResult place_order(const Scenario& sc, RunState& st, const Command& c) {
   if (const Reason r = validate_shape(sc, c); r != Reason::None) return reject(r);
   if (const Reason r = check_reduce_only(st, c); r != Reason::None) return reject(r);
-  const Order o = make_order(st, c);
+  const Order o = make_order(sc, st, c);
+  if (const Reason r = validate_bracket(sc, st, c, o); r != Reason::None) return reject(r);
   if (!magnitude_ok(sc, c.qty, reference_price(sc, st, o))) return reject(Reason::NumericOverflow);
   if (!sc.mission.allow_short && opens_short(st, c.side, c.qty, c.reduce_only)) {
     return reject(Reason::ShortNotAllowed);

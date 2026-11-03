@@ -14,6 +14,9 @@ export type EngineRequest =
 			qty: string;
 			price: string | null;
 			reduceOnly: boolean;
+			attachStop: string | null;
+			attachTp: string | null;
+			trailDistance: string | null;
 	  }
 	| { kind: 'cancel'; clientId: number; orderId: number }
 	| { kind: 'leverage'; clientId: number; leverage: number }

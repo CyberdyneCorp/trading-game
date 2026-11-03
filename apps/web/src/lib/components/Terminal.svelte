@@ -26,10 +26,9 @@
 			const r = await session.setLeverage(d.leverage);
 			if (r && !r.accepted) return notify(r.reason);
 		}
-		const res = await session.placeOrder(d.type, d.side, d.qty, d.price);
+		const res = await session.placeOrder(d.type, d.side, d.qty, d.price, false, { stop: d.stop, takeProfit: d.takeProfit });
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason);
-		if (d.stop || d.takeProfit) session.setProtection({ side: d.side, stop: d.stop, takeProfit: d.takeProfit });
 		lastPlannedRisk = d.estimate.plannedRisk;
 		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${d.side} ${d.qty}` };
 	}
@@ -90,9 +89,6 @@
 				<OrdersPanel {session} />
 				{#if session.notice}
 					<div class="notice {session.notice.tone}" role="status">{session.notice.text}</div>
-				{/if}
-				{#if session.protection}
-					<div class="notice ok">⏳ stop {session.protection.stop ?? '—'} / TP {session.protection.takeProfit ?? '—'} → {t('ticket.attachNote')}</div>
 				{/if}
 			</div>
 			<EventFeed events={session.state.events} />

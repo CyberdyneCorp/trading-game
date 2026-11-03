@@ -16,7 +16,7 @@ extern "C" {
 
 typedef struct tl_run tl_run; /* NOLINT(readability-identifier-naming): C ABI */
 
-/* Order types: 0 market, 1 limit, 2 stop-market, 3 take-profit. Sides: 0 buy, 1 sell. */
+/* Order types: 0 market, 1 limit, 2 stop-market, 3 take-profit, 4 trailing-stop. Sides: 0 buy, 1 sell. */
 
 const char* tl_version(void);
 const char* tl_missions(void);
@@ -27,6 +27,10 @@ void tl_run_destroy(tl_run* run);
 
 const char* tl_place_order(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
                            const char* price, int32_t reduce_only);
+/* Bracket entry (attach_stop/attach_tp) and trailing stops (trail_distance); NULL or "" = not set. */
+const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
+                              const char* price, int32_t reduce_only, const char* attach_stop,
+                              const char* attach_tp, const char* trail_distance);
 const char* tl_cancel_order(tl_run* run, uint32_t client_id, uint32_t order_id);
 const char* tl_set_leverage(tl_run* run, uint32_t client_id, int32_t leverage);
 const char* tl_close_position(tl_run* run, uint32_t client_id);

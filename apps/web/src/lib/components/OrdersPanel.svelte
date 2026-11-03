@@ -5,7 +5,13 @@
 
 	let { session }: { session: GameSession } = $props();
 	const orders = $derived(session.state?.orders ?? []);
-	const typeLabel: Record<string, string> = { market: 'MKT', limit: 'LMT', stop_market: 'STOP', take_profit: 'TP' };
+	const typeLabel: Record<string, string> = {
+		market: 'MKT',
+		limit: 'LMT',
+		stop_market: 'STOP',
+		take_profit: 'TP',
+		trailing_stop: 'TRAIL'
+	};
 </script>
 
 <section class="panel orders">
@@ -22,7 +28,11 @@
 						<td class={o.side === 'buy' ? 'up' : 'down'}>{o.side === 'buy' ? '▲' : '▼'} {o.side.toUpperCase()}</td>
 						<td class="num">{fmtQty(o.qty, i18n.locale)}</td>
 						<td class="num">{o.type === 'market' ? '@open' : fmtPrice(o.price, i18n.locale)}</td>
-						<td>{#if o.reduceOnly}<span class="tag info" title="reduce-only">{t('orders.reduceOnly')}</span>{/if}</td>
+						<td>
+							{#if o.reduceOnly}<span class="tag info" title="reduce-only">{t('orders.reduceOnly')}</span>{/if}
+							{#if o.parentId}<span class="tag muted" title={t('orders.child', { id: o.parentId })}>OCO ↳#{o.parentId}</span>{/if}
+							{#if o.bracketStop !== '0.00000000' || o.bracketTp !== '0.00000000'}<span class="tag attention">BRK</span>{/if}
+						</td>
 						<td>
 							<button class="mini" onclick={() => session.cancel(o.id)} disabled={session.busy}>{t('orders.cancel')}</button>
 						</td>

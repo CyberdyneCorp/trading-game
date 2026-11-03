@@ -3,6 +3,7 @@
 // Mutable run state. Everything here is covered by the state digest.
 
 #include <cstdint>
+#include <deque>
 #include <vector>
 
 #include "tradelab/fixed.hpp"
@@ -22,6 +23,12 @@ struct Order {
   bool reduce_only = false;
   std::uint32_t placed_step = 0;
   OrderStatus status = OrderStatus::Accepted;
+  // Bracket: an entry carrying exits; children are created per fill (reduce-only, one OCO group).
+  Price bracket_stop;
+  Price bracket_tp;
+  std::uint32_t parent_id = 0;  // child of a bracket entry
+  std::uint32_t oco_group = 0;  // siblings share it; a fill on one reduces the others
+  Price trail_distance;         // TrailingStop: distance from the best close
 
   [[nodiscard]] bool active() const {
     return status == OrderStatus::Accepted || status == OrderStatus::PartiallyFilled ||
@@ -85,7 +92,8 @@ struct RunState {
 
   Money wallet;  // includes isolated margin; changes only by realized P&L, fees, funding, liquidation
   Position position;
-  std::vector<Order> orders;
+  // deque: matching may append bracket children while holding references to other orders.
+  std::deque<Order> orders;
   std::uint32_t next_order_id = 1;
   std::uint64_t next_event_seq = 1;
   std::uint64_t last_command_seq = 0;

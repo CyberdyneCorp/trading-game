@@ -43,10 +43,11 @@
 		}
 		for (const o of game.orders) {
 			if (o.type === 'market') continue;
-			const isStop = o.type === 'stop_market';
+			const isStop = o.type === 'stop_market' || o.type === 'trailing_stop';
+			const kind = { stop_market: 'STOP', trailing_stop: 'TRAIL', take_profit: 'TP', limit: 'LMT' }[o.type];
 			out.push({
 				price: Number(o.price),
-				label: `${isStop ? 'STOP' : o.type === 'take_profit' ? 'TP' : 'LMT'} #${o.id}`,
+				label: `${kind} #${o.id}`,
 				color: isStop ? cssVar('--attention') : cssVar('--accent'),
 				dash: [3, 3]
 			});
