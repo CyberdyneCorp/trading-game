@@ -342,3 +342,50 @@ test('chart patterns tab lists multi-bar structures', async ({ page }) => {
 	await expect(sheet.getByTestId('pattern-double-bottom')).toBeVisible();
 	await expect(sheet.getByTestId('pattern-double-top')).toHaveCount(0);
 });
+
+async function barNumber(page: Page): Promise<number> {
+	const text = (await page.getByText(/Barra \d+ de/).textContent()) ?? '';
+	return Number(/Barra (\d+)/.exec(text)?.[1]);
+}
+
+test('auto-advance runs on its own and Space takes control back', async ({ page }) => {
+	await openTerminal(page, 4242);
+	await page.getByRole('combobox', { name: 'Velocidade' }).selectOption({ label: '10×' });
+	const start = await barNumber(page);
+	await page.getByTestId('auto-toggle').click();
+	await expect.poll(() => barNumber(page)).toBeGreaterThanOrEqual(start + 3);
+	await page.locator('body').click({ position: { x: 5, y: 5 } }); // focus out of the select
+	await page.keyboard.press('Space');
+	await expect(page.getByTestId('auto-toggle')).toHaveAttribute('aria-pressed', 'false');
+	const stopped = await barNumber(page);
+	await page.waitForTimeout(500);
+	expect(await barNumber(page)).toBe(stopped);
+});
+
+test('auto-advance pauses when an order fills', async ({ page }) => {
+	await openTerminal(page, 31);
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await expect(page.getByText(/aceita não significa executada/).first()).toBeVisible();
+	await page.getByRole('combobox', { name: 'Velocidade' }).selectOption({ label: '10×' });
+	await page.getByTestId('auto-toggle').click();
+	await expect(page.getByText(/Auto pausado: ordem executada/)).toBeVisible();
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await expect(page.getByTestId('auto-toggle')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('auto-advance waits on a calibration question and resumes after it is answered', async ({ page }) => {
+	await openTerminal(page, 4242);
+	await page.getByRole('combobox', { name: 'Velocidade' }).selectOption({ label: '10×' });
+	await page.getByLabel('pausar em eventos').uncheck();
+	await page.getByTestId('auto-toggle').click();
+	const dialog = page.getByRole('dialog', { name: /Pergunta de calibração/ });
+	await expect(dialog).toBeVisible({ timeout: 15000 });
+	const waiting = await barNumber(page);
+	await page.waitForTimeout(600);
+	expect(await barNumber(page)).toBe(waiting); // never advances behind the question
+	await answerIfAsked(page);
+	await expect.poll(() => barNumber(page)).toBeGreaterThan(waiting);
+	await page.getByTestId('auto-toggle').click();
+});

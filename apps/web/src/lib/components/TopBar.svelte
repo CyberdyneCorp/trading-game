@@ -3,8 +3,14 @@
 	import { missionText } from '#lib/game/missions.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { AUTO_SPEEDS, type AutoPlay } from '#lib/game/autoplay.svelte.ts';
 
-	let { session, onHelp, onPatterns }: { session: GameSession; onHelp: () => void; onPatterns: () => void } = $props();
+	let {
+		session,
+		auto,
+		onHelp,
+		onPatterns
+	}: { session: GameSession; auto: AutoPlay; onHelp: () => void; onPatterns: () => void } = $props();
 	const s = $derived(session.state);
 	const playable = $derived(s ? s.lastDecisionStep - s.warmupBars + 1 : 0);
 	const turn = $derived(s ? s.step - s.warmupBars + 1 : 0);
@@ -30,6 +36,28 @@
 			<button onclick={() => session.advance(5)} disabled={session.busy || s.status !== 'active'}>
 				▶▶ {t('top.advance5')} <kbd>⇧Space</kbd>
 			</button>
+			<div class="auto" role="group" aria-label={t('auto.title')}>
+				<button
+					class:running={auto.running}
+					onclick={() => auto.toggle()}
+					disabled={s.status !== 'active'}
+					aria-pressed={auto.running}
+					data-testid="auto-toggle"
+				>
+					{auto.running ? '⏸' : '⏵'} {t(auto.running ? 'auto.pause' : 'auto.play')} <kbd>A</kbd>
+				</button>
+				<select
+					aria-label={t('auto.speed')}
+					value={auto.speed}
+					onchange={(e) => auto.setSpeed(Number((e.currentTarget as HTMLSelectElement).value))}
+				>
+					{#each AUTO_SPEEDS as sp, i (sp.label)}<option value={i}>{sp.label}</option>{/each}
+				</select>
+				<label class="small" title={t('auto.pauseOnEventsHint')}>
+					<input type="checkbox" bind:checked={auto.pauseOnEvents} />
+					{t('auto.pauseOnEvents')}
+				</label>
+			</div>
 			<button onclick={onPatterns} title="P">{t('patterns.open')} <kbd>P</kbd></button>
 			<button onclick={onHelp} aria-label={t('top.help')}>?</button>
 			<button onclick={() => session.backToMenu()}>{t('top.menu')}</button>
@@ -76,5 +104,32 @@
 		font-size: 0.7rem;
 		opacity: 0.7;
 		margin-left: 0.3em;
+	}
+	.auto {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		border: 1px solid var(--line);
+		padding: 0.15rem 0.3rem;
+	}
+	.auto .running {
+		background: rgba(255, 200, 87, 0.15);
+		border-color: var(--attention);
+		color: var(--attention);
+	}
+	.auto select {
+		width: auto;
+		min-height: 0;
+		padding: 0 0.3rem;
+	}
+	.auto .small {
+		font-size: 0.72rem;
+		color: var(--muted);
+		display: inline-flex;
+		gap: 0.2rem;
+		align-items: center;
+	}
+	.auto .small input {
+		width: auto;
 	}
 </style>
