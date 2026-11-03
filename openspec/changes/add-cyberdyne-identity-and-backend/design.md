@@ -29,10 +29,10 @@ All: `trusted: true`, scopes `openid email profile offline_access roles`, `acces
 - Player is implicit (any valid token). No player role to grant → zero onboarding friction.
 
 ### D3. Backend shape
-- `services/api`: FastAPI, hexagonal: `domain/` (runs, progress, packs), `application/` (use cases), `ports/` (RunRepository, PackStore, IdentityVerifier, EngineReplayer, Clock), `adapters/` (Postgres via SQLAlchemy 2 + Alembic, S3-compatible storage, CyberdyneAuth OIDC/JWKS, nanobind engine).
-- Re-simulation uses `bindings/python` (ctypes over the engine's C ABI, `libtradelab`) instead of nanobind: the same ABI the WASM build uses, no compiled Python extension to maintain. A replay is bit-identical to the client run (cross-binding golden test). Each sync replays the full action log in-process (milliseconds per run today); a process pool and multiple engine/policy versions side-by-side remain future work: runs recorded under another execution policy are rejected with `unsupported_policy` for now.
-- The action log the server stores is exactly the client's IndexedDB log (format in `bindings/python/tradelab_engine/replay.py`), keyed by (run_id, seq): re-sent identical actions are no-ops, a different action at an existing seq is a conflict for that run, gaps are not accepted.
-- Postgres tables: `players(sub pk)`, `runs`, `run_commands (run_id, seq) pk`, `run_results`, `progress_achievements`, `preferences`, `idempotency_keys`, `imports`, `packs`, `pack_versions`, `webhook_receipts`.
+- `services/api/src/tradelab_api`: FastAPI, hexagonal: `domain/` (run, incoming run, sync outcome, progress; errors), `ports.py` (RunRepository, IdempotencyStore, Replayer, TokenVerifier, Clock), `application/game.py` (GameService use cases), `adapters/` (SQLAlchemy 2 for PostgreSQL / SQLite in tests, CyberdyneAuth OIDC/JWKS verifier, engine replayer), `http/` (FastAPI wiring and schemas), `config.py` (`TRADELAB_*` settings). Planned adapters: S3-compatible pack/import storage; Alembic migrations (tables are created at startup until then).
+- Re-simulation uses `bindings/python` (ctypes over the engine's C ABI `engine/include/tradelab/c_api.h`, shared library target `tradelab_capi` → `libtradelab`), not a compiled Python extension: the same ABI surface the WASM build wraps. A replay is bit-identical to the client run (cross-binding golden test in `bindings/python/tests`). Each sync replays the full action log in-process (milliseconds per run today); a process pool and multiple engine/policy versions side-by-side remain future work: runs recorded under another execution policy are rejected per run with `unsupported_policy` for now.
+- The action log the server stores is exactly the client's IndexedDB log (format in `bindings/python/tradelab_engine/replay.py`), keyed by (run_id, seq): re-sent identical actions are no-ops, a different action at an existing seq is a `conflict` for that run, and only the contiguous prefix extending the stored log is accepted (actions after a gap are dropped until the client re-sends the missing ones).
+- Tables today: `runs` (owner `sub`, mission, seed, execution policy, device, server/client digest, mismatch flag, status, score, debrief report), `run_actions (run_id, seq) pk`, `idempotency_keys (owner, key) pk`. Planned: `players`, `progress_achievements`, `preferences`, `imports`, `packs`, `pack_versions`, `webhook_receipts`.
 - Deployed on Coolify; object storage = MinIO (S3 API) buckets `tradelab-packs` (immutable, by digest) and `tradelab-imports` (private, per-user prefix, lifecycle-expired). Packs are streamed through the API (entitlement check + range support), never via public bucket URLs; presigned GET URLs with short TTL are an allowed optimization.
 
 ### D4. Web BFF flow
@@ -46,6 +46,7 @@ All: `trusted: true`, scopes `openid email profile offline_access roles`, `acces
 - The SvelteKit node server reverse-proxies `/api/*` to the API service, so the browser only talks to the web host and the BFF cookie is first-party and host-only: `__Host-tl_session` (no `Domain`, `Path=/`, HttpOnly, Secure, SameSite=Lax) + `__Host-tl_csrf`.
 - **Shared parent domain hazard:** CyberdyneAuth sets its own `access_token`/`csrf` cookies with `COOKIE_DOMAIN=.coolify.cyberdynecorp.ai`, so browsers send them to every TradeLab host. The API SHALL ignore those cookies entirely and authenticate only via `__Host-tl_session` or an `Authorization: Bearer` header; otherwise any page on a sibling `*.coolify` host could ride a CyberdyneAuth session into TradeLab (confused deputy / CSRF). Our cookie names never collide with CyberdyneAuth's.
 - CORS on the API host: deny by default; only native clients (no Origin) and the web host via the proxy.
+- API routes live under `/api/v1`, OpenAPI at `/api/openapi.json`, docs at `/api/docs`. Until the BFF exists the API authenticates only via `Authorization: Bearer` and reads no cookies at all.
 
 ### D5. Native token handling
 - Desktop: loopback listener on ephemeral port, PKCE, tokens in OS keychain via a small cross-platform wrapper (Keychain / Credential Manager / libsecret).
@@ -53,8 +54,10 @@ All: `trusted: true`, scopes `openid email profile offline_access roles`, `acces
 - API accepts `Authorization: Bearer` from native clients; same validation as BFF-derived tokens.
 
 ### D6. Sync protocol
-- `POST /sync/batches` body: `{deviceId, batches:[{runId, scenarioDigest, engineVersion, policyVersion, seed, commands:[{seq, step, type, payload, clientCommandId}], completion?:{finalDigest}}]}`; response per run: accepted seq range, server digest, score, progress deltas.
-- Command primary key `(run_id, seq)` makes re-sends no-ops; a different payload for an existing `(run_id, seq)` → 409 for that run only.
+- `POST /api/v1/sync/batches` with `Authorization: Bearer` and `Idempotency-Key`; body `{deviceId, runs:[{runId, missionId, seed, executionPolicy, actions:[{seq, action}], clientDigest?, clientActionCount?}]}` (≤ 50 runs, ≤ 20,000 actions per run). Response: one outcome per run `{runId, acceptedThrough, status, serverDigest, digestMatch, scoreTotal, error}`.
+- There is no separate run/command/completion endpoint: a run is created by its first sync, completion is the server's replayed status (`finished`/`bankrupt`), and the client's `clientDigest` is compared only when `clientActionCount` equals the server's committed count.
+- Action primary key `(run_id, seq)` makes re-sends no-ops. Per-run failures do not fail the batch: the HTTP status stays 200 and the run's `error` is `conflict` (rewritten seq, or run id reused with another mission/seed), `not_found` (run owned by another player), `invalid_log` (malformed action, unknown mission, too many actions) or `unsupported_policy`. Batch-level failures: 401, 400 (no idempotency key), 409 (key reused with another body), 413 (too large), 422 (schema).
+- Progress deltas are not returned yet; clients read `GET /api/v1/progress`.
 
 ### D7. Webhooks
 - Subscribe `cyb_tradelab` to `user_deleted` and `entitlement_granted/revoked`; verify signature per CyberdyneAuth `webhooks.md`; store receipt id for idempotency.

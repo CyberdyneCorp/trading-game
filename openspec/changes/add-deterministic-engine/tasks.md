@@ -3,52 +3,57 @@
 ## 1. Skeleton and toolchain
 - [x] 1.1 CMake project `engine/` (C++20, presets for native/wasm), clang-tidy + cognitive-complexity gate (≤ 15)
 - [x] 1.2 Compiler flags: `-ffp-contract=off`, no fast-math, `-fno-exceptions -fno-rtti` for wasm; CI check that forbids `std::exp/log/erf/*_distribution` in `engine/src`
-- [ ] 1.3 CI matrix: linux-x86_64, macos-arm64, wasm (node), python wheel — workflow written (native+wasm+lint+openspec); pending first GitHub run and python wheel (8.3)
+- [x] 1.3 CI matrix (`.github/workflows/engine.yml`): linux-x86_64, macos-arm64 (debug + release), wasm (node), python (ctypes binding tests against `libtradelab`), lint, openspec — green on GitHub
 
 ## 2. Numerics and determinism
-- [x] 2.1 `Fixed<Scale>` types with `__int128` mul/div and explicit rounding modes; overflow detection
+- [x] 2.1 `Fixed<Tag, Decimals>` types with `__int128` mul/div and explicit rounding modes; overflow detection
 - [x] 2.2 Deterministic kernels `det::exp/log/sqrt/cos/norm_cdf` + accuracy tests against high-precision reference tables
 - [x] 2.3 PCG32 PRNG with stream ids; Box-Muller normals
 - [x] 2.4 Canonical serialization primitives (LE writer/reader) + SHA-256 digest
 
 ## 3. Simulation core
-- [ ] 3.1 Scenario model + validation; RunState; Command/Event types; IDL → C++/TS types
-- [ ] 3.2 Step loop with phases in spec order; event sequence numbering
+- [ ] 3.1 Scenario model + validation; RunState; Command/Event types; IDL → C++/TS types — done: `scenario.hpp` + `validate()`, `state.hpp`, `engine.hpp`, `types.hpp`; pending: the IDL (`engine/idl/`) and generated TS types (the web client's `apps/web/src/lib/engine/types.ts` is hand-written)
+- [x] 3.2 Step loop with phases in spec order (open → option open → intrabar → close); global event sequence numbering
 - [x] 3.3 Command idempotency (client command id) and sequence/step validation
-- [ ] 3.4 Property test: no-lookahead (mutate future, compare prefix) — SIM01
+- [x] 3.4 No-lookahead test: mutate future bars, compare digests at `t` — SIM01 (`tests/test_engine.cpp`), plus indicator, pattern and option-quote (OPT04) variants
 - [x] 3.5 RunState checkpoint save/restore with version check; resume-equals-uninterrupted test
 
 ## 4. Order execution
 - [x] 4.1 Market, limit, stop-market, take-profit, trailing (close-based)
-- [ ] 4.2 Lifecycle states and events; rejection reasons enum
-- [ ] 4.3 Costs: fees, spread, slippage, tick/lot; capacity with priority
+- [x] 4.2 Lifecycle states and events; rejection reasons enum (`types.hpp`; `triggered` is defined but not emitted, see spec "Order lifecycle")
+- [ ] 4.3 Costs: fees, spread, slippage, tick/lot; capacity with priority — done: maker/taker fees, half-spread + slippage, tick/lot validation, shared per-bar capacity from bar volume with `capacityFromBarVolume` on limited fills; pending: price-then-sequence priority for capacity (orders are currently served by phase, then placement order)
 - [x] 4.4 Bracket/OCO, reduce-only, orphan cancellation
-- [ ] 4.5 Conservative intrabar policy with `ambiguousIntrabar` flags
+- [x] 4.5 Conservative intrabar policy with `ambiguousIntrabar` flags
 - [x] 4.6 Goldens SIM03–SIM07
+- [ ] 4.7 Percentage trailing distance — pending: trailing stops take a fixed price distance only (design D6b)
 
 ## 5. Perpetual futures
 - [x] 5.1 One-way positions, average entry, flips
 - [x] 5.2 Isolated margin, leverage caps, add/remove margin
 - [x] 5.3 Liquidation price + liquidation (adverse extreme first, gap handling, insurance fund)
-- [x] 5.4 Funding from series or synthetic rule
+- [x] 5.4 Funding from series or synthetic rule (the generator emits the funding series)
 - [x] 5.5 Property tests: reconciliation (SIM08), non-negative balances; goldens FUT01–FUT04
+- [ ] 5.6 Maintenance-margin tiers by notional — pending: `ContractSpec` has a single `maintenance_margin` rate
+- [ ] 5.7 Mark-price bars for unrealized P&L, margin and liquidation, and the scenario flag `markFromLastPrice` when absent — pending: everything uses last-price closes and no scenario flag is exposed
 
 ## 6. Options
 - [x] 6.1 Series listing, Black-76 pricing, spread, quantization
-- [x] 6.2 IV model (realized-vol base, term, skew, smile, event shocks) — past data only
+- [x] 6.2 IV model (base from the scenario `iv_base` series or realized vol, term, skew, smile; event shocks via the generator's `iv_base`) — past data only
 - [x] 6.3 Greeks
 - [x] 6.4 Buy/write, option margin, margin call and buy-back
-- [x] 6.5 Expiry settlement; goldens OPT01–OPT04
+- [x] 6.5 Expiry settlement (TWAP of the last `settlement_bars` closes, flagged approximate for one bar); goldens OPT01–OPT04
+- [ ] 6.6 Settlement window in market time: TWAP from sub-bars and rejection with `series_settling` from the start of the window — pending: scenarios have no sub-bars and the reason does not exist
 
 ## 7. Indicators
-- [x] 7.1 SMA, EMA, RSI, ATR, volume with warm-up states and gap policy
-- [x] 7.2 Reference-value tests against a published dataset
-- [x] 7.5 Candle pattern detection (29 patterns, context-aware), pattern version 1, calibration test
-- [x] 7.4 Bollinger(20, 2) with exact integer square root; indicator version 3
+- [x] 7.1 SMA, EMA, RSI, ATR, volume with warm-up (values absent until warm-up)
+- [ ] 7.2 Reference-value tests against a published dataset — done: hand-computed small-series values for every indicator (`tests/test_indicators.cpp`); pending: a published reference dataset
 - [x] 7.3 VWAP (24-bar sessions), MACD(12,26,9), ADX(14) with +DI/−DI; indicator version 2; hand-computed tests and no-lookahead checks
+- [x] 7.4 Bollinger(20, 2) with exact integer square root; indicator version 3
+- [x] 7.5 Candle pattern detection (29 patterns, context-aware), pattern version 1, calibration test
+- [ ] 7.6 Continuity bars: scenario gap policy (skip or carry forward) for indicators and zero executable capacity — pending: `Bar` has no continuity marker and no gap policy exists
 
 ## 8. Bindings
-- [ ] 8.1 C ABI facade
-- [ ] 8.2 WASM module + generated TS types; size budget check (< 400 KB gz)
-- [ ] 8.3 nanobind Python wheel
-- [ ] 8.4 All goldens green on every target; document the golden-update procedure in `engine/README.md`
+- [x] 8.1 C ABI facade (`engine/include/tradelab/c_api.h`, JSON out, decimal strings in)
+- [ ] 8.2 WASM module + generated TS types; size budget check (< 400 KB gz) — done: ES module `tradelab.mjs` (single file, ~66 KB gz) built by `apps/web/scripts/build-engine.sh` and tested under node in CI; pending: generated TS types (see 3.1) and a CI size-budget check
+- [x] 8.3 Python binding `tradelab_engine` (ctypes over the C ABI, `bindings/python/`), loads `libtradelab` (`tradelab_capi`) from `TRADELAB_LIB` or the build tree; the wheel does not bundle the shared library (the API image builds it)
+- [x] 8.4 All goldens green on every target (frozen digests in the engine tests, mirrored by the Python test); golden-update procedure in `engine/README.md`

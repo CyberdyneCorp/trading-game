@@ -9,7 +9,7 @@ Players need one Cyberdyne identity across web, desktop and iPad, progress that 
 - Register TradeLab as OIDC clients in CyberdyneAuth: one confidential web BFF client and public PKCE clients for desktop and iOS (Android later), with a dedicated access-token audience.
 - Game roles (`editor`, `admin`) and permissions as CyberdyneAuth client roles; every authenticated user is a player.
 - Optional entitlements (`<client_id>:<plan>`) gate paid content only, never results.
-- `services/api` (FastAPI, hexagonal, PostgreSQL, object storage): catalog, pack delivery, runs, command batches, completion with server re-simulation, progress, sync, CSV import validation.
+- `services/api` (FastAPI, hexagonal, PostgreSQL, object storage): catalog, pack delivery, runs synced as idempotent action-log batches with server re-simulation and scoring, progress, data export/erasure, CSV import validation.
 - Offline-first sync protocol with idempotent batches and per-device attempt identity.
 - Erasure and export of game data, triggered by the user or by CyberdyneAuth `user_deleted` webhooks.
 
@@ -17,7 +17,7 @@ Players need one Cyberdyne identity across web, desktop and iPad, progress that 
 
 ### New Capabilities
 - `player-identity`: sign-in, sessions, tokens, roles, entitlements, guest mode, logout, account deletion.
-- `game-api`: catalog, packs, runs, commands, completion, progress, imports; validation and authorization rules.
+- `game-api`: catalog, packs, run sync and re-simulation, progress, export/erasure, imports; validation and authorization rules.
 - `offline-sync`: local storage, run durability, batch sync, conflict rules, engine-version pinning.
 
 ### Modified Capabilities
@@ -34,4 +34,4 @@ None.
 
 - New: `services/api/`, database migrations, MinIO buckets, Coolify deployment at `tradelab[-dev].coolify.cyberdynecorp.ai`.
 - CyberdyneAuth configuration (admin): OAuth clients, audience, scopes, role catalog, webhook subscription. No code changes in CyberdyneAuth.
-- Clients: login/logout, token storage, sync engine. Depends on `add-deterministic-engine` (python binding) and `add-scenarios-and-gameplay` (pack format, scoring).
+- Clients: login/logout, token storage, sync engine. Depends on `add-deterministic-engine` (C ABI + `bindings/python` ctypes binding) and `add-scenarios-and-gameplay` (pack format, scoring).

@@ -22,7 +22,7 @@ The engine SHALL expose decision points only after a bar has closed. A command s
 - **AND** no fill SHALL be attributed to bar `t` or earlier
 
 ### Requirement: Fixed step sequence
-For each advanced step the engine SHALL perform, in this order: apply queued commands in sequence order; release events scheduled for this step; process the opening price and gaps; evaluate liquidations and triggers against the bar using the intrabar policy; execute fills and charge costs; apply funding if the step is a funding boundary; settle expiring options; update positions, margin and equity; close the bar and update indicators and trailing references; emit a checkpoint.
+Commands SHALL be applied in sequence order at the current decision point, before the step is advanced. For each advanced step the engine SHALL then perform, in this order: process the opening price (liquidation through a gap, gap-triggered stops and limits, then market orders) and execute option orders at the open; evaluate the bar using the intrabar policy (adverse exits and liquidation first, then favorable exits, then intrabar entries followed by an adverse check of the new position), executing fills and charging costs as they occur; at the close apply funding if the step is a funding boundary, liquidate at the close if required, settle expiring options and enforce option maintenance margin, ratchet trailing references, update metrics, and finish the run or declare bankruptcy. News items are scenario data published at their release step, so no release phase is needed. Indicators are derived from closed bars on demand, and a checkpoint SHALL be obtainable after any step.
 
 #### Scenario: Sequence is observable
 - **WHEN** a step contains a gap, a stop trigger, a funding boundary and an option expiry
@@ -36,15 +36,15 @@ State, indicators, option prices, liquidation thresholds and any data exposed to
 - **THEN** every event, indicator value, option quote and score component emitted up to step `t` SHALL be unchanged
 
 ### Requirement: Fixed-point numerics
-Prices, quantities, money, fees, funding rates, margin and option premiums SHALL be represented as signed 64-bit integers with fixed scales per quantity type, versioned with the execution policy. Scenario tick sizes, lot sizes and other price- or quantity-denominated parameters SHALL be exact multiples of those scales, and a scenario violating this SHALL be rejected. Every rounding SHALL use a rule declared per quantity (e.g. fees round up against the player, sizes round down to lot). Overflow SHALL be detected and reported as an engine error, never wrapped silently.
+Prices, quantities, money, fees, funding rates, margin and option premiums SHALL be represented as signed 64-bit integers with fixed scales per quantity type (price, quantity, money and volatility 1e-8; rates 1e-10), versioned with the execution policy. Values SHALL enter the engine as raw fixed-point integers or through a strict decimal parser that rejects any value finer than the scale, an exponent or whitespace, never rounding silently. Scenario validation SHALL reject non-positive tick or lot sizes, bar prices off the tick grid and minimum quantities off the lot grid. Every rounding SHALL use a rule declared per call site (e.g. fees round up against the player, liquidation prices round toward earlier liquidation). Overflow SHALL be detected and reported as an engine error, never wrapped silently.
 
 #### Scenario: Fee rounding
 - **WHEN** a fee computes to a value between two representable units
 - **THEN** it SHALL be rounded toward the direction that costs the player more
 
-#### Scenario: Tick finer than engine scale
-- **WHEN** a scenario declares a tick size that is not an exact multiple of the price scale
-- **THEN** the scenario SHALL be rejected with reason `invalid_scale`
+#### Scenario: Value finer than engine scale
+- **WHEN** a price is given as a decimal with more fractional digits than the price scale (e.g. `1.123456789`)
+- **THEN** parsing SHALL fail with `InvalidDecimal` and no rounded value SHALL be produced
 
 #### Scenario: Overflow
 - **WHEN** a command would make any quantity exceed the int64 range
@@ -80,8 +80,8 @@ After every step the engine SHALL be able to serialize a checkpoint from which r
 - **THEN** its final digest SHALL equal the digest of an uninterrupted run
 
 ### Requirement: Versioning
-The engine SHALL report its semantic version and an execution-policy version. A run SHALL record both, and the engine SHALL refuse to resume a checkpoint produced by an incompatible execution-policy version.
+The engine SHALL report its semantic version and an execution-policy version. A checkpoint SHALL record the execution-policy version and the scenario id, and the engine SHALL refuse to resume a checkpoint produced by another execution-policy version or for another scenario.
 
 #### Scenario: Incompatible checkpoint
-- **WHEN** a checkpoint from execution-policy version 1 is loaded by an engine that only supports version 2
-- **THEN** loading SHALL fail with reason `incompatible_policy_version` and no state SHALL be produced
+- **WHEN** a checkpoint from another execution-policy version is loaded
+- **THEN** loading SHALL fail with `IncompatiblePolicy` (the C ABI restore returns no run) and no state SHALL be produced

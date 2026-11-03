@@ -56,9 +56,15 @@ A new app version SHALL be installed by the service worker in the background and
 ### Requirement: Keyboard operation
 Every action SHALL be reachable by keyboard with visible focus. Default shortcuts SHALL include advance one step, advance batch, open ticket, close position, toggle option chain and open journal, SHALL be listed in a help overlay, and SHALL be remappable. Advance SHALL never share a key with order submission.
 
+The default bindings SHALL be: `Space` advance one bar (stops auto-advance instead while it runs), `Shift+Space` advance five bars (stopping early at a calibration question), `B` / `S` set the ticket side to buy / sell, `X` close the position, `P` open or close the candle pattern sheet, `A` toggle auto-advance, `?` toggle the help overlay and `Esc` close dialogs or cancel marking a level on the chart. Orders are submitted only with the ticket's submit button (`Enter` when it has focus). Shortcuts SHALL be ignored while typing in a field, while a plan or calibration dialog is open or while marking a level on the chart, and with Ctrl/Cmd/Alt held.
+
 #### Scenario: Shortcut help
 - **WHEN** the player presses `?`
 - **THEN** a shortcut overlay SHALL list all bindings
+
+#### Scenario: Space never advances behind a dialog
+- **WHEN** the plan dialog, a calibration question or the pattern sheet is open and the player presses `Space`
+- **THEN** the market SHALL NOT advance
 
 ### Requirement: Session via BFF
 The web client SHALL authenticate only through the game API BFF endpoints, SHALL send the CSRF token on mutating requests and SHALL NOT handle OAuth tokens directly.

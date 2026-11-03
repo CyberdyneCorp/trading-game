@@ -1,11 +1,14 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <optional>
 #include <initializer_list>
 #include <string_view>
 
 #include "tradelab/candle_patterns.hpp"
 #include "tradelab/generator.hpp"
+#include "tradelab/indicators.hpp"
 
 using namespace tradelab;
 
@@ -84,26 +87,67 @@ TEST_CASE("Patterns at t use only bars up to t") {
   for (std::size_t k = 0; k < before.size(); ++k) CHECK(before[k].id == after[k].id);
 }
 
-// The cheat sheet says patterns alone are weak signals; keep that statement true for our markets.
-TEST_CASE("Calibration: isolated candle patterns are barely better than a coin flip") {
+// The cheat sheet and README quote these hit rates; keep them true for our markets.
+// A hit = the close 5 bars after the pattern moved in the pattern's direction. 300 markets.
+struct HitRate {
   int n = 0;
   int wins = 0;
+  [[nodiscard]] double rate() const { return static_cast<double>(wins) / n; }
+};
+
+enum class Filter : std::uint8_t { All, RsiExtreme, Kicker };
+
+bool rsi_extreme(const Series& r, const PatternHit& h) {
+  const std::optional<Price>& v = r[h.step];
+  if (!v.has_value()) return false;
+  const std::int64_t level = h.bias > 0 ? 30 : 70;
+  return h.bias > 0 ? v->raw < level * Price::kScale : v->raw > level * Price::kScale;
+}
+
+bool keep(Filter f, const Series& r, const PatternHit& h) {
+  if (f == Filter::RsiExtreme) return rsi_extreme(r, h);
+  if (f == Filter::Kicker) return h.id.ends_with("kicker");
+  return true;
+}
+
+HitRate pattern_hit_rate(Filter f) {
+  HitRate out;
   for (const MissionInfo& m : mission_catalog()) {
     for (std::uint64_t seed = 1; seed <= 60; ++seed) {
       Scenario s;
       REQUIRE(build_mission(m.id, seed, s));
       const auto last = static_cast<std::uint32_t>(s.bars.size() - 1);
+      const Series r = rsi(s, last, 14);
       for (const PatternHit& h : detect_patterns(s, last)) {
-        if (h.bias == 0 || h.step + 5 > last) continue;
+        if (h.bias == 0 || h.step + 5 > last || !keep(f, r, h)) continue;
         const bool up = s.bars[h.step + 5].close > s.bars[h.step].close;
-        ++n;
-        wins += (h.bias > 0) == up ? 1 : 0;
+        ++out.n;
+        out.wins += (h.bias > 0) == up ? 1 : 0;
       }
     }
   }
-  const double rate = static_cast<double>(wins) / n;
-  MESSAGE("pattern hit rate over 5 bars: " << rate << " (n=" << n << ")");
-  CHECK(n > 1000);
-  CHECK(rate > 0.45);
-  CHECK(rate < 0.60);
+  return out;
+}
+
+TEST_CASE("Calibration: isolated candle patterns are barely better than a coin flip") {
+  const HitRate h = pattern_hit_rate(Filter::All);
+  MESSAGE("pattern hit rate over 5 bars: " << h.rate() << " (n=" << h.n << ")");
+  CHECK(h.n > 1000);
+  CHECK(h.rate() > 0.45);
+  CHECK(h.rate() < 0.60);
+}
+
+TEST_CASE("Calibration: an extreme RSI adds little to a candle pattern") {
+  const HitRate h = pattern_hit_rate(Filter::RsiExtreme);
+  MESSAGE("pattern + RSI extreme hit rate: " << h.rate() << " (n=" << h.n << ")");
+  CHECK(h.n > 100);
+  CHECK(h.rate() > 0.45);
+  CHECK(h.rate() < 0.62);
+}
+
+TEST_CASE("Calibration: kickers carry news information") {
+  const HitRate h = pattern_hit_rate(Filter::Kicker);
+  MESSAGE("kicker hit rate: " << h.rate() << " (n=" << h.n << ")");
+  CHECK(h.n > 20);
+  CHECK(h.rate() > 0.60);
 }

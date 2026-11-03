@@ -14,7 +14,7 @@ The desktop client SHALL run on macOS (arm64, latest two major versions), Window
 - **THEN** every digest SHALL equal the web and server digests
 
 ### Requirement: Direct engine linkage
-The desktop client SHALL link the engine library directly (no WASM, no IPC) and SHALL run simulation work off the UI thread so rendering never blocks on a step.
+The desktop client SHALL link the engine's C++ static library (`tradelab::engine`) directly (no WASM, no IPC) and SHALL run simulation work off the UI thread so rendering never blocks on a step.
 
 #### Scenario: Smooth UI during batch advance
 - **WHEN** the player advances a 50-step batch

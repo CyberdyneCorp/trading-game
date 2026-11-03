@@ -28,11 +28,19 @@ Downloads SHALL be resumable; a pack SHALL be installed atomically only after si
 - **THEN** no partial pack SHALL be usable and the download SHALL resume from the stored offset
 
 ### Requirement: Idempotent batch sync
-When online and authenticated, clients SHALL upload run commands and completions in batches keyed by run id and command sequence. Re-sending a batch SHALL NOT duplicate commands or runs.
+When online and authenticated, clients SHALL upload each run's action log in batches keyed by run id and action sequence number (`seq`, starting at 0); completion is derived by the server from the replayed log. The server SHALL store each run's log append-only under `(run_id, seq)`: re-sent identical actions SHALL be no-ops, an action that differs from the stored one at the same `seq` SHALL fail that run with `conflict` (other runs in the batch unaffected), and only the contiguous prefix extending the stored log SHALL be accepted, so actions after a gap are dropped until the missing ones are sent. Each run's outcome SHALL report the committed action count (`acceptedThrough`). Re-sending a batch SHALL NOT duplicate actions or runs.
 
 #### Scenario: Resent batch (SYNC01)
 - **WHEN** the same batch is sent twice and the user then syncs from a second device
-- **THEN** the server SHALL hold exactly one copy of each command and both devices' attempts SHALL be preserved
+- **THEN** the server SHALL hold exactly one copy of each action and both devices' attempts SHALL be preserved
+
+#### Scenario: Rewritten action
+- **WHEN** a client sends a different action at a `seq` the server already stores
+- **THEN** that run's outcome SHALL carry error `conflict` and the stored log SHALL be unchanged
+
+#### Scenario: Gap in the log
+- **WHEN** the server holds actions 0–1 and a client sends only action 3
+- **THEN** nothing new SHALL be accepted and `acceptedThrough` SHALL remain 2
 
 ### Requirement: Per-device attempts
 Each attempt SHALL have a globally unique run id generated on the device. Attempts from different devices SHALL never overwrite each other; both SHALL be shown.

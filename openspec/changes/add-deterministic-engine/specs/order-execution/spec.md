@@ -7,14 +7,14 @@ Defines how player orders on perpetual futures and options are accepted, trigger
 ## ADDED Requirements
 
 ### Requirement: Supported order types
-The engine SHALL support market, limit, stop-market, take-profit limit, trailing stop-market and bracket (entry + OCO exit pair) orders on perpetual futures, and market and limit orders on options. Any order MAY be flagged reduce-only. Unsupported types SHALL be rejected with reason `unsupported_order_type`.
+The engine SHALL support market, limit, stop-market, take-profit limit, trailing stop-market and bracket (an entry carrying an attached stop and/or take-profit that become an OCO exit pair) orders on perpetual futures, and market and limit orders on options. Any perpetual order MAY be flagged reduce-only; take-profit orders are always reduce-only. Unsupported types SHALL be rejected with reason `unsupported_order_type`.
 
 #### Scenario: Stop-limit not available
 - **WHEN** a stop-limit order is submitted
 - **THEN** it SHALL be rejected with reason `unsupported_order_type`
 
 ### Requirement: Order lifecycle
-Every order SHALL be in exactly one of: `accepted`, `partially_filled`, `filled`, `cancelled`, `rejected`, `expired`, `triggered` (stop/trailing awaiting fill). Each transition SHALL emit an execution event with order id, step, event sequence, new status, filled quantity, fill price, fee, reason and approximation flags. Acceptance SHALL NOT imply execution.
+Every order SHALL be in exactly one of: `accepted`, `partially_filled`, `filled`, `cancelled`, `rejected`, `expired`, `triggered` (stop/trailing awaiting fill; reserved, since in OHLC mode a stop executes within the bar that triggers it). Each transition SHALL emit an order event with order id, step, event sequence, new status, remaining quantity, requested price and reason, and each execution SHALL emit a fill event with quantity, fill price, requested price, fee, realized P&L and approximation flags. Acceptance SHALL NOT imply execution.
 
 #### Scenario: Accepted is not filled
 - **WHEN** a limit order is submitted far from the market
@@ -67,21 +67,22 @@ When only OHLC data is available the engine SHALL: process the open (gaps) first
 - **AND** the fill SHALL be flagged `ambiguousIntrabar`
 
 ### Requirement: Costs
-Each fill SHALL charge the scenario's maker or taker fee on notional, spread and slippage per the scenario cost model, and SHALL respect tick size and lot size. Quantities that do not meet lot size SHALL be rounded down; prices not on a tick SHALL be rejected for limit/stop orders with reason `invalid_tick`.
+Each fill SHALL charge the scenario's maker fee (limits and take-profits) or taker fee (market and stop fills) on notional, and taker fills SHALL pay half-spread plus slippage against the player, rounded onto the tick grid. Quantities that are not a multiple of the lot size (or below the minimum quantity for non-reduce-only orders) SHALL be rejected with reason `invalid_quantity`; client sizing helpers round down to the lot before submitting. Prices and trailing distances not on a tick SHALL be rejected with reason `invalid_tick`.
 
 #### Scenario: Lot rounding
 - **WHEN** a risk-sized order computes 16.66 contracts with a lot size of 0.1
-- **THEN** the submitted quantity SHALL be 16.6
+- **THEN** the client SHALL submit 16.6
+- **AND** an order submitted with 16.66 SHALL be rejected with reason `invalid_quantity`
 
 ### Requirement: Shared capacity
-The sum of all player fills in a step SHALL NOT exceed the step's simulated capacity. In OHLC mode capacity derived from bar volume is a retrospective approximation and SHALL be flagged `capacityFromBarVolume`; it SHALL NOT be shown to the player before the bar completes.
+The sum of all player fills in a step SHALL NOT exceed the step's simulated capacity (the scenario's capacity fraction of bar volume, rounded down to the lot). In OHLC mode capacity derived from bar volume is a retrospective approximation: a fill limited by it SHALL be flagged `capacityFromBarVolume` (`capacityLimited` in the C ABI JSON), and capacity SHALL NOT be shown to the player before the bar completes.
 
 #### Scenario: Capacity exhausted
 - **WHEN** two orders compete for capacity in one step
 - **THEN** they SHALL be filled by price priority then sequence until capacity is exhausted
 
 ### Requirement: Margin check on acceptance
-An order that would open or increase a position SHALL be rejected with reason `insufficient_margin` if available balance cannot cover its initial margin plus estimated fees at the order's worst admissible price. Reduce-only orders SHALL NOT require margin.
+An order that would open or increase a position SHALL be rejected with reason `insufficient_margin` if available balance cannot cover its initial margin plus estimated taker fees at the order's worst admissible price (its limit or trigger price; for market orders the last close plus twice the half-spread and slippage). Accepted resting orders SHALL reserve that margin until they fill or are cancelled, and the margin SHALL be checked again at fill. Reduce-only orders SHALL NOT require margin.
 
 #### Scenario: Insufficient margin
 - **WHEN** a player with 100 credits available submits a 10× long whose initial margin is 150

@@ -18,20 +18,24 @@
 - [ ] 2.2 Fuzz tests for import (libFuzzer on native)
 
 ## 3. Generator
-- [ ] 3.1 Regime/vol/jump process, volume, funding, IV base — segments, vol clustering, jumps, volume, funding, IV done; Markov regime transitions pending (missions script their segments)
-- [x] 3.1a Generator v2 market structure (fair value, range/trend anchors, momentum, compression, tilted breakouts, crowding squeezes) with calibration tests; missions m01–m05 redesigned; execution policy v5
-- [x] 3.2 Event model with seeded reaction distributions
-- [ ] 3.3 Player-independence and branch-label tests
+- [ ] 3.1 Regime/vol/jump process, volume, funding, IV base — scripted segments, GARCH-like vol clustering, jumps, volume tied to |return|, funding rule and IV base done (`engine/src/generator.cpp`); Markov regime transitions pending (missions script their segments)
+- [x] 3.1a Generator v2 market structure (fair value, range/trend anchors, momentum, compression, tilted breakouts, crowding squeezes) with calibration tests (`engine/tests/test_generator.cpp`); missions m01–m05 redesigned; execution policy v5
+- [ ] 3.2 Event model with seeded reaction distributions — done: release step, credibility, expectation/actual (surprise), seeded reaction direction (none / along the surprise / reversed), transient drift, volatility, volume and IV channels, duration, fair-value impact (surprise × credibility); test of the reaction distribution over 1,000 seeds. Pending: lead time, jump/spread/capacity/funding channels, sampled intensity (magnitude is fixed per event)
+- [ ] 3.3 Player-independence and branch-label tests — player independence done (`test_missions.cpp` "events never depend on the player"); branch-label test pending (no branch mode yet)
 - [ ] 3.4 Calibration report notebook + first report
 
 ## 4. Gameplay rules and scoring
-- [ ] 4.1 Mission schema (objectives, permissions, leverage cap, warnings)
-- [ ] 4.2 Plan/journal/wait decision records in the command log — plans and calibration answers are engine commands; explicit wait records pending
-- [x] 4.3 `engine/scoring`: dimensions, renormalization, Brier, golden tests EDU01/EDU02
-- [ ] 4.4 Debrief aggregates + Greek attribution + next-lesson mapping
+- [ ] 4.1 Mission schema (objectives, permissions, leverage cap, warnings) — engine `MissionRules` has initial balance, leverage cap, warm-up and short permission, plus option short-writing permission; objectives are client i18n text (`apps/web/src/lib/game/missions.ts`), the liquidation-distance warning is a fixed 3% in the client, the briefing does not yet list option buy/write permissions, and a stop beyond liquidation is warned but needs no explicit confirmation
+- [ ] 4.2 Plan/journal/wait decision records in the command log — plans and calibration answers are engine commands; every advance is a logged client action, but there is no explicit engine `wait` record and the debrief only reports "waited" when the whole mission had no entries
+- [x] 4.3 `engine/scoring`: dimensions, renormalization, Brier, golden tests EDU01/EDU02 (`engine/src/scoring.cpp`, `engine/tests/test_scoring.cpp`)
+- [ ] 4.4 Debrief aggregates + Greek attribution + next-lesson mapping — done: realized P&L, fees, funding, option realized, max drawdown, peak leverage, buy-and-hold and flat comparison, per-trade R table, findings, next-lesson codes (Futures II, Risk, Futures III, Orders, Structure, Evaluation); engine also returns turnover and minimum liquidation distance but the web debrief does not show them. Pending: separate spread/slippage line, Greek attribution, "leverage that would have kept the stop in front of liquidation", theta/IV → Options lesson mapping
+- [ ] 4.5 Understanding dimension from structured answers and human-reviewed rubrics (scoring v1 always reports it non-applicable)
+- [ ] 4.6 Risk dimension inputs beyond scoring v1: adherence to planned risk, leverage vs stop distance, liquidation distance kept, drawdown vs a mission-declared budget
+- [ ] 4.7 Campaign runs: capital carried between missions, bankruptcy ends the campaign run (single-mission game-over screen → debrief is done)
+- [ ] 4.8 Assisted practice: rewind / change seed as a new attempt flagged `assisted`, excluded from progress
 
 ## 5. Content
 - [ ] 5.1 `tools/packer` CLI
-- [ ] 5.2 Phase-1 content: 1 synthetic perp mission (breakout fails, stop works)
-- [ ] 5.3 Phase-2 content: 12 missions, ≥4 regimes, 3 event families, options chapters
+- [x] 5.2 Phase-1 content: 1 synthetic perp mission (breakout fails, stop works) — `m01-false-breakout`, built into `engine/src/missions.cpp` (moves to a pack with 1.x)
+- [ ] 5.3 Phase-2 content: 12 missions, ≥4 regimes, 3 event families, options chapters — 5 built-in missions so far (m01–m03 perpetuals, m04 options buying, m05 options writing)
 - [ ] 5.4 Curriculum graph and unlock rules as data; tests for gating and non-destructive failure

@@ -6,10 +6,18 @@
 SvelteKit (Svelte 5 runes) + TypeScript strict + Vite; `adapter-node` deployed on Coolify at `tradelab[-dev].coolify.cyberdynecorp.ai`; its server reverse-proxies `/api/*` to the API service so the BFF cookie is host-only and first-party. Vitest for units, Playwright for E2E + axe accessibility checks.
 
 ### D2. MVVM
+Target layout:
 - `lib/engine/` — worker + typed protocol (types generated from engine IDL).
 - `lib/viewmodels/` — Svelte runes stores per screen (TerminalVM, TicketVM, ChainVM, DebriefVM). No business logic in components.
 - `lib/views/` — components only bind to VMs.
 - `lib/services/` — api client (BFF), persistence (IndexedDB via `idb`), sync.
+
+As built (Phase 1/2 slice):
+- `src/lib/engine/` — `engine.worker.ts` (hosts the WASM module), `client.ts` (promise-based, strictly ordered requests), `protocol.ts` + `types.ts` (hand-written types mirroring the C-ABI JSON; IDL generation pending), `wasm/` (build output of `scripts/build-engine.sh`, gitignored).
+- `src/lib/game/` — view-models as Svelte 5 rune classes: `session.svelte.ts` (`GameSession`: screen flow, action log, persistence, replay), `autoplay.svelte.ts`, `settings.svelte.ts`, `pwa.svelte.ts`, `i18n.svelte.ts`; plus pure, unit-tested helpers (`sizing`, `stops`, `optionsMath`, `calibration`, `analysis`, `format`, `news`, `candlePatterns`, `chartPatterns`) and `storage.ts` (raw IndexedDB, no `idb` dependency).
+- `src/lib/components/` — views (Terminal, Chart + `chartPanes.ts`, OrderTicket, OptionTicket, OptionChain, RightRail, TopBar, Briefing, Debrief, MissionMenu, PlanDialog, CalibrationDialog, PatternSheet, HelpOverlay, …). Terminal-local UI state (open dialogs, ticket draft) lives in components; game rules live in the engine.
+- `src/service-worker.ts`, `src/routes/+page.svelte` (single page switching screens), `e2e/` (Playwright).
+- No BFF client or sync yet.
 
 ### D3. Chart rendering
 Custom Canvas2D renderer (pixel-snapped candles, bitmap font for labels) instead of a charting library: full control of retro look, no license questions, and the data model is simple (OHLCV + lines). WebGL is a later optimization only if the 5,000-bar budget fails. Accessible table rendered as hidden DOM, kept in sync with the current step. Decision revisited after the Phase 0 spike (product-spec §20.4).
@@ -27,6 +35,8 @@ CSS/Canvas post-effects (scanline overlay, subtle bloom via filter) behind a set
 ### D5. i18n
 `svelte-i18n` or Paraglide (compile-time) — pick Paraglide for tree-shaken catalogs; PT-BR default.
 
+As built: a small typed catalog in `src/lib/game/i18n.svelte.ts` (locales `pt-BR` default and `en`, keys type-checked against the PT-BR catalog, `{param}` interpolation); mission texts in `missions.ts`, pattern texts in `candlePatterns.ts`/`chartPatterns.ts`. The locale is stored with the display settings and only affects formatting. Revisit Paraglide when catalogs grow.
+
 ## Phase 1 slice: deliberate deviations (to close before MVP)
 
 - ~~Persistence in localStorage~~ — resolved: IndexedDB (`runs`, `actions[runId, seq]`, `meta`); each action is committed in its own transaction before the engine sees it; resume replays the gap-free prefix; v1 localStorage saves are migrated.
@@ -36,7 +46,9 @@ CSS/Canvas post-effects (scanline overlay, subtle bloom via filter) behind a set
 - **Mission texts:** titles/taglines are neutral; what the scenario was designed to teach is revealed only in the debrief.
 - **Imports:** SvelteKit 3 uses `#lib/...` subpath imports with explicit extensions.
 - **Adapter:** `adapter-static` until the BFF lands (then `adapter-node`).
-- **Chart:** custom Canvas2D renderer as designed (D3); the 5,000-bar budget is not yet measured.
+- **Chart:** custom Canvas2D renderer as designed (D3); the 5,000-bar budget is not yet measured. The screen-reader table holds the last 20 closed bars.
+- **CI browsers:** Playwright runs Chromium only; WebKit and axe checks are still open (tasks 1.1).
+- **Engine protocol:** TypeScript types are hand-written against the C-ABI JSON, not generated from an IDL.
 
 ## Risks
 - Canvas text rendering of pixel fonts across DPRs → bitmap atlas at integer scales.

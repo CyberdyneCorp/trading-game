@@ -28,9 +28,16 @@ Results must be bit-identical on native x86-64/arm64, WASM, Python and Swift. En
 
 ## Golden digests
 
-`tests/test_det_math.cpp` and `tests/test_prng.cpp` freeze SHA-256 digests of kernel outputs and normal variates. CI runs them on every target. A digest failure means cross-platform results diverged. Do **not** update the digest to make CI green.
+There is no separate fixtures directory: the goldens are SHA-256 digests frozen inside the tests.
 
-The only legitimate update is an intentional change to a kernel or PRNG. That change must:
+- `tests/test_det_math.cpp`, `tests/test_prng.cpp`: kernel outputs and normal variates.
+- `tests/test_options.cpp` (OPT01): a grid of option quotes and Greeks.
+- `tests/test_missions.cpp`: scripted mission runs through the C ABI (state and event-stream digests).
+- `bindings/python/tests/test_engine.py`: repeats the `m01-false-breakout` scripted run through the Python binding and checks the same digests.
+
+CI runs them on every target (linux-x86_64, macos-arm64, wasm under node, Python). A digest failure means cross-platform results diverged. Do **not** update the digest to make CI green.
+
+The only legitimate update is an intentional change to a kernel, the PRNG, the generator or execution rules. That change must:
 
 1. bump the execution-policy version (old runs must keep replaying), and
-2. be explained in the PR, regenerating the digest from a native build and confirming WASM matches it.
+2. be explained in the PR, regenerating the digest from a native build, confirming WASM matches it, and updating the Python mirror of any changed mission digest.

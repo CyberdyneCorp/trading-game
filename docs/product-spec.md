@@ -11,7 +11,7 @@ Working name: **Cyberdyne TradeLab**. Commercial name, monetization and final id
 | Area | v0.1 | v0.2 | Why |
 |---|---|---|---|
 | Instruments | Spot long only; short/leverage/options out of MVP | **No spot.** Linear perpetual futures (long/short, isolated margin, funding, liquidation) + European cash-settled options (long and short), model-priced | Product goal is to teach derivatives; spot adds a third accounting model without teaching value |
-| Shared engine | Rust → WASM + Swift/Kotlin bindings | **C++20** → WASM (Emscripten), Swift C++ interop, nanobind (server), JNI (later) | Desktop client is C++20 anyway: one systems language, the desktop links the engine directly |
+| Shared engine | Rust → WASM + Swift/Kotlin bindings | **C++20** → WASM (Emscripten), Swift C++ interop, a C ABI + Python ctypes binding (server), JNI (later) | Desktop client is C++20 anyway: one systems language, the desktop links the engine directly |
 | Clients | Web → Android → iOS | **Web (SvelteKit) → Desktop (C++20, Dear ImGui + SDL3) → iPad/iPhone (SwiftUI) → Android (later)** | User priority |
 | Backend | Unspecified stack | Python + FastAPI (hexagonal), PostgreSQL, object storage, on Coolify; replays runs with the same engine via the python binding | Same engine on the server = authoritative re-simulation |
 | Auth | "Inspect CyberdyneAuth first" | Concrete: OIDC auth-code + PKCE (S256 mandatory), web via BFF with HttpOnly cookies, native apps as public clients, client roles + entitlements from token claims | Contract inspected (see `openspec/changes/add-cyberdyne-identity-and-backend/design.md`) |
@@ -151,6 +151,8 @@ Ticket accepts quantity, notional, % of equity or risk budget. Risk sizing uses 
 
 Event types: rate announcement, fictional regulatory change, fictional exchange incident, network outage, liquidity in/out, fictional institutional adoption, denied rumor, funding squeeze, volatility event (IV crush/spike). Each event has release time, credibility, prior expectation, surprise, impact channels (drift, volatility, jumps, volume, spread, capacity, funding, IV), intensity and duration. Reactions depend on regime and surprise, include no reaction and reversal, are seeded and versioned, and never depend on the player's position. LLMs may help author narratives offline; they never decide fills, invent historical facts or run at play time.
 
+The synthetic generator combines technical structure (range and trend anchors, momentum), a hidden fundamental fair value moved by news, crowding squeezes and seeded noise, calibrated so analysis gives a probabilistic edge, never a certain one. Design: `openspec/changes/add-scenarios-and-gameplay/design.md` (D3a); summary in the root `README.md`.
+
 ## 12. Debrief
 
 Market identity and period (when allowed), historical/synthetic label; timeline of hypotheses, news, orders, fills, funding payments, margin changes; costs, net return, max drawdown, peak leverage, minimum liquidation distance, turnover; requested vs trigger vs executed price; ambiguity flags; comparison to staying flat and to a 1× buy-and-hold perp; for options, P&L attribution by delta / gamma / theta / vega (approximate, labeled); what was good management, what was luck, what needs repetition; recommended next lesson. No recommendation to buy any real asset.
@@ -160,7 +162,7 @@ Market identity and period (when allowed), historical/synthetic label; timeline 
 ```
 clients (web · desktop · iOS · Android later)
    └─ engine adapter (worker / direct link / Swift interop / JNI)
-        └─ C++20 deterministic core  ◄── same core in services/api via nanobind
+        └─ C++20 deterministic core  ◄── same core in services/api via the C ABI (Python ctypes)
 clients ─► game API (FastAPI) ─► PostgreSQL · object storage
    └──────► CyberdyneAuth (OIDC)
 ```
@@ -186,7 +188,9 @@ See `openspec/changes/add-cyberdyne-identity-and-backend/`. Summary: CyberdyneAu
 | 2 Web MVP | 12 missions, ≥4 regimes, 3 event families, options buy+write, limit/trailing/OCO, indicators, journal, progression, catalog, sync, installable offline PWA | Execution, usability, content and security tests green |
 | 3 Desktop | C++20 + Dear ImGui + SDL3 client, offline packs, sync | Same fixtures/digests as web; full mission offline |
 | 4 iPad/iPhone | SwiftUI, Swift C++ interop, offline packs, sync | Same digests; airplane-mode mission |
-| 5 Expansion | MACD/Bollinger, stop-limit, multi-timeframe, editorial admin, online comparable challenges, Android | Per change |
+| 5 Expansion | Stop-limit, multi-timeframe, editorial admin, online comparable challenges, Android | Per change |
+
+Progress (2026-11-03): phase 0 done; phase 1 done except staging login; from phase 2, five missions (3 perp, 2 options), options buy+write, trailing/brackets, indicators (incl. MACD, Bollinger, VWAP, ADX), candle-pattern detection, installable offline PWA and the sync API are built — see the root `README.md`.
 
 **Out of MVP:** real money, broker connections, cross margin, hedge mode, portfolio margin, American options, multi-asset portfolios, social trading, global financial ranking, public authoring without moderation, any return promise.
 
