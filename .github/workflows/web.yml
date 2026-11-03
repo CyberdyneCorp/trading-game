@@ -1,0 +1,37 @@
+name: web
+
+on:
+  pull_request:
+    paths: ["apps/web/**", "engine/**", ".github/workflows/web.yml"]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: apps/web/package-lock.json }
+      - uses: mymindstorm/setup-emsdk@v14
+        with: { version: 6.0.13 }
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Build engine to WASM
+        run: ./scripts/build-engine.sh
+      - run: npm ci
+      - name: Type check
+        run: npm run check
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: E2E (Chromium)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e

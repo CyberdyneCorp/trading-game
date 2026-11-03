@@ -1,0 +1,217 @@
+/* Retro phosphor terminal (spec terminal-ui "Visual system"). Contrast checked with tools, not assumed. */
+:root {
+	--bg: #0b1010;
+	--panel: #121c1b;
+	--panel-2: #172423;
+	--line: #24413a;
+	--text: #e3f5ea;
+	--muted: #8fb3a1;
+	--accent: #39ff88;
+	--attention: #ffc857;
+	--info: #4fd8ff;
+	--up: #39ff88;
+	--down: #ff5f7a;
+	--danger: #ff5f7a;
+	--font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+	--font-pixel: 'VT323', var(--font-mono);
+	--radius: 2px;
+	color-scheme: dark;
+}
+
+/* Colorblind-safe palette: blue/orange instead of green/red. */
+:root[data-palette='cb'] {
+	--up: #4fd8ff;
+	--down: #ffa64d;
+	--danger: #ffa64d;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+h1,
+h2,
+h3 {
+	font-family: var(--font-pixel);
+	font-weight: 400;
+	letter-spacing: 0.04em;
+	color: var(--accent);
+	margin: 0 0 0.4em;
+}
+
+h1 {
+	font-size: 2.6rem;
+}
+h2 {
+	font-size: 1.7rem;
+}
+h3 {
+	font-size: 1.3rem;
+}
+
+button,
+input,
+select,
+textarea {
+	font: inherit;
+	color: inherit;
+}
+
+button {
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	padding: 0.45em 0.9em;
+	cursor: pointer;
+	min-height: 32px;
+}
+button:hover:not(:disabled) {
+	border-color: var(--accent);
+}
+button:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+button.primary {
+	background: #0f2a1d;
+	border-color: var(--accent);
+	color: var(--accent);
+}
+button.buy {
+	border-color: var(--up);
+	color: var(--up);
+}
+button.sell {
+	border-color: var(--down);
+	color: var(--down);
+}
+button.warn {
+	border-color: var(--attention);
+	color: var(--attention);
+}
+
+input,
+select,
+textarea {
+	background: #081010;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	padding: 0.35em 0.5em;
+	width: 100%;
+}
+
+:focus-visible {
+	outline: 2px solid var(--info);
+	outline-offset: 2px;
+}
+
+.panel {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	padding: 0.7rem 0.8rem;
+	min-width: 0;
+}
+
+.panel-title {
+	font-family: var(--font-pixel);
+	font-size: 1.25rem;
+	color: var(--accent);
+	margin: 0 0 0.4rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.muted {
+	color: var(--muted);
+}
+.up {
+	color: var(--up);
+}
+.down {
+	color: var(--down);
+}
+.attention {
+	color: var(--attention);
+}
+.info {
+	color: var(--info);
+}
+.num {
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+	white-space: nowrap;
+}
+
+.kv {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 0.15rem 0.8rem;
+	margin: 0;
+}
+.kv dt {
+	color: var(--muted);
+}
+.kv dd {
+	margin: 0;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.tag {
+	display: inline-block;
+	font-size: 0.75rem;
+	border: 1px solid currentColor;
+	padding: 0 0.35em;
+	border-radius: var(--radius);
+	letter-spacing: 0.05em;
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.7);
+	display: grid;
+	place-items: center;
+	z-index: 50;
+	padding: 1rem;
+}
+.modal {
+	background: var(--panel);
+	border: 1px solid var(--accent);
+	box-shadow: 0 0 24px rgba(57, 255, 136, 0.15);
+	max-width: 640px;
+	width: 100%;
+	max-height: 90vh;
+	overflow: auto;
+	padding: 1.2rem 1.4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		transition: none !important;
+		animation: none !important;
+	}
+}
