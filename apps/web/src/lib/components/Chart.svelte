@@ -109,6 +109,7 @@
 		drawVolume(ctx, slotW, volTop, volH, x);
 		drawCandles(ctx, slotW, x, y);
 		drawFills(ctx, x, y);
+		drawNews(ctx, x, priceH);
 		if (showSma) drawLine(ctx, game.indicators.sma20, cssVar('--attention'), x, y);
 		if (showEma) drawLine(ctx, game.indicators.ema50, cssVar('--info'), x, y);
 		for (const l of lv) drawLevel(ctx, l, plotW, y);
@@ -236,6 +237,25 @@
 		}
 		ctx.stroke();
 		ctx.globalAlpha = 1;
+	}
+
+	// News markers at release bars: dotted line + "N" flag (released items only exist in the state).
+	function drawNews(ctx: CanvasRenderingContext2D, x: (i: number) => number, priceH: number) {
+		ctx.font = '12px VT323, monospace';
+		for (const n of game.news) {
+			const i = n.step - first;
+			if (i < 0 || i >= visible.length) continue;
+			const color = n.tone > 0 ? cssVar('--up') : n.tone < 0 ? cssVar('--down') : cssVar('--attention');
+			ctx.strokeStyle = color;
+			ctx.setLineDash([2, 3]);
+			ctx.beginPath();
+			ctx.moveTo(x(i), 12);
+			ctx.lineTo(x(i), priceH);
+			ctx.stroke();
+			ctx.setLineDash([]);
+			ctx.fillStyle = color;
+			ctx.fillText('N', x(i) - 3, 10);
+		}
 	}
 
 	function drawLevel(ctx: CanvasRenderingContext2D, l: Level, plotW: number, y: (p: number) => number) {

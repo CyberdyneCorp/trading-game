@@ -22,6 +22,7 @@ export function game(events: EngineEvent[], extra: Partial<GameState> = {}): Gam
 		totals: { realizedPnl: '0', feesPaid: '0', fundingNet: '0', insuranceAbsorbed: '0', turnover: '0', peakEquity: '10000',
 			maxDrawdown: '0', peakLeverageBp: 0, minLiqDistanceBp: -1, liquidations: 0, fills: 0, ambiguousFills: 0,
 			optionCash: '0', optionRealized: '0' },
+		news: [],
 		indicators: { version: 1, sma20: [], ema50: [], rsi14: [], atr14: [] },
 		options: { enabled: false, allowShort: false, multiplier: '1', premiumTick: '0.01', lotSize: '0.1', longValue: '0',
 			shortValue: '0', initialMargin: '0', maintenanceMargin: '0', chain: [], positions: [] },

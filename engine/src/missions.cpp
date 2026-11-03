@@ -62,6 +62,9 @@ MissionDef false_breakout() {
       {14, -0.0070, 0.0100, 0.08, -0.025, 2.0, 0.0},  // failure
       {46, 0.0002, 0.0070, 0.02, 0.0, 1.0, 0.0},      // chop
   };
+  // A positive rumor right before the breakout; the market usually sells the news.
+  m.gen.events = {{{72, NewsKind::InstitutionalAdoption, 1, 45, 1, 1}, 0.15, 0.25, 0.004, 6, 1.6, 1.2},
+                  {{82, NewsKind::RumorDenied, -1, 85, 1, -1}, 0.2, 0.7, 0.003, 5, 1.3, 1.1}};
   m.info = {"m01-false-breakout", total_bars(m.gen), 60, 5, true};
   return m;
 }
@@ -76,6 +79,9 @@ MissionDef funding_squeeze() {
       {30, -0.0010, 0.0110, 0.05, -0.03, 1.8, -0.0004},
       {20, 0.0000, 0.0080, 0.00, 0.0, 1.0, 0.0},
   };
+  // An inflow headline at the top of the squeeze; a rate decision that disappoints.
+  m.gen.events = {{{100, NewsKind::LiquidityInflow, 1, 70, 1, 1}, 0.3, 0.5, 0.002, 4, 1.2, 1.0},
+                  {{112, NewsKind::RateDecision, -1, 100, 0, -1}, 0.15, 0.7, 0.004, 8, 1.6, 1.3}};
   m.info = {"m02-funding-squeeze", total_bars(m.gen), 50, 10, true};
   m.funding_interval = 4;
   return m;
@@ -90,6 +96,8 @@ MissionDef volatility_shock() {
       {25, 0.0010, 0.0200, 0.15, 0.03, 2.5, 0.0},
       {42, 0.0001, 0.0080, 0.02, 0.0, 1.2, 0.0},
   };
+  // The shock arrives with an exchange incident headline (credible, very negative surprise).
+  m.gen.events = {{{79, NewsKind::ExchangeIncident, -1, 90, 0, -2}, 0.05, 0.85, 0.006, 6, 1.8, 1.5}};
   m.info = {"m03-volatility-shock", total_bars(m.gen), 60, 20, true};
   return m;
 }
@@ -103,6 +111,8 @@ MissionDef options_buyer() {
       {20, 0.0045, 0.0110, 0.05, 0.02, 2.2, 0.0002, 1.2},  // breakout
       {38, 0.0002, 0.0050, 0.01, 0.0, 1.0, 0.0, 0.75},     // IV crush after the event
   };
+  // The event the implied vol was pricing: a rate decision, announced before the breakout.
+  m.gen.events = {{{81, NewsKind::RateDecision, 1, 100, 0, 1}, 0.2, 0.6, 0.004, 8, 1.4, 1.0}};
   m.info = {"m04-options-buyer", total_bars(m.gen), 60, 3, true};
   m.options = true;
   m.chain = {0, {36, 76}, 2, 5.0};
@@ -119,6 +129,8 @@ MissionDef options_writer() {
       {3, -0.0200, 0.0200, 0.70, -0.05, 3.5, -0.0008, 1.8},  // jump
       {27, 0.0005, 0.0120, 0.05, 0.0, 1.6, 0.0, 1.3},
   };
+  // A network outage is announced as the jump hits.
+  m.gen.events = {{{119, NewsKind::NetworkOutage, -1, 80, 0, -2}, 0.05, 0.8, 0.005, 5, 1.6, 1.4}};
   m.info = {"m05-options-writer", total_bars(m.gen), 60, 3, true};
   m.options = true;
   m.allow_short_options = true;
