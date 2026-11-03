@@ -21,6 +21,7 @@ from ..config import Settings
 from ..domain.errors import DomainError, InvalidLog, NotFound
 from ..domain.models import IncomingRun
 from ..ports import Replayer, TokenVerifier
+from .body_limit import BodyLimit
 from .schemas import SyncBatchIn, SyncOutcomeOut
 
 
@@ -35,12 +36,7 @@ def create_app(settings: Settings, verifier: TokenVerifier, replayer: Replayer, 
     factory: sessionmaker[Session] = session_factory(make_engine(settings.database_url))
     clock = clock or SystemClock()
 
-    @app.middleware("http")
-    async def limit_body(request: Request, call_next: Callable[..., Any]) -> Any:
-        length = request.headers.get("content-length")
-        if length and int(length) > settings.max_body_bytes:
-            return JSONResponse({"detail": "request too large"}, status_code=413)
-        return await call_next(request)
+    app.add_middleware(BodyLimit, max_bytes=settings.max_body_bytes)
 
     def session() -> Iterator[Session]:
         with factory() as s:

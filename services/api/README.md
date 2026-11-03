@@ -31,7 +31,7 @@ Docker image (build context = repo root): `docker build -f services/api/Dockerfi
 | `TRADELAB_DATABASE_URL` | `sqlite+pysqlite:///:memory:` | SQLAlchemy URL (`postgresql+psycopg://...` in production) |
 | `TRADELAB_OIDC_DISCOVERY_URL` | `https://auth.backend.coolify.cyberdynecorp.ai/.well-known/openid-configuration` | CyberdyneAuth discovery; issuer, JWKS and algorithms come from it |
 | `TRADELAB_AUDIENCE` | `tradelab-api` | Required `aud` of access tokens |
-| `TRADELAB_MAX_BODY_BYTES` | `4194304` | Requests with a larger `Content-Length` get 413 |
+| `TRADELAB_MAX_BODY_BYTES` | `4194304` | Larger bodies get 413 (declared `Content-Length` or bytes actually streamed); a malformed `Content-Length` gets 400 |
 | `TRADELAB_LIB` | (search path) | Path to `libtradelab` (set in the Docker image) |
 | `TRADELAB_TEST_DATABASE_URL` | unset | Tests only: run the suite against this database |
 

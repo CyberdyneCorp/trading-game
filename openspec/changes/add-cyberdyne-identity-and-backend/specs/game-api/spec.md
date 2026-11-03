@@ -69,7 +69,7 @@ Packs SHALL be served by content digest, immutable, with `Content-Length`, stron
 - **THEN** the API SHALL return 206 with the requested range
 
 ### Requirement: Limits and validation
-The API SHALL enforce a request size limit (`TRADELAB_MAX_BODY_BYTES`, default 4 MiB, 413), at most 50 runs per sync batch (413), at most 20,000 actions per run (more in one request fails schema validation; a stored log that would exceed it fails that run with `invalid_log`), per-user rate limits, and schema validation (422). Monetary values SHALL travel as decimal strings, SHALL NOT be parsed into floats by the API, and SHALL be parsed by the engine as int64 fixed-point identically on client and server.
+The API SHALL enforce a request size limit (`TRADELAB_MAX_BODY_BYTES`, default 4 MiB, 413) on the declared `Content-Length` and on the bytes actually received (so chunked bodies are limited too), rejecting a malformed `Content-Length` with 400, at most 50 runs per sync batch (413), at most 20,000 actions per run (more in one request fails schema validation; a stored log that would exceed it fails that run with `invalid_log`), per-user rate limits, and schema validation (422). Monetary values SHALL travel as decimal strings, SHALL NOT be parsed into floats by the API, and SHALL be parsed by the engine as int64 fixed-point identically on client and server.
 
 #### Scenario: Oversized batch
 - **WHEN** a sync batch contains more than 50 runs
