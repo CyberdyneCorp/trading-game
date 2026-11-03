@@ -53,11 +53,18 @@ Stop-loss and take-profit fields (new orders and protection of an open position)
 - **THEN** the ticket SHALL explain the problem and the submit button SHALL be disabled
 
 ### Requirement: Indicator panes
-The chart SHALL offer SMA20, EMA50 and session VWAP as price overlays and a lower pane selectable between RSI(14) with 30/70 guides, MACD(12,26,9) with histogram, ADX(14) with +DI/−DI and a 25 guide, or volume only. Values SHALL come from the engine (spec indicators) and appear in the hover readout formatted for the locale.
+The chart SHALL offer SMA20, EMA50, session VWAP and Bollinger(20, 2) as price overlays and a lower pane selectable between RSI(14) with 30/70 guides, MACD(12,26,9) with histogram, ADX(14) with +DI/−DI and a 25 guide, or volume only. Values SHALL come from the engine (spec indicators) and appear in the hover readout formatted for the locale.
 
 #### Scenario: Switch oscillator
 - **WHEN** the player selects MACD in the lower pane
 - **THEN** the pane SHALL draw the MACD line, signal and histogram for the visible bars and the readout SHALL show the hovered values
+
+### Requirement: Candle pattern cheat sheet
+The terminal SHALL offer a candle pattern reference (button and `P` key) listing at least the common single, double and triple candle patterns (hammer, inverted hammer, shooting star, hanging man, engulfing, piercing line, dark cloud cover, harami, tweezers, morning/evening star, three white soldiers, three black crows, doji, spinning top, marubozu), each with a drawing including its usual trend context, shape, what it suggests and what confirms it, filterable by bias (bullish, bearish, indecision). It SHALL state that patterns alone are weak signals. While open it SHALL be modal: Space SHALL NOT advance the simulation behind it.
+
+#### Scenario: Filter bearish patterns
+- **WHEN** the player opens the sheet and selects "bearish"
+- **THEN** only bearish patterns SHALL be listed, each with its drawing and confirmation hint
 
 ### Requirement: Option chain and option ticket
 The option chain SHALL list listed series by expiry and strike with bid, ask, IV and delta, labeled "simulated premiums". The option ticket SHALL show premium, max loss for buys, margin for writes, breakeven, a payoff-at-expiry diagram and Greeks before submission.

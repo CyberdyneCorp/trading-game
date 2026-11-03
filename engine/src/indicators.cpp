@@ -68,6 +68,20 @@ std::optional<Price> minus(const std::optional<Price>& a, const std::optional<Pr
   return Price::from_raw(a->raw - b->raw);
 }
 
+// floor(sqrt(v)) for v >= 0, exact integer arithmetic.
+std::int64_t isqrt(i128 v) {
+  if (v <= 0) return 0;
+  using u128 = unsigned __int128;
+  const u128 n = static_cast<u128>(v);
+  u128 x = n;
+  u128 y = (x + 1) / 2;
+  while (y < x) {
+    x = y;
+    y = (x + n / x) / 2;
+  }
+  return static_cast<std::int64_t>(x);
+}
+
 struct DirectionalMove {
   std::int64_t plus = 0;
   std::int64_t minus = 0;
@@ -211,6 +225,31 @@ Adx adx(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
     a.adx[i] = Price::from_raw(smoothed);
   }
   return a;
+}
+
+Bollinger bollinger(const Scenario& sc, std::uint32_t last, std::uint32_t period, std::uint32_t k) {
+  Bollinger b{sma(sc, last, period), empty(last), empty(last)};
+  if (period == 0) return b;
+  i128 sum = 0;
+  i128 sum_sq = 0;
+  for (std::uint32_t i = 0; i <= last; ++i) {
+    const i128 c = sc.bars[i].close.raw;
+    sum += c;
+    sum_sq += c * c;
+    if (i >= period) {
+      const i128 old = sc.bars[i - period].close.raw;
+      sum -= old;
+      sum_sq -= old * old;
+    }
+    const std::optional<Price>& mid = b.middle[i];
+    if (!mid) continue;
+    // population variance = (n * sum(x^2) - sum(x)^2) / n^2
+    const i128 n = period;
+    const std::int64_t width = isqrt((n * sum_sq - sum * sum) / (n * n)) * static_cast<std::int64_t>(k);
+    b.upper[i] = Price::from_raw(mid->raw + width);
+    b.lower[i] = Price::from_raw(mid->raw - width);
+  }
+  return b;
 }
 
 }  // namespace tradelab

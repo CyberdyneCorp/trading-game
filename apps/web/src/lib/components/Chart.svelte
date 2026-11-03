@@ -30,6 +30,7 @@
 	let showSma = $state(true);
 	let showEma = $state(true);
 	let showVwap = $state(false);
+	let showBb = $state(false);
 	let osc = $state<Oscillator>('rsi');
 	let hoverY = $state<number | null>(null);
 	// Price scale of the last frame, used to turn a click into a price while picking.
@@ -159,6 +160,7 @@
 		drawNews(ctx, x, priceH);
 		if (showSma) drawLine(ctx, game.indicators.sma20, cssVar('--attention'), x, y);
 		if (showEma) drawLine(ctx, game.indicators.ema50, cssVar('--info'), x, y);
+		if (showBb) drawBands(ctx, x, y);
 		if (showVwap) drawLine(ctx, game.indicators.vwap, cssVar('--vwap'), x, y);
 		for (const l of lv) drawLevel(ctx, l, plotW, y);
 		if (osc !== 'none') {
@@ -316,6 +318,26 @@
 		ctx.globalAlpha = 1;
 	}
 
+	// Bollinger(20, 2): both bands plus a faint fill between them.
+	function drawBands(ctx: CanvasRenderingContext2D, x: (i: number) => number, y: (p: number) => number) {
+		const { bbUpper, bbLower } = game.indicators;
+		const color = cssVar('--bb');
+		ctx.fillStyle = color;
+		ctx.globalAlpha = 0.06;
+		ctx.beginPath();
+		const idx = [...Array(visible.length).keys()].filter((i) => bbUpper[first + i] != null && bbLower[first + i] != null);
+		idx.forEach((i, n) => {
+			const py = y(Number(bbUpper[first + i]));
+			if (n === 0) ctx.moveTo(x(i), py);
+			else ctx.lineTo(x(i), py);
+		});
+		for (const i of [...idx].reverse()) ctx.lineTo(x(i), y(Number(bbLower[first + i])));
+		ctx.fill();
+		ctx.globalAlpha = 1;
+		drawLine(ctx, bbUpper, color, x, y);
+		drawLine(ctx, bbLower, color, x, y);
+	}
+
 	// News markers at release bars: dotted line + "N" flag (released items only exist in the state).
 	function drawNews(ctx: CanvasRenderingContext2D, x: (i: number) => number, priceH: number) {
 		ctx.font = '12px VT323, monospace';
@@ -412,7 +434,7 @@
 
 	$effect(() => {
 		// Redraw on any dependency change (game, size, hover, zoom, locale).
-		void [game, width, height, hover, hoverY, zoom, i18n.locale, visible, showSma, showEma, showVwap, osc, preview, picking];
+		void [game, width, height, hover, hoverY, zoom, i18n.locale, visible, showSma, showEma, showVwap, showBb, osc, preview, picking];
 		draw();
 	});
 </script>
@@ -433,6 +455,7 @@
 			<span class="info">RSI14 {rsiV != null ? Number(rsiV).toFixed(1) : '—'}</span>
 			<span class="muted">ATR14 {atrV != null ? fmtPrice(atrV, i18n.locale) : '—'}</span>
 			{@const ind = game.indicators}
+			{#if showBb}<span class="bb">BB {ind.bbLower[hoverIndex] != null ? `${fmtPrice(ind.bbLower[hoverIndex]!, i18n.locale)}–${fmtPrice(ind.bbUpper[hoverIndex]!, i18n.locale)}` : '—'}</span>{/if}
 			{#if showVwap}<span class="vwap">VWAP {ind.vwap[hoverIndex] != null ? fmtPrice(ind.vwap[hoverIndex]!, i18n.locale) : '—'}</span>{/if}
 			{#if osc === 'macd'}
 				<span class="muted">MACD {fmtOsc(ind.macd[hoverIndex], 3)} / {fmtOsc(ind.macdSignal[hoverIndex], 3)}</span>
@@ -443,6 +466,7 @@
 		<label class="toggle attention"><input type="checkbox" bind:checked={showSma} /> SMA20</label>
 		<label class="toggle info"><input type="checkbox" bind:checked={showEma} /> EMA50</label>
 		<label class="toggle vwap"><input type="checkbox" bind:checked={showVwap} /> VWAP</label>
+		<label class="toggle bb"><input type="checkbox" bind:checked={showBb} /> BB20</label>
 		<label class="toggle">
 			<span class="sr-only">{t('chart.osc')}</span>
 			<select bind:value={osc} aria-label={t('chart.osc')} data-testid="osc-select">
@@ -521,6 +545,9 @@
 	}
 	.vwap {
 		color: var(--vwap);
+	}
+	.bb {
+		color: var(--bb);
 	}
 	.picking canvas {
 		cursor: cell;

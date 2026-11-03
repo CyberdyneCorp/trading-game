@@ -166,6 +166,8 @@ export interface Indicators {
 	rsi14: (Decimal | null)[];
 	atr14: (Decimal | null)[];
 	vwap: (Decimal | null)[];
+	bbUpper: (Decimal | null)[];
+	bbLower: (Decimal | null)[];
 	macd: (Decimal | null)[];
 	macdSignal: (Decimal | null)[];
 	macdHist: (Decimal | null)[];

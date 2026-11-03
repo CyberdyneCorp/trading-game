@@ -182,6 +182,9 @@ void write_indicators(JsonOut& j, const Scenario& sc, std::uint32_t step) {
   write_series(j, "rsi14", rsi(sc, step, 14));
   write_series(j, "atr14", atr(sc, step, 14));
   write_series(j, "vwap", vwap(sc, step, kVwapSession));
+  const Bollinger bb = bollinger(sc, step, 20, 2);
+  write_series(j, "bbUpper", bb.upper);
+  write_series(j, "bbLower", bb.lower);
   const Macd m = macd(sc, step, 12, 26, 9);
   write_series(j, "macd", m.line);
   write_series(j, "macdSignal", m.signal);

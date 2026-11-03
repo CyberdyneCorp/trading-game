@@ -14,6 +14,8 @@
 //   ADX(n): +DM/-DM and true range Wilder-smoothed (seeded with n-bar means from bar 1);
 //     +DI/-DI = 100 * DM / TR from bar n; DX = 100 * |+DI - -DI| / (+DI + -DI); ADX = DX
 //     seeded with its n-bar mean, then Wilder-smoothed; ADX warm-up 2n.
+//   Bollinger(n, k): middle = SMA(n); bands = middle +/- k * population stdev of the last n closes;
+//     the stdev is the integer square root (floor) of the variance in raw units; warm-up n.
 
 #include <cstdint>
 #include <optional>
@@ -23,7 +25,7 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kIndicatorVersion = 2;
+constexpr std::uint32_t kIndicatorVersion = 3;
 
 using Series = std::vector<std::optional<Price>>;  // index = bar; RSI/DI/ADX are 0..100 in Price units
 
@@ -40,6 +42,13 @@ struct Macd {
   Series histogram;
 };
 Macd macd(const Scenario& sc, std::uint32_t last, std::uint32_t fast, std::uint32_t slow, std::uint32_t signal);
+
+struct Bollinger {
+  Series middle;
+  Series upper;
+  Series lower;
+};
+Bollinger bollinger(const Scenario& sc, std::uint32_t last, std::uint32_t period, std::uint32_t k);
 
 struct Adx {
   Series plus_di;
