@@ -18,6 +18,7 @@ enum class CommandType : std::uint8_t {
   SetLeverage = 2,
   ClosePosition = 3,
   PlaceOptionOrder = 4,  // order_type Market or Limit; price = premium limit; series required
+  AdjustMargin = 5,      // add (> 0) or remove (< 0) isolated margin on the open perpetual position
 };
 
 struct Command {
@@ -36,6 +37,7 @@ struct Command {
   Price attach_tp;             // PlaceOrder bracket: take-profit for the filled quantity
   Price trail_distance;        // TrailingStop
   std::uint32_t series = 0;    // PlaceOptionOrder
+  Money margin_delta;          // AdjustMargin
 };
 
 // Live account figures at the current decision point (all derived, never stored).

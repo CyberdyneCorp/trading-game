@@ -38,6 +38,14 @@ const char* tl_cancel_order(tl_run* run, uint32_t client_id, uint32_t order_id);
 const char* tl_set_leverage(tl_run* run, uint32_t client_id, int32_t leverage);
 const char* tl_close_position(tl_run* run, uint32_t client_id);
 
+/* Adds (> 0) or removes (< 0) isolated margin on the open perpetual position (decimal string). */
+const char* tl_adjust_margin(tl_run* run, uint32_t client_id, const char* amount);
+
+/* Checkpoint of the full run state as {"checkpoint":"<hex>","step":n}. */
+const char* tl_checkpoint(tl_run* run);
+/* Rebuilds the mission scenario and restores a checkpoint; NULL if incompatible or damaged. */
+tl_run* tl_run_restore(const char* mission_id, uint32_t seed, const char* checkpoint_hex);
+
 /* Advances up to `steps` bars (stops early if the run ends) and returns the state. */
 const char* tl_advance(tl_run* run, int32_t steps);
 const char* tl_state(tl_run* run);

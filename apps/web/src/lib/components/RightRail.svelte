@@ -5,21 +5,30 @@
 	import { missionText } from '#lib/game/missions.ts';
 	import { positionGreeks, seriesLabel } from '#lib/game/optionsMath.ts';
 
-	let { state, plannedRisk }: { state: GameState; plannedRisk: number | null } = $props();
+	let {
+		game,
+		plannedRisk,
+		onMargin
+	}: { game: GameState; plannedRisk: number | null; onMargin?: (amount: string) => void } = $props();
+	let marginAmount = $state('100');
+	function margin(sign: 1 | -1) {
+		const v = Math.abs(Number(marginAmount));
+		if (onMargin && Number.isFinite(v) && v > 0) onMargin((sign * v).toFixed(2));
+	}
 
 	const L = $derived(i18n.locale);
-	const a = $derived(state.account);
-	const qty = $derived(num(state.position.qty));
+	const a = $derived(game.account);
+	const qty = $derived(num(game.position.qty));
 	const unreal = $derived(num(a.unrealized));
 	const equity = $derived(num(a.equity));
-	const pnlTotal = $derived(equity - num(state.initialBalance));
+	const pnlTotal = $derived(equity - num(game.initialBalance));
 	const liq = $derived(a.liquidationPrice ? num(a.liquidationPrice) : null);
 	const liqDist = $derived(liq != null ? Math.abs(num(a.mark) - liq) / num(a.mark) : null);
 	const liqDanger = $derived(liqDist != null && liqDist < 0.03);
 	const funding = $derived(num(a.nextFundingRate));
-	const fundingIn = $derived(a.nextFundingStep - state.step);
+	const fundingIn = $derived(a.nextFundingStep - game.step);
 	const levEff = $derived(equity > 0 ? num(a.notional) / equity : 0);
-	const opts = $derived(state.options);
+	const opts = $derived(game.options);
 	const greeks = $derived(positionGreeks(opts));
 	function quoteOf(series: number) {
 		return opts.chain.find((q) => q.id === series);
@@ -31,32 +40,32 @@
 		<h2 class="panel-title">{t('rail.equity')}</h2>
 		<div class="big num">{fmtMoney(a.equity, L)}</div>
 		<div class="num {pnlTotal >= 0 ? 'up' : 'down'}">
-			{signMark(pnlTotal)} {fmtMoney(pnlTotal, L, true)} ({fmtPct(pnlTotal / num(state.initialBalance), L, 2, true)})
+			{signMark(pnlTotal)} {fmtMoney(pnlTotal, L, true)} ({fmtPct(pnlTotal / num(game.initialBalance), L, 2, true)})
 		</div>
 		<dl class="kv">
 			<dt>{t('rail.wallet')}</dt><dd>{fmtMoney(a.wallet, L)}</dd>
 			<dt>{t('rail.available')}</dt><dd>{fmtMoney(a.available, L)}</dd>
-			<dt>{t('rail.realized')}</dt><dd>{fmtMoney(state.totals.realizedPnl, L, true)}</dd>
-			<dt>{t('rail.fees')}</dt><dd>{fmtMoney(state.totals.feesPaid, L)}</dd>
-			<dt>{t('rail.funding')}</dt><dd>{fmtMoney(state.totals.fundingNet, L, true)}</dd>
+			<dt>{t('rail.realized')}</dt><dd>{fmtMoney(game.totals.realizedPnl, L, true)}</dd>
+			<dt>{t('rail.fees')}</dt><dd>{fmtMoney(game.totals.feesPaid, L)}</dd>
+			<dt>{t('rail.funding')}</dt><dd>{fmtMoney(game.totals.fundingNet, L, true)}</dd>
 		</dl>
 	</section>
 
 	<section class="panel">
 		<h2 class="panel-title">{t('rail.position')}</h2>
 		{#if qty === 0}
-			<p class="muted">{t('rail.flat')} · {t('rail.leverage')} {state.leverage}x</p>
+			<p class="muted">{t('rail.flat')} · {t('rail.leverage')} {game.leverage}x</p>
 		{:else}
 			<p class="side {qty > 0 ? 'up' : 'down'}">
 				{qty > 0 ? '▲ ' + t('rail.long') : '▼ ' + t('rail.short')} {fmtQty(String(Math.abs(qty)), L)}
 			</p>
 			<dl class="kv">
-				<dt>{t('rail.entry')}</dt><dd>{fmtPrice(state.position.entry, L)}</dd>
+				<dt>{t('rail.entry')}</dt><dd>{fmtPrice(game.position.entry, L)}</dd>
 				<dt>{t('rail.unrealized')}</dt>
 				<dd class={unreal >= 0 ? 'up' : 'down'}>{signMark(unreal)} {fmtMoney(unreal, L, true)}</dd>
-				<dt>{t('rail.margin')}</dt><dd>{fmtMoney(state.position.margin, L)}</dd>
+				<dt>{t('rail.margin')}</dt><dd>{fmtMoney(game.position.margin, L)}</dd>
 				<dt>{t('rail.notional')}</dt><dd>{fmtMoney(a.notional, L)}</dd>
-				<dt>{t('rail.leverage')}</dt><dd>{state.leverage}x <span class="muted" title={t('rail.effective')}>({levEff.toFixed(1)}x {t('rail.effective')})</span></dd>
+				<dt>{t('rail.leverage')}</dt><dd>{game.leverage}x <span class="muted" title={t('rail.effective')}>({levEff.toFixed(1)}x {t('rail.effective')})</span></dd>
 			</dl>
 			<div class="liq" class:danger={liqDanger} role={liqDanger ? 'alert' : undefined}>
 				<div class="muted">{t('rail.liq')}</div>
@@ -64,6 +73,13 @@
 				<div class="num">{t('rail.liqDistance')}: {liqDist != null ? fmtPct(liqDist, L) : '—'}</div>
 				{#if liqDanger}<div class="attention">⚠ {t('rail.liqWarning')}</div>{/if}
 			</div>
+			{#if onMargin}
+				<div class="margin-ctl">
+					<input aria-label={t('rail.marginAmount')} inputmode="decimal" bind:value={marginAmount} />
+					<button onclick={() => margin(1)}>{t('rail.addMargin')}</button>
+					<button onclick={() => margin(-1)}>{t('rail.removeMargin')}</button>
+				</div>
+			{/if}
 		{/if}
 		{#if plannedRisk != null}
 			<dl class="kv"><dt>{t('rail.plannedRisk')}</dt><dd>{fmtMoney(plannedRisk, L)}</dd></dl>
@@ -110,7 +126,7 @@
 	<section class="panel">
 		<h2 class="panel-title">{t('rail.objective')}</h2>
 		<ul class="objectives">
-			{#each missionText(state.mission, L).objectives as o (o)}
+			{#each missionText(game.mission, L).objectives as o (o)}
 				<li>{o}</li>
 			{/each}
 		</ul>
@@ -148,6 +164,16 @@
 		font-size: 1.5rem;
 		color: var(--danger);
 		text-align: left;
+	}
+	.margin-ctl {
+		display: grid;
+		grid-template-columns: 1fr auto auto;
+		gap: 0.3rem;
+		margin-top: 0.4rem;
+	}
+	.margin-ctl button {
+		padding: 0.2rem 0.5rem;
+		font-size: 0.8rem;
 	}
 	.opts {
 		list-style: none;

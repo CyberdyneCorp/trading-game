@@ -16,7 +16,7 @@
 - [ ] 3.2 Step loop with phases in spec order; event sequence numbering
 - [x] 3.3 Command idempotency (client command id) and sequence/step validation
 - [ ] 3.4 Property test: no-lookahead (mutate future, compare prefix) — SIM01
-- [ ] 3.5 RunState checkpoint save/restore with version check; resume-equals-uninterrupted test
+- [x] 3.5 RunState checkpoint save/restore with version check; resume-equals-uninterrupted test
 
 ## 4. Order execution
 - [x] 4.1 Market, limit, stop-market, take-profit, trailing (close-based)
@@ -28,7 +28,7 @@
 
 ## 5. Perpetual futures
 - [x] 5.1 One-way positions, average entry, flips
-- [ ] 5.2 Isolated margin, leverage caps, add/remove margin
+- [x] 5.2 Isolated margin, leverage caps, add/remove margin
 - [x] 5.3 Liquidation price + liquidation (adverse extreme first, gap handling, insurance fund)
 - [x] 5.4 Funding from series or synthetic rule
 - [x] 5.5 Property tests: reconciliation (SIM08), non-negative balances; goldens FUT01–FUT04

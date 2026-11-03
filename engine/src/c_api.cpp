@@ -6,6 +6,7 @@
 #include "accounting.hpp"
 #include "json_out.hpp"
 #include "tradelab/engine.hpp"
+#include "tradelab/checkpoint.hpp"
 #include "tradelab/generator.hpp"
 #include "tradelab/indicators.hpp"
 #include "tradelab/options.hpp"
@@ -29,7 +30,7 @@ const char* reason_name(Reason r) {
       "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
       "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
       "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call"};
+      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial"};
   const auto i = static_cast<std::size_t>(r);
   return i < std::size(kNames) ? kNames[i] : "unknown";
 }
@@ -47,7 +48,7 @@ const char* type_name(OrderType t) {
 
 const char* event_name(EventType t) {
   static constexpr const char* kNames[] = {"order",    "fill",         "funding",         "liquidation",
-                                           "bankrupt", "run_finished", "leverage_changed", "option_settlement", "margin_call"};
+                                           "bankrupt", "run_finished", "leverage_changed", "option_settlement", "margin_call", "margin_adjusted"};
   return kNames[static_cast<std::size_t>(t)];
 }
 
@@ -231,6 +232,34 @@ bool parse_optional_price(const char* text, Price* out, bool required) {
   return true;
 }
 
+std::string to_hex_bytes(const std::vector<std::uint8_t>& bytes) {
+  static constexpr char kHex[] = "0123456789abcdef";
+  std::string out;
+  out.reserve(bytes.size() * 2);
+  for (const std::uint8_t b : bytes) {
+    out += kHex[b >> 4U];
+    out += kHex[b & 0xFU];
+  }
+  return out;
+}
+
+bool from_hex(std::string_view hex, std::vector<std::uint8_t>* out) {
+  if (hex.size() % 2 != 0) return false;
+  auto nibble = [](char c) -> int {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    return -1;
+  };
+  out->clear();
+  for (std::size_t i = 0; i < hex.size(); i += 2) {
+    const int hi = nibble(hex[i]);
+    const int lo = nibble(hex[i + 1]);
+    if (hi < 0 || lo < 0) return false;
+    out->push_back(static_cast<std::uint8_t>(hi * 16 + lo));
+  }
+  return true;
+}
+
 Command next_command(tl_run& r, CommandType type, std::uint32_t client_id) {
   Command c;
   c.type = type;
@@ -330,6 +359,37 @@ const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t seri
     return error_json(*run, "invalid_tick");
   }
   return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_adjust_margin(tl_run* run, uint32_t client_id, const char* amount) {
+  Command c = next_command(*run, CommandType::AdjustMargin, client_id);
+  const auto m = parse_decimal<Money>(amount == nullptr ? "" : amount);
+  if (!m.ok()) return error_json(*run, "invalid_quantity");
+  c.margin_delta = m.value();
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_checkpoint(tl_run* run) {
+  JsonOut j;
+  j.begin_obj().field("checkpoint", to_hex_bytes(save_checkpoint(run->state, run->scenario.id)));
+  j.field("step", run->state.step).end_obj();
+  run->buffer = j.text();
+  return run->buffer.c_str();
+}
+
+tl_run* tl_run_restore(const char* mission_id, uint32_t seed, const char* checkpoint_hex) {
+  std::vector<std::uint8_t> bytes;
+  if (checkpoint_hex == nullptr || !from_hex(checkpoint_hex, &bytes)) return nullptr;
+  tl_run* run = tl_run_create(mission_id, seed);
+  if (run == nullptr) return nullptr;
+  auto st = load_checkpoint(bytes, run->scenario.id);
+  if (!st.ok()) {
+    delete run;
+    return nullptr;
+  }
+  run->state = st.value();
+  run->next_seq = run->state.last_command_seq + 1;
+  return run;
 }
 
 const char* tl_cancel_order(tl_run* run, uint32_t client_id, uint32_t order_id) {

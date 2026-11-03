@@ -118,6 +118,11 @@ class Driver {
     if (limit != nullptr) c.price = P(limit);
     return apply_command(sc_, st_, c);
   }
+  CommandResult margin(const char* delta) {
+    Command c = base(CommandType::AdjustMargin);
+    c.margin_delta = M(delta);
+    return apply_command(sc_, st_, c);
+  }
   CommandResult leverage(int lev) {
     Command c = base(CommandType::SetLeverage);
     c.leverage = lev;
@@ -164,6 +169,13 @@ inline std::vector<const Order*> children_of(const RunState& st, std::uint32_t p
     if (o.parent_id == parent) out.push_back(&o);
   }
   return out;
+}
+
+template <typename D>
+bool detail_liq(D& d, Price* out) {
+  const AccountView v = d.view();
+  *out = v.liquidation_price;
+  return v.has_liquidation;
 }
 
 inline const Event* last_of(const RunState& st, EventType t) {

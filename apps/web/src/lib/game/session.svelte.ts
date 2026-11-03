@@ -31,6 +31,7 @@ type Action =
 			trail?: string | null;
 	  }
 	| { k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null }
+	| { k: 'margin'; amount: string }
 	| { k: 'cancel'; id: number }
 	| { k: 'close' }
 	| { k: 'adv'; n: number };
@@ -236,6 +237,11 @@ export class GameSession {
 		return this.command({ k: 'opt', series, side, type, qty, premium });
 	}
 
+	/** Adds (positive) or removes (negative) isolated margin; amount is a decimal string. */
+	async adjustMargin(amount: string): Promise<CommandResult | null> {
+		return this.command({ k: 'margin', amount });
+	}
+
 	async cancel(orderId: number): Promise<CommandResult | null> {
 		return this.command({ k: 'cancel', id: orderId });
 	}
@@ -366,6 +372,8 @@ export class GameSession {
 								qty: a.qty,
 								premium: a.premium
 							})
+						: a.k === 'margin'
+						? await e.request({ kind: 'margin', clientId, amount: a.amount })
 						: a.k === 'cancel'
 						? await e.request({ kind: 'cancel', clientId, orderId: a.id })
 						: await e.request({ kind: 'close', clientId });

@@ -202,3 +202,19 @@ test('options mission: buy a call from the chain with a plan, hold to expiry, se
 	for (let i = 0; i < 60 && !(await page.getByText(/Vencimento OPT#/).count()); i++) await advance(page, 'Shift+Space');
 	await expect(page.getByText(/Vencimento OPT#/).first()).toBeVisible();
 });
+
+test('isolated margin can be added and removed only down to the initial margin', async ({ page }) => {
+	await openTerminal(page, 31);
+	await page.locator('label:has-text("Alavancagem") input').first().fill('5');
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await expect(page.getByText(/aceita não significa executada/).first()).toBeVisible();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await page.getByRole('button', { name: '+ margem' }).click();
+	await expect(page.getByText(/Margem isolada ajustada: \+100,00 cr/)).toBeVisible();
+	await page.getByRole('button', { name: '− margem' }).click();
+	await page.getByRole('button', { name: '− margem' }).click();
+	await expect(page.getByText(/margin_below_initial/)).toBeVisible();
+});

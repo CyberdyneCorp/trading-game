@@ -49,6 +49,8 @@
 					text: t('feed.settlement', { series: e.series, price: fmtPrice(e.price, L), value: fmtPrice(e.requested, L), amount: fmtMoney(e.amount, L, true) }) + (e.approximate ? ` [${t('feed.approxSettle')}]` : ''),
 					tone: Number(e.amount) >= 0 ? 'up' : 'down'
 				};
+			case 'margin_adjusted':
+				return { text: t('feed.marginAdjusted', { amount: fmtMoney(e.amount, L, true) }), tone: 'info' };
 			case 'margin_call':
 				return { text: '⚠ ' + t('feed.marginCall', { mm: fmtMoney(e.amount, L) }), tone: 'down' };
 			case 'order': {
