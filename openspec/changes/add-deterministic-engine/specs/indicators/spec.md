@@ -13,6 +13,17 @@ The engine SHALL provide SMA, EMA, RSI (Wilder smoothing), ATR (Wilder smoothing
 - **WHEN** a run records an EMA(20, close) value
 - **THEN** the run SHALL also record the indicator version used to compute it
 
+### Requirement: Candle patterns
+The engine SHALL detect candlestick patterns (single: doji, hammer, hanging man, inverted hammer, shooting star, marubozu; double: engulfing, harami, piercing line, dark cloud cover, tweezers, kicker; triple: morning/evening star, three white soldiers, three black crows, three inside/outside up/down, abandoned baby; five-bar: rising/falling three methods) with integer comparisons on closed bars, reporting each at the bar that completes it with its length and bias. Context-dependent patterns SHALL use the trend before the pattern (close before it versus five bars earlier, against the prior 10-bar average body), so the same shape can be a hammer after a decline and a hanging man after a rally. Pattern rules are versioned (`patternVersion`). The generator's calibration SHALL keep isolated patterns close to chance (45–60% over five bars), matching the cheat sheet's warning.
+
+#### Scenario: Same shape, different context
+- **WHEN** a long-lower-shadow candle completes after a rally
+- **THEN** it SHALL be reported as a hanging man and not as a hammer
+
+#### Scenario: No lookahead
+- **WHEN** the bar after `t` is altered
+- **THEN** the patterns reported up to `t` SHALL be unchanged
+
 ### Requirement: Warm-up
 An indicator SHALL emit no value until it has received at least its declared warm-up number of bars (SMA: period; EMA: period, seeded with the SMA of the first period; RSI and ATR: period + 1; VWAP: 1; Bollinger: period; MACD line: slow period; MACD signal and histogram: slow + signal − 1, the signal seeded with the SMA of the first `signal` line values; +DI/−DI: period + 1; ADX: 2 × period, seeded with the mean of the first `period` DX values). Before warm-up the state SHALL report `warming_up` with the number of remaining bars. Scenario warm-up bars before the first decision point SHALL count toward warm-up but SHALL NOT be tradable.
 

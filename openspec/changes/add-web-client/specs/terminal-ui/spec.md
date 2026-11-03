@@ -60,7 +60,13 @@ The chart SHALL offer SMA20, EMA50, session VWAP and Bollinger(20, 2) as price o
 - **THEN** the pane SHALL draw the MACD line, signal and histogram for the visible bars and the readout SHALL show the hovered values
 
 ### Requirement: Candle pattern cheat sheet
-The terminal SHALL offer a candle pattern reference (button and `P` key) listing at least the common single, double and triple candle patterns (hammer, inverted hammer, shooting star, hanging man, engulfing, piercing line, dark cloud cover, harami, tweezers, morning/evening star, three white soldiers, three black crows, doji, spinning top, marubozu), each with a drawing including its usual trend context, shape, what it suggests and what confirms it, filterable by bias (bullish, bearish, indecision). It SHALL state that patterns alone are weak signals. While open it SHALL be modal: Space SHALL NOT advance the simulation behind it.
+The terminal SHALL offer a candle pattern reference (button and `P` key) listing at least the common single, double and triple candle patterns (hammer, inverted hammer, shooting star, hanging man, engulfing, piercing line, dark cloud cover, harami, tweezers, morning/evening star, three white soldiers, three black crows, doji, spinning top, marubozu, three inside/outside up/down, kickers, abandoned babies, rising/falling three methods) and, in a separate tab, chart patterns (double top/bottom, head and shoulders and its inverse, bull/bear flags, ascending/descending/symmetrical triangles), each with a drawing including its usual trend context, shape, what it suggests and what confirms it, filterable by bias (bullish, bearish, indecision). It SHALL state that patterns alone are weak signals. While open it SHALL be modal: Space SHALL NOT advance the simulation behind it.
+
+Patterns detected by the engine SHALL be marked on the chart (a bracket under bullish, over bearish patterns spanning their bars) and named for the hovered or latest bar; selecting a name or a marked bar SHALL open the sheet focused on that pattern. Markers SHALL be toggleable.
+
+#### Scenario: Marker opens its card
+- **WHEN** the latest bar completes a "three outside up" and the player selects its name
+- **THEN** the cheat sheet SHALL open with that card highlighted
 
 #### Scenario: Filter bearish patterns
 - **WHEN** the player opens the sheet and selects "bearish"

@@ -23,6 +23,12 @@
 	let draft = $state<OrderDraft | null>(null);
 	let help = $state(false);
 	let patterns = $state(false);
+	let patternFocus = $state<string | null>(null);
+
+	function openPattern(id: string | null) {
+		patternFocus = id;
+		patterns = true;
+	}
 	let side = $state<OrderSideName>('buy');
 	let lastPlannedRisk = $state<number | null>(null);
 	let preview = $state<TicketPreview | null>(null);
@@ -137,7 +143,7 @@
 			s: () => (side = 'sell'),
 			x: () => void session.closePosition(),
 			'?': () => (help = !help),
-			p: () => (patterns = !patterns)
+			p: () => openPattern(null)
 		};
 		const fn = actions[e.key.toLowerCase()];
 		if (fn) {
@@ -151,7 +157,7 @@
 
 {#if session.state}
 	<div class="terminal">
-		<TopBar {session} onHelp={() => (help = true)} onPatterns={() => (patterns = true)} />
+		<TopBar {session} onHelp={() => (help = true)} onPatterns={() => openPattern(null)} />
 		<div class="main">
 			<section class="panel chart"><Chart
 					game={session.state}
@@ -159,6 +165,7 @@
 					picking={pick != null}
 					{onPicked}
 					onCancelPick={() => (pick = null)}
+					onPattern={openPattern}
 				/></section>
 			<RightRail
 				game={session.state}
@@ -213,7 +220,7 @@
 	<HelpOverlay onClose={() => (help = false)} />
 {/if}
 {#if patterns}
-	<PatternSheet onClose={() => (patterns = false)} />
+	<PatternSheet focus={patternFocus} onClose={() => (patterns = false)} />
 {/if}
 
 <style>

@@ -319,3 +319,26 @@ test('Bollinger bands overlay shows its range in the readout', async ({ page }) 
 	await page.getByLabel('BB20').check();
 	await expect(page.locator('.readout').getByText(/^BB \d+,\d+–\d+,\d+/)).toBeVisible();
 });
+
+test('detected candle patterns are named on the chart and open their cheat-sheet card', async ({ page }) => {
+	await openTerminal(page, 25);
+	const line = page.getByTestId('pattern-line');
+	await expect(line.getByRole('button', { name: /Três de fora de alta/ })).toBeVisible();
+	await line.getByRole('button', { name: /Três de fora de alta/ }).click();
+	const sheet = page.getByRole('dialog', { name: 'Padrões de candle' });
+	await expect(sheet.getByTestId('pattern-three-outside-up')).toHaveClass(/focused/);
+	await page.keyboard.press('Escape');
+	await page.getByLabel('Padrões', { exact: true }).uncheck();
+	await expect(line).toHaveCount(0);
+});
+
+test('chart patterns tab lists multi-bar structures', async ({ page }) => {
+	await openTerminal(page, 4242);
+	await page.getByRole('button', { name: /Padrões/ }).first().click();
+	const sheet = page.getByRole('dialog', { name: 'Padrões de candle' });
+	await sheet.getByRole('tab', { name: 'Padrões gráficos' }).click();
+	await expect(sheet.getByTestId('pattern-head-and-shoulders')).toBeVisible();
+	await sheet.getByRole('radio', { name: 'Alta' }).click();
+	await expect(sheet.getByTestId('pattern-double-bottom')).toBeVisible();
+	await expect(sheet.getByTestId('pattern-double-top')).toHaveCount(0);
+});

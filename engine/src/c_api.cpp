@@ -8,6 +8,7 @@
 #include "tradelab/engine.hpp"
 #include "tradelab/checkpoint.hpp"
 #include "tradelab/generator.hpp"
+#include "tradelab/candle_patterns.hpp"
 #include "tradelab/indicators.hpp"
 #include "tradelab/options.hpp"
 #include "tradelab/scoring.hpp"
@@ -193,6 +194,12 @@ void write_indicators(JsonOut& j, const Scenario& sc, std::uint32_t step) {
   write_series(j, "plusDi14", a.plus_di);
   write_series(j, "minusDi14", a.minus_di);
   write_series(j, "adx14", a.adx);
+  j.field("patternVersion", kPatternVersion).key("patterns").begin_arr();
+  for (const PatternHit& h : detect_patterns(sc, step)) {
+    j.begin_obj().field("step", h.step).field("id", h.id).field("bars", std::uint32_t{h.bars}).field("bias", std::int32_t{h.bias});
+    j.end_obj();
+  }
+  j.end_arr();
   j.end_obj();
 }
 

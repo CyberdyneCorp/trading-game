@@ -5,6 +5,7 @@
 	import { fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { OSCILLATORS, type Oscillator, type Palette } from './chartPanes.ts';
+	import { patternName } from '#lib/game/candlePatterns.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
 
 	let {
@@ -12,13 +13,15 @@
 		preview = null,
 		picking = false,
 		onPicked,
-		onCancelPick
+		onCancelPick,
+		onPattern
 	}: {
 		game: GameState;
 		preview?: TicketPreview | null;
 		picking?: boolean;
 		onPicked?: (price: number) => void;
 		onCancelPick?: () => void;
+		onPattern?: (id: string) => void;
 	} = $props();
 
 	let canvas: HTMLCanvasElement | undefined = $state();
@@ -31,6 +34,7 @@
 	let showEma = $state(true);
 	let showVwap = $state(false);
 	let showBb = $state(false);
+	let showPatterns = $state(true);
 	let osc = $state<Oscillator>('rsi');
 	let hoverY = $state<number | null>(null);
 	// Price scale of the last frame, used to turn a click into a price while picking.
@@ -161,6 +165,7 @@
 		if (showSma) drawLine(ctx, game.indicators.sma20, cssVar('--attention'), x, y);
 		if (showEma) drawLine(ctx, game.indicators.ema50, cssVar('--info'), x, y);
 		if (showBb) drawBands(ctx, x, y);
+		if (showPatterns) drawPatterns(ctx, slotW, x, y);
 		if (showVwap) drawLine(ctx, game.indicators.vwap, cssVar('--vwap'), x, y);
 		for (const l of lv) drawLevel(ctx, l, plotW, y);
 		if (osc !== 'none') {
@@ -338,6 +343,31 @@
 		drawLine(ctx, bbLower, color, x, y);
 	}
 
+	// Detected candle patterns: a bracket under (bullish) or over (bearish) the bars that form it.
+	function drawPatterns(ctx: CanvasRenderingContext2D, slotW: number, x: (i: number) => number, y: (p: number) => number) {
+		const colors = { 1: cssVar('--up'), '-1': cssVar('--down'), 0: cssVar('--attention') } as Record<string, string>;
+		for (const p of game.indicators.patterns) {
+			const end = p.step - first;
+			const start = end - p.bars + 1;
+			if (end < 0 || start >= visible.length) continue;
+			const span = visible.slice(Math.max(0, start), end + 1);
+			const below = p.bias >= 0;
+			const edge = below ? Math.min(...span.map((b) => b[2])) : Math.max(...span.map((b) => b[1]));
+			const yy = y(edge) + (below ? 6 : -6);
+			ctx.strokeStyle = colors[String(p.bias)];
+			ctx.globalAlpha = 0.85;
+			ctx.beginPath();
+			ctx.moveTo(x(Math.max(0, start)) - slotW * 0.35, yy);
+			ctx.lineTo(x(end) + slotW * 0.35, yy);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.arc(x(end), yy + (below ? 3 : -3), 2, 0, Math.PI * 2);
+			ctx.fillStyle = colors[String(p.bias)];
+			ctx.fill();
+			ctx.globalAlpha = 1;
+		}
+	}
+
 	// News markers at release bars: dotted line + "N" flag (released items only exist in the state).
 	function drawNews(ctx: CanvasRenderingContext2D, x: (i: number) => number, priceH: number) {
 		ctx.font = '12px VT323, monospace';
@@ -396,6 +426,11 @@
 	}
 
 	function onClick(e: MouseEvent) {
+		if (!picking && hover != null) {
+			const hit = patternsAt(first + hover)[0];
+			if (hit) onPattern?.(hit.id);
+			return;
+		}
 		if (!picking || !canvas) return;
 		const py = e.clientY - canvas.getBoundingClientRect().top;
 		if (py > scale.priceH) return;
@@ -417,6 +452,11 @@
 		return v != null ? Number(v).toLocaleString(i18n.locale, opts) : '—';
 	}
 
+	function patternsAt(step: number) {
+		return showPatterns ? game.indicators.patterns.filter((p) => p.step === step) : [];
+	}
+	const hoverPatterns = $derived(patternsAt(hover != null ? first + hover : bars.length - 1));
+
 	const hoverBar = $derived(hover != null ? visible[hover] : visible[visible.length - 1]);
 	const hoverIndex = $derived(hover != null ? first + hover : bars.length - 1);
 	const tableRows = $derived(bars.slice(-20).map((b, i) => ({ i: bars.length - 20 + i, b })).filter((r) => r.i >= 0));
@@ -434,7 +474,7 @@
 
 	$effect(() => {
 		// Redraw on any dependency change (game, size, hover, zoom, locale).
-		void [game, width, height, hover, hoverY, zoom, i18n.locale, visible, showSma, showEma, showVwap, showBb, osc, preview, picking];
+		void [game, width, height, hover, hoverY, zoom, i18n.locale, visible, showSma, showEma, showVwap, showBb, showPatterns, osc, preview, picking];
 		draw();
 	});
 </script>
@@ -467,6 +507,7 @@
 		<label class="toggle info"><input type="checkbox" bind:checked={showEma} /> EMA50</label>
 		<label class="toggle vwap"><input type="checkbox" bind:checked={showVwap} /> VWAP</label>
 		<label class="toggle bb"><input type="checkbox" bind:checked={showBb} /> BB20</label>
+		<label class="toggle"><input type="checkbox" bind:checked={showPatterns} /> {t('chart.patterns')}</label>
 		<label class="toggle">
 			<span class="sr-only">{t('chart.osc')}</span>
 			<select bind:value={osc} aria-label={t('chart.osc')} data-testid="osc-select">
@@ -481,6 +522,16 @@
 		{/if}
 		{#if picking}<span class="attention" role="status">⌖ {t('chart.pickHint')}</span>{/if}
 	</div>
+	{#if hoverPatterns.length}
+		<div class="pattern-line" data-testid="pattern-line">
+			<span class="muted">{t('chart.patternAt')}</span>
+			{#each hoverPatterns as p (p.id)}
+				<button class="pattern {p.bias > 0 ? 'up' : p.bias < 0 ? 'down' : 'attention'}" onclick={() => onPattern?.(p.id)}>
+					{p.bias > 0 ? '▲' : p.bias < 0 ? '▼' : '◆'} {patternName(p.id, i18n.locale)}
+				</button>
+			{/each}
+		</div>
+	{/if}
 	<div class="canvas-box" class:picking bind:this={box}>
 		<canvas
 			bind:this={canvas}
@@ -548,6 +599,19 @@
 	}
 	.bb {
 		color: var(--bb);
+	}
+	.pattern-line {
+		display: flex;
+		gap: 0.4rem;
+		align-items: center;
+		font-size: 0.78rem;
+		padding-bottom: 0.25rem;
+		flex-wrap: wrap;
+	}
+	.pattern {
+		font-size: 0.75rem;
+		padding: 0 0.4rem;
+		min-height: 0;
 	}
 	.picking canvas {
 		cursor: cell;
