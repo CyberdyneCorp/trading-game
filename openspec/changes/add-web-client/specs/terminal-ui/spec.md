@@ -117,3 +117,19 @@ Synthetic bars, branch segments, model-priced option premiums, capacity approxim
 #### Scenario: Branch label
 - **WHEN** the chart shows bars after a branch point
 - **THEN** those bars SHALL be marked as simulated
+
+### Requirement: Music and sound effects
+The client SHALL play background music by mood: the menu theme on the menu, briefing and debrief; the in-game theme while trading; and the tense theme while the account is in danger (an open position within 5% of its liquidation price, equity under 2× the options maintenance margin, or a margin call or liquidation in the last 3 bars). Leaving the tense theme SHALL require the danger to clear by a margin (hysteresis), so a price at the threshold does not flip the music every bar. Each mood SHALL alternate between its tracks, and mood changes SHALL crossfade. When an advance closes trades, the client SHALL play a win sting if their realized P&L nets positive and a loss sting otherwise; a liquidation SHALL always play the loss sting. Events already in a resumed run's history SHALL NOT play. Audio SHALL start only after the first user gesture (browser autoplay rules), SHALL be mutable from the top bar and with `M`, SHALL offer separate music and effects volumes, and mute and volumes SHALL persist per viewer. Audio files SHALL NOT be part of the offline precache; each file SHALL be cached on first play in a cache kept across app updates and served offline with byte-range support.
+
+#### Scenario: Danger changes the music
+- **WHEN** the mark price moves within 5% of an open position's liquidation price
+- **THEN** the music SHALL crossfade to the tense theme, and SHALL return to the in-game theme only once the distance exceeds 8%
+
+#### Scenario: Closing a trade
+- **WHEN** an advance closes a position with a profit
+- **THEN** the win sting SHALL play once, and replaying the run from storage SHALL NOT play it again
+
+#### Scenario: Muted stays muted
+- **WHEN** the player mutes with `M` and reloads the page
+- **THEN** no audio SHALL start
+

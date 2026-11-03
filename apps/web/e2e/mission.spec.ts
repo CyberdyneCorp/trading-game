@@ -419,3 +419,34 @@ test('auto-advance waits on a calibration question and resumes after it is answe
 	await expect.poll(() => barNumber(page)).toBeGreaterThan(waiting);
 	await page.getByTestId('auto-toggle').click();
 });
+
+test('soundtrack follows the screen, a closed trade plays a sting, and M mutes (persisted)', async ({ page }) => {
+	await page.addInitScript(() => {
+		const w = window as unknown as { __played: string[] };
+		w.__played = [];
+		HTMLMediaElement.prototype.play = function () {
+			w.__played.push(this.src.split('/').pop() ?? '');
+			return Promise.resolve();
+		};
+	});
+	const played = () => page.evaluate(() => (window as unknown as { __played: string[] }).__played);
+	await openTerminal(page, 4242);
+	await expect.poll(played).toContain('menu-1.mp3');
+	await expect.poll(played).toContain('game-1.mp3');
+
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await page.keyboard.press('x');
+	await advance(page);
+	await expect.poll(async () => (await played()).some((f) => f === 'trade-win.mp3' || f === 'trade-loss.mp3')).toBe(true);
+
+	await page.keyboard.press('m');
+	await expect(page.getByTestId('sound-toggle')).toHaveAttribute('aria-pressed', 'false');
+	await page.reload();
+	await expect(page.getByTestId('sound-on')).not.toBeChecked(); // muted is remembered
+	await page.waitForTimeout(300);
+	expect(await played()).toEqual([]); // and nothing starts playing
+});

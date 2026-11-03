@@ -22,6 +22,7 @@
 - [x] 4.2 Option chain, option ticket with payoff diagram and Greeks
 - [x] 4.3 Indicators UI with warm-up state
 - [x] 4.3d Auto-advance mode (speeds, waits on dialogs, pauses on notable events, Space takes control)
+- [x] 4.3e Music by mood (menu/game/tense with hysteresis, crossfade), win/loss stings, mute (`M`, top bar) and volumes persisted; audio cached on first play with byte ranges (`audioRules.ts`, `audio.svelte.ts`, `swRoutes.ts`)
 - [x] 4.3c Multi-candle and chart patterns in the sheet; engine-detected patterns marked on the chart, linked to the sheet
 - [x] 4.3b Bollinger overlay and candle pattern cheat sheet (P)
 - [x] 4.3a Indicator panes (RSI/MACD/ADX selector, VWAP overlay) and stop/target tools (ATR/swing/% presets, R targets, mark on chart, chart preview, unprotected-position warning)
