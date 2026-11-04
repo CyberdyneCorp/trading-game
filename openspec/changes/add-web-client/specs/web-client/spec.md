@@ -20,7 +20,14 @@ Runs, commands and checkpoints SHALL be stored in IndexedDB, with each command c
 - **WHEN** the tab is closed and reopened
 - **THEN** the run SHALL resume at the same step with the same digest
 
-### Requirement: Installable offline PWA
+### Requirement: Completed missions in the menu
+The mission menu SHALL mark a mission "Completed" when at least one run of it on this device reached the end of the mission, derived from the stored runs. A bankrupt or unfinished run SHALL NOT mark it.
+
+#### Scenario: Back to the menu after a finished mission
+- **WHEN** the player finishes a mission and returns to the menu, or reloads the page later
+- **THEN** that mission's card SHALL show the Completed mark and no other card SHALL
+
+
 The web client SHALL be an installable Progressive Web App. A service worker SHALL precache the versioned app shell, fonts, i18n catalogs and WASM engine, so that after one online visit the app starts with no network connection. Offline, the client SHALL satisfy the `offline-sync` full-offline-play requirement for packs already downloaded, and SHALL show catalog, download and sync as unavailable rather than failing.
 
 #### Scenario: Offline start (OFF01-web)

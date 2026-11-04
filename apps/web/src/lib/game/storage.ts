@@ -106,6 +106,13 @@ export class RunStore<A, J, Q> {
 		return { record, actions };
 	}
 
+	/** Missions with at least one run played to the end (bankrupt runs do not count). */
+	async finishedMissions(): Promise<string[]> {
+		const tx = this.db.transaction('runs', 'readonly');
+		const runs = (await req(tx.objectStore('runs').getAll())) as RunRecord<J, Q>[];
+		return [...new Set(runs.filter((r) => r.status === 'finished').map((r) => r.missionId))];
+	}
+
 	/** Imports a run saved by the previous localStorage format (v1), then removes the legacy key. */
 	async migrateLegacy(storage: Storage | undefined, policy: number): Promise<boolean> {
 		const raw = storage?.getItem(LEGACY_KEY);

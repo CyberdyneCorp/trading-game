@@ -54,6 +54,18 @@ test('plays a full mission: plan, order, protection, advance to debrief', async 
 	expect(errors).toEqual([]);
 });
 
+test('a mission played to the end is marked Completed in the menu, also after a reload', async ({ page }) => {
+	await openTerminal(page, 7);
+	const cards = page.getByTestId('mission-card');
+	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída/).count()); i++) await advance(page, 'Shift+Space');
+	await page.getByRole('button', { name: /Voltar às missões/ }).click();
+	await expect(cards.first().getByText('✓ Concluída')).toBeVisible();
+	await expect(cards.nth(1).getByText(/Concluída/)).toHaveCount(0);
+	await page.reload();
+	await expect(cards.first().getByText('✓ Concluída')).toBeVisible();
+	await expect(page.getByText(/✓ Concluída/)).toHaveCount(1);
+});
+
 test('waiting the whole mission is not penalized (EDU02)', async ({ page }) => {
 	await openTerminal(page, 7);
 	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída/).count()); i++) {

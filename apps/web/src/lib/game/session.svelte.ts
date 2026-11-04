@@ -92,6 +92,8 @@ export class GameSession {
 	pendingQuestion = $derived(this.state?.calibration.due ?? false);
 	busy = $state(false);
 	saved = $state<RunSummary | null>(null);
+	/** Mission ids played to the end at least once on this device (menu "Completed" mark). */
+	completed = $state<string[]>([]);
 	/** False when IndexedDB is unavailable (e.g. some private modes): runs cannot be resumed. */
 	durable = $state(true);
 	persisted = $state<boolean | null>(null);
@@ -133,6 +135,8 @@ export class GameSession {
 	}
 
 	private async refreshSaved(): Promise<void> {
+		const finished = await this.store?.finishedMissions().catch(() => []);
+		if (finished) this.completed = [...new Set([...this.completed, ...finished])];
 		const run = await this.store?.activeRun().catch(() => null);
 		this.saved =
 			run && run.record.status === 'active'
@@ -312,6 +316,7 @@ export class GameSession {
 			await this.exec({ k: 'adv', n: steps }, true);
 			this.persist();
 			if (this.state && this.state.status !== 'active') {
+				this.markCompleted();
 				await this.loadDebrief();
 				this.screen = 'debrief';
 			}
@@ -437,6 +442,13 @@ export class GameSession {
 						: await e.request({ kind: 'close', clientId });
 		this.state = r.state;
 		return r.result;
+	}
+
+	// In memory too: the menu must not wait for the fire-and-forget header write in persist().
+	private markCompleted(): void {
+		if (this.state?.status === 'finished' && !this.completed.includes(this.missionId)) {
+			this.completed = [...this.completed, this.missionId];
+		}
 	}
 
 	private async loadDebrief(): Promise<void> {

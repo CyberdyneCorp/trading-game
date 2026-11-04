@@ -50,6 +50,16 @@ describe('RunStore (IndexedDB)', () => {
 		expect((await store.activeRun())?.actions).toEqual([{ k: 'a' }]);
 	});
 
+	it('lists missions with a finished run; active and bankrupt runs do not count', async () => {
+		await store.createRun({ ...record('a'), missionId: 'm01-false-breakout', status: 'finished' });
+		await store.createRun({ ...record('b'), missionId: 'm01-false-breakout', status: 'finished' });
+		await store.createRun({ ...record('c'), missionId: 'm02-funding-squeeze', status: 'bankrupt' });
+		await store.createRun({ ...record('d'), missionId: 'm03-volatility-shock' });
+		expect(await store.finishedMissions()).toEqual(['m01-false-breakout']);
+		await store.updateRun('d', { status: 'finished' });
+		expect((await store.finishedMissions()).sort()).toEqual(['m01-false-breakout', 'm03-volatility-shock']);
+	});
+
 	it('migrates the legacy localStorage save and removes it', async () => {
 		const mem = new Map<string, string>();
 		const storage = {
