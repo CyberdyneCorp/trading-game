@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { describeFinding, describeLesson } from '#lib/game/analysis.ts';
+	import { fmtLeverageBp, fmtLiqDistance, greekRows, stopAdvice } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtPct, fmtPrice, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
@@ -15,6 +16,12 @@
 	// Engine report (authoritative; the server recomputes the same thing from the same commands).
 	const a = $derived({ netPnl: Number(d.netPnl), dims: d.score.dims, total: d.score.total, findings: d.findings, lesson: d.lesson });
 	const trades = $derived(d.trades);
+	const greeks = $derived(greekRows(d.greeks));
+	function adviceText(tr: EngineTrade): string | null {
+		const adv = stopAdvice(tr, L);
+		if (!adv) return null;
+		return t(adv.lev > 0 ? 'trade.stopBeyond' : 'trade.stopBeyondNone', { stop: adv.stop, liq: adv.liq, lev: adv.lev, used: adv.used });
+	}
 	// "▲ COMPRA P 100 · exp 96" for option trades, "▲ LONG" for the perpetual.
 	function tradeLabel(tr: EngineTrade): string {
 		const arrow = tr.side === 'long' ? '▲' : '▼';
@@ -69,9 +76,12 @@
 				<dt>{t('rail.realized')}</dt><dd>{fmtMoney(s.totals.realizedPnl, L, true)}</dd>
 				<dt>{t('rail.fees')}</dt><dd>{fmtMoney(s.totals.feesPaid, L)}</dd>
 				<dt>{t('rail.funding')}</dt><dd>{fmtMoney(s.totals.fundingNet, L, true)}</dd>
+				<dt>{t('debrief.spread')}</dt><dd data-testid="debrief-spread">{fmtMoney(d.spreadSlippage, L)}</dd>
 				{#if s.options.enabled}<dt>{t('opt.realized')}</dt><dd>{fmtMoney(s.totals.optionRealized, L, true)}</dd>{/if}
 				<dt>{t('debrief.maxDrawdown')}</dt><dd>{fmtMoney(s.totals.maxDrawdown, L)}</dd>
-				<dt>{t('debrief.peakExposure')}</dt><dd>{(s.totals.peakLeverageBp / 10000).toFixed(1)}x</dd>
+				<dt>{t('debrief.peakExposure')}</dt><dd>{fmtLeverageBp(s.totals.peakLeverageBp, L)}</dd>
+				<dt>{t('debrief.minLiqDistance')}</dt><dd data-testid="debrief-liq-distance">{fmtLiqDistance(s.totals.minLiqDistanceBp, L)}</dd>
+				<dt>{t('debrief.turnover')}</dt><dd data-testid="debrief-turnover">{fmtMoney(s.totals.turnover, L)}</dd>
 				<dt>{t('debrief.vsFlat')}</dt><dd>{fmtMoney(0, L)}</dd>
 				<dt>{t('debrief.vsHold')}</dt><dd class={hold >= 0 ? 'up' : 'down'}>{fmtMoney(hold, L, true)}</dd>
 			</dl>
@@ -111,6 +121,19 @@
 		<p class="muted small">{t('debrief.disclaimer')}</p>
 	</section>
 
+	{#if d.greeks}
+		<section class="panel" data-testid="debrief-greeks">
+			<h2 class="panel-title">{t('debrief.greeksTitle')}</h2>
+			<dl class="kv">
+				{#each greeks as g (g.key)}
+					<dt>{t(`greek.${g.key}`)}</dt><dd class={g.value >= 0 ? 'up' : 'down'}>{signMark(g.value)} {fmtMoney(g.value, L, true)}</dd>
+				{/each}
+				<dt><strong>{t('greek.total')}</strong></dt><dd><strong>{fmtMoney(d.greeks.total, L, true)}</strong></dd>
+			</dl>
+			<p class="muted small">{t('debrief.greeksNote')}</p>
+		</section>
+	{/if}
+
 	<section class="panel">
 		<h2 class="panel-title">{t('debrief.trades')}</h2>
 		{#if trades.length === 0}
@@ -128,6 +151,7 @@
 					{#each trades as tr (tr.n)}
 						{@const net = Number(tr.net)}
 						{@const r = tr.rBp == null ? null : tr.rBp / 10000}
+						{@const advice = adviceText(tr)}
 						<tr>
 							<td>{tr.n}</td>
 							<td class={tr.side === 'long' ? 'up' : 'down'}>{tradeLabel(tr)} × {Number(tr.qty)}</td>
@@ -141,6 +165,9 @@
 								{tr.planRespected == null ? '—' : tr.planRespected ? '✔ ' + t('trade.respected') : '✖ ' + t('trade.violated')}
 							</td>
 						</tr>
+						{#if advice}
+							<tr class="advice"><td></td><td colspan="8" class="down">✖ {advice}</td></tr>
+						{/if}
 					{/each}
 				</tbody>
 			</table>

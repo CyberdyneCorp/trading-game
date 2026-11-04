@@ -36,7 +36,7 @@ src/
   lib/engine/              model bridge: engine.worker.ts (WASM host), client.ts, protocol.ts, types.ts, wasm/
   lib/game/                view-models (session, autoplay, settings, pwa, i18n, audio, sound — *.svelte.ts rune classes),
                            IndexedDB storage, and pure helpers (sizing, stops, optionsMath, calibration,
-                           analysis, format, news, hotkeys, tutorials, candle/chart pattern catalogs
+                           analysis, debrief, format, news, hotkeys, tutorials, candle/chart pattern catalogs
                            and patternOutcome) with *.test.ts next to them
   lib/components/          views: Terminal, Chart (+ chartPanes.ts), OrderTicket, OptionTicket, OptionChain,
                            RightRail, TopBar, Briefing, Tutorial (+ TutorialArt), Debrief, MissionMenu, dialogs,

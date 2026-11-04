@@ -40,3 +40,7 @@ After a debrief, the system SHALL recommend a lesson mapped from observable erro
 #### Scenario: Stop beyond liquidation
 - **WHEN** a run had a liquidation with a stop beyond the liquidation price
 - **THEN** the recommended lesson SHALL be Futures II
+
+#### Scenario: Ignoring theta or IV
+- **WHEN** a run lost money on options and theta, or vega, explains at least half of that loss in the Greek attribution, with no liquidation, stop beyond liquidation, margin call, unprotected or oversized entry, or bankruptcy
+- **THEN** the debrief SHALL say which Greek cost the money and the recommended lesson SHALL be Options II (IV and Greeks)

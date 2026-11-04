@@ -74,6 +74,7 @@ TradeRow finalize(const RunState& st, OpenTrade& o, std::uint32_t after) {
     if (t.exit_step) t.r_bp = round_div(static_cast<i128>(t.net.raw) * kBp, plan->planned_risk.raw);
   }
   t.plan_respected = respected(t, plan);
+  if (plan != nullptr && t.series == 0) t.stop = plan->invalidation;  // a stop order overrides it (annotate_stop)
   return t;
 }
 
@@ -334,15 +335,35 @@ Finding mk(FindingCode c, FindingTone t, std::uint32_t step = 0, std::uint32_t c
 
 void add(ScoreReport& r, FindingCode c, FindingTone t) { r.findings.push_back(mk(c, t)); }
 
+// The liquidated trade's safe leverage (0 when its stop was in front, or there was no stop).
+std::uint32_t safe_leverage_at(const ScoreReport& r, std::uint32_t step) {
+  for (const TradeRow& t : r.trades) {
+    if (t.reason == ExitReason::Liquidation && t.exit_step == step) return static_cast<std::uint32_t>(t.safe_leverage);
+  }
+  return 0;
+}
+
+// Stop beyond liquidation: warned when the stop was placed, or a bracket/planned stop found per trade.
+// The finding names the first such trade: entry bar, stop, liquidation price, safe leverage.
+void stop_beyond_finding(const Facts& f, ScoreReport& r) {
+  const auto it = std::find_if(r.trades.begin(), r.trades.end(), [](const TradeRow& t) { return t.stop_beyond_liq; });
+  if (it == r.trades.end()) {
+    if (f.stop_warnings > 0) add(r, FindingCode::StopBeyondLiq, FindingTone::Bad);
+    return;
+  }
+  r.findings.push_back(mk(FindingCode::StopBeyondLiq, FindingTone::Bad, it->entry_step, static_cast<std::uint32_t>(it->safe_leverage),
+                          it->stop, it->liq_price));
+}
+
 void risk_findings(const RunState& st, const Facts& f, ScoreReport& r) {
   if (st.status == RunStatus::Bankrupt) add(r, FindingCode::Bankrupt, FindingTone::Bad);
   for (const Event* l : f.liquidations) {
-    r.findings.push_back(mk(FindingCode::Liquidated, FindingTone::Bad, l->step, 0, l->price, Price{}, l->amount));
+    r.findings.push_back(mk(FindingCode::Liquidated, FindingTone::Bad, l->step, safe_leverage_at(r, l->step), l->price, Price{}, l->amount));
   }
   for (const Event* m : f.margin_calls) {
     r.findings.push_back(mk(FindingCode::MarginCalled, FindingTone::Bad, m->step, 0, m->price, Price{}, Money::from_raw(-m->pnl.raw)));
   }
-  if (f.stop_warnings > 0) add(r, FindingCode::StopBeyondLiq, FindingTone::Bad);
+  stop_beyond_finding(f, r);
   if (f.unprotected > 0) r.findings.push_back(mk(FindingCode::NoStop, FindingTone::Warn, 0, f.unprotected));
   if (f.oversized) {
     r.findings.push_back(mk(FindingCode::Oversized, FindingTone::Warn, f.oversized->first, 0, Price{}, Price{}, f.oversized->second));
@@ -372,6 +393,18 @@ void execution_findings(const RunState& st, const Facts& f, ScoreReport& r) {
   if (f.capacity > 0) r.findings.push_back(mk(FindingCode::Capacity, FindingTone::Info, 0, f.capacity));
 }
 
+// Theta or vega explaining at least half of an option loss points to the Options lesson (IV and Greeks).
+void greek_findings(ScoreReport& r) {
+  if (!r.greeks || r.greeks->total.raw >= 0) return;
+  const std::int64_t loss = -r.greeks->total.raw;
+  if (r.greeks->theta.raw < 0 && -2 * r.greeks->theta.raw >= loss) {
+    r.findings.push_back(mk(FindingCode::ThetaDecay, FindingTone::Warn, 0, 0, Price{}, Price{}, Money::from_raw(-r.greeks->theta.raw)));
+  }
+  if (r.greeks->vega.raw < 0 && -2 * r.greeks->vega.raw >= loss) {
+    r.findings.push_back(mk(FindingCode::IvCrush, FindingTone::Warn, 0, 0, Price{}, Price{}, Money::from_raw(-r.greeks->vega.raw)));
+  }
+}
+
 bool has(const ScoreReport& r, FindingCode c) {
   return std::any_of(r.findings.begin(), r.findings.end(), [c](const Finding& f) { return f.code == c; });
 }
@@ -381,6 +414,7 @@ LessonCode pick_lesson(const ScoreReport& r) {
   // A margin call on written options (even one that ends in bankruptcy) is a sizing lesson.
   if (has(r, FindingCode::NoStop) || has(r, FindingCode::Oversized) || has(r, FindingCode::MarginCalled)) return LessonCode::Risk;
   if (has(r, FindingCode::Bankrupt)) return LessonCode::Futures2;
+  if (has(r, FindingCode::ThetaDecay) || has(r, FindingCode::IvCrush)) return LessonCode::Options;
   if (has(r, FindingCode::FundingCost)) return LessonCode::Futures3;
   if (has(r, FindingCode::GapSlippage)) return LessonCode::Orders;
   if (has(r, FindingCode::NoPlan)) return LessonCode::Structure;
@@ -431,6 +465,7 @@ std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
   for (std::size_t i = 0; i < rows.size(); ++i) {
     rows[i].n = static_cast<std::uint32_t>(i + 1);
     describe_series(sc, rows[i]);
+    annotate_stop(sc, st, rows[i]);
   }
   return rows;
 }
@@ -444,11 +479,14 @@ ScoreReport score_run(const Scenario& sc, const RunState& st) {
   r.plan.score = plan_score(f);
   calibration(sc, st, r);
   combine(r);
+  r.trades = build_trades(sc, st);
+  r.spread_cost = spread_slippage_cost(sc, st);
+  r.greeks = greek_attribution(sc, st);
   risk_findings(st, f, r);
   outcome_findings(f, r);
   execution_findings(st, f, r);
+  greek_findings(r);
   r.lesson = pick_lesson(r);
-  r.trades = build_trades(sc, st);
   return r;
 }
 
