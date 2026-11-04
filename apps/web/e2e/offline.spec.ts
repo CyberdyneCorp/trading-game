@@ -26,6 +26,7 @@ test('OFF01-web: after one online visit the game starts and plays a full mission
 	await page.reload();
 	await expect(page.getByText('OFFLINE').first()).toBeVisible();
 	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
+	await page.getByRole('button', { name: 'Pular tutorial' }).click(); // first start shows the tutorial
 	await page.getByRole('button', { name: /Abrir terminal/ }).click();
 	await answerIfAsked(page);
 	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');

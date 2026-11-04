@@ -15,9 +15,10 @@ import type {
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
 import { stepsUntilNextQuestion } from './calibration.ts';
-import { newRunId, openDb, RunStore } from './storage.ts';
+import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress } from './storage.ts';
+import { tutorialFor } from './tutorials.ts';
 
-export type Screen = 'loading' | 'menu' | 'briefing' | 'terminal' | 'debrief';
+export type Screen = 'loading' | 'menu' | 'tutorial' | 'briefing' | 'terminal' | 'debrief';
 
 type Action =
 	| { k: 'lev'; lev: number }
@@ -98,6 +99,8 @@ export class GameSession {
 	/** False when IndexedDB is unavailable (e.g. some private modes): runs cannot be resumed. */
 	durable = $state(true);
 	persisted = $state<boolean | null>(null);
+	/** Per-device progress: which mission tutorials were already shown. */
+	progress = $state<Progress>({ ...EMPTY_PROGRESS });
 
 	private engine: EngineClient | null = null;
 	private log: Action[] = [];
@@ -119,6 +122,7 @@ export class GameSession {
 			this.policy = info.version.executionPolicy;
 			await this.openStore();
 			await this.refreshSaved();
+			this.progress = (await this.store?.progress().catch(() => null)) ?? { ...EMPTY_PROGRESS };
 			this.screen = 'menu';
 		} catch (e) {
 			this.error = e instanceof Error ? e.message : String(e);
@@ -179,7 +183,7 @@ export class GameSession {
 				})
 				.catch(() => (this.durable = false));
 			void this.requestPersistence();
-			this.screen = 'briefing';
+			this.screen = this.needsTutorial(missionId) ? 'tutorial' : 'briefing';
 		});
 	}
 
@@ -219,6 +223,25 @@ export class GameSession {
 		this.screen = this.state?.status === 'active' ? 'terminal' : 'debrief';
 		if (this.screen === 'debrief') await this.loadDebrief();
 		this.saved = null;
+	}
+
+	/** A mission's tutorial is shown automatically only the first time it is started on this device. */
+	needsTutorial(missionId: string): boolean {
+		return tutorialFor(missionId, 'en').length > 0 && !this.progress.tutorialsSeen.includes(missionId);
+	}
+
+	/** Replays the current mission's tutorial (from the briefing). */
+	showTutorial(): void {
+		this.screen = 'tutorial';
+	}
+
+	/** Finished or skipped: remember it and go on to the briefing. */
+	finishTutorial(): void {
+		if (!this.progress.tutorialsSeen.includes(this.missionId)) {
+			this.progress = { ...this.progress, tutorialsSeen: [...this.progress.tutorialsSeen, this.missionId] };
+			void this.store?.saveProgress($state.snapshot(this.progress)).catch(() => (this.durable = false));
+		}
+		this.screen = 'briefing';
 	}
 
 	enterTerminal(): void {

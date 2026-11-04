@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
+	import { tutorialFor } from '#lib/game/tutorials.ts';
 	import { fmtMoney, fmtPct, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
@@ -39,7 +40,10 @@
 		<p class="rules">{t('brief.rules')}</p>
 		<p class="muted small">{txt.topic}</p>
 		<div class="actions">
-			<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
+			<span class="left">
+				<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
+				{#if tutorialFor(s.mission, L).length}<button onclick={() => session.showTutorial()}>? {t('brief.tutorial')}</button>{/if}
+			</span>
 			<!-- svelte-ignore a11y_autofocus -->
 			<button class="primary" onclick={() => session.enterTerminal()} autofocus>▶ {t('brief.go')}</button>
 		</div>
@@ -67,6 +71,10 @@
 		display: flex;
 		justify-content: space-between;
 		margin-top: 1rem;
+	}
+	.left {
+		display: flex;
+		gap: 0.4rem;
 	}
 	.small {
 		font-size: 0.8rem;

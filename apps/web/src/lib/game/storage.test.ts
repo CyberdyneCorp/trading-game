@@ -60,6 +60,12 @@ describe('RunStore (IndexedDB)', () => {
 		expect((await store.finishedMissions()).sort()).toEqual(['m01-false-breakout', 'm03-volatility-shock']);
 	});
 
+	it('keeps player progress (tutorials seen) and starts empty', async () => {
+		expect(await store.progress()).toEqual({ tutorialsSeen: [] });
+		await store.saveProgress({ tutorialsSeen: ['m01-false-breakout'] });
+		expect((await store.progress()).tutorialsSeen).toEqual(['m01-false-breakout']);
+	});
+
 	it('migrates the legacy localStorage save and removes it', async () => {
 		const mem = new Map<string, string>();
 		const storage = {

@@ -80,7 +80,7 @@ mindmap
 
 | Area | Details |
 |---|---|
-| Missions | 5 synthetic missions (table below). Each has a briefing, objectives, a leverage cap and a "what was really going on" reveal in the debrief. |
+| Missions | 5 synthetic missions (table below). Each has a first-start tutorial, a briefing, objectives, a leverage cap and a "what was really going on" reveal in the debrief. |
 | Perpetual futures | Isolated margin, leverage up to the mission cap, funding every N bars, mark-to-market, liquidation, bankruptcy (game over when you can't afford the minimum order). |
 | Options | Cash-settled European calls/puts priced with Black-76 on the perpetual, with an IV model, Greeks, option chain, writing with margin and margin calls. |
 | Orders | Market / limit / stop entries, reduce-only stop-loss and take-profit (brackets, OCO), trailing stop, costs (fees, spread, slippage, bar-volume capacity). |
@@ -322,7 +322,10 @@ Historical packs (masked real markets from Market4Me) are specified but not buil
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Briefing
+    [*] --> Tutorial: first start of a mission
+    [*] --> Briefing: later starts
+    Tutorial --> Briefing: finished or skipped
+    Briefing --> Tutorial: replay
     Briefing --> Plan: start mission
     Plan --> Trading: plan recorded or skipped
     Trading --> Trading: advance bars, place orders, answer questions
@@ -332,10 +335,11 @@ stateDiagram-v2
     Debrief --> [*]
 ```
 
-1. **Briefing** — the mission's story, objectives, instrument and leverage cap. A warm-up history is already on the chart.
-2. **Plan** — before trading, write the hypothesis: side, invalidation (stop), target and risk. You can also explicitly plan to stay out — not trading is a valid decision.
-3. **Trading** — advance bar by bar (or with auto-advance). Place orders, move stops, read news, watch funding. The game occasionally asks calibration questions ("probability price is higher in 10 bars?").
-4. **Debrief** — the engine scores the run on process:
+1. **Tutorial** — the first time you start a mission on a device, 3–5 short illustrated cards explain its concept, what to watch and which controls to use (arrows or Enter to page, Esc to skip). They never hint at what the market will do. Replay them from the briefing.
+2. **Briefing** — the mission's story, objectives, instrument and leverage cap. A warm-up history is already on the chart.
+3. **Plan** — before trading, write the hypothesis: side, invalidation (stop), target and risk. You can also explicitly plan to stay out — not trading is a valid decision.
+4. **Trading** — advance bar by bar (or with auto-advance). Place orders, move stops, read news, watch funding. The game occasionally asks calibration questions ("probability price is higher in 10 bars?").
+5. **Debrief** — the engine scores the run on process:
 
 | Dimension | Weight | What it measures |
 |---|---|---|
