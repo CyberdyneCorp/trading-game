@@ -89,6 +89,8 @@ export interface EngineEvent {
 	step: number;
 	type: EventTypeName;
 	orderId: number;
+	/** Type of the order the event refers to; null for events without an order. */
+	orderType: OrderTypeName | null;
 	status: string;
 	reason: string;
 	side: OrderSideName;
@@ -250,7 +252,8 @@ export interface EngineFinding {
 		| 'bankrupt'
 		| 'margin_called'
 		| 'theta_decay'
-		| 'iv_crush';
+		| 'iv_crush'
+		| 'good_process_win';
 	tone: 'good' | 'warn' | 'bad' | 'info';
 	step: number;
 	count: number;
@@ -285,7 +288,7 @@ export interface EngineTrade {
 	planRespected: boolean | null;
 	/** Perpetual rows only: the trade's stop (stop order, else the plan's invalidation; 0 = none). */
 	stop?: Decimal;
-	/** Perpetual rows only: leverage at entry and the liquidation price it implied (0 = none). */
+	/** Perpetual rows only: highest leverage the position carried (at entry or re-leveraged while open) and the liquidation price it implied (0 = none). */
 	leverage?: number;
 	liqPrice?: Decimal;
 	stopBeyondLiq?: boolean;

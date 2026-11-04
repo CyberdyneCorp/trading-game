@@ -160,13 +160,19 @@ std::vector<std::vector<const Event*>> option_events_by_step(const RunState& st)
 
 // ---- stop vs liquidation --------------------------------------------------------------------
 
-std::int32_t leverage_before(const RunState& st, std::uint32_t step) {
-  std::int32_t lev = 1;  // a run starts at 1x
+// Highest leverage the position carried: the run leverage at entry, raised by any re-leverage while
+// it was open (which re-margins it and moves its liquidation price). A change at the exit bar comes
+// after that bar's fills, so it belongs to the next trade.
+std::int32_t leverage_held(const RunState& st, const TradeRow& t) {
+  std::int32_t at_entry = 1;  // a run starts at 1x
+  std::int32_t peak = 0;
   for (const Event& e : st.events) {
-    if (e.step >= step) break;
-    if (e.type == EventType::LeverageChanged) lev = static_cast<std::int32_t>(e.amount.raw);
+    if (e.type != EventType::LeverageChanged) continue;
+    const auto lev = static_cast<std::int32_t>(e.amount.raw);
+    if (e.step < t.entry_step) at_entry = lev;
+    else if (!t.exit_step || e.step < *t.exit_step) peak = std::max(peak, lev);
   }
-  return lev;
+  return std::max(at_entry, peak);
 }
 
 // First reduce-only stop that protected the trade (bracket legs are placed at the entry fill).
@@ -196,7 +202,27 @@ bool stop_in_front(const Scenario& sc, const TradeRow& t, std::int32_t lev) {
   return t.is_long ? t.stop > liq : t.stop < liq;
 }
 
+// Unrealized P&L of an open option position at the final quote, valued like the account equity:
+// a long at the bid, a short at the ask.
+Money option_unrealized(const Scenario& sc, const RunState& st, std::uint32_t series) {
+  for (const OptionPosition& p : st.option_positions) {
+    if (p.series != series) continue;
+    const OptionQuote q = quote(sc, *find_series(sc, series), st.step, sc.bars[st.step].close);
+    if (!q.listed) return Money{};
+    const Price px = p.qty.raw > 0 ? q.bid : q.ask;
+    return option_value(sc, p.qty.raw, px.raw - p.avg_premium.raw);
+  }
+  return Money{};
+}
+
 }  // namespace
+
+void mark_open_trade(const Scenario& sc, const RunState& st, TradeRow& t) {
+  if (t.reason != ExitReason::Open) return;
+  const Money u = t.series == 0 ? detail::unrealized_pnl(sc, st.position, sc.bars[st.step].close) : option_unrealized(sc, st, t.series);
+  t.pnl = Money::from_raw(t.pnl.raw + u.raw);
+  t.net = Money::from_raw(t.net.raw + u.raw);
+}
 
 Money spread_slippage_cost(const Scenario& sc, const RunState& st) {
   std::int64_t total = 0;
@@ -231,7 +257,7 @@ std::optional<GreekAttribution> greek_attribution(const Scenario& sc, const RunS
 void annotate_stop(const Scenario& sc, const RunState& st, TradeRow& t) {
   if (t.series != 0) return;
   if (const Order* o = trade_stop(st, t)) t.stop = o->price;
-  t.leverage = leverage_before(st, t.entry_step);
+  t.leverage = leverage_held(st, t);
   Price liq;
   if (liq_at(sc, t, t.leverage, &liq)) t.liq_price = liq;
   if (t.stop.raw == 0 || stop_in_front(sc, t, t.leverage)) return;

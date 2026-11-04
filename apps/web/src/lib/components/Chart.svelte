@@ -2,7 +2,7 @@
 	// Retro candle chart on Canvas2D (design add-web-client D3). Only closed bars exist here:
 	// the area right of the last bar is drawn as an explicit "unknown future" zone.
 	import type { GameState } from '#lib/engine/types.ts';
-	import { fmtPrice, fmtQty } from '#lib/game/format.ts';
+	import { fmtNum, fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { OSCILLATORS, type Oscillator, type Palette } from './chartPanes.ts';
 	import { candleRange, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
@@ -216,7 +216,7 @@
 		ctx.fillRect(plotW, y(price) - 8, AXIS_W, 16);
 		ctx.fillStyle = cssVar('--bg');
 		ctx.font = '11px "IBM Plex Mono", monospace';
-		ctx.fillText(price.toFixed(2), plotW + 6, y(price) + 4);
+		ctx.fillText(fmtNum(price, i18n.locale), plotW + 6, y(price) + 4);
 	}
 
 	function drawGrid(ctx: CanvasRenderingContext2D, lo: number, hi: number, plotW: number, priceH: number, y: (p: number) => number) {
@@ -234,7 +234,7 @@
 			ctx.lineTo(plotW, yy);
 			ctx.stroke();
 			ctx.globalAlpha = 1;
-			if (yy < priceH) ctx.fillText(p.toFixed(2), plotW + 6, yy + 4);
+			if (yy < priceH) ctx.fillText(fmtNum(p, i18n.locale), plotW + 6, yy + 4);
 		}
 	}
 
@@ -433,7 +433,7 @@
 		ctx.fillText(label, plotW - w - 4, tag - 4);
 		ctx.fillRect(plotW, tag - 8, AXIS_W, 16);
 		ctx.fillStyle = cssVar('--bg');
-		ctx.fillText(l.price.toFixed(2), plotW + 6, tag + 4);
+		ctx.fillText(fmtNum(l.price, i18n.locale), plotW + 6, tag + 4);
 	}
 
 	function drawHover(ctx: CanvasRenderingContext2D, slotW: number, priceH: number, x: (i: number) => number) {
@@ -569,7 +569,7 @@
 			<span class="muted">V {fmtQty(String(hoverBar[4]), i18n.locale)}</span>
 			{@const rsiV = game.indicators.rsi14[hoverIndex]}
 			{@const atrV = game.indicators.atr14[hoverIndex]}
-			<span class="info">RSI14 {rsiV != null ? Number(rsiV).toFixed(1) : '—'}</span>
+			<span class="info">RSI14 {fmtOsc(rsiV, 1)}</span>
 			<span class="muted">ATR14 {atrV != null ? fmtPrice(atrV, i18n.locale) : '—'}</span>
 			{@const ind = game.indicators}
 			{#if showBb}<span class="bb">BB {ind.bbLower[hoverIndex] != null ? `${fmtPrice(ind.bbLower[hoverIndex]!, i18n.locale)}–${fmtPrice(ind.bbUpper[hoverIndex]!, i18n.locale)}` : '—'}</span>{/if}

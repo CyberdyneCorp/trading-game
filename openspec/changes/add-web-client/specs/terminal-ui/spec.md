@@ -11,7 +11,7 @@ On screens at least 1024 points wide in landscape, the chart and right rail SHAL
 
 #### Scenario: Liquidation always visible
 - **WHEN** the player has an open perpetual position
-- **THEN** its liquidation price and distance from last close SHALL be visible in the right rail and as a chart line
+- **THEN** its liquidation price and distance from last close SHALL be visible in the right rail and as a chart line, with the position panel (liquidation price and the add/remove margin controls) at the top of the rail, inside its visible area without scrolling the rail at 1024×768
 
 ### Requirement: Visual system
 Clients SHALL use the tokens background `#0B1010`, panel `#121C1B`, accent `#39FF88`, text `#E3F5EA`, attention `#FFC857`, info `#4FD8FF`, a monospace font for all numbers and tables and a pixel font only for titles. Scanlines, bloom and noise SHALL be optional and off when the OS requests reduced motion or the user disables them. Clients SHALL NOT use flicker effects. Text contrast SHALL meet WCAG 2.2 AA, measured.
@@ -28,7 +28,7 @@ Every gain, loss, long, short, buy or sell indication SHALL include a sign, labe
 - **THEN** long vs short and gain vs loss SHALL remain distinguishable
 
 ### Requirement: Distinct actions and acknowledgements
-Submit order, close position and advance market SHALL be visually and spatially distinct controls. Order acknowledgement ("accepted") and execution ("filled", "partially filled") SHALL be separate messages, and rejections SHALL show the engine reason in plain language. The event feed and order list SHALL name each order's type (MKT, LMT, STOP, TP, TRAIL) and each option contract by kind, strike and expiry (e.g. "C 100 · exp 96"), also after the order is gone or the series expired. A fill with no order (the engine's forced buy-back of written options in a margin call) SHALL read as a forced buy-back, not as an order number.
+Submit order, close position and advance market SHALL be visually and spatially distinct controls. Order acknowledgement ("accepted") and execution ("filled", "partially filled") SHALL be separate messages, and rejections SHALL show the engine reason in plain language. The event feed and order list SHALL name each order's type (MKT, LMT, STOP, TP, TRAIL) and each option contract by kind, strike and expiry (e.g. "C 100 · exp 96"), also after the order is gone or the series expired, and also for a bracket leg placed and filled or cancelled within one advance (every C ABI event carries `orderType`, the type of the order it refers to). A fill with no order (the engine's forced buy-back of written options in a margin call) SHALL read as a forced buy-back, not as an order number.
 
 #### Scenario: Rejection reason shown
 - **WHEN** an order is rejected with `insufficient_margin`
@@ -123,7 +123,11 @@ The chart SHALL have an equivalent accessible table of closed bars, a text summa
 - **THEN** the last row SHALL be the current closed bar
 
 ### Requirement: Localization and numbers
-All user-facing strings SHALL come from i18n catalogs (PT-BR first, en-US second). Numbers SHALL be formatted from fixed-point values using the declared scale, with locale-aware separators for display only; parsing and storage SHALL be locale-independent.
+All user-facing strings SHALL come from i18n catalogs (PT-BR first, en-US second). Numbers SHALL be formatted from fixed-point values using the declared scale, with locale-aware separators for display only (prices, quantities, indicator values, Greeks, R multiples, chart axis and tags, notices and the order side in the feed); parsing and storage SHALL be locale-independent. A number typed by the player SHALL be read with either decimal mark (`95,56` and `95.56` are the same price), since PT-BR mobile keyboards give a comma for decimal input.
+
+#### Scenario: Decimal comma in a typed level
+- **WHEN** a PT-BR player types the invalidation `95,56` in the plan dialog or the stop `95,26` in the ticket
+- **THEN** the plan SHALL record 95.56 (not an empty or invalid level) and the ticket SHALL size the order with a stop of 95.26
 
 #### Scenario: Locale does not change results
 - **WHEN** the UI language switches from PT-BR to en-US mid-run

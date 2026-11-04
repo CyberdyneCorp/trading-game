@@ -2,7 +2,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { describeFinding, describeLesson } from '#lib/game/analysis.ts';
 	import { fmtLeverageBp, fmtLiqDistance, greekRows, stopAdvice } from '#lib/game/debrief.ts';
-	import { fmtMoney, fmtPct, fmtPrice, num, signMark } from '#lib/game/format.ts';
+	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import Chart from './Chart.svelte';
@@ -29,6 +29,8 @@
 		const series = tr.kind && tr.strike ? `${tr.kind === 'call' ? 'C' : 'P'} ${fmtPrice(tr.strike, L)} · exp ${tr.expiryStep}` : `OPT#${tr.series}`;
 		return `${arrow} ${t(tr.side === 'long' ? 'trade.optBuy' : 'trade.optWrite')} ${series}`;
 	}
+	// Old journal entries may hold NaN (a decimal comma read before the fix): shown as no level.
+	const planLevel = (v: number | null) => (v != null && Number.isFinite(v) ? fmtPrice(String(v), L) : '—');
 	const cal = $derived({
 		resolved: d.calibration.resolved,
 		score: d.score.dims.calibration.score,
@@ -46,7 +48,7 @@
 				key: `p${i}`,
 				text: p.skipped
 					? `✎ ${t('debrief.noPlan')}`
-					: `✎ ${t('debrief.planLine', { thesis: p.thesis, inv: p.invalidation ?? '—', target: p.target ?? '—', conf: p.confidence })}`,
+					: `✎ ${t('debrief.planLine', { thesis: p.thesis, inv: planLevel(p.invalidation), target: planLevel(p.target), conf: p.confidence })}`,
 				tone: 'info'
 			}))
 		]
@@ -154,11 +156,11 @@
 						{@const advice = adviceText(tr)}
 						<tr>
 							<td>{tr.n}</td>
-							<td class={tr.side === 'long' ? 'up' : 'down'}>{tradeLabel(tr)} × {Number(tr.qty)}</td>
+							<td class={tr.side === 'long' ? 'up' : 'down'}>{tradeLabel(tr)} × {fmtQty(tr.qty, L)}</td>
 							<td class="num">{fmtPrice(tr.entryAvg, L)} <span class="muted">@{tr.entryStep}</span></td>
-							<td class="num">{Number(tr.exitAvg) > 0 ? fmtPrice(tr.exitAvg, L) : '—'}</td>
+							<td class="num">{tr.exitStep != null ? fmtPrice(tr.exitAvg, L) : '—'}</td>
 							<td class="num {net >= 0 ? 'up' : 'down'}">{signMark(net)} {fmtMoney(net, L, true)}</td>
-							<td class="num">{r != null ? `${r >= 0 ? '+' : ''}${r.toFixed(2)}R` : '—'}</td>
+							<td class="num">{r != null ? `${fmtNum(r, L, 2, true)}R` : '—'}</td>
 							<td class="num">{tr.bars}</td>
 							<td>{t(`trade.${tr.reason}`)}</td>
 							<td class={tr.planRespected === false ? 'down' : tr.planRespected ? 'up' : 'muted'}>
@@ -175,7 +177,7 @@
 		<h3>{t('debrief.calibrationTitle')}</h3>
 		<p class="muted">
 			{cal.score != null
-				? t('debrief.calibrationLine', { n: cal.resolved, brier: (cal.brier ?? 0).toFixed(3) })
+				? t('debrief.calibrationLine', { n: cal.resolved, brier: fmtNum(cal.brier ?? 0, L, 3) })
 				: t('debrief.calibrationNa')}
 		</p>
 	</section>

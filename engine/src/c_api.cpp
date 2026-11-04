@@ -113,9 +113,21 @@ void write_orders(JsonOut& j, const RunState& st) {
   j.end_arr();
 }
 
-void write_event(JsonOut& j, const Event& e) {
+const Order* order_by_id(const RunState& st, std::uint32_t id) {
+  for (const Order& o : st.orders) {
+    if (o.id == id) return &o;
+  }
+  return nullptr;
+}
+
+// orderType names the order an event refers to (null without one): a bracket leg placed and filled
+// or cancelled within one advance never shows up in the live order list.
+void write_event(JsonOut& j, const RunState& st, const Event& e) {
   j.begin_obj().field("seq", e.seq).field("step", e.step).field("type", event_name(e.type));
-  j.field("orderId", e.order_id).field("status", status_name(e.status)).field("reason", reason_name(e.reason));
+  j.field("orderId", e.order_id).key("orderType");
+  const Order* o = e.order_id != 0 ? order_by_id(st, e.order_id) : nullptr;
+  if (o != nullptr) j.str(type_name(o->type)); else j.null();
+  j.field("status", status_name(e.status)).field("reason", reason_name(e.reason));
   j.field("side", side_name(e.side)).field("qty", e.qty).field("price", e.price).field("requested", e.requested);
   j.field("amount", e.amount).field("pnl", e.pnl);
   j.field("ambiguous", (e.flags & kFlagAmbiguousIntrabar) != 0).field("gap", (e.flags & kFlagGapFill) != 0);
@@ -231,7 +243,7 @@ const char* finding_name(FindingCode c) {
   static constexpr const char* kNames[] = {"waited",          "liquidated", "stop_beyond_liq", "no_stop",   "gap_slippage",
                                            "funding_cost",    "ambiguous",  "capacity",        "good_process_loss",
                                            "lucky_win",       "no_plan",    "oversized",       "bankrupt",
-                                           "margin_called",   "theta_decay", "iv_crush"};
+                                           "margin_called",   "theta_decay", "iv_crush",        "good_process_win"};
   return kNames[static_cast<std::size_t>(c)];
 }
 
@@ -322,7 +334,7 @@ const char* state_json(tl_run& r) {
   write_news(j, sc, st.step);
   write_calibration_state(j, sc, st);
   j.key("events").begin_arr();
-  for (const Event& e : st.events) write_event(j, e);
+  for (const Event& e : st.events) write_event(j, st, e);
   j.end_arr();
   write_totals(j, st);
   j.field("digest", to_hex(state_digest(st))).field("eventsDigest", to_hex(events_digest(st)));

@@ -4,7 +4,7 @@
 // Clients display this report; the server recomputes it from the same commands (never trusts a
 // client-reported score). Integer arithmetic only.
 //
-// Dimensions (scoring version 4): risk 35, plan coherence 25, understanding 25 (not measured yet),
+// Dimensions (scoring version 5): risk 35, plan coherence 25, understanding 25 (not measured yet),
 // calibration 15. A dimension without data is not applicable and the rest are renormalized.
 // Report-only debrief facts (spread/slippage cost, option P&L by Greek, the leverage that would have
 // kept a stop in front of liquidation) never feed the score.
@@ -17,7 +17,7 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kScoringVersion = 4;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson
+constexpr std::uint32_t kScoringVersion = 5;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,
@@ -36,6 +36,7 @@ enum class FindingCode : std::uint8_t {
   MarginCalled,  // written options bought back by force (step, buy-back premium, loss)
   ThetaDecay,    // time decay (theta) explains at least half of an option loss (amount = theta P&L lost)
   IvCrush,       // falling implied volatility (vega) explains at least half of an option loss
+  GoodProcessWin,  // a profit where every trade had a plan and limited risk (the counterpart of GoodProcessLoss)
 };
 
 enum class FindingTone : std::uint8_t { Good = 0, Warn, Bad, Info };
@@ -69,7 +70,7 @@ struct TradeRow {
   Qty qty;               // largest absolute size reached
   Price entry_avg;
   Price exit_avg;        // 0 while open
-  Money pnl;             // realized, before fees
+  Money pnl;             // realized, before fees; an open trade adds its unrealized P&L at the final mark
   Money fees;            // this trade's share of fill fees (a flip's fee is split by quantity)
   Money funding;         // funding received (+) or paid (-) while the trade was open
   Money net;             // pnl - fees + funding
@@ -79,7 +80,8 @@ struct TradeRow {
   std::optional<std::int64_t> r_bp;  // net / planned risk, in basis points (10000 = 1R)
   std::optional<bool> plan_respected;
   // Perpetual rows only: the protective stop (first reduce-only stop of the trade, else the plan's
-  // invalidation; 0 = none), the leverage at entry and the liquidation price it implied at entry.
+  // invalidation; 0 = none), the highest leverage the position carried (at entry or re-leveraged while
+  // open) and the liquidation price it implied.
   Price stop;
   std::int32_t leverage = 0;
   Price liq_price;  // 0 = not liquidable (e.g. a 1x long)
@@ -131,5 +133,7 @@ ScoreReport score_run(const Scenario& sc, const RunState& st);
 Money spread_slippage_cost(const Scenario& sc, const RunState& st);
 std::optional<GreekAttribution> greek_attribution(const Scenario& sc, const RunState& st);
 void annotate_stop(const Scenario& sc, const RunState& st, TradeRow& t);
+// Adds an open trade's unrealized P&L at the final mark to its pnl and net (as in the account equity).
+void mark_open_trade(const Scenario& sc, const RunState& st, TradeRow& t);
 
 }  // namespace tradelab

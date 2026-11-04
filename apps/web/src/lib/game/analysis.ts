@@ -30,6 +30,8 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		ambiguous: '{count} execução(ões) usaram a aproximação intrabar conservadora (OHLC não revela a ordem máxima/mínima).',
 		capacity: '{count} execução(ões) foram limitadas pela capacidade simulada da barra.',
 		good_process_loss: 'Prejuízo com processo bom: cada trade tinha plano e risco limitado (stop ou prêmio), sem liquidação nem chamada de margem. Isso é gestão de risco funcionando.',
+		good_process_win:
+			'Lucro com processo bom: cada trade tinha plano e risco limitado (stop ou prêmio), sem liquidação nem chamada de margem. Mantenha o processo — um resultado sozinho não prova vantagem.',
 		lucky_win: 'Lucro sem processo completo (sem plano ou sem stop). Resultado favorável pode ter sido sorte.',
 		no_plan: 'Entradas sem plano registrado: sem hipótese e invalidação, não dá para aprender com o resultado.',
 		oversized: 'Uma entrada arriscava ~{risk} cr (> 2% do capital). Dimensione pela perda máxima: o stop no futuro, o prêmio na opção.',
@@ -52,6 +54,8 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		ambiguous: '{count} fill(s) used the conservative intrabar approximation (OHLC does not reveal whether high or low came first).',
 		capacity: '{count} fill(s) were limited by the simulated bar capacity.',
 		good_process_loss: 'A loss with good process: every trade had a plan and limited risk (stop or premium), no liquidation or margin call. That is risk management working.',
+		good_process_win:
+			'A profit with good process: every trade had a plan and limited risk (stop or premium), no liquidation or margin call. Keep the process — one result alone does not prove an edge.',
 		lucky_win: 'Profit without full process (no plan or no stop). A favorable outcome may have been luck.',
 		no_plan: 'Entries without a recorded plan: without hypothesis and invalidation you cannot learn from the outcome.',
 		oversized: 'One entry risked ~{risk} cr (> 2% of capital). Size from the maximum loss: the stop on a future, the premium on an option.',

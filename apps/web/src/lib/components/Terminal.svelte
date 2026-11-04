@@ -3,13 +3,13 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { OrderSideName } from '#lib/engine/types.ts';
-	import { reasonText, t } from '#lib/game/i18n.svelte.ts';
+	import { i18n, reasonText, t } from '#lib/game/i18n.svelte.ts';
 	import { AutoPlay, type PauseReason } from '#lib/game/autoplay.svelte.ts';
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
 	import { keepsKey } from '#lib/game/hotkeys.ts';
 	import { exitOnValidSide, remainingQty } from './chartDrag.ts';
-	import { num, priceToTick } from '#lib/game/format.ts';
+	import { fmtQty, num, priceToTick } from '#lib/game/format.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
 	import HelpOverlay from './HelpOverlay.svelte';
@@ -115,7 +115,7 @@
 		const res = await session.placeOptionOrder(d.series, d.side, d.type, d.qty, d.premium);
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason);
-		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${d.side} ${d.label} × ${d.qty}` };
+		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${d.label} × ${fmtQty(d.qty, i18n.locale)}` };
 	}
 
 	function onOptionSubmit(d: OptionDraft) {
@@ -160,8 +160,10 @@
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason);
 		lastPlannedRisk = d.estimate.plannedRisk;
-		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${d.side} ${d.qty}` };
+		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${fmtQty(d.qty, i18n.locale)}` };
 	}
+
+	const sideWord = (side: 'buy' | 'sell') => t(`side.${side}`);
 
 	function notify(reason: string) {
 		session.notice = { tone: 'error', text: `✖ ${reasonText(reason)}` };
