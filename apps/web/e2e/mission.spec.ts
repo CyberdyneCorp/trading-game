@@ -380,7 +380,33 @@ test('detected candle patterns are named on the chart and open their cheat-sheet
 	await expect(sheet.getByTestId('pattern-three-outside-up')).toHaveClass(/focused/);
 	await page.keyboard.press('Escape');
 	await page.getByLabel('Padrões', { exact: true }).uncheck();
-	await expect(line).toHaveCount(0);
+	await expect(line.getByRole('button')).toHaveCount(0);
+});
+
+test('regression: hovering bars with and without patterns never moves or resizes the chart', async ({ page }) => {
+	// Before: the "Pattern:" row was inserted only while a patterned bar was hovered, pushing the
+	// canvas down and shrinking it, so the chart jumped as the mouse crossed bars.
+	await openTerminal(page, 25);
+	const canvas = page.locator('.chart canvas');
+	const box = (await canvas.boundingBox())!;
+	const seen = new Set<string>();
+	let named = 0;
+	for (let x = box.x + 4; x < box.x + box.width * 0.8; x += 6) {
+		await page.mouse.move(x, box.y + box.height * 0.3);
+		const b = (await canvas.boundingBox())!;
+		seen.add(`${b.y.toFixed(1)}:${b.height.toFixed(1)}`);
+		named += await page.getByTestId('pattern-line').getByRole('button').count();
+	}
+	expect(named).toBeGreaterThan(0); // the sweep did cross bars with a detected pattern
+	expect([...seen]).toEqual([`${box.y.toFixed(1)}:${box.height.toFixed(1)}`]);
+});
+
+test('the top bar has no +5 button; Shift+Space still advances five bars', async ({ page }) => {
+	await openTerminal(page, 4242);
+	await expect(page.getByRole('button', { name: /\+5/ })).toHaveCount(0);
+	const before = await barNumber(page);
+	await page.keyboard.press('Shift+Space');
+	await expect.poll(() => barNumber(page)).toBe(before + 5);
 });
 
 test('chart patterns tab lists multi-bar structures', async ({ page }) => {

@@ -34,9 +34,6 @@
 			<button class="primary" onclick={() => session.advance(1)} disabled={session.busy || s.status !== 'active'}>
 				▶ {t('top.advance')} <kbd>Space</kbd>
 			</button>
-			<button onclick={() => session.advance(5)} disabled={session.busy || s.status !== 'active'}>
-				▶▶ {t('top.advance5')} <kbd>⇧Space</kbd>
-			</button>
 			<div class="auto" role="group" aria-label={t('auto.title')}>
 				<button
 					class:running={auto.running}
