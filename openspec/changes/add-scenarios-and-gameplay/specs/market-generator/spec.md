@@ -41,11 +41,15 @@ The generator SHALL provide, per segment, a hidden fair value moved by fundament
 - **THEN** bars falling more than 1.5% SHALL be more than three times as frequent as in the same segment without the bias, and these squeeze jumps SHALL NOT move the fair value
 
 ### Requirement: Funding and IV dynamics
-Synthetic scenarios SHALL generate a funding-rate series from a declared rule linking it to recent drift and positioning parameters, and an IV base level linked to the generator's volatility state plus a declared premium, both computed only from state up to the current step. In generator v2 the rate for bar `i` is `clamp(funding_base + funding_sensitivity × 0.01 × EMA(returns) + segment funding_bias, ±0.3%)` from state at the close of bar `i−1`, quantized to 1e-6; the IV base at bar `i` is the annualized segment volatility × compression × √(variance state) × (1 + iv_premium) × segment and event IV multipliers.
+Synthetic scenarios SHALL generate a funding-rate series from a declared rule linking it to recent drift and positioning parameters, and an IV base level linked to the generator's volatility state plus a declared premium, both computed only from state up to the current step. In generator v2 the rate for bar `i` is `clamp(funding_base + funding_sensitivity × 0.01 × EMA(returns) + funding_bias, ±0.3%)` from state at the close of bar `i−1`, quantized to 1e-6, where `funding_bias` is that of the segment bar `i−1` belonged to (a segment's bias SHALL first show in the rate published at the close of its first bar, never one bar before it starts); the IV base at bar `i` is the annualized, smoothed per-bar variance (segment volatility × compression × √(variance state)) × (1 + iv_premium) × segment and event IV multipliers, capped at 250%.
 
 #### Scenario: Funding squeeze regime
 - **WHEN** a scenario declares a crowded-long regime
 - **THEN** generated funding SHALL be positive on average during that regime within the declared bounds
+
+#### Scenario: Funding does not announce the next segment
+- **WHEN** two scenarios differ only in the funding bias of a later segment
+- **THEN** their funding rates SHALL be identical up to and including the rate for that segment's first bar, and differ from the next one
 
 ### Requirement: Events
 Each scripted event SHALL declare release step, lead time, credibility, prior expectation, surprise, impact channels (drift, volatility, jumps, volume, spread, capacity, funding, IV), intensity distribution and duration. Reactions SHALL be sampled from seeded distributions that include no reaction, reversal and "buy the rumor, sell the news" outcomes, and SHALL NOT be determined by the event text's sentiment alone. The reaction SHALL start on the bar after publication. Independently of the transient reaction, a surprise SHALL move the hidden fair value by `fair_impact × surprise × credibility`; an expected outcome (surprise 0) SHALL leave it unchanged.

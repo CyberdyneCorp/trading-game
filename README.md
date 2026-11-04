@@ -232,22 +232,40 @@ Each bar's log-return is the sum of:
 | Level anchor | Technical (ranges) | In range segments price reverts to the range center and meets soft walls at the edges — fading extremes works more often than not. |
 | Trend anchor and momentum | Technical (trends) | Trend segments revert to their 20-bar EMA (pullbacks get bought) and carry momentum. |
 | Random-direction segments | Uncertainty | Breakouts pick a direction at random, tilted by the gap to fair value: the fundamental side wins more often, not always. |
-| Crowding squeezes | Positioning | When funding is extreme, a sharp move against the crowded side becomes likely. Squeezes don't move fair value. |
+| Crowding squeezes | Positioning | When funding is extreme, a sharp move against the crowded side becomes possible (a few percent per bar). Until it comes, the crowd is usually right. Squeezes don't move fair value. |
+| Funding, volume, implied vol | Derived | Funding follows recent drift plus the segment's crowding, and is published from the last closed bar only. Volume grows with the size of the move. Implied vol prices smoothed recent volatility plus a premium. |
 | Noise | Randomness | Normal variates from a dedicated PRNG stream. |
 
-**Calibration** (`engine/tests/test_generator.cpp`, 200 seeds per check) keeps the edges probabilistic. For example:
+Nothing in the generator reads the future. Indicators, patterns, funding and implied vol are all computed from closed bars, and an order sent at a bar's close fills from the next bar's open.
 
-| Setup | Share that works (band asserted by the test) |
-|---|---|
-| Pure random walk (no structure) | ~50% (asserted 35–65%) |
-| Fading RSI extremes inside a range | 58–72% |
-| Buying a trend pullback | 57–72% |
-| Shorting RSI > 70 in an uptrend | < 57% (a trap) |
-| Breakout in the direction of good news | 60–85% |
+### What can the player predict?
 
-### How reliable are signals in our data
+There are two ways to measure it.
 
-The engine detects 29 candle patterns on closed bars. We measure how often a detected pattern "works" — the close 5 bars later moved in the pattern's direction — over 300 generated markets (5 missions × 60 seeds). These numbers are asserted by `engine/tests/test_candle_patterns.cpp`, so a generator change that makes them untrue fails CI.
+- **Calibration tests** (`engine/tests/test_generator.cpp`, 200 seeds per check) use clean, single-regime markets to check that each structural term gives a small edge and never a certain one. For example, fading RSI extremes inside a range works 58–72% of the time, buying a trend pullback 57–72%, and a structure-free random walk gives RSI no edge (35–65%).
+- **The missions themselves** mix regimes, so the player first has to tell which one they are in. `tools/market_study.py` plays every mission on 100 seeds without trading and measures each signal from the next bar's open, the earliest price a player can actually get. The tables below are its output.
+
+**Technical signals** (5 missions × 100 seeds, outcome 5 bars later):
+
+| Signal | Samples | Goes the predicted way | Average move in its favor |
+|---|---|---|---|
+| MACD cross: follow | 2,938 | 53.7% | +0.55% |
+| Last bar's color, next bar only | 41,930 | 52.1% | +0.06% |
+| MACD histogram: follow its sign | 42,379 | 51.9% | +0.18% |
+| Candle pattern: follow its bias | 6,684 | 51.5% | +0.17% |
+| Close vs SMA20: follow | 42,374 | 49.8% | +0.04% |
+| ADX > 25: follow the stronger DI | 23,351 | 48.7% | -0.06% |
+| RSI < 30 buy, > 70 sell | 8,468 | 48.1% | -0.25% |
+| Bollinger: fade a close outside the bands | 6,069 | 45.7% | -0.54% |
+| Extreme funding (> 0.06%): fade the crowd | 5,587 | 35.1% | -0.86% |
+
+What this means:
+
+- **No indicator is a signal on its own.** Every one of them is within a few points of a coin flip, which is also what studies of real markets find. Trend-following reads (MACD) do slightly better than fading (RSI, Bollinger), because the missions trend more than they range.
+- **Context is the skill.** Fading RSI works inside a range and fails inside a trend. The calibration tests show the edge is there once the regime is right.
+- **Extreme funding is a warning, not a timing signal.** The crowd paying high funding is usually on the right side of the trend, until the squeeze. Fading it bar by bar loses about two times in three.
+
+**Candle patterns.** The engine detects 29 candle patterns on closed bars. `engine/tests/test_candle_patterns.cpp` measures them over 300 generated markets (5 missions × 60 seeds), counting a pattern as working when the close 5 bars later moved its way, and fails CI if a generator change moves them out of band:
 
 | Signal | Samples | Next 5 bars go the predicted way | Test band |
 |---|---|---|---|
@@ -255,14 +273,45 @@ The engine detects 29 candle patterns on closed bars. We measure how often a det
 | Pattern plus an extreme RSI (< 30 bullish, > 70 bearish) | 599 | 55.9% | 45–62% |
 | Kickers (gaps, usually caused by news) | 30 | 66.7% | > 60% |
 
-What this means for the player:
+Patterns alone are close to a coin flip, as in real markets, and the in-game cheat sheet says so plainly.
 
-- **Patterns alone are close to a coin flip**, which matches what research finds in real markets. The in-game cheat sheet says so plainly.
-- **Context helps a little**: an exhausted RSI behind the pattern adds a few points.
-- **Information helps most**: kickers are gaps driven by news, and news moves the hidden fair value, so they follow through more often. The kicker sample is small, so treat its rate as indicative.
-- Nothing works every time — even the best setup above fails one time in three. That's why every lesson insists on a stop.
+**News** (following the surprise's direction from the open after the headline, 10 bars):
 
-Volume, funding prints and implied volatility are derived from the same state. Historical packs (masked real markets from Market4Me) are specified but not built yet.
+| News (mission, step, surprise) | Gap at the next open | Goes the predicted way | Average move |
+|---|---|---|---|
+| m01 rumor @72, surprise 0 | 0.00% | 40% | -1.11% |
+| m01 credible denial @82, surprise -2 | -0.19% | 97% | +9.00% |
+| m02 inflow @100, surprise 0 | -0.01% | 59% | +1.04% |
+| m02 rate decision @112, surprise -1 | -0.06% | 74% | +4.17% |
+| m03 exchange incident @79, surprise -2 | -2.04% | 86% | +11.34% |
+| m04 rate decision @81, surprise +1 | 0.00% | 57% | +1.96% |
+| m05 network outage @99, surprise -2 | -2.84% | 98% | +15.14% |
+
+A surprise of 0 (the news was already expected) carries no edge, and a mild surprise carries a modest one. These rows behave as intended.
+
+### How close is this to a real market?
+
+| Mission | Excess kurtosis | Autocorrelation of returns | Autocorrelation of absolute returns |
+|---|---|---|---|
+| m01-false-breakout | 3.6 | +0.19 | +0.27 |
+| m02-funding-squeeze | 3.7 | +0.06 | +0.21 |
+| m03-volatility-shock | 16.5 | +0.17 | +0.43 |
+| m04-options-buyer | 6.2 | +0.17 | +0.38 |
+| m05-options-writer | 25.5 | +0.27 | +0.40 |
+
+What matches real hourly crypto data:
+
+- **Fat tails.** Excess kurtosis is well above 0. Real hourly data usually sits around 5–20.
+- **Volatility clustering.** Absolute returns are autocorrelated at 0.2–0.4, similar to real markets: calm follows calm and storms follow storms.
+- **Indicators hover around a coin flip**, as in real markets.
+
+### Known gaps (being worked on)
+
+- **Credible news is priced too slowly.** In a real market a credible, surprising headline is priced within minutes, so on hourly bars most of the move is in the next bar's gap. Here the next open moves only 0–3%, and following the headline afterwards still wins 86–98% of the time, gaining 9–15% in 10 bars. That is a free trade a real market would not offer.
+- **Scripted shocks land on the same bars every run.** The m03 and m05 crashes hit one of the same three bars in 96–99% of seeds. A player who replays a mission can learn when the crash comes instead of reading the market.
+- **Returns trend a little too much from bar to bar.** Returns are autocorrelated at +0.06 to +0.27, against roughly 0 in real markets. This comes mostly from the strong drift in the scripted breakout and crash segments, so the "last bar's color" signal still only wins 52% of the time.
+
+Historical packs (masked real markets from Market4Me) are specified but not built yet.
 
 ## How the game works
 

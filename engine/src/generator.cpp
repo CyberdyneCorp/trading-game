@@ -35,6 +35,7 @@ struct GenState {
   double vol_mult = 1.0;   // compression within the current segment
   double direction = 1.0;  // sign for random-direction segments
   double funding = 0.0;    // last published funding rate
+  double funding_bias = 0.0;  // funding bias of the segment the last closed bar belonged to
   double event_drift = 0.0;  // transient news reaction for the current bar (not fundamental)
   double iv_var = 0.0;       // smoothed per-bar variance that implied vol prices (0 = not seeded)
 };
@@ -123,8 +124,10 @@ void apply_news(const GeneratorSpec& spec, std::uint32_t index, GenState& g) {
   }
 }
 
-double funding_raw(const GeneratorSpec& spec, const Segment& seg, const GenState& g) {
-  const double raw = spec.funding_base + spec.funding_sensitivity * g.drift_ema * 0.01 + seg.funding_bias;
+// Crowding as known at the last close: the bias of the segment that bar belonged to, never the
+// next bar's (that would announce a regime change one bar early).
+double funding_raw(const GeneratorSpec& spec, const GenState& g) {
+  const double raw = spec.funding_base + spec.funding_sensitivity * g.drift_ema * 0.01 + g.funding_bias;
   return std::clamp(raw, -0.003, 0.003);
 }
 
@@ -183,6 +186,7 @@ void generate_market(const GeneratorSpec& spec, std::uint64_t seed, Scenario& ou
   Pcg32 rng(seed, Stream::Market);
   GenState g{spec.start_price};
   g.fair = g.ema = det::log(spec.start_price);
+  if (!spec.segments.empty()) g.funding_bias = spec.segments.front().funding_bias;
   out.bars.clear();
   out.funding_rate.clear();
   out.options.iv_base.clear();
@@ -200,9 +204,10 @@ void generate_market(const GeneratorSpec& spec, std::uint64_t seed, Scenario& ou
       const Segment seg = with_events(base, spec, index);
       g.event_drift = reaction_drift(spec, reactions, index);
       // The rate for bar i is published at the close of bar i-1, so it may only use state up to i-1.
-      g.funding = funding_raw(spec, seg, g);
+      g.funding = funding_raw(spec, g);
       out.funding_rate.push_back(to_rate(g.funding));
       out.bars.push_back(make_bar(seg, spec, g, rng, out.contract.tick_size));
+      g.funding_bias = seg.funding_bias;
       out.options.iv_base.push_back(implied_vol(seg, spec, g));
     }
   }
