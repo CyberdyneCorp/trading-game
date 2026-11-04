@@ -89,6 +89,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_missions.cpp
     tests/test_generator.cpp
     tests/test_candle_patterns.cpp
+    tests/test_mission_realism.cpp
     tests/test_options.cpp
     tests/test_prng.cpp
     tests/test_scoring.cpp

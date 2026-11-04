@@ -22,8 +22,8 @@ def test_cross_binding_golden_matches_native_cpp():
         run.advance(30)
         run.close_position(6)
         state = run.advance(1000)
-    assert state["digest"] == "802ea82cb27571c91aec3a04a53936d84fb8cb027735af67447c3d967453a2e1"
-    assert state["eventsDigest"] == "f5902b5a8963380652e1c4e718db648e97c314ea1ea089881ad2ab73f9cde0a7"
+    assert state["digest"] == "61e5b36343d12afd91e378c53afcfcb0e1a71889509d5673f8d038d02a40e69a"
+    assert state["eventsDigest"] == "ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19"
 
 
 def test_replay_action_log_reproduces_and_scores():

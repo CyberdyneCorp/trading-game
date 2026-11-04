@@ -257,9 +257,11 @@ test('isolated margin can be added and removed only down to the initial margin',
 test('news appear only once released (no lookahead), with fictional headlines', async ({ page }) => {
 	await openTerminal(page, 4);
 	await expect(page.getByText('Nenhuma notícia divulgada.')).toBeVisible();
-	for (let i = 0; i < 12; i++) await advance(page); // to step 72: the rumor is published
-	await expect(page.getByText(/gestora fictícia Arbor teria comprado/i)).toBeVisible();
-	await expect(page.getByText(/nega rumor/i)).toHaveCount(0); // published at 82: still the future
+	const rumor = page.getByText(/gestora fictícia Arbor teria comprado/i);
+	// The rumor's bar depends on the seed (the range lasts 70-82 bars): advance until it is published.
+	for (let i = 0; i < 24 && !(await rumor.count()); i++) await advance(page);
+	await expect(rumor).toBeVisible();
+	await expect(page.getByText(/nega rumor/i)).toHaveCount(0); // published 10 bars later: still the future
 });
 
 test('stop and target presets: ATR stop, R-multiple target, distance and reward/risk shown', async ({ page }) => {

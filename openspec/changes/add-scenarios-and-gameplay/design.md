@@ -29,6 +29,18 @@ Goal: technical and fundamental reads earn a small, probabilistic edge (about 55
 - Calibration is enforced by engine tests over 200 seeds with explicit bands (random walk ≈ 50%; range RSI fades, trend pullback buys, news-tilted breakouts and post-surprise drift inside their bands; shorting overbought in an uptrend stays below 57%).
 - Every change to the generator changes every seed's market, so it bumps the execution-policy version (v5) and the goldens; unfinished runs from older versions are flagged by the existing policy-mismatch path.
 
+### D3b. Realism: news priced on arrival, per-seed schedule
+`tools/market_study.py` (5 missions × 100 seeds, signals entered at the next open) showed indicators near a coin flip, as in real markets, but two teaching problems:
+- Following a credible shock headline won 86–98% of the time, gaining 9–15% in 10 bars, because news only moved the hidden fair value, which price approached at 0.6% of the gap per bar, and because scripted crash segments carried several bars of deterministic drift.
+- The m03 and m05 shocks fell on the same three bars in 96–99% of seeds, so replays taught memory, not reading.
+
+Decisions:
+- `news_gap` = 0.8: on the bar after a release, 80% of the fair-value shift opens the bar as a gap. The m03 and m05 crash segments lose their drift (high volatility and two-sided jumps remain), and the events carry the shock (`fair_impact` 0.05 and 0.06, about −8% gaps). m01's failure segment splits into a 3-bar slip before the denial and a driftless aftermath; m02's unwind drift halves.
+- Schedule: a lead drawn per seed on `Stream::Schedule` lengthens the first segment and shortens the last. Events reacting after the first segment move with it. The ranges keep each lesson's constraints: m05's shock always comes before the first expiry (bar 108), and m04's breakout before expiry 1.
+- Outcomes stay scripted (m01 still fails, m03 and m05 still crash) so each mission still teaches its lesson. Randomizing outcomes is deferred to a later transfer or difficulty mode.
+- Result (100 seeds): following news from the next open is right 41–65% of the time, the shock bars spread out (no three bars hold more than 33% of seeds), and return autocorrelation falls to about 0 except m04's breakout (0.18). Lessons hold: m01 is back in the range 25 bars after the breakout started in 72% of seeds, and the denial gaps every time; m03 liquidates a 10× long in 88% of seeds; m05 margin-calls a 300-put writer in 40%.
+- `engine/tests/test_mission_realism.cpp` asserts the bands (spec "Mission realism"). Policy v10.
+
 ### D4. Masking
 - Factor `100 / firstPlayableOpen` computed from the first playable bar only. Strike grids generated after masking. Rounding declared per pack (half-even to tick).
 

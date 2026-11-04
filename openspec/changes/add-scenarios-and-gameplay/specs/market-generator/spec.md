@@ -30,7 +30,11 @@ The generator SHALL provide, per segment, a hidden fair value moved by fundament
 
 #### Scenario: Expected news is priced in
 - **WHEN** an event's actual value equals its expectation
-- **THEN** it SHALL NOT move the fair value, and price 25 bars later SHALL be up less often than after a positive surprise (which SHALL leave price higher 25 bars later in more than 55% and less than 80% of seeds)
+- **THEN** it SHALL NOT move the fair value, and price 25 bars later SHALL be up less often than after a positive surprise (which SHALL leave price higher 25 bars later than the release close in more than 70% of seeds)
+
+#### Scenario: Surprises are priced on arrival
+- **WHEN** a credible positive surprise is released and the player buys at the next bar's open
+- **THEN** price 25 bars later SHALL be above that open in more than 45% and less than 72% of seeds: the market reprices at once, and following the headline afterwards is no free trade
 
 #### Scenario: Breakout direction is not guaranteed
 - **WHEN** a random-direction breakout follows a compressing range and a credible positive surprise
@@ -52,11 +56,35 @@ Synthetic scenarios SHALL generate a funding-rate series from a declared rule li
 - **THEN** their funding rates SHALL be identical up to and including the rate for that segment's first bar, and differ from the next one
 
 ### Requirement: Events
-Each scripted event SHALL declare release step, lead time, credibility, prior expectation, surprise, impact channels (drift, volatility, jumps, volume, spread, capacity, funding, IV), intensity distribution and duration. Reactions SHALL be sampled from seeded distributions that include no reaction, reversal and "buy the rumor, sell the news" outcomes, and SHALL NOT be determined by the event text's sentiment alone. The reaction SHALL start on the bar after publication. Independently of the transient reaction, a surprise SHALL move the hidden fair value by `fair_impact × surprise × credibility`; an expected outcome (surprise 0) SHALL leave it unchanged.
+Each scripted event SHALL declare release step, lead time, credibility, prior expectation, surprise, impact channels (drift, volatility, jumps, volume, spread, capacity, funding, IV), intensity distribution and duration. Reactions SHALL be sampled from seeded distributions that include no reaction, reversal and "buy the rumor, sell the news" outcomes, and SHALL NOT be determined by the event text's sentiment alone. The reaction SHALL start on the bar after publication. Independently of the transient reaction, a surprise SHALL move the hidden fair value by `fair_impact × surprise × credibility`; an expected outcome (surprise 0) SHALL leave it unchanged. A share `news_gap` (default 80%) of that fair-value shift SHALL be priced at once, as a gap at the open of the bar after publication; the rest reaches price only through the fair-value pull and the transient reaction.
+
+#### Scenario: Credible news gaps the next open
+- **WHEN** a credible (100%) event with surprise −2 and `fair_impact` 0.05 is released under 50 seeds
+- **THEN** the next bar SHALL open on average between 7% and 9% (log) below the release close
 
 #### Scenario: Same event, different reactions
 - **WHEN** the reaction of the same positive-surprise event (`p_none` 0.2, `p_align` 0.6) is sampled under 1,000 seeds
 - **THEN** about 20% SHALL be no reaction, 48% along the surprise and 32% reversed, each within the test tolerance, so good news can still sell off
+
+### Requirement: Per-seed schedule
+A generator spec MAY declare a lead range `[lead_jitter_min, lead_jitter_max]`. For each seed the generator SHALL draw a lead from that range on its own PRNG stream, lengthen the first segment by it, shorten the last segment by the same amount (the total length is fixed), and shift every event whose reaction starts after the first segment by it, so a replay cannot learn on which bar a scripted move happens.
+
+#### Scenario: Same length, moving story
+- **WHEN** a spec with a lead range of −3..+5 bars is scheduled for 300 seeds
+- **THEN** every lead in the range SHALL occur, the total number of bars SHALL stay the same, events inside the first segment SHALL keep their step and later events SHALL move by the lead
+
+### Requirement: Mission realism
+Over every built-in mission and 60 seeds, with each signal read at a bar's close and entered at the next bar's open:
+- RSI(14) fading, Bollinger(20,2) fading, MACD histogram following and close-versus-SMA(20) following SHALL each be right more than 42% and less than 58% of the time five bars later;
+- following any scripted headline from the next open SHALL be right less than 72% of the time ten bars later, and a credible (≥ 80%) surprise of size 2 or more SHALL gap the next open by more than 3% on average;
+- a mission's biggest one-bar drop SHALL fall on its three most common bars in fewer than half of the seeds;
+- per-bar returns SHALL show excess kurtosis above 1, first-order autocorrelation of absolute returns above 0.1 and of returns below 0.25.
+
+`tools/market_study.py` prints the same measurements as the README tables.
+
+#### Scenario: Shocks do not repeat on the same bars
+- **WHEN** m03 and m05 are generated for 60 seeds
+- **THEN** the bars holding their biggest drop SHALL be spread so that no three bars hold half of the seeds
 
 ### Requirement: Player independence
 Generated prices, events and liquidity SHALL NOT depend on the player's positions, orders or score.

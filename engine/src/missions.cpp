@@ -57,20 +57,23 @@ std::uint32_t total_bars(const GeneratorSpec& g) {
 // band, momentum, vol_decay, random_direction (generator v2, design D3a).
 
 // A range with support/resistance, a breakout on a rumor that was already expected (no surprise,
-// so no fundamental support), a credible denial, and the breakout fails back into the range.
+// so no fundamental support), the breakout stalls and slips, then a credible denial gaps it back.
+// The range lasts 70-82 bars depending on the seed.
 MissionDef false_breakout() {
   MissionDef m;
+  m.gen.lead_jitter_max = 12;
   m.gen.segments = {
       {.bars = 70, .vol = 0.0060, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.025},
       {.bars = 6, .drift = 0.0060, .vol = 0.0070, .volume_mult = 1.8, .funding_bias = 0.0002, .momentum = 0.1},
       {.bars = 4, .vol = 0.0090, .volume_mult = 1.5, .funding_bias = 0.0003},
-      {.bars = 14, .drift = -0.0070, .vol = 0.0100, .jump_prob = 0.08, .jump_mean = -0.025, .volume_mult = 2.0},
+      {.bars = 3, .drift = -0.0030, .vol = 0.0090, .volume_mult = 1.4},
+      {.bars = 11, .vol = 0.0100, .jump_prob = 0.04, .jump_mean = -0.02, .volume_mult = 1.6},
       {.bars = 46, .drift = 0.0002, .vol = 0.0070, .jump_prob = 0.02, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03},
   };
   // The rumor matches expectations (surprise 0): it moves price briefly but not the fair value.
-  // The denial is a credible negative surprise: the fair value drops and pulls price with it.
+  // The denial is a credible negative surprise: most of it is priced in the next bar's gap.
   m.gen.events = {{{72, NewsKind::InstitutionalAdoption, 1, 45, 1, 1}, 0.15, 0.25, 0.004, 6, 1.6, 1.2},
-                  {{82, NewsKind::RumorDenied, -1, 85, 1, -1}, 0.2, 0.7, 0.003, 5, 1.3, 1.1}};
+                  {{82, NewsKind::RumorDenied, -1, 85, 1, -1}, 0.2, 0.6, 0.002, 5, 1.3, 1.1}};
   m.info = {"m01-false-breakout", total_bars(m.gen), 60, 5, true};
   return m;
 }
@@ -85,10 +88,13 @@ MissionDef funding_squeeze() {
       {.bars = 60, .drift = 0.0005, .vol = 0.0060, .funding_bias = 0.0002, .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.05},
       {.bars = 50, .drift = 0.0018, .vol = 0.0070, .jump_prob = 0.01, .jump_mean = 0.02, .volume_mult = 1.4, .funding_bias = 0.0009,
        .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.08},
-      {.bars = 30, .drift = -0.0010, .vol = 0.0110, .jump_prob = 0.05, .jump_mean = -0.03, .volume_mult = 1.8, .funding_bias = -0.0004},
+      {.bars = 30, .drift = -0.0005, .vol = 0.0110, .jump_prob = 0.04, .jump_mean = -0.025, .volume_mult = 1.8, .funding_bias = -0.0004},
       {.bars = 20, .vol = 0.0080, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03},
   };
-  // An inflow headline at the top of the squeeze; a rate decision that disappoints.
+  // An inflow headline at the top of the squeeze; a rate decision that disappoints. The calm trend
+  // lasts 56-70 bars depending on the seed.
+  m.gen.lead_jitter_min = -4;
+  m.gen.lead_jitter_max = 10;
   m.gen.events = {{{100, NewsKind::LiquidityInflow, 1, 70, 1, 1}, 0.3, 0.5, 0.002, 4, 1.2, 1.0},
                   {{112, NewsKind::RateDecision, -1, 100, 0, -1}, 0.15, 0.7, 0.004, 8, 1.6, 1.3}};
   m.info = {"m02-funding-squeeze", total_bars(m.gen), 50, 10, true};
@@ -103,13 +109,17 @@ MissionDef volatility_shock() {
   m.gen.segments = {
       {.bars = 80, .drift = 0.0003, .vol = 0.0035, .volume_mult = 0.8, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.02,
        .vol_decay = 0.995},
-      {.bars = 3, .drift = -0.0150, .vol = 0.0250, .jump_prob = 0.60, .jump_mean = -0.06, .volume_mult = 4.0, .funding_bias = -0.0010},
+      {.bars = 3, .vol = 0.0300, .jump_prob = 0.30, .jump_mean = -0.03, .volume_mult = 4.0, .funding_bias = -0.0010},
       {.bars = 25, .drift = 0.0010, .vol = 0.0200, .jump_prob = 0.15, .jump_mean = 0.03, .volume_mult = 2.5},
       {.bars = 42, .drift = 0.0001, .vol = 0.0080, .jump_prob = 0.02, .volume_mult = 1.2, .anchor = Anchor::Level, .reversion = 0.006,
        .band = 0.03},
   };
-  // The shock arrives with an exchange incident headline (credible, very negative surprise).
-  m.gen.events = {{{79, NewsKind::ExchangeIncident, -1, 90, 0, -2}, 0.05, 0.85, 0.006, 6, 1.8, 1.5}};
+  // The shock arrives with an exchange incident headline (credible, very negative surprise): the
+  // next bar gaps down by most of it, then the aftermath is violent in both directions. The calm
+  // lasts 70-90 bars depending on the seed.
+  m.gen.lead_jitter_min = -10;
+  m.gen.lead_jitter_max = 10;
+  m.gen.events = {{{79, NewsKind::ExchangeIncident, -1, 90, 0, -2}, 0.05, 0.85, 0.003, 6, 1.8, 1.5, 0.05}};
   m.info = {"m03-volatility-shock", total_bars(m.gen), 60, 20, true};
   return m;
 }
@@ -126,7 +136,10 @@ MissionDef options_buyer() {
       {.bars = 38, .drift = 0.0002, .vol = 0.0050, .jump_prob = 0.01, .iv_mult = 0.75, .anchor = Anchor::Level, .reversion = 0.006,
        .band = 0.03},
   };
-  // The event the implied vol was pricing: a rate decision, announced before the breakout.
+  // The event the implied vol was pricing: a rate decision, announced before the breakout. The
+  // range lasts 64-76 bars depending on the seed, so the breakout always comes before expiry 1.
+  m.gen.lead_jitter_min = -6;
+  m.gen.lead_jitter_max = 6;
   m.gen.events = {{{81, NewsKind::RateDecision, 1, 100, 0, 1}, 0.2, 0.6, 0.004, 8, 1.4, 1.0}};
   m.info = {"m04-options-buyer", total_bars(m.gen), 60, 3, true};
   m.options = true;
@@ -141,13 +154,15 @@ MissionDef options_writer() {
   m.gen.segments = {
       {.bars = 80, .vol = 0.0050, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.025},
       {.bars = 20, .vol = 0.0045, .volume_mult = 0.9, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.025},
-      {.bars = 3, .drift = -0.0200, .vol = 0.0200, .jump_prob = 0.70, .jump_mean = -0.05, .volume_mult = 3.5, .funding_bias = -0.0008,
-       .iv_mult = 1.8},
+      {.bars = 3, .vol = 0.0300, .jump_prob = 0.30, .jump_mean = -0.03, .volume_mult = 3.5, .funding_bias = -0.0008, .iv_mult = 1.8},
       {.bars = 47, .drift = 0.0005, .vol = 0.0120, .jump_prob = 0.05, .volume_mult = 1.6, .iv_mult = 1.3},
   };
-  // A network outage is announced as the jump hits, eight bars before the first expiry (bar 108),
-  // so the options written at the start are still open when it lands.
-  m.gen.events = {{{99, NewsKind::NetworkOutage, -1, 80, 0, -2}, 0.05, 0.8, 0.005, 5, 1.6, 1.4}};
+  // A network outage is announced and the next bar gaps down by most of it. Depending on the seed
+  // it lands on bars 85-101, always before the first expiry (bar 108), so the options written at
+  // the start are still open.
+  m.gen.lead_jitter_min = -14;
+  m.gen.lead_jitter_max = 2;
+  m.gen.events = {{{99, NewsKind::NetworkOutage, -1, 80, 0, -2}, 0.05, 0.8, 0.003, 5, 1.6, 1.4, 0.06}};
   m.info = {"m05-options-writer", total_bars(m.gen), 60, 3, true};
   m.options = true;
   m.allow_short_options = true;
