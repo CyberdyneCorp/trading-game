@@ -3,11 +3,11 @@
 Delivered in three PRs, in this order: tutorials (client only), advisor and points, intel perks.
 
 ## 1. Mission tutorials (PR 1, web)
-- [ ] 1.1 `missions.ts`: 3–5 tutorial cards per mission in PT-BR and EN (no outcome reveal); m01 introduces the advisor and points
-- [ ] 1.2 `TutorialCard` component with inline SVG illustrations (`chart`, `ticket`, `news`, `funding`, `options`, `advisor`, `risk`)
-- [ ] 1.3 IndexedDB `meta.progress` record (`tutorialsSeen`, `advisorPoints` = 3, `settledRuns`) with unit tests
-- [ ] 1.4 Session flow: tutorial before the first briefing, skip, replay from the briefing; e2e tests
-- [ ] 1.5 README: player flow; spec tasks updated
+- [x] 1.1 Tutorial cards per mission in PT-BR and EN (no outcome reveal), in `tutorials.ts` to keep `missions.ts` readable; unit tests (3–5 cards, both locales, ≤ 3 sentences, no spoiler words). The advisor/points card for m01 ships with the advisor (2.7) so no card describes a control that does not exist yet
+- [x] 1.2 `Tutorial` screen and `TutorialArt` inline SVG illustrations (chart, ticket, risk, news, plan, funding, trend, leverage, volatility, margin, payoff, chain, decay); keyboard: arrows/Enter, Esc skips
+- [x] 1.3 IndexedDB `meta.progress` record with `tutorialsSeen` and unit tests (`advisorPoints` and `settledRuns` are added with 2.7)
+- [x] 1.4 Session flow: tutorial before the first briefing, skip, replay from the briefing, remembered across reloads; e2e tests
+- [x] 1.5 README: player flow and features table
 
 ## 2. Advisor and points (PR 2, engine + bindings + web)
 - [ ] 2.1 Engine `RunOptions` on `start_run` (defaults keep m01/m05 goldens); policy v11
@@ -16,7 +16,7 @@ Delivered in three PRs, in this order: tutorials (client only), advisor and poin
 - [ ] 2.4 `advisor_points_earned` in the score report; formula and cap tests
 - [ ] 2.5 Advisor realism test in `test_mission_realism.cpp` (45–65% per mission, wait ≥ 20%, confidence within 8 points); `tools/market_study.py` prints the advisor row
 - [ ] 2.6 C API, WASM worker protocol and Python binding: start options, advice command, advice in state and debrief; binding parity tests
-- [ ] 2.7 Web: advisor button with points, advice panel (localized reasons, "apply stop/size"), debrief advice table; points settlement once per run; unit and e2e tests
+- [ ] 2.7 Web: m01 tutorial card introducing the advisor and points; advisor button with points, advice panel (localized reasons, "apply stop/size"), debrief advice table; points settlement once per run; unit and e2e tests
 - [ ] 2.8 README ("What can the player predict?" gets the advisor row; how points work); engine docs
 
 ## 3. Intel perks (PR 3, engine + web)

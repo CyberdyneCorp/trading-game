@@ -14,7 +14,7 @@ Each built-in mission SHALL have a tutorial of 3 to 5 cards in every shipped loc
 - **AND** a "Tutorial" control on the briefing SHALL show the cards again
 
 ### Requirement: Tutorials introduce the advisor and perks
-The first mission's tutorial SHALL explain the advisor, its cost in points and how points are earned. When a perk is unlocked, the next tutorial or briefing shown SHALL explain that perk and that it is modeled on a legal product.
+Once the advisor exists, the first mission's tutorial SHALL explain the advisor, its cost in points and how points are earned (no card SHALL describe a control the game does not have yet). When a perk is unlocked, the next tutorial or briefing shown SHALL explain that perk and that it is modeled on a legal product.
 
 #### Scenario: New perk explained
 - **WHEN** the player finishes a second distinct mission and opens the next briefing
