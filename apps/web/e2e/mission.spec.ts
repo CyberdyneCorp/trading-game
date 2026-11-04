@@ -180,6 +180,23 @@ test('the ticket warns that a new leverage re-margins the open position', async 
 	await expect(note).toHaveClass(/warnbox/); // liquidation moves closer
 });
 
+test('regression: the ticket refuses a perp order whose margin exceeds the balance and names the leverage that fits', async ({ page }) => {
+	// Before: 1% risk with a tight stop sized ~136 contracts (14,000 cr at 1x) and the engine answered only "margem insuficiente".
+	await openTerminal(page, 31);
+	const entryText = await page.locator('dt', { hasText: 'Entrada estimada' }).locator('xpath=following-sibling::dd[1]').textContent();
+	const entry = Number(entryText!.replace(/\./g, '').replace(',', '.'));
+	await page.getByTestId('ticket-stop').locator('input').first().fill((entry - 0.6).toFixed(2));
+	const warn = page.getByTestId('margin-shortfall');
+	await expect(warn).toContainText(/é maior que o disponível/);
+	await expect(warn).toContainText('pelo menos 2x');
+	await expect(page.getByRole('button', { name: /Enviar ordem/ })).toBeDisabled();
+	const lev = page.locator('label:has-text("Alavancagem") input').first();
+	await lev.fill('2');
+	await lev.dispatchEvent('change');
+	await expect(warn).toHaveCount(0);
+	await expect(page.getByRole('button', { name: /Enviar ordem/ })).toBeEnabled();
+});
+
 test('the option ticket refuses a buy whose premium exceeds the available balance', async ({ page }) => {
 	await page.goto('/?seed=12');
 	await startFromMenu(page, 3);

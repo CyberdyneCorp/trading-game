@@ -26,7 +26,7 @@
 
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { costsOf, estimate, estimatedMarketEntry, qtyForRisk, releveredLiquidation } from '#lib/game/sizing.ts';
+	import { costsOf, estimate, estimatedMarketEntry, marginShortfall, qtyForRisk, releveredLiquidation } from '#lib/game/sizing.ts';
 	import { fmtMoney, fmtPrice, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
@@ -109,11 +109,17 @@
 	const shortBlocked = $derived(!s.contract.allowShort && side === 'sell' && posQty <= 0);
 	const increases = $derived(posQty === 0 || posQty > 0 === (side === 'buy') || qty > Math.abs(posQty));
 	const tp = $derived(tpInput ? num(tpInput) : null);
+	// Only the part that opens or adds needs margin (a reversal first closes the position). Skipped while a
+	// new leverage would re-margin the open position: the engine settles that before checking.
+	const incQty = $derived(posQty === 0 || posQty > 0 === (side === 'buy') ? qty : Math.max(0, qty - Math.abs(posQty)));
+	const shortfall = $derived(
+		posQty !== 0 && lev !== s.leverage ? null : marginShortfall(incQty, entry, lev, num(s.account.available), cap, k)
+	);
 	const stopWrongSide = $derived(stop != null && !stopOnLosingSide(side, entry, stop));
 	const tpWrongSide = $derived(tp != null && !targetOnWinningSide(side, entry, tp));
 	const needsPrice = $derived(type !== 'market');
 	const canSubmit = $derived(
-		!session.busy && qty > 0 && !shortBlocked && !stopWrongSide && !tpWrongSide && (!needsPrice || num(priceInput) > 0)
+		!session.busy && qty > 0 && !shortBlocked && !shortfall && !stopWrongSide && !tpWrongSide && (!needsPrice || num(priceInput) > 0)
 	);
 
 	function submit() {
@@ -292,6 +298,12 @@
 				liqFrom: relever.from != null ? fmtPrice(String(relever.from), L) : '—',
 				liqTo: relever.to != null ? fmtPrice(String(relever.to), L) : '—'
 			})}
+		</p>
+	{/if}
+	{#if shortfall}
+		<p class="warnbox" role="alert" data-testid="margin-shortfall">
+			⚠ {t('ticket.cantAfford', { need: fmtMoney(shortfall.need, L), avail: fmtMoney(num(s.account.available), L) })}
+			{shortfall.minLeverage != null ? t('ticket.cantAffordLev', { lev: shortfall.minLeverage }) : t('ticket.cantAffordQty')}
 		</p>
 	{/if}
 	{#if est.stopBeyondLiquidation}<p class="warnbox" role="alert">⚠ {t('ticket.stopBeyondLiq')}</p>{/if}

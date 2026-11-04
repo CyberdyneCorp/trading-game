@@ -66,6 +66,29 @@ export function releveredLiquidation(side: Side, qty: number, entry: number, lev
 	return liquidationPrice(side, Math.abs(qty), entry, margin, k);
 }
 
+/**
+ * Margin check for the part of an order that opens or adds to the position, as the engine does it:
+ * initial margin (notional / leverage) plus the taker fee must fit in the available balance.
+ * Returns null when it fits; otherwise what is needed and the lowest leverage up to the cap that
+ * would fit (null when even the cap does not).
+ */
+export function marginShortfall(
+	incQty: number,
+	entry: number,
+	leverage: number,
+	available: number,
+	cap: number,
+	k: Costs
+): { need: number; minLeverage: number | null } | null {
+	const notional = incQty * k.multiplier * entry;
+	const fee = notional * k.takerFee;
+	const needAt = (lev: number) => notional / Math.max(1, lev) + fee;
+	if (incQty <= 0 || needAt(leverage) <= available) return null;
+	let minLeverage: number | null = null;
+	for (let l = leverage + 1; l <= cap && minLeverage == null; l++) if (needAt(l) <= available) minLeverage = l;
+	return { need: needAt(leverage), minLeverage };
+}
+
 export function estimate(input: TicketInput, k: Costs): TicketEstimate {
 	const { side, qty, entry, leverage, stop } = input;
 	const notional = qty * k.multiplier * entry;
