@@ -7,7 +7,7 @@ Defines the client-independent user-experience contract of the retro trading ter
 ## ADDED Requirements
 
 ### Requirement: Terminal layout on large screens
-On screens at least 1024 points wide in landscape, the terminal SHALL show: a top bar (market alias, mode label, timeframe, step counter, offline/sync status, advance controls); a dominant chart (candles, volume, entry/stop/target/liquidation lines, option strikes on demand); a right rail (equity, wallet balance, available balance, position side and size, leverage, liquidation price and distance, next funding rate, planned risk, mission objective); a lower area (order ticket, option chain, fills, plan, journal); and a bottom strip (knowledge cards, released news).
+On screens at least 1024 points wide in landscape, the chart and right rail SHALL sit side by side (below 1280 the lower area folds into two columns and the page scrolls; below 1024 every panel stacks at its natural height without overlapping), and the terminal SHALL show: a top bar (market alias, mode label, timeframe, step counter, offline/sync status, advance controls); a dominant chart (candles, volume, entry/stop/target/liquidation lines, option strikes on demand); a right rail (equity, wallet balance, available balance, position side and size, leverage, liquidation price and distance, next funding rate, planned risk, mission objective); a lower area (order ticket, option chain, fills, plan, journal); and a bottom strip (knowledge cards, released news).
 
 #### Scenario: Liquidation always visible
 - **WHEN** the player has an open perpetual position
@@ -28,7 +28,7 @@ Every gain, loss, long, short, buy or sell indication SHALL include a sign, labe
 - **THEN** long vs short and gain vs loss SHALL remain distinguishable
 
 ### Requirement: Distinct actions and acknowledgements
-Submit order, close position and advance market SHALL be visually and spatially distinct controls. Order acknowledgement ("accepted") and execution ("filled", "partially filled") SHALL be separate messages, and rejections SHALL show the engine reason in plain language. The event feed and order list SHALL name each order's type (MKT, LMT, STOP, TP, TRAIL) and each option contract by kind, strike and expiry (e.g. "C 100 · exp 96"), also after the order is gone or the series expired.
+Submit order, close position and advance market SHALL be visually and spatially distinct controls. Order acknowledgement ("accepted") and execution ("filled", "partially filled") SHALL be separate messages, and rejections SHALL show the engine reason in plain language. The event feed and order list SHALL name each order's type (MKT, LMT, STOP, TP, TRAIL) and each option contract by kind, strike and expiry (e.g. "C 100 · exp 96"), also after the order is gone or the series expired. A fill with no order (the engine's forced buy-back of written options in a margin call) SHALL read as a forced buy-back, not as an order number.
 
 #### Scenario: Rejection reason shown
 - **WHEN** an order is rejected with `insufficient_margin`

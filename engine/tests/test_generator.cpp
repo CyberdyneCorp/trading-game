@@ -183,3 +183,18 @@ TEST_CASE("Generator v2: bars stay valid and reproducible with every structural 
     }
   }
 }
+
+TEST_CASE("Regression: generated implied vol stays plausible through a crash (m05)") {
+  // Before: IV priced the last bar's variance times every multiplier, so the m05 jump published
+  // IVs above 2000% and short puts were bought back at several times their intrinsic value.
+  for (std::uint64_t seed = 1; seed <= 30; ++seed) {
+    Scenario s;
+    REQUIRE(build_mission("m05-options-writer", seed, s));
+    double peak = 0.0;
+    for (const Vol v : s.options.iv_base) peak = std::max(peak, static_cast<double>(v.raw) / Vol::kScale);
+    CHECK(peak <= 2.5);
+    const double calm = static_cast<double>(s.options.iv_base[70].raw) / Vol::kScale;
+    CHECK(calm > 0.3);
+    CHECK(calm < 1.5);
+  }
+}

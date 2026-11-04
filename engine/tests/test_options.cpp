@@ -91,7 +91,7 @@ TEST_CASE("OPT01: quote grid is bit-frozen (cross-target golden)") {
       }
     }
   }
-  CHECK(to_hex(w.digest()) == "14e4b85c086c1a3f5c92fd9814cfc97206da2a1da117b561c2d7bf8e455b722c");
+  CHECK(to_hex(w.digest()) == "e16030fee8dfd22da187ff0090f6433a85dc5a9fffaf9c3f97282e2910f2af7d");
 }
 
 TEST_CASE("Option orders fill at the next open's ask; max loss of a long call is premium + fees (OPT02)") {
@@ -188,4 +188,16 @@ TEST_CASE("SIM08 with options: wallet reconciles with option cash flows (randomi
       REQUIRE(st.wallet.raw >= 0);
     }
   }
+}
+
+TEST_CASE("Regression: short-dated IV stops at the 7-day term-structure value") {
+  // Before: the term factor used T down to one step, so an hourly option's last bar priced at 4.9x
+  // the base vol (and mission chains showed IVs of thousands of percent around expiry).
+  Scenario s = flat(800);
+  add_options(s, 720, {"100"});
+  const OptionQuote week = quote(s, s.options.series[0], 720 - 168, P("100"));  // 7 days left
+  const OptionQuote hour = quote(s, s.options.series[0], 719, P("100"));        // 1 hour left
+  CHECK(hour.iv == week.iv);
+  const OptionQuote month = quote(s, s.options.series[0], 0, P("100"));
+  CHECK(static_cast<double>(hour.iv.raw) < 1.2 * static_cast<double>(month.iv.raw));
 }

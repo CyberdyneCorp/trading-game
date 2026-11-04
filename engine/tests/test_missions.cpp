@@ -93,6 +93,7 @@ TEST_CASE("C ABI: same mission, seed and commands produce identical digests") {
 // Policy v2 changed the state digest (new order fields). Policy v3 adds the instrument (series) field
 // to orders and events, so both digests changed again; perpetual behavior tests are unchanged.
 // Mission m01 later gained news events, which changed its generated market (content, not policy).
+// Policy v8 changed implied vol (smoothed/capped iv_base, term floor): new m05 digests, m01 via the version.
 // Policy v7 changed m05 (jump before the first expiry): new m05 digests; m01 only through the policy version.
 // Policy v4 adds plans and calibration answers to the state digest (event digests unchanged).
 TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
@@ -110,7 +111,7 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"0449c945c71e2e4283827b222fbe5df929e9b1c51c4959f1bcf5105fc7f4ce37\","
+        "\"digest\":\"11bcf66b67311307fde84af95ff72be7ef41622b201fba71d432ad01188b4965\","
         "\"eventsDigest\":\"f5902b5a8963380652e1c4e718db648e97c314ea1ea089881ad2ab73f9cde0a7\"}");
 }
 
@@ -142,8 +143,8 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"e7f6750d05a9ea5fceec8e09eb5091a1838ccbed09793a71e9ee000dca284653\","
-        "\"eventsDigest\":\"1d264caec5f647b95c3229b45cb9809f7533f01179e030436adaa4f07662b572\"}");
+        "\"digest\":\"e69166d2e806cbb9d31f71b8c6614b1461d4f6be4abc742d2f08e62e65e1c394\","
+        "\"eventsDigest\":\"0346281ba4823867cc1f1308e9d88e0d37bb469ca1fdd1d08dd8c13f29107a97\"}");
 }
 
 TEST_CASE("News: same headline, seeded reactions include none and reversals (spec Events)") {

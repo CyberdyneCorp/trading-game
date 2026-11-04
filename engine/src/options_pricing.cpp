@@ -9,6 +9,9 @@ namespace {
 
 constexpr double kMinutesPerYear = 365.0 * 24.0 * 60.0;
 constexpr double kRefYears = 30.0 / 365.0;  // term-structure reference maturity
+// Shortest maturity the term structure distinguishes: below it the factor stays at its 7-day value
+// (about +16% with slope 0.15) instead of growing without bound (4.9x in an hourly option's last bar).
+constexpr double kTermFloorYears = 7.0 / 365.0;
 constexpr double kMinVol = 0.05;
 constexpr std::uint32_t kRealizedWindow = 48;
 
@@ -61,7 +64,7 @@ Inputs make_inputs(const Scenario& sc, const OptionSeries& s, std::uint32_t step
   Inputs in{to_d(forward), to_d(s.strike), (s.expiry_step - step) * step_years, 0.0, step_years, o.iv_base.empty()};
   const double base = in.realized ? realized_vol(sc, step, step_years) : to_d(o.iv_base[step]);
   const double lm = det::log(in.k / in.f);
-  const double term = 1.0 + to_d(o.term_slope) * (det::sqrt(kRefYears / std::max(in.t, step_years)) - 1.0);
+  const double term = 1.0 + to_d(o.term_slope) * (det::sqrt(kRefYears / std::max(in.t, kTermFloorYears)) - 1.0);
   in.sigma = std::max(kMinVol, base * term + to_d(o.skew) * lm + to_d(o.smile) * lm * lm);
   return in;
 }

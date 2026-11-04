@@ -215,3 +215,19 @@ TEST_CASE("Regression: always answering 50% is neutral calibration, not a bonus"
   CHECK(r.brier_bp == 2500);
   CHECK(r.calibration.score == 50);
 }
+
+TEST_CASE("Regression: a written option bought back by a margin call exits as margin_call, not manual") {
+  // Before: the forced buy-back has no order, so the debrief read it as a manual close.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"},
+                               {"60", "60", "50", "50"}, {"50", "50", "50", "50"}, {"50", "50", "50", "50"}});
+  add_options(sc, 4, {"100"}, true);
+  Driver d(sc);
+  REQUIRE(d.option(2, OrderSide::Sell, "200").accepted);  // write the 100 put
+  d.step(3);
+  bool called = false;
+  for (const Event& e : d.state().events) called |= e.type == EventType::MarginCall;
+  REQUIRE(called);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE_FALSE(r.trades.empty());
+  CHECK(r.trades[0].reason == ExitReason::MarginCall);
+}

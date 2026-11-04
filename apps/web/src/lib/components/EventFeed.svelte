@@ -17,7 +17,9 @@
 	}
 
 	function fillLine(e: EngineEvent, L: Locale): string {
-		const base = t('feed.filled', { id: e.orderId, side: e.side.toUpperCase(), qty: fmtQty(e.qty, L), price: fmtPrice(e.price, L) });
+		// Fills without an order are the engine's forced buy-backs of written options (margin call).
+		const vars = { id: e.orderId, side: e.side.toUpperCase(), qty: fmtQty(e.qty, L), price: fmtPrice(e.price, L) };
+		const base = t(e.orderId ? 'feed.filled' : 'feed.forcedFill', vars);
 		const parts = [base];
 		if (Number(e.requested) > 0 && e.requested !== e.price) parts.push(t('feed.requested', { price: fmtPrice(e.requested, L) }));
 		parts.push(t('feed.fee', { fee: fmtMoney(e.amount, L) }));

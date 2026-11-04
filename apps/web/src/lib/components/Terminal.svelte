@@ -313,14 +313,31 @@
 		border-color: var(--attention);
 		color: var(--attention);
 	}
-	@media (max-width: 1100px) {
+	/* 1024-1279: chart and rail stay side by side (spec: >= 1024 landscape); the lower area folds
+	   into ticket | chain + orders, with news and the feed below, and the page scrolls. */
+	@media (max-width: 1279px) {
 		.terminal {
 			height: auto;
-			grid-template-rows: auto 420px auto;
+			grid-template-rows: auto minmax(420px, 62vh) auto;
+		}
+		.bottom {
+			grid-template-columns: 340px minmax(0, 1fr);
+		}
+		.bottom > .stack:last-child {
+			grid-column: 1 / -1;
+		}
+	}
+	/* Below 1024 everything stacks at its natural height (the chart keeps a fixed one). */
+	@media (max-width: 1023px) {
+		.terminal {
+			grid-template-rows: auto auto auto;
 		}
 		.main,
 		.bottom {
 			grid-template-columns: 1fr;
+		}
+		.chart {
+			height: 420px;
 		}
 	}
 </style>
