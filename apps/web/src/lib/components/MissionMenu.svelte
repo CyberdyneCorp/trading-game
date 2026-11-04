@@ -47,8 +47,12 @@
 	<div class="cards">
 		{#each session.missions as m (m.id)}
 			{@const txt = missionText(m.id, i18n.locale)}
-			<article class="panel card">
-				<h3>{txt.title}</h3>
+			{@const done = session.completed.includes(m.id)}
+			<article class="panel card" class:done data-testid="mission-card">
+				<h3>
+					{txt.title}
+					{#if done}<span class="tag up completed">✓ {t('menu.completed')}</span>{/if}
+				</h3>
 				<p>{txt.tagline}</p>
 				<p class="muted small">{txt.topic}</p>
 				<p class="small">
@@ -112,6 +116,19 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.4rem;
+	}
+	.card h3 {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+	.completed {
+		flex: none;
+		color: var(--up);
+	}
+	.card.done {
+		border-color: var(--up);
 	}
 	.card button {
 		margin-top: auto;
