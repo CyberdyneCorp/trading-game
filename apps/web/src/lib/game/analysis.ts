@@ -31,7 +31,7 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		good_process_loss: 'Prejuízo com processo bom: plano registrado, stop respeitado, sem liquidação. Isso é gestão de risco funcionando.',
 		lucky_win: 'Lucro sem processo completo (sem plano ou sem stop). Resultado favorável pode ter sido sorte.',
 		no_plan: 'Entradas sem plano registrado: sem hipótese e invalidação, não dá para aprender com o resultado.',
-		oversized: 'Um plano arriscava ~{risk} cr (> 2% do capital). Dimensione pelo stop.',
+		oversized: 'Uma entrada arriscava ~{risk} cr (> 2% do capital). Dimensione pela perda máxima: o stop no futuro, o prêmio na opção.',
 		bankrupt: 'Game over: o capital não cobre mais a menor ordem possível.'
 	},
 	en: {
@@ -47,7 +47,7 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		good_process_loss: 'A loss with good process: plan recorded, stop respected, no liquidation. That is risk management working.',
 		lucky_win: 'Profit without full process (no plan or no stop). A favorable outcome may have been luck.',
 		no_plan: 'Entries without a recorded plan: without hypothesis and invalidation you cannot learn from the outcome.',
-		oversized: 'One plan risked ~{risk} cr (> 2% of capital). Size from the stop.',
+		oversized: 'One entry risked ~{risk} cr (> 2% of capital). Size from the maximum loss: the stop on a future, the premium on an option.',
 		bankrupt: 'Game over: capital no longer covers the smallest possible order.'
 	}
 };

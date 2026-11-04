@@ -520,16 +520,17 @@
 		{/if}
 		{#if picking}<span class="attention" role="status">⌖ {t('chart.pickHint')}</span>{/if}
 	</div>
-	{#if hoverPatterns.length}
-		<div class="pattern-line" data-testid="pattern-line">
+	<!-- Always present at a fixed height: showing a pattern must not move or resize the chart. -->
+	<div class="pattern-line" data-testid="pattern-line">
+		{#if hoverPatterns.length}
 			<span class="muted">{t('chart.patternAt')}</span>
 			{#each hoverPatterns as p (p.id)}
 				<button class="pattern {p.bias > 0 ? 'up' : p.bias < 0 ? 'down' : 'attention'}" onclick={() => onPattern?.(p.id)}>
 					{p.bias > 0 ? '▲' : p.bias < 0 ? '▼' : '◆'} {patternName(p.id, i18n.locale)}
 				</button>
 			{/each}
-		</div>
-	{/if}
+		{/if}
+	</div>
 	<div class="canvas-box" class:picking bind:this={box}>
 		<canvas
 			bind:this={canvas}
@@ -603,8 +604,10 @@
 		gap: 0.4rem;
 		align-items: center;
 		font-size: 0.78rem;
-		padding-bottom: 0.25rem;
-		flex-wrap: wrap;
+		flex: none;
+		height: 1.6rem;
+		overflow: hidden;
+		white-space: nowrap;
 	}
 	.pattern {
 		font-size: 0.75rem;
