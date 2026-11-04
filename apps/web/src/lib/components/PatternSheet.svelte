@@ -1,6 +1,8 @@
 <script lang="ts">
 	// Candlestick pattern cheat sheet (spec terminal-ui "Candle pattern cheat sheet").
-	import { ALL_CANDLE_PATTERNS, contextCandles, type Candle, type CandlePattern, type PatternBias } from '#lib/game/candlePatterns.ts';
+	import { ALL_CANDLE_PATTERNS, type PatternBias } from '#lib/game/candlePatterns.ts';
+	import { FRAMES, STILL } from '#lib/game/patternOutcome.ts';
+	import PatternAnimation from './PatternAnimation.svelte';
 	import { CHART_PATTERNS, type ChartPattern } from '#lib/game/chartPatterns.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
@@ -22,20 +24,19 @@
 		return p.path.map(([x, y], i) => `${i ? 'L' : 'M'}${x},${cy(y)}`).join(' ');
 	}
 	const filters: (PatternBias | 'all')[] = ['all', 'bullish', 'bearish', 'neutral'];
-	const SLOT = 18;
 
-	function candlesOf(p: CandlePattern): { c: Candle; ctx: boolean }[] {
-		return [...contextCandles(p.context, p.candles[0]).map((c) => ({ c, ctx: true })), ...p.candles.map((c) => ({ c, ctx: false }))];
-	}
-
-	const H = 96;
-	// Fit each drawing to its own price range so small patterns stay legible.
-	function scaler(cs: { c: Candle }[]) {
-		const hi = Math.max(...cs.map(({ c }) => c[1]));
-		const lo = Math.min(...cs.map(({ c }) => c[2]));
-		const k = (H - 8) / (hi - lo || 1);
-		return { y: (v: number) => 4 + (hi - v) * k, h: (d: number) => Math.max(1.5, d * k) };
-	}
+	// One shared clock for every drawing; a still picture when the viewer prefers reduced motion.
+	const FRAME_MS = 700;
+	let tick = $state(0);
+	const frame = $derived(tick < 0 ? STILL : FRAMES[tick % FRAMES.length]);
+	$effect(() => {
+		if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			tick = -1;
+			return;
+		}
+		const id = setInterval(() => tick++, FRAME_MS);
+		return () => clearInterval(id);
+	});
 </script>
 
 <div class="modal-backdrop" role="presentation" onclick={onClose}>
@@ -68,6 +69,7 @@
 			{/each}
 		</div>
 		<p class="note attention">⚠ {t(tab === 'candles' ? 'patterns.note' : 'patterns.chartNote')}</p>
+		{#if tab === 'candles'}<p class="note muted">{t('patterns.animNote')}</p>{/if}
 		{#if tab === 'chart'}
 			<ul class="grid">
 				{#each shownChart as p (p.id)}
@@ -94,20 +96,8 @@
 		<ul class="grid">
 			{#each shown as p (p.id)}
 				{@const tx = p.text[i18n.locale]}
-				{@const cs = candlesOf(p)}
-				{@const sc = scaler(cs)}
 				<li class="card {p.bias}" class:focused={focus === p.id} data-testid="pattern-{p.id}">
-					<svg viewBox="0 0 {cs.length * SLOT + 8} {H}" width={cs.length * SLOT + 8} height={H} aria-hidden="true">
-						{#each cs as { c, ctx }, i (i)}
-							{@const [o, h, l, cl] = c}
-							{@const cx = 4 + i * SLOT + SLOT / 2}
-							{@const up = cl >= o}
-							<g class:ctx class:up class:down={!up}>
-								<line x1={cx} x2={cx} y1={sc.y(h)} y2={sc.y(l)} />
-								<rect x={cx - 5} y={sc.y(Math.max(o, cl))} width="10" height={sc.h(Math.abs(o - cl))} />
-							</g>
-						{/each}
-					</svg>
+					<PatternAnimation pattern={p} {frame} />
 					<div class="body">
 						<h3>{tx.name} <span class="tag">{t(`patterns.${p.bias}`)}</span></h3>
 						<p><b>{t('patterns.what')}</b> {tx.what}</p>
@@ -171,25 +161,6 @@
 	svg {
 		flex: none;
 		align-self: center;
-	}
-	g line {
-		stroke-width: 1.5;
-	}
-	g.up line,
-	g.up rect {
-		stroke: var(--up);
-		fill: var(--bg);
-	}
-	g.down line,
-	g.down rect {
-		stroke: var(--down);
-		fill: var(--down);
-	}
-	g.ctx line,
-	g.ctx rect {
-		stroke: var(--muted);
-		fill: var(--muted);
-		opacity: 0.45;
 	}
 	.card.focused {
 		outline: 2px solid var(--info);
