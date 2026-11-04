@@ -198,3 +198,17 @@ TEST_CASE("Regression: generated implied vol stays plausible through a crash (m0
     CHECK(calm < 1.5);
   }
 }
+
+TEST_CASE("Regression: the funding rate published before a segment does not reveal that segment") {
+  // Before: the rate for bar i (published at the close of bar i-1) used bar i's segment bias, so
+  // funding jumped one bar before every regime change.
+  const auto rates = [](double next_bias) {
+    GeneratorSpec spec;
+    spec.segments = {{.bars = 30, .vol = 0.006}, {.bars = 10, .vol = 0.006, .funding_bias = next_bias}};
+    return gen(spec, 7).funding_rate;
+  };
+  const std::vector<Rate> calm = rates(0.0);
+  const std::vector<Rate> crowded = rates(0.002);
+  for (std::size_t i = 0; i <= 30; ++i) CHECK(calm[i].raw == crowded[i].raw);  // bar 30 is the first of the segment
+  CHECK(calm[31].raw != crowded[31].raw);  // published at the close of bar 30, inside the segment
+}
