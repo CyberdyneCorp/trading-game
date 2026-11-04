@@ -7,7 +7,7 @@ Defines how a mission attempt is graded so that the score rewards risk disciplin
 ## ADDED Requirements
 
 ### Requirement: Score dimensions
-The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 2) from the command log with integer arithmetic only.
+The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 4) from the command log with integer arithmetic only.
 
 Entries are exposure-increasing fills of the perpetual and of each option series (buying or writing to open). Plan coherence SHALL be non-applicable when the attempt has no entries. Otherwise, in scoring versions 1 and 2, it SHALL be `70 × min(plans, entries) / entries + 30 × plans with an invalidation level / plans`, where skipped plans do not count as plans, and 0 when no plan was recorded.
 
@@ -49,7 +49,11 @@ Scoring version 3 SHALL start at 100 and subtract: 40 if any liquidation or opti
 - **THEN** the 10× attempt SHALL NOT score higher on risk
 
 ### Requirement: Outcome metrics are separate
-Net P&L, drawdown, total costs, funding, turnover and peak leverage SHALL be displayed separately and SHALL NOT be score inputs except where a mission objective explicitly targets them (e.g. "stay within drawdown budget").
+Net P&L, drawdown, total costs (fees and, separately, spread/slippage), funding, turnover, peak leverage, the closest distance to liquidation and the option P&L attribution by Greek SHALL be displayed separately and SHALL NOT be score inputs except where a mission objective explicitly targets them (e.g. "stay within drawdown budget").
+
+#### Scenario: Report-only facts do not move the score
+- **WHEN** scoring version 4 adds the spread/slippage cost, the Greek attribution and the leverage that would have kept a stop in front of liquidation
+- **THEN** the score dimensions SHALL be computed as in version 3 and the run's state and event digests SHALL NOT change
 
 #### Scenario: Profit not dominant
 - **WHEN** an attempt profits while violating its planned risk

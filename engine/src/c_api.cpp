@@ -231,7 +231,7 @@ const char* finding_name(FindingCode c) {
   static constexpr const char* kNames[] = {"waited",          "liquidated", "stop_beyond_liq", "no_stop",   "gap_slippage",
                                            "funding_cost",    "ambiguous",  "capacity",        "good_process_loss",
                                            "lucky_win",       "no_plan",    "oversized",       "bankrupt",
-                                           "margin_called"};
+                                           "margin_called",   "theta_decay", "iv_crush"};
   return kNames[static_cast<std::size_t>(c)];
 }
 
@@ -241,7 +241,7 @@ const char* tone_name(FindingTone t) {
 }
 
 const char* lesson_name(LessonCode l) {
-  static constexpr const char* kNames[] = {"futures2", "risk", "futures3", "orders", "structure", "evaluation"};
+  static constexpr const char* kNames[] = {"futures2", "risk", "futures3", "orders", "structure", "evaluation", "options"};
   return kNames[static_cast<std::size_t>(l)];
 }
 
@@ -263,6 +263,10 @@ void write_trade(JsonOut& j, const TradeRow& t) {
   j.field("fees", t.fees).field("funding", t.funding).field("net", t.net).field("bars", t.bars).field("reason", exit_name(t.reason));
   if (t.series != 0) {
     j.field("kind", t.is_call ? "call" : "put").field("strike", t.strike).field("expiryStep", t.expiry_step);
+  } else {
+    j.field("stop", t.stop).field("leverage", t.leverage).field("liqPrice", t.liq_price).field("stopBeyondLiq", t.stop_beyond_liq);
+    j.key("safeLeverage");
+    if (t.stop_beyond_liq) j.num(t.safe_leverage); else j.null();
   }
   j.field("plannedRisk", t.planned_risk).key("rBp");
   if (t.r_bp) j.num(*t.r_bp); else j.null();
@@ -290,7 +294,14 @@ void write_score(JsonOut& j, const ScoreReport& r) {
   if (r.brier_bp) j.num(*r.brier_bp); else j.null();
   j.end_obj().key("trades").begin_arr();
   for (const TradeRow& t : r.trades) write_trade(j, t);
-  j.end_arr();
+  j.end_arr().field("spreadSlippage", r.spread_cost).key("greeks");
+  if (!r.greeks) {
+    j.null();
+    return;
+  }
+  const GreekAttribution& g = *r.greeks;
+  j.begin_obj().field("delta", g.delta).field("gamma", g.gamma).field("theta", g.theta).field("vega", g.vega);
+  j.field("residual", g.residual).field("total", g.total).end_obj();
 }
 
 const char* state_json(tl_run& r) {

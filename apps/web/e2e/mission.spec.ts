@@ -406,6 +406,39 @@ test('regression: an options trade is listed in the debrief (was "you did not tr
 	await expect(page.getByText(/COMPRA P 100/)).toBeVisible();
 	await expect(page.locator('.trades').getByText('vencimento')).toBeVisible();
 	await expect(page.getByText(/Você não operou/)).toHaveCount(0);
+	// Option P&L by Greek, computed by the engine and labeled approximate.
+	const greeks = page.getByTestId('debrief-greeks');
+	await expect(greeks.getByText(/P&L das opções por grega \(aproximado\)/)).toBeVisible();
+	for (const name of ['Delta (direção)', 'Gama (convexidade)', 'Theta (tempo)', 'Vega (vol. implícita)', 'Resíduo (spread e outros)']) {
+		await expect(greeks.getByText(name)).toBeVisible();
+	}
+	await expect(greeks.getByText(/-?[\d.]+,\d\d cr/).first()).toBeVisible(); // PT-BR numbers
+	await expect(page.getByTestId('debrief-liq-distance')).toHaveText('—'); // never held the perpetual
+});
+
+test('debrief: spread/slippage, turnover, closest liquidation and the leverage that keeps the stop in front', async ({ page }) => {
+	await openTerminal(page, 31);
+	await page.locator('label:has-text("Alavancagem") input').first().fill('5');
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	const stop = page.getByTestId('ticket-stop');
+	await stop.getByRole('button', { name: '2%', exact: true }).click();
+	const near = Number(await stop.locator('input').inputValue()); // 2% under the entry
+	await stop.locator('input').fill(((near / 0.98) * 0.7).toFixed(2)); // 30% under: beyond a 5x liquidation
+	await expect(page.getByText(/O stop está além do preço de liquidação/)).toBeVisible();
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) await advance(page, 'Shift+Space');
+	await expect(page.getByText(/Missão concluída|GAME OVER/)).toBeVisible();
+	const spread = page.getByTestId('debrief-spread');
+	await expect(spread).toHaveText(/^[\d.]+,\d\d cr$/);
+	await expect(spread).not.toHaveText('0,00 cr'); // paid on the market entry
+	await expect(page.getByTestId('debrief-turnover')).toHaveText(/^[1-9][\d.]*,\d\d cr$/);
+	await expect(page.getByTestId('debrief-liq-distance')).toHaveText(/^\d+,\d\d%$/);
+	await expect(page.locator('.trades .advice')).toContainText(/além da liquidação [\d.]+,\d\d a 5x: até [1-4]x o manteria na frente/);
+	await expect(page.getByText(/Com até [1-4]x de alavancagem o stop teria ficado na frente/)).toBeVisible();
+	await expect(page.getByText(/Futuros II/)).toBeVisible();
 });
 
 test('isolated margin can be added and removed only down to the initial margin', async ({ page }) => {

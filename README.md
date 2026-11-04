@@ -350,6 +350,14 @@ stateDiagram-v2
 
 The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, so the trades add up to the result), findings, and a reveal of what the generator was doing.
 
+Next to the score, the debrief shows outcome facts that are **not** score inputs (all computed by the engine, scoring v4):
+
+- Net P&L split into realized trading P&L, fees, funding, option P&L, and a separate **spread and slippage** line: what taker fills paid against their reference price (the open, or the stop's trigger) and option fills against the quote's mid. It is already inside the fill prices, not an extra charge.
+- Max drawdown, peak exposure, **turnover** (traded notional) and the **closest the mark came to liquidation**.
+- For options, the **P&L by Greek** (delta, gamma, theta, vega and a residual), labeled approximate: bar by bar, from the Greeks of the quote at the start of each interval; the residual holds the spread paid and higher-order effects, so the five lines add up to the option P&L before fees.
+- For a perpetual trade whose stop (stop order, else the plan's invalidation) sat at or beyond its liquidation price: the **highest leverage that would have kept the stop in front** of liquidation, also named in the liquidation and stop-beyond-liquidation findings.
+- When time decay (theta) or a falling implied volatility (vega) explains at least half of an option loss, a finding says so and the next lesson is Options II (IV and Greeks).
+
 ## Specs (OpenSpec)
 
 Requirements live in `openspec/changes/`, one change per area; `openspec list` shows task progress and `openspec validate --all --strict` runs in CI.
@@ -365,12 +373,11 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v2, scoring v3), the five missions with first-start tutorials, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations) and the API (sync, replay, progress, export, erase).
+Built: the deterministic engine (perps, options, indicators, patterns, generator v2, scoring v4 with the full debrief), the five missions with first-start tutorials, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations) and the API (sync, replay, progress, export, erase).
 
 Next:
 
 - Advisor with points earned by disciplined trades, then legal intel perks unlocked by finished missions (`add-advisor-intel-tutorials`, phases 2–3).
-- Debrief gaps: option P&L attribution by Greek, separate spread/slippage line, turnover and minimum liquidation distance, the leverage that would have kept the stop in front of liquidation.
 - More content toward the phase-2 target (12 missions, ≥4 regimes), campaign runs and the curriculum map.
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.

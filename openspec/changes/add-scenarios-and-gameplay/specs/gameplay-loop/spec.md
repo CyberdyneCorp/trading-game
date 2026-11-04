@@ -59,6 +59,20 @@ Rewinding or changing seed SHALL create a new attempt flagged `assisted`, SHALL 
 ### Requirement: Debrief
 On completion the debrief SHALL show: market reveal (if permitted) and historical/synthetic label; timeline of plans, news, orders, fills, funding, margin changes, liquidations and expiries; net P&L split into realized trading P&L, fees, spread/slippage, funding and option premium/settlement; max drawdown, peak leverage, minimum liquidation distance, turnover; requested vs trigger vs executed price per fill; `ambiguousIntrabar` and capacity approximations; comparison with staying flat and with a 1× long held from the first eligible bar; for options, an approximate P&L attribution to delta, gamma, theta and vega, labeled approximate; separation of good process, favorable luck and items needing more samples; a recommended next lesson based on observable errors.
 
+These numbers SHALL be computed by the engine (report-only: they SHALL NOT change the run state, its digests or the score dimensions); clients SHALL only format them, in the player's locale.
+
+- **Spread/slippage** SHALL be the cost paid against a reference price, already contained in the fill prices: taker perpetual fills (market, stop, trailing stop) against the bar's open (market orders and gapped stops) or the stop's trigger; maker fills (limits, take-profits) and liquidations pay none; option fills against the mid of the quote they executed on.
+- **Greek attribution** SHALL be computed bar by bar for every held option series, from the Greeks of the quote at the start of each interval (previous close → open with the same quote step; open → close, or → settlement price at expiry): `delta·ΔF + ½·gamma·ΔF² + theta·Δsteps + vega·ΔIV(points)`. A residual SHALL hold the rest of the option P&L before fees (spread paid against the mid and higher-order effects), so delta + gamma + theta + vega + residual equals the option P&L (realized, plus open positions at the final mid).
+- **Leverage that keeps the stop in front**: for each perpetual trade, the stop SHALL be its first reduce-only stop order or, without one, its plan's invalidation; the liquidation price SHALL be computed at the trade's entry price, size and the leverage in effect before its entry bar. When the stop sits at or beyond it, the debrief SHALL name the highest whole leverage (at least 1×) whose liquidation price stays beyond the stop, or say that not even 1× would.
+
+#### Scenario: Spread and slippage shown separately
+- **WHEN** the player buys at market and closes at market in a market that does not move, with no fees
+- **THEN** the debrief SHALL show a spread/slippage cost equal to the loss, and a limit order filled at its price SHALL add nothing to it
+
+#### Scenario: Greek attribution adds up
+- **WHEN** the player holds a bought call to expiry in a flat market
+- **THEN** delta, gamma and vega SHALL be zero, theta SHALL explain at least half of the loss, and the five lines SHALL sum exactly to the option P&L before fees
+
 #### Scenario: Good process, negative result (EDU01)
 - **WHEN** a breakout fails and a planned stop limits the loss within planned risk
 - **THEN** the debrief SHALL credit risk management and SHALL NOT label the decision as a mistake solely due to the loss
