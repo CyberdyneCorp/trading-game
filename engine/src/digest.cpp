@@ -54,6 +54,28 @@ void write_metrics(Writer& w, const Metrics& m) {
   w.fixed(m.turnover);
 }
 
+// Policy v11: start options and advice (a default run writes 0, 0, false, 0, 0).
+void write_advisor(Writer& w, const RunState& st) {
+  w.u32(st.options.advice_allowance);
+  w.u8(st.options.news_lead);
+  w.boolean(st.options.calendar);
+  w.u32(st.advice_left);
+  w.u32(static_cast<std::uint32_t>(st.advice.size()));
+  for (const Advice& a : st.advice) {
+    w.u32(a.step);
+    w.u8(static_cast<std::uint8_t>(a.stance));
+    w.u32(a.confidence_bp);
+    w.fixed(a.stop);
+    w.fixed(a.size);
+    w.u32(static_cast<std::uint32_t>(a.reasons.size()));
+    for (const AdviceReason& r : a.reasons) {
+      w.u8(static_cast<std::uint8_t>(r.code));
+      w.u8(static_cast<std::uint8_t>(r.vote));
+      w.u32(static_cast<std::uint32_t>(r.ref));
+    }
+  }
+}
+
 }  // namespace
 
 Digest state_digest(const RunState& st) {
@@ -107,6 +129,7 @@ Digest state_digest(const RunState& st) {
   write_metrics(w, st.metrics);
   w.u64(st.rng.state());
   w.u64(st.rng.inc());
+  write_advisor(w, st);
   return w.digest();
 }
 

@@ -293,3 +293,47 @@ TEST_CASE("Regression: a loss is not 'good process' when one of the trades had n
   REQUIRE(r.net_pnl.raw < 0);
   CHECK_FALSE(has(r, FindingCode::GoodProcessLoss));
 }
+
+TEST_CASE("Regression: a planned naked option write that loses is not 'limited risk' good process") {
+  // Before: writing puts with a plan and holding to a loss (no margin call) said "every trade had a
+  // plan and limited risk (stop or premium)", although a writer's loss is not limited by the premium.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "100", "95", "95"},
+                               {"95", "95", "92", "92"}, {"92", "92", "92", "92"}});
+  add_options(sc, 4, {"100"}, true);
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Sell, nullptr, "100", false, true).accepted);
+  REQUIRE(d.option(2, OrderSide::Sell, "5").accepted);
+  d.step(4);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.net_pnl.raw < 0);
+  REQUIRE_FALSE(has(r, FindingCode::MarginCalled));
+  CHECK_FALSE(has(r, FindingCode::GoodProcessLoss));
+}
+
+TEST_CASE("Regression: a planned, protected win is credited as good process") {
+  // Before: a profitable run with full process had no finding at all ("What happened" was empty).
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"}, {"100", "111", "100", "110"}, {"110", "110", "110", "110"}});
+  Driver d(sc);
+  d.plan(OrderSide::Buy, "95", "50");
+  d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "95", "110");
+  d.step(4);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.net_pnl.raw > 0);
+  CHECK(has(r, FindingCode::GoodProcessWin));
+  CHECK_FALSE(has(r, FindingCode::LuckyWin));
+  CHECK_FALSE(has(r, FindingCode::GoodProcessLoss));
+}
+
+TEST_CASE("A bought option with a plan that wins is good process too") {
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "106", "100", "106"},
+                               {"106", "112", "106", "112"}, {"112", "112", "112", "112"}});
+  add_options(sc, 4, {"100"});
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Buy, nullptr, "30", false, true).accepted);
+  REQUIRE(d.option(1, OrderSide::Buy, "2").accepted);
+  d.step(4);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.net_pnl.raw > 0);
+  CHECK(has(r, FindingCode::GoodProcessWin));
+}

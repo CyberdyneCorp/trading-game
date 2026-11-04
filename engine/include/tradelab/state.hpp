@@ -111,6 +111,32 @@ struct CommandResult {
   Reason warning = Reason::None;  // e.g. StopBeyondLiquidation on an accepted order
 };
 
+// Start options of a run (spec progression-rewards): advice allowance and intel perks. Defaults
+// are a run without advisor or perks, which replays exactly like a run from before policy v11.
+struct RunOptions {
+  std::uint32_t advice_allowance = 0;
+  std::uint8_t news_lead = 0;  // fast wire: headlines visible this many bars before release
+  bool calendar = false;       // economic calendar: upcoming scheduled releases (step only)
+};
+
+// One reason behind a piece of advice. `vote` is its signed weight (+ long, - short); 0 means it
+// voted for neither side and pushed the advice toward wait. `ref` points at what it read: the
+// pattern's or the headline's step, or the crowded side (+1 longs, -1 shorts) for funding.
+struct AdviceReason {
+  AdviceReasonCode code = AdviceReasonCode::RegimeRange;
+  std::int8_t vote = 0;
+  std::int32_t ref = 0;
+};
+
+struct Advice {
+  std::uint32_t step = 0;
+  AdviceStance stance = AdviceStance::Wait;
+  std::uint32_t confidence_bp = 5000;
+  Price stop;  // 0 when waiting
+  Qty size;    // 0 when waiting or below the minimum order
+  std::vector<AdviceReason> reasons;
+};
+
 struct CommandRecord {
   std::uint64_t client_id = 0;
   CommandResult result;
@@ -144,6 +170,10 @@ struct RunState {
   std::vector<Event> events;  // full event log of the run
   std::vector<CommandRecord> command_log;  // idempotency: client id -> original outcome
   Pcg32 rng{0, Stream::Slippage};
+
+  RunOptions options;
+  std::uint32_t advice_left = 0;  // starts at options.advice_allowance
+  std::vector<Advice> advice;     // every accepted RequestAdvice, in order
 };
 
 }  // namespace tradelab

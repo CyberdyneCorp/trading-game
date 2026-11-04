@@ -3,7 +3,7 @@
 	import type { Locale } from '#lib/game/i18n.svelte.ts';
 	import { fmtMoney, fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { reasonText, t } from '#lib/game/i18n.svelte.ts';
-	import { EventNames } from '#lib/game/eventNames.ts';
+	import { EventNames, ORDER_TYPE_LABEL } from '#lib/game/eventNames.ts';
 
 	const NO_NAMES = new EventNames();
 
@@ -29,9 +29,9 @@
 
 	function orderLine(e: EngineEvent, L: Locale, names: EventNames): string | null {
 		if (e.status === 'accepted') {
-			const type = names.orderType(e.orderId) ?? (e.requested !== '0.00000000' ? 'LMT/STOP/TP' : 'MKT');
+			const type = e.orderType ? ORDER_TYPE_LABEL[e.orderType] : 'MKT';
 			const series = e.series ? `${names.seriesName(e.series)} ` : '';
-			return t('feed.accepted', { id: e.orderId, type: series + type, side: e.side, qty: fmtQty(e.qty, L) });
+			return t('feed.accepted', { id: e.orderId, type: series + type, side: t(`side.${e.side}`), qty: fmtQty(e.qty, L) });
 		}
 		if (e.status === 'cancelled') return t('feed.cancelled', { id: e.orderId, reason: reasonText(e.reason) });
 		if (e.status === 'expired') return t('feed.expired', { id: e.orderId });

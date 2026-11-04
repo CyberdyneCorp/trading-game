@@ -33,7 +33,8 @@ There is no separate fixtures directory: the goldens are SHA-256 digests frozen 
 - `tests/test_det_math.cpp`, `tests/test_prng.cpp`: kernel outputs and normal variates.
 - `tests/test_options.cpp` (OPT01): a grid of option quotes and Greeks.
 - `tests/test_missions.cpp`: scripted mission runs through the C ABI (state and event-stream digests).
-- `bindings/python/tests/test_engine.py`: repeats the `m01-false-breakout` scripted run through the Python binding and checks the same digests.
+- `tests/test_advisor.cpp`: a scripted m02 run with start options (advice allowance 3, fast wire 1, calendar) and two advisor requests.
+- `bindings/python/tests/test_engine.py`: repeats the `m01-false-breakout` and the advisor scripted runs through the Python binding and checks the same digests.
 
 CI runs them on every target (linux-x86_64, macos-arm64, wasm under node, Python). A digest failure means cross-platform results diverged. Do **not** update the digest to make CI green.
 
@@ -42,6 +43,11 @@ The only legitimate update is an intentional change to a kernel, the PRNG, the g
 1. bump the execution-policy version (old runs must keep replaying), and
 2. be explained in the PR, regenerating the digest from a native build, confirming WASM matches it, and updating the Python mirror of any changed mission digest.
 
+## Start options and the advisor (policy v11)
+
+`start_run(scenario, seed, RunOptions{advice_allowance, news_lead, calendar})` (C ABI `tl_run_create_ex`) stores the options in the run state, the digest and checkpoints; the defaults are a run without advisor or perks. Policy v11 appended these fields to the state digest, so the frozen state digests changed through the version while every event digest stayed the same: a default run executes exactly as under v10.
+
+`RequestAdvice` (`tl_request_advice`) stores `advise(scenario, state)` (`include/tradelab/advisor.hpp`) in `RunState.advice` and uses one unit of the allowance. It does not advance time or touch orders, positions or balances, and with no allowance left it is rejected with `NoAdviceLeft` before anything is recorded (the digest does not change). `advise()` reads only bars up to the step, published funding, patterns ending at the step and news released by then (or within `news_lead` bars). `test_advisor.cpp` checks this by changing every later bar, funding rate and headline. The debrief adds each read's outcome, the advisor's hit rate and `advisorPointsEarned` (scoring v6).
 ## Scenario packs and CSV import
 
 Normative behavior: `openspec/changes/add-scenarios-and-gameplay/specs/scenario-packs/`. Everything here treats input as hostile; each check fails with a stable reason code (listed at the top of `src/pack.cpp` and `src/csv_import.cpp`) that clients turn into text.

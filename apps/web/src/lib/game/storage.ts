@@ -5,6 +5,8 @@
 // so anything the UI showed as accepted survives a crash or a closed tab. Resume replays the log
 // through the deterministic engine; the stored digest only verifies the replay.
 
+import { START_POINTS } from './points.ts';
+
 export interface RunRecord<J = unknown, Q = unknown> {
 	runId: string;
 	missionId: string;
@@ -17,6 +19,8 @@ export interface RunRecord<J = unknown, Q = unknown> {
 	digest: string;
 	status: 'active' | 'finished' | 'bankrupt';
 	actions: number; // number of committed actions
+	/** Start options (advice allowance, perks); absent on runs recorded before policy v11 = defaults. */
+	options?: { adviceAllowance: number; newsLead: number; calendar: boolean };
 	/** Runs on a scenario pack (e.g. an imported CSV): the pack's digest in the `packs` store. */
 	packDigest?: string;
 }
@@ -43,12 +47,16 @@ export interface StoredRun<A, J, Q> {
 	actions: A[];
 }
 
-/** Per-device player progress (spec mission-tutorial; progression-rewards adds points later). */
+/** Per-device player progress (specs mission-tutorial and progression-rewards). */
 export interface Progress {
 	tutorialsSeen: string[];
+	/** Advisor point balance (see points.ts). */
+	advisorPoints: number;
+	/** Runs whose points were already settled (idempotency). */
+	settledRuns: string[];
 }
 
-export const EMPTY_PROGRESS: Progress = { tutorialsSeen: [] };
+export const EMPTY_PROGRESS: Progress = { tutorialsSeen: [], advisorPoints: START_POINTS, settledRuns: [] };
 
 const DB_NAME = 'tradelab';
 const DB_VERSION = 2; // v2: packs store
@@ -136,7 +144,11 @@ export class RunStore<A, J, Q> {
 	async progress(): Promise<Progress> {
 		const tx = this.db.transaction('meta', 'readonly');
 		const row = (await req(tx.objectStore('meta').get('progress'))) as ({ key: string } & Partial<Progress>) | undefined;
-		return { ...EMPTY_PROGRESS, ...row, tutorialsSeen: row?.tutorialsSeen ?? [] };
+		return {
+			tutorialsSeen: row?.tutorialsSeen ?? [],
+			advisorPoints: row?.advisorPoints ?? START_POINTS,
+			settledRuns: row?.settledRuns ?? []
+		};
 	}
 
 	async saveProgress(p: Progress): Promise<void> {

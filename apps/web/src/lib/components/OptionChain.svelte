@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Chain at the current decision step only (spec terminal-ui "Option chain"). Prices are model-made.
 	import type { GameState, OptionQuoteView } from '#lib/engine/types.ts';
-	import { fmtPct, fmtPrice } from '#lib/game/format.ts';
+	import { fmtNum, fmtPct, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
 	let {
@@ -52,7 +52,7 @@
 					{@const itmCall = mark > Number(r.strike)}
 					<tr>
 						{#if r.call}
-							<td class="num muted">{Number(r.call.delta).toFixed(2)}</td>
+							<td class="num muted">{fmtNum(Number(r.call.delta), L)}</td>
 							<td class="num muted">{fmtPct(Number(r.call.iv), L, 0)}</td>
 							<td class="num"><button class="q" class:sel={selected === r.call.id} onclick={() => onPick(r.call!, 'sell')}>{fmtPrice(r.call.bid, L)}</button></td>
 							<td class="num"><button class="q" class:sel={selected === r.call.id} onclick={() => onPick(r.call!, 'buy')}>{fmtPrice(r.call.ask, L)}</button></td>
@@ -62,7 +62,7 @@
 							<td class="num"><button class="q" class:sel={selected === r.put.id} onclick={() => onPick(r.put!, 'sell')}>{fmtPrice(r.put.bid, L)}</button></td>
 							<td class="num"><button class="q" class:sel={selected === r.put.id} onclick={() => onPick(r.put!, 'buy')}>{fmtPrice(r.put.ask, L)}</button></td>
 							<td class="num muted">{fmtPct(Number(r.put.iv), L, 0)}</td>
-							<td class="num muted">{Number(r.put.delta).toFixed(2)}</td>
+							<td class="num muted">{fmtNum(Number(r.put.delta), L)}</td>
 						{:else}<td colspan="4"></td>{/if}
 					</tr>
 				{/each}

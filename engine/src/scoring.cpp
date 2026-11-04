@@ -1,6 +1,7 @@
 #include "tradelab/scoring.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <optional>
 #include <utility>
 
@@ -74,6 +75,7 @@ TradeRow finalize(const RunState& st, OpenTrade& o, std::uint32_t after) {
     if (t.exit_step) t.r_bp = round_div(static_cast<i128>(t.net.raw) * kBp, plan->planned_risk.raw);
   }
   t.plan_respected = respected(t, plan);
+  if (plan != nullptr && t.series == 0) t.stop = plan->invalidation;  // a stop order overrides it (annotate_stop)
   return t;
 }
 
@@ -181,6 +183,7 @@ struct Facts {
   // trade, from the plan matched to its entry: a plan whose order was rejected is not a trade.
   std::optional<std::pair<std::uint32_t, Money>> oversized;  // entry step, planned risk
   bool all_planned = true;  // every trade had a (non-skipped) plan
+  bool wrote_options = false;  // an option position was opened by writing (risk not limited by a premium)
 };
 
 bool grows_exposure(std::int64_t pos, std::int64_t q) { return pos == 0 || (q > 0) == (pos > 0) || abs64(q) > abs64(pos); }
@@ -206,8 +209,10 @@ void count_option_entries(const RunState& st, Facts& f) {
     auto it = std::find_if(pos.begin(), pos.end(), [&e](const auto& p) { return p.first == e.series; });
     if (it == pos.end()) it = pos.insert(pos.end(), {e.series, 0});
     const std::int64_t q = sign_of(e.side) * e.qty.raw;
-    f.entries += grows_exposure(it->second, q) ? 1 : 0;
+    const bool grows = grows_exposure(it->second, q);
+    f.entries += grows ? 1 : 0;
     it->second += q;
+    f.wrote_options = f.wrote_options || (grows && it->second < 0);
   }
 }
 
@@ -334,15 +339,35 @@ Finding mk(FindingCode c, FindingTone t, std::uint32_t step = 0, std::uint32_t c
 
 void add(ScoreReport& r, FindingCode c, FindingTone t) { r.findings.push_back(mk(c, t)); }
 
+// The liquidated trade's safe leverage (0 when its stop was in front, or there was no stop).
+std::uint32_t safe_leverage_at(const ScoreReport& r, std::uint32_t step) {
+  for (const TradeRow& t : r.trades) {
+    if (t.reason == ExitReason::Liquidation && t.exit_step == step) return static_cast<std::uint32_t>(t.safe_leverage);
+  }
+  return 0;
+}
+
+// Stop beyond liquidation: warned when the stop was placed, or a bracket/planned stop found per trade.
+// The finding names the first such trade: entry bar, stop, liquidation price, safe leverage.
+void stop_beyond_finding(const Facts& f, ScoreReport& r) {
+  const auto it = std::find_if(r.trades.begin(), r.trades.end(), [](const TradeRow& t) { return t.stop_beyond_liq; });
+  if (it == r.trades.end()) {
+    if (f.stop_warnings > 0) add(r, FindingCode::StopBeyondLiq, FindingTone::Bad);
+    return;
+  }
+  r.findings.push_back(mk(FindingCode::StopBeyondLiq, FindingTone::Bad, it->entry_step, static_cast<std::uint32_t>(it->safe_leverage),
+                          it->stop, it->liq_price));
+}
+
 void risk_findings(const RunState& st, const Facts& f, ScoreReport& r) {
   if (st.status == RunStatus::Bankrupt) add(r, FindingCode::Bankrupt, FindingTone::Bad);
   for (const Event* l : f.liquidations) {
-    r.findings.push_back(mk(FindingCode::Liquidated, FindingTone::Bad, l->step, 0, l->price, Price{}, l->amount));
+    r.findings.push_back(mk(FindingCode::Liquidated, FindingTone::Bad, l->step, safe_leverage_at(r, l->step), l->price, Price{}, l->amount));
   }
   for (const Event* m : f.margin_calls) {
     r.findings.push_back(mk(FindingCode::MarginCalled, FindingTone::Bad, m->step, 0, m->price, Price{}, Money::from_raw(-m->pnl.raw)));
   }
-  if (f.stop_warnings > 0) add(r, FindingCode::StopBeyondLiq, FindingTone::Bad);
+  stop_beyond_finding(f, r);
   if (f.unprotected > 0) r.findings.push_back(mk(FindingCode::NoStop, FindingTone::Warn, 0, f.unprotected));
   if (f.oversized) {
     r.findings.push_back(mk(FindingCode::Oversized, FindingTone::Warn, f.oversized->first, 0, Price{}, Price{}, f.oversized->second));
@@ -352,11 +377,14 @@ void risk_findings(const RunState& st, const Facts& f, ScoreReport& r) {
 void outcome_findings(const Facts& f, ScoreReport& r) {
   const bool planned = f.planned > 0;
   if (f.entries == 0) add(r, FindingCode::Waited, FindingTone::Good);
-  // Credit a loss to good process only when nothing in the process went wrong (scoring v3: also no
-  // oversized entry, no option margin call, no stop beyond liquidation, and a plan for every trade).
+  // Credit good process only when nothing in the process went wrong (scoring v3: also no oversized
+  // entry, no option margin call, no stop beyond liquidation, and a plan for every trade; v5: no
+  // written option either, whose risk is not limited by a stop or a premium).
   const bool clean = planned && f.all_planned && f.unprotected == 0 && f.liquidations.empty() && f.margin_calls.empty() &&
-                     !f.oversized && f.stop_warnings == 0;
+                     !f.oversized && f.stop_warnings == 0 && !f.wrote_options &&
+                     std::none_of(r.trades.begin(), r.trades.end(), [](const TradeRow& t) { return t.stop_beyond_liq; });
   if (r.net_pnl.raw < 0 && clean) add(r, FindingCode::GoodProcessLoss, FindingTone::Good);
+  if (r.net_pnl.raw > 0 && clean) add(r, FindingCode::GoodProcessWin, FindingTone::Good);
   if (r.net_pnl.raw > 0 && (!planned || f.unprotected > 0)) add(r, FindingCode::LuckyWin, FindingTone::Warn);
   if (f.entries > 0 && !planned) add(r, FindingCode::NoPlan, FindingTone::Warn);
 }
@@ -372,6 +400,18 @@ void execution_findings(const RunState& st, const Facts& f, ScoreReport& r) {
   if (f.capacity > 0) r.findings.push_back(mk(FindingCode::Capacity, FindingTone::Info, 0, f.capacity));
 }
 
+// Theta or vega explaining at least half of an option loss points to the Options lesson (IV and Greeks).
+void greek_findings(ScoreReport& r) {
+  if (!r.greeks || r.greeks->total.raw >= 0) return;
+  const std::int64_t loss = -r.greeks->total.raw;
+  if (r.greeks->theta.raw < 0 && -2 * r.greeks->theta.raw >= loss) {
+    r.findings.push_back(mk(FindingCode::ThetaDecay, FindingTone::Warn, 0, 0, Price{}, Price{}, Money::from_raw(-r.greeks->theta.raw)));
+  }
+  if (r.greeks->vega.raw < 0 && -2 * r.greeks->vega.raw >= loss) {
+    r.findings.push_back(mk(FindingCode::IvCrush, FindingTone::Warn, 0, 0, Price{}, Price{}, Money::from_raw(-r.greeks->vega.raw)));
+  }
+}
+
 bool has(const ScoreReport& r, FindingCode c) {
   return std::any_of(r.findings.begin(), r.findings.end(), [c](const Finding& f) { return f.code == c; });
 }
@@ -381,13 +421,72 @@ LessonCode pick_lesson(const ScoreReport& r) {
   // A margin call on written options (even one that ends in bankruptcy) is a sizing lesson.
   if (has(r, FindingCode::NoStop) || has(r, FindingCode::Oversized) || has(r, FindingCode::MarginCalled)) return LessonCode::Risk;
   if (has(r, FindingCode::Bankrupt)) return LessonCode::Futures2;
+  if (has(r, FindingCode::ThetaDecay) || has(r, FindingCode::IvCrush)) return LessonCode::Options;
   if (has(r, FindingCode::FundingCost)) return LessonCode::Futures3;
   if (has(r, FindingCode::GapSlippage)) return LessonCode::Orders;
   if (has(r, FindingCode::NoPlan)) return LessonCode::Structure;
   return LessonCode::Evaluation;
 }
 
+// ---- advisor ------------------------------------------------------------------------------
+
+// Step of an order's last status change (fill, cancel, expiry), or "still working".
+std::uint32_t order_end_step(const RunState& st, const Order& o) {
+  if (o.active()) return UINT32_MAX;
+  std::uint32_t end = o.placed_step;
+  for (const Event& e : st.events) {
+    if (e.order_id == o.id && (e.type == EventType::OrderUpdate || e.type == EventType::Fill)) end = e.step;
+  }
+  return end;
+}
+
+// A reduce-only stop on the exit side was working at some bar while the trade was open.
+bool stop_worked_during(const RunState& st, const TradeRow& t) {
+  const OrderSide exit = t.is_long ? OrderSide::Sell : OrderSide::Buy;
+  const std::uint32_t last = t.exit_step.value_or(st.step);
+  return std::any_of(st.orders.begin(), st.orders.end(), [&](const Order& o) {
+    return o.series == 0 && is_stop(o) && o.reduce_only && o.side == exit && o.placed_step <= last &&
+           order_end_step(st, o) >= t.entry_step;
+  });
+}
+
+AdviceOutcome outcome_of(const Scenario& sc, const Advice& a) {
+  if (a.stance == AdviceStance::Wait) return AdviceOutcome::Wait;
+  const std::size_t end = static_cast<std::size_t>(a.step) + kAdviceHorizon;
+  if (end >= sc.bars.size()) return AdviceOutcome::Open;
+  const std::int64_t move = sc.bars[end].close.raw - sc.bars[a.step + 1].open.raw;
+  const bool right = a.stance == AdviceStance::Long ? move > 0 : move < 0;
+  return right ? AdviceOutcome::Right : AdviceOutcome::Wrong;
+}
+
+void advice_summary(const Scenario& sc, const RunState& st, ScoreReport& r) {
+  r.advice = advice_rows(sc, st);
+  std::int64_t right = 0;
+  std::int64_t judged = 0;
+  for (const AdviceRow& a : r.advice) {
+    right += a.outcome == AdviceOutcome::Right ? 1 : 0;
+    judged += a.outcome == AdviceOutcome::Right || a.outcome == AdviceOutcome::Wrong ? 1 : 0;
+  }
+  if (judged > 0) r.advice_hit_bp = round_div(static_cast<i128>(right) * kBp, judged);
+}
+
 }  // namespace
+
+std::uint32_t advisor_points(const RunState& st, const std::vector<TradeRow>& trades) {
+  std::uint32_t points = st.status == RunStatus::Finished ? 2 : 0;
+  for (const TradeRow& t : trades) {
+    if (t.series != 0 || !t.exit_step || t.planned_risk.raw <= 0 || !stop_worked_during(st, t)) continue;
+    points += t.net.raw > 0 ? 2 : 1;
+  }
+  return std::min(points, kAdvisorPointsCap);
+}
+
+std::vector<AdviceRow> advice_rows(const Scenario& sc, const RunState& st) {
+  std::vector<AdviceRow> rows;
+  rows.reserve(st.advice.size());
+  for (const Advice& a : st.advice) rows.push_back({a.step, a.stance, a.confidence_bp, outcome_of(sc, a)});
+  return rows;
+}
 
 // Option rows carry their contract (expired series are no longer in the live chain).
 void describe_series(const Scenario& sc, TradeRow& t) {
@@ -431,6 +530,8 @@ std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
   for (std::size_t i = 0; i < rows.size(); ++i) {
     rows[i].n = static_cast<std::uint32_t>(i + 1);
     describe_series(sc, rows[i]);
+    annotate_stop(sc, st, rows[i]);
+    mark_open_trade(sc, st, rows[i]);
   }
   return rows;
 }
@@ -444,11 +545,16 @@ ScoreReport score_run(const Scenario& sc, const RunState& st) {
   r.plan.score = plan_score(f);
   calibration(sc, st, r);
   combine(r);
+  r.trades = build_trades(sc, st);
+  r.spread_cost = spread_slippage_cost(sc, st);
+  r.greeks = greek_attribution(sc, st);
   risk_findings(st, f, r);
   outcome_findings(f, r);
   execution_findings(st, f, r);
+  greek_findings(r);
   r.lesson = pick_lesson(r);
-  r.trades = build_trades(sc, st);
+  r.advisor_points_earned = advisor_points(st, r.trades);
+  advice_summary(sc, st, r);
   return r;
 }
 

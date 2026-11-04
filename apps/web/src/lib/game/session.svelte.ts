@@ -4,23 +4,26 @@
 
 import { EventNames } from './eventNames.ts';
 import { EngineClient } from '#lib/engine/client.ts';
-import type { CsvBuildResult } from '#lib/engine/protocol.ts';
-import type {
-	CommandResult,
-	CsvMeta,
-	CsvReport,
-	DebriefData,
-	GameState,
-	MissionInfo,
-	OrderSideName,
-	OrderTypeName,
-	OrderView,
-	PackCheck,
-	TrustedKey
+import type { CsvBuildResult, EngineRequest } from '#lib/engine/protocol.ts';
+import {
+	DEFAULT_RUN_OPTIONS,
+	type CommandResult,
+	type CsvMeta,
+	type CsvReport,
+	type DebriefData,
+	type GameState,
+	type MissionInfo,
+	type OrderSideName,
+	type OrderTypeName,
+	type OrderView,
+	type PackCheck,
+	type RunOptionsView,
+	type TrustedKey
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
 import { stepsUntilNextQuestion } from './calibration.ts';
 import { t } from './i18n.svelte.ts';
+import { allowanceFor, settleRun } from './points.ts';
 import { randomSeedBytes, trustedKeys } from './packs.ts';
 import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type StoredPack } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
@@ -56,7 +59,10 @@ type Action =
 	| { k: 'ans'; pBp: number; skipped: boolean }
 	| { k: 'cancel'; id: number }
 	| { k: 'close' }
+	| { k: 'advice' }
 	| { k: 'adv'; n: number };
+
+type CommandAction = Exclude<Action, { k: 'adv' }>;
 
 /** Summary of the resumable run shown on the menu. */
 export interface RunSummary {
@@ -106,7 +112,7 @@ export class GameSession {
 	/** False when IndexedDB is unavailable (e.g. some private modes): runs cannot be resumed. */
 	durable = $state(true);
 	persisted = $state<boolean | null>(null);
-	/** Per-device progress: which mission tutorials were already shown. */
+	/** Per-device progress: tutorials already shown, advisor point balance. */
 	progress = $state<Progress>({ ...EMPTY_PROGRESS });
 	/** Menu-level problem (e.g. the saved run's pack was removed); cleared when a run starts. */
 	menuAlert = $state<string | null>(null);
@@ -115,6 +121,8 @@ export class GameSession {
 
 	/** This device's signing identity for private imports (seed stays in IndexedDB). */
 	private device: { seedHex: string; key: TrustedKey } | null = null;
+	/** Start options of the current run (its advice allowance is the balance at start). */
+	options = $state<RunOptionsView>({ ...DEFAULT_RUN_OPTIONS });
 
 	private engine: EngineClient | null = null;
 	private log: Action[] = [];
@@ -184,7 +192,8 @@ export class GameSession {
 	async startMission(missionId: string, seed = this.randomSeed()): Promise<void> {
 		await this.exclusive(async () => {
 			this.resetRun(missionId, seed);
-			this.state = await this.eng().request({ kind: 'start', missionId, seed });
+			this.options = { ...DEFAULT_RUN_OPTIONS, adviceAllowance: allowanceFor(this.progress) };
+			this.state = await this.eng().request({ kind: 'start', missionId, seed, options: { ...this.options } });
 			await this.createRunRecord(missionId, seed);
 			this.screen = this.needsTutorial(missionId) ? 'tutorial' : 'briefing';
 		});
@@ -196,6 +205,7 @@ export class GameSession {
 		if (!pack) return;
 		await this.exclusive(async () => {
 			this.resetRun(pack.scenarioId, seed);
+			this.options = { ...DEFAULT_RUN_OPTIONS }; // pack runs start without advisor or perks
 			this.state = await this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
 			await this.createRunRecord(pack.scenarioId, seed, digest);
 			this.screen = 'briefing';
@@ -217,6 +227,7 @@ export class GameSession {
 				digest: this.state?.digest ?? '',
 				status: 'active',
 				actions: 0,
+				options: { ...this.options },
 				...(packDigest ? { packDigest } : {})
 			})
 			.catch(() => (this.durable = false));
@@ -302,6 +313,7 @@ export class GameSession {
 		const run = await this.store?.activeRun();
 		if (!run) return;
 		const r = run.record;
+		this.options = { ...DEFAULT_RUN_OPTIONS, ...r.options };
 		const state = await this.startEngine(r.missionId, r.seed, r.packDigest);
 		if (!state) {
 			this.menuAlert = t('pack.missing');
@@ -328,7 +340,7 @@ export class GameSession {
 
 	// A pack run restarts from its stored pack; null when the pack is no longer installed.
 	private async startEngine(missionId: string, seed: number, packDigest?: string): Promise<GameState | null> {
-		if (!packDigest) return this.eng().request({ kind: 'start', missionId, seed });
+		if (!packDigest) return this.eng().request({ kind: 'start', missionId, seed, options: { ...this.options } });
 		const pack = (await this.store?.pack(packDigest).catch(() => null)) ?? this.packs.find((p) => p.digest === packDigest);
 		if (!pack) return null;
 		return this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
@@ -423,6 +435,12 @@ export class GameSession {
 
 	async closePosition(): Promise<CommandResult | null> {
 		return this.command({ k: 'close' });
+	}
+
+	/** Asks the advisor (one point of this run's allowance); the advice arrives in state.advisor. */
+	async requestAdvice(): Promise<CommandResult | null> {
+		if (!this.state || this.state.advisor.left <= 0) return null;
+		return this.command({ k: 'advice' });
 	}
 
 	/** Calibration answer (probability the close in `horizon` bars ends above the threshold). */
@@ -540,53 +558,7 @@ export class GameSession {
 			this.state = await e.request({ kind: 'advance', steps: a.n });
 			return null;
 		}
-		const clientId = this.clientId++;
-		const r =
-			a.k === 'lev'
-				? await e.request({ kind: 'leverage', clientId, leverage: a.lev })
-				: a.k === 'order'
-					? await e.request({
-							kind: 'order',
-							clientId,
-							type: a.type,
-							side: a.side,
-							qty: a.qty,
-							price: a.price,
-							reduceOnly: a.ro,
-							attachStop: a.stop ?? null,
-							attachTp: a.tp ?? null,
-							trailDistance: a.trail ?? null
-						})
-					: a.k === 'opt'
-						? await e.request({
-								kind: 'option',
-								clientId,
-								series: a.series,
-								side: a.side,
-								type: a.type,
-								qty: a.qty,
-								premium: a.premium
-							})
-						: a.k === 'plan'
-						? await e.request({
-								kind: 'plan',
-								clientId,
-								side: a.side,
-								skipped: a.skipped,
-								option: a.option,
-								loseScenario: a.lose,
-								invalidation: a.inv,
-								target: a.target,
-								confidence: a.conf,
-								plannedRisk: a.risk
-							})
-						: a.k === 'ans'
-						? await e.request({ kind: 'answer', clientId, pBp: a.pBp, skipped: a.skipped })
-						: a.k === 'margin'
-						? await e.request({ kind: 'margin', clientId, amount: a.amount })
-						: a.k === 'cancel'
-						? await e.request({ kind: 'cancel', clientId, orderId: a.id })
-						: await e.request({ kind: 'close', clientId });
+		const r = await e.request(commandRequest(a, this.clientId++));
 		this.state = r.state;
 		return r.result;
 	}
@@ -600,6 +572,19 @@ export class GameSession {
 
 	private async loadDebrief(): Promise<void> {
 		this.debrief = await this.eng().request({ kind: 'debrief' });
+		this.settlePoints();
+	}
+
+	// Spec progression-rewards "Local point balance": balance - used + earned, once per run id.
+	// Practice on a known scenario (imported pack) starts without advice and earns nothing.
+	private settlePoints(): void {
+		const s = this.state;
+		const d = this.debrief;
+		if (!s || !d || s.status === 'active' || s.knownScenario) return;
+		const next = settleRun(this.progress, this.runId, s.advisor.advice.length, d.advisorPointsEarned);
+		if (next === this.progress) return;
+		this.progress = next;
+		void this.store?.saveProgress($state.snapshot(this.progress)).catch(() => (this.durable = false));
 	}
 
 	// Header fields only (journal, questions, digest, status); actions are committed in exec().
@@ -613,5 +598,51 @@ export class GameSession {
 				status: this.state.status
 			})
 			.catch(() => (this.durable = false));
+	}
+}
+
+// The engine request for one logged command (client ids are assigned in log order).
+function commandRequest(a: CommandAction, clientId: number): Extract<EngineRequest, { clientId: number }> {
+	switch (a.k) {
+		case 'lev':
+			return { kind: 'leverage', clientId, leverage: a.lev };
+		case 'order':
+			return {
+				kind: 'order',
+				clientId,
+				type: a.type,
+				side: a.side,
+				qty: a.qty,
+				price: a.price,
+				reduceOnly: a.ro,
+				attachStop: a.stop ?? null,
+				attachTp: a.tp ?? null,
+				trailDistance: a.trail ?? null
+			};
+		case 'opt':
+			return { kind: 'option', clientId, series: a.series, side: a.side, type: a.type, qty: a.qty, premium: a.premium };
+		case 'plan':
+			return {
+				kind: 'plan',
+				clientId,
+				side: a.side,
+				skipped: a.skipped,
+				option: a.option,
+				loseScenario: a.lose,
+				invalidation: a.inv,
+				target: a.target,
+				confidence: a.conf,
+				plannedRisk: a.risk
+			};
+		case 'ans':
+			return { kind: 'answer', clientId, pBp: a.pBp, skipped: a.skipped };
+		case 'margin':
+			return { kind: 'margin', clientId, amount: a.amount };
+		case 'cancel':
+			return { kind: 'cancel', clientId, orderId: a.id };
+		case 'close':
+			return { kind: 'close', clientId };
+		case 'advice':
+			return { kind: 'advice', clientId };
 	}
 }

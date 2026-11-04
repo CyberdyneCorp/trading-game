@@ -13,7 +13,7 @@ namespace tradelab {
 // Engine release, checked against a pack's engineCompatibility range.
 inline constexpr const char* kEngineVersion = "0.1.0";
 
-constexpr std::uint32_t kExecutionPolicyVersion = 10;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule
+constexpr std::uint32_t kExecutionPolicyVersion = 11;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice
 
 // Calibration questions (spec mission-scoring "Calibration"): asked every kQuestionEvery steps from
 // the first decision step while the resolving bar exists; resolved kQuestionHorizon bars later.
@@ -29,6 +29,7 @@ enum class CommandType : std::uint8_t {
   AdjustMargin = 5,      // add (> 0) or remove (< 0) isolated margin on the open perpetual position
   RecordPlan = 6,        // structured plan for the next exposure-increasing order
   AnswerQuestion = 7,    // calibration answer for the question due at this step
+  RequestAdvice = 8,     // advisor read of the visible market; uses one unit of the allowance
 };
 
 struct Command {
@@ -72,7 +73,7 @@ struct AccountView {
   Money option_maintenance_margin;
 };
 
-RunState start_run(const Scenario& sc, std::uint64_t seed);
+RunState start_run(const Scenario& sc, std::uint64_t seed, const RunOptions& options = {});
 CommandResult apply_command(const Scenario& sc, RunState& st, const Command& cmd);
 void advance(const Scenario& sc, RunState& st);
 

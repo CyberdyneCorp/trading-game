@@ -6,9 +6,10 @@ import ctypes
 import json
 import os
 import sys
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 _LIB_NAMES = {"darwin": "libtradelab.dylib", "win32": "tradelab.dll"}
 
@@ -44,6 +45,8 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_version": (c_char_p, []),
         "tl_missions": (c_char_p, []),
         "tl_run_create": (c_void_p, [c_char_p, u32]),
+        "tl_run_create_ex": (c_void_p, [c_char_p, u32, u32, u32, i32]),
+        "tl_request_advice": (c_char_p, [c_void_p, u32]),
         "tl_run_destroy": (None, [c_void_p]),
         "tl_place_order_ex": (c_char_p, [c_void_p, u32, i32, i32, c_char_p, c_char_p, i32, c_char_p, c_char_p, c_char_p]),
         "tl_place_option_order": (c_char_p, [c_void_p, u32, u32, i32, i32, c_char_p, c_char_p]),
@@ -116,16 +119,32 @@ def build_csv_pack(csv: str, meta: dict[str, Any], seed_hex: str) -> tuple[dict[
 def pack_validate(pack: bytes, trusted: TrustedKeys, *, publish: bool = False) -> dict[str, Any]:
     """Verifies a pack for install or publishing (LIC01): {"ok", "reason", "detail", "pack"}."""
     return _json(load_library().tl_pack_validate(pack, len(pack), json.dumps(trusted).encode(), int(publish)))
+@dataclass(frozen=True)
+class RunOptions:
+    """Start options (execution policy v11). The defaults are a run without advisor or perks."""
+
+    advice_allowance: int = 0
+    news_lead: int = 0  # fast wire: headlines this many bars early (0..255)
+    calendar: bool = False
+
+    @classmethod
+    def from_json(cls, data: Mapping[str, Any] | None) -> RunOptions:
+        """Reads the client's run-record shape {"adviceAllowance", "newsLead", "calendar"}."""
+        data = data or {}
+        return cls(int(data.get("adviceAllowance", 0)), int(data.get("newsLead", 0)), bool(data.get("calendar", False)))
 
 
 class Run:
     """One simulation run. Every method mirrors one C ABI call and returns its parsed JSON."""
 
-    def __init__(self, mission_id: str, seed: int, *, _handle: int | None = None) -> None:
+    def __init__(self, mission_id: str, seed: int, options: RunOptions | None = None, *,
+                 _handle: int | None = None) -> None:
         self._lib = load_library()
-        handle = _handle if _handle is not None else self._lib.tl_run_create(mission_id.encode(), seed)
+        o = options or RunOptions()
+        handle = _handle if _handle is not None else self._lib.tl_run_create_ex(
+            mission_id.encode(), seed, o.advice_allowance, o.news_lead, int(o.calendar))
         if not handle:
-            raise EngineError(f"unknown mission {mission_id!r}")
+            raise EngineError(f"unknown mission {mission_id!r} or invalid start options")
         self._h = ctypes.c_void_p(handle)
         self.mission_id = mission_id
         self.seed = seed
@@ -151,7 +170,7 @@ class Run:
         handle = load_library().tl_run_restore(mission_id.encode(), seed, checkpoint_hex.encode())
         if not handle:
             raise EngineError("checkpoint is damaged or incompatible with this engine")
-        return cls(mission_id, seed, _handle=handle)
+        return cls(mission_id, seed, _handle=handle)  # start options come back with the checkpoint
 
     def close(self) -> None:
         if self._h:
@@ -198,6 +217,9 @@ class Run:
 
     def answer_question(self, cid: int, p_bp: int, skipped: bool) -> Any:
         return _json(self._lib.tl_answer_question(self._h, cid, p_bp, int(skipped)))
+
+    def request_advice(self, cid: int) -> Any:
+        return _json(self._lib.tl_request_advice(self._h, cid))
 
     def advance(self, steps: int) -> Any:
         return _json(self._lib.tl_advance(self._h, steps))

@@ -67,6 +67,7 @@ mindmap
       Pattern cheat sheet
     Learning
       Five missions
+      Honest advisor and points
       Pre-trade plan
       Calibration questions
       Process vs outcome debrief
@@ -89,6 +90,7 @@ mindmap
 | Indicators | SMA20, EMA50, VWAP (24-bar sessions) and Bollinger(20,2) overlays; RSI14, MACD(12,26,9) and ADX14/±DI panes; ATR14. All computed in the engine from closed bars only. |
 | Candle patterns | 29 single- and multi-candle patterns detected in context (e.g. hammer vs hanging man), marked on the chart and linked to a cheat sheet that also covers 9 chart patterns. Each candle drawing animates the textbook outcome (confirmation candle, then follow-through) and the failure (close through the stop). |
 | Coaching | Pre-trade plan (side, invalidation, target, risk), calibration questions ("what's the probability that…?"), debrief that scores **process, not P&L**. |
+| Advisor | An honest coach in the engine: for 1 point it reads what is visible now (regime, RSI, Bollinger, MACD, ADX, the latest candle pattern, released news, funding) and answers long, short or wait with a confidence of 50–65%, a 2×ATR stop, a size risking 1% and its reasons. "Put stop and size in the ticket" fills the ticket without sending anything. The debrief lists every read and whether it was right 5 bars later. Points are earned by disciplined trades (see [Advisor points](#advisor-points)). |
 | Auto-advance | Plays bars on a timer, waits for any open dialog, pauses on fills, liquidation, margin calls, option expiry and news. |
 | Sound | Music follows the moment: menu theme, in-game theme, and a tense theme when you are near liquidation or under a margin call. Closing a trade plays a win or loss sting. `M` mutes; music and effects volumes are separate. Audio (`apps/web/static/audio`, MP3 96 kbps) is cached on first play, not at install. |
 | Imported markets | A CSV import wizard turns your own OHLCV file (optional funding) into a practice mission. The engine validates it (order, duplicates, OHLC consistency, timestamp unit, interval) and reports gaps without filling them, masks prices to a base of 100, and stores the result as a private pack signed by the device. The asset, pair and period are revealed only in the debrief. Signed `.tlpack` files can be exported and loaded; packs from unknown keys are refused. |
@@ -277,6 +279,19 @@ What this means:
 
 Patterns alone are close to a coin flip, as in real markets, and the in-game cheat sheet says so plainly. Kickers are news gaps: the information is already in the gap, so what follows is not much better than a coin flip.
 
+**The advisor.** The advisor (`engine/src/advisor.cpp`) combines the same reads the way a textbook would: in a trend (ADX > 25) it follows the stronger DI and the MACD histogram; in a range (ADX < 20) it fades an extreme RSI or a close outside the Bollinger bands; a candle pattern from the last 2 bars votes its way, twice as strongly when it reverses the move that led into it in the regime's favor. A credible surprise released in the last 3 bars is "already priced" and pulls the read toward wait, as does ATR at a 30-bar low. Crowded funding is shown as a warning but does not vote, since the crowd is usually right until the squeeze. Long or short needs at least two net votes, and the confidence is 50% + 4 points per net vote, capped at 65%. It only ever reads the visible market (property-tested by changing every later bar, funding and headline). `tools/market_study.py` asks it every 5 bars and `test_mission_realism.cpp` holds it to 45–65% right in every mission, wait at least 20% of the time, and a mean stated confidence within 8 points of its hit rate:
+
+| Advisor, every 5 bars (100 seeds) | Long/short reads | Right | Mean stated confidence | Wait |
+|---|---|---|---|---|
+| m01-false-breakout | 438 | 48.6% | 58.2% | 71% |
+| m02-funding-squeeze | 718 | 52.2% | 58.3% | 66% |
+| m03-volatility-shock | 474 | 47.7% | 58.5% | 72% |
+| m04-options-buyer | 432 | 60.6% | 58.3% | 71% |
+| m05-options-writer | 485 | 48.0% | 58.3% | 71% |
+| all missions | 2,547 | 51.4% | 58.3% | 70% |
+
+The advisor is no oracle. It says "wait" most of the time and, when it commits, it is right about as often as it claims. Following trends fails in m01's false breakout and after m03's shock, and works in m04's breakout. Like every other tool, it is worth something only with a stop and a sensible size.
+
 **News.** Credible news is priced on arrival: 80% of a surprise's effect on fair value opens the next bar as a gap. What is left is a small, uncertain drift. The table shows the gap, then what following the surprise's direction from that open earns over 10 bars. The test requires every row to be under 72%, and a credible shock to gap by more than 3%.
 
 | News (mission, headline, surprise) | Gap at the next open | Goes the predicted way | Average move |
@@ -340,7 +355,7 @@ stateDiagram-v2
 1. **Tutorial** — the first time you start a mission on a device, 3–5 short illustrated cards explain its concept, what to watch and which controls to use (arrows or Enter to page, Esc to skip). They never hint at what the market will do. Replay them from the briefing.
 2. **Briefing** — the mission's story, objectives, instrument and leverage cap. A warm-up history is already on the chart.
 3. **Plan** — before trading, write the hypothesis: side, invalidation (stop), target and risk. You can also explicitly plan to stay out — not trading is a valid decision.
-4. **Trading** — advance bar by bar (or with auto-advance). Place orders, move stops, read news, watch funding. The game occasionally asks calibration questions ("probability price is higher in 10 bars?").
+4. **Trading** — advance bar by bar (or with auto-advance). Place orders, move stops, read news, watch funding, ask the advisor for a read (1 point). The game occasionally asks calibration questions ("probability price is higher in 10 bars?").
 5. **Debrief** — the engine scores the run on process:
 
 | Dimension | Weight | What it measures |
@@ -350,7 +365,28 @@ stateDiagram-v2
 | Understanding | 25 | Reserved for lesson questions; not scored yet |
 | Calibration | 15 | 100 × (1 − 2 × Brier score) of your probability answers, floored at 0 (needs 3+ resolved answers). Always answering 50% scores 50: no information is neutral, not a bonus |
 
-The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, so the trades add up to the result), findings, and a reveal of what the generator was doing.
+The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, and a trade still open at the end includes its unrealized P&L, so the trades add up to the result), findings, and a reveal of what the generator was doing.
+
+Next to the score, the debrief shows outcome facts that are **not** score inputs (all computed by the engine, scoring v6):
+
+- Net P&L split into realized trading P&L, fees, funding, option P&L, and a separate **spread and slippage** line: what taker fills paid against their reference price (the open, or the stop's trigger) and option fills against the quote's mid. It is already inside the fill prices, not an extra charge.
+- Max drawdown, peak exposure, **turnover** (traded notional) and the **closest the mark came to liquidation**.
+- For options, the **P&L by Greek** (delta, gamma, theta, vega and a residual), labeled approximate: bar by bar, from the Greeks of the quote at the start of each interval; the residual holds the spread paid and higher-order effects, so the five lines add up to the option P&L before fees.
+- For a perpetual trade whose stop (stop order, else the plan's invalidation) sat at or beyond its liquidation price (at the highest leverage the position carried, including a re-leverage while it was open): the **highest leverage that would have kept the stop in front** of liquidation, also named in the liquidation and stop-beyond-liquidation findings.
+- When time decay (theta) or a falling implied volatility (vega) explains at least half of an option loss, a finding says so and the next lesson is Options II (IV and Greeks).
+
+### Advisor points
+
+Points pay for advisor reads and are earned by process, never bought. The engine reports what a run earned (`advisorPointsEarned` in the debrief, scoring v6), so the server can verify it:
+
+| Earned for | Points |
+|---|---|
+| Each closed perpetual trade that had a plan (planned risk) and a protective stop working while it was open | +1 |
+| ...and that trade made money (net of fees and funding) | +1 |
+| Finishing the mission (not bankrupt) | +2 |
+| Cap per run | 6 |
+
+The device keeps the balance (IndexedDB `meta.progress`): it starts at 3 and is capped at 10. A run's advice allowance is the balance when it starts; when the run ends the balance becomes balance − reads used + points earned, applied once per run even after a reload. The first mission's tutorial explains this. Each read is an engine command (`RequestAdvice`) in the action log, so a replay or the server's re-simulation reproduces it; with no allowance left it is rejected and changes nothing.
 
 ## Specs (OpenSpec)
 
@@ -367,12 +403,11 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v2, scoring v3), the five missions with first-start tutorials, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
+Built: the deterministic engine (perps, options, indicators, patterns, generator v2, execution policy v11, scoring v6 with the full debrief), the five missions with first-start tutorials, the advisor with points earned by disciplined trades, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
 
 Next:
 
-- Advisor with points earned by disciplined trades, then legal intel perks unlocked by finished missions (`add-advisor-intel-tutorials`, phases 2–3).
-- Debrief gaps: option P&L attribution by Greek, separate spread/slippage line, turnover and minimum liquidation distance, the leverage that would have kept the stop in front of liquidation.
+- Legal intel perks unlocked by finished missions: economic calendar and fast wire (`add-advisor-intel-tutorials`, phase 3). The engine already takes the start options (`news_lead`, `calendar`) and the advisor already reads a fast-wire headline; the state view, the briefing toggles and the server re-simulation with stored options come with that phase.
 - More content toward the phase-2 target (12 missions, ≥4 regimes), campaign runs and the curriculum map.
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.

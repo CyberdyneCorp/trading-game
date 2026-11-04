@@ -32,6 +32,13 @@ describe('mission tutorials', () => {
 		}
 	});
 
+	it('the first mission introduces the advisor, its cost and how points are earned (spec mission-tutorial)', () => {
+		const en = tutorialFor('m01-false-breakout', 'en').find((c) => c.art === 'advisor');
+		const pt = tutorialFor('m01-false-breakout', 'pt-BR').find((c) => c.art === 'advisor');
+		expect(en?.body).toMatch(/advisor.*1 point.*plan and a stop/s);
+		expect(pt?.body).toMatch(/assessor.*1 ponto.*plano e stop/s);
+	});
+
 	it('an unknown mission has no tutorial', () => {
 		expect(tutorialFor('nope', 'en')).toEqual([]);
 	});

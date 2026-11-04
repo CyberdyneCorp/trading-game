@@ -89,6 +89,8 @@ export interface EngineEvent {
 	step: number;
 	type: EventTypeName;
 	orderId: number;
+	/** Type of the order the event refers to; null for events without an order. */
+	orderType: OrderTypeName | null;
 	status: string;
 	reason: string;
 	side: OrderSideName;
@@ -201,6 +203,55 @@ export interface NewsView {
 	actual: number;
 }
 
+/** Start options of a run (engine policy v11): advice allowance and intel perks. */
+export interface RunOptionsView {
+	adviceAllowance: number;
+	newsLead: number;
+	calendar: boolean;
+}
+
+export const DEFAULT_RUN_OPTIONS: RunOptionsView = { adviceAllowance: 0, newsLead: 0, calendar: false };
+
+export type AdviceStance = 'long' | 'short' | 'wait';
+
+export type AdviceReasonCode =
+	| 'regime_trend_up'
+	| 'regime_trend_down'
+	| 'regime_range'
+	| 'rsi_extreme'
+	| 'band_fade'
+	| 'macd_momentum'
+	| 'pattern'
+	| 'news_priced'
+	| 'news_early'
+	| 'funding_crowded'
+	| 'low_vol_squeeze';
+
+/** One reason: `vote` > 0 long, < 0 short, 0 toward wait or a warning; `ref` = bar (pattern, news) or crowded side. */
+export interface AdviceReasonView {
+	code: AdviceReasonCode;
+	vote: number;
+	ref: number;
+}
+
+export interface AdviceView {
+	step: number;
+	stance: AdviceStance;
+	confidenceBp: number;
+	stop: Decimal; // "0" when waiting
+	size: Decimal; // "0" when waiting or below the minimum order
+	reasons: AdviceReasonView[];
+}
+
+export interface AdvisorState {
+	version: number;
+	allowance: number;
+	left: number;
+	newsLead: number;
+	calendar: boolean;
+	advice: AdviceView[];
+}
+
 export interface GameState {
 	mission: string;
 	alias: string;
@@ -224,6 +275,7 @@ export interface GameState {
 	indicators: Indicators;
 	news: NewsView[];
 	calibration: { due: boolean; horizon: number; every: number; threshold: Decimal; answered: number };
+	advisor: AdvisorState;
 	events: EngineEvent[];
 	totals: Totals;
 	digest: string;
@@ -252,7 +304,10 @@ export interface EngineFinding {
 		| 'no_plan'
 		| 'oversized'
 		| 'bankrupt'
-		| 'margin_called';
+		| 'margin_called'
+		| 'theta_decay'
+		| 'iv_crush'
+		| 'good_process_win';
 	tone: 'good' | 'warn' | 'bad' | 'info';
 	step: number;
 	count: number;
@@ -285,6 +340,24 @@ export interface EngineTrade {
 	plannedRisk: Decimal;
 	rBp: number | null;
 	planRespected: boolean | null;
+	/** Perpetual rows only: the trade's stop (stop order, else the plan's invalidation; 0 = none). */
+	stop?: Decimal;
+	/** Perpetual rows only: highest leverage the position carried (at entry or re-leveraged while open) and the liquidation price it implied (0 = none). */
+	leverage?: number;
+	liqPrice?: Decimal;
+	stopBeyondLiq?: boolean;
+	/** Highest leverage that would have kept the stop in front of liquidation (0 = not even 1x); null when it was in front. */
+	safeLeverage?: number | null;
+}
+
+/** Approximate option P&L by Greek (engine); the residual holds spread and higher-order effects. */
+export interface GreekAttribution {
+	delta: Decimal;
+	gamma: Decimal;
+	theta: Decimal;
+	vega: Decimal;
+	residual: Decimal;
+	total: Decimal;
 }
 
 export interface ScoreDimension {
@@ -292,7 +365,7 @@ export interface ScoreDimension {
 	score: number | null;
 }
 
-export type LessonCode = 'futures2' | 'risk' | 'futures3' | 'orders' | 'structure' | 'evaluation';
+export type LessonCode = 'futures2' | 'risk' | 'futures3' | 'orders' | 'structure' | 'evaluation' | 'options';
 
 export interface DebriefData {
 	mission: string;
@@ -316,6 +389,15 @@ export interface DebriefData {
 	netPnl: Decimal;
 	calibration: { resolved: number; brierBp: number | null };
 	trades: EngineTrade[];
+	/** Spread + slippage paid against the reference price; already inside the fill prices. */
+	spreadSlippage: Decimal;
+	/** Null when no option was traded. */
+	greeks: GreekAttribution | null;
+	/** Engine-computed advisor points earned by this run (capped at 6). */
+	advisorPointsEarned: number;
+	/** Each piece of advice with its outcome 5 bars after the next open. */
+	advice: { step: number; stance: AdviceStance; confidenceBp: number; outcome: 'right' | 'wrong' | 'wait' | 'open' }[];
+	adviceHitBp: number | null;
 	/** Pack runs only: what the masked market really was (never sent before the debrief). */
 	knownScenario?: boolean;
 	reveal?: PackReveal;

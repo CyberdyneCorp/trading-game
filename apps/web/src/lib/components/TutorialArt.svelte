@@ -97,6 +97,16 @@
 			<text x="80" y={22 + r * 16} class="small" text-anchor="middle">{90 + r * 5}</text>
 			<text x="124" y={22 + r * 16} class="small down-fill">{(0.8 + r * 0.6).toFixed(1)}</text>
 		{/each}
+	{:else if art === 'advisor'}
+		<rect class="box" x="14" y="12" width="94" height="76" />
+		<text x="22" y="32" class="up-fill">▲ LONG</text>
+		<text x="100" y="32" class="small muted" text-anchor="end">58%</text>
+		<line class="muted-line" x1="22" x2="98" y1="46" y2="46" />
+		<line class="muted-line" x1="22" x2="90" y1="56" y2="56" />
+		<line class="muted-line" x1="22" x2="94" y1="66" y2="66" />
+		<text x="22" y="82" class="small muted">{t('tut.art.reasons')}</text>
+		<circle class="coin" cx="134" cy="50" r="16" />
+		<text x="134" y="54" class="small attention" text-anchor="middle">1 pt</text>
 	{:else if art === 'decay'}
 		<line class="axis" x1="10" x2="150" y1="88" y2="88" />
 		<path class="payoff" d="M10,18 C80,26 120,44 150,86" />
@@ -116,6 +126,11 @@
 	}
 	.small {
 		font-size: 9px;
+	}
+	.coin {
+		fill: none;
+		stroke: var(--attention);
+		stroke-width: 1.5;
 	}
 	g line {
 		stroke-width: 1.5;

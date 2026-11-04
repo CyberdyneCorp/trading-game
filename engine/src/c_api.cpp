@@ -6,6 +6,7 @@
 #include "accounting.hpp"
 #include "c_api_run.hpp"
 #include "json_out.hpp"
+#include "tradelab/advisor.hpp"
 #include "tradelab/engine.hpp"
 #include "tradelab/checkpoint.hpp"
 #include "tradelab/generator.hpp"
@@ -27,7 +28,7 @@ const char* reason_name(Reason r) {
       "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
       "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
       "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan"};
+      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left"};
   const auto i = static_cast<std::size_t>(r);
   return i < std::size(kNames) ? kNames[i] : "unknown";
 }
@@ -108,9 +109,21 @@ void write_orders(JsonOut& j, const RunState& st) {
   j.end_arr();
 }
 
-void write_event(JsonOut& j, const Event& e) {
+const Order* order_by_id(const RunState& st, std::uint32_t id) {
+  for (const Order& o : st.orders) {
+    if (o.id == id) return &o;
+  }
+  return nullptr;
+}
+
+// orderType names the order an event refers to (null without one): a bracket leg placed and filled
+// or cancelled within one advance never shows up in the live order list.
+void write_event(JsonOut& j, const RunState& st, const Event& e) {
   j.begin_obj().field("seq", e.seq).field("step", e.step).field("type", event_name(e.type));
-  j.field("orderId", e.order_id).field("status", status_name(e.status)).field("reason", reason_name(e.reason));
+  j.field("orderId", e.order_id).key("orderType");
+  const Order* o = e.order_id != 0 ? order_by_id(st, e.order_id) : nullptr;
+  if (o != nullptr) j.str(type_name(o->type)); else j.null();
+  j.field("status", status_name(e.status)).field("reason", reason_name(e.reason));
   j.field("side", side_name(e.side)).field("qty", e.qty).field("price", e.price).field("requested", e.requested);
   j.field("amount", e.amount).field("pnl", e.pnl);
   j.field("ambiguous", (e.flags & kFlagAmbiguousIntrabar) != 0).field("gap", (e.flags & kFlagGapFill) != 0);
@@ -222,11 +235,56 @@ void write_calibration_state(JsonOut& j, const Scenario& sc, const RunState& st)
   j.end_obj();
 }
 
+const char* stance_name(AdviceStance s) {
+  if (s == AdviceStance::Long) return "long";
+  return s == AdviceStance::Short ? "short" : "wait";
+}
+
+const char* advice_reason_name(AdviceReasonCode c) {
+  static constexpr const char* kNames[] = {"regime_trend_up", "regime_trend_down", "regime_range", "rsi_extreme",
+                                           "band_fade",       "macd_momentum",     "pattern",      "news_priced",
+                                           "news_early",      "funding_crowded",   "low_vol_squeeze"};
+  return kNames[static_cast<std::size_t>(c)];
+}
+
+void write_advice(JsonOut& j, const Advice& a) {
+  j.begin_obj().field("step", a.step).field("stance", stance_name(a.stance)).field("confidenceBp", a.confidence_bp);
+  j.field("stop", a.stop).field("size", a.size).key("reasons").begin_arr();
+  for (const AdviceReason& r : a.reasons) {
+    j.begin_obj().field("code", advice_reason_name(r.code)).field("vote", std::int32_t{r.vote}).field("ref", r.ref).end_obj();
+  }
+  j.end_arr().end_obj();
+}
+
+// Start options, remaining allowance and every piece of advice received so far.
+void write_advisor(JsonOut& j, const RunState& st) {
+  j.key("advisor").begin_obj().field("version", kAdvisorVersion).field("allowance", st.options.advice_allowance);
+  j.field("left", st.advice_left).field("newsLead", std::uint32_t{st.options.news_lead}).field("calendar", st.options.calendar);
+  j.key("advice").begin_arr();
+  for (const Advice& a : st.advice) write_advice(j, a);
+  j.end_arr().end_obj();
+}
+
+const char* advice_outcome_name(AdviceOutcome o) {
+  static constexpr const char* kNames[] = {"right", "wrong", "wait", "open"};
+  return kNames[static_cast<std::size_t>(o)];
+}
+
+void write_advice_rows(JsonOut& j, const ScoreReport& r) {
+  j.field("advisorPointsEarned", r.advisor_points_earned).key("advice").begin_arr();
+  for (const AdviceRow& a : r.advice) {
+    j.begin_obj().field("step", a.step).field("stance", stance_name(a.stance)).field("confidenceBp", a.confidence_bp);
+    j.field("outcome", advice_outcome_name(a.outcome)).end_obj();
+  }
+  j.end_arr().key("adviceHitBp");
+  if (r.advice_hit_bp) j.num(*r.advice_hit_bp); else j.null();
+}
+
 const char* finding_name(FindingCode c) {
   static constexpr const char* kNames[] = {"waited",          "liquidated", "stop_beyond_liq", "no_stop",   "gap_slippage",
                                            "funding_cost",    "ambiguous",  "capacity",        "good_process_loss",
                                            "lucky_win",       "no_plan",    "oversized",       "bankrupt",
-                                           "margin_called"};
+                                           "margin_called",   "theta_decay", "iv_crush",        "good_process_win"};
   return kNames[static_cast<std::size_t>(c)];
 }
 
@@ -236,7 +294,7 @@ const char* tone_name(FindingTone t) {
 }
 
 const char* lesson_name(LessonCode l) {
-  static constexpr const char* kNames[] = {"futures2", "risk", "futures3", "orders", "structure", "evaluation"};
+  static constexpr const char* kNames[] = {"futures2", "risk", "futures3", "orders", "structure", "evaluation", "options"};
   return kNames[static_cast<std::size_t>(l)];
 }
 
@@ -258,6 +316,10 @@ void write_trade(JsonOut& j, const TradeRow& t) {
   j.field("fees", t.fees).field("funding", t.funding).field("net", t.net).field("bars", t.bars).field("reason", exit_name(t.reason));
   if (t.series != 0) {
     j.field("kind", t.is_call ? "call" : "put").field("strike", t.strike).field("expiryStep", t.expiry_step);
+  } else {
+    j.field("stop", t.stop).field("leverage", t.leverage).field("liqPrice", t.liq_price).field("stopBeyondLiq", t.stop_beyond_liq);
+    j.key("safeLeverage");
+    if (t.stop_beyond_liq) j.num(t.safe_leverage); else j.null();
   }
   j.field("plannedRisk", t.planned_risk).key("rBp");
   if (t.r_bp) j.num(*t.r_bp); else j.null();
@@ -286,6 +348,15 @@ void write_score(JsonOut& j, const ScoreReport& r) {
   j.end_obj().key("trades").begin_arr();
   for (const TradeRow& t : r.trades) write_trade(j, t);
   j.end_arr();
+  write_advice_rows(j, r);
+  j.field("spreadSlippage", r.spread_cost).key("greeks");
+  if (!r.greeks) {
+    j.null();
+    return;
+  }
+  const GreekAttribution& g = *r.greeks;
+  j.begin_obj().field("delta", g.delta).field("gamma", g.gamma).field("theta", g.theta).field("vega", g.vega);
+  j.field("residual", g.residual).field("total", g.total).end_obj();
 }
 
 const char* state_json(tl_run& r) {
@@ -306,8 +377,9 @@ const char* state_json(tl_run& r) {
   write_indicators(j, sc, st.step);
   write_news(j, sc, st.step);
   write_calibration_state(j, sc, st);
+  write_advisor(j, st);
   j.key("events").begin_arr();
-  for (const Event& e : st.events) write_event(j, e);
+  for (const Event& e : st.events) write_event(j, st, e);
   j.end_arr();
   write_totals(j, st);
   j.field("digest", to_hex(state_digest(st))).field("eventsDigest", to_hex(events_digest(st)));
@@ -441,13 +513,18 @@ const char* tl_missions(void) {
   return buffer.c_str();
 }
 
-tl_run* tl_run_create(const char* mission_id, uint32_t seed) {
+tl_run* tl_run_create(const char* mission_id, uint32_t seed) { return tl_run_create_ex(mission_id, seed, 0, 0, 0); }
+
+tl_run* tl_run_create_ex(const char* mission_id, uint32_t seed, uint32_t advice_allowance, uint32_t news_lead,
+                         int32_t calendar) {
+  if (news_lead > 255) return nullptr;
   auto* run = new tl_run();
   if (mission_id == nullptr || !build_mission(mission_id, seed, run->scenario)) {
     delete run;
     return nullptr;
   }
-  run->state = start_run(run->scenario, seed);
+  const RunOptions options{advice_allowance, static_cast<std::uint8_t>(news_lead), calendar != 0};
+  run->state = start_run(run->scenario, seed, options);
   return run;
 }
 
@@ -525,6 +602,10 @@ const char* tl_answer_question(tl_run* run, uint32_t client_id, int32_t p_bp, in
   c.p_bp = static_cast<std::uint32_t>(std::max(0, p_bp));
   c.skipped = skipped != 0;
   return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_request_advice(tl_run* run, uint32_t client_id) {
+  return result_json(*run, apply_command(run->scenario, run->state, next_command(*run, CommandType::RequestAdvice, client_id)));
 }
 
 const char* tl_checkpoint(tl_run* run) {

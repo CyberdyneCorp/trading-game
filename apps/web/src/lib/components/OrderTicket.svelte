@@ -27,7 +27,7 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { costsOf, estimate, estimatedMarketEntry, qtyForRisk, releveredLiquidation } from '#lib/game/sizing.ts';
-	import { fmtMoney, fmtPrice, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
+	import { fmtMoney, fmtNum, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
 		distanceOf,
@@ -48,6 +48,8 @@
 		preview = $bindable(null),
 		stopInput = $bindable(''),
 		tpInput = $bindable(''),
+		sizeBy = $bindable('risk'),
+		qtyInput = $bindable('10'),
 		onSubmit,
 		onPick
 	}: {
@@ -57,6 +59,9 @@
 		/** Stop and target fields; bindable so dragging their lines on the chart edits them. */
 		stopInput?: string;
 		tpInput?: string;
+		/** Sizing mode and quantity; bindable so the advisor's suggested size can be applied. */
+		sizeBy?: 'qty' | 'risk';
+		qtyInput?: string;
 		onSubmit: (d: OrderDraft) => void;
 		onPick?: (set: (price: number) => void) => void;
 	} = $props();
@@ -76,8 +81,6 @@
 	const bars = $derived(s.bars.map((b) => b.slice(0, 5).map(Number) as BarTuple));
 
 	let type = $state<'market' | 'limit' | 'stop_market'>('market');
-	let sizeBy = $state<'qty' | 'risk'>('risk');
-	let qtyInput = $state('10');
 	let riskPct = $state(1);
 	let priceInput = $state('');
 	let leverage = $state(1);
@@ -96,11 +99,11 @@
 		tpInput = '';
 	});
 
-	const entry = $derived(type === 'market' ? estimatedMarketEntry(side, mark, k) : num(priceInput) || mark);
-	const stop = $derived(stopInput ? num(stopInput) : null);
+	const entry = $derived(type === 'market' ? estimatedMarketEntry(side, mark, k) : parseDecimal(priceInput) || mark);
+	const stop = $derived(stopInput ? parseDecimal(stopInput) : null);
 	const qty = $derived.by(() => {
 		if (sizeBy === 'risk' && stop != null) return qtyForRisk(num(s.account.equity), riskPct, entry, stop, k, lot);
-		return Math.floor((num(qtyInput) || 0) / lot + 1e-9) * lot;
+		return Math.floor((parseDecimal(qtyInput) || 0) / lot + 1e-9) * lot;
 	});
 	const qtyStr = $derived(qtyToLot(qty, lot));
 	// The field can hold anything typed; orders and estimates use the value clamped to the mission cap.
@@ -108,12 +111,12 @@
 	const est = $derived(estimate({ side, qty, entry, leverage: lev, stop }, k));
 	const shortBlocked = $derived(!s.contract.allowShort && side === 'sell' && posQty <= 0);
 	const increases = $derived(posQty === 0 || posQty > 0 === (side === 'buy') || qty > Math.abs(posQty));
-	const tp = $derived(tpInput ? num(tpInput) : null);
+	const tp = $derived(tpInput ? parseDecimal(tpInput) : null);
 	const stopWrongSide = $derived(stop != null && !stopOnLosingSide(side, entry, stop));
 	const tpWrongSide = $derived(tp != null && !targetOnWinningSide(side, entry, tp));
 	const needsPrice = $derived(type !== 'market');
 	const canSubmit = $derived(
-		!session.busy && qty > 0 && !shortBlocked && !stopWrongSide && !tpWrongSide && (!needsPrice || num(priceInput) > 0)
+		!session.busy && qty > 0 && !shortBlocked && !stopWrongSide && !tpWrongSide && (!needsPrice || parseDecimal(priceInput) > 0)
 	);
 
 	function submit() {
@@ -122,10 +125,10 @@
 			side,
 			type,
 			qty: qtyStr,
-			price: needsPrice ? priceToTick(num(priceInput), tick) : null,
+			price: needsPrice ? priceToTick(parseDecimal(priceInput), tick) : null,
 			leverage: lev,
-			stop: stopInput ? priceToTick(num(stopInput), tick) : null,
-			takeProfit: tpInput ? priceToTick(num(tpInput), tick) : null,
+			stop: stopInput ? priceToTick(parseDecimal(stopInput), tick) : null,
+			takeProfit: tpInput ? priceToTick(parseDecimal(tpInput), tick) : null,
 			estimate: est,
 			increases
 		});
@@ -152,14 +155,14 @@
 	function stopHint(from: number, level: number | null): string | null {
 		const d = distanceOf(from, level, atr);
 		if (!d) return null;
-		const atrPart = d.atr != null ? ` · ${d.atr.toFixed(1)}×ATR` : '';
-		return `${fmtPrice(String(d.abs), L)} · ${d.pct.toFixed(2)}%${atrPart}`;
+		const atrPart = d.atr != null ? ` · ${fmtNum(d.atr, L, 1)}×ATR` : '';
+		return `${fmtPrice(String(d.abs), L)} · ${fmtNum(d.pct, L)}%${atrPart}`;
 	}
 
 	function targetHint(sd: OrderSideName, from: number, stopAt: number | null, level: number | null): string | null {
 		const base = stopHint(from, level);
 		const rr = rewardRisk(sd, from, stopAt, level);
-		return base && rr != null ? `${base} · R:R 1:${rr.toFixed(1)}` : base;
+		return base && rr != null ? `${base} · R:R 1:${fmtNum(rr, L, 1)}` : base;
 	}
 
 	const stopWarn = $derived(stopWrongSide ? t('level.stopSide', { side: side === 'buy' ? '<' : '>', price: fmtPrice(String(entry), L) }) : null);
@@ -171,8 +174,8 @@
 	let protTrail = $state('');
 	const posSide = $derived<OrderSideName>(posQty > 0 ? 'buy' : 'sell');
 	const posEntry = $derived(num(s.position.entry));
-	const protStopN = $derived(protStop ? num(protStop) : null);
-	const protTpN = $derived(protTp ? num(protTp) : null);
+	const protStopN = $derived(protStop ? parseDecimal(protStop) : null);
+	const protTpN = $derived(protTp ? parseDecimal(protTp) : null);
 	const protStopWarn = $derived(
 		protStopN != null && !stopOnLosingSide(posSide, mark, protStopN) ? t('level.protStopSide', { price: fmtPrice(s.account.mark, L) }) : null
 	);
@@ -191,9 +194,9 @@
 	async function protect() {
 		const exit: OrderSideName = posQty > 0 ? 'sell' : 'buy';
 		const size = s.position.qty.replace('-', '');
-		if (protStop) await session.placeOrder('stop_market', exit, size, priceToTick(num(protStop), tick), true);
-		if (protTp) await session.placeOrder('take_profit', exit, size, priceToTick(num(protTp), tick), true);
-		if (protTrail) await session.placeOrder('trailing_stop', exit, size, null, true, { trail: priceToTick(num(protTrail), tick) });
+		if (protStop) await session.placeOrder('stop_market', exit, size, priceToTick(parseDecimal(protStop), tick), true);
+		if (protTp) await session.placeOrder('take_profit', exit, size, priceToTick(parseDecimal(protTp), tick), true);
+		if (protTrail) await session.placeOrder('trailing_stop', exit, size, null, true, { trail: priceToTick(parseDecimal(protTrail), tick) });
 		protStop = '';
 		protTp = '';
 		protTrail = '';
@@ -277,7 +280,7 @@
 	{/if}
 
 	<dl class="kv est">
-		<dt>{t('ticket.qty')}</dt><dd>{qtyStr}</dd>
+		<dt>{t('ticket.qty')}</dt><dd>{fmtQty(qtyStr, L)}</dd>
 		<dt>{t('ticket.estEntry')}</dt><dd>{fmtPrice(String(entry), L)}</dd>
 		<dt>{t('ticket.estMargin')}</dt><dd>{fmtMoney(est.margin, L)}</dd>
 		<dt>{t('ticket.estFee')}</dt><dd>{fmtMoney(est.fee, L)}</dd>

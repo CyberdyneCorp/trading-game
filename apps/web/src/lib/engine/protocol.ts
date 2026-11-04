@@ -11,12 +11,13 @@ import type {
 	OrderSideName,
 	OrderTypeName,
 	PackCheck,
+	RunOptionsView,
 	TrustedKey
 } from './types';
 
 export type EngineRequest =
 	| { kind: 'init' }
-	| { kind: 'start'; missionId: string; seed: number }
+	| { kind: 'start'; missionId: string; seed: number; options?: RunOptionsView }
 	// Packs and CSV import: bytes cross the worker boundary, prices only as tl_state reveals them.
 	| { kind: 'deviceKey'; seedHex: string }
 	| { kind: 'csvValidate'; csv: string; meta: CsvMeta }
@@ -61,6 +62,7 @@ export type EngineRequest =
 	| { kind: 'cancel'; clientId: number; orderId: number }
 	| { kind: 'leverage'; clientId: number; leverage: number }
 	| { kind: 'close'; clientId: number }
+	| { kind: 'advice'; clientId: number }
 	| { kind: 'advance'; steps: number }
 	| { kind: 'debrief' };
 

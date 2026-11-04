@@ -7,6 +7,7 @@ score (spec game-api "Server re-simulation"). Never trust client-reported balanc
 from .engine import (
     EngineError,
     Run,
+    RunOptions,
     build_csv_pack,
     csv_validate,
     device_key,
@@ -23,6 +24,7 @@ __all__ = [
     "InvalidAction",
     "ReplayResult",
     "Run",
+    "RunOptions",
     "build_csv_pack",
     "csv_validate",
     "device_key",

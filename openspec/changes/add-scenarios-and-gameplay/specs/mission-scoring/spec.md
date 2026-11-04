@@ -7,7 +7,7 @@ Defines how a mission attempt is graded so that the score rewards risk disciplin
 ## ADDED Requirements
 
 ### Requirement: Score dimensions
-The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 2) from the command log with integer arithmetic only.
+The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 6) from the command log with integer arithmetic only.
 
 Entries are exposure-increasing fills of the perpetual and of each option series (buying or writing to open). Plan coherence SHALL be non-applicable when the attempt has no entries. Otherwise, in scoring versions 1 and 2, it SHALL be `70 × min(plans, entries) / entries + 30 × plans with an invalidation level / plans`, where skipped plans do not count as plans, and 0 when no plan was recorded.
 
@@ -22,6 +22,10 @@ Entries are exposure-increasing fills of the perpetual and of each option series
 #### Scenario: Debrief trades add up to the result
 - **WHEN** the player buys 10, sells 20 (closing the long and opening a short of 10) and closes the short, with funding paid in between
 - **THEN** the flip's fee SHALL be split between the two trades in proportion to the quantity closed and opened, each trade's net SHALL be its realized P&L minus its fees plus the funding received (or minus the funding paid) while it was open, and the trades' nets SHALL sum to the mission result
+
+#### Scenario: An open trade's net includes its unrealized P&L
+- **WHEN** a trade is still open at the end of the mission
+- **THEN** its P&L SHALL include the unrealized P&L at the final mark, valued as in the account equity (the perpetual at the last close, a long option at the bid, a written option at the ask), so a single open trade's net equals the mission result (scoring version 5; before, an open trade showed only its fees and funding)
 
 #### Scenario: Skipped plan has no R
 - **WHEN** a trade's plan was skipped
@@ -49,7 +53,15 @@ Scoring version 3 SHALL start at 100 and subtract: 40 if any liquidation or opti
 - **THEN** the 10× attempt SHALL NOT score higher on risk
 
 ### Requirement: Outcome metrics are separate
-Net P&L, drawdown, total costs, funding, turnover and peak leverage SHALL be displayed separately and SHALL NOT be score inputs except where a mission objective explicitly targets them (e.g. "stay within drawdown budget").
+Net P&L, drawdown, total costs (fees and, separately, spread/slippage), funding, turnover, peak leverage, the closest distance to liquidation and the option P&L attribution by Greek SHALL be displayed separately and SHALL NOT be score inputs except where a mission objective explicitly targets them (e.g. "stay within drawdown budget").
+
+#### Scenario: Report-only facts do not move the score
+- **WHEN** scoring version 4 adds the spread/slippage cost, the Greek attribution and the leverage that would have kept a stop in front of liquidation
+- **THEN** the score dimensions SHALL be computed as in version 3 and the run's state and event digests SHALL NOT change
+
+#### Scenario: Report-only fixes in version 5
+- **WHEN** scoring version 5 adds an open trade's unrealized P&L to its net, judges the stop against the highest leverage the position carried, withholds good-process credit from written options and adds the good-process-win finding
+- **THEN** the score dimensions SHALL be computed as in version 3 and the run's state and event digests SHALL NOT change
 
 #### Scenario: Profit not dominant
 - **WHEN** an attempt profits while violating its planned risk

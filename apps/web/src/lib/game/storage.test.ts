@@ -60,10 +60,18 @@ describe('RunStore (IndexedDB)', () => {
 		expect((await store.finishedMissions()).sort()).toEqual(['m01-false-breakout', 'm03-volatility-shock']);
 	});
 
-	it('keeps player progress (tutorials seen) and starts empty', async () => {
-		expect(await store.progress()).toEqual({ tutorialsSeen: [] });
-		await store.saveProgress({ tutorialsSeen: ['m01-false-breakout'] });
-		expect((await store.progress()).tutorialsSeen).toEqual(['m01-false-breakout']);
+	it('keeps player progress (tutorials seen, advisor points) and starts empty with 3 points', async () => {
+		expect(await store.progress()).toEqual({ tutorialsSeen: [], advisorPoints: 3, settledRuns: [] });
+		await store.saveProgress({ tutorialsSeen: ['m01-false-breakout'], advisorPoints: 5, settledRuns: ['r1'] });
+		const p = await store.progress();
+		expect(p.tutorialsSeen).toEqual(['m01-false-breakout']);
+		expect(p.advisorPoints).toBe(5);
+		expect(p.settledRuns).toEqual(['r1']);
+	});
+
+	it('reads a progress record saved before advisor points with the starting balance', async () => {
+		await store.saveProgress({ tutorialsSeen: ['m02-funding-squeeze'] } as never);
+		expect(await store.progress()).toEqual({ tutorialsSeen: ['m02-funding-squeeze'], advisorPoints: 3, settledRuns: [] });
 	});
 
 	it('stores packs by digest, lists them oldest first and deletes them', async () => {

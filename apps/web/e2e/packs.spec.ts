@@ -89,6 +89,7 @@ test('an imported CSV becomes a practice mission: masked prices, no reveal until
 	await expect(page.locator('header.top')).toContainText('CONHECIDO');
 	await expect(page.locator('body')).not.toContainText('BTC/USDT'); // the reveal waits for the debrief
 	await expect(page.locator('body')).not.toContainText(/30[.,]0\d\d[.,]/); // prices are masked to a base of 100
+	await expect(page.getByTestId('advisor-points')).toHaveCount(0); // practice runs have no advisor
 
 	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) {
 		await answerIfAsked(page);
@@ -98,7 +99,25 @@ test('an imported CSV becomes a practice mission: masked prices, no reveal until
 	await expect(page.getByText(/Missão concluída/)).toBeVisible();
 	await expect(page.getByTestId('pack-reveal')).toContainText('BTC/USDT');
 	await expect(page.getByTestId('pack-reveal')).toContainText('2023-11-14T22:13:20Z');
+	await expect(page.getByTestId('debrief-advisor')).toHaveCount(0);
 	expect(errors).toEqual([]);
+});
+
+test('regression: a finished practice run does not change the advisor point balance', async ({ page }) => {
+	await importPack(page);
+	await page.getByTestId('pack-start').click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) {
+		await answerIfAsked(page);
+		await page.keyboard.press('Shift+Space');
+		await page.waitForTimeout(60);
+	}
+	await expect(page.getByText(/Missão concluída/)).toBeVisible(); // a finished mission run would earn 2
+	await page.goto('/?seed=11');
+	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
+	await page.getByRole('button', { name: 'Pular tutorial' }).click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await expect(page.getByTestId('advisor-points')).toHaveText('Pontos: 3');
 });
 
 test('a practice run resumes after a reload by replaying it on the stored pack', async ({ page }) => {

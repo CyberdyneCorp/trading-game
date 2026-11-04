@@ -2,14 +2,15 @@
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { PlanEntry } from '#lib/game/analysis.ts';
-	import type { OrderSideName } from '#lib/engine/types.ts';
-	import { reasonText, t } from '#lib/game/i18n.svelte.ts';
+	import type { AdviceView, OrderSideName } from '#lib/engine/types.ts';
+	import AdvisorPanel from './AdvisorPanel.svelte';
+	import { i18n, reasonText, t } from '#lib/game/i18n.svelte.ts';
 	import { AutoPlay, type PauseReason } from '#lib/game/autoplay.svelte.ts';
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
 	import { keepsKey } from '#lib/game/hotkeys.ts';
 	import { exitOnValidSide, remainingQty } from './chartDrag.ts';
-	import { num, priceToTick } from '#lib/game/format.ts';
+	import { fmtQty, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
 	import HelpOverlay from './HelpOverlay.svelte';
@@ -69,6 +70,18 @@
 
 	let ticketStop = $state('');
 	let ticketTp = $state('');
+	let ticketSizeBy = $state<'qty' | 'risk'>('risk');
+	let ticketQty = $state('10');
+
+	// The advisor's stop and size go to the perpetual ticket; nothing is sent until the player submits.
+	function onApplyAdvice(a: AdviceView) {
+		const c = session.state!.contract;
+		side = a.stance === 'short' ? 'sell' : 'buy';
+		ticketStop = priceToTick(num(a.stop), num(c.tickSize));
+		ticketSizeBy = 'qty';
+		ticketQty = qtyToLot(num(a.size), num(c.lotSize));
+		tab = 'perp';
+	}
 
 	// Dragging SL?/TP? on the chart edits the ticket fields, snapped to the tick.
 	function onDragLevel(which: 'stop' | 'tp', price: number) {
@@ -115,7 +128,7 @@
 		const res = await session.placeOptionOrder(d.series, d.side, d.type, d.qty, d.premium);
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason);
-		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${d.side} ${d.label} × ${d.qty}` };
+		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${d.label} × ${fmtQty(d.qty, i18n.locale)}` };
 	}
 
 	function onOptionSubmit(d: OptionDraft) {
@@ -160,8 +173,10 @@
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason);
 		lastPlannedRisk = d.estimate.plannedRisk;
-		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${d.side} ${d.qty}` };
+		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${fmtQty(d.qty, i18n.locale)}` };
 	}
+
+	const sideWord = (side: 'buy' | 'sell') => t(`side.${side}`);
 
 	function notify(reason: string) {
 		session.notice = { tone: 'error', text: `✖ ${reasonText(reason)}` };
@@ -254,7 +269,7 @@
 				{#if tab === 'options' && optionsOn}
 					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
 				{:else}
-					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} {onSubmit} onPick={(set) => (pick = set)} />
+					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} {onSubmit} onPick={(set) => (pick = set)} />
 				{/if}
 			</div>
 			<div class="stack">
@@ -267,6 +282,9 @@
 				{/if}
 			</div>
 			<div class="stack">
+				{#if !session.state.knownScenario}
+					<AdvisorPanel {session} onApply={onApplyAdvice} />
+				{/if}
 				<NewsPanel news={session.state.news} />
 				<EventFeed events={session.state.events} names={session.names} />
 			</div>
