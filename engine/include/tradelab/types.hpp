@@ -59,6 +59,7 @@ enum class Reason : std::uint8_t {
   MarginBelowInitial = 28,
   NoQuestionDue = 29,
   InvalidPlan = 30,
+  NoAdviceLeft = 31,  // RequestAdvice with no allowance left (changes no state)
 };
 
 enum class EventType : std::uint8_t {
@@ -75,6 +76,23 @@ enum class EventType : std::uint8_t {
 };
 
 enum class RunStatus : std::uint8_t { Active = 0, Finished = 1, Bankrupt = 2 };
+
+// Advisor (spec advisor): what the advice says and why. Short/Wait/Long = -1/0/+1.
+enum class AdviceStance : std::int8_t { Short = -1, Wait = 0, Long = 1 };
+
+enum class AdviceReasonCode : std::uint8_t {
+  RegimeTrendUp = 0,
+  RegimeTrendDown = 1,
+  RegimeRange = 2,
+  RsiExtreme = 3,
+  BandFade = 4,
+  MacdMomentum = 5,
+  Pattern = 6,
+  NewsPriced = 7,
+  NewsEarly = 8,
+  FundingCrowded = 9,
+  LowVolSqueeze = 10,
+};
 
 // Bit flags on events.
 enum EventFlag : std::uint8_t {

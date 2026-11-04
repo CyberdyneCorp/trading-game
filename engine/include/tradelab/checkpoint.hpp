@@ -15,7 +15,7 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kCheckpointFormat = 1;
+constexpr std::uint32_t kCheckpointFormat = 2;  // v2: start options and advice (policy v11)
 
 std::vector<std::uint8_t> save_checkpoint(const RunState& st, std::string_view scenario_id);
 

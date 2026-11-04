@@ -4,7 +4,7 @@
 
 import createTradelab, { type TradelabModule } from './wasm/tradelab.mjs';
 import type { EngineRequest, WorkerEnvelope, WorkerReply } from './protocol';
-import { ORDER_TYPE_CODE, SIDE_CODE } from './types';
+import { DEFAULT_RUN_OPTIONS, ORDER_TYPE_CODE, SIDE_CODE } from './types';
 
 type Fn = (...a: unknown[]) => number;
 
@@ -21,6 +21,7 @@ interface Api {
 	answer: Fn;
 	leverage: Fn;
 	close: Fn;
+	advice: Fn;
 	advance: Fn;
 	state: Fn;
 	debrief: Fn;
@@ -37,7 +38,7 @@ async function load(): Promise<Api> {
 	api = {
 		version: w('tl_version', 'number', []),
 		missions: w('tl_missions', 'number', []),
-		create: w('tl_run_create', 'number', ['string', 'number']),
+		create: w('tl_run_create_ex', 'number', ['string', 'number', 'number', 'number', 'number']),
 		destroy: w('tl_run_destroy', null, ['number']),
 		place: w('tl_place_order_ex', 'number', [
 			'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string', 'string', 'string'
@@ -51,6 +52,7 @@ async function load(): Promise<Api> {
 		answer: w('tl_answer_question', 'number', ['number', 'number', 'number', 'number']),
 		leverage: w('tl_set_leverage', 'number', ['number', 'number', 'number']),
 		close: w('tl_close_position', 'number', ['number', 'number']),
+		advice: w('tl_request_advice', 'number', ['number', 'number']),
 		advance: w('tl_advance', 'number', ['number', 'number']),
 		state: w('tl_state', 'number', ['number']),
 		debrief: w('tl_debrief', 'number', ['number'])
@@ -78,11 +80,13 @@ async function handle(req: EngineRequest): Promise<unknown> {
 	switch (req.kind) {
 		case 'init':
 			return { version: json(a.version()), missions: json(a.missions()) };
-		case 'start':
+		case 'start': {
 			if (run) a.destroy(run);
-			run = a.create(req.missionId, req.seed >>> 0);
+			const o = req.options ?? DEFAULT_RUN_OPTIONS;
+			run = a.create(req.missionId, req.seed >>> 0, o.adviceAllowance, o.newsLead, o.calendar ? 1 : 0);
 			if (!run) throw new Error(`unknown mission ${req.missionId}`);
 			return json(a.state(run));
+		}
 		case 'order':
 			return withState(
 				a,
@@ -138,6 +142,8 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			return withState(a, a.leverage(requireRun(), req.clientId, req.leverage));
 		case 'close':
 			return withState(a, a.close(requireRun(), req.clientId));
+		case 'advice':
+			return withState(a, a.advice(requireRun(), req.clientId));
 		case 'advance':
 			return json(a.advance(requireRun(), req.steps));
 		case 'debrief':

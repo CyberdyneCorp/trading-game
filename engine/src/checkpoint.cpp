@@ -158,12 +158,31 @@ void visit(Ar& a, Metrics& m) {
   a.fx(m.turnover);
 }
 
+template <typename Ar>
+void visit(Ar& a, AdviceReason& r) {
+  a.en(r.code);
+  std::uint8_t vote = static_cast<std::uint8_t>(r.vote);
+  a.u8(vote);
+  r.vote = static_cast<std::int8_t>(vote);
+  a.i32(r.ref);
+}
+
 template <typename Ar, typename Seq>
 void visit_seq(Ar& a, Seq& items) {
   auto n = static_cast<std::uint32_t>(items.size());
   if (!a.count(n)) return;
   items.resize(n);
   for (auto& x : items) visit(a, x);
+}
+
+template <typename Ar>
+void visit(Ar& a, Advice& x) {
+  a.u32(x.step);
+  a.en(x.stance);
+  a.u32(x.confidence_bp);
+  a.fx(x.stop);
+  a.fx(x.size);
+  visit_seq(a, x.reasons);
 }
 
 template <typename Ar>
@@ -197,7 +216,13 @@ void visit(Ar& a, RunState& st) {
   a.u64(rs);
   a.u64(ri);
   st.rng = Pcg32::from_state(rs, ri);
+  a.u32(st.options.advice_allowance);
+  a.u8(st.options.news_lead);
+  a.flag(st.options.calendar);
+  a.u32(st.advice_left);
+  visit_seq(a, st.advice);
 }
+
 
 }  // namespace
 

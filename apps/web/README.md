@@ -36,14 +36,14 @@ src/
   lib/engine/              model bridge: engine.worker.ts (WASM host), client.ts, protocol.ts, types.ts, wasm/
   lib/game/                view-models (session, autoplay, settings, pwa, i18n, audio, sound — *.svelte.ts rune classes),
                            IndexedDB storage, and pure helpers (sizing, stops, optionsMath, calibration,
-                           analysis, format, news, hotkeys, tutorials, candle/chart pattern catalogs
-                           and patternOutcome) with *.test.ts next to them
+                           analysis, format, news, hotkeys, tutorials, advisor, points, candle/chart
+                           pattern catalogs and patternOutcome) with *.test.ts next to them
   lib/components/          views: Terminal, Chart (+ chartPanes.ts), OrderTicket, OptionTicket, OptionChain,
-                           RightRail, TopBar, Briefing, Tutorial (+ TutorialArt), Debrief, MissionMenu, dialogs,
+                           RightRail, TopBar, AdvisorPanel, Briefing, Tutorial (+ TutorialArt), Debrief, MissionMenu, dialogs,
                            PatternSheet (+ PatternAnimation), HelpOverlay; chartDrag.ts (stop/target line drag)
 e2e/                       Playwright: mission.spec.ts (gameplay), offline.spec.ts (OFF01-web)
 scripts/                   build-engine.sh (Emscripten), make-icons.py (PWA icons)
 static/                    manifest.webmanifest, icons
 ```
 
-Game rules, fills, scoring and the debrief come from the engine; the client formats engine decimal strings for display and never computes authoritative state (ticket previews in `sizing.ts`/`optionsMath.ts` mirror engine formulas for display only). Runs persist as an append-only action log in IndexedDB (`tradelab` DB: `runs`, `actions`, `meta`); resume replays the log through the deterministic engine.
+Game rules, fills, scoring and the debrief come from the engine; the client formats engine decimal strings for display and never computes authoritative state (ticket previews in `sizing.ts`/`optionsMath.ts` mirror engine formulas for display only). Runs persist as an append-only action log in IndexedDB (`tradelab` DB: `runs`, `actions`, `meta`); resume replays the log through the deterministic engine. A run record also keeps its start options (advice allowance), and `meta.progress` keeps the tutorials seen and the advisor point balance (`points.ts`: start 3, cap 10, settled once per run id).

@@ -4,7 +4,21 @@
 
 import type { Locale } from './i18n.svelte';
 
-export type TutorialArt = 'chart' | 'ticket' | 'risk' | 'news' | 'plan' | 'funding' | 'trend' | 'leverage' | 'volatility' | 'payoff' | 'chain' | 'decay' | 'margin';
+export type TutorialArt =
+	| 'chart'
+	| 'ticket'
+	| 'risk'
+	| 'news'
+	| 'plan'
+	| 'funding'
+	| 'trend'
+	| 'leverage'
+	| 'volatility'
+	| 'payoff'
+	| 'chain'
+	| 'decay'
+	| 'margin'
+	| 'advisor';
 
 export interface TutorialCard {
 	art: TutorialArt;
@@ -37,9 +51,9 @@ const m01: Cards = {
 			body: 'Cada manchete mostra o esperado, o anunciado e a credibilidade. Uma surpresa crível é precificada de uma vez, com gap na abertura seguinte. Operar depois da manchete costuma ser tarde.'
 		},
 		{
-			art: 'plan',
-			title: 'Plano, e esperar também vale',
-			body: 'Antes de cada entrada você registra a hipótese e onde ela estaria errada. Perguntas de calibração medem se a sua confiança acerta. Não operar é uma decisão válida e não é penalizada.'
+			art: 'advisor',
+			title: 'Plano, assessor e pontos',
+			body: 'Antes de cada entrada você registra a hipótese e onde ela estaria errada; não operar também vale. O assessor lê o mercado visível por 1 ponto e acerta só um pouco mais que a metade das vezes. Cada trade fechado com plano e stop rende 1 ponto, mais 1 se lucrar, e terminar a missão rende 2.'
 		}
 	],
 	en: [
@@ -64,9 +78,9 @@ const m01: Cards = {
 			body: 'Each headline shows what was expected, what was announced and its credibility. A credible surprise is priced at once, with a gap at the next open. Trading after the headline is usually late.'
 		},
 		{
-			art: 'plan',
-			title: 'Plan, and waiting counts too',
-			body: 'Before every entry you record your hypothesis and where it would be wrong. Calibration questions measure whether your confidence is right. Not trading is a valid decision and is not penalized.'
+			art: 'advisor',
+			title: 'Plan, advisor and points',
+			body: 'Before each entry you record the thesis and where it would be wrong; not trading counts too. The advisor reads the visible market for 1 point and is right only a little more than half the time. Each closed trade with a plan and a stop earns 1 point, 1 more if it made money, and finishing the mission earns 2.'
 		}
 	]
 };

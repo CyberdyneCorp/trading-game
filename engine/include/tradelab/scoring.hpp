@@ -11,11 +11,12 @@
 #include <optional>
 #include <vector>
 
+#include "tradelab/advisor.hpp"
 #include "tradelab/engine.hpp"
 
 namespace tradelab {
 
-constexpr std::uint32_t kScoringVersion = 3;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit
+constexpr std::uint32_t kScoringVersion = 4;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: advisor points and advice outcomes
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,
@@ -76,6 +77,20 @@ struct TradeRow {
   std::optional<bool> plan_respected;
 };
 
+// Advice in the debrief (spec advisor "Advice in the terminal and the debrief"): a long or short
+// read is right when the close kAdviceHorizon bars after the next open moved its way.
+enum class AdviceOutcome : std::uint8_t { Right = 0, Wrong, Wait, Open };
+
+struct AdviceRow {
+  std::uint32_t step = 0;
+  AdviceStance stance = AdviceStance::Wait;
+  std::uint32_t confidence_bp = 0;
+  AdviceOutcome outcome = AdviceOutcome::Wait;
+};
+
+// Advisor points (spec progression-rewards "Advisor points earned by process", design D3).
+constexpr std::uint32_t kAdvisorPointsCap = 6;
+
 struct Dimension {
   std::uint32_t weight = 0;
   std::optional<std::int32_t> score;  // 0..100; nullopt = not applicable
@@ -94,9 +109,17 @@ struct ScoreReport {
   std::uint32_t resolved_answers = 0;
   std::optional<std::int64_t> brier_bp;  // Brier score in basis points of 1.0
   Money net_pnl;
+  std::uint32_t advisor_points_earned = 0;
+  std::vector<AdviceRow> advice;
+  std::optional<std::int64_t> advice_hit_bp;  // right / (right + wrong), basis points
 };
 
 std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st);
 ScoreReport score_run(const Scenario& sc, const RunState& st);
+
+// +1 per closed perpetual trade with a plan (planned risk > 0) and a protective stop working while
+// it was open, +1 more if its net P&L is positive, +2 if the run finished; capped at 6.
+std::uint32_t advisor_points(const RunState& st, const std::vector<TradeRow>& trades);
+std::vector<AdviceRow> advice_rows(const Scenario& sc, const RunState& st);
 
 }  // namespace tradelab

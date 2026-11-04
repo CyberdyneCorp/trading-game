@@ -8,7 +8,7 @@ const CODES = [
 	'position_closed', 'user_cancelled', 'unknown_order', 'invalid_sequence', 'wrong_decision_step',
 	'numeric_overflow', 'invalid_leverage', 'position_open', 'stop_beyond_liquidation', 'short_not_allowed',
 	'expired', 'invalid_bracket', 'oco_sibling_filled', 'series_not_listed', 'short_options_not_allowed', 'no_bid',
-	'margin_call', 'margin_below_initial', 'no_question_due', 'invalid_plan'
+	'margin_call', 'margin_below_initial', 'no_question_due', 'invalid_plan', 'no_advice_left'
 ];
 
 describe('reasonText', () => {

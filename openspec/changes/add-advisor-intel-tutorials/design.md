@@ -43,16 +43,17 @@ Each reason is a signed vote with a fixed weight:
 | `RsiExtreme` | only in a range: fade RSI < 30 or > 70 |
 | `BandFade` | only in a range: fade a close outside Bollinger(20, 2) |
 | `MacdMomentum` | the MACD histogram's sign, in a trend only |
-| `Pattern` | a pattern at or after `step - 2`, its bias, weighted up when it agrees with the regime context (e.g. a hammer after a decline) |
+| `Pattern` | a pattern at or after `step - 2`, its bias, weighted up (2) when it agrees with the regime context: it reverses the 5-bar move that led into it (e.g. a hammer after a decline) and, in a trend, points the trend's way (a pullback ending) |
 | `NewsPriced` | a credible surprise released within the last 3 bars: no vote for its direction. Pushes toward **wait** and explains that the gap already priced it |
 | `NewsEarly` | with a fast-wire perk only, a credible headline that is not yet public: a vote in the surprise's direction |
-| `FundingCrowded` | the published funding is above `squeeze_funding`: a warning against joining the crowded side |
+| `FundingCrowded` | the published funding is above 0.06% (the generator's default `squeeze_funding`, published in the README): a warning against joining the crowded side. It is shown but neither votes nor pulls toward wait, because the crowd is usually right until the squeeze (fading extreme funding is right 38% of the time in the missions) |
 | `LowVolSqueeze` | ATR(14) at a 30-bar low: "a breakout is likely, its direction is not"; pushes toward wait or a smaller size |
 
+- **Weights:** trend, MACD, RSI and band fades 1; a pattern 1 or 2 in context; an early headline 2. `RegimeRange` and `FundingCrowded` vote 0. `NewsPriced` and `LowVolSqueeze` vote 0 and each move the sum one step toward 0.
 - **Stance:** long if the vote sum is ≥ +2, short if ≤ −2, otherwise wait.
 - **Confidence:** `5000 + 400 × |votes|` basis points, capped at 6500.
 - **Stop:** 2 × ATR(14) from the mark.
-- **Size:** risk 1% of equity at that stop, rounded down to the lot size.
+- **Size:** risk 1% of equity at that stop, rounded down to the lot size (halved in a low-volatility squeeze; 0 below the minimum order). A wait has no stop and no size.
 
 All arithmetic uses the engine's fixed-point and deterministic math. Confidence is an integer in basis points.
 
@@ -69,7 +70,7 @@ The engine reports `advisor_points_earned` in the score report. It is computed f
 The client keeps the balance in IndexedDB (`meta` store, key `progress`):
 - it starts at 3 and is capped at 10;
 - at start, the run's allowance is the balance;
-- when the run ends, the balance becomes `balance − used + earned`, applied once per `runId` (a `settled` flag on the run record makes it idempotent across reloads and replays).
+- when the run ends, the balance becomes `balance − used + earned`, applied once per `runId`: the settled run ids are stored in the same `progress` record as the balance (`settledRuns`, last 100), so the balance and its idempotency key are written together.
 
 Points are integers. No money quantity is added, so no new monetary representation is needed.
 
@@ -107,7 +108,7 @@ Each unlocked perk is a toggle on the briefing and is on by default.
 
 ### D6. Testing
 
-- **Golden vectors.** m01 and m05 with default options must keep their current digests. A new golden runs m02 with `{allowance 3, news_lead 1, calendar}` and two `RequestAdvice` commands.
+- **Golden vectors.** m01 and m05 with default options must keep their event digests. Their state digests change only because the state digest starts with the policy version and v11 appends the (default) options and advice fields; the event digests prove a default run executes exactly as under v10. A new golden runs m02 with `{allowance 3, news_lead 1, calendar}` and two `RequestAdvice` commands.
 - **Engine property tests:**
   - **No look-ahead.** Advice at step s is identical when every bar after s is altered, and when news released after `s + news_lead` is altered.
   - **Allowance.** The allowance is enforced, and a rejected request changes no state.
@@ -124,7 +125,7 @@ Each unlocked perk is a toggle on the briefing and is on by default.
 
 - **Fast wire makes news trades very profitable** (credible shocks gap 4–8%). This is intended as a reward. It is mitigated by the "with intel" label and by perks being opt-in per run. If it proves too strong, `news_lead` can drop to 1 bar at most without changing the spec structure.
 - **A rule-based advisor can be gamed by learning its rules.** That is fine and even desirable: its rules are standard textbook reads, shown as reasons.
-- **The policy bump to v11 invalidates no stored run**, since default options replay identically. A run stored at v10 resumes with options defaulted.
+- **The policy bump to v11 invalidates no stored run**, since default options replay identically. A run stored at v10 resumes with options defaulted (the client shows its usual "recorded with policy v10" notice). Checkpoints carry the options and advice (checkpoint format 2) and, as before, only restore under the same policy.
 
 ## Migration
 

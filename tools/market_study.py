@@ -17,6 +17,7 @@ import tradelab_engine as te
 HORIZON = 5        # bars, technical signals
 NEWS_HORIZON = 10  # bars, news
 EXTREME_FUNDING = 0.0006
+ADVICE_EVERY = 5   # bars between advisor requests (as in test_mission_realism.cpp)
 
 
 class Tally:
@@ -40,14 +41,49 @@ def sign(x):
 
 
 def play(mission, seed):
-    """Runs a mission to the end without trading; returns the final state and the funding shown per step."""
-    run = te.Run(mission, seed)
+    """Runs a mission to the end without trading, asking the advisor every ADVICE_EVERY bars.
+
+    Returns the final state (whose advisor.advice lists every read) and the funding shown per step.
+    """
+    run = te.Run(mission, seed, te.RunOptions(advice_allowance=10_000))
     state = run.state()
     funding = {}
+    cid = 1
     while state["status"] == "active":
         funding[state["step"]] = float(state["account"]["nextFundingRate"])
+        if (state["step"] - state["warmupBars"]) % ADVICE_EVERY == 0:
+            run.request_advice(cid)
+            cid += 1
         state = run.advance(1)
     return state, funding
+
+
+class AdvisorTally:
+    """Advisor reads: long/short hits from the next open to HORIZON bars later, waits, stated confidence."""
+
+    def __init__(self):
+        self.hits = Tally()
+        self.requests = self.waits = 0
+        self.confidence = []
+
+    def add(self, state):
+        opens = [float(b[0]) for b in state["bars"]]
+        closes = [float(b[3]) for b in state["bars"]]
+        for a in state["advisor"]["advice"]:
+            i = a["step"]
+            if i + HORIZON >= len(closes):
+                continue
+            self.requests += 1
+            if a["stance"] == "wait":
+                self.waits += 1
+                continue
+            self.hits.add(1 if a["stance"] == "long" else -1, math.log(closes[i + HORIZON] / opens[i + 1]))
+            self.confidence.append(a["confidenceBp"] / 100)
+
+    def row(self, name):
+        h = self.hits
+        return (f"| {name} | {h.n:,} | {100 * h.hits / h.n:.1f}% | {statistics.fmean(self.confidence):.1f}% "
+                f"| {100 * self.waits / self.requests:.0f}% |")
 
 
 def technical(signals, state, funding):
@@ -101,11 +137,14 @@ def main():
     news_table = collections.defaultdict(lambda: {"follow": Tally(), "gap": []})
     returns = collections.defaultdict(list)
     worst_bar = collections.defaultdict(collections.Counter)
+    advisor = collections.defaultdict(AdvisorTally)
     for mission in [m["id"] for m in te.missions()]:
         for seed in range(1, seeds + 1):
             state, funding = play(mission, seed)
             technical(signals, state, funding)
             news(news_table, mission, state)
+            advisor[mission].add(state)
+            advisor["all missions"].add(state)
             closes = [float(b[3]) for b in state["bars"]]
             w = state["warmupBars"]
             returns[mission] += [math.log(closes[i] / closes[i - 1]) for i in range(w, len(closes))]
@@ -114,6 +153,9 @@ def main():
     print(f"{seeds} seeds per mission; signals entered at the next open, {HORIZON}-bar horizon.\n")
     print("| Signal | Samples | Goes the predicted way | Average move in its favor |\n|---|---|---|---|")
     for name, t in sorted(signals.items(), key=lambda kv: -kv[1].hits / kv[1].n):
+        print(t.row(name))
+    print(f"\n| Advisor, every {ADVICE_EVERY} bars | Long/short reads | Right | Mean stated confidence | Wait |\n|---|---|---|---|---|")
+    for name, t in sorted(advisor.items(), key=lambda kv: kv[0] == "all missions"):
         print(t.row(name))
     print(f"\n| News (mission, headline, surprise) | Gap at the next open | Follow it from the next open, {NEWS_HORIZON} bars | Average move |\n|---|---|---|---|")
     for (mission, kind, surprise), v in news_table.items():

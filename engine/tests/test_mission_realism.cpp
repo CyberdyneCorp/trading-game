@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "tradelab/advisor.hpp"
 #include "tradelab/generator.hpp"
 #include "tradelab/indicators.hpp"
 
@@ -187,4 +188,52 @@ TEST_CASE("Mission realism: fat tails and volatility clustering, little bar-to-b
     CHECK(autocorr(abs_r) > 0.1);  // calm follows calm, storms follow storms
     CHECK(autocorr(r) < 0.25);     // real markets: about 0
   }
+}
+
+// Spec advisor "Honest advisor": advice every 5 bars, outcome from the next open to 5 bars later.
+TEST_CASE("Mission realism: the advisor is honest, not an oracle") {
+  struct Tally {
+    Hits hits;
+    int requests = 0;
+    int waits = 0;
+    double confidence = 0.0;  // sum over long/short advice
+    int stances = 0;
+  };
+  std::map<std::string, Tally> by_mission;
+  for (const Market& mk : markets()) {
+    Tally& t = by_mission[mk.s.id];
+    RunState st = start_run(mk.s, 1);
+    for (std::uint32_t i = mk.s.mission.warmup_bars; i + kAdviceHorizon <= mk.last; i += 5) {
+      st.step = i;
+      const Advice a = advise(mk.s, st);
+      t.requests += 1;
+      if (a.stance == AdviceStance::Wait) {
+        t.waits += 1;
+        continue;
+      }
+      t.hits.add(static_cast<int>(a.stance), std::log(mk.close(i + kAdviceHorizon) / mk.open(i + 1)));
+      t.confidence += a.confidence_bp / 100.0;
+      t.stances += 1;
+    }
+  }
+  Tally all;
+  for (const auto& [id, t] : by_mission) {
+    const double hit = 100.0 * t.hits.rate();
+    MESSAGE(id << ": advisor right " << hit << "% of " << t.hits.n << ", wait " << 100.0 * t.waits / t.requests
+               << "%, mean confidence " << t.confidence / t.stances);
+    CHECK(t.hits.n > 50);
+    CHECK(hit >= 45.0);
+    CHECK(hit <= 65.0);
+    all.hits.n += t.hits.n;
+    all.hits.wins += t.hits.wins;
+    all.requests += t.requests;
+    all.waits += t.waits;
+    all.confidence += t.confidence;
+    all.stances += t.stances;
+  }
+  const double hit = 100.0 * all.hits.rate();
+  const double confidence = all.confidence / all.stances;
+  MESSAGE("all missions: right " << hit << "%, wait " << 100.0 * all.waits / all.requests << "%, mean confidence " << confidence);
+  CHECK(all.waits * 5 >= all.requests);          // waits at least 20% of the time
+  CHECK(std::abs(confidence - hit) <= 8.0);      // says what it knows, no more
 }

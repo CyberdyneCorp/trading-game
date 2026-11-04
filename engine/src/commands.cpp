@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "accounting.hpp"
+#include "tradelab/advisor.hpp"
 #include "options_exec.hpp"
 
 namespace tradelab {
@@ -221,6 +222,13 @@ CommandResult answer_question(const Scenario& sc, RunState& st, const Command& c
   return CommandResult{true, Reason::None, 0, Reason::None};
 }
 
+// Spec advisor "Advice is a rationed, logged command": no time passes, nothing else changes.
+CommandResult request_advice(const Scenario& sc, RunState& st) {
+  st.advice.push_back(advise(sc, st));
+  st.advice_left -= 1;
+  return CommandResult{true, Reason::None, 0, Reason::None};
+}
+
 CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
   switch (c.type) {
     case CommandType::PlaceOrder: return place_order(sc, st, c);
@@ -231,6 +239,7 @@ CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
     case CommandType::AdjustMargin: return adjust_margin(sc, st, c);
     case CommandType::RecordPlan: return record_plan(st, c);
     case CommandType::AnswerQuestion: return answer_question(sc, st, c);
+    case CommandType::RequestAdvice: return request_advice(sc, st);
   }
   return reject(Reason::UnsupportedOrderType);
 }
@@ -255,6 +264,8 @@ Reason precheck(const RunState& st, const Command& c) {
 CommandResult apply_command(const Scenario& sc, RunState& st, const Command& cmd) {
   if (const CommandRecord* prev = find_record(st, cmd.client_id); prev != nullptr) return prev->result;
   if (const Reason r = precheck(st, cmd); r != Reason::None) return reject(r);
+  // Rejected before anything is recorded: a request without allowance leaves the digest unchanged.
+  if (cmd.type == CommandType::RequestAdvice && st.advice_left == 0) return reject(Reason::NoAdviceLeft);
   st.last_command_seq = cmd.seq;
   const CommandResult result = dispatch(sc, st, cmd);
   st.command_log.push_back(CommandRecord{cmd.client_id, result});

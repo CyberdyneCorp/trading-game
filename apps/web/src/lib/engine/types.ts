@@ -201,6 +201,55 @@ export interface NewsView {
 	actual: number;
 }
 
+/** Start options of a run (engine policy v11): advice allowance and intel perks. */
+export interface RunOptionsView {
+	adviceAllowance: number;
+	newsLead: number;
+	calendar: boolean;
+}
+
+export const DEFAULT_RUN_OPTIONS: RunOptionsView = { adviceAllowance: 0, newsLead: 0, calendar: false };
+
+export type AdviceStance = 'long' | 'short' | 'wait';
+
+export type AdviceReasonCode =
+	| 'regime_trend_up'
+	| 'regime_trend_down'
+	| 'regime_range'
+	| 'rsi_extreme'
+	| 'band_fade'
+	| 'macd_momentum'
+	| 'pattern'
+	| 'news_priced'
+	| 'news_early'
+	| 'funding_crowded'
+	| 'low_vol_squeeze';
+
+/** One reason: `vote` > 0 long, < 0 short, 0 toward wait or a warning; `ref` = bar (pattern, news) or crowded side. */
+export interface AdviceReasonView {
+	code: AdviceReasonCode;
+	vote: number;
+	ref: number;
+}
+
+export interface AdviceView {
+	step: number;
+	stance: AdviceStance;
+	confidenceBp: number;
+	stop: Decimal; // "0" when waiting
+	size: Decimal; // "0" when waiting or below the minimum order
+	reasons: AdviceReasonView[];
+}
+
+export interface AdvisorState {
+	version: number;
+	allowance: number;
+	left: number;
+	newsLead: number;
+	calendar: boolean;
+	advice: AdviceView[];
+}
+
 export interface GameState {
 	mission: string;
 	alias: string;
@@ -220,6 +269,7 @@ export interface GameState {
 	indicators: Indicators;
 	news: NewsView[];
 	calibration: { due: boolean; horizon: number; every: number; threshold: Decimal; answered: number };
+	advisor: AdvisorState;
 	events: EngineEvent[];
 	totals: Totals;
 	digest: string;
@@ -312,6 +362,11 @@ export interface DebriefData {
 	netPnl: Decimal;
 	calibration: { resolved: number; brierBp: number | null };
 	trades: EngineTrade[];
+	/** Engine-computed advisor points earned by this run (capped at 6). */
+	advisorPointsEarned: number;
+	/** Each piece of advice with its outcome 5 bars after the next open. */
+	advice: { step: number; stance: AdviceStance; confidenceBp: number; outcome: 'right' | 'wrong' | 'wait' | 'open' }[];
+	adviceHitBp: number | null;
 }
 
 export const ORDER_TYPE_CODE: Record<OrderTypeName, number> = {

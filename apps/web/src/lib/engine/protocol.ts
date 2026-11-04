@@ -1,11 +1,11 @@
 // Typed request/response protocol between the UI thread and the engine worker.
 // Responses carry only current-step state: the worker never sends future bars.
 
-import type { CommandResult, DebriefData, GameState, MissionInfo, OrderSideName, OrderTypeName } from './types';
+import type { CommandResult, DebriefData, GameState, MissionInfo, OrderSideName, OrderTypeName, RunOptionsView } from './types';
 
 export type EngineRequest =
 	| { kind: 'init' }
-	| { kind: 'start'; missionId: string; seed: number }
+	| { kind: 'start'; missionId: string; seed: number; options?: RunOptionsView }
 	| {
 			kind: 'order';
 			clientId: number;
@@ -44,6 +44,7 @@ export type EngineRequest =
 	| { kind: 'cancel'; clientId: number; orderId: number }
 	| { kind: 'leverage'; clientId: number; leverage: number }
 	| { kind: 'close'; clientId: number }
+	| { kind: 'advice'; clientId: number }
 	| { kind: 'advance'; steps: number }
 	| { kind: 'debrief' };
 
