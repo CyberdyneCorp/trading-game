@@ -350,6 +350,33 @@ test('candle pattern cheat sheet opens with P, filters by bias, and blocks Space
 	await expect(sheet).toBeVisible();
 });
 
+test('cheat sheet animates each candle pattern: confirmation and follow-through, then the failure', async ({ page }) => {
+	await openTerminal(page, 4242);
+	await page.keyboard.press('p');
+	const card = page.getByRole('dialog', { name: 'Padrões de candle' }).getByTestId('pattern-hammer');
+	const anim = card.locator('figure.anim');
+	await expect(anim).toHaveAttribute('data-stage', 'confirmed', { timeout: 3000 });
+	await expect(card.getByText('✓ Confirmou')).toBeVisible();
+	await expect(anim.locator('g.next.first')).toHaveCount(1); // the confirmation candle
+	await expect(anim.locator('.level.trigger')).toHaveCount(1);
+	await expect(anim).toHaveAttribute('data-stage', 'failed', { timeout: 6000 });
+	await expect(card.getByText('✗ Falhou: stop')).toBeVisible();
+	await expect(anim.locator('.level.stop')).toHaveCount(1);
+	const doji = page.getByTestId('pattern-doji').locator('figure.anim');
+	await expect(doji).toHaveAttribute('data-stage', /breakUp|breakDown|pattern/);
+});
+
+test('with reduced motion the cheat sheet shows the textbook outcome as a still picture', async ({ page }) => {
+	await page.emulateMedia({ reducedMotion: 'reduce' });
+	await openTerminal(page, 4242);
+	await page.keyboard.press('p');
+	const anim = page.getByTestId('pattern-hammer').locator('figure.anim');
+	await expect(anim).toHaveAttribute('data-stage', 'confirmed');
+	await expect(anim.locator('g.next')).toHaveCount(3);
+	await page.waitForTimeout(1500);
+	await expect(anim).toHaveAttribute('data-stage', 'confirmed');
+});
+
 test('regression: Space does not advance behind the help overlay', async ({ page }) => {
 	await openTerminal(page, 4243);
 	const bar = await page.getByText(/Barra \d+ de/).textContent();
