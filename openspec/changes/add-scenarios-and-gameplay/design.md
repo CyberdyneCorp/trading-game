@@ -10,7 +10,17 @@ Scenarios must travel to browsers, desktops and iPads, work offline, be verifiab
 - `.tlpack` = uncompressed tar of: `manifest.json` (canonical JSON, RFC 8785), `manifest.sig` (Ed25519 over the canonical manifest bytes), and data files: `bars.bin` (columnar little-endian int64, zstd), `funding.bin`, `events.bin`, `options.bin`, `mission.json`, `reveal.json`, `i18n/*.json`.
 - Hashes in the manifest are SHA-256 of each file's stored bytes; the signature therefore covers all data.
 - Publisher public keys pinned in each client build with a rotation list (`signingKeyId`). Private imports are signed by a per-device key and flagged `private`.
-- Web verifies with WebCrypto Ed25519; native with libsodium/CryptoKit; server with `cryptography`.
+- ~~Web verifies with WebCrypto Ed25519; native with libsodium/CryptoKit; server with `cryptography`.~~ As built: verification (and signing of private imports) runs in the engine, so every client and the server share one verifier through the C ABI. `cryptography` remains an independent check in the Python tests.
+
+### D1a. Pack implementation choices (as built)
+- **Ed25519: Monocypher 4.0.2**, vendored unmodified (`engine/third_party/monocypher`, its RFC 8032 SHA-512 variant in `optional/monocypher-ed25519.c`). Chosen over TweetNaCl (slower, unaudited, `randombytes` hook) and libsodium (too large to vendor, needs its own build): two C99 files, CC0/BSD, audited by Cure53 in 2020, deterministic signing, no allocation, builds unchanged for native and Emscripten. Tested with RFC 8032 vectors.
+- **zstd: the official 1.5.7 decoder**, vendored as upstream's decoder-only single-file input (`zstddeclib-in.c`) plus the decoder sources it includes (no compressor, no legacy formats, no assembly). Chosen over the "educational" decoder (not meant for hostile input) and third-party ports: it is what OSS-Fuzz fuzzes continuously. Decompression goes into a buffer of exactly the declared size, so a bomb stops at `dstSize_tooSmall` instead of allocating.
+- **Size:** the whole engine WASM module, with both libraries, is about 157 KB gzipped (budget 400 KB).
+- **Canonicalization:** RFC 8785 over a strict JSON subset (integers within 2^53, no fractions or exponents, valid UTF-8, no duplicate keys). Under that subset JCS number formatting is plain digits, so no floating point is involved. Money and rates are decimal strings anyway.
+- **Container:** ustar with flat names (`[a-z0-9._-]`, no prefix, regular files only), deterministic headers (zero mtime/uid/gid). `manifest.json` is stored in canonical form; `manifest.sig` holds the signature (the manifest's "signature" field of the spec lives in that file).
+- **Data:** `bars.bin` and `funding.bin` are columnar little-endian int64 tables with a 16-byte header, compressed as zstd frames. Private imports store them as raw zstd blocks (still valid zstd) so clients need no encoder; the packer will compress published packs. `events.bin`, `options.bin`, `mission.json` and `i18n.json` are reserved until packs carry news and option chains.
+- **Limits:** pack 16 MiB, 8 files, manifest 64 KiB, 8 MiB per decompressed file, 20,000 bars; CSV 4 MiB and 20,000 rows. Parsers are fuzzed with libFuzzer (`engine/fuzz`).
+- **Private CSV packs:** practice rules (10,000 capital, chosen leverage cap 1–20, warm-up of a quarter of the rows clamped to 20–60, perpetual only, default costs), funding every 8 hours of bars, `license.name = private-import`, never publishable (`private_pack`).
 
 ### D2. Scoring and debrief live in the engine repo
 - Scoring (C++20, `engine/src/scoring.cpp` + `engine/include/tradelab/scoring.hpp`, part of the engine library, versioned by `kScoringVersion` = 2) computes score dimensions, findings, per-trade rows (R multiple, plan respected) and the next-lesson code from the run state and command log; the C ABI debrief adds P&L aggregates and buy-and-hold/flat comparisons. Greek attribution is not built yet. Same golden approach as the engine. Clients render codes as text; the server (`services/api`) recomputes by replaying the action log through the Python binding.
@@ -43,9 +53,11 @@ Decisions:
 
 ### D4. Masking
 - Factor `100 / firstPlayableOpen` computed from the first playable bar only. Strike grids generated after masking. Rounding declared per pack (half-even to tick).
+- As built (`engine/src/masking.cpp`): the reference is the open of the bar at the first decision point (bar `warmupBars`), the earliest open the player sees, so no later data enters the factor. Each price is `round_half_even(p * 100 / ref / tick) * tick` in 128-bit integers (one rounding); volume is multiplied by `ref / 100` so notional volume and capacity are unchanged. The factor is not stored in the manifest (it would reveal the price level); `reveal.json` describes the transformation.
 
 ### D5. Packer CLI
 - `tools/packer` (Python, using the nanobind engine): `validate`, `import-csv`, `mask`, `generate`, `build`, `sign`, `inspect`. Validation logic shared with the client import wizard through the engine's C ABI so web/desktop/iPad import produce identical errors.
+- As built: `tools/packer/packer.py` uses the existing ctypes binding (not nanobind) and offers `key`, `import-csv` and `validate`; the other commands come with publisher keys and Market4Me (1b.x).
 
 ### D5a. Historical source: Market4Me
 - Source of truth for historical data is Market4Me (`github.com/CyberdyneCorp/Market4Me`), via bulk exports only: `POST /api/v1/exports` (`series` = bars | funding | open_interest | market_state, `instrument` e.g. `BTC-USDT:PERP:binance-usdm`, `tf`, `from`, `to` ≤ 1,100 days, pinned `as_of`) → poll `GET /exports/{id}` → `GET /exports/{id}/file` (Parquet + manifest with checksums). No direct DB or NATS reads.

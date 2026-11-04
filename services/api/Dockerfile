@@ -3,7 +3,7 @@ FROM debian:trixie-slim AS engine
 RUN apt-get update && apt-get install -y --no-install-recommends cmake ninja-build clang && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY engine engine
-RUN CXX=clang++ cmake -S engine -B engine/build/release -G Ninja -DCMAKE_BUILD_TYPE=Release -DTRADELAB_BUILD_TESTS=OFF \
+RUN CC=clang CXX=clang++ cmake -S engine -B engine/build/release -G Ninja -DCMAKE_BUILD_TYPE=Release -DTRADELAB_BUILD_TESTS=OFF \
  && cmake --build engine/build/release --target tradelab_capi
 
 FROM python:3.12-slim-trixie

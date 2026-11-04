@@ -24,6 +24,14 @@ Clients SHALL verify file sizes, hashes and the manifest signature against a pin
 - **WHEN** a pack requires an engine version outside the installed range
 - **THEN** installation SHALL be refused with reason `incompatible_engine`
 
+#### Scenario: Edited manifest
+- **WHEN** any manifest value is changed after signing
+- **THEN** installation SHALL be refused with reason `bad_signature`, because the signature covers the canonical (RFC 8785) manifest, which lists every file's hash
+
+#### Scenario: Unknown signer
+- **WHEN** a pack's `signingKeyId` is neither a pinned publisher key nor this device's key
+- **THEN** installation SHALL be refused with reason `untrusted_key`
+
 ### Requirement: Pack safety limits
 Packs SHALL contain data only (no executable code). Validators SHALL enforce limits on total size, decompressed size, file count, number of bars, events and option series, and field lengths.
 
@@ -31,12 +39,20 @@ Packs SHALL contain data only (no executable code). Validators SHALL enforce lim
 - **WHEN** a pack's decompressed size exceeds the declared limit
 - **THEN** decompression SHALL abort and the pack SHALL be rejected
 
+#### Scenario: Hostile bytes
+- **WHEN** a pack, CSV file or manifest is arbitrary or mutated data
+- **THEN** the validator SHALL return a reason code without crashing or reading out of bounds (fuzzed with libFuzzer under ASan and UBSan)
+
 ### Requirement: Historical masking
-Historical packs SHALL rebase prices so that the first open of the playable window equals 100 by multiplying all OHLC values, strikes and price-denominated parameters by the same positive factor, SHALL express time relative to the first bar, and SHALL display a random alias that is stable within a run. Masking SHALL NOT use any data from after the first decision point to choose its factor. Volume and capacity SHALL be transformed jointly so exposure and capacity are unchanged.
+Historical packs SHALL rebase prices so that the first open of the playable window (the open of the bar at the first decision point) equals 100 by multiplying all OHLC values, strikes and price-denominated parameters by the same positive factor, SHALL express time relative to the first bar, and SHALL display a random alias that is stable within a run. Masking SHALL NOT use any data from after the first decision point to choose its factor. Volume and capacity SHALL be transformed jointly so exposure and capacity are unchanged.
 
 #### Scenario: Geometry preserved
 - **WHEN** a historical window is masked
 - **THEN** every bar-to-bar return and every candle's wick-to-body ratio SHALL be preserved within the declared rounding
+
+#### Scenario: Factor chosen without the future
+- **WHEN** any bar after the first decision point changes
+- **THEN** the masked bars up to the first decision point SHALL be unchanged
 
 ### Requirement: Reveal metadata
 Packs SHALL include reveal metadata (asset, pair, venue, period, transformation, source) shown only in the debrief and only when the license permits. Scenarios the player imported or has already played SHALL be labeled as known scenarios.
@@ -69,6 +85,14 @@ The system SHALL import CSV with UTC timestamp, open, high, low, close, volume a
 #### Scenario: Timestamp in wrong unit (DATA01)
 - **WHEN** timestamps are in milliseconds but declared as seconds
 - **THEN** import SHALL fail with a clear error and no silent correction
+
+#### Scenario: Missing bars
+- **WHEN** consecutive rows are further apart than the declared interval by a whole number of intervals
+- **THEN** the report SHALL list the gap (line, from, to, number of missing bars), the import SHALL still be allowed, and no bar SHALL be invented
+
+#### Scenario: Imported pack
+- **WHEN** a valid CSV is imported
+- **THEN** the result SHALL be a pack flagged `private`, masked, signed by a per-device key, labeled as a known scenario, with the asset, pair, venue and period only in its reveal metadata, and publishing it SHALL fail with reason `private_pack`
 
 ### Requirement: Licensing record
 Every official pack SHALL record license, attribution, transformation rights and redistribution/offline rights. Publishing SHALL be blocked when rights for the intended use (commercial, offline) are not recorded.

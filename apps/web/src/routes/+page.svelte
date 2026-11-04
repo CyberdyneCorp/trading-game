@@ -7,6 +7,7 @@
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import { moodFor, StingTracker } from '#lib/game/audioRules.ts';
 	import Briefing from '#lib/components/Briefing.svelte';
+	import CsvImport from '#lib/components/CsvImport.svelte';
 	import Tutorial from '#lib/components/Tutorial.svelte';
 	import CrtOverlay from '#lib/components/CrtOverlay.svelte';
 	import Debrief from '#lib/components/Debrief.svelte';
@@ -49,6 +50,8 @@
 	<p class="loading">{t('state.loading')}</p>
 {:else if session.screen === 'menu'}
 	<MissionMenu {session} />
+{:else if session.screen === 'import'}
+	<CsvImport {session} />
 {:else if session.screen === 'tutorial'}
 	<Tutorial {session} />
 {:else if session.screen === 'briefing'}

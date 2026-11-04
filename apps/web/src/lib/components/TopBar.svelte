@@ -23,7 +23,11 @@
 		<div class="market">
 			<span class="muted">{t('top.market')}</span>
 			<strong class="alias">{s.alias}</strong>
-			<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
+			{#if s.knownScenario}
+				<span class="tag attention" title={t('brief.modePack', { seed: session.seed })}>{t('top.known')}</span>
+			{:else}
+				<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
+			{/if}
 			<span class="muted mission" title={missionText(s.mission, i18n.locale).title}>{missionText(s.mission, i18n.locale).title}</span>
 			{#if !pwa.online}<span class="tag attention" title={t('pwa.offlineNote')}>{t('pwa.offline')}</span>{/if}
 		</div>

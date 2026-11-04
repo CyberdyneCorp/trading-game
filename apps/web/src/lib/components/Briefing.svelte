@@ -18,7 +18,7 @@
 		<h1>{txt.title}</h1>
 		<p class="tagline">{txt.tagline}</p>
 		<dl class="kv">
-			<dt>{t('brief.mode')}</dt><dd class="attention">{t('brief.modeSynthetic', { seed: session.seed })}</dd>
+			<dt>{t('brief.mode')}</dt><dd class="attention">{s.knownScenario ? t('brief.modePack', { seed: session.seed }) : t('brief.modeSynthetic', { seed: session.seed })}</dd>
 			<dt>{t('brief.capital')}</dt><dd>{fmtMoney(s.initialBalance, L)}</dd>
 			<dt>{t('brief.instrument')}</dt><dd>{t('brief.instrumentValue')}</dd>
 			<dt>{t('brief.leverage')}</dt><dd>1x – {c.leverageCap}x</dd>

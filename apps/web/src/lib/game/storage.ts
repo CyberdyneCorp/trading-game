@@ -17,6 +17,25 @@ export interface RunRecord<J = unknown, Q = unknown> {
 	digest: string;
 	status: 'active' | 'finished' | 'bankrupt';
 	actions: number; // number of committed actions
+	/** Runs on a scenario pack (e.g. an imported CSV): the pack's digest in the `packs` store. */
+	packDigest?: string;
+}
+
+/**
+ * An installed pack, stored by digest after the engine verified it (spec web-client "Persistent
+ * offline storage"; IndexedDB stands in for OPFS). `label` is the player's own name for it.
+ */
+export interface StoredPack {
+	digest: string;
+	scenarioId: string;
+	label: string;
+	bytes: Uint8Array;
+	private: boolean;
+	totalBars: number;
+	warmupBars: number;
+	leverageCap: number;
+	gaps: number;
+	addedAt: number;
 }
 
 export interface StoredRun<A, J, Q> {
@@ -32,7 +51,7 @@ export interface Progress {
 export const EMPTY_PROGRESS: Progress = { tutorialsSeen: [] };
 
 const DB_NAME = 'tradelab';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // v2: packs store
 const LEGACY_KEY = 'tradelab.run.v1';
 
 function req<T>(r: IDBRequest<T>): Promise<T> {
@@ -58,6 +77,7 @@ export function openDb(factory: IDBFactory = indexedDB): Promise<IDBDatabase> {
 			if (!db.objectStoreNames.contains('runs')) db.createObjectStore('runs', { keyPath: 'runId' });
 			if (!db.objectStoreNames.contains('actions')) db.createObjectStore('actions', { keyPath: ['runId', 'seq'] });
 			if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
+			if (!db.objectStoreNames.contains('packs')) db.createObjectStore('packs', { keyPath: 'digest' });
 		};
 		open.onsuccess = () => resolve(open.result);
 		open.onerror = () => reject(open.error);
@@ -123,6 +143,44 @@ export class RunStore<A, J, Q> {
 		const tx = this.db.transaction('meta', 'readwrite');
 		tx.objectStore('meta').put({ key: 'progress', ...p });
 		await done(tx);
+	}
+
+	async savePack(p: StoredPack): Promise<void> {
+		const tx = this.db.transaction('packs', 'readwrite');
+		tx.objectStore('packs').put(p);
+		await done(tx);
+	}
+
+	async pack(digest: string): Promise<StoredPack | null> {
+		const tx = this.db.transaction('packs', 'readonly');
+		return ((await req(tx.objectStore('packs').get(digest))) as StoredPack | undefined) ?? null;
+	}
+
+	/** Installed packs, oldest first. */
+	async packs(): Promise<StoredPack[]> {
+		const tx = this.db.transaction('packs', 'readonly');
+		const all = (await req(tx.objectStore('packs').getAll())) as StoredPack[];
+		return all.sort((a, b) => a.addedAt - b.addedAt);
+	}
+
+	async deletePack(digest: string): Promise<void> {
+		const tx = this.db.transaction('packs', 'readwrite');
+		tx.objectStore('packs').delete(digest);
+		await done(tx);
+	}
+
+	/**
+	 * This device's signing seed for private imports (spec design D1), created on first use from
+	 * `random`. It never leaves the device; only its public key is used to verify.
+	 */
+	async deviceSeed(random: () => Uint8Array): Promise<string> {
+		const tx = this.db.transaction('meta', 'readwrite');
+		const store = tx.objectStore('meta');
+		const row = (await req(store.get('deviceSeed'))) as { key: string; hex: string } | undefined;
+		const hex = row?.hex ?? [...random()].map((b) => b.toString(16).padStart(2, '0')).join('');
+		if (!row) store.put({ key: 'deviceSeed', hex });
+		await done(tx);
+		return hex;
 	}
 
 	/** Missions with at least one run played to the end (bankrupt runs do not count). */

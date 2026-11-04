@@ -3,8 +3,8 @@
 // here; replies contain the state up to the current decision step.
 
 import createTradelab, { type TradelabModule } from './wasm/tradelab.mjs';
-import type { EngineRequest, WorkerEnvelope, WorkerReply } from './protocol';
-import { ORDER_TYPE_CODE, SIDE_CODE } from './types';
+import type { CsvBuildResult, EngineRequest, WorkerEnvelope, WorkerReply } from './protocol';
+import { ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
 
 type Fn = (...a: unknown[]) => number;
 
@@ -24,6 +24,13 @@ interface Api {
 	advance: Fn;
 	state: Fn;
 	debrief: Fn;
+	deviceKey: Fn;
+	csvValidate: Fn;
+	csvBuild: Fn;
+	blobData: Fn;
+	blobSize: Fn;
+	packValidate: Fn;
+	createPack: Fn;
 }
 
 let mod: TradelabModule | null = null;
@@ -53,7 +60,14 @@ async function load(): Promise<Api> {
 		close: w('tl_close_position', 'number', ['number', 'number']),
 		advance: w('tl_advance', 'number', ['number', 'number']),
 		state: w('tl_state', 'number', ['number']),
-		debrief: w('tl_debrief', 'number', ['number'])
+		debrief: w('tl_debrief', 'number', ['number']),
+		deviceKey: w('tl_device_key', 'number', ['string']),
+		csvValidate: w('tl_csv_validate', 'number', ['string', 'string']),
+		csvBuild: w('tl_pack_build_csv', 'number', ['string', 'string', 'string']),
+		blobData: w('tl_blob_data', 'number', []),
+		blobSize: w('tl_blob_size', 'number', []),
+		packValidate: w('tl_pack_validate', 'number', ['number', 'number', 'string', 'number']),
+		createPack: w('tl_run_create_pack', 'number', ['number', 'number', 'string', 'number'])
 	};
 	return api;
 }
@@ -61,6 +75,38 @@ async function load(): Promise<Api> {
 function json(ptr: number): unknown {
 	if (!mod) throw new Error('engine not loaded');
 	return JSON.parse(mod.UTF8ToString(ptr));
+}
+
+// Copies bytes into the WASM heap for one call; the engine never keeps the pointer.
+function withBytes<T>(bytes: Uint8Array, fn: (ptr: number, size: number) => T): T {
+	if (!mod) throw new Error('engine not loaded');
+	const ptr = mod._malloc(Math.max(1, bytes.length));
+	try {
+		mod.HEAPU8.set(bytes, ptr);
+		return fn(ptr, bytes.length);
+	} finally {
+		mod._free(ptr);
+	}
+}
+
+function csvBuild(a: Api, csv: string, meta: unknown, seedHex: string): CsvBuildResult {
+	const res = json(a.csvBuild(csv, JSON.stringify(meta), seedHex)) as Omit<CsvBuildResult, 'pack'>;
+	const ptr = a.blobData();
+	const size = a.blobSize();
+	return { ...res, pack: mod!.HEAPU8.slice(ptr, ptr + size) };
+}
+
+function deviceKey(a: Api, seedHex: string): TrustedKey {
+	const k = json(a.deviceKey(seedHex)) as { id?: string; publicKey?: string; error?: string };
+	if (!k.id || !k.publicKey) throw new Error(k.error ?? 'invalid device key');
+	return { id: k.id, key: k.publicKey };
+}
+
+function startPack(a: Api, pack: Uint8Array, keys: TrustedKey[], seed: number): GameState {
+	if (run) a.destroy(run);
+	run = withBytes(pack, (ptr, size) => a.createPack(ptr, size, JSON.stringify(keys), seed >>> 0));
+	if (!run) throw new Error('pack failed validation');
+	return json(a.state(run)) as GameState;
 }
 
 function requireRun(): number {
@@ -83,6 +129,16 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			run = a.create(req.missionId, req.seed >>> 0);
 			if (!run) throw new Error(`unknown mission ${req.missionId}`);
 			return json(a.state(run));
+		case 'deviceKey':
+			return deviceKey(a, req.seedHex);
+		case 'csvValidate':
+			return json(a.csvValidate(req.csv, JSON.stringify(req.meta)));
+		case 'csvBuild':
+			return csvBuild(a, req.csv, req.meta, req.seedHex);
+		case 'packValidate':
+			return withBytes(req.pack, (ptr, size) => json(a.packValidate(ptr, size, JSON.stringify(req.keys), 0)));
+		case 'startPack':
+			return startPack(a, req.pack, req.keys, req.seed);
 		case 'order':
 			return withState(
 				a,

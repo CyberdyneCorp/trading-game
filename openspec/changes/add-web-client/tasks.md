@@ -7,7 +7,7 @@
 
 ## 2. Engine integration
 - [ ] 2.1 Worker + typed protocol from IDL; leak test (no future data on main thread) — worker (`src/lib/engine/engine.worker.ts`) and typed protocol (`protocol.ts`, `types.ts`, hand-written, not generated from an IDL) done; the engine C-ABI test asserts the state JSON carries exactly the bars up to the current step; a main-thread/message-log leak test is pending
-- [ ] 2.2 IndexedDB persistence (runs, commands, checkpoints, packs); reload test — runs + per-action commits done (commit-before-engine, legacy migration, reload/resume tests); checkpoints and pack cache pending (no packs yet)
+- [ ] 2.2 IndexedDB persistence (runs, commands, checkpoints, packs); reload test — runs + per-action commits done (commit-before-engine, legacy migration, reload/resume tests); packs stored by digest (`packs` store, runs reference `packDigest`, pack runs resume by replay); checkpoints pending
 
 ## 3. Phase 1 vertical slice
 - [x] 3.1 Briefing → terminal → debrief for one synthetic perp mission
@@ -27,15 +27,15 @@
 - [x] 4.3b Bollinger overlay and candle pattern cheat sheet (P)
 - [x] 4.3a Indicator panes (RSI/MACD/ADX selector, VWAP overlay) and stop/target tools (ATR/swing/% presets, R targets, mark on chart, chart preview, unprotected-position warning)
 - [ ] 4.4 Journal, lessons runner, curriculum map, progress, catalog + download — plan theses are kept in a local journal and shown in the debrief timeline; the menu marks missions played to the end as Completed; journal screen, lessons, curriculum map, cross-device progress and catalog pending
-- [ ] 4.5 CSV import wizard
-- [ ] 4.6 All required states; colorblind palette; i18n PT-BR + en-US — colorblind palette and PT-BR/en catalogs done; states done: loading, engine error, indicator warming up, accepted vs filled, capacity-limited/partial fills flagged in the feed, liquidation warning, liquidated, margin call, option expired/settled, game over, offline, storage not durable; plain-language rejection/cancel reasons for every engine reason code (PT-BR/en, `reasonText`); pending: numbers inside rejection messages, no data, download interrupted, incompatible pack, session expired, sync pending, device conflict
+- [x] 4.5 CSV import wizard — `CsvImport.svelte` + `csvImport.svelte.ts`: file, declared metadata (unit and interval guessed), engine report (errors by line, gaps), private practice pack; practice runs listed as known scenarios, reveal only in the debrief, resume by replay on the stored pack; `.tlpack` load/export (`e2e/packs.spec.ts`)
+- [ ] 4.6 All required states; colorblind palette; i18n PT-BR + en-US — colorblind palette and PT-BR/en catalogs done; states done: loading, engine error, indicator warming up, accepted vs filled, capacity-limited/partial fills flagged in the feed, liquidation warning, liquidated, margin call, option expired/settled, game over, offline, storage not durable; plain-language rejection/cancel reasons for every engine reason code (PT-BR/en, `reasonText`); incompatible or refused pack (reason shown when loading a `.tlpack`, `packReasonText`); pending: numbers inside rejection messages, no data, download interrupted, session expired, sync pending, device conflict
 - [ ] 4.7 E2E: full mission, UX01, rejection reasons, liquidation flow — full mission, EDU02, reload/resume, options, calibration, stop/target, patterns and auto-advance E2E done; UX01, rejection reasons and liquidation flow pending
 - [ ] 4.8 Accessible chart: table of all closed bars, text summary, per-candle keyboard focus — today a screen-reader table of the last 20 closed bars
 - [ ] 4.9 Remappable shortcuts; option-chain and journal shortcuts
 
 ## 5. Offline PWA
 - [x] 5.1 Web manifest, icons, service worker precache (shell, fonts, i18n, versioned engine WASM); API network-only — `src/service-worker.ts`, routing in `src/lib/game/swRoutes.ts` (`/api/*` never cached; unit-tested)
-- [ ] 5.2 OPFS pack store with verify-then-install, quota display, `storage.persist()`, eviction detection — `storage.persist()` requested at mission start and its result shown in settings; OPFS store, quota display and eviction detection pending
+- [ ] 5.2 OPFS pack store with verify-then-install, quota display, `storage.persist()`, eviction detection — `storage.persist()` requested at mission start and its result shown in settings; verify-then-install done (engine verifies, then the pack is stored by digest in IndexedDB, and verified again on every start/resume); OPFS store, quota display and eviction detection pending
 - [ ] 5.3 Resumable pack downloads (Range; Background Fetch where available)
 - [ ] 5.4 Engine-version pinning for unfinished runs + cache GC; update prompt after mission — update prompt (menu only) and policy-mismatch warning done; keeping old engine builds for unfinished runs pending
 - [ ] 5.5 Offline UX: unavailable catalog/sync states, offline profile badge, iOS Add-to-Home-Screen hint — OFFLINE badge (top bar + menu) and iOS Add-to-Home-Screen hint done; catalog/sync states and profile badge pending (no catalog, sync or profile yet)

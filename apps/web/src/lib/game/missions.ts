@@ -142,6 +142,32 @@ texts['m05-options-writer'] = {
 	}
 };
 
+// Practice runs on imported packs (scenario ids "csv-…"): the player already knows the market, so
+// the texts stay generic; the debrief shows the engine's reveal instead of a designed lesson.
+const PRACTICE: Record<Locale, MissionText> = {
+	'pt-BR': {
+		title: 'Treino · mercado importado',
+		tagline:
+			'Um mercado real que você importou, mascarado (preço base 100 na primeira barra jogável). Você já conhece este cenário: pratique o processo.',
+		objectives: COMMON_PT,
+		topic: 'Prática livre · futuros perpétuos',
+		reveal: ''
+	},
+	en: {
+		title: 'Practice · imported market',
+		tagline:
+			'A real market you imported, masked (price base 100 at the first playable bar). You already know this scenario: practice your process.',
+		objectives: COMMON_EN,
+		topic: 'Free practice · perpetual futures',
+		reveal: ''
+	}
+};
+
+export function isPracticeScenario(id: string): boolean {
+	return id.startsWith('csv-');
+}
+
 export function missionText(id: string, locale: Locale): MissionText {
+	if (isPracticeScenario(id)) return PRACTICE[locale];
 	return texts[id]?.[locale] ?? { title: id, tagline: '', objectives: [], topic: '', reveal: '' };
 }

@@ -74,6 +74,7 @@ mindmap
       Auto-advance
       Music and sound effects
       Offline PWA
+      Imported markets from CSV
       PT-BR and English
       Reproducible seeds
 ```
@@ -90,6 +91,7 @@ mindmap
 | Coaching | Pre-trade plan (side, invalidation, target, risk), calibration questions ("what's the probability that…?"), debrief that scores **process, not P&L**. |
 | Auto-advance | Plays bars on a timer, waits for any open dialog, pauses on fills, liquidation, margin calls, option expiry and news. |
 | Sound | Music follows the moment: menu theme, in-game theme, and a tense theme when you are near liquidation or under a margin call. Closing a trade plays a win or loss sting. `M` mutes; music and effects volumes are separate. Audio (`apps/web/static/audio`, MP3 96 kbps) is cached on first play, not at install. |
+| Imported markets | A CSV import wizard turns your own OHLCV file (optional funding) into a practice mission. The engine validates it (order, duplicates, OHLC consistency, timestamp unit, interval) and reports gaps without filling them, masks prices to a base of 100, and stores the result as a private pack signed by the device. The asset, pair and period are revealed only in the debrief. Signed `.tlpack` files can be exported and loaded; packs from unknown keys are refused. |
 | Offline | Installable PWA; every action is committed to IndexedDB before it reaches the engine, so a reload resumes exactly where you were. |
 
 ### Missions
@@ -316,7 +318,7 @@ So the edge belongs to whoever was positioned, with a stop, before the news. A t
 
 Outcomes are still scripted so each mission teaches its lesson. m01's breakout is back in the range 25 bars after it started in about 70% of seeds, and the denial gaps it down every time. m03 liquidates a 10× long in about 90% of seeds, and m05 margin-calls a writer of 300 puts in about 40%. Randomizing outcomes, such as a breakout that is sometimes real, is planned for a later difficulty mode.
 
-Historical packs (masked real markets from Market4Me) are specified but not built yet.
+Historical packs from Market4Me are specified but not built yet. The pack format they will use (signed manifest, zstd data, validation in the engine) is built, and players can already import their own CSV as a masked practice market (`engine/README.md`, "Scenario packs and CSV import").
 
 ## How the game works
 
@@ -365,7 +367,7 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v2, scoring v3), the five missions with first-start tutorials, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations) and the API (sync, replay, progress, export, erase).
+Built: the deterministic engine (perps, options, indicators, patterns, generator v2, scoring v3), the five missions with first-start tutorials, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
 
 Next:
 
@@ -374,7 +376,7 @@ Next:
 - More content toward the phase-2 target (12 missions, ≥4 regimes), campaign runs and the curriculum map.
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.
-- Historical packs from Market4Me, CSV import, curriculum map.
+- Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data), curriculum map.
 - Desktop client (C++20, Dear ImGui + SDL3), then iPad/iPhone (SwiftUI).
 
 ## Tests

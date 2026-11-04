@@ -91,9 +91,25 @@
 
 		<section class="panel">
 			<h2 class="panel-title">{t('debrief.reveal')}</h2>
-			<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
-			<h3>{t('debrief.scenario')}</h3>
-			<p class="reveal">{missionText(s.mission, L).reveal}</p>
+			{#if d.reveal}
+				<p data-testid="pack-reveal">
+					{t('debrief.revealPack', {
+						alias: d.alias,
+						pair: d.reveal.pair || '—',
+						asset: d.reveal.asset || '—',
+						venue: d.reveal.venue || '—',
+						from: d.reveal.periodFrom,
+						to: d.reveal.periodTo,
+						source: d.reveal.source
+					})}
+				</p>
+				<p class="muted small">{t('debrief.revealTransform', { text: d.reveal.transformation })}</p>
+				{#if d.reveal.gaps > 0}<p class="muted small">{t('debrief.revealGaps', { n: d.reveal.gaps })}</p>{/if}
+			{:else}
+				<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
+				<h3>{t('debrief.scenario')}</h3>
+				<p class="reveal">{missionText(s.mission, L).reveal}</p>
+			{/if}
 			<p class="muted small">{fmtPrice(d.startPrice, L)} → {fmtPrice(d.endPrice, L)}</p>
 		</section>
 	</div>

@@ -1,6 +1,7 @@
 #pragma once
 
-// Minimal JSON writer for the C ABI (output only; the engine never parses JSON).
+// Minimal JSON writer for the C ABI. Command inputs are never JSON; only pack manifests and import
+// metadata are read, by the strict reader in json_in.hpp.
 
 #include <cstdint>
 #include <string>

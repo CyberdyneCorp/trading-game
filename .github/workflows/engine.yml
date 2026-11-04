@@ -2,7 +2,7 @@ name: engine
 
 on:
   pull_request:
-    paths: ["engine/**", "bindings/**", "tools/check_engine_bans.py", ".github/workflows/engine.yml"]
+    paths: ["engine/**", "bindings/**", "tools/check_engine_bans.py", "tools/packer/**", ".github/workflows/engine.yml"]
   push:
     branches: [main]
 
@@ -78,6 +78,26 @@ jobs:
       - name: Python binding tests (cross-binding goldens)
         working-directory: bindings/python
         run: uv run --python 3.12 --with pytest pytest -q
+
+  # libFuzzer with ASan + UBSan on the untrusted-input parsers (CSV import, packs, JSON).
+  fuzz:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build clang-18
+      - name: Build fuzz targets
+        working-directory: engine
+        run: |
+          cmake -S . -B build/fuzz -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTRADELAB_BUILD_TESTS=OFF \
+            -DTRADELAB_BUILD_FUZZERS=ON -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18
+          cmake --build build/fuzz --target fuzz_csv fuzz_pack fuzz_json
+      - name: Fuzz 60 s each (seed corpora in engine/fuzz/corpus)
+        working-directory: engine
+        run: |
+          for t in csv pack json; do
+            mkdir -p "$RUNNER_TEMP/corpus-$t" && cp fuzz/corpus/$t/* "$RUNNER_TEMP/corpus-$t/"
+            build/fuzz/fuzz_$t -max_total_time=60 -max_len=20000 -timeout=10 "$RUNNER_TEMP/corpus-$t"
+          done
 
   lint:
     runs-on: ubuntu-24.04

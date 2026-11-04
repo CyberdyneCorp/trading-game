@@ -4,21 +4,28 @@
 
 import { EventNames } from './eventNames.ts';
 import { EngineClient } from '#lib/engine/client.ts';
+import type { CsvBuildResult } from '#lib/engine/protocol.ts';
 import type {
 	CommandResult,
+	CsvMeta,
+	CsvReport,
 	DebriefData,
 	GameState,
 	MissionInfo,
 	OrderSideName,
 	OrderTypeName,
-	OrderView
+	OrderView,
+	PackCheck,
+	TrustedKey
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
 import { stepsUntilNextQuestion } from './calibration.ts';
-import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress } from './storage.ts';
+import { t } from './i18n.svelte.ts';
+import { randomSeedBytes, trustedKeys } from './packs.ts';
+import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type StoredPack } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
 
-export type Screen = 'loading' | 'menu' | 'tutorial' | 'briefing' | 'terminal' | 'debrief';
+export type Screen = 'loading' | 'menu' | 'import' | 'tutorial' | 'briefing' | 'terminal' | 'debrief';
 
 type Action =
 	| { k: 'lev'; lev: number }
@@ -101,6 +108,13 @@ export class GameSession {
 	persisted = $state<boolean | null>(null);
 	/** Per-device progress: which mission tutorials were already shown. */
 	progress = $state<Progress>({ ...EMPTY_PROGRESS });
+	/** Menu-level problem (e.g. the saved run's pack was removed); cleared when a run starts. */
+	menuAlert = $state<string | null>(null);
+	/** Installed scenario packs (imported CSVs and loaded .tlpack files), verified by the engine. */
+	packs = $state<StoredPack[]>([]);
+
+	/** This device's signing identity for private imports (seed stays in IndexedDB). */
+	private device: { seedHex: string; key: TrustedKey } | null = null;
 
 	private engine: EngineClient | null = null;
 	private log: Action[] = [];
@@ -122,6 +136,7 @@ export class GameSession {
 			this.policy = info.version.executionPolicy;
 			await this.openStore();
 			await this.refreshSaved();
+			this.packs = (await this.store?.packs().catch(() => null)) ?? [];
 			this.progress = (await this.store?.progress().catch(() => null)) ?? { ...EMPTY_PROGRESS };
 			this.screen = 'menu';
 		} catch (e) {
@@ -162,29 +177,109 @@ export class GameSession {
 	/** Optional fixed seed (from `?seed=` in the URL) for reproducible sessions and tests. */
 	fixedSeed: number | null = null;
 
-	async startMission(missionId: string, seed = this.fixedSeed ?? Math.floor(Math.random() * 1_000_000_000)): Promise<void> {
+	private randomSeed(): number {
+		return this.fixedSeed ?? Math.floor(Math.random() * 1_000_000_000);
+	}
+
+	async startMission(missionId: string, seed = this.randomSeed()): Promise<void> {
 		await this.exclusive(async () => {
 			this.resetRun(missionId, seed);
 			this.state = await this.eng().request({ kind: 'start', missionId, seed });
-			this.runId = newRunId();
-			await this.store
-				?.createRun({
-					runId: this.runId,
-					missionId,
-					seed,
-					createdAt: Date.now(),
-					executionPolicy: this.policy,
-					journal: [],
-					questions: [],
-					stopWarnings: 0,
-					digest: this.state.digest,
-					status: 'active',
-					actions: 0
-				})
-				.catch(() => (this.durable = false));
-			void this.requestPersistence();
+			await this.createRunRecord(missionId, seed);
 			this.screen = this.needsTutorial(missionId) ? 'tutorial' : 'briefing';
 		});
+	}
+
+	/** Practice run on an installed pack (e.g. an imported CSV); the pack is verified again on start. */
+	async startPack(digest: string, seed = this.randomSeed()): Promise<void> {
+		const pack = this.packs.find((p) => p.digest === digest);
+		if (!pack) return;
+		await this.exclusive(async () => {
+			this.resetRun(pack.scenarioId, seed);
+			this.state = await this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
+			await this.createRunRecord(pack.scenarioId, seed, digest);
+			this.screen = 'briefing';
+		});
+	}
+
+	private async createRunRecord(missionId: string, seed: number, packDigest?: string): Promise<void> {
+		this.runId = newRunId();
+		await this.store
+			?.createRun({
+				runId: this.runId,
+				missionId,
+				seed,
+				createdAt: Date.now(),
+				executionPolicy: this.policy,
+				journal: [],
+				questions: [],
+				stopWarnings: 0,
+				digest: this.state?.digest ?? '',
+				status: 'active',
+				actions: 0,
+				...(packDigest ? { packDigest } : {})
+			})
+			.catch(() => (this.durable = false));
+		void this.requestPersistence();
+	}
+
+	// ---- scenario packs and CSV import (spec scenario-packs; web-client task 4.5) ----
+
+	openImport(): void {
+		this.screen = 'import';
+	}
+
+	private async deviceIdentity(): Promise<{ seedHex: string; key: TrustedKey }> {
+		if (this.device) return this.device;
+		const fresh = () => [...randomSeedBytes()].map((b) => b.toString(16).padStart(2, '0')).join('');
+		const seedHex = (await this.store?.deviceSeed(randomSeedBytes).catch(() => null)) ?? fresh();
+		this.device = { seedHex, key: await this.eng().request({ kind: 'deviceKey', seedHex }) };
+		return this.device;
+	}
+
+	/** Keys a pack may be signed with: pinned publishers plus this device (its own imports). */
+	private async trusted(): Promise<TrustedKey[]> {
+		return trustedKeys((await this.deviceIdentity()).key);
+	}
+
+	async validateCsv(csv: string, meta: CsvMeta): Promise<CsvReport> {
+		return this.eng().request({ kind: 'csvValidate', csv, meta: { ...meta } });
+	}
+
+	/** CSV -> private pack signed by this device, then verified and installed like any pack. */
+	async importCsv(csv: string, meta: CsvMeta, label: string): Promise<CsvBuildResult> {
+		const { seedHex } = await this.deviceIdentity();
+		const res = await this.eng().request({ kind: 'csvBuild', csv, meta: { ...meta }, seedHex });
+		if (!res.ok) return res;
+		const check = await this.installPack(res.pack, label);
+		return check.ok ? res : { ...res, ok: false, reason: check.reason };
+	}
+
+	/** Verify-then-install: only bytes the engine accepted are stored (by digest). */
+	async installPack(bytes: Uint8Array, label: string): Promise<PackCheck> {
+		const check = await this.eng().request({ kind: 'packValidate', pack: bytes, keys: await this.trusted() });
+		if (!check.ok || !check.pack) return check;
+		const s = check.pack;
+		const stored: StoredPack = {
+			digest: s.digest,
+			scenarioId: s.scenarioId,
+			label,
+			bytes,
+			private: s.private,
+			totalBars: s.totalBars,
+			warmupBars: s.warmupBars,
+			leverageCap: s.leverageCap,
+			gaps: s.gaps,
+			addedAt: Date.now()
+		};
+		await this.store?.savePack(stored).catch(() => (this.durable = false));
+		this.packs = [...this.packs.filter((p) => p.digest !== stored.digest), stored];
+		return check;
+	}
+
+	async removePack(digest: string): Promise<void> {
+		await this.store?.deletePack(digest).catch(() => (this.durable = false));
+		this.packs = this.packs.filter((p) => p.digest !== digest);
 	}
 
 	// Start/resume/commands share one engine run: never let two of them interleave
@@ -207,9 +302,15 @@ export class GameSession {
 		const run = await this.store?.activeRun();
 		if (!run) return;
 		const r = run.record;
+		const state = await this.startEngine(r.missionId, r.seed, r.packDigest);
+		if (!state) {
+			this.menuAlert = t('pack.missing');
+			this.saved = null;
+			return;
+		}
 		this.resetRun(r.missionId, r.seed);
 		this.runId = r.runId;
-		this.state = await this.eng().request({ kind: 'start', missionId: r.missionId, seed: r.seed });
+		this.state = state;
 		for (const a of run.actions) await this.exec(a, false);
 		// Keep the replayed history so the next action gets the right sequence number.
 		this.log = [...run.actions];
@@ -223,6 +324,14 @@ export class GameSession {
 		this.screen = this.state?.status === 'active' ? 'terminal' : 'debrief';
 		if (this.screen === 'debrief') await this.loadDebrief();
 		this.saved = null;
+	}
+
+	// A pack run restarts from its stored pack; null when the pack is no longer installed.
+	private async startEngine(missionId: string, seed: number, packDigest?: string): Promise<GameState | null> {
+		if (!packDigest) return this.eng().request({ kind: 'start', missionId, seed });
+		const pack = (await this.store?.pack(packDigest).catch(() => null)) ?? this.packs.find((p) => p.digest === packDigest);
+		if (!pack) return null;
+		return this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
 	}
 
 	/** A mission's tutorial is shown automatically only the first time it is started on this device. */
@@ -388,6 +497,7 @@ export class GameSession {
 	}
 
 	private resetRun(missionId: string, seed: number): void {
+		this.menuAlert = null;
 		this.missionId = missionId;
 		this.seed = seed;
 		this.log = [];
