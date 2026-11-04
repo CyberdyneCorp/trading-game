@@ -17,10 +17,16 @@ async function advance(page: Page, key = 'Space') {
 	await answerIfAsked(page);
 }
 
+/** Starts a mission from the menu: skips its tutorial (shown on first start) and opens the terminal. */
+async function startFromMenu(page: Page, index = 0) {
+	await page.getByRole('button', { name: /Iniciar missão/ }).nth(index).click();
+	await page.getByRole('button', { name: 'Pular tutorial' }).click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+}
+
 async function openTerminal(page: Page, seed: number) {
 	await page.goto(`/?seed=${seed}`);
-	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
-	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await startFromMenu(page);
 	await expect(page.locator('canvas').first()).toBeVisible();
 	await expect(page.getByRole('dialog', { name: /Pergunta de calibração/ })).toBeVisible(); // asked at the first decision
 	await answerIfAsked(page);
@@ -136,6 +142,38 @@ test('dragging a working STOP line moves the order; the wrong side of the price 
 	await dragY(page, x, Math.max(...again.ys), Math.min(...again.ys) - 10);
 	await expect(page.getByText(/dispararia na próxima abertura/)).toBeVisible();
 	await expect(orders.getByText(newId, { exact: true })).toBeVisible();
+});
+
+test('a mission tutorial is shown on first start only, can be paged, skipped and replayed from the briefing', async ({ page }) => {
+	await page.goto('/?seed=5');
+	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
+	await expect(page.getByTestId('tut-step')).toHaveText('1 de 5');
+	await expect(page.getByRole('heading', { name: 'Leia o gráfico' })).toBeVisible();
+	await page.getByRole('button', { name: /Próximo/ }).click();
+	await expect(page.getByRole('heading', { name: 'Long ou short' })).toBeVisible();
+	await page.keyboard.press('ArrowRight');
+	await expect(page.getByTestId('tut-step')).toHaveText('3 de 5');
+	await page.keyboard.press('ArrowLeft');
+	await expect(page.getByTestId('tut-step')).toHaveText('2 de 5');
+	for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /Próximo/ }).click();
+	await page.getByRole('button', { name: /Ir para o briefing/ }).click();
+	await expect(page.getByRole('button', { name: /Abrir terminal/ })).toBeVisible();
+
+	// Replay from the briefing; Esc skips back to it.
+	await page.getByRole('button', { name: /Tutorial/ }).click();
+	await expect(page.getByTestId('tut-step')).toHaveText('1 de 5');
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('button', { name: /Abrir terminal/ })).toBeVisible();
+
+	// Seen on this device: the next start (also after a reload) goes straight to the briefing.
+	await page.reload();
+	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
+	await expect(page.getByRole('button', { name: /Abrir terminal/ })).toBeVisible();
+	await expect(page.getByTestId('tut-step')).toHaveCount(0);
+	// Other missions still show theirs.
+	await page.getByRole('button', { name: /Voltar às missões/ }).click();
+	await page.getByRole('button', { name: /Iniciar missão/ }).nth(1).click();
+	await expect(page.getByRole('heading', { name: 'Funding' })).toBeVisible();
 });
 
 test('waiting the whole mission is not penalized (EDU02)', async ({ page }) => {
@@ -289,8 +327,7 @@ test('Space pressed while an order is in flight is queued, not lost', async ({ p
 
 test('options mission: buy a call from the chain with a plan, hold to expiry, see settlement', async ({ page }) => {
 	await page.goto('/?seed=12');
-	await page.getByRole('button', { name: /Iniciar missão/ }).nth(3).click();
-	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await startFromMenu(page, 3);
 	await answerIfAsked(page);
 	await expect(page.getByText(/PRÊMIOS SIMULADOS/).first()).toBeVisible();
 	await page.locator('.chain table').first().locator('tbody tr').nth(2).locator('td').nth(3).getByRole('button').click();
@@ -309,8 +346,7 @@ test('options mission: buy a call from the chain with a plan, hold to expiry, se
 
 test('regression: an options trade is listed in the debrief (was "you did not trade")', async ({ page }) => {
 	await page.goto('/?seed=12');
-	await page.getByRole('button', { name: /Iniciar missão/ }).nth(3).click();
-	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await startFromMenu(page, 3);
 	await answerIfAsked(page);
 	await page.locator('.chain table').first().locator('tbody tr').nth(2).locator('td').nth(6).getByRole('button').click();
 	await page.getByRole('button', { name: /Enviar ordem de opção/ }).click();

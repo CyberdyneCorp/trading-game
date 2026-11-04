@@ -24,6 +24,13 @@ export interface StoredRun<A, J, Q> {
 	actions: A[];
 }
 
+/** Per-device player progress (spec mission-tutorial; progression-rewards adds points later). */
+export interface Progress {
+	tutorialsSeen: string[];
+}
+
+export const EMPTY_PROGRESS: Progress = { tutorialsSeen: [] };
+
 const DB_NAME = 'tradelab';
 const DB_VERSION = 1;
 const LEGACY_KEY = 'tradelab.run.v1';
@@ -104,6 +111,18 @@ export class RunStore<A, J, Q> {
 		const actions: A[] = [];
 		for (let i = 0; i < rows.length && rows[i].seq === i; i++) actions.push(rows[i].action);
 		return { record, actions };
+	}
+
+	async progress(): Promise<Progress> {
+		const tx = this.db.transaction('meta', 'readonly');
+		const row = (await req(tx.objectStore('meta').get('progress'))) as ({ key: string } & Partial<Progress>) | undefined;
+		return { ...EMPTY_PROGRESS, ...row, tutorialsSeen: row?.tutorialsSeen ?? [] };
+	}
+
+	async saveProgress(p: Progress): Promise<void> {
+		const tx = this.db.transaction('meta', 'readwrite');
+		tx.objectStore('meta').put({ key: 'progress', ...p });
+		await done(tx);
 	}
 
 	/** Missions with at least one run played to the end (bankrupt runs do not count). */

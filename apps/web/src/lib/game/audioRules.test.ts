@@ -14,6 +14,7 @@ describe('moodFor', () => {
 	it('plays the menu theme outside the terminal (menu, briefing, debrief)', () => {
 		expect(moodFor('menu', null)).toBe('menu');
 		expect(moodFor('briefing', active())).toBe('menu');
+		expect(moodFor('tutorial', active())).toBe('menu');
 		expect(moodFor('debrief', active())).toBe('menu');
 	});
 
