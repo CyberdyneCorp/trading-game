@@ -22,7 +22,7 @@ Rebuild the engine (`npm run engine:build`) after any change under `engine/`.
 ```bash
 npm run check      # svelte-check (app + service worker)
 npm test           # Vitest unit tests (src/lib/game/*.test.ts)
-npm run test:e2e   # Playwright: builds, serves on :4173, runs e2e/ in Chromium
+npm run test:e2e   # Playwright: builds, serves on :4173 (override with E2E_PORT), runs e2e/ in Chromium
 ```
 
 `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chromium` reuses a local Chromium instead of `npx playwright install chromium`. CI (`.github/workflows/web.yml`) runs engine build, check, unit, build and E2E.
