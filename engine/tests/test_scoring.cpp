@@ -231,3 +231,65 @@ TEST_CASE("Regression: a written option bought back by a margin call exits as ma
   REQUIRE_FALSE(r.trades.empty());
   CHECK(r.trades[0].reason == ExitReason::MarginCall);
 }
+
+TEST_CASE("Regression: a plan whose order was rejected is not an oversized entry") {
+  // Before: an option order for 100,000 contracts was refused (not enough balance), but its plan
+  // stayed and the debrief warned that "an entry risked ~126000 cr" (-20 risk) for a trade that never
+  // happened. The retry with a small size is the entry that counts.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"}, {"100", "100", "100", "100"}});
+  add_options(sc, 3, {"100"}, false);
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Buy, nullptr, "126000", true, true).accepted);  // sent without a plan
+  CHECK_FALSE(d.option(1, OrderSide::Buy, "100000").accepted);
+  REQUIRE(d.plan(OrderSide::Buy, nullptr, "150", false, true).accepted);
+  REQUIRE(d.option(1, OrderSide::Buy, "10").accepted);
+  d.step(3);
+  const ScoreReport r = score_run(sc, d.state());
+  CHECK_FALSE(has(r, FindingCode::Oversized));
+  CHECK(r.risk.score == 100);
+}
+
+TEST_CASE("An accepted oversized entry is still flagged, also when sent without a plan") {
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "100", "100", "100"}});
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Buy, nullptr, "900", true).accepted);  // skipped plan keeps the ticket's estimate
+  REQUIRE(d.order(OrderType::Market, OrderSide::Buy, "10").accepted);
+  d.step(2);
+  const ScoreReport r = score_run(sc, d.state());
+  CHECK(has(r, FindingCode::Oversized));
+}
+
+TEST_CASE("Regression: an option margin call costs like a liquidation and is never 'good process'") {
+  // Before: writing 200 puts with a plan, margin-called for a large loss, kept risk at 100 and the
+  // debrief said "a loss with good process ... that is risk management working".
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"},
+                               {"60", "60", "50", "50"}, {"50", "50", "50", "50"}, {"50", "50", "50", "50"}});
+  add_options(sc, 4, {"100"}, true);
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Sell, nullptr, "150", false, true).accepted);
+  REQUIRE(d.option(2, OrderSide::Sell, "200").accepted);
+  d.step(3);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.net_pnl.raw < 0);
+  CHECK(r.risk.score <= 60);
+  CHECK_FALSE(has(r, FindingCode::GoodProcessLoss));
+  CHECK(has(r, FindingCode::MarginCalled));
+  CHECK(r.lesson == LessonCode::Risk);
+}
+
+TEST_CASE("Regression: a loss is not 'good process' when one of the trades had no plan") {
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "100", "94", "95"},
+                               {"95", "95", "95", "95"}, {"95", "100", "95", "100"}, {"100", "100", "90", "90"}, {"90", "90", "90", "90"}});
+  Driver d(sc);
+  d.plan(OrderSide::Buy, "95", "50");
+  d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "95", "110");
+  d.step(4);
+  REQUIRE(d.state().position.flat());
+  d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "91", "120");  // no plan this time
+  d.step(2);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 2);
+  REQUIRE(r.net_pnl.raw < 0);
+  CHECK_FALSE(has(r, FindingCode::GoodProcessLoss));
+}

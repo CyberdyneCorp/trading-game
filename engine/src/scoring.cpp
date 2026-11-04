@@ -1,6 +1,8 @@
 #include "tradelab/scoring.hpp"
 
 #include <algorithm>
+#include <optional>
+#include <utility>
 
 namespace tradelab {
 namespace {
@@ -171,10 +173,14 @@ struct Facts {
   std::uint32_t planned = 0;
   std::uint32_t planned_with_invalidation = 0;
   std::vector<const Event*> liquidations;
+  std::vector<const Event*> margin_calls;  // forced buy-backs of written options: the options' liquidation
   std::vector<const Event*> gap_stops;
   std::uint32_t ambiguous = 0;
   std::uint32_t capacity = 0;
-  const PlanRecord* oversized = nullptr;
+  // First trade that actually happened with a planned risk above 2% of initial capital. Judged per
+  // trade, from the plan matched to its entry: a plan whose order was rejected is not a trade.
+  std::optional<std::pair<std::uint32_t, Money>> oversized;  // entry step, planned risk
+  bool all_planned = true;  // every trade had a (non-skipped) plan
 };
 
 bool grows_exposure(std::int64_t pos, std::int64_t q) { return pos == 0 || (q > 0) == (pos > 0) || abs64(q) > abs64(pos); }
@@ -213,6 +219,7 @@ void count_fills(const RunState& st, Facts& f) {
       f.liquidations.push_back(&e);
       pos = 0;
     }
+    if (option_fill(e) && e.order_id == 0) f.margin_calls.push_back(&e);  // a forced buy-back has no order
     if (!perp_fill(e)) continue;
     const std::int64_t q = sign_of(e.side) * e.qty.raw;
     note_fill(st, e, grows_exposure(pos, q), f);
@@ -220,16 +227,37 @@ void count_fills(const RunState& st, Facts& f) {
   }
 }
 
+// The risk declared for a trade's entry: the latest plan of the same kind (planned or sent without
+// a plan, which still carries the ticket's estimate) recorded since the previous trade ended. A
+// retry after a rejected order records a newer plan, which supersedes the rejected attempt's.
+Money entry_risk(const RunState& st, const TradeRow& t, std::uint32_t after) {
+  const PlanRecord* latest = nullptr;
+  for (const PlanRecord& p : st.plans) {
+    if (p.option == (t.series != 0) && p.step <= t.entry_step && p.step >= after) latest = &p;
+  }
+  return latest != nullptr ? latest->planned_risk : Money{};
+}
+
+void trade_facts(const Scenario& sc, const RunState& st, Facts& f) {
+  const std::int64_t limit = sc.mission.initial_balance.raw / 50;  // 2% of initial capital
+  std::uint32_t after = 0;
+  for (const TradeRow& t : build_trades(sc, st)) {
+    const Money risk = entry_risk(st, t, after);
+    if (!f.oversized && risk.raw > limit) f.oversized = std::make_pair(t.entry_step, risk);
+    f.all_planned = f.all_planned && t.planned_risk.raw > 0;
+    after = t.exit_step.value_or(after);
+  }
+}
+
 Facts collect(const Scenario& sc, const RunState& st) {
   Facts f;
   count_fills(st, f);
   for (const CommandRecord& c : st.command_log) f.stop_warnings += c.result.warning == Reason::StopBeyondLiquidation ? 1 : 0;
-  const std::int64_t limit = sc.mission.initial_balance.raw / 50;  // 2% of initial capital
   for (const PlanRecord& p : st.plans) {
     f.planned += p.skipped ? 0 : 1;
     f.planned_with_invalidation += !p.skipped && p.invalidation.raw > 0 ? 1 : 0;
-    if (f.oversized == nullptr && p.planned_risk.raw > limit) f.oversized = &p;
   }
+  trade_facts(sc, st, f);
   return f;
 }
 
@@ -238,9 +266,9 @@ Facts collect(const Scenario& sc, const RunState& st) {
 std::int32_t risk_score(const Scenario& sc, const RunState& st, const Facts& f) {
   if (f.entries == 0 && f.liquidations.empty()) return 100;
   std::int32_t s = 100;
-  if (!f.liquidations.empty()) s -= 40;
+  if (!f.liquidations.empty() || !f.margin_calls.empty()) s -= 40;  // scoring v3: a margin call counts like a liquidation
   s -= static_cast<std::int32_t>(std::min<std::uint32_t>(40, f.unprotected * 20));
-  if (f.oversized != nullptr) s -= 20;
+  if (f.oversized) s -= 20;
   if (f.stop_warnings > 0) s -= 15;
   if (st.metrics.max_drawdown.raw * 5 > sc.mission.initial_balance.raw) s -= 15;  // > 20%
   return std::max(0, s);
@@ -311,17 +339,24 @@ void risk_findings(const RunState& st, const Facts& f, ScoreReport& r) {
   for (const Event* l : f.liquidations) {
     r.findings.push_back(mk(FindingCode::Liquidated, FindingTone::Bad, l->step, 0, l->price, Price{}, l->amount));
   }
+  for (const Event* m : f.margin_calls) {
+    r.findings.push_back(mk(FindingCode::MarginCalled, FindingTone::Bad, m->step, 0, m->price, Price{}, Money::from_raw(-m->pnl.raw)));
+  }
   if (f.stop_warnings > 0) add(r, FindingCode::StopBeyondLiq, FindingTone::Bad);
   if (f.unprotected > 0) r.findings.push_back(mk(FindingCode::NoStop, FindingTone::Warn, 0, f.unprotected));
-  if (f.oversized != nullptr) {
-    r.findings.push_back(mk(FindingCode::Oversized, FindingTone::Warn, f.oversized->step, 0, Price{}, Price{}, f.oversized->planned_risk));
+  if (f.oversized) {
+    r.findings.push_back(mk(FindingCode::Oversized, FindingTone::Warn, f.oversized->first, 0, Price{}, Price{}, f.oversized->second));
   }
 }
 
 void outcome_findings(const Facts& f, ScoreReport& r) {
   const bool planned = f.planned > 0;
   if (f.entries == 0) add(r, FindingCode::Waited, FindingTone::Good);
-  if (r.net_pnl.raw < 0 && planned && f.unprotected == 0 && f.liquidations.empty()) add(r, FindingCode::GoodProcessLoss, FindingTone::Good);
+  // Credit a loss to good process only when nothing in the process went wrong (scoring v3: also no
+  // oversized entry, no option margin call, no stop beyond liquidation, and a plan for every trade).
+  const bool clean = planned && f.all_planned && f.unprotected == 0 && f.liquidations.empty() && f.margin_calls.empty() &&
+                     !f.oversized && f.stop_warnings == 0;
+  if (r.net_pnl.raw < 0 && clean) add(r, FindingCode::GoodProcessLoss, FindingTone::Good);
   if (r.net_pnl.raw > 0 && (!planned || f.unprotected > 0)) add(r, FindingCode::LuckyWin, FindingTone::Warn);
   if (f.entries > 0 && !planned) add(r, FindingCode::NoPlan, FindingTone::Warn);
 }
@@ -342,10 +377,10 @@ bool has(const ScoreReport& r, FindingCode c) {
 }
 
 LessonCode pick_lesson(const ScoreReport& r) {
-  if (has(r, FindingCode::Liquidated) || has(r, FindingCode::StopBeyondLiq) || has(r, FindingCode::Bankrupt)) {
-    return LessonCode::Futures2;
-  }
-  if (has(r, FindingCode::NoStop) || has(r, FindingCode::Oversized)) return LessonCode::Risk;
+  if (has(r, FindingCode::Liquidated) || has(r, FindingCode::StopBeyondLiq)) return LessonCode::Futures2;
+  // A margin call on written options (even one that ends in bankruptcy) is a sizing lesson.
+  if (has(r, FindingCode::NoStop) || has(r, FindingCode::Oversized) || has(r, FindingCode::MarginCalled)) return LessonCode::Risk;
+  if (has(r, FindingCode::Bankrupt)) return LessonCode::Futures2;
   if (has(r, FindingCode::FundingCost)) return LessonCode::Futures3;
   if (has(r, FindingCode::GapSlippage)) return LessonCode::Orders;
   if (has(r, FindingCode::NoPlan)) return LessonCode::Structure;

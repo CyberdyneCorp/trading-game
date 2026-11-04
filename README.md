@@ -339,7 +339,7 @@ stateDiagram-v2
 
 | Dimension | Weight | What it measures |
 |---|---|---|
-| Risk | 35 | Penalties for liquidation, entries without a stop, planned risk above 2% of capital, stops beyond the liquidation price, drawdown above 20% |
+| Risk | 35 | Penalties for a liquidation or an option margin call, entries without a stop, trades entered with planned risk above 2% of capital, stops beyond the liquidation price, drawdown above 20% |
 | Plan | 25 | Share of entries covered by a plan, and plans that name an invalidation level |
 | Understanding | 25 | Reserved for lesson questions; not scored yet |
 | Calibration | 15 | 100 × (1 − 2 × Brier score) of your probability answers, floored at 0 (needs 3+ resolved answers). Always answering 50% scores 50: no information is neutral, not a bonus |

@@ -7,6 +7,7 @@
 	import { AutoPlay, type PauseReason } from '#lib/game/autoplay.svelte.ts';
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
+	import { keepsKey } from '#lib/game/hotkeys.ts';
 	import { exitOnValidSide, remainingQty } from './chartDrag.ts';
 	import { num, priceToTick } from '#lib/game/format.ts';
 	import EventFeed from './EventFeed.svelte';
@@ -181,8 +182,7 @@
 	}
 
 	function typing(e: KeyboardEvent): boolean {
-		const el = e.target as HTMLElement | null;
-		return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+		return keepsKey(e.target as HTMLElement | null, e.key);
 	}
 
 	// Advance (Space) never shares a key with submission (Enter inside the ticket).

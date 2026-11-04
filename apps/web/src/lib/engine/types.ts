@@ -247,7 +247,8 @@ export interface EngineFinding {
 		| 'lucky_win'
 		| 'no_plan'
 		| 'oversized'
-		| 'bankrupt';
+		| 'bankrupt'
+		| 'margin_called';
 	tone: 'good' | 'warn' | 'bad' | 'info';
 	step: number;
 	count: number;

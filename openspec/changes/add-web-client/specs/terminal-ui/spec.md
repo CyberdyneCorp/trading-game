@@ -35,7 +35,7 @@ Submit order, close position and advance market SHALL be visually and spatially 
 - **THEN** the UI SHALL explain the required and available margin
 
 ### Requirement: Order ticket for perpetuals
-The ticket SHALL accept size as quantity, notional, % of equity or risk budget; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
+The ticket SHALL accept size as quantity, notional, % of equity or risk budget; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. With a position open, a leverage different from the position's SHALL show that sending re-margins the open position too, with its liquidation price before and after (as a warning when it moves closer). The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
 
 #### Scenario: Live recalculation
 - **WHEN** the player changes leverage from 3× to 10×
@@ -102,7 +102,7 @@ The terminal SHALL offer an auto-advance mode (button and `A`) that advances one
 - **THEN** no bar SHALL advance until it is answered, after which auto-advance SHALL continue
 
 ### Requirement: Option chain and option ticket
-The option chain SHALL list listed series by expiry and strike with bid, ask, IV and delta, labeled "simulated premiums". The option ticket SHALL show premium, max loss for buys, margin for writes, breakeven, a payoff-at-expiry diagram and Greeks before submission.
+The option chain SHALL list listed series by expiry and strike with bid, ask, IV and delta, labeled "simulated premiums". The option ticket SHALL show premium, max loss for buys, margin for writes, breakeven, a payoff-at-expiry diagram and Greeks before submission. When the total premium of a buy, or the margin of a write, exceeds the available balance, the ticket SHALL say so and SHALL NOT submit.
 
 #### Scenario: Payoff preview
 - **WHEN** the player selects a long put

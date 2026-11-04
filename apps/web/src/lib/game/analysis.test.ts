@@ -15,3 +15,13 @@ describe('describeFinding', () => {
 		expect(en).not.toMatch(/plan/i);
 	});
 });
+
+describe('finding numbers follow the locale', () => {
+	it('regression: a margin call reads 14,38 / 3.900,00 in PT-BR (was 14.38 / 3900.00)', () => {
+		const mc: EngineFinding = { code: 'margin_called', tone: 'bad', step: 105, count: 0, price: '14.38000000', requested: '0', amount: '3900.00000000' };
+		expect(describeFinding(mc, 'pt-BR')).toContain('a 14,38, perda de 3.900,00 cr');
+		expect(describeFinding(mc, 'en')).toContain('at 14.38, a loss of 3,900.00 cr');
+		const big: EngineFinding = { ...oversized, amount: '4574.25000000' };
+		expect(describeFinding(big, 'pt-BR')).toContain('~4.574 cr');
+	});
+});

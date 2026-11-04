@@ -230,7 +230,8 @@ void write_calibration_state(JsonOut& j, const Scenario& sc, const RunState& st)
 const char* finding_name(FindingCode c) {
   static constexpr const char* kNames[] = {"waited",          "liquidated", "stop_beyond_liq", "no_stop",   "gap_slippage",
                                            "funding_cost",    "ambiguous",  "capacity",        "good_process_loss",
-                                           "lucky_win",       "no_plan",    "oversized",       "bankrupt"};
+                                           "lucky_win",       "no_plan",    "oversized",       "bankrupt",
+                                           "margin_called"};
   return kNames[static_cast<std::size_t>(c)];
 }
 
