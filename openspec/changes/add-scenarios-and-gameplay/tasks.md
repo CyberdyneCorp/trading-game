@@ -30,8 +30,8 @@
 - [ ] 4.2 Plan/journal/wait decision records in the command log — plans and calibration answers are engine commands; every advance is a logged client action, but there is no explicit engine `wait` record and the debrief only reports "waited" when the whole mission had no entries
 - [x] 4.3 `engine/scoring`: dimensions, renormalization, Brier, golden tests EDU01/EDU02 (`engine/src/scoring.cpp`, `engine/tests/test_scoring.cpp`)
 - [ ] 4.4 Debrief aggregates + Greek attribution + next-lesson mapping — done: realized P&L, fees, funding, option realized, max drawdown, peak leverage, buy-and-hold and flat comparison, per-trade R table (perpetual and option trades, expiry included), findings, next-lesson codes (Futures II, Risk, Futures III, Orders, Structure, Evaluation); engine also returns turnover and minimum liquidation distance but the web debrief does not show them. Pending: separate spread/slippage line, Greek attribution, "leverage that would have kept the stop in front of liquidation", theta/IV → Options lesson mapping
-- [ ] 4.5 Understanding dimension from structured answers and human-reviewed rubrics (scoring v1 always reports it non-applicable)
-- [ ] 4.6 Risk dimension inputs beyond scoring v1: adherence to planned risk, leverage vs stop distance, liquidation distance kept, drawdown vs a mission-declared budget
+- [ ] 4.5 Understanding dimension from structured answers and human-reviewed rubrics (scoring v3 still always reports it non-applicable)
+- [ ] 4.6 Risk dimension inputs beyond scoring v1: adherence to planned risk, leverage vs stop distance, liquidation distance kept, drawdown vs a mission-declared budget — done in v3: planned risk judged per executed trade (rejected orders no longer count), option margin calls penalized like liquidations; pending: leverage vs stop distance, liquidation distance kept, mission-declared drawdown budget
 - [ ] 4.7 Campaign runs: capital carried between missions, bankruptcy ends the campaign run (single-mission game-over screen → debrief is done)
 - [ ] 4.8 Assisted practice: rewind / change seed as a new attempt flagged `assisted`, excluded from progress
 

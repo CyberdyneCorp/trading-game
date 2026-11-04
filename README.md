@@ -80,10 +80,10 @@ mindmap
 
 | Area | Details |
 |---|---|
-| Missions | 5 synthetic missions (table below). Each has a first-start tutorial, a briefing, objectives, a leverage cap and a "what was really going on" reveal in the debrief. |
+| Missions | 5 synthetic missions (table below). Each has a first-start tutorial, a briefing, objectives, a leverage cap and a "what was really going on" reveal in the debrief. Missions played to the end are marked Completed in the menu. |
 | Perpetual futures | Isolated margin, leverage up to the mission cap, funding every N bars, mark-to-market, liquidation, bankruptcy (game over when you can't afford the minimum order). |
 | Options | Cash-settled European calls/puts priced with Black-76 on the perpetual, with an IV model, Greeks, option chain, writing with margin and margin calls. |
-| Orders | Market / limit / stop entries, reduce-only stop-loss and take-profit (brackets, OCO), trailing stop, costs (fees, spread, slippage, bar-volume capacity). |
+| Orders | Market / limit / stop entries, reduce-only stop-loss and take-profit (brackets, OCO), trailing stop, costs (fees, spread, slippage, bar-volume capacity). The ticket warns when a new leverage would re-margin the open position (liquidation before → after), and the option ticket refuses a buy whose premium, or a write whose margin, exceeds the available balance. |
 | Stop/target tools | Stop presets (1×/2× ATR, swing low/high, 1%/2%), targets at 1R/2R/3R, "mark on chart" picking, stop/target lines draggable on the chart (a working STOP/TP is moved by replace-then-cancel), live reward/risk and an unprotected-position warning. |
 | Indicators | SMA20, EMA50, VWAP (24-bar sessions) and Bollinger(20,2) overlays; RSI14, MACD(12,26,9) and ADX14/±DI panes; ATR14. All computed in the engine from closed bars only. |
 | Candle patterns | 29 single- and multi-candle patterns detected in context (e.g. hammer vs hanging man), marked on the chart and linked to a cheat sheet that also covers 9 chart patterns. Each candle drawing animates the textbook outcome (confirmation candle, then follow-through) and the failure (close through the stop). |
@@ -361,13 +361,17 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 | `add-web-client` | web-client, terminal-ui |
 | `add-cyberdyne-identity-and-backend` | player-identity, game-api, offline-sync |
 | `add-native-clients` | desktop-client, ios-client |
+| `add-advisor-intel-tutorials` | mission-tutorial, advisor, progression-rewards |
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v2, scoring), the five missions, the web client (offline PWA) and the API (sync, replay, progress, export, erase).
+Built: the deterministic engine (perps, options, indicators, patterns, generator v2, scoring v3), the five missions with first-start tutorials, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations) and the API (sync, replay, progress, export, erase).
 
 Next:
 
+- Advisor with points earned by disciplined trades, then legal intel perks unlocked by finished missions (`add-advisor-intel-tutorials`, phases 2–3).
+- Debrief gaps: option P&L attribution by Greek, separate spread/slippage line, turnover and minimum liquidation distance, the leverage that would have kept the stop in front of liquidation.
+- More content toward the phase-2 target (12 missions, ≥4 regimes), campaign runs and the curriculum map.
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.
 - Historical packs from Market4Me, CSV import, curriculum map.
