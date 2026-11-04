@@ -18,6 +18,7 @@ endif()
 
 add_library(tradelab_engine STATIC
   src/accounting.cpp
+  src/advisor.cpp
   src/c_api.cpp
   src/checkpoint.cpp
   src/advance.cpp
@@ -66,7 +67,7 @@ if(EMSCRIPTEN)
   target_link_options(tradelab_wasm PRIVATE
     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createTradelab -sSINGLE_FILE=1
     -sENVIRONMENT=web,worker -sALLOW_MEMORY_GROWTH=1 -sFILESYSTEM=0
-    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_missions','_tl_run_create','_tl_run_destroy','_tl_place_order','_tl_place_order_ex','_tl_place_option_order','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_missions','_tl_run_create','_tl_run_create_ex','_tl_run_destroy','_tl_request_advice','_tl_place_order','_tl_place_order_ex','_tl_place_option_order','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_malloc','_free']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString']")
 endif()
 
@@ -83,6 +84,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/main.cpp
     tests/test_fixed.cpp
     tests/test_det_math.cpp
+    tests/test_advisor.cpp
     tests/test_brackets.cpp
     tests/test_checkpoint.cpp
     tests/test_engine.cpp

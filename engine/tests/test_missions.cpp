@@ -97,6 +97,9 @@ TEST_CASE("C ABI: same mission, seed and commands produce identical digests") {
 // Policy v10 (news priced on arrival, per-seed schedule) regenerates every mission market: both digests.
 // Policy v7 changed m05 (jump before the first expiry): new m05 digests; m01 only through the policy version.
 // Policy v4 adds plans and calibration answers to the state digest (event digests unchanged).
+// Policy v11 appends start options and advice to the state digest: m01 and m05 state digests changed
+// through the version and the (default) new fields only; their event digests are unchanged, so a
+// default run executes exactly as before. The advisor golden is in test_advisor.cpp.
 TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run* run = tl_run_create("m01-false-breakout", 2026);
   tl_set_leverage(run, 1, 5);
@@ -112,7 +115,7 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"61e5b36343d12afd91e378c53afcfcb0e1a71889509d5673f8d038d02a40e69a\","
+        "\"digest\":\"42fb769798588fd66737e4c975dbbd0f9e4fc56ea9d14ae70a2d95b2853533ad\","
         "\"eventsDigest\":\"ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19\"}");
 }
 
@@ -144,7 +147,7 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"b6afc2c6f265012541ae5c3c4773114641418972b926f9bd922cad9a9904b17a\","
+        "\"digest\":\"b7c7df0c88e1f41eeb2aef2bafc068e4698f25814b0f77f54b6fdc33e502b9ff\","
         "\"eventsDigest\":\"908ac0b1ffd77daf85c8c88e59123a55cb3ddc5ab1509965ae294ae637c4c8aa\"}");
 }
 
@@ -208,7 +211,7 @@ TEST_CASE("C ABI: plans, answers and the score report in the debrief") {
   tl_place_order_ex(run, 4, 0, 0, "10", nullptr, 0, "95.5", "110", nullptr);
   tl_advance(run, 1000);
   const std::string d = tl_debrief(run);
-  CHECK(d.find("\"score\":{\"version\":5") != std::string::npos);
+  CHECK(d.find("\"score\":{\"version\":6") != std::string::npos);
   CHECK(d.find("\"trades\":[{\"n\":1") != std::string::npos);
   CHECK(d.find("\"stop\":\"95.5") != std::string::npos);
   CHECK(d.find("\"safeLeverage\":") != std::string::npos);

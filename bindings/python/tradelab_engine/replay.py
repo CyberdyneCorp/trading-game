@@ -12,7 +12,10 @@ the web client does, so a replay reproduces the client's run bit for bit):
   {"k":"ans","pBp":6000,"skipped":false}
   {"k":"cancel","id":3}
   {"k":"close"}
+  {"k":"advice"}
   {"k":"adv","n":5}
+
+Start options (advice allowance, perks) are not actions: pass the run record's options to replay().
 """
 
 from __future__ import annotations
@@ -20,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence
 
-from .engine import Run
+from .engine import Run, RunOptions
 
 _ORDER_TYPES = {"market": 0, "limit": 1, "stop_market": 2, "take_profit": 3, "trailing_stop": 4}
 _SIDES = {"buy": 0, "sell": 1}
@@ -67,6 +70,7 @@ _HANDLERS: dict[str, Callable[[Run, int, Mapping[str, Any]], Any]] = {
     "ans": lambda run, cid, a: run.answer_question(cid, int(a.get("pBp", 0)), bool(a.get("skipped"))),
     "cancel": lambda run, cid, a: run.cancel(cid, int(a["id"])),
     "close": lambda run, cid, a: run.close_position(cid),
+    "advice": lambda run, cid, a: run.request_advice(cid),
 }
 ACTION_KINDS = frozenset([*_HANDLERS, "adv"])
 
@@ -100,9 +104,10 @@ def _apply(run: Run, a: Mapping[str, Any], cid: int) -> tuple[Any, int]:
     return handler(run, cid, a), cid + 1
 
 
-def replay(mission_id: str, seed: int, actions: Sequence[Mapping[str, Any]]) -> ReplayResult:
+def replay(mission_id: str, seed: int, actions: Sequence[Mapping[str, Any]],
+           options: RunOptions | None = None) -> ReplayResult:
     """Re-simulates a run from scratch and returns its final state (and debrief when finished)."""
-    with Run(mission_id, seed) as run:
+    with Run(mission_id, seed, options) as run:
         cid = 1
         results: list[Any] = []
         for a in actions:

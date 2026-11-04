@@ -48,6 +48,8 @@
 		preview = $bindable(null),
 		stopInput = $bindable(''),
 		tpInput = $bindable(''),
+		sizeBy = $bindable('risk'),
+		qtyInput = $bindable('10'),
 		onSubmit,
 		onPick
 	}: {
@@ -57,6 +59,9 @@
 		/** Stop and target fields; bindable so dragging their lines on the chart edits them. */
 		stopInput?: string;
 		tpInput?: string;
+		/** Sizing mode and quantity; bindable so the advisor's suggested size can be applied. */
+		sizeBy?: 'qty' | 'risk';
+		qtyInput?: string;
 		onSubmit: (d: OrderDraft) => void;
 		onPick?: (set: (price: number) => void) => void;
 	} = $props();
@@ -76,8 +81,6 @@
 	const bars = $derived(s.bars.map((b) => b.slice(0, 5).map(Number) as BarTuple));
 
 	let type = $state<'market' | 'limit' | 'stop_market'>('market');
-	let sizeBy = $state<'qty' | 'risk'>('risk');
-	let qtyInput = $state('10');
 	let riskPct = $state(1);
 	let priceInput = $state('');
 	let leverage = $state(1);

@@ -23,6 +23,10 @@ const char* tl_missions(void);
 
 /* Returns NULL for an unknown mission id. */
 tl_run* tl_run_create(const char* mission_id, uint32_t seed);
+/* With start options (policy v11): advice allowance, fast-wire lead in bars (0..255), calendar on/off.
+ * tl_run_create(m, s) == tl_run_create_ex(m, s, 0, 0, 0). */
+tl_run* tl_run_create_ex(const char* mission_id, uint32_t seed, uint32_t advice_allowance, uint32_t news_lead,
+                         int32_t calendar);
 void tl_run_destroy(tl_run* run);
 
 const char* tl_place_order(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
@@ -47,6 +51,10 @@ const char* tl_record_plan(tl_run* run, uint32_t client_id, int32_t side, int32_
                            int32_t confidence_pct, const char* planned_risk);
 /* Calibration answer for the question due now: probability in basis points (0..10000). */
 const char* tl_answer_question(tl_run* run, uint32_t client_id, int32_t p_bp, int32_t skipped);
+
+/* Advisor read of the visible market at the current step; uses one unit of the allowance.
+ * Rejected with no_advice_left (and no state change) when the allowance is used up. */
+const char* tl_request_advice(tl_run* run, uint32_t client_id);
 
 /* Checkpoint of the full run state as {"checkpoint":"<hex>","step":n}. */
 const char* tl_checkpoint(tl_run* run);

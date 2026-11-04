@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { describeFinding, describeLesson } from '#lib/game/analysis.ts';
+	import { pctFromBp } from '#lib/game/advisor.ts';
 	import { fmtLeverageBp, fmtLiqDistance, greekRows, stopAdvice } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
@@ -55,6 +56,8 @@
 			.filter((x) => x.text)
 			.sort((x, y) => x.step - y.step)
 	);
+	const points = $derived({ used: s.advisor.advice.length, earned: d.advisorPointsEarned, balance: session.progress.advisorPoints });
+	const judged = $derived(d.advice.filter((x) => x.outcome === 'right' || x.outcome === 'wrong').length);
 	const dimLabels = { risk: 'debrief.risk', plan: 'debrief.plan', understanding: 'debrief.understanding', calibration: 'debrief.calibration' } as const;
 </script>
 
@@ -180,6 +183,37 @@
 				? t('debrief.calibrationLine', { n: cal.resolved, brier: fmtNum(cal.brier ?? 0, L, 3) })
 				: t('debrief.calibrationNa')}
 		</p>
+	</section>
+
+	<section class="panel" data-testid="debrief-advisor">
+		<h2 class="panel-title">{t('debrief.advisor')}</h2>
+		{#if d.advice.length === 0}
+			<p class="muted">{t('debrief.adviceNone')}</p>
+		{:else}
+			<table class="trades">
+				<thead>
+					<tr>
+						<th>{t('debrief.adviceStep')}</th><th>{t('debrief.adviceStance')}</th>
+						<th class="num">{t('debrief.adviceConfidence')}</th><th>{t('debrief.adviceOutcome')}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each d.advice as row, i (i)}
+						<tr>
+							<td>{row.step}</td>
+							<td class={row.stance === 'long' ? 'up' : row.stance === 'short' ? 'down' : 'attention'}>{t(`adv.stance.${row.stance}`)}</td>
+							<td class="num">{pctFromBp(row.confidenceBp)}%</td>
+							<td class={row.outcome === 'right' ? 'up' : row.outcome === 'wrong' ? 'down' : 'muted'}>{t(`debrief.outcome.${row.outcome}`)}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+			{#if d.adviceHitBp != null}
+				<p class="muted">{t('debrief.adviceHit', { pct: pctFromBp(d.adviceHitBp), n: judged })}</p>
+			{/if}
+		{/if}
+		<p data-testid="debrief-points">{t('debrief.points', points)}</p>
+		<p class="muted small">{t('debrief.pointsHow')}</p>
 	</section>
 
 	<section class="panel chart-panel">

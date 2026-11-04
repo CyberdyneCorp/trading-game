@@ -739,6 +739,46 @@ test('regression: at 1024px the chart and right rail sit side by side without ov
 	expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
 });
 
+test('advisor: a read costs a point, fills the ticket without sending, runs out at 0; the debrief lists it and settles once', async ({ page }) => {
+	await openTerminal(page, 15); // m01 seed 15: the first read is a short with a size
+	const points = page.getByTestId('advisor-points');
+	const ask = page.getByRole('button', { name: /Pedir leitura/ });
+	await expect(points).toHaveText('Pontos: 3');
+	await ask.click();
+	await expect(points).toHaveText('Pontos: 2');
+	const advice = page.getByTestId('advice');
+	await expect(advice.getByText('SHORT')).toBeVisible();
+	await expect(advice.getByText(/confiança 58%/)).toBeVisible();
+	await expect(advice.getByText(/Tendência de baixa/)).toBeVisible();
+	await expect(advice.getByText(/não uma instrução/)).toBeVisible();
+	await expect(ask).toBeDisabled(); // one read per bar
+
+	await page.getByRole('button', { name: /Levar stop e tamanho ao ticket/ }).click();
+	await expect(page.getByTestId('ticket-stop').locator('input')).toHaveValue('103.67');
+	await expect(page.locator('label:has-text("Quantidade") input')).toHaveValue('41.8');
+	await expect(page.getByText(/Nenhuma ordem foi enviada/)).toBeVisible();
+	await expect(page.locator('.orders').getByText('STOP')).toHaveCount(0); // nothing was placed
+
+	for (const left of ['Pontos: 1', 'Pontos: 0']) {
+		await advance(page);
+		await ask.click();
+		await expect(points).toHaveText(left);
+	}
+	await advance(page);
+	await expect(ask).toBeDisabled(); // out of points
+
+	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída/).count()); i++) await advance(page, 'Shift+Space');
+	const section = page.getByTestId('debrief-advisor');
+	await expect(section.locator('tbody tr')).toHaveCount(3);
+	await expect(section.locator('tbody tr').first()).toContainText(/certo|errado/);
+	await expect(page.getByTestId('debrief-points')).toHaveText('Pontos do assessor: usados 3, ganhos 2. Saldo: 2.');
+
+	// The balance changed once: after a reload the next run starts with it.
+	await page.reload();
+	await startFromMenu(page, 1);
+	await expect(page.getByTestId('advisor-points')).toHaveText('Pontos: 2');
+});
+
 test('regression: PT-BR decimal commas in the ticket stop and the plan; an open trade nets its unrealized P&L', async ({ page }) => {
 	// Before: "95,56" became NaN (plan coherence 70, timeline "invalidação NaN"), the ticket stop "95,26"
 	// zeroed the quantity with a wrong-side warning, and an open trade's Net left out its unrealized P&L.

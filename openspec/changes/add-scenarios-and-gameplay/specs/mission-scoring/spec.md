@@ -7,7 +7,7 @@ Defines how a mission attempt is graded so that the score rewards risk disciplin
 ## ADDED Requirements
 
 ### Requirement: Score dimensions
-The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 5) from the command log with integer arithmetic only.
+The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 6) from the command log with integer arithmetic only.
 
 Entries are exposure-increasing fills of the perpetual and of each option series (buying or writing to open). Plan coherence SHALL be non-applicable when the attempt has no entries. Otherwise, in scoring versions 1 and 2, it SHALL be `70 × min(plans, entries) / entries + 30 × plans with an invalidation level / plans`, where skipped plans do not count as plans, and 0 when no plan was recorded.
 

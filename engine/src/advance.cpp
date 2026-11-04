@@ -374,9 +374,11 @@ void close_phase(BarCtx& c, std::uint32_t index) {
 
 std::uint32_t last_decision_step(const Scenario& sc) { return static_cast<std::uint32_t>(sc.bars.size() - 2); }
 
-RunState start_run(const Scenario& sc, std::uint64_t seed) {
+RunState start_run(const Scenario& sc, std::uint64_t seed, const RunOptions& options) {
   RunState st;
   st.seed = seed;
+  st.options = options;
+  st.advice_left = options.advice_allowance;
   st.step = sc.mission.warmup_bars;
   st.wallet = sc.mission.initial_balance;
   st.metrics.peak_equity = st.wallet;

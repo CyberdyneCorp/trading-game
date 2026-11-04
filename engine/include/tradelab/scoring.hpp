@@ -4,7 +4,7 @@
 // Clients display this report; the server recomputes it from the same commands (never trusts a
 // client-reported score). Integer arithmetic only.
 //
-// Dimensions (scoring version 5): risk 35, plan coherence 25, understanding 25 (not measured yet),
+// Dimensions (scoring version 6): risk 35, plan coherence 25, understanding 25 (not measured yet),
 // calibration 15. A dimension without data is not applicable and the rest are renormalized.
 // Report-only debrief facts (spread/slippage cost, option P&L by Greek, the leverage that would have
 // kept a stop in front of liquidation) never feed the score.
@@ -13,11 +13,12 @@
 #include <optional>
 #include <vector>
 
+#include "tradelab/advisor.hpp"
 #include "tradelab/engine.hpp"
 
 namespace tradelab {
 
-constexpr std::uint32_t kScoringVersion = 5;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding
+constexpr std::uint32_t kScoringVersion = 6;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,
@@ -104,6 +105,20 @@ struct GreekAttribution {
   Money total;  // option P&L before fees: realized + open positions at the final mid
 };
 
+// Advice in the debrief (spec advisor "Advice in the terminal and the debrief"): a long or short
+// read is right when the close kAdviceHorizon bars after the next open moved its way.
+enum class AdviceOutcome : std::uint8_t { Right = 0, Wrong, Wait, Open };
+
+struct AdviceRow {
+  std::uint32_t step = 0;
+  AdviceStance stance = AdviceStance::Wait;
+  std::uint32_t confidence_bp = 0;
+  AdviceOutcome outcome = AdviceOutcome::Wait;
+};
+
+// Advisor points (spec progression-rewards "Advisor points earned by process", design D3).
+constexpr std::uint32_t kAdvisorPointsCap = 6;
+
 struct Dimension {
   std::uint32_t weight = 0;
   std::optional<std::int32_t> score;  // 0..100; nullopt = not applicable
@@ -124,10 +139,18 @@ struct ScoreReport {
   Money net_pnl;
   Money spread_cost;  // spread + slippage paid against the reference price (already inside fill prices)
   std::optional<GreekAttribution> greeks;  // only when options were traded
+  std::uint32_t advisor_points_earned = 0;
+  std::vector<AdviceRow> advice;
+  std::optional<std::int64_t> advice_hit_bp;  // right / (right + wrong), basis points
 };
 
 std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st);
 ScoreReport score_run(const Scenario& sc, const RunState& st);
+
+// +1 per closed perpetual trade with a plan (planned risk > 0) and a protective stop working while
+// it was open, +1 more if its net P&L is positive, +2 if the run finished; capped at 6.
+std::uint32_t advisor_points(const RunState& st, const std::vector<TradeRow>& trades);
+std::vector<AdviceRow> advice_rows(const Scenario& sc, const RunState& st);
 
 // Report-only debrief facts (engine/src/debrief.cpp).
 Money spread_slippage_cost(const Scenario& sc, const RunState& st);

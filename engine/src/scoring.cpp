@@ -1,6 +1,7 @@
 #include "tradelab/scoring.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <optional>
 #include <utility>
 
@@ -427,7 +428,65 @@ LessonCode pick_lesson(const ScoreReport& r) {
   return LessonCode::Evaluation;
 }
 
+// ---- advisor ------------------------------------------------------------------------------
+
+// Step of an order's last status change (fill, cancel, expiry), or "still working".
+std::uint32_t order_end_step(const RunState& st, const Order& o) {
+  if (o.active()) return UINT32_MAX;
+  std::uint32_t end = o.placed_step;
+  for (const Event& e : st.events) {
+    if (e.order_id == o.id && (e.type == EventType::OrderUpdate || e.type == EventType::Fill)) end = e.step;
+  }
+  return end;
+}
+
+// A reduce-only stop on the exit side was working at some bar while the trade was open.
+bool stop_worked_during(const RunState& st, const TradeRow& t) {
+  const OrderSide exit = t.is_long ? OrderSide::Sell : OrderSide::Buy;
+  const std::uint32_t last = t.exit_step.value_or(st.step);
+  return std::any_of(st.orders.begin(), st.orders.end(), [&](const Order& o) {
+    return o.series == 0 && is_stop(o) && o.reduce_only && o.side == exit && o.placed_step <= last &&
+           order_end_step(st, o) >= t.entry_step;
+  });
+}
+
+AdviceOutcome outcome_of(const Scenario& sc, const Advice& a) {
+  if (a.stance == AdviceStance::Wait) return AdviceOutcome::Wait;
+  const std::size_t end = static_cast<std::size_t>(a.step) + kAdviceHorizon;
+  if (end >= sc.bars.size()) return AdviceOutcome::Open;
+  const std::int64_t move = sc.bars[end].close.raw - sc.bars[a.step + 1].open.raw;
+  const bool right = a.stance == AdviceStance::Long ? move > 0 : move < 0;
+  return right ? AdviceOutcome::Right : AdviceOutcome::Wrong;
+}
+
+void advice_summary(const Scenario& sc, const RunState& st, ScoreReport& r) {
+  r.advice = advice_rows(sc, st);
+  std::int64_t right = 0;
+  std::int64_t judged = 0;
+  for (const AdviceRow& a : r.advice) {
+    right += a.outcome == AdviceOutcome::Right ? 1 : 0;
+    judged += a.outcome == AdviceOutcome::Right || a.outcome == AdviceOutcome::Wrong ? 1 : 0;
+  }
+  if (judged > 0) r.advice_hit_bp = round_div(static_cast<i128>(right) * kBp, judged);
+}
+
 }  // namespace
+
+std::uint32_t advisor_points(const RunState& st, const std::vector<TradeRow>& trades) {
+  std::uint32_t points = st.status == RunStatus::Finished ? 2 : 0;
+  for (const TradeRow& t : trades) {
+    if (t.series != 0 || !t.exit_step || t.planned_risk.raw <= 0 || !stop_worked_during(st, t)) continue;
+    points += t.net.raw > 0 ? 2 : 1;
+  }
+  return std::min(points, kAdvisorPointsCap);
+}
+
+std::vector<AdviceRow> advice_rows(const Scenario& sc, const RunState& st) {
+  std::vector<AdviceRow> rows;
+  rows.reserve(st.advice.size());
+  for (const Advice& a : st.advice) rows.push_back({a.step, a.stance, a.confidence_bp, outcome_of(sc, a)});
+  return rows;
+}
 
 // Option rows carry their contract (expired series are no longer in the live chain).
 void describe_series(const Scenario& sc, TradeRow& t) {
@@ -494,6 +553,8 @@ ScoreReport score_run(const Scenario& sc, const RunState& st) {
   execution_findings(st, f, r);
   greek_findings(r);
   r.lesson = pick_lesson(r);
+  r.advisor_points_earned = advisor_points(st, r.trades);
+  advice_summary(sc, st, r);
   return r;
 }
 

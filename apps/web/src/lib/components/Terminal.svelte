@@ -2,14 +2,15 @@
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { PlanEntry } from '#lib/game/analysis.ts';
-	import type { OrderSideName } from '#lib/engine/types.ts';
+	import type { AdviceView, OrderSideName } from '#lib/engine/types.ts';
+	import AdvisorPanel from './AdvisorPanel.svelte';
 	import { i18n, reasonText, t } from '#lib/game/i18n.svelte.ts';
 	import { AutoPlay, type PauseReason } from '#lib/game/autoplay.svelte.ts';
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
 	import { keepsKey } from '#lib/game/hotkeys.ts';
 	import { exitOnValidSide, remainingQty } from './chartDrag.ts';
-	import { fmtQty, num, priceToTick } from '#lib/game/format.ts';
+	import { fmtQty, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
 	import HelpOverlay from './HelpOverlay.svelte';
@@ -69,6 +70,18 @@
 
 	let ticketStop = $state('');
 	let ticketTp = $state('');
+	let ticketSizeBy = $state<'qty' | 'risk'>('risk');
+	let ticketQty = $state('10');
+
+	// The advisor's stop and size go to the perpetual ticket; nothing is sent until the player submits.
+	function onApplyAdvice(a: AdviceView) {
+		const c = session.state!.contract;
+		side = a.stance === 'short' ? 'sell' : 'buy';
+		ticketStop = priceToTick(num(a.stop), num(c.tickSize));
+		ticketSizeBy = 'qty';
+		ticketQty = qtyToLot(num(a.size), num(c.lotSize));
+		tab = 'perp';
+	}
 
 	// Dragging SL?/TP? on the chart edits the ticket fields, snapped to the tick.
 	function onDragLevel(which: 'stop' | 'tp', price: number) {
@@ -256,7 +269,7 @@
 				{#if tab === 'options' && optionsOn}
 					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
 				{:else}
-					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} {onSubmit} onPick={(set) => (pick = set)} />
+					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} {onSubmit} onPick={(set) => (pick = set)} />
 				{/if}
 			</div>
 			<div class="stack">
@@ -269,6 +282,7 @@
 				{/if}
 			</div>
 			<div class="stack">
+				<AdvisorPanel {session} onApply={onApplyAdvice} />
 				<NewsPanel news={session.state.news} />
 				<EventFeed events={session.state.events} names={session.names} />
 			</div>
