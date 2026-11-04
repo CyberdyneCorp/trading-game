@@ -49,7 +49,10 @@
 	const legAtPx = $derived(leg ? { ...leg, premium } : null);
 	const loss = $derived(legAtPx ? maxLoss(legAtPx) : null);
 	const margin = $derived(quote && opensShort ? writeMargin(quote, f, qty, mult) : null);
-	const canSubmit = $derived(!!quote && !busy && qty > 0 && !shortBlocked && (type === 'market' || num(limitInput) > 0));
+	// A buy pays the premium, a write posts margin: either must fit in the available balance.
+	const cost = $derived(opensShort ? margin : side === 'buy' ? loss : null);
+	const cantAfford = $derived(cost != null && cost > num(game.account.available));
+	const canSubmit = $derived(!!quote && !busy && qty > 0 && !shortBlocked && !cantAfford && (type === 'market' || num(limitInput) > 0));
 
 	// Payoff diagram geometry (SVG viewBox units).
 	const W = 300;
@@ -125,6 +128,11 @@
 			</dd>
 		</dl>
 		{#if opensShort && !shortBlocked}<p class="warnbox">⚠ {t('opt.unbounded')}</p>{/if}
+		{#if cantAfford}
+			<p class="warnbox" role="alert" data-testid="opt-cant-afford">
+				⚠ {t(opensShort ? 'opt.cantAffordMargin' : 'opt.cantAffordPremium', { avail: fmtMoney(game.account.available, L) })}
+			</p>
+		{/if}
 		{#if curve}
 			<figure>
 				<figcaption class="muted small">{t('opt.payoff')}</figcaption>

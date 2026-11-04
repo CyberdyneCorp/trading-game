@@ -63,6 +63,10 @@ On completion the debrief SHALL show: market reveal (if permitted) and historica
 - **WHEN** a breakout fails and a planned stop limits the loss within planned risk
 - **THEN** the debrief SHALL credit risk management and SHALL NOT label the decision as a mistake solely due to the loss
 
+#### Scenario: No credit for a broken process
+- **WHEN** a run lost money and any trade had no plan, was oversized, had a stop beyond liquidation, was liquidated or was margin-called
+- **THEN** the debrief SHALL NOT credit the loss to good process
+
 #### Scenario: Liquidation explained
 - **WHEN** a run included a liquidation
 - **THEN** the debrief SHALL show leverage, margin, liquidation price, the bar that triggered it and what leverage would have kept the planned stop in front of liquidation

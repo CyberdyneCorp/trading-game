@@ -34,7 +34,15 @@ Entries are exposure-increasing fills of the perpetual and of each option series
 ### Requirement: Risk dimension
 The risk dimension SHALL evaluate adherence to planned risk, leverage relative to the mission cap and to the stop distance, distance kept from liquidation, drawdown versus mission budget and exposure under declared uncertainty. Using higher leverage SHALL never increase the risk score.
 
-Scoring version 1 SHALL start at 100 and subtract: 40 if any liquidation occurred; 20 per perpetual entry without a reduce-only stop or trailing stop placed around it (at most 40; option entries are not counted: a bought option's premium is its maximum loss, and written options are policed by margin calls); 20 if any plan declared a planned risk above 2% of initial capital; 15 if any order was accepted with a stop beyond the liquidation price; 15 if the maximum drawdown exceeded 20% of initial capital; floored at 0.
+Scoring version 3 SHALL start at 100 and subtract: 40 if any liquidation or option margin call (forced buy-back of written options) occurred; 20 per perpetual entry without a reduce-only stop or trailing stop placed around it (at most 40; option entries are not counted: a bought option's premium is its maximum loss, and written options are policed by margin calls); 20 if any trade that actually happened was entered with a planned risk above 2% of initial capital (the risk of the latest plan, or of the ticket estimate when sent without a plan, recorded for that entry; the plan of an order that was rejected and never filled does not count); 15 if any order was accepted with a stop beyond the liquidation price; 15 if the maximum drawdown exceeded 20% of initial capital; floored at 0.
+
+#### Scenario: Rejected order is not an entry
+- **WHEN** an oversized order is rejected and the player retries with a size within 2% risk
+- **THEN** the risk dimension and the findings SHALL NOT report an oversized entry
+
+#### Scenario: Margin call scored like a liquidation
+- **WHEN** written options are bought back by a margin call
+- **THEN** the risk dimension SHALL lose 40 points and the debrief SHALL explain the margin call (bar, buy-back premium, loss) and recommend the risk-sizing lesson
 
 #### Scenario: Leverage never rewarded
 - **WHEN** two attempts have identical decisions except one used 10× and the other 3× with the same planned risk

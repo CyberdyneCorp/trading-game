@@ -123,10 +123,11 @@ class Driver {
     c.margin_delta = M(delta);
     return apply_command(sc_, st_, c);
   }
-  CommandResult plan(OrderSide side, const char* invalidation, const char* risk, bool skipped = false) {
+  CommandResult plan(OrderSide side, const char* invalidation, const char* risk, bool skipped = false, bool option = false) {
     Command c = base(CommandType::RecordPlan);
     c.plan.side = side;
     c.plan.skipped = skipped;
+    c.plan.option = option;
     if (invalidation != nullptr) c.plan.invalidation = P(invalidation);
     if (risk != nullptr) c.plan.planned_risk = M(risk);
     c.plan.confidence_pct = 60;

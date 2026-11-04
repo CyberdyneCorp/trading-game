@@ -15,7 +15,7 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kScoringVersion = 2;  // v2: calibration 100 * (1 - 2 * Brier)
+constexpr std::uint32_t kScoringVersion = 3;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,
@@ -31,6 +31,7 @@ enum class FindingCode : std::uint8_t {
   NoPlan,
   Oversized,
   Bankrupt,
+  MarginCalled,  // written options bought back by force (step, buy-back premium, loss)
 };
 
 enum class FindingTone : std::uint8_t { Good = 0, Warn, Bad, Info };

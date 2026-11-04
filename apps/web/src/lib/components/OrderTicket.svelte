@@ -26,7 +26,7 @@
 
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { costsOf, estimate, estimatedMarketEntry, qtyForRisk } from '#lib/game/sizing.ts';
+	import { costsOf, estimate, estimatedMarketEntry, qtyForRisk, releveredLiquidation } from '#lib/game/sizing.ts';
 	import { fmtMoney, fmtPrice, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
@@ -179,6 +179,13 @@
 	const protTpWarn = $derived(
 		protTpN != null && !targetOnWinningSide(posSide, mark, protTpN) ? t('level.protTpSide', { price: fmtPrice(s.account.mark, L) }) : null
 	);
+	// Sending at another leverage re-margins the open position too (engine set_leverage).
+	const relever = $derived.by(() => {
+		if (posQty === 0 || lev === s.leverage) return null;
+		const to = releveredLiquidation(posSide, posQty, posEntry, lev, k);
+		const from = s.account.liquidationPrice ? num(s.account.liquidationPrice) : null;
+		return { from, to, closer: to != null && (from == null || Math.abs(mark - to) < Math.abs(mark - from)) };
+	});
 	const hasStop = $derived(s.orders.some((o) => o.reduceOnly && (o.type === 'stop_market' || o.type === 'trailing_stop')));
 	const trailChips = $derived<LevelChip[]>([1, 2, 3].map((m) => ({ label: `${m}×ATR`, title: t('level.trailTitle', { n: m }), value: atr != null ? m * atr : null })));
 	async function protect() {
@@ -277,6 +284,16 @@
 		<dt>{t('ticket.estLiq')}</dt><dd class="down">{est.liquidation ? fmtPrice(String(est.liquidation), L) : '—'}</dd>
 		<dt>{t('ticket.estRisk')}</dt><dd>{est.plannedRisk != null ? fmtMoney(est.plannedRisk, L) : '—'}</dd>
 	</dl>
+	{#if relever}
+		<p class={relever.closer ? 'warnbox' : 'small info'} role="status" data-testid="relever-note">
+			{relever.closer ? '⚠ ' : ''}{t('ticket.relever', {
+				from: s.leverage,
+				to: lev,
+				liqFrom: relever.from != null ? fmtPrice(String(relever.from), L) : '—',
+				liqTo: relever.to != null ? fmtPrice(String(relever.to), L) : '—'
+			})}
+		</p>
+	{/if}
 	{#if est.stopBeyondLiquidation}<p class="warnbox" role="alert">⚠ {t('ticket.stopBeyondLiq')}</p>{/if}
 	{#if stop == null && qty > 0}<p class="small attention">{t('ticket.noStop')}</p>{/if}
 	<p class="small muted">{t('ticket.attachNote')}</p>

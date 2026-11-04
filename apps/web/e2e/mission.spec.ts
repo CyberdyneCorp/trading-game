@@ -144,6 +144,56 @@ test('dragging a working STOP line moves the order; the wrong side of the price 
 	await expect(orders.getByText(newId, { exact: true })).toBeVisible();
 });
 
+test('regression: Space advances after toggling an indicator or choosing an oscillator', async ({ page }) => {
+	// Before: the focused checkbox/select kept Space, so BB20 flickered and the market never moved.
+	await openTerminal(page, 9);
+	const bar = page.getByText(/Barra \d+ de/);
+	const before = await bar.textContent();
+	await page.getByLabel('BB20').check();
+	await page.keyboard.press('Space');
+	await expect(bar).not.toHaveText(before!);
+	await expect(page.getByLabel('BB20')).toBeChecked();
+	const mid = await bar.textContent();
+	await page.getByTestId('osc-select').selectOption('adx');
+	await page.keyboard.press('Space');
+	await expect(bar).not.toHaveText(mid!);
+	await expect(page.getByTestId('osc-select')).toHaveValue('adx');
+});
+
+test('the ticket warns that a new leverage re-margins the open position', async ({ page }) => {
+	await openTerminal(page, 31);
+	const lev = page.locator('label:has-text("Alavancagem") input').first();
+	await lev.fill('2');
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await expect(page.getByTestId('relever-note')).toHaveCount(0);
+	await lev.fill('2'); // same leverage: nothing to say
+	await expect(page.getByTestId('relever-note')).toHaveCount(0);
+	await lev.fill('5'); // m01 caps at 5x
+	await lev.dispatchEvent('change');
+	const note = page.getByTestId('relever-note');
+	await expect(note).toContainText('2x → 5x');
+	await expect(note).toContainText(/a liquidação dela vai de [\d,]+ para [\d,]+/);
+	await expect(note).toHaveClass(/warnbox/); // liquidation moves closer
+});
+
+test('the option ticket refuses a buy whose premium exceeds the available balance', async ({ page }) => {
+	await page.goto('/?seed=12');
+	await startFromMenu(page, 3);
+	await answerIfAsked(page);
+	await page.locator('.chain table').first().locator('tbody tr').nth(2).locator('td').nth(3).getByRole('button').click();
+	const qty = page.locator('section.oticket label', { hasText: 'Contratos' }).locator('input');
+	await qty.fill('100000');
+	await expect(page.getByTestId('opt-cant-afford')).toContainText(/saldo disponível/);
+	await expect(page.getByRole('button', { name: /Enviar ordem de opção/ })).toBeDisabled();
+	await qty.fill('10');
+	await expect(page.getByTestId('opt-cant-afford')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: /Enviar ordem de opção/ })).toBeEnabled();
+});
+
 test('a mission tutorial is shown on first start only, can be paged, skipped and replayed from the briefing', async ({ page }) => {
 	await page.goto('/?seed=5');
 	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();

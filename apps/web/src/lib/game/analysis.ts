@@ -2,6 +2,7 @@
 // renders codes as words). PlanEntry is the local journal entry; its free text is never scored.
 
 import type { EngineFinding, LessonCode } from '#lib/engine/types.ts';
+import { fmtPrice } from './format.ts';
 import type { Locale } from './i18n.svelte';
 
 export interface PlanEntry {
@@ -28,11 +29,13 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		funding_cost: 'Você pagou {amount} cr de funding — mais do que em taxas. Carregar posição lotada custa.',
 		ambiguous: '{count} execução(ões) usaram a aproximação intrabar conservadora (OHLC não revela a ordem máxima/mínima).',
 		capacity: '{count} execução(ões) foram limitadas pela capacidade simulada da barra.',
-		good_process_loss: 'Prejuízo com processo bom: plano registrado, stop respeitado, sem liquidação. Isso é gestão de risco funcionando.',
+		good_process_loss: 'Prejuízo com processo bom: cada trade tinha plano e risco limitado (stop ou prêmio), sem liquidação nem chamada de margem. Isso é gestão de risco funcionando.',
 		lucky_win: 'Lucro sem processo completo (sem plano ou sem stop). Resultado favorável pode ter sido sorte.',
 		no_plan: 'Entradas sem plano registrado: sem hipótese e invalidação, não dá para aprender com o resultado.',
 		oversized: 'Uma entrada arriscava ~{risk} cr (> 2% do capital). Dimensione pela perda máxima: o stop no futuro, o prêmio na opção.',
-		bankrupt: 'Game over: o capital não cobre mais a menor ordem possível.'
+		bankrupt: 'Game over: o capital não cobre mais a menor ordem possível.',
+		margin_called:
+			'Chamada de margem na barra {step}: as opções vendidas foram recompradas à força a {price}, perda de {amount} cr. Quem vende opção precisa de margem para o pior movimento: venda menos contratos.'
 	},
 	en: {
 		waited: 'You did not trade. Without a clear hypothesis, waiting is a valid decision — no penalty for low turnover.',
@@ -44,11 +47,13 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		funding_cost: 'You paid {amount} cr in funding — more than in fees. Carrying a crowded position costs.',
 		ambiguous: '{count} fill(s) used the conservative intrabar approximation (OHLC does not reveal whether high or low came first).',
 		capacity: '{count} fill(s) were limited by the simulated bar capacity.',
-		good_process_loss: 'A loss with good process: plan recorded, stop respected, no liquidation. That is risk management working.',
+		good_process_loss: 'A loss with good process: every trade had a plan and limited risk (stop or premium), no liquidation or margin call. That is risk management working.',
 		lucky_win: 'Profit without full process (no plan or no stop). A favorable outcome may have been luck.',
 		no_plan: 'Entries without a recorded plan: without hypothesis and invalidation you cannot learn from the outcome.',
 		oversized: 'One entry risked ~{risk} cr (> 2% of capital). Size from the maximum loss: the stop on a future, the premium on an option.',
-		bankrupt: 'Game over: capital no longer covers the smallest possible order.'
+		bankrupt: 'Game over: capital no longer covers the smallest possible order.',
+		margin_called:
+			'Margin call at bar {step}: the written options were bought back by force at {price}, a loss of {amount} cr. An option writer needs margin for the worst move: write fewer contracts.'
 	}
 };
 
@@ -75,10 +80,10 @@ export function describeFinding(f: EngineFinding, locale: Locale): string {
 	const params: Record<string, string | number> = {
 		step: f.step,
 		count: f.count,
-		price: Number(f.price).toFixed(2),
-		requested: Number(f.requested).toFixed(2),
-		amount: Number(f.amount).toFixed(2),
-		risk: Math.round(Number(f.amount))
+		price: fmtPrice(f.price, locale),
+		requested: fmtPrice(f.requested, locale),
+		amount: fmtPrice(f.amount, locale),
+		risk: Math.round(Number(f.amount)).toLocaleString(locale)
 	};
 	return findingText[locale][f.code].replace(/\{(\w+)\}/g, (_, k: string) => String(params[k] ?? ''));
 }

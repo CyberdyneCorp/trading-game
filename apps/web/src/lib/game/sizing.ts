@@ -57,6 +57,15 @@ export function liquidationPrice(side: Side, qty: number, entry: number, margin:
 	return (u * entry + margin) / (u * (1 + k.maintenanceMargin));
 }
 
+/**
+ * Liquidation of an open position after its leverage is changed: the engine re-margins the whole
+ * position at the new leverage (margin = notional at entry / leverage), not only the new order.
+ */
+export function releveredLiquidation(side: Side, qty: number, entry: number, leverage: number, k: Costs): number | null {
+	const margin = (Math.abs(qty) * entry * k.multiplier) / Math.max(1, leverage);
+	return liquidationPrice(side, Math.abs(qty), entry, margin, k);
+}
+
 export function estimate(input: TicketInput, k: Costs): TicketEstimate {
 	const { side, qty, entry, leverage, stop } = input;
 	const notional = qty * k.multiplier * entry;
