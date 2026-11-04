@@ -23,6 +23,7 @@
 - [ ] 3.2 Event model with seeded reaction distributions — done: release step, credibility, expectation/actual (surprise), seeded reaction direction (none / along the surprise / reversed), transient drift, volatility, volume and IV channels, duration, fair-value impact (surprise × credibility); test of the reaction distribution over 1,000 seeds. Pending: lead time, jump/spread/capacity/funding channels, sampled intensity (magnitude is fixed per event)
 - [ ] 3.3 Player-independence and branch-label tests — player independence done (`test_missions.cpp` "events never depend on the player"); branch-label test pending (no branch mode yet)
 - [ ] 3.4 Calibration report notebook + first report
+- [x] 3.5 Realism: news priced on arrival (opening gap), per-seed mission schedule, mission-level realism tests and `tools/market_study.py` (design D3b)
 
 ## 4. Gameplay rules and scoring
 - [ ] 4.1 Mission schema (objectives, permissions, leverage cap, warnings) — engine `MissionRules` has initial balance, leverage cap, warm-up and short permission, plus option short-writing permission; objectives are client i18n text (`apps/web/src/lib/game/missions.ts`), the liquidation-distance warning is a fixed 3% in the client, the briefing does not yet list option buy/write permissions, and a stop beyond liquidation is warned but needs no explicit confirmation

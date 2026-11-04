@@ -38,6 +38,7 @@ struct GenState {
   double funding_bias = 0.0;  // funding bias of the segment the last closed bar belonged to
   double event_drift = 0.0;  // transient news reaction for the current bar (not fundamental)
   double iv_var = 0.0;       // smoothed per-bar variance that implied vol prices (0 = not seeded)
+  double news_gap = 0.0;     // log gap at this bar's open: the share of fresh news priced on arrival
 };
 
 constexpr double kTrendEmaBars = 20.0;
@@ -84,11 +85,11 @@ Bar make_bar(const Segment& seg, const GeneratorSpec& spec, GenState& g, Pcg32& 
   g.fair += drift + kJumpInformation * jump_size;
   g.vol_mult *= seg.vol_decay;
 
-  const double open = g.close * det::exp(0.1 * sigma * rng.next_normal() + (jump ? 0.5 * ret : 0.0));
+  const double open = g.close * det::exp(0.1 * sigma * rng.next_normal() + (jump ? 0.5 * ret : 0.0) + g.news_gap);
   const double close = open * det::exp(jump ? 0.5 * ret : ret);
   const double wick_up = std::fabs(rng.next_normal()) * sigma * 0.6;
   const double wick_dn = std::fabs(rng.next_normal()) * sigma * 0.6;
-  const double activity = 1.0 + 4.0 * std::fabs(ret) / std::max(seg.vol, 1e-6);
+  const double activity = 1.0 + 4.0 * (std::fabs(ret) + std::fabs(g.news_gap)) / std::max(seg.vol, 1e-6);
   const double volume = spec.base_volume * seg.volume_mult * activity * det::exp(0.3 * rng.next_normal());
 
   Bar b;
@@ -116,12 +117,15 @@ void start_segment(const Segment& seg, const GeneratorSpec& spec, GenState& g, P
 
 int surprise_of(const NewsItem& item) { return item.actual - item.expectation; }
 
-// News moves the hidden fair value from the bar after publication: surprise x credibility.
+// News moves the hidden fair value from the bar after publication (surprise x credibility), and
+// most of that shift is priced at once: the bar opens with a gap.
 void apply_news(const GeneratorSpec& spec, std::uint32_t index, GenState& g) {
+  double shift = 0.0;
   for (const ScriptedEvent& ev : spec.events) {
-    if (ev.item.release_step + 1 != index) continue;
-    g.fair += ev.fair_impact * surprise_of(ev.item) * (ev.item.credibility / 100.0);
+    if (ev.item.release_step + 1 == index) shift += ev.fair_impact * surprise_of(ev.item) * (ev.item.credibility / 100.0);
   }
+  g.fair += shift;
+  g.news_gap = spec.news_gap * shift;
 }
 
 // Crowding as known at the last close: the bias of the segment that bar belonged to, never the
@@ -173,7 +177,28 @@ Vol implied_vol(const Segment& seg, const GeneratorSpec& spec, GenState& g) {
   return Vol::from_raw(static_cast<std::int64_t>(std::floor(iv * Vol::kScale + 0.5)));
 }
 
+std::int32_t draw_lead(const GeneratorSpec& spec, std::uint64_t seed) {
+  if (spec.lead_jitter_max <= spec.lead_jitter_min) return spec.lead_jitter_min;
+  Pcg32 rng(seed, Stream::Schedule);
+  const auto span = static_cast<std::uint32_t>(spec.lead_jitter_max - spec.lead_jitter_min + 1);
+  return spec.lead_jitter_min + static_cast<std::int32_t>(rng.next_bounded(span));
+}
+
 }  // namespace
+
+GeneratorSpec scheduled(const GeneratorSpec& spec, std::uint64_t seed) {
+  GeneratorSpec out = spec;
+  if (out.segments.size() < 2) return out;
+  const std::int32_t lead = draw_lead(spec, seed);
+  const std::uint32_t boundary = out.segments.front().bars;
+  out.segments.front().bars = static_cast<std::uint32_t>(static_cast<std::int32_t>(boundary) + lead);
+  out.segments.back().bars = static_cast<std::uint32_t>(static_cast<std::int32_t>(out.segments.back().bars) - lead);
+  for (ScriptedEvent& ev : out.events) {
+    // An event moves with the schedule when its reaction (from the bar after release) is past the boundary.
+    if (ev.item.release_step + 1 >= boundary) ev.item.release_step = static_cast<std::uint32_t>(static_cast<std::int32_t>(ev.item.release_step) + lead);
+  }
+  return out;
+}
 
 int sample_reaction(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t index) {
   Pcg32 rng(seed * 1000003ULL + index, Stream::Events);
@@ -182,7 +207,8 @@ int sample_reaction(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t i
   return rng.next_unit() < ev.p_align ? dir : -dir;
 }
 
-void generate_market(const GeneratorSpec& spec, std::uint64_t seed, Scenario& out) {
+void generate_market(const GeneratorSpec& declared, std::uint64_t seed, Scenario& out) {
+  const GeneratorSpec spec = scheduled(declared, seed);
   Pcg32 rng(seed, Stream::Market);
   GenState g{spec.start_price};
   g.fair = g.ema = det::log(spec.start_price);

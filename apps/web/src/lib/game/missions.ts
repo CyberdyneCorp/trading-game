@@ -31,7 +31,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			objectives: COMMON_PT,
 			topic: 'Futuros I · long e short, ordens e stops',
 			reveal:
-				'Este cenário foi desenhado como um ROMPIMENTO FALSO: o preço rompe o topo do range, atrai compradores e reverte com força. Quem entrou no rompimento sem stop sofreu; quem esperou confirmação ou protegeu a posição limitou o dano. O rumor da alta já era esperado (sem surpresa) e não mudou o valor justo; o desmentido, crível e negativo, mudou. Dentro do range, comprar perto do suporte e vender perto da resistência teve vantagem pequena.'
+				'Este cenário foi desenhado como um ROMPIMENTO FALSO: o preço rompe o topo do range, atrai compradores, perde força e volta. Quem entrou no rompimento sem stop sofreu; quem esperou confirmação ou protegeu a posição limitou o dano. O rumor da alta já era esperado (sem surpresa) e não mudou o valor justo; o desmentido, crível e negativo, mudou — e foi precificado de uma vez, com gap na abertura seguinte: vender depois da manchete já era tarde. Dentro do range, comprar perto do suporte e vender perto da resistência teve vantagem pequena.'
 		},
 		en: {
 			title: 'Mission 01 · Range',
@@ -39,7 +39,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			objectives: COMMON_EN,
 			topic: 'Futures I · long and short, orders and stops',
 			reveal:
-				'This scenario was designed as a FALSE BREAKOUT: price breaks the top of the range, attracts buyers and reverses hard. Buying the breakout without a stop hurt; waiting for confirmation or protecting the position limited the damage. The rally rumor was already expected (no surprise) and did not move fair value; the credible negative denial did. Inside the range, buying near support and selling near resistance had a small edge.'
+				'This scenario was designed as a FALSE BREAKOUT: price breaks the top of the range, attracts buyers, stalls and falls back. Buying the breakout without a stop hurt; waiting for confirmation or protecting the position limited the damage. The rally rumor was already expected (no surprise) and did not move fair value; the credible negative denial did — and it was priced at once, with a gap at the next open: selling after the headline was already late. Inside the range, buying near support and selling near resistance had a small edge.'
 		}
 	},
 	'm02-funding-squeeze': {
@@ -49,7 +49,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			objectives: [...COMMON_PT.slice(0, 2), 'Mantenha a distância até a liquidação acima de 10%.'],
 			topic: 'Futuros III · funding e custo de carregar posição',
 			reveal:
-				'Este cenário foi desenhado como um APERTO DE FUNDING: a alta veio com longs lotados pagando funding alto, seguida de uma correção. Carregar long por muito tempo custou caro mesmo quando o preço subiu. Na tendência, os recuos até a média (EMA) foram compras melhores que os topos, e funding extremo tornou provável um aperto contra os longs lotados.'
+				'Este cenário foi desenhado como um APERTO DE FUNDING: a alta veio com longs lotados pagando funding alto, seguida de uma correção. Carregar long por muito tempo custou caro mesmo quando o preço subiu. Na tendência, os recuos até a média (EMA) foram compras melhores que os topos, e funding extremo tornou possível um aperto contra os longs lotados — mas, até ele vir, a multidão costumava estar certa.'
 		},
 		en: {
 			title: 'Mission 02 · Momentum',
@@ -57,7 +57,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			objectives: [...COMMON_EN.slice(0, 2), 'Keep the distance to liquidation above 10%.'],
 			topic: 'Futures III · funding and the cost of carry',
 			reveal:
-				'This scenario was designed as a FUNDING SQUEEZE: the rally came with crowded longs paying high funding, followed by a correction. Carrying a long for long cost a lot even while price rose. In the trend, pullbacks to the average (EMA) were better buys than the highs, and extreme funding made a squeeze against crowded longs likely.'
+				'This scenario was designed as a FUNDING SQUEEZE: the rally came with crowded longs paying high funding, followed by a correction. Carrying a long for long cost a lot even while price rose. In the trend, pullbacks to the average (EMA) were better buys than the highs, and extreme funding made a squeeze against crowded longs possible — but until it came, the crowd was usually right.'
 		}
 	},
 	'm03-volatility-shock': {
@@ -71,7 +71,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			],
 			topic: 'Futuros II · margem, alavancagem e preço de liquidação',
 			reveal:
-				'Este cenário foi desenhado como um CHOQUE DE VOLATILIDADE: depois de um longo período calmo, gaps e quedas bruscas atravessam stops e liquidam posições muito alavancadas. Antes do choque a volatilidade foi se comprimindo (Bandas de Bollinger e ATR estreitando): mercado quieto não é mercado seguro.'
+				'Este cenário foi desenhado como um CHOQUE DE VOLATILIDADE: depois de um longo período calmo, gaps e quedas bruscas atravessam stops e liquidam posições muito alavancadas. Antes do choque a volatilidade foi se comprimindo (Bandas de Bollinger e ATR estreitando): mercado quieto não é mercado seguro. A manchete saiu e a barra seguinte abriu com gap: stops e liquidações executaram no gap, não no preço marcado. Quando o choque chega muda a cada partida.'
 		},
 		en: {
 			title: 'Mission 03 · Quiet market',
@@ -83,7 +83,7 @@ const texts: Record<string, Record<Locale, MissionText>> = {
 			],
 			topic: 'Futures II · margin, leverage and liquidation price',
 			reveal:
-				'This scenario was designed as a VOLATILITY SHOCK: after a long calm period, gaps and sharp drops cut through stops and liquidate highly leveraged positions. Before the shock, volatility kept compressing (Bollinger bands and ATR narrowing): a quiet market is not a safe market.'
+				'This scenario was designed as a VOLATILITY SHOCK: after a long calm period, gaps and sharp drops cut through stops and liquidate highly leveraged positions. Before the shock, volatility kept compressing (Bollinger bands and ATR narrowing): a quiet market is not a safe market. The headline came out and the next bar opened with a gap: stops and liquidations filled at the gap, not at their price. When the shock comes changes from run to run.'
 		}
 	}
 };
@@ -126,7 +126,7 @@ texts['m05-options-writer'] = {
 		],
 		topic: 'Opções III · venda de opções, margem e chamada de margem',
 		reveal:
-			'Este cenário foi desenhado com prêmio farto em um mercado lateral seguido de um SALTO. Vender opções rendeu theta por muitas barras; sem tamanho controlado, o salto gerou chamada de margem e recompra no pior momento.'
+			'Este cenário foi desenhado com prêmio farto em um mercado lateral seguido de um SALTO. Vender opções rendeu theta por muitas barras; sem tamanho controlado, o salto — um gap logo após a manchete da falha, em uma barra diferente a cada partida — gerou chamada de margem e recompra no pior momento.'
 	},
 	en: {
 		title: 'Mission 05 · Selling premium',
@@ -138,7 +138,7 @@ texts['m05-options-writer'] = {
 		],
 		topic: 'Options III · writing options, margin and margin calls',
 		reveal:
-			'This scenario was designed with rich premium in a sideways market followed by a JUMP. Selling options earned theta for many bars; without controlled size, the jump triggered a margin call and a buy-back at the worst moment.'
+			'This scenario was designed with rich premium in a sideways market followed by a JUMP. Selling options earned theta for many bars; without controlled size, the jump — a gap right after the outage headline, on a different bar each run — triggered a margin call and a buy-back at the worst moment.'
 	}
 };
 

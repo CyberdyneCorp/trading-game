@@ -13,6 +13,7 @@ enum class Stream : std::uint64_t {
   Events = 2,    // event reaction sampling
   Slippage = 3,  // execution noise
   Sandbox = 4,   // sandbox scenario variants
+  Schedule = 5,  // per-seed timing of scripted segments and events
 };
 
 class Pcg32 {

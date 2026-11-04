@@ -93,7 +93,8 @@ TEST_CASE("C ABI: same mission, seed and commands produce identical digests") {
 // Policy v2 changed the state digest (new order fields). Policy v3 adds the instrument (series) field
 // to orders and events, so both digests changed again; perpetual behavior tests are unchanged.
 // Mission m01 later gained news events, which changed its generated market (content, not policy).
-// Policy v9 (funding from the last closed bar) changes the state digests via the version; events unchanged.
+// Policy v9 (funding from the last closed bar) changed the state digests via the version.
+// Policy v10 (news priced on arrival, per-seed schedule) regenerates every mission market: both digests.
 // Policy v7 changed m05 (jump before the first expiry): new m05 digests; m01 only through the policy version.
 // Policy v4 adds plans and calibration answers to the state digest (event digests unchanged).
 TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
@@ -111,8 +112,8 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"802ea82cb27571c91aec3a04a53936d84fb8cb027735af67447c3d967453a2e1\","
-        "\"eventsDigest\":\"f5902b5a8963380652e1c4e718db648e97c314ea1ea089881ad2ab73f9cde0a7\"}");
+        "\"digest\":\"61e5b36343d12afd91e378c53afcfcb0e1a71889509d5673f8d038d02a40e69a\","
+        "\"eventsDigest\":\"ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19\"}");
 }
 
 TEST_CASE("Option missions: chain exposed at the decision step, trades settle through the C ABI") {
@@ -143,8 +144,8 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"8c5fde75b7966329ffd633dd0c6043c1e5207e251b61efc9d375b80f5b01be77\","
-        "\"eventsDigest\":\"0346281ba4823867cc1f1308e9d88e0d37bb469ca1fdd1d08dd8c13f29107a97\"}");
+        "\"digest\":\"b6afc2c6f265012541ae5c3c4773114641418972b926f9bd922cad9a9904b17a\","
+        "\"eventsDigest\":\"908ac0b1ffd77daf85c8c88e59123a55cb3ddc5ab1509965ae294ae637c4c8aa\"}");
 }
 
 TEST_CASE("News: same headline, seeded reactions include none and reversals (spec Events)") {
@@ -167,12 +168,15 @@ TEST_CASE("News: same headline, seeded reactions include none and reversals (spe
 }
 
 TEST_CASE("News: only released items are serialized; events never depend on the player") {
+  Scenario m01;
+  REQUIRE(build_mission("m01-false-breakout", 4, m01));
+  const std::uint32_t rumor = m01.news[0].release_step;  // 72 plus this seed's lead
   tl_run* run = tl_run_create("m01-false-breakout", 4);
   std::string s = tl_state(run);
   CHECK(s.find("\"news\":[]") != std::string::npos);  // nothing released at the first decision
-  s = tl_advance(run, 12);                              // step 72: rumor published
+  s = tl_advance(run, rumor - m01.mission.warmup_bars);  // the rumor's step
   CHECK(s.find("\"kind\":\"institutional_adoption\"") != std::string::npos);
-  CHECK(s.find("rumor_denied") == std::string::npos);   // released at 82: still in the future
+  CHECK(s.find("rumor_denied") == std::string::npos);   // released 10 bars later: still in the future
   tl_run_destroy(run);
 
   Scenario a;

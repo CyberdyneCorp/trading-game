@@ -145,9 +145,13 @@ TEST_CASE("Calibration: an extreme RSI adds little to a candle pattern") {
   CHECK(h.rate() < 0.62);
 }
 
-TEST_CASE("Calibration: kickers carry news information") {
+TEST_CASE("Calibration: kickers are news gaps, and the news is already in the gap") {
+  // News is priced on arrival (generator news_gap), so a kicker's information is in its gap; what
+  // follows is close to a coin flip, as after real headlines. (Before: news was priced slowly and
+  // kickers followed through more than 60% of the time.)
   const HitRate h = pattern_hit_rate(Filter::Kicker);
   MESSAGE("kicker hit rate: " << h.rate() << " (n=" << h.n << ")");
   CHECK(h.n > 20);
-  CHECK(h.rate() > 0.60);
+  CHECK(h.rate() > 0.40);
+  CHECK(h.rate() < 0.70);
 }

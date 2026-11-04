@@ -5,6 +5,8 @@
 
 #include <doctest/doctest.h>
 
+#include <cmath>
+
 #include "tradelab/generator.hpp"
 #include "tradelab/indicators.hpp"
 
@@ -127,17 +129,22 @@ TEST_CASE("Calibration: a volatility squeeze precedes a larger move whose direct
   CHECK(bad > 0.15);
 }
 
-TEST_CASE("Calibration: a credible surprise moves the fair value; price follows over time") {
+double open_px(const Scenario& s, std::size_t i) { return static_cast<double>(s.bars[i].open.raw) / Price::kScale; }
+
+TEST_CASE("Calibration: a credible surprise is priced on arrival; little is left to follow") {
   GeneratorSpec spec = flat(0.006, {.bars = 100, .vol = 0.006});
   spec.events = {{{60, NewsKind::RateDecision, 1, 100, 0, 1}, 0.2, 0.6, 0.004, 4, 1.4, 1.0}};
   Rate01 later;
+  Rate01 after_open;
   for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
     const Scenario s = gen(spec, seed);
     later.add(px(s, 85) > px(s, 60));
+    after_open.add(px(s, 85) > open_px(s, 61));  // the first price a player can trade after the headline
   }
-  MESSAGE("25 bars after a positive surprise, up share: " << later.p());
-  CHECK(later.p() > 0.55);
-  CHECK(later.p() < 0.8);
+  MESSAGE("25 bars after a positive surprise, up share from the release close: " << later.p() << ", from the next open: " << after_open.p());
+  CHECK(later.p() > 0.7);         // the market did reprice
+  CHECK(after_open.p() > 0.45);   // a small post-news drift remains
+  CHECK(after_open.p() < 0.72);   // but following the headline is no free trade
   // Expected news (no surprise) leaves the fair value alone.
   spec.events[0].item.expectation = 1;
   Rate01 priced_in;
@@ -211,4 +218,42 @@ TEST_CASE("Regression: the funding rate published before a segment does not reve
   const std::vector<Rate> crowded = rates(0.002);
   for (std::size_t i = 0; i <= 30; ++i) CHECK(calm[i].raw == crowded[i].raw);  // bar 30 is the first of the segment
   CHECK(calm[31].raw != crowded[31].raw);  // published at the close of bar 30, inside the segment
+}
+
+TEST_CASE("Regression: credible news gaps the next open instead of drifting in for many bars") {
+  // Before: a surprise only moved the hidden fair value, which pulled price 0.6% of the gap per bar,
+  // so the open after a credible -2 headline barely moved and following it won ~98% of the time.
+  GeneratorSpec spec = flat(0.006, {.bars = 80, .vol = 0.004});
+  spec.events = {{{50, NewsKind::ExchangeIncident, -1, 100, 0, -2}, 0.0, 1.0, 0.0, 1, 1.0, 1.0, 0.05}};
+  double gap = 0.0;
+  for (std::uint64_t seed = 1; seed <= 50; ++seed) {
+    const Scenario s = gen(spec, seed);
+    gap += std::log(open_px(s, 51) / px(s, 50)) / 50.0;
+  }
+  MESSAGE("average gap " << gap);
+  CHECK(gap < -0.07);  // 0.8 x (0.05 x -2 x 100%) = -0.08
+  CHECK(gap > -0.09);
+}
+
+TEST_CASE("Schedule: the first segment's length is drawn per seed; later events shift; length is fixed") {
+  GeneratorSpec spec;
+  spec.lead_jitter_min = -3;
+  spec.lead_jitter_max = 5;
+  spec.segments = {{.bars = 40}, {.bars = 10}, {.bars = 20}};
+  spec.events = {{{20, NewsKind::RateDecision, 1, 100, 0, 1}}, {{39, NewsKind::RateDecision, 1, 100, 0, 1}},
+                 {{45, NewsKind::RateDecision, 1, 100, 0, 1}}};
+  std::vector<int> seen(9, 0);
+  for (std::uint64_t seed = 1; seed <= 300; ++seed) {
+    const GeneratorSpec s = scheduled(spec, seed);
+    const int lead = static_cast<int>(s.segments[0].bars) - 40;
+    REQUIRE(lead >= -3);
+    REQUIRE(lead <= 5);
+    seen[static_cast<std::size_t>(lead + 3)] += 1;
+    CHECK(s.segments[0].bars + s.segments[1].bars + s.segments[2].bars == 70);
+    CHECK(s.events[0].item.release_step == 20);                         // inside the first segment: fixed
+    CHECK(static_cast<int>(s.events[1].item.release_step) == 39 + lead);  // reacts from bar 40: moves
+    CHECK(static_cast<int>(s.events[2].item.release_step) == 45 + lead);
+    CHECK(gen(spec, seed).bars.size() == 70);
+  }
+  for (const int n : seen) CHECK(n > 10);  // every lead in the range occurs
 }

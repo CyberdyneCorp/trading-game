@@ -11,7 +11,8 @@
 //     trends revert to their own moving average (pullbacks);
 //   - momentum (trend persistence), volatility compression (squeeze) and segments whose direction
 //     is drawn per seed, tilted toward the fair value (breakouts);
-//   - crowding: when funding is extreme, a squeeze against the crowded side becomes possible.
+//   - crowding: when funding is extreme, a squeeze against the crowded side becomes possible;
+//   - news priced on arrival (an opening gap) and a per-seed schedule for scripted segments.
 // Volume is tied to |return|; funding follows recent drift.
 
 #include <cstdint>
@@ -75,12 +76,24 @@ struct GeneratorSpec {
   double squeeze_funding = 0.0006;  // |funding| above which the crowded side can be squeezed
   double squeeze_prob = 0.06;
   double squeeze_size = 0.02;    // log size of a squeeze jump against the crowd
+  // Credible news is priced on arrival: this share of a release's fair-value shift opens the next
+  // bar as a gap; the rest reaches price through fair_pull and the event's transient reaction.
+  double news_gap = 0.8;
+  // The first segment lasts [lead_jitter_min, lead_jitter_max] extra bars, drawn per seed; later
+  // segments and every event after it shift with it and the last segment absorbs the difference,
+  // so the mission length is fixed but a replay cannot learn on which bar the story turns.
+  std::int32_t lead_jitter_min = 0;
+  std::int32_t lead_jitter_max = 0;
   std::vector<ScriptedEvent> events;  // release steps are absolute bar indices
   std::vector<Segment> segments;
 };
 
 // Fills scenario.bars and scenario.funding_rate (contract.tick_size must be set).
 void generate_market(const GeneratorSpec& spec, std::uint64_t seed, Scenario& out);
+
+// The spec with this seed's schedule applied: first segment lengthened by the drawn lead, events
+// after it shifted, last segment shortened by the same amount. Exposed for tests.
+GeneratorSpec scheduled(const GeneratorSpec& spec, std::uint64_t seed);
 
 // Sampled reaction sign for an event (-1, 0, +1); exposed for distribution tests.
 int sample_reaction(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t index);

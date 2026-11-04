@@ -79,7 +79,7 @@ def news(table, mission, state):
     for item in state["news"]:
         i = item["step"]
         surprise = item["actual"] - item["expectation"]
-        key = (mission, i, surprise)
+        key = (mission, item["kind"], surprise)
         table[key]["follow"].add(sign(surprise) or item["tone"], math.log(closes[i + NEWS_HORIZON] / opens[i + 1]))
         table[key]["gap"].append(math.log(opens[i + 1] / closes[i]))
 
@@ -115,10 +115,10 @@ def main():
     print("| Signal | Samples | Goes the predicted way | Average move in its favor |\n|---|---|---|---|")
     for name, t in sorted(signals.items(), key=lambda kv: -kv[1].hits / kv[1].n):
         print(t.row(name))
-    print(f"\n| News (mission, step, surprise) | Gap at the next open | Follow it from the next open, {NEWS_HORIZON} bars | Average move |\n|---|---|---|---|")
-    for (mission, step, surprise), v in news_table.items():
+    print(f"\n| News (mission, headline, surprise) | Gap at the next open | Follow it from the next open, {NEWS_HORIZON} bars | Average move |\n|---|---|---|---|")
+    for (mission, kind, surprise), v in news_table.items():
         t = v["follow"]
-        print(f"| {mission} @{step}, surprise {surprise:+d} | {100 * statistics.fmean(v['gap']):+.2f}% | {100 * t.hits / t.n:.0f}% | {100 * statistics.fmean(t.moves):+.2f}% |")
+        print(f"| {mission} {kind}, surprise {surprise:+d} | {100 * statistics.fmean(v['gap']):+.2f}% | {100 * t.hits / t.n:.0f}% | {100 * statistics.fmean(t.moves):+.2f}% |")
     print("\n| Mission | Excess kurtosis | Autocorr. of returns | Autocorr. of abs returns | Biggest drop: most common bar (share of seeds) |\n|---|---|---|---|---|")
     for mission, r in returns.items():
         bar, count = worst_bar[mission].most_common(1)[0]

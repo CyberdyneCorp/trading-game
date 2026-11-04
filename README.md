@@ -226,9 +226,9 @@ Each bar's log-return is the sum of:
 
 | Component | Analysis it rewards | How it works |
 |---|---|---|
-| Segment drift and volatility | Reading the regime | Missions script segments (range, trend, quiet compression, breakout) with their own drift and vol; volatility clusters (GARCH-like) and has jumps. |
+| Segment drift and volatility | Reading the regime | Missions script segments (range, trend, quiet compression, breakout) with their own drift and vol; volatility clusters (GARCH-like) and has jumps. The first segment's length is drawn per seed, so later segments and news land on different bars each run. |
 | Hidden fair value | Fundamental | A latent value moved by segment drift, by most of each information jump, and by news surprises. Price is pulled toward it slowly (`fair_pull`), so news has lasting effect. |
-| News | Fundamental | Scheduled releases (headline, expected vs actual, credibility). A surprise moves fair value on the next bar and adds a short transient reaction. News before a breakout tilts its direction. |
+| News | Fundamental | Scheduled releases (headline, expected vs actual, credibility). A surprise moves fair value on the next bar, and 80% of that move is priced at once as an opening gap. A short, uncertain transient reaction follows. News before a breakout tilts its direction. |
 | Level anchor | Technical (ranges) | In range segments price reverts to the range center and meets soft walls at the edges — fading extremes works more often than not. |
 | Trend anchor and momentum | Technical (trends) | Trend segments revert to their 20-bar EMA (pullbacks get bought) and carry momentum. |
 | Random-direction segments | Uncertainty | Breakouts pick a direction at random, tilted by the gap to fair value: the fundamental side wins more often, not always. |
@@ -243,73 +243,78 @@ Nothing in the generator reads the future. Indicators, patterns, funding and imp
 There are two ways to measure it.
 
 - **Calibration tests** (`engine/tests/test_generator.cpp`, 200 seeds per check) use clean, single-regime markets to check that each structural term gives a small edge and never a certain one. For example, fading RSI extremes inside a range works 58–72% of the time, buying a trend pullback 57–72%, and a structure-free random walk gives RSI no edge (35–65%).
-- **The missions themselves** mix regimes, so the player first has to tell which one they are in. `tools/market_study.py` plays every mission on 100 seeds without trading and measures each signal from the next bar's open, the earliest price a player can actually get. The tables below are its output.
+- **The missions themselves** mix regimes, so the player first has to tell which one they are in. `tools/market_study.py` plays every mission on 100 seeds without trading and measures each signal from the next bar's open, the earliest price a player can actually get. The tables below are its output. `engine/tests/test_mission_realism.cpp` asserts the bands (60 seeds), so CI fails if a generator change makes the missions predictable again.
 
-**Technical signals** (5 missions × 100 seeds, outcome 5 bars later):
+**Technical signals** (5 missions × 100 seeds, outcome 5 bars later; the test requires 42–58% for RSI, Bollinger, MACD and SMA20):
 
 | Signal | Samples | Goes the predicted way | Average move in its favor |
 |---|---|---|---|
-| MACD cross: follow | 2,938 | 53.7% | +0.55% |
-| Last bar's color, next bar only | 41,930 | 52.1% | +0.06% |
-| MACD histogram: follow its sign | 42,379 | 51.9% | +0.18% |
-| Candle pattern: follow its bias | 6,684 | 51.5% | +0.17% |
-| Close vs SMA20: follow | 42,374 | 49.8% | +0.04% |
-| ADX > 25: follow the stronger DI | 23,351 | 48.7% | -0.06% |
-| RSI < 30 buy, > 70 sell | 8,468 | 48.1% | -0.25% |
-| Bollinger: fade a close outside the bands | 6,069 | 45.7% | -0.54% |
-| Extreme funding (> 0.06%): fade the crowd | 5,587 | 35.1% | -0.86% |
+| MACD cross: follow | 3,077 | 51.9% | +0.25% |
+| Last bar's color, next bar only | 41,984 | 51.4% | +0.04% |
+| MACD histogram: follow its sign | 42,395 | 51.3% | +0.10% |
+| Candle pattern: follow its bias | 6,810 | 50.8% | +0.04% |
+| Close vs SMA20: follow | 42,388 | 49.2% | -0.01% |
+| ADX > 25: follow the stronger DI | 21,479 | 48.8% | -0.05% |
+| Bollinger: fade a close outside the bands | 5,796 | 48.5% | -0.23% |
+| RSI < 30 buy, > 70 sell | 7,049 | 48.4% | -0.17% |
+| Extreme funding (> 0.06%): fade the crowd | 5,584 | 37.7% | -0.40% |
 
 What this means:
 
-- **No indicator is a signal on its own.** Every one of them is within a few points of a coin flip, which is also what studies of real markets find. Trend-following reads (MACD) do slightly better than fading (RSI, Bollinger), because the missions trend more than they range.
+- **No indicator is a signal on its own.** Every one of them is within a few points of a coin flip, which is also what studies of real markets find.
 - **Context is the skill.** Fading RSI works inside a range and fails inside a trend. The calibration tests show the edge is there once the regime is right.
-- **Extreme funding is a warning, not a timing signal.** The crowd paying high funding is usually on the right side of the trend, until the squeeze. Fading it bar by bar loses about two times in three.
+- **Extreme funding is a warning, not a timing signal.** The crowd paying high funding is usually on the right side of the trend, until the squeeze. Fading it bar by bar loses more often than it wins.
 
-**Candle patterns.** The engine detects 29 candle patterns on closed bars. `engine/tests/test_candle_patterns.cpp` measures them over 300 generated markets (5 missions × 60 seeds), counting a pattern as working when the close 5 bars later moved its way, and fails CI if a generator change moves them out of band:
+**Candle patterns.** The engine detects 29 candle patterns on closed bars. `engine/tests/test_candle_patterns.cpp` measures them over 300 generated markets (5 missions × 60 seeds), counting a pattern as working when the close 5 bars later moved its way:
 
 | Signal | Samples | Next 5 bars go the predicted way | Test band |
 |---|---|---|---|
-| Any pattern on its own | 5,785 | 50.7% | 45–60% |
-| Pattern plus an extreme RSI (< 30 bullish, > 70 bearish) | 599 | 55.9% | 45–62% |
-| Kickers (gaps, usually caused by news) | 30 | 66.7% | > 60% |
+| Any pattern on its own | 5,919 | 50.8% | 45–60% |
+| Pattern plus an extreme RSI (< 30 bullish, > 70 bearish) | 583 | 56.4% | 45–62% |
+| Kickers (gaps, usually caused by news) | 34 | 55.9% | 40–70% |
 
-Patterns alone are close to a coin flip, as in real markets, and the in-game cheat sheet says so plainly.
+Patterns alone are close to a coin flip, as in real markets, and the in-game cheat sheet says so plainly. Kickers are news gaps: the information is already in the gap, so what follows is not much better than a coin flip.
 
-**News** (following the surprise's direction from the open after the headline, 10 bars):
+**News.** Credible news is priced on arrival: 80% of a surprise's effect on fair value opens the next bar as a gap. What is left is a small, uncertain drift. The table shows the gap, then what following the surprise's direction from that open earns over 10 bars. The test requires every row to be under 72%, and a credible shock to gap by more than 3%.
 
-| News (mission, step, surprise) | Gap at the next open | Goes the predicted way | Average move |
+| News (mission, headline, surprise) | Gap at the next open | Goes the predicted way | Average move |
 |---|---|---|---|
-| m01 rumor @72, surprise 0 | 0.00% | 40% | -1.11% |
-| m01 credible denial @82, surprise -2 | -0.19% | 97% | +9.00% |
-| m02 inflow @100, surprise 0 | -0.01% | 59% | +1.04% |
-| m02 rate decision @112, surprise -1 | -0.06% | 74% | +4.17% |
-| m03 exchange incident @79, surprise -2 | -2.04% | 86% | +11.34% |
-| m04 rate decision @81, surprise +1 | 0.00% | 57% | +1.96% |
-| m05 network outage @99, surprise -2 | -2.84% | 98% | +15.14% |
+| m01 rumor, surprise 0 | 0.00% | 54% | +0.24% |
+| m01 credible denial, surprise -2 | -4.12% | 57% | +0.36% |
+| m02 inflow, surprise 0 | -0.01% | 71% | +1.12% |
+| m02 rate decision, surprise -1 | -2.41% | 62% | +1.24% |
+| m03 exchange incident, surprise -2 | -7.83% | 41% | -1.06% |
+| m04 rate decision, surprise +1 | +2.50% | 65% | +3.29% |
+| m05 network outage, surprise -2 | -7.99% | 62% | +2.11% |
 
-A surprise of 0 (the news was already expected) carries no edge, and a mild surprise carries a modest one. These rows behave as intended.
+So the edge belongs to whoever was positioned, with a stop, before the news. A trade placed after the headline is late, as in a real market. m02's inflow row is high because it lands during the uptrend: the trend does the work, not the headline.
+
+**Timing.** Each mission's calm opening phase lasts a different number of bars per seed: m01 70–82, m02 56–70, m03 70–90, m04 64–76 and m05 66–82. Every later segment and headline moves with it, so the story is the same but the bar it turns on is not. The option missions keep their shocks before the first expiry.
 
 ### How close is this to a real market?
 
-| Mission | Excess kurtosis | Autocorrelation of returns | Autocorrelation of absolute returns |
-|---|---|---|---|
-| m01-false-breakout | 3.6 | +0.19 | +0.27 |
-| m02-funding-squeeze | 3.7 | +0.06 | +0.21 |
-| m03-volatility-shock | 16.5 | +0.17 | +0.43 |
-| m04-options-buyer | 6.2 | +0.17 | +0.38 |
-| m05-options-writer | 25.5 | +0.27 | +0.40 |
+| Mission | Excess kurtosis | Autocorrelation of returns | Autocorrelation of absolute returns | Biggest drop: share of seeds on its 3 most common bars |
+|---|---|---|---|---|
+| m01-false-breakout | 7.2 | +0.05 | +0.17 | 33% |
+| m02-funding-squeeze | 3.7 | +0.07 | +0.23 | 22% |
+| m03-volatility-shock | 25.0 | +0.06 | +0.34 | 23% |
+| m04-options-buyer | 6.6 | +0.18 | +0.33 | 18% |
+| m05-options-writer | 29.4 | +0.01 | +0.31 | 24% |
 
-What matches real hourly crypto data:
+- **Fat tails.** Excess kurtosis is well above 0. Real hourly crypto data usually sits around 5–20, and the shock missions are deliberately extreme.
+- **Volatility clustering.** Absolute returns are autocorrelated at 0.17–0.34, similar to real markets: calm follows calm and storms follow storms.
+- **Little bar-to-bar trend.** Return autocorrelation is about 0, as in real markets, except in m04, whose scripted breakout carries momentum (+0.18).
 
-- **Fat tails.** Excess kurtosis is well above 0. Real hourly data usually sits around 5–20.
-- **Volatility clustering.** Absolute returns are autocorrelated at 0.2–0.4, similar to real markets: calm follows calm and storms follow storms.
-- **Indicators hover around a coin flip**, as in real markets.
+**What changed (generator, policy v10):**
 
-### Known gaps (being worked on)
+| Measure | Before | Now |
+|---|---|---|
+| Following a credible shock headline from the next open, 10 bars | 86–98% right, +9 to +15% | 41–62% right, -1 to +2% |
+| Gap at the open after a credible shock headline | 0.2–2.8% | 4–8% |
+| m03 and m05 biggest drop on the same 3 bars | 96–99% of seeds | 23–24% of seeds |
+| Return autocorrelation (m01, m03, m05) | +0.17 to +0.27 | +0.01 to +0.06 |
 
-- **Credible news is priced too slowly.** In a real market a credible, surprising headline is priced within minutes, so on hourly bars most of the move is in the next bar's gap. Here the next open moves only 0–3%, and following the headline afterwards still wins 86–98% of the time, gaining 9–15% in 10 bars. That is a free trade a real market would not offer.
-- **Scripted shocks land on the same bars every run.** The m03 and m05 crashes hit one of the same three bars in 96–99% of seeds. A player who replays a mission can learn when the crash comes instead of reading the market.
-- **Returns trend a little too much from bar to bar.** Returns are autocorrelated at +0.06 to +0.27, against roughly 0 in real markets. This comes mostly from the strong drift in the scripted breakout and crash segments, so the "last bar's color" signal still only wins 52% of the time.
+Outcomes are still scripted so each mission teaches its lesson. m01's breakout is back in the range 25 bars after it started in about 70% of seeds, and the denial gaps it down every time. m03 liquidates a 10× long in about 90% of seeds, and m05 margin-calls a writer of 300 puts in about 40%. Randomizing outcomes, such as a breakout that is sometimes real, is planned for a later difficulty mode.
 
 Historical packs (masked real markets from Market4Me) are specified but not built yet.
 

@@ -574,13 +574,13 @@ export const MORE_CANDLE_PATTERNS: CandlePattern[] = [
 			'pt-BR': {
 				name: 'Kicker de alta',
 				what: 'Candle de baixa seguido de um candle de alta forte que abre acima da abertura anterior (com gap).',
-				means: 'Mudança brusca de sentimento, normalmente por notícia: um dos sinais mais fortes.',
+				means: 'Mudança brusca de sentimento, normalmente por notícia. A notícia já está no gap: o que vem depois é bem menos certo.',
 				confirm: 'Em mercados 24/7 gaps são raros, então o padrão aparece pouco; quando aparece, respeite a mínima do candle de alta.'
 			},
 			en: {
 				name: 'Bullish kicker',
 				what: 'A bearish candle followed by a strong bullish candle that opens above the previous open (a gap).',
-				means: 'An abrupt change in sentiment, usually news-driven: one of the strongest signals.',
+				means: 'An abrupt change in sentiment, usually news-driven. The news is already in the gap: what follows is far less certain.',
 				confirm: 'Gaps are rare in 24/7 markets, so it shows up seldom; when it does, respect the bullish candle’s low.'
 			}
 		}
@@ -597,13 +597,13 @@ export const MORE_CANDLE_PATTERNS: CandlePattern[] = [
 			'pt-BR': {
 				name: 'Kicker de baixa',
 				what: 'Candle de alta seguido de um candle de baixa forte que abre abaixo da abertura anterior (com gap).',
-				means: 'Mudança brusca de sentimento para baixa, normalmente por notícia.',
+				means: 'Mudança brusca de sentimento para baixa, normalmente por notícia. A notícia já está no gap: o que vem depois é bem menos certo.',
 				confirm: 'Raro em mercados 24/7; quando aparece, stop acima da máxima do candle de baixa.'
 			},
 			en: {
 				name: 'Bearish kicker',
 				what: 'A bullish candle followed by a strong bearish candle that opens below the previous open (a gap).',
-				means: 'An abrupt bearish change in sentiment, usually news-driven.',
+				means: 'An abrupt bearish change in sentiment, usually news-driven. The news is already in the gap: what follows is far less certain.',
 				confirm: 'Rare in 24/7 markets; when it appears, stop above the bearish candle’s high.'
 			}
 		}
