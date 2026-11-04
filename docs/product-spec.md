@@ -190,7 +190,7 @@ See `openspec/changes/add-cyberdyne-identity-and-backend/`. Summary: CyberdyneAu
 | 4 iPad/iPhone | SwiftUI, Swift C++ interop, offline packs, sync | Same digests; airplane-mode mission |
 | 5 Expansion | Stop-limit, multi-timeframe, editorial admin, online comparable challenges, Android | Per change |
 
-Progress (2026-11-03): phase 0 done; phase 1 done except staging login; from phase 2, five missions (3 perp, 2 options), options buy+write, trailing/brackets, indicators (incl. MACD, Bollinger, VWAP, ADX), candle-pattern detection, installable offline PWA and the sync API are built — see the root `README.md`.
+Progress (2026-11-04): phase 0 done; phase 1 done except staging login; from phase 2, five missions (3 perp, 2 options) with first-start tutorials, options buy+write, trailing/brackets, indicators (incl. MACD, Bollinger, VWAP, ADX), candle-pattern detection, installable offline PWA and the sync API are built; advisor, points and intel perks are specified (`add-advisor-intel-tutorials`) — see the root `README.md`.
 
 **Out of MVP:** real money, broker connections, cross margin, hedge mode, portfolio margin, American options, multi-asset portfolios, social trading, global financial ranking, public authoring without moderation, any return promise.
 

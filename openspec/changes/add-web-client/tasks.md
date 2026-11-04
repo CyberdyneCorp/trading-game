@@ -26,7 +26,7 @@
 - [x] 4.3c Multi-candle and chart patterns in the sheet; engine-detected patterns marked on the chart, linked to the sheet
 - [x] 4.3b Bollinger overlay and candle pattern cheat sheet (P)
 - [x] 4.3a Indicator panes (RSI/MACD/ADX selector, VWAP overlay) and stop/target tools (ATR/swing/% presets, R targets, mark on chart, chart preview, unprotected-position warning)
-- [ ] 4.4 Journal, lessons runner, curriculum map, progress, catalog + download — plan theses are kept in a local journal and shown in the debrief timeline; journal screen, lessons, curriculum map, progress and catalog pending
+- [ ] 4.4 Journal, lessons runner, curriculum map, progress, catalog + download — plan theses are kept in a local journal and shown in the debrief timeline; the menu marks missions played to the end as Completed; journal screen, lessons, curriculum map, cross-device progress and catalog pending
 - [ ] 4.5 CSV import wizard
 - [ ] 4.6 All required states; colorblind palette; i18n PT-BR + en-US — colorblind palette and PT-BR/en catalogs done; states done: loading, engine error, indicator warming up, accepted vs filled, capacity-limited/partial fills flagged in the feed, liquidation warning, liquidated, margin call, option expired/settled, game over, offline, storage not durable; plain-language rejection/cancel reasons for every engine reason code (PT-BR/en, `reasonText`); pending: numbers inside rejection messages, no data, download interrupted, incompatible pack, session expired, sync pending, device conflict
 - [ ] 4.7 E2E: full mission, UX01, rejection reasons, liquidation flow — full mission, EDU02, reload/resume, options, calibration, stop/target, patterns and auto-advance E2E done; UX01, rejection reasons and liquidation flow pending
