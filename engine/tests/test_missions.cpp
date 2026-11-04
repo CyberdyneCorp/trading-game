@@ -93,6 +93,7 @@ TEST_CASE("C ABI: same mission, seed and commands produce identical digests") {
 // Policy v2 changed the state digest (new order fields). Policy v3 adds the instrument (series) field
 // to orders and events, so both digests changed again; perpetual behavior tests are unchanged.
 // Mission m01 later gained news events, which changed its generated market (content, not policy).
+// Policy v7 changed m05 (jump before the first expiry): new m05 digests; m01 only through the policy version.
 // Policy v4 adds plans and calibration answers to the state digest (event digests unchanged).
 TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run* run = tl_run_create("m01-false-breakout", 2026);
@@ -109,7 +110,7 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"59ac4c176029f431a2665eef4c9d5ffcb2d9fb3a9e2a3f109170cb85089048fe\","
+        "\"digest\":\"0449c945c71e2e4283827b222fbe5df929e9b1c51c4959f1bcf5105fc7f4ce37\","
         "\"eventsDigest\":\"f5902b5a8963380652e1c4e718db648e97c314ea1ea089881ad2ab73f9cde0a7\"}");
 }
 
@@ -141,8 +142,8 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"f126b54c351e8704386c0705038a1abf44b5089ac0a527e6a8a465a717d06f93\","
-        "\"eventsDigest\":\"acdd778cc1750c8cc3eed026821e947e77be54d2b7ca959330e6bf7a239c2d0e\"}");
+        "\"digest\":\"e7f6750d05a9ea5fceec8e09eb5091a1838ccbed09793a71e9ee000dca284653\","
+        "\"eventsDigest\":\"1d264caec5f647b95c3229b45cb9809f7533f01179e030436adaa4f07662b572\"}");
 }
 
 TEST_CASE("News: same headline, seeded reactions include none and reversals (spec Events)") {
@@ -202,7 +203,7 @@ TEST_CASE("C ABI: plans, answers and the score report in the debrief") {
   tl_place_order_ex(run, 4, 0, 0, "10", nullptr, 0, "95.5", "110", nullptr);
   tl_advance(run, 1000);
   const std::string d = tl_debrief(run);
-  CHECK(d.find("\"score\":{\"version\":1") != std::string::npos);
+  CHECK(d.find("\"score\":{\"version\":2") != std::string::npos);
   CHECK(d.find("\"trades\":[{\"n\":1") != std::string::npos);
   CHECK(d.find("\"lesson\":") != std::string::npos);
   tl_run_destroy(run);

@@ -7,9 +7,9 @@ Defines how a mission attempt is graded so that the score rewards risk disciplin
 ## ADDED Requirements
 
 ### Requirement: Score dimensions
-The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 1) from the command log with integer arithmetic only.
+The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 2) from the command log with integer arithmetic only.
 
-Entries are exposure-increasing fills of the perpetual and of each option series (buying or writing to open). Plan coherence SHALL be non-applicable when the attempt has no entries. Otherwise, in scoring version 1, it SHALL be `70 × min(plans, entries) / entries + 30 × plans with an invalidation level / plans`, where skipped plans do not count as plans, and 0 when no plan was recorded.
+Entries are exposure-increasing fills of the perpetual and of each option series (buying or writing to open). Plan coherence SHALL be non-applicable when the attempt has no entries. Otherwise, in scoring versions 1 and 2, it SHALL be `70 × min(plans, entries) / entries + 30 × plans with an invalidation level / plans`, where skipped plans do not count as plans, and 0 when no plan was recorded.
 
 #### Scenario: Renormalization
 - **WHEN** a mission has no calibration questions
@@ -48,8 +48,12 @@ Net P&L, drawdown, total costs, funding, turnover and peak leverage SHALL be dis
 - **THEN** its risk score SHALL reflect the violation regardless of profit
 
 ### Requirement: Calibration
-Calibration SHALL use Brier scores over binary questions that resolve within the mission (e.g. "will the close in 5 steps exceed X?"), with at least three questions per scored mission. Questions SHALL be asked before the resolving bars are generated or revealed. In the built-in missions the engine SHALL ask "will the close 5 bars from now be above the current close?" at the first decision step and every 15 decision steps after it, while the resolving bar exists; the player answers a probability or skips, and the client SHALL NOT advance (manually or automatically, including batch advances, which stop at the question step) until the question is answered or skipped. Skipped answers SHALL be recorded but not scored. The calibration score SHALL be `100 × (1 − Brier)`.
+Calibration SHALL use Brier scores over binary questions that resolve within the mission (e.g. "will the close in 5 steps exceed X?"), with at least three questions per scored mission. Questions SHALL be asked before the resolving bars are generated or revealed. In the built-in missions the engine SHALL ask "will the close 5 bars from now be above the current close?" at the first decision step and every 15 decision steps after it, while the resolving bar exists; the player answers a probability or skips, and the client SHALL NOT advance (manually or automatically, including batch advances, which stop at the question step) until the question is answered or skipped. Skipped answers SHALL be recorded but not scored. The calibration score SHALL be `max(0, 100 × (1 − 2 × Brier))` (scoring version 2): always answering 50% (Brier 0.25) is neutral at 50 rather than a bonus, and confidently wrong answers score 0.
 
+
+#### Scenario: No-information answers are neutral
+- **WHEN** the player answers 50% to every calibration question
+- **THEN** the Brier score SHALL be 0.25 and the calibration score 50
 #### Scenario: Minimum question count
 - **WHEN** fewer than three non-skipped answers have resolved by the end of the attempt
 - **THEN** the calibration dimension SHALL be non-applicable

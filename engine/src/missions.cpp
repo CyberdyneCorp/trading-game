@@ -140,13 +140,14 @@ MissionDef options_writer() {
   m.gen.iv_premium = 0.35;
   m.gen.segments = {
       {.bars = 80, .vol = 0.0050, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.025},
-      {.bars = 40, .vol = 0.0045, .volume_mult = 0.9, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.025},
+      {.bars = 20, .vol = 0.0045, .volume_mult = 0.9, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.025},
       {.bars = 3, .drift = -0.0200, .vol = 0.0200, .jump_prob = 0.70, .jump_mean = -0.05, .volume_mult = 3.5, .funding_bias = -0.0008,
        .iv_mult = 1.8},
-      {.bars = 27, .drift = 0.0005, .vol = 0.0120, .jump_prob = 0.05, .volume_mult = 1.6, .iv_mult = 1.3},
+      {.bars = 47, .drift = 0.0005, .vol = 0.0120, .jump_prob = 0.05, .volume_mult = 1.6, .iv_mult = 1.3},
   };
-  // A network outage is announced as the jump hits.
-  m.gen.events = {{{119, NewsKind::NetworkOutage, -1, 80, 0, -2}, 0.05, 0.8, 0.005, 5, 1.6, 1.4}};
+  // A network outage is announced as the jump hits, eight bars before the first expiry (bar 108),
+  // so the options written at the start are still open when it lands.
+  m.gen.events = {{{99, NewsKind::NetworkOutage, -1, 80, 0, -2}, 0.05, 0.8, 0.005, 5, 1.6, 1.4}};
   m.info = {"m05-options-writer", total_bars(m.gen), 60, 3, true};
   m.options = true;
   m.allow_short_options = true;

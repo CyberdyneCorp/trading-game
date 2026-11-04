@@ -270,9 +270,11 @@ void calibration(const Scenario& sc, const RunState& st, ScoreReport& r) {
   r.resolved_answers = n;
   if (n < 3) return;
   r.brier_bp = round_div(sum_sq, static_cast<i128>(n) * kBp);
-  // 100 * (1 - Brier) = (n * 1e10 - 100 * sum_sq) / (n * 1e8)
-  r.calibration.score = static_cast<std::int32_t>(round_div(static_cast<i128>(n) * kBp * kBp * 100 - 100 * sum_sq,
-                                                            static_cast<i128>(n) * kBp * kBp));
+  // Scoring v2: 100 * (1 - 2 * Brier), floored at 0. Always answering 50% (Brier 0.25, no
+  // information) is neutral at 50 instead of a free 75; confident wrong answers cost more.
+  // = (n * 1e10 - 200 * sum_sq) / (n * 1e8)
+  const std::int64_t score = round_div(static_cast<i128>(n) * kBp * kBp * 100 - 200 * sum_sq, static_cast<i128>(n) * kBp * kBp);
+  r.calibration.score = static_cast<std::int32_t>(std::max<std::int64_t>(0, score));
 }
 
 void combine(ScoreReport& r) {

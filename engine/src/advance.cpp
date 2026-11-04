@@ -149,10 +149,15 @@ bool execute(BarCtx& c, Order& o, const Exec& ex) {
   return true;
 }
 
-// Market orders are IOC: any remainder after the open is cancelled.
+// Market orders are IOC: any remainder after the open is cancelled. A reduce-only market order
+// (e.g. "close position") cut short by capacity keeps working at the next opens instead, so a
+// close never silently leaves part of the position open.
 void execute_market(BarCtx& c, Order& o) {
   execute(c, o, {taker_price(c.sc, c.bar.open, o.side), false, kFlagNone});
-  if (o.active()) cancel(c.st, o, c.capacity.raw == 0 ? Reason::InsufficientCapacity : Reason::PositionClosed);
+  if (!o.active()) return;
+  const bool out_of_capacity = c.capacity.raw == 0;
+  if (out_of_capacity && o.reduce_only && !c.st.position.flat()) return;
+  cancel(c.st, o, out_of_capacity ? Reason::InsufficientCapacity : Reason::PositionClosed);
 }
 
 bool liquidation_level(const BarCtx& c, Price* out) { return detail::liquidation_price(c.sc, c.st.position, out); }
@@ -187,6 +192,10 @@ void open_phase(BarCtx& c) {
     const Order& o = c.st.orders[i];
     if (o.active() && o.series == 0 && o.type == OrderType::Market) execute_market(c, c.st.orders[i]);
   }
+  // Bracket legs attached by fills at the open are already live there: one the open has gapped
+  // through (e.g. a stop computed from the previous close) executes at the open, never at a
+  // trigger price the bar did not trade after it. Orders checked in the first pass are unchanged.
+  open_gap_orders(c);
 }
 
 // ---- 2/3. intrabar -----------------------------------------------------------------------
