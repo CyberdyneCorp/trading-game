@@ -74,6 +74,7 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 
 ### D6g. Closing through capacity and m05 timing (execution-policy v7)
 - A reduce-only market order (including "close position") whose remainder was cut by bar capacity stays `partially_filled` and keeps executing at the next opens until filled, the position is flat (orphan cancel) or the player cancels it. Other market orders stay IOC. Before, a large close could silently leave part of the position open.
+- Bracket legs attached by a fill at the open go through the open-gap check too (a second pass after market orders): a stop computed from the previous close that the open already crossed used to fill at its trigger, above the bar's high for a long (found by a randomized playtest, m05 seed 9).
 - Mission m05's jump moved from bars 120-122 to 100-102 (news at 99), before the first expiry (108), so options written at the start are still open when it hits; written at-the-money puts of 200 contracts (about 2x equity in notional) get a margin call in every tested seed, 100 contracts in none. Both change replays, so the policy version was bumped to 7.
 
 ### D7. Digest and checkpoints

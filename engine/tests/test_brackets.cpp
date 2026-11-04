@@ -160,3 +160,26 @@ TEST_CASE("A capacity-limited market entry is still IOC (only reduce-only market
   CHECK(d.state().position.qty == Q("4"));
   CHECK(find_order(d.state(), entry.order_id)->status == OrderStatus::Cancelled);
 }
+
+TEST_CASE("Regression: a bracket stop already breached by the entry's open fills at the open, not at its trigger") {
+  // Before: the stop leg attached at the open was only checked intrabar and filled at its trigger
+  // (97), a price the bar never traded after the gap down (high 92): a free 7 per contract.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"},
+                               {"90", "92", "85", "88"},
+                               {"88", "88", "88", "88"}});
+  Driver d(sc);
+  d.step();
+  const auto entry = d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "97", "110");
+  REQUIRE(entry.accepted);
+  d.step();
+  CHECK(d.state().position.flat());
+  std::vector<const Event*> fills;
+  for (const Event& e : d.state().events) {
+    if (e.type == EventType::Fill) fills.push_back(&e);
+  }
+  REQUIRE(fills.size() == 2);
+  CHECK(fills[0]->price == P("90"));  // entry at the open
+  CHECK(fills[1]->price == P("90"));  // stop at the open (gap), not at 97
+  CHECK((fills[1]->flags & kFlagGapFill) != 0);
+}

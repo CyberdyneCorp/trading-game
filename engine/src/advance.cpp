@@ -192,6 +192,10 @@ void open_phase(BarCtx& c) {
     const Order& o = c.st.orders[i];
     if (o.active() && o.series == 0 && o.type == OrderType::Market) execute_market(c, c.st.orders[i]);
   }
+  // Bracket legs attached by fills at the open are already live there: one the open has gapped
+  // through (e.g. a stop computed from the previous close) executes at the open, never at a
+  // trigger price the bar did not trade after it. Orders checked in the first pass are unchanged.
+  open_gap_orders(c);
 }
 
 // ---- 2/3. intrabar -----------------------------------------------------------------------
