@@ -8,6 +8,7 @@
 	import { candleRange, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
 	import { patternName } from '#lib/game/candlePatterns.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
+	import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragTarget, type DragZone } from './chartDrag.ts';
 
 	let {
 		game,
@@ -15,7 +16,9 @@
 		picking = false,
 		onPicked,
 		onCancelPick,
-		onPattern
+		onPattern,
+		onDragLevel,
+		onMoveOrder
 	}: {
 		game: GameState;
 		preview?: TicketPreview | null;
@@ -23,6 +26,10 @@
 		onPicked?: (price: number) => void;
 		onCancelPick?: () => void;
 		onPattern?: (id: string) => void;
+		/** A draft SL?/TP? line was dragged (called while dragging and on release). */
+		onDragLevel?: (which: 'stop' | 'tp', price: number) => void;
+		/** A working protective order's line was dropped at a new price. */
+		onMoveOrder?: (orderId: number, price: number) => void;
 	} = $props();
 
 	let canvas: HTMLCanvasElement | undefined = $state();
@@ -40,6 +47,11 @@
 	let hoverY = $state<number | null>(null);
 	// Price scale of the last frame, used to turn a click into a price while picking.
 	let scale = { lo: 0, hi: 1, priceH: 1 };
+	// Dragging a stop/target line: the scale is frozen at drag start so the line follows the pointer.
+	let drag = $state<{ target: DragTarget; from: number; price: number; lo: number; hi: number } | null>(null);
+	let grabbable = $state<DragTarget | null>(null);
+	let zones: DragZone[] = [];
+	let suppressClick = false;
 
 	// Bars still needed before an indicator has a value (spec indicators "Warm-up").
 	function warming(series: (string | null)[], need: number): number {
@@ -55,6 +67,7 @@
 		label: string;
 		color: string;
 		dash: number[];
+		drag?: DragTarget;
 	}
 
 	const bars = $derived(game.bars.map((b) => b.slice(0, 5).map(Number) as [number, number, number, number, number]));
@@ -82,7 +95,8 @@
 				price: Number(o.price),
 				label: `${kind} #${o.id}`,
 				color: isStop ? cssVar('--attention') : cssVar('--accent'),
-				dash: [3, 3]
+				dash: [3, 3],
+				drag: isDraggableOrder(o) ? { kind: 'order', orderId: o.id } : undefined
 			});
 		}
 		return out.concat(draftLevels());
@@ -92,10 +106,26 @@
 	function draftLevels(): Level[] {
 		if (!preview) return [];
 		const out: Level[] = [{ price: preview.entry, label: 'ENTRY?', color: cssVar('--muted'), dash: [1, 4] }];
-		if (preview.stop) out.push({ price: preview.stop, label: 'SL?', color: cssVar('--attention'), dash: [1, 4] });
-		if (preview.takeProfit) out.push({ price: preview.takeProfit, label: 'TP?', color: cssVar('--accent'), dash: [1, 4] });
+		if (preview.stop) {
+			out.push({ price: preview.stop, label: 'SL?', color: cssVar('--attention'), dash: [1, 4], drag: { kind: 'draft', which: 'stop' } });
+		}
+		if (preview.takeProfit) {
+			out.push({ price: preview.takeProfit, label: 'TP?', color: cssVar('--accent'), dash: [1, 4], drag: { kind: 'draft', which: 'tp' } });
+		}
 		if (preview.liquidation) out.push({ price: preview.liquidation, label: 'LIQ?', color: cssVar('--danger'), dash: [1, 4] });
 		return out;
+	}
+
+	// The dragged level follows the pointer; an order dragged to the wrong side of the mark turns red.
+	function withDrag(lv: Level[]): Level[] {
+		if (!drag) return lv;
+		const d = drag;
+		return lv.map((l) => {
+			if (!sameTarget(l.drag ?? null, d.target)) return l;
+			const order = d.target.kind === 'order' ? game.orders.find((o) => o.id === (d.target as { orderId: number }).orderId) : null;
+			const bad = order ? !exitOnValidSide(order.side, order.type, d.price, Number(game.account.mark)) : false;
+			return { ...l, price: d.price, dash: [], color: bad ? cssVar('--danger') : l.color };
+		});
 	}
 
 	function palette(): Palette {
@@ -132,8 +162,8 @@
 		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 		ctx.imageSmoothingEnabled = false;
 
-		const lv = levels();
-		const [lo, hi] = scaleFor(lv);
+		const lv = withDrag(levels());
+		const [lo, hi] = drag ? [drag.lo, drag.hi] : scaleFor(lv);
 		const plotW = width - AXIS_W;
 		const { priceH, volTop, volH, oscTop, oscH } = layout();
 		scale = { lo, hi, priceH };
@@ -385,6 +415,7 @@
 		const tagY = spreadLabels(lineY, 0, priceH);
 		ctx.font = '11px "IBM Plex Mono", monospace';
 		shown.forEach((l, i) => drawLevel(ctx, l, plotW, lineY[i], tagY[i], pins[i]));
+		zones = shown.flatMap((l, i) => (l.drag ? [{ target: l.drag, price: l.price, lineY: lineY[i], tagY: tagY[i] }] : []));
 	}
 
 	function drawLevel(ctx: CanvasRenderingContext2D, l: Level, plotW: number, yy: number, tag: number, pin: Pin) {
@@ -396,7 +427,8 @@
 		ctx.stroke();
 		ctx.setLineDash([]);
 		ctx.fillStyle = l.color;
-		const label = pin === 'above' ? `${l.label} ▲` : pin === 'below' ? `${l.label} ▼` : l.label;
+		const name = l.drag ? `⇕ ${l.label}` : l.label;
+		const label = pin === 'above' ? `${name} ▲` : pin === 'below' ? `${name} ▼` : name;
 		const w = ctx.measureText(label).width;
 		ctx.fillText(label, plotW - w - 4, tag - 4);
 		ctx.fillRect(plotW, tag - 8, AXIS_W, 16);
@@ -414,8 +446,50 @@
 		void slotW;
 	}
 
-	function onMove(e: MouseEvent) {
+	function pointerAt(e: MouseEvent): { px: number; py: number } {
+		const rect = canvas!.getBoundingClientRect();
+		return { px: e.clientX - rect.left, py: e.clientY - rect.top };
+	}
+
+	function onDown(e: PointerEvent) {
+		if (!canvas || picking || e.button !== 0) return;
+		const { px, py } = pointerAt(e);
+		const target = hitTest(zones, px, py, width - AXIS_W);
+		if (!target) return;
+		e.preventDefault();
+		canvas.setPointerCapture?.(e.pointerId);
+		const from = zones.find((z) => sameTarget(z.target, target))?.price ?? priceAt(py);
+		drag = { target, from, price: from, lo: scale.lo, hi: scale.hi };
+	}
+
+	function dragTo(py: number) {
+		if (!drag) return;
+		const price = priceAt(Math.min(Math.max(py, 4), scale.priceH - 4));
+		if (!(price > 0)) return;
+		drag = { ...drag, price };
+		if (drag.target.kind === 'draft') onDragLevel?.(drag.target.which, price);
+	}
+
+	function onUp() {
+		if (!drag) return;
+		const { target, price } = drag;
+		drag = null;
+		suppressClick = true; // the click that ends a drag is not a bar click
+		if (target.kind === 'draft') onDragLevel?.(target.which, price);
+		else onMoveOrder?.(target.orderId, price);
+	}
+
+	// Abandon a drag: a draft line goes back to where it was; an order was never touched.
+	function cancelDrag() {
+		if (drag?.target.kind === 'draft') onDragLevel?.(drag.target.which, drag.from);
+		drag = null;
+	}
+
+	function onMove(e: PointerEvent) {
 		if (!canvas) return;
+		if (drag) return dragTo(pointerAt(e).py);
+		const { px, py } = pointerAt(e);
+		grabbable = picking ? null : hitTest(zones, px, py, width - AXIS_W);
 		const rect = canvas.getBoundingClientRect();
 		const slotW = (width - AXIS_W) / (visible.length + futureSlots());
 		const i = Math.floor((e.clientX - rect.left) / slotW);
@@ -424,6 +498,10 @@
 	}
 
 	function onClick(e: MouseEvent) {
+		if (suppressClick) {
+			suppressClick = false;
+			return;
+		}
 		if (!picking && hover != null) {
 			const hit = patternsAt(first + hover)[0];
 			if (hit) onPattern?.(hit.id);
@@ -438,6 +516,7 @@
 
 	function onKeydown(e: KeyboardEvent) {
 		if (picking && e.key === 'Escape') onCancelPick?.();
+		if (drag && e.key === 'Escape') cancelDrag();
 	}
 
 	function onWheel(e: WheelEvent) {
@@ -472,7 +551,7 @@
 
 	$effect(() => {
 		// Redraw on any dependency change (game, size, hover, zoom, locale).
-		void [game, width, height, hover, hoverY, zoom, i18n.locale, visible, showSma, showEma, showVwap, showBb, showPatterns, osc, preview, picking];
+		void [game, width, height, hover, hoverY, zoom, i18n.locale, visible, showSma, showEma, showVwap, showBb, showPatterns, osc, preview, picking, drag];
 		draw();
 	});
 </script>
@@ -531,14 +610,18 @@
 			{/each}
 		{/if}
 	</div>
-	<div class="canvas-box" class:picking bind:this={box}>
+	<div class="canvas-box" class:picking class:grab={grabbable || drag} bind:this={box} data-testid="chart-box">
 		<canvas
 			bind:this={canvas}
 			style="width:{width}px;height:{height}px"
-			onmousemove={onMove}
+			onpointerdown={onDown}
+			onpointermove={onMove}
+			onpointerup={onUp}
+			onpointercancel={cancelDrag}
 			onmouseleave={() => {
 				hover = null;
 				hoverY = null;
+				grabbable = null;
 			}}
 			onclick={onClick}
 			onwheel={onWheel}
@@ -616,6 +699,9 @@
 	}
 	.picking canvas {
 		cursor: cell;
+	}
+	.grab canvas {
+		cursor: ns-resize;
 	}
 	.toggle select {
 		font-size: 0.78rem;

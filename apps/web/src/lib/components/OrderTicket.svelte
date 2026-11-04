@@ -46,12 +46,17 @@
 		session,
 		side = $bindable('buy'),
 		preview = $bindable(null),
+		stopInput = $bindable(''),
+		tpInput = $bindable(''),
 		onSubmit,
 		onPick
 	}: {
 		session: GameSession;
 		side?: OrderSideName;
 		preview?: TicketPreview | null;
+		/** Stop and target fields; bindable so dragging their lines on the chart edits them. */
+		stopInput?: string;
+		tpInput?: string;
 		onSubmit: (d: OrderDraft) => void;
 		onPick?: (set: (price: number) => void) => void;
 	} = $props();
@@ -75,8 +80,6 @@
 	let qtyInput = $state('10');
 	let riskPct = $state(1);
 	let priceInput = $state('');
-	let stopInput = $state('');
-	let tpInput = $state('');
 	let leverage = $state(1);
 
 	$effect(() => {

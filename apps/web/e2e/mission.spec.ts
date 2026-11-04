@@ -54,6 +54,78 @@ test('plays a full mission: plan, order, protection, advance to debrief', async 
 	expect(errors).toEqual([]);
 });
 
+/** Pixel rows of the chart's draggable stop/target tags, found by hovering down the price axis. */
+async function grabbableRows(page: Page): Promise<{ x: number; ys: number[] }> {
+	const box = page.getByTestId('chart-box');
+	const r = (await box.boundingBox())!;
+	const x = r.x + r.width - 20;
+	const ys: number[] = [];
+	for (let y = r.y + 4; y < r.y + r.height * 0.6; y += 3) {
+		await page.mouse.move(x, y);
+		if (await box.evaluate((el) => el.classList.contains('grab'))) {
+			if (!ys.length || y - ys[ys.length - 1] > 12) ys.push(y);
+		}
+	}
+	return { x, ys };
+}
+
+async function dragY(page: Page, x: number, from: number, to: number) {
+	await page.mouse.move(x, from);
+	await page.mouse.down();
+	await page.mouse.move(x, (from + to) / 2, { steps: 4 });
+	await page.mouse.move(x, to, { steps: 4 });
+	await page.mouse.up();
+}
+
+test('dragging the SL? line on the chart edits the ticket stop (and Esc puts it back)', async ({ page }) => {
+	await openTerminal(page, 4242);
+	const stopField = page.getByTestId('ticket-stop').locator('input');
+	await page.getByTestId('ticket-stop').getByRole('button', { name: '2×ATR', exact: true }).click();
+	const before = Number(await stopField.inputValue());
+	const { x, ys } = await grabbableRows(page);
+	expect(ys).toHaveLength(1); // only SL? is draggable (ENTRY?/LIQ? are not)
+	await dragY(page, x, ys[0], ys[0] + 40);
+	const after = Number(await stopField.inputValue());
+	expect(after).toBeLessThan(before);
+
+	await page.mouse.move(x, ys[0] + 40);
+	await page.mouse.down();
+	await page.mouse.move(x, ys[0] + 90, { steps: 4 });
+	await page.keyboard.press('Escape');
+	await page.mouse.up();
+	expect(Number(await stopField.inputValue())).toBe(after);
+});
+
+test('dragging a working STOP line moves the order; the wrong side of the price is refused', async ({ page }) => {
+	await openTerminal(page, 4242);
+	await page.getByTestId('ticket-stop').getByRole('button', { name: '2×ATR', exact: true }).click();
+	await page.getByTestId('ticket-tp').getByRole('button', { name: '2R', exact: true }).click();
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	const orders = page.locator('.orders');
+	await expect(orders.getByText('STOP')).toBeVisible();
+	const stopRow = orders.locator('tr', { hasText: 'STOP' });
+	const oldId = (await stopRow.locator('td').first().textContent())!.trim();
+	const oldPrice = Number((await stopRow.locator('td.num').nth(1).textContent())!.replace(/\./g, '').replace(',', '.'));
+
+	const { x, ys } = await grabbableRows(page);
+	expect(ys).toHaveLength(2); // STOP and TP
+	const stopY = Math.max(...ys);
+	await dragY(page, x, stopY, stopY + 30);
+	await expect(page.getByText(/movida para/)).toBeVisible();
+	await expect(orders.getByText(oldId, { exact: true })).toHaveCount(0);
+	const newPrice = Number((await stopRow.locator('td.num').nth(1).textContent())!.replace(/\./g, '').replace(',', '.'));
+	expect(newPrice).toBeLessThan(oldPrice);
+
+	// Above the current price a sell stop would trigger at once: refused, the order stays.
+	const again = await grabbableRows(page);
+	const newId = (await stopRow.locator('td').first().textContent())!.trim();
+	await dragY(page, x, Math.max(...again.ys), Math.min(...again.ys) - 10);
+	await expect(page.getByText(/dispararia na próxima abertura/)).toBeVisible();
+	await expect(orders.getByText(newId, { exact: true })).toBeVisible();
+});
+
 test('waiting the whole mission is not penalized (EDU02)', async ({ page }) => {
 	await openTerminal(page, 7);
 	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída/).count()); i++) {
