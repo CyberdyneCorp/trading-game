@@ -21,8 +21,12 @@ The model mid price of an option SHALL be computed with Black-76 using the perpe
 - **THEN** mid, bid, ask and Greeks SHALL be bit-identical
 
 ### Requirement: Implied volatility model
-Implied volatility for a series at step `t` SHALL be a function of a base volatility level, term structure, skew and smile in log-moneyness, and active event shocks. The base level at `t` SHALL come from the scenario's per-bar implied-volatility base series (`iv_base`, published at the close of each bar: a volatility index such as DVOL in historical replay, or the generator's volatility state plus its implied-over-realized premium and per-segment event multiplier in synthetic mode), and when the scenario has no such series, from the annualized realized volatility of log returns of the last 48 closes up to bar `t`, flagged `ivFromRealized`. Implied volatility SHALL be `base × (1 + term_slope × (sqrt(T_ref / T) − 1)) + skew × ln(K/F) + smile × ln(K/F)²` with a 30-day reference maturity, floored at 5%. The IV model SHALL NOT use any data after bar `t`.
+Implied volatility for a series at step `t` SHALL be a function of a base volatility level, term structure, skew and smile in log-moneyness, and active event shocks. The base level at `t` SHALL come from the scenario's per-bar implied-volatility base series (`iv_base`, published at the close of each bar: a volatility index such as DVOL in historical replay, or, in synthetic mode, the generator's per-bar variance smoothed over about a 12-bar half-life (so a single shock bar lifts it gradually), annualized, times its implied-over-realized premium and per-segment/event multipliers, capped at 250%), and when the scenario has no such series, from the annualized realized volatility of log returns of the last 48 closes up to bar `t`, flagged `ivFromRealized`. Implied volatility SHALL be `base × (1 + term_slope × (sqrt(T_ref / T) − 1)) + skew × ln(K/F) + smile × ln(K/F)²` with a 30-day reference maturity and `T` floored at 7 days (shorter options keep the 7-day factor), floored at 5%. The IV model SHALL NOT use any data after bar `t`.
 
+
+#### Scenario: Short-dated and crash IV stay plausible
+- **WHEN** an option has one hour left, or the synthetic market just gapped down 20% in three bars
+- **THEN** its implied volatility SHALL equal the 7-day term value for the same base, and the generated base SHALL not exceed 250%
 #### Scenario: No future in IV (OPT04)
 - **WHEN** bars after `t` are replaced with a volatility spike
 - **THEN** every option quote at or before step `t` SHALL be unchanged

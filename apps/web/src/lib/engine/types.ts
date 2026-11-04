@@ -276,7 +276,7 @@ export interface EngineTrade {
 	funding: Decimal;
 	net: Decimal;
 	bars: number;
-	reason: 'stop' | 'target' | 'manual' | 'liquidation' | 'open' | 'expiry';
+	reason: 'stop' | 'target' | 'manual' | 'liquidation' | 'open' | 'expiry' | 'margin_call';
 	plannedRisk: Decimal;
 	rBp: number | null;
 	planRespected: boolean | null;

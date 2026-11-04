@@ -36,10 +36,16 @@ struct GenState {
   double direction = 1.0;  // sign for random-direction segments
   double funding = 0.0;    // last published funding rate
   double event_drift = 0.0;  // transient news reaction for the current bar (not fundamental)
+  double iv_var = 0.0;       // smoothed per-bar variance that implied vol prices (0 = not seeded)
 };
 
 constexpr double kTrendEmaBars = 20.0;
 constexpr double kJumpInformation = 0.75;  // share of an information jump absorbed by the fair value
+// Implied vol prices the variance expected over an option's life, not the last bar's: the per-bar
+// variance is smoothed (about a 12-bar half-life), so a shock lifts IV gradually instead of
+// multiplying it twentyfold in one bar. The cap keeps a crash from pricing above 250%.
+constexpr double kIvSmoothing = 0.055;
+constexpr double kMaxIv = 2.5;
 
 // Structural log-return terms, from state known at the previous close (spec D3a).
 double structure(const Segment& seg, const GeneratorSpec& spec, const GenState& g) {
@@ -154,6 +160,16 @@ Segment with_events(const Segment& seg, const GeneratorSpec& spec, std::uint32_t
   return eff;
 }
 
+// Implied vol known at the close of this bar: smoothed generator variance, annualized, plus the
+// volatility premium and the segment/event IV multipliers, capped at kMaxIv.
+Vol implied_vol(const Segment& seg, const GeneratorSpec& spec, GenState& g) {
+  const double sigma = seg.vol * g.vol_mult * det::sqrt(g.variance);
+  const double var = sigma * sigma;
+  g.iv_var = g.iv_var == 0.0 ? var : g.iv_var + kIvSmoothing * (var - g.iv_var);
+  const double iv = std::min(kMaxIv, det::sqrt(g.iv_var * spec.bars_per_year) * (1.0 + spec.iv_premium) * seg.iv_mult);
+  return Vol::from_raw(static_cast<std::int64_t>(std::floor(iv * Vol::kScale + 0.5)));
+}
+
 }  // namespace
 
 int sample_reaction(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t index) {
@@ -187,10 +203,7 @@ void generate_market(const GeneratorSpec& spec, std::uint64_t seed, Scenario& ou
       g.funding = funding_raw(spec, seg, g);
       out.funding_rate.push_back(to_rate(g.funding));
       out.bars.push_back(make_bar(seg, spec, g, rng, out.contract.tick_size));
-      // Implied vol known at the close of this bar: generator vol state, annualized, plus premium.
-      const double iv = seg.vol * g.vol_mult * det::sqrt(g.variance) * det::sqrt(spec.bars_per_year) * (1.0 + spec.iv_premium) *
-                        seg.iv_mult;
-      out.options.iv_base.push_back(Vol::from_raw(static_cast<std::int64_t>(std::floor(iv * Vol::kScale + 0.5))));
+      out.options.iv_base.push_back(implied_vol(seg, spec, g));
     }
   }
 }

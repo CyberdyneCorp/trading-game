@@ -469,3 +469,14 @@ test('soundtrack follows the screen, a closed trade plays a sting, and M mutes (
 	await page.waitForTimeout(300);
 	expect(await played()).toEqual([]); // and nothing starts playing
 });
+
+test('regression: at 1024px the chart and right rail sit side by side without overlapping', async ({ page }) => {
+	// Before: below 1100px the chart and rail were stacked into one fixed-height row and overlapped.
+	await page.setViewportSize({ width: 1024, height: 768 });
+	await openTerminal(page, 4242);
+	const chart = await page.locator('section.chart').boundingBox();
+	const rail = await page.getByText('Patrimônio', { exact: false }).first().boundingBox();
+	expect(chart && rail).toBeTruthy();
+	expect(rail!.x).toBeGreaterThanOrEqual(chart!.x + chart!.width - 1); // rail to the right of the chart
+	expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+});

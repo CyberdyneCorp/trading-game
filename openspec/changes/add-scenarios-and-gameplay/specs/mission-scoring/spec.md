@@ -17,7 +17,7 @@ Entries are exposure-increasing fills of the perpetual and of each option series
 
 #### Scenario: Options trades count
 - **WHEN** the player only buys an option and holds it to expiry
-- **THEN** it SHALL count as an entry (the attempt is not "waiting"), and the debrief SHALL list it as a trade in its series with its premium, settlement value, net result and exit reason `expiry`
+- **THEN** it SHALL count as an entry (the attempt is not "waiting"), and the debrief SHALL list it as a trade in its series with its premium, settlement value, net result and exit reason `expiry`; a written option bought back by a margin call SHALL exit with reason `margin_call`
 
 #### Scenario: Debrief trades add up to the result
 - **WHEN** the player buys 10, sells 20 (closing the long and opening a short of 10) and closes the short, with funding paid in between

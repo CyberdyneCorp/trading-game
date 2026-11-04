@@ -47,7 +47,7 @@ struct Finding {
 
 enum class LessonCode : std::uint8_t { Futures2 = 0, Risk, Futures3, Orders, Structure, Evaluation };
 
-enum class ExitReason : std::uint8_t { Stop = 0, Target, Manual, Liquidation, Open, Expiry };
+enum class ExitReason : std::uint8_t { Stop = 0, Target, Manual, Liquidation, Open, Expiry, MarginCall };
 
 // One round trip: a perpetual position (series 0) or an option position in one series, from the
 // fill that opens it to the fill, liquidation or expiry settlement that closes it. Option prices

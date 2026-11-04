@@ -46,6 +46,7 @@ const PlanRecord* plan_for(const RunState& st, std::uint32_t entry_step, std::ui
 }
 
 ExitReason exit_reason(const TradeRow& t, const Event& fill) {
+  if (fill.series != 0 && fill.order_id == 0) return ExitReason::MarginCall;  // forced buy-back has no order
   if (fill.requested.raw == 0) return ExitReason::Manual;
   const bool favorable = t.is_long ? fill.requested > t.entry_avg : fill.requested < t.entry_avg;
   return favorable ? ExitReason::Target : ExitReason::Stop;
