@@ -65,8 +65,9 @@ struct TradeRow {
   Price entry_avg;
   Price exit_avg;        // 0 while open
   Money pnl;             // realized, before fees
-  Money fees;
-  Money net;
+  Money fees;            // this trade's share of fill fees (a flip's fee is split by quantity)
+  Money funding;         // funding received (+) or paid (-) while the trade was open
+  Money net;             // pnl - fees + funding
   std::uint32_t bars = 0;
   ExitReason reason = ExitReason::Open;
   Money planned_risk;    // 0 = no plan / unknown

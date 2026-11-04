@@ -3,6 +3,9 @@
 	import type { Locale } from '#lib/game/i18n.svelte.ts';
 	import { fmtMoney, fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { reasonText, t } from '#lib/game/i18n.svelte.ts';
+	import { EventNames } from '#lib/game/eventNames.ts';
+
+	const NO_NAMES = new EventNames();
 
 
 	function flags(e: EngineEvent): string {
@@ -22,22 +25,24 @@
 		return parts.join(' · ') + flags(e);
 	}
 
-	function orderLine(e: EngineEvent, L: Locale): string | null {
+	function orderLine(e: EngineEvent, L: Locale, names: EventNames): string | null {
 		if (e.status === 'accepted') {
-			return t('feed.accepted', { id: e.orderId, type: e.requested !== '0.00000000' ? 'LMT/STOP/TP' : 'MKT', side: e.side, qty: fmtQty(e.qty, L) });
+			const type = names.orderType(e.orderId) ?? (e.requested !== '0.00000000' ? 'LMT/STOP/TP' : 'MKT');
+			const series = e.series ? `${names.seriesName(e.series)} ` : '';
+			return t('feed.accepted', { id: e.orderId, type: series + type, side: e.side, qty: fmtQty(e.qty, L) });
 		}
 		if (e.status === 'cancelled') return t('feed.cancelled', { id: e.orderId, reason: reasonText(e.reason) });
 		if (e.status === 'expired') return t('feed.expired', { id: e.orderId });
 		return null;
 	}
 
-	export function describeEvent(e: EngineEvent, L: Locale): { text: string; tone: string } | null {
+	export function describeEvent(e: EngineEvent, L: Locale, names: EventNames = NO_NAMES): { text: string; tone: string } | null {
 		switch (e.type) {
 			case 'fill':
-				return { text: (e.series ? `OPT#${e.series} ` : '') + fillLine(e, L), tone: e.side === 'buy' ? 'info' : 'attention' };
+				return { text: (e.series ? `${names.seriesName(e.series)} ` : '') + fillLine(e, L), tone: e.side === 'buy' ? 'info' : 'attention' };
 			case 'option_settlement':
 				return {
-					text: t('feed.settlement', { series: e.series, price: fmtPrice(e.price, L), value: fmtPrice(e.requested, L), amount: fmtMoney(e.amount, L, true) }) + (e.approximate ? ` [${t('feed.approxSettle')}]` : ''),
+					text: t('feed.settlement', { series: names.seriesName(e.series), price: fmtPrice(e.price, L), value: fmtPrice(e.requested, L), amount: fmtMoney(e.amount, L, true) }) + (e.approximate ? ` [${t('feed.approxSettle')}]` : ''),
 					tone: Number(e.amount) >= 0 ? 'up' : 'down'
 				};
 			case 'margin_adjusted':
@@ -45,7 +50,7 @@
 			case 'margin_call':
 				return { text: '⚠ ' + t('feed.marginCall', { mm: fmtMoney(e.amount, L) }), tone: 'down' };
 			case 'order': {
-				const text = orderLine(e, L);
+				const text = orderLine(e, L, names);
 				return text ? { text, tone: 'muted' } : null;
 			}
 			case 'funding':
@@ -66,12 +71,12 @@
 <script lang="ts">
 	import { i18n } from '#lib/game/i18n.svelte.ts';
 
-	let { events }: { events: EngineEvent[] } = $props();
+	let { events, names }: { events: EngineEvent[]; names?: EventNames } = $props();
 	const lines = $derived(
 		events
 			.slice()
 			.reverse()
-			.map((e) => ({ e, d: describeEvent(e, i18n.locale) }))
+			.map((e) => ({ e, d: describeEvent(e, i18n.locale, names) }))
 			.filter((x) => x.d != null)
 			.slice(0, 80)
 	);

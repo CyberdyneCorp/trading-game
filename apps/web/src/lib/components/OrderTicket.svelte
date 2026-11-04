@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import { untrack } from 'svelte';
 	import type { OrderSideName, OrderTypeName } from '#lib/engine/types.ts';
 	import type { TicketEstimate } from '#lib/game/sizing.ts';
 
@@ -82,6 +83,16 @@
 		leverage = Math.min(Math.max(1, s.leverage), cap);
 	});
 
+	// Stop and target belong to the order they were set for: a fill attaches them as bracket orders
+	// (or ends the trade), so they are cleared rather than reused to size the next order.
+	let fillsSeen = untrack(() => s.totals.fills);
+	$effect(() => {
+		if (s.totals.fills === fillsSeen) return;
+		fillsSeen = s.totals.fills;
+		stopInput = '';
+		tpInput = '';
+	});
+
 	const entry = $derived(type === 'market' ? estimatedMarketEntry(side, mark, k) : num(priceInput) || mark);
 	const stop = $derived(stopInput ? num(stopInput) : null);
 	const qty = $derived.by(() => {
@@ -89,7 +100,9 @@
 		return Math.floor((num(qtyInput) || 0) / lot + 1e-9) * lot;
 	});
 	const qtyStr = $derived(qtyToLot(qty, lot));
-	const est = $derived(estimate({ side, qty, entry, leverage, stop }, k));
+	// The field can hold anything typed; orders and estimates use the value clamped to the mission cap.
+	const lev = $derived(Math.min(Math.max(1, Math.round(leverage || 1)), cap));
+	const est = $derived(estimate({ side, qty, entry, leverage: lev, stop }, k));
 	const shortBlocked = $derived(!s.contract.allowShort && side === 'sell' && posQty <= 0);
 	const increases = $derived(posQty === 0 || posQty > 0 === (side === 'buy') || qty > Math.abs(posQty));
 	const tp = $derived(tpInput ? num(tpInput) : null);
@@ -107,7 +120,7 @@
 			type,
 			qty: qtyStr,
 			price: needsPrice ? priceToTick(num(priceInput), tick) : null,
-			leverage,
+			leverage: lev,
 			stop: stopInput ? priceToTick(num(stopInput), tick) : null,
 			takeProfit: tpInput ? priceToTick(num(tpInput), tick) : null,
 			estimate: est,
@@ -200,7 +213,7 @@
 		</label>
 		<label>
 			{t('ticket.leverage')} (≤ {cap}x)
-			<input type="number" min="1" max={cap} step="1" bind:value={leverage} />
+			<input type="number" min="1" max={cap} step="1" bind:value={leverage} onchange={() => (leverage = lev)} />
 		</label>
 		{#if needsPrice}
 			<label class="full">

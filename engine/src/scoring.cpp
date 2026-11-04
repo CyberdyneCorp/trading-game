@@ -63,7 +63,7 @@ std::optional<bool> respected(const TradeRow& t, const PlanRecord* plan) {
 TradeRow finalize(const RunState& st, OpenTrade& o, std::uint32_t after) {
   TradeRow t = o.row;
   if (o.exit_qty > 0) t.exit_avg = Price::from_raw(round_div(o.exit_notional, o.exit_qty));
-  t.net = Money::from_raw(t.pnl.raw - t.fees.raw);
+  t.net = Money::from_raw(t.pnl.raw - t.fees.raw + t.funding.raw);
   t.bars = t.exit_step.value_or(st.step) - t.entry_step;
   const PlanRecord* plan = plan_for(st, t.entry_step, after, t.series != 0);
   if (plan != nullptr && plan->planned_risk.raw > 0) {
@@ -104,6 +104,11 @@ struct Walker {
     close(e.step, ExitReason::Expiry);
   }
 
+  // Funding is paid or received by the trade that holds the position at the funding step.
+  void on_funding(const Event& e) {
+    if (cur) cur->row.funding = Money::from_raw(cur->row.funding.raw + e.amount.raw);
+  }
+
   void on_liquidation(const Event& e) {
     if (!cur) return;
     cur->row.pnl = Money::from_raw(cur->row.pnl.raw + e.pnl.raw);
@@ -129,11 +134,17 @@ struct Walker {
       cur->exit_qty += closing;
       cur->row.pnl = Money::from_raw(cur->row.pnl.raw + e.pnl.raw);
     }
-    cur->row.fees = Money::from_raw(cur->row.fees.raw + e.amount.raw);
     const bool flipped_or_flat = pos != 0 && (next == 0 || (next > 0) != (pos > 0));
+    // A flip closes one trade and opens another with the same fill: its fee is split by quantity.
+    const std::int64_t opening = flipped_or_flat ? abs64(next) : 0;
+    const std::int64_t opening_fee = round_div(static_cast<i128>(e.amount.raw) * opening, abs64(q));
+    cur->row.fees = Money::from_raw(cur->row.fees.raw + e.amount.raw - opening_fee);
     if (flipped_or_flat) {
       close(e.step, exit_reason(cur->row, e));
-      if (next != 0) cur = open_trade(static_cast<std::uint32_t>(out.size() + 1), e, abs64(next));
+      if (next != 0) {
+        cur = open_trade(static_cast<std::uint32_t>(out.size() + 1), e, abs64(next));
+        cur->row.fees = Money::from_raw(opening_fee);
+      }
     }
     pos = next;
   }
@@ -351,6 +362,16 @@ void describe_series(const Scenario& sc, TradeRow& t) {
   }
 }
 
+namespace {
+void route(const Event& e, Walker& perp, const auto& option_walker) {
+  if (e.type == EventType::Liquidation) perp.on_liquidation(e);
+  else if (e.type == EventType::Funding) perp.on_funding(e);
+  else if (perp_fill(e)) perp.on_fill(e);
+  else if (option_fill(e)) option_walker(e.series).on_fill(e);
+  else if (e.type == EventType::OptionSettlement) option_walker(e.series).on_settlement(e);
+}
+}  // namespace
+
 std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
   Walker perp{st, {}, std::nullopt};
   std::vector<std::pair<std::uint32_t, Walker>> options;  // one walker per option series
@@ -360,12 +381,7 @@ std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
     }
     return options.emplace_back(series, Walker{st, {}, std::nullopt}).second;
   };
-  for (const Event& e : st.events) {
-    if (e.type == EventType::Liquidation) perp.on_liquidation(e);
-    else if (perp_fill(e)) perp.on_fill(e);
-    else if (option_fill(e)) option_walker(e.series).on_fill(e);
-    else if (e.type == EventType::OptionSettlement) option_walker(e.series).on_settlement(e);
-  }
+  for (const Event& e : st.events) route(e, perp, option_walker);
   std::vector<TradeRow> rows;
   const auto take = [&](Walker& w) {
     if (w.cur) w.out.push_back(finalize(st, *w.cur, w.last_exit));

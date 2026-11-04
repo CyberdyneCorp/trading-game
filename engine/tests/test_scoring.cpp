@@ -154,3 +154,48 @@ TEST_CASE("Regression: a skipped plan gives a trade no planned risk and no R mul
   CHECK(r.trades[0].planned_risk.raw == 0);
   CHECK_FALSE(r.trades[0].r_bp.has_value());
 }
+
+TEST_CASE("Regression: a flip splits its fee between the closed and the opened trade") {
+  // Before: selling 20 against a long of 10 charged the whole fee to the long and none to the short.
+  Scenario sc = flat(8);
+  sc.contract.taker_fee = R("0.001");
+  Driver d(sc);
+  d.order(OrderType::Market, OrderSide::Buy, "10");
+  d.step(2);
+  d.order(OrderType::Market, OrderSide::Sell, "20");
+  d.step(2);
+  d.close();
+  d.step();
+  std::vector<Money> fee;
+  for (const Event& e : d.state().events) {
+    if (e.type == EventType::Fill) fee.push_back(e.amount);
+  }
+  REQUIRE(fee.size() == 3);
+  REQUIRE(fee[1].raw > 0);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 2);
+  CHECK(r.trades[0].fees.raw == fee[0].raw + fee[1].raw / 2);
+  CHECK(r.trades[1].fees.raw == fee[1].raw / 2 + fee[2].raw);
+}
+
+TEST_CASE("Regression: trade net includes the funding paid while it was open") {
+  // Before: funding was left out, so the trades did not add up to the mission result.
+  Scenario sc = flat(12);
+  sc.contract.taker_fee = R("0.001");
+  sc.contract.funding_interval = 2;
+  sc.funding_rate.assign(sc.bars.size(), R("0.001"));
+  Driver d(sc);
+  d.order(OrderType::Market, OrderSide::Buy, "10");
+  d.step(6);
+  d.order(OrderType::Market, OrderSide::Sell, "20");
+  d.step(4);
+  d.close();
+  d.step();
+  const RunState& st = d.state();
+  REQUIRE(st.funding_net.raw != 0);
+  const ScoreReport r = score_run(sc, st);
+  REQUIRE(r.trades.size() == 2);
+  CHECK(r.trades[0].funding.raw < 0);  // the long paid
+  CHECK(r.trades[1].funding.raw > 0);  // the short received
+  CHECK(r.trades[0].net.raw + r.trades[1].net.raw == r.net_pnl.raw);
+}

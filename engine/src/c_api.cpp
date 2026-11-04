@@ -259,7 +259,7 @@ void write_trade(JsonOut& j, const TradeRow& t) {
   j.begin_obj().field("n", t.n).field("series", t.series).field("side", t.is_long ? "long" : "short").field("entryStep", t.entry_step).key("exitStep");
   if (t.exit_step) j.num(*t.exit_step); else j.null();
   j.field("qty", t.qty).field("entryAvg", t.entry_avg).field("exitAvg", t.exit_avg).field("pnl", t.pnl);
-  j.field("fees", t.fees).field("net", t.net).field("bars", t.bars).field("reason", exit_name(t.reason));
+  j.field("fees", t.fees).field("funding", t.funding).field("net", t.net).field("bars", t.bars).field("reason", exit_name(t.reason));
   if (t.series != 0) {
     j.field("kind", t.is_call ? "call" : "put").field("strike", t.strike).field("expiryStep", t.expiry_step);
   }
