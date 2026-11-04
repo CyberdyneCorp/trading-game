@@ -312,8 +312,8 @@ test('regression: after a fill the ticket drops the old stop/target, and the fee
 	await expect(page.getByLabel('Stop loss').first()).toHaveValue('');
 	await expect(page.getByLabel('Take profit').first()).toHaveValue('');
 	const feed = page.locator('.feed');
-	await expect(feed.getByText(/\(STOP sell/)).toBeVisible();
-	await expect(feed.getByText(/\(TP sell/)).toBeVisible();
+	await expect(feed.getByText(/\(STOP venda/)).toBeVisible();
+	await expect(feed.getByText(/\(TP venda/)).toBeVisible();
 	await expect(feed.getByText(/LMT\/STOP\/TP/)).toHaveCount(0);
 });
 
@@ -474,10 +474,10 @@ test('stop and target presets: ATR stop, R-multiple target, distance and reward/
 	await stop.getByRole('button', { name: '2×ATR' }).click();
 	const stopValue = Number(await stop.locator('input').inputValue());
 	expect(stopValue).toBeGreaterThan(0);
-	await expect(stop.getByText(/2\.0×ATR/)).toBeVisible();
+	await expect(stop.getByText(/2,0×ATR/)).toBeVisible(); // PT-BR decimal comma
 	await tp.getByRole('button', { name: '2R', exact: true }).click();
 	expect(Number(await tp.locator('input').inputValue())).toBeGreaterThan(stopValue);
-	await expect(tp.getByText(/R:R 1:2\.0/)).toBeVisible();
+	await expect(tp.getByText(/R:R 1:2,0/)).toBeVisible();
 	// A stop on the wrong side is flagged and blocks submission.
 	await stop.locator('input').fill('999');
 	await expect(stop.getByText(/O stop precisa ficar </)).toBeVisible();
@@ -737,4 +737,61 @@ test('regression: at 1024px the chart and right rail sit side by side without ov
 	expect(chart && rail).toBeTruthy();
 	expect(rail!.x).toBeGreaterThanOrEqual(chart!.x + chart!.width - 1); // rail to the right of the chart
 	expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+});
+
+test('regression: PT-BR decimal commas in the ticket stop and the plan; an open trade nets its unrealized P&L', async ({ page }) => {
+	// Before: "95,56" became NaN (plan coherence 70, timeline "invalidação NaN"), the ticket stop "95,26"
+	// zeroed the quantity with a wrong-side warning, and an open trade's Net left out its unrealized P&L.
+	await openTerminal(page, 7);
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	const stop = page.getByTestId('ticket-stop');
+	await stop.getByRole('button', { name: '2×ATR', exact: true }).click();
+	const preset = await stop.locator('input').inputValue();
+	await stop.locator('input').fill(preset.replace('.', ','));
+	await expect(page.getByText(/O stop precisa ficar/)).toHaveCount(0);
+	await expect(page.locator('.est dd').first()).toHaveText('10,0');
+	await stop.locator('input').fill(''); // hold to the end without a stop: the trade stays open
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	const dialog = page.getByRole('dialog');
+	await dialog.locator('textarea').fill('Compro o suporte');
+	await dialog.getByLabel('Invalidação').fill('95,56');
+	await dialog.getByRole('button', { name: /Registrar plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) await advance(page, 'Shift+Space');
+	await expect(page.getByText(/Missão concluída/)).toBeVisible();
+	await expect(page.getByText(/invalidação 95,56/)).toBeVisible();
+	await expect(page.getByText(/NaN/)).toHaveCount(0);
+	await expect(page.locator('dt', { hasText: 'Coerência com o plano' }).locator('xpath=following-sibling::dd[1]')).toHaveText('100');
+	const row = page.locator('.trades tbody tr').first();
+	await expect(row).toContainText('aberto');
+	const headline = (await page.locator('.big').first().textContent())!.trim();
+	await expect(row.locator('td').nth(4)).toHaveText(headline); // a single open trade: its Net is the result
+});
+
+test('regression: letter shortcuts work right after clicking an indicator checkbox', async ({ page }) => {
+	// Before: a focused checkbox kept every key but Space, so P and S did nothing until focus moved.
+	await openTerminal(page, 8);
+	await page.getByLabel('VWAP').check();
+	await page.keyboard.press('s');
+	await expect(page.getByRole('radio', { name: /Vender \/ Short/ })).toHaveAttribute('aria-checked', 'true');
+	await page.keyboard.press('p');
+	await expect(page.getByRole('dialog', { name: 'Padrões de candle' })).toBeVisible();
+});
+
+test('regression: an open position puts its liquidation price and margin buttons above the rail fold', async ({ page }) => {
+	// Before: the position panel sat under the equity panel, below the visible part of the scrolling rail.
+	await page.setViewportSize({ width: 1024, height: 768 });
+	await openTerminal(page, 303);
+	await page.locator('label:has-text("Alavancagem") input').first().fill('5');
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await page.evaluate(() => scrollTo(0, 0)); // filling the ticket scrolled the page; the rail scrolls on its own
+	const rail = (await page.locator('aside.rail').boundingBox())!;
+	const add = (await page.getByRole('button', { name: '+ margem' }).boundingBox())!;
+	expect(add.y + add.height).toBeLessThanOrEqual(rail.y + rail.height);
+	expect(await page.locator('aside.rail').evaluate((el) => el.scrollTop)).toBe(0);
 });

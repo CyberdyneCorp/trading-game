@@ -2,7 +2,7 @@
 	// Structured plan before an exposure-increasing order (spec gameplay-loop "Plan before advance").
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { OrderDraft } from './OrderTicket.svelte';
-	import { fmtMoney } from '#lib/game/format.ts';
+	import { fmtMoney, parseDecimal } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
 	let {
@@ -30,13 +30,19 @@
 		target = draft.takeProfit ?? '';
 	});
 
+	// A typed level in either locale ("95,56" or "95.56"); empty or unreadable means none.
+	function level(v: string): number | null {
+		const n = parseDecimal(v);
+		return Number.isFinite(n) && n > 0 ? n : null;
+	}
+
 	function finish(skipped: boolean) {
 		onConfirm({
 			step,
 			side: draft.side,
 			thesis: skipped ? '' : thesis.trim(),
-			invalidation: !skipped && invalidation ? Number(invalidation) : null,
-			target: !skipped && target ? Number(target) : null,
+			invalidation: skipped ? null : level(invalidation),
+			target: skipped ? null : level(target),
 			confidence: skipped ? 0 : confidence,
 			plannedRisk: draft.estimate.plannedRisk,
 			skipped,

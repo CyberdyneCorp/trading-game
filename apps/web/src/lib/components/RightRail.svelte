@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { GameState } from '#lib/engine/types.ts';
-	import { fmtMoney, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
+	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseDecimal, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import { positionGreeks, seriesLabel } from '#lib/game/optionsMath.ts';
@@ -12,7 +12,7 @@
 	}: { game: GameState; plannedRisk: number | null; onMargin?: (amount: string) => void } = $props();
 	let marginAmount = $state('100');
 	function margin(sign: 1 | -1) {
-		const v = Math.abs(Number(marginAmount));
+		const v = Math.abs(parseDecimal(marginAmount));
 		if (onMargin && Number.isFinite(v) && v > 0) onMargin((sign * v).toFixed(2));
 	}
 
@@ -51,7 +51,7 @@
 		</dl>
 	</section>
 
-	<section class="panel">
+	<section class="panel position" class:open={qty !== 0} data-testid="rail-position">
 		<h2 class="panel-title">{t('rail.position')}</h2>
 		{#if qty === 0}
 			<p class="muted">{t('rail.flat')} · {t('rail.leverage')} {game.leverage}x</p>
@@ -65,7 +65,7 @@
 				<dd class={unreal >= 0 ? 'up' : 'down'}>{signMark(unreal)} {fmtMoney(unreal, L, true)}</dd>
 				<dt>{t('rail.margin')}</dt><dd>{fmtMoney(game.position.margin, L)}</dd>
 				<dt>{t('rail.notional')}</dt><dd>{fmtMoney(a.notional, L)}</dd>
-				<dt>{t('rail.leverage')}</dt><dd>{game.leverage}x <span class="muted" title={t('rail.effective')}>({levEff.toFixed(1)}x {t('rail.effective')})</span></dd>
+				<dt>{t('rail.leverage')}</dt><dd>{game.leverage}x <span class="muted" title={t('rail.effective')}>({fmtNum(levEff, L, 1)}x {t('rail.effective')})</span></dd>
 			</dl>
 			<div class="liq" class:danger={liqDanger} role={liqDanger ? 'alert' : undefined}>
 				<div class="muted">{t('rail.liq')}</div>
@@ -96,7 +96,7 @@
 					{@const markPx = q ? num(qty > 0 ? q.bid : q.ask) : 0}
 					{@const pnl = (markPx - num(p.avgPremium)) * qty * num(opts.multiplier)}
 					<li>
-						<span class={qty > 0 ? 'up' : 'down'}>{qty > 0 ? '▲' : '▼'} {q ? seriesLabel(q) : `#${p.series}`} × {Math.abs(qty)}</span>
+						<span class={qty > 0 ? 'up' : 'down'}>{qty > 0 ? '▲' : '▼'} {q ? seriesLabel(q) : `#${p.series}`} × {fmtQty(String(Math.abs(qty)), L)}</span>
 						<span class="num {pnl >= 0 ? 'up' : 'down'}">{signMark(pnl)} {fmtMoney(pnl, L, true)}</span>
 					</li>
 				{/each}
@@ -107,7 +107,7 @@
 					<dt>{t('opt.marginUsed')}</dt><dd>{fmtMoney(opts.initialMargin, L)} / {fmtMoney(opts.maintenanceMargin, L)}</dd>
 				{/if}
 				<dt>{t('opt.bookGreeks')}</dt>
-				<dd class="small">Δ {greeks.delta.toFixed(2)} · Γ {greeks.gamma.toFixed(3)} · Θ {greeks.theta.toFixed(2)} · ν {greeks.vega.toFixed(2)}</dd>
+				<dd class="small">Δ {fmtNum(greeks.delta, L)} · Γ {fmtNum(greeks.gamma, L, 3)} · Θ {fmtNum(greeks.theta, L)} · ν {fmtNum(greeks.vega, L)}</dd>
 			</dl>
 		</section>
 	{/if}
@@ -144,6 +144,10 @@
 	/* Panels keep their height and the rail scrolls; shrinking them clipped the position details. */
 	.rail > :global(*) {
 		flex-shrink: 0;
+	}
+	/* An open position (liquidation price, margin buttons) goes on top, above the rail's fold. */
+	.position.open {
+		order: -1;
 	}
 	.big {
 		font-family: var(--font-pixel);

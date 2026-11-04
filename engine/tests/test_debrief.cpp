@@ -4,6 +4,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cstdlib>
 
 #include "scenario_builder.hpp"
 #include "tradelab/options.hpp"
@@ -225,4 +226,80 @@ TEST_CASE("Debrief facts are report-only: scoring never changes the run state di
   const std::string before = to_hex(state_digest(d.state()));
   (void)score_run(sc, d.state());
   CHECK(to_hex(state_digest(d.state())) == before);
+}
+
+TEST_CASE("Regression: re-leveraging an open position past its stop is judged at the leverage it carried") {
+  // Long 10 at 100 with a stop at 90, entered at 2x (liquidation ~50.5), then re-leveraged to 20x
+  // (liquidation ~95.96). Before: the debrief used the entry leverage and gave no stop-beyond-liquidation
+  // advice although the position was liquidated in front of its stop.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "100", "100", "100"},
+                               {"100", "100", "90", "92"}, {"92", "92", "92", "92"}});
+  Driver d(sc);
+  d.leverage(2);
+  d.plan(OrderSide::Buy, "90", "100");
+  REQUIRE(d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "90", nullptr).accepted);
+  d.step(2);
+  REQUIRE(d.leverage(20).accepted);
+  d.step(2);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 1);
+  const TradeRow& t = r.trades[0];
+  CHECK(t.reason == ExitReason::Liquidation);
+  CHECK(t.leverage == 20);
+  CHECK(t.liq_price > P("95"));
+  CHECK(t.stop_beyond_liq);
+  CHECK(t.safe_leverage == 9);  // liq(L) = 100 (1 - 1/L) / 0.99 < 90 needs L < 9.2
+  const Finding* beyond = find(r, FindingCode::StopBeyondLiq);
+  REQUIRE(beyond != nullptr);
+  CHECK(beyond->count == 9);
+  const Finding* liq = find(r, FindingCode::Liquidated);
+  REQUIRE(liq != nullptr);
+  CHECK(liq->count == 9);
+}
+
+TEST_CASE("A leverage change at the exit bar belongs to the next trade") {
+  Scenario sc = flat(6);
+  Driver d(sc);
+  d.leverage(2);
+  d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "90", nullptr);
+  d.step(2);
+  d.close();
+  d.step(1);
+  REQUIRE(d.state().position.flat());
+  d.leverage(20);  // same bar as the exit fill
+  d.step(1);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 1);
+  CHECK(r.trades[0].leverage == 2);
+  CHECK_FALSE(r.trades[0].stop_beyond_liq);
+}
+
+TEST_CASE("Regression: an open trade's net includes its unrealized P&L, like the headline result") {
+  // Before: an open long in a rising market showed net = -fees + funding (pnl 0), a loss next to a
+  // positive headline.
+  Scenario sc = rising(6, 1);
+  sc.contract.taker_fee = R("0.001");
+  Driver d(sc);
+  d.order(OrderType::Market, OrderSide::Buy, "10");
+  d.step(5);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 1);
+  const TradeRow& t = r.trades[0];
+  CHECK(t.reason == ExitReason::Open);
+  CHECK(t.pnl == M("50"));  // 10 x (105 - 100)
+  CHECK(t.net == Money::from_raw(t.pnl.raw - t.fees.raw));
+  CHECK(t.net == r.net_pnl);
+}
+
+TEST_CASE("An open option trade's net is valued like the account equity") {
+  Scenario sc = rising(8, 1);
+  add_options(sc, 7, {"100"});
+  Driver d(sc);
+  REQUIRE(d.option(1, OrderSide::Buy, "2").accepted);
+  d.step(4);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 1);
+  CHECK(r.trades[0].reason == ExitReason::Open);
+  CHECK(r.trades[0].pnl.raw > 0);
+  CHECK(std::abs(r.trades[0].net.raw - r.net_pnl.raw) <= 1);  // only rounding differs
 }

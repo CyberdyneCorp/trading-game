@@ -182,6 +182,7 @@ struct Facts {
   // trade, from the plan matched to its entry: a plan whose order was rejected is not a trade.
   std::optional<std::pair<std::uint32_t, Money>> oversized;  // entry step, planned risk
   bool all_planned = true;  // every trade had a (non-skipped) plan
+  bool wrote_options = false;  // an option position was opened by writing (risk not limited by a premium)
 };
 
 bool grows_exposure(std::int64_t pos, std::int64_t q) { return pos == 0 || (q > 0) == (pos > 0) || abs64(q) > abs64(pos); }
@@ -207,8 +208,10 @@ void count_option_entries(const RunState& st, Facts& f) {
     auto it = std::find_if(pos.begin(), pos.end(), [&e](const auto& p) { return p.first == e.series; });
     if (it == pos.end()) it = pos.insert(pos.end(), {e.series, 0});
     const std::int64_t q = sign_of(e.side) * e.qty.raw;
-    f.entries += grows_exposure(it->second, q) ? 1 : 0;
+    const bool grows = grows_exposure(it->second, q);
+    f.entries += grows ? 1 : 0;
     it->second += q;
+    f.wrote_options = f.wrote_options || (grows && it->second < 0);
   }
 }
 
@@ -373,11 +376,14 @@ void risk_findings(const RunState& st, const Facts& f, ScoreReport& r) {
 void outcome_findings(const Facts& f, ScoreReport& r) {
   const bool planned = f.planned > 0;
   if (f.entries == 0) add(r, FindingCode::Waited, FindingTone::Good);
-  // Credit a loss to good process only when nothing in the process went wrong (scoring v3: also no
-  // oversized entry, no option margin call, no stop beyond liquidation, and a plan for every trade).
+  // Credit good process only when nothing in the process went wrong (scoring v3: also no oversized
+  // entry, no option margin call, no stop beyond liquidation, and a plan for every trade; v5: no
+  // written option either, whose risk is not limited by a stop or a premium).
   const bool clean = planned && f.all_planned && f.unprotected == 0 && f.liquidations.empty() && f.margin_calls.empty() &&
-                     !f.oversized && f.stop_warnings == 0;
+                     !f.oversized && f.stop_warnings == 0 && !f.wrote_options &&
+                     std::none_of(r.trades.begin(), r.trades.end(), [](const TradeRow& t) { return t.stop_beyond_liq; });
   if (r.net_pnl.raw < 0 && clean) add(r, FindingCode::GoodProcessLoss, FindingTone::Good);
+  if (r.net_pnl.raw > 0 && clean) add(r, FindingCode::GoodProcessWin, FindingTone::Good);
   if (r.net_pnl.raw > 0 && (!planned || f.unprotected > 0)) add(r, FindingCode::LuckyWin, FindingTone::Warn);
   if (f.entries > 0 && !planned) add(r, FindingCode::NoPlan, FindingTone::Warn);
 }
@@ -466,6 +472,7 @@ std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
     rows[i].n = static_cast<std::uint32_t>(i + 1);
     describe_series(sc, rows[i]);
     annotate_stop(sc, st, rows[i]);
+    mark_open_trade(sc, st, rows[i]);
   }
   return rows;
 }

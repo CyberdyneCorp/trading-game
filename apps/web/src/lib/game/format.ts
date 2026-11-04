@@ -28,6 +28,23 @@ export function fmtMoney(d: Decimal | number | null | undefined, locale: Locale,
 	return Number.isFinite(v) ? `${formatter(locale, 2, signed).format(v)} cr` : '—';
 }
 
+/** A plain number in the locale (indicator values, Greeks, R multiples): "63,0" in PT-BR. */
+export function fmtNum(v: number | null | undefined, locale: Locale, digits = 2, signed = false): string {
+	return v != null && Number.isFinite(v) ? formatter(locale, digits, signed).format(v) : '—';
+}
+
+/**
+ * Reads a number typed by the player in either locale: "95,56" (PT-BR keyboards give a comma) and
+ * "95.56" both mean 95.56. With both separators the last one is the decimal mark. NaN when invalid.
+ */
+export function parseDecimal(input: string | number | null | undefined): number {
+	if (typeof input === 'number') return input;
+	const s = (input ?? '').replace(/\s/g, '');
+	const decimal = s.lastIndexOf(',') > s.lastIndexOf('.') ? ',' : '.';
+	const plain = s.split(decimal === ',' ? '.' : ',').join('').replace(decimal, '.');
+	return /^[+-]?(\d+\.?\d*|\.\d+)$/.test(plain) ? Number(plain) : NaN;
+}
+
 export function fmtPct(fraction: number, locale: Locale, digits = 2, signed = false): string {
 	if (!Number.isFinite(fraction)) return '—';
 	return `${formatter(locale, digits, signed).format(fraction * 100)}%`;
