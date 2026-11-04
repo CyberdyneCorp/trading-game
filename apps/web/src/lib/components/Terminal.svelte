@@ -7,6 +7,8 @@
 	import { AutoPlay, type PauseReason } from '#lib/game/autoplay.svelte.ts';
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
+	import { exitOnValidSide, remainingQty } from './chartDrag.ts';
+	import { num, priceToTick } from '#lib/game/format.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
 	import HelpOverlay from './HelpOverlay.svelte';
@@ -63,6 +65,33 @@
 	let preview = $state<TicketPreview | null>(null);
 	// Pending "mark on chart" request from a stop/target field: the chart calls it with a price.
 	let pick = $state<((price: number) => void) | null>(null);
+
+	let ticketStop = $state('');
+	let ticketTp = $state('');
+
+	// Dragging SL?/TP? on the chart edits the ticket fields, snapped to the tick.
+	function onDragLevel(which: 'stop' | 'tp', price: number) {
+		const tick = num(session.state!.contract.tickSize);
+		if (which === 'stop') ticketStop = priceToTick(price, tick);
+		else ticketTp = priceToTick(price, tick);
+	}
+
+	// Dropping a working STOP/TP line moves that order (replace, then cancel the old one).
+	async function onMoveOrder(orderId: number, price: number) {
+		const s = session.state;
+		const o = s?.orders.find((x) => x.id === orderId);
+		if (!s || !o) return;
+		const to = priceToTick(price, num(s.contract.tickSize));
+		if (to === o.price || Number(to) === Number(o.price)) return;
+		if (!exitOnValidSide(o.side, o.type, Number(to), num(s.account.mark))) {
+			session.notice = { tone: 'error', text: `✖ ${t(o.type === 'stop_market' ? 'chart.dragStopSide' : 'chart.dragTpSide')}` };
+			return;
+		}
+		const res = await session.moveOrder(o, to, remainingQty(o));
+		if (!res) return;
+		if (!res.accepted) return notify(res.reason);
+		session.notice = { tone: 'ok', text: t('chart.moved', { id: o.id, price: to, next: res.orderId }) };
+	}
 
 	function onPicked(price: number) {
 		pick?.(price);
@@ -201,6 +230,8 @@
 					picking={pick != null}
 					{onPicked}
 					onCancelPick={() => (pick = null)}
+					{onDragLevel}
+					{onMoveOrder}
 					onPattern={openPattern}
 				/></section>
 			<RightRail
@@ -223,7 +254,7 @@
 				{#if tab === 'options' && optionsOn}
 					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
 				{:else}
-					<OrderTicket {session} bind:side bind:preview {onSubmit} onPick={(set) => (pick = set)} />
+					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} {onSubmit} onPick={(set) => (pick = set)} />
 				{/if}
 			</div>
 			<div class="stack">

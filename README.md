@@ -35,7 +35,7 @@ Add `?seed=123` to the URL to replay the same synthetic market.
 | `X` | Close position |
 | `P` | Candle and chart pattern cheat sheet |
 | `?` | Shortcut help |
-| `Esc` | Close dialogs, cancel "mark on chart" |
+| `Esc` | Close dialogs, cancel "mark on chart" or a line drag |
 | `Enter` | Submit the order (only when the submit button has focus — advancing never shares a key with submitting) |
 
 Shortcuts are ignored while typing in a field, while a plan or calibration dialog is open, and while marking a level on the chart.
@@ -84,7 +84,7 @@ mindmap
 | Perpetual futures | Isolated margin, leverage up to the mission cap, funding every N bars, mark-to-market, liquidation, bankruptcy (game over when you can't afford the minimum order). |
 | Options | Cash-settled European calls/puts priced with Black-76 on the perpetual, with an IV model, Greeks, option chain, writing with margin and margin calls. |
 | Orders | Market / limit / stop entries, reduce-only stop-loss and take-profit (brackets, OCO), trailing stop, costs (fees, spread, slippage, bar-volume capacity). |
-| Stop/target tools | Stop presets (1×/2× ATR, swing low/high, 1%/2%), targets at 1R/2R/3R, "mark on chart" picking, live reward/risk and an unprotected-position warning. |
+| Stop/target tools | Stop presets (1×/2× ATR, swing low/high, 1%/2%), targets at 1R/2R/3R, "mark on chart" picking, stop/target lines draggable on the chart (a working STOP/TP is moved by replace-then-cancel), live reward/risk and an unprotected-position warning. |
 | Indicators | SMA20, EMA50, VWAP (24-bar sessions) and Bollinger(20,2) overlays; RSI14, MACD(12,26,9) and ADX14/±DI panes; ATR14. All computed in the engine from closed bars only. |
 | Candle patterns | 29 single- and multi-candle patterns detected in context (e.g. hammer vs hanging man), marked on the chart and linked to a cheat sheet that also covers 9 chart patterns. Each candle drawing animates the textbook outcome (confirmation candle, then follow-through) and the failure (close through the stop). |
 | Coaching | Pre-trade plan (side, invalidation, target, risk), calibration questions ("what's the probability that…?"), debrief that scores **process, not P&L**. |

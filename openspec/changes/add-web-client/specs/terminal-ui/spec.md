@@ -44,6 +44,8 @@ The ticket SHALL accept size as quantity, notional, % of equity or risk budget; 
 ### Requirement: Stop and target tools
 Stop-loss and take-profit fields (new orders and protection of an open position) SHALL offer one-click presets — stop at 1× and 2× ATR(14), beyond the 10-bar swing low/high, at 1% and 2%; target at 1R, 2R and 3R of the stop distance — and a "mark on chart" mode where a click on the price pane sets the level (Escape cancels; Space SHALL NOT advance while marking). Each level SHALL show its distance from the entry in price, percent and ATR multiples, and the target SHALL show its reward/risk ratio. A stop on the profit side or a target on the loss side SHALL be flagged and block submission. Draft entry, stop, target and estimated liquidation SHALL be previewed on the chart before submission. The price scale SHALL follow the candles: a level within half the candle range of them widens the scale, a farther level SHALL be pinned to the pane edge with an arrow instead of squashing the candles, and price tags SHALL never overlap. An open position without a reduce-only stop or trailing stop SHALL show an "unprotected" warning. Presets SHALL be disabled while their input (e.g. ATR) is warming up. After a fill the new-order stop and target SHALL be cleared, so the next order is not sized to a previous trade's stop.
 
+Stop and target lines SHALL be draggable with the mouse (pointer), by the line or its price tag, and marked as draggable (⇕). Dragging a draft SL?/TP? line SHALL edit the ticket field live, snapped to the tick, and Escape during the drag SHALL restore the previous value. Dropping a working reduce-only STOP or TP line SHALL move that order: a replacement for the remaining quantity is placed first, and the old order SHALL be cancelled only if the replacement was accepted, so a rejected move never leaves the position unprotected. A drop on the wrong side of the current price (a stop that would trigger, or a target that would fill, at the next open) SHALL be refused with an explanation, leaving the order unchanged. The price scale SHALL stay fixed during a drag. Trailing stops, entry orders and option orders SHALL NOT be draggable.
+
 #### Scenario: ATR stop with a 2R target
 - **WHEN** the player clicks "2×ATR" and then "2R" on a buy ticket
 - **THEN** the stop SHALL be two ATRs below the estimated entry, the target twice that distance above it, and the ticket SHALL show "R:R 1:2.0"
@@ -51,6 +53,14 @@ Stop-loss and take-profit fields (new orders and protection of an open position)
 #### Scenario: Stop cleared after a fill
 - **WHEN** a bracket entry with a stop and a target fills
 - **THEN** the ticket's stop and target fields SHALL be empty and the feed SHALL list the attached legs as STOP and TP
+
+#### Scenario: Drag a working stop
+- **WHEN** a long position has STOP #2 and the player drags its line lower and releases
+- **THEN** a new reduce-only stop at the dropped price SHALL replace #2, and #2 SHALL be cancelled
+
+#### Scenario: Drag a stop past the price
+- **WHEN** the player drops a long position's stop above the current price
+- **THEN** the move SHALL be refused with an explanation and the original stop SHALL stay working
 
 #### Scenario: Stop on the wrong side
 - **WHEN** a buy ticket has a stop above the estimated entry

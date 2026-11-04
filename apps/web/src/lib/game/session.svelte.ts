@@ -10,7 +10,8 @@ import type {
 	GameState,
 	MissionInfo,
 	OrderSideName,
-	OrderTypeName
+	OrderTypeName,
+	OrderView
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
 import { stepsUntilNextQuestion } from './calibration.ts';
@@ -273,6 +274,19 @@ export class GameSession {
 
 	async cancel(orderId: number): Promise<CommandResult | null> {
 		return this.command({ k: 'cancel', id: orderId });
+	}
+
+	/**
+	 * Moves a working protective order: the replacement is placed first and the old order is
+	 * cancelled only if it was accepted, so a rejected move leaves the original protection in place.
+	 */
+	async moveOrder(o: OrderView, price: string, qty: string): Promise<CommandResult | null> {
+		let res: CommandResult | null = null;
+		await this.sequence(async () => {
+			res = await this.placeOrder(o.type, o.side, qty, price, true);
+			if (res?.accepted) await this.cancel(o.id);
+		});
+		return res;
 	}
 
 	async closePosition(): Promise<CommandResult | null> {
