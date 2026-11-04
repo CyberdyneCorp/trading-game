@@ -128,6 +128,23 @@ test('regression: a pending stop/target survives a reload and attaches on fill',
 	await expect(page.locator('.orders').getByText('TP', { exact: true })).toBeVisible();
 });
 
+test('regression: after a fill the ticket drops the old stop/target, and the feed names the bracket legs', async ({ page }) => {
+	// Before: the next order was sized to the previous trade's stop, and legs read "LMT/STOP/TP".
+	await openTerminal(page, 4242);
+	await page.getByLabel('Stop loss').first().fill('90.00');
+	await page.getByLabel('Take profit').first().fill('130.00');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await expect(page.getByLabel('Stop loss').first()).toHaveValue('');
+	await expect(page.getByLabel('Take profit').first()).toHaveValue('');
+	const feed = page.locator('.feed');
+	await expect(feed.getByText(/\(STOP sell/)).toBeVisible();
+	await expect(feed.getByText(/\(TP sell/)).toBeVisible();
+	await expect(feed.getByText(/LMT\/STOP\/TP/)).toHaveCount(0);
+});
+
 test('regression: Space during resume does not replay the run twice', async ({ page }) => {
 	await openTerminal(page, 4242);
 	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
@@ -200,8 +217,10 @@ test('options mission: buy a call from the chain with a plan, hold to expiry, se
 	await page.getByRole('button', { name: /Registrar plano/ }).click();
 	await advance(page);
 	await expect(page.getByText(/OPÇÕES EM CARTEIRA/i)).toBeVisible();
-	for (let i = 0; i < 60 && !(await page.getByText(/Vencimento OPT#/).count()); i++) await advance(page, 'Shift+Space');
-	await expect(page.getByText(/Vencimento OPT#/).first()).toBeVisible();
+	for (let i = 0; i < 60 && !(await page.getByText(/Vencimento C 100 · exp/).count()); i++) await advance(page, 'Shift+Space');
+	// The contract is named, not shown as an internal series id.
+	await expect(page.getByText(/Vencimento C 100 · exp/).first()).toBeVisible();
+	await expect(page.locator('.feed').getByText(/OPT#/)).toHaveCount(0);
 });
 
 test('regression: an options trade is listed in the debrief (was "you did not trade")', async ({ page }) => {

@@ -290,7 +290,7 @@ stateDiagram-v2
 | Understanding | 25 | Reserved for lesson questions; not scored yet |
 | Calibration | 15 | 100 × (1 − Brier score) of your probability answers (needs 3+ resolved answers) |
 
-The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected), findings, and a reveal of what the generator was doing.
+The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, so the trades add up to the result), findings, and a reveal of what the generator was doing.
 
 ## Specs (OpenSpec)
 

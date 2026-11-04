@@ -272,6 +272,8 @@ export interface EngineTrade {
 	exitAvg: Decimal;
 	pnl: Decimal;
 	fees: Decimal;
+	/** Funding received (+) or paid (-) while the trade was open; included in `net`. */
+	funding: Decimal;
 	net: Decimal;
 	bars: number;
 	reason: 'stop' | 'target' | 'manual' | 'liquidation' | 'open' | 'expiry';

@@ -28,25 +28,29 @@ Every gain, loss, long, short, buy or sell indication SHALL include a sign, labe
 - **THEN** long vs short and gain vs loss SHALL remain distinguishable
 
 ### Requirement: Distinct actions and acknowledgements
-Submit order, close position and advance market SHALL be visually and spatially distinct controls. Order acknowledgement ("accepted") and execution ("filled", "partially filled") SHALL be separate messages, and rejections SHALL show the engine reason in plain language.
+Submit order, close position and advance market SHALL be visually and spatially distinct controls. Order acknowledgement ("accepted") and execution ("filled", "partially filled") SHALL be separate messages, and rejections SHALL show the engine reason in plain language. The event feed and order list SHALL name each order's type (MKT, LMT, STOP, TP, TRAIL) and each option contract by kind, strike and expiry (e.g. "C 100 · exp 96"), also after the order is gone or the series expired.
 
 #### Scenario: Rejection reason shown
 - **WHEN** an order is rejected with `insufficient_margin`
 - **THEN** the UI SHALL explain the required and available margin
 
 ### Requirement: Order ticket for perpetuals
-The ticket SHALL accept size as quantity, notional, % of equity or risk budget; SHALL require a leverage within the mission cap; and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
+The ticket SHALL accept size as quantity, notional, % of equity or risk budget; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
 
 #### Scenario: Live recalculation
 - **WHEN** the player changes leverage from 3× to 10×
 - **THEN** margin and liquidation price in the ticket SHALL update before submission
 
 ### Requirement: Stop and target tools
-Stop-loss and take-profit fields (new orders and protection of an open position) SHALL offer one-click presets — stop at 1× and 2× ATR(14), beyond the 10-bar swing low/high, at 1% and 2%; target at 1R, 2R and 3R of the stop distance — and a "mark on chart" mode where a click on the price pane sets the level (Escape cancels; Space SHALL NOT advance while marking). Each level SHALL show its distance from the entry in price, percent and ATR multiples, and the target SHALL show its reward/risk ratio. A stop on the profit side or a target on the loss side SHALL be flagged and block submission. Draft entry, stop, target and estimated liquidation SHALL be previewed on the chart before submission. The price scale SHALL follow the candles: a level within half the candle range of them widens the scale, a farther level SHALL be pinned to the pane edge with an arrow instead of squashing the candles, and price tags SHALL never overlap. An open position without a reduce-only stop or trailing stop SHALL show an "unprotected" warning. Presets SHALL be disabled while their input (e.g. ATR) is warming up.
+Stop-loss and take-profit fields (new orders and protection of an open position) SHALL offer one-click presets — stop at 1× and 2× ATR(14), beyond the 10-bar swing low/high, at 1% and 2%; target at 1R, 2R and 3R of the stop distance — and a "mark on chart" mode where a click on the price pane sets the level (Escape cancels; Space SHALL NOT advance while marking). Each level SHALL show its distance from the entry in price, percent and ATR multiples, and the target SHALL show its reward/risk ratio. A stop on the profit side or a target on the loss side SHALL be flagged and block submission. Draft entry, stop, target and estimated liquidation SHALL be previewed on the chart before submission. The price scale SHALL follow the candles: a level within half the candle range of them widens the scale, a farther level SHALL be pinned to the pane edge with an arrow instead of squashing the candles, and price tags SHALL never overlap. An open position without a reduce-only stop or trailing stop SHALL show an "unprotected" warning. Presets SHALL be disabled while their input (e.g. ATR) is warming up. After a fill the new-order stop and target SHALL be cleared, so the next order is not sized to a previous trade's stop.
 
 #### Scenario: ATR stop with a 2R target
 - **WHEN** the player clicks "2×ATR" and then "2R" on a buy ticket
 - **THEN** the stop SHALL be two ATRs below the estimated entry, the target twice that distance above it, and the ticket SHALL show "R:R 1:2.0"
+
+#### Scenario: Stop cleared after a fill
+- **WHEN** a bracket entry with a stop and a target fills
+- **THEN** the ticket's stop and target fields SHALL be empty and the feed SHALL list the attached legs as STOP and TP
 
 #### Scenario: Stop on the wrong side
 - **WHEN** a buy ticket has a stop above the estimated entry

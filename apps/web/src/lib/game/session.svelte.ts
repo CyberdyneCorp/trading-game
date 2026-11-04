@@ -2,6 +2,7 @@
 // Resume = deterministic replay of the logged actions (same mission, seed and commands =>
 // same state digest), so only the log is persisted, never balances.
 
+import { EventNames } from './eventNames.ts';
 import { EngineClient } from '#lib/engine/client.ts';
 import type {
 	CommandResult,
@@ -73,7 +74,16 @@ export class GameSession {
 	missions = $state<MissionInfo[]>([]);
 	missionId = $state('');
 	seed = $state(0);
-	state = $state<GameState | null>(null);
+	#state = $state<GameState | null>(null);
+	/** Order types and option contract names seen during this run, for the event feed. */
+	readonly names = new EventNames();
+	get state(): GameState | null {
+		return this.#state;
+	}
+	set state(v: GameState | null) {
+		this.#state = v;
+		if (v) this.names.observe(v);
+	}
 	debrief = $state<DebriefData | null>(null);
 	journal = $state<PlanEntry[]>([]);
 	notice = $state<Notice | null>(null);
@@ -345,6 +355,7 @@ export class GameSession {
 		this.debrief = null;
 		this.stopWarnings = 0;
 		this.queued = 0;
+		this.names.reset();
 	}
 
 	private eng(): EngineClient {

@@ -19,6 +19,10 @@ Entries are exposure-increasing fills of the perpetual and of each option series
 - **WHEN** the player only buys an option and holds it to expiry
 - **THEN** it SHALL count as an entry (the attempt is not "waiting"), and the debrief SHALL list it as a trade in its series with its premium, settlement value, net result and exit reason `expiry`
 
+#### Scenario: Debrief trades add up to the result
+- **WHEN** the player buys 10, sells 20 (closing the long and opening a short of 10) and closes the short, with funding paid in between
+- **THEN** the flip's fee SHALL be split between the two trades in proportion to the quantity closed and opened, each trade's net SHALL be its realized P&L minus its fees plus the funding received (or minus the funding paid) while it was open, and the trades' nets SHALL sum to the mission result
+
 #### Scenario: Skipped plan has no R
 - **WHEN** a trade's plan was skipped
 - **THEN** the trade SHALL have no planned risk and no R multiple, even if the client sent a risk estimate with the skipped plan

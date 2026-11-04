@@ -237,7 +237,7 @@
 			</div>
 			<div class="stack">
 				<NewsPanel news={session.state.news} />
-				<EventFeed events={session.state.events} />
+				<EventFeed events={session.state.events} names={session.names} />
 			</div>
 		</div>
 	</div>

@@ -33,7 +33,7 @@
 		[
 			...s.events
 				.filter((e) => e.type !== 'order' || e.status !== 'accepted')
-				.map((e) => ({ step: e.step, key: `e${e.seq}`, text: describeEvent(e, L)?.text ?? '', tone: describeEvent(e, L)?.tone ?? '' })),
+				.map((e) => ({ step: e.step, key: `e${e.seq}`, text: describeEvent(e, L, session.names)?.text ?? '', tone: describeEvent(e, L, session.names)?.tone ?? '' })),
 			...session.journal.map((p, i) => ({
 				step: p.step,
 				key: `p${i}`,
