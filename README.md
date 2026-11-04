@@ -363,11 +363,19 @@ stateDiagram-v2
 | Understanding | 25 | Reserved for lesson questions; not scored yet |
 | Calibration | 15 | 100 × (1 − 2 × Brier score) of your probability answers, floored at 0 (needs 3+ resolved answers). Always answering 50% scores 50: no information is neutral, not a bonus |
 
-The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, so the trades add up to the result), findings, and a reveal of what the generator was doing.
+The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, and a trade still open at the end includes its unrealized P&L, so the trades add up to the result), findings, and a reveal of what the generator was doing.
+
+Next to the score, the debrief shows outcome facts that are **not** score inputs (all computed by the engine, scoring v6):
+
+- Net P&L split into realized trading P&L, fees, funding, option P&L, and a separate **spread and slippage** line: what taker fills paid against their reference price (the open, or the stop's trigger) and option fills against the quote's mid. It is already inside the fill prices, not an extra charge.
+- Max drawdown, peak exposure, **turnover** (traded notional) and the **closest the mark came to liquidation**.
+- For options, the **P&L by Greek** (delta, gamma, theta, vega and a residual), labeled approximate: bar by bar, from the Greeks of the quote at the start of each interval; the residual holds the spread paid and higher-order effects, so the five lines add up to the option P&L before fees.
+- For a perpetual trade whose stop (stop order, else the plan's invalidation) sat at or beyond its liquidation price (at the highest leverage the position carried, including a re-leverage while it was open): the **highest leverage that would have kept the stop in front** of liquidation, also named in the liquidation and stop-beyond-liquidation findings.
+- When time decay (theta) or a falling implied volatility (vega) explains at least half of an option loss, a finding says so and the next lesson is Options II (IV and Greeks).
 
 ### Advisor points
 
-Points pay for advisor reads and are earned by process, never bought. The engine reports what a run earned (`advisorPointsEarned` in the debrief, scoring v4), so the server can verify it:
+Points pay for advisor reads and are earned by process, never bought. The engine reports what a run earned (`advisorPointsEarned` in the debrief, scoring v6), so the server can verify it:
 
 | Earned for | Points |
 |---|---|
@@ -393,12 +401,11 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v2, execution policy v11, scoring v4), the five missions with first-start tutorials, the advisor with points earned by disciplined trades, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations) and the API (sync, replay, progress, export, erase).
+Built: the deterministic engine (perps, options, indicators, patterns, generator v2, execution policy v11, scoring v6 with the full debrief), the five missions with first-start tutorials, the advisor with points earned by disciplined trades, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations) and the API (sync, replay, progress, export, erase).
 
 Next:
 
 - Legal intel perks unlocked by finished missions: economic calendar and fast wire (`add-advisor-intel-tutorials`, phase 3). The engine already takes the start options (`news_lead`, `calendar`) and the advisor already reads a fast-wire headline; the state view, the briefing toggles and the server re-simulation with stored options come with that phase.
-- Debrief gaps: option P&L attribution by Greek, separate spread/slippage line, turnover and minimum liquidation distance, the leverage that would have kept the stop in front of liquidation.
 - More content toward the phase-2 target (12 missions, ≥4 regimes), campaign runs and the curriculum map.
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.

@@ -35,6 +35,7 @@ add_library(tradelab_engine STATIC
   src/prng.cpp
   src/scenario.cpp
   src/scoring.cpp
+  src/debrief.cpp
   src/sha256.cpp
   src/serialize.cpp
 )
@@ -95,6 +96,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_options.cpp
     tests/test_prng.cpp
     tests/test_scoring.cpp
+    tests/test_debrief.cpp
     tests/test_sha256.cpp
     tests/test_serialize.cpp
   )

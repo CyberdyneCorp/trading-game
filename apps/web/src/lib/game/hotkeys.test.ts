@@ -14,6 +14,15 @@ describe('keyboard shortcuts vs focused elements', () => {
 		expect(keepsKey({ tagName: 'INPUT', type: 'range' }, 'ArrowLeft')).toBe(true);
 	});
 
+	it('regression: letter shortcuts work after clicking an indicator checkbox', () => {
+		for (const key of ['p', 's', 'b', 'a', 'x', 'P']) {
+			expect(keepsKey({ tagName: 'INPUT', type: 'checkbox' }, key)).toBe(false);
+		}
+		expect(keepsKey({ tagName: 'INPUT', type: 'radio' }, 'p')).toBe(false);
+		expect(keepsKey({ tagName: 'INPUT', type: 'range' }, 'b')).toBe(false);
+		expect(keepsKey({ tagName: 'INPUT', type: 'radio' }, 'ArrowDown')).toBe(true);
+	});
+
 	it('text entry keeps every key, Space included', () => {
 		expect(keepsKey({ tagName: 'INPUT', type: 'text' }, ' ')).toBe(true);
 		expect(keepsKey({ tagName: 'INPUT' }, ' ')).toBe(true);

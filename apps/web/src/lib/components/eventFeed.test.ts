@@ -5,7 +5,7 @@ import type { EngineEvent } from '#lib/engine/types.ts';
 
 const fill = (over: Partial<EngineEvent>): EngineEvent =>
 	({
-		seq: 1, step: 100, type: 'fill', orderId: 3, status: 'accepted', reason: 'none', side: 'buy', qty: '200.00000000',
+		seq: 1, step: 100, type: 'fill', orderId: 3, orderType: 'market', status: 'accepted', reason: 'none', side: 'buy', qty: '200.00000000',
 		price: '24.47000000', requested: '0.00000000', amount: '5.88000000', pnl: '-4474.00000000', ambiguous: false,
 		gap: false, capacityLimited: false, series: 4, approximate: false, ...over
 	}) as EngineEvent;
@@ -17,6 +17,13 @@ describe('describeEvent', () => {
 		const text = describeEvent(fill({ orderId: 0 }), 'pt-BR', names)?.text ?? '';
 		expect(text).toMatch(/^P 100 · exp 108 Recompra forçada \(chamada de margem\): BUY 200,0 @ 24,47/);
 		expect(text).not.toMatch(/#0/);
+	});
+
+	it('regression: a bracket leg never seen in the live order list is named by its event type', () => {
+		// Before: legs placed and filled or cancelled in one advance read "LMT/STOP/TP".
+		const leg = fill({ type: 'order', status: 'accepted', orderId: 6, orderType: 'stop_market', side: 'sell', series: 0, qty: '52.80000000', requested: '99.30000000' });
+		expect(describeEvent(leg, 'pt-BR')?.text).toMatch(/Ordem #6 aceita \(STOP venda 52,8\)/);
+		expect(describeEvent({ ...leg, orderType: 'take_profit', side: 'buy' }, 'pt-BR')?.text).toMatch(/\(TP compra 52,8\)/);
 	});
 
 	it('names an ordinary fill by its order id', () => {

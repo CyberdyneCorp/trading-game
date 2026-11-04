@@ -2,7 +2,7 @@ import type { BarTuple, EngineEvent, GameState } from '#lib/engine/types.ts';
 
 export function ev(p: Partial<EngineEvent>): EngineEvent {
 	return {
-		seq: 1, step: 0, type: 'order', orderId: 0, status: 'accepted', reason: 'none', side: 'buy',
+		seq: 1, step: 0, type: 'order', orderId: 0, orderType: null, status: 'accepted', reason: 'none', side: 'buy',
 		qty: '0', price: '0', requested: '0', amount: '0', pnl: '0', ambiguous: false, gap: false, capacityLimited: false,
 		series: 0, approximate: false,
 		...p

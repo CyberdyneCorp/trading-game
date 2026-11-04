@@ -89,6 +89,8 @@ export interface EngineEvent {
 	step: number;
 	type: EventTypeName;
 	orderId: number;
+	/** Type of the order the event refers to; null for events without an order. */
+	orderType: OrderTypeName | null;
 	status: string;
 	reason: string;
 	side: OrderSideName;
@@ -298,7 +300,10 @@ export interface EngineFinding {
 		| 'no_plan'
 		| 'oversized'
 		| 'bankrupt'
-		| 'margin_called';
+		| 'margin_called'
+		| 'theta_decay'
+		| 'iv_crush'
+		| 'good_process_win';
 	tone: 'good' | 'warn' | 'bad' | 'info';
 	step: number;
 	count: number;
@@ -331,6 +336,24 @@ export interface EngineTrade {
 	plannedRisk: Decimal;
 	rBp: number | null;
 	planRespected: boolean | null;
+	/** Perpetual rows only: the trade's stop (stop order, else the plan's invalidation; 0 = none). */
+	stop?: Decimal;
+	/** Perpetual rows only: highest leverage the position carried (at entry or re-leveraged while open) and the liquidation price it implied (0 = none). */
+	leverage?: number;
+	liqPrice?: Decimal;
+	stopBeyondLiq?: boolean;
+	/** Highest leverage that would have kept the stop in front of liquidation (0 = not even 1x); null when it was in front. */
+	safeLeverage?: number | null;
+}
+
+/** Approximate option P&L by Greek (engine); the residual holds spread and higher-order effects. */
+export interface GreekAttribution {
+	delta: Decimal;
+	gamma: Decimal;
+	theta: Decimal;
+	vega: Decimal;
+	residual: Decimal;
+	total: Decimal;
 }
 
 export interface ScoreDimension {
@@ -338,7 +361,7 @@ export interface ScoreDimension {
 	score: number | null;
 }
 
-export type LessonCode = 'futures2' | 'risk' | 'futures3' | 'orders' | 'structure' | 'evaluation';
+export type LessonCode = 'futures2' | 'risk' | 'futures3' | 'orders' | 'structure' | 'evaluation' | 'options';
 
 export interface DebriefData {
 	mission: string;
@@ -362,6 +385,10 @@ export interface DebriefData {
 	netPnl: Decimal;
 	calibration: { resolved: number; brierBp: number | null };
 	trades: EngineTrade[];
+	/** Spread + slippage paid against the reference price; already inside the fill prices. */
+	spreadSlippage: Decimal;
+	/** Null when no option was traded. */
+	greeks: GreekAttribution | null;
 	/** Engine-computed advisor points earned by this run (capped at 6). */
 	advisorPointsEarned: number;
 	/** Each piece of advice with its outcome 5 bars after the next open. */

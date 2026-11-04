@@ -13,7 +13,7 @@
 
 <script lang="ts">
 	import type { GameState, OptionQuoteView } from '#lib/engine/types.ts';
-	import { fmtMoney, fmtPrice, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
+	import { fmtMoney, fmtNum, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { breakeven, legFromQuote, maxLoss, payoffCurve, seriesLabel, writeMargin } from '#lib/game/optionsMath.ts';
 
@@ -40,19 +40,21 @@
 	let qtyInput = $state('1');
 	let limitInput = $state('');
 
-	const qty = $derived(Math.floor((num(qtyInput) || 0) / lot + 1e-9) * lot);
+	const qty = $derived(Math.floor((parseDecimal(qtyInput) || 0) / lot + 1e-9) * lot);
 	const held = $derived(num(game.options.positions.find((p) => p.series === quote?.id)?.qty ?? '0'));
 	const opensShort = $derived(side === 'sell' && qty > Math.max(0, held));
 	const shortBlocked = $derived(opensShort && !game.options.allowShort);
 	const leg = $derived(quote ? legFromQuote(quote, side, qty, mult) : null);
-	const premium = $derived(type === 'limit' && num(limitInput) > 0 ? num(limitInput) : leg?.premium ?? 0);
+	const premium = $derived(type === 'limit' && parseDecimal(limitInput) > 0 ? parseDecimal(limitInput) : leg?.premium ?? 0);
 	const legAtPx = $derived(leg ? { ...leg, premium } : null);
+	// Signed underlying units of the order, for its Greeks (a write is short the option).
+	const units = $derived(qty * mult * (side === 'buy' ? 1 : -1));
 	const loss = $derived(legAtPx ? maxLoss(legAtPx) : null);
 	const margin = $derived(quote && opensShort ? writeMargin(quote, f, qty, mult) : null);
 	// A buy pays the premium, a write posts margin: either must fit in the available balance.
 	const cost = $derived(opensShort ? margin : side === 'buy' ? loss : null);
 	const cantAfford = $derived(cost != null && cost > num(game.account.available));
-	const canSubmit = $derived(!!quote && !busy && qty > 0 && !shortBlocked && !cantAfford && (type === 'market' || num(limitInput) > 0));
+	const canSubmit = $derived(!!quote && !busy && qty > 0 && !shortBlocked && !cantAfford && (type === 'market' || parseDecimal(limitInput) > 0));
 
 	// Payoff diagram geometry (SVG viewBox units).
 	const W = 300;
@@ -84,7 +86,7 @@
 			side,
 			type,
 			qty: qtyToLot(qty, lot),
-			premium: type === 'limit' ? priceToTick(num(limitInput), num(game.options.premiumTick)) : null,
+			premium: type === 'limit' ? priceToTick(parseDecimal(limitInput), num(game.options.premiumTick)) : null,
 			opensExposure: side === 'buy' ? held >= 0 : opensShort,
 			risk: loss ?? margin
 		});
@@ -116,15 +118,15 @@
 			{/if}
 		</div>
 		<dl class="kv est">
-			<dt>{t('opt.premium')}</dt><dd>{fmtPrice(String(premium), L)} × {qty} × {mult}</dd>
+			<dt>{t('opt.premium')}</dt><dd>{fmtPrice(String(premium), L)} × {fmtQty(String(qty), L)} × {mult}</dd>
 			<dt>{t('opt.breakeven')}</dt><dd>{legAtPx ? fmtPrice(String(breakeven(legAtPx)), L) : '—'}</dd>
 			{#if loss != null}<dt>{t('opt.maxLoss')}</dt><dd class="down">{fmtMoney(loss, L)}</dd>{/if}
 			{#if margin != null}<dt>{t('opt.margin')}</dt><dd>{fmtMoney(margin, L)}</dd>{/if}
 			<dt>{t('opt.greeks')}</dt>
 			<dd class="greeks">
-				Δ {(num(quote.delta) * qty * mult * (side === 'buy' ? 1 : -1)).toFixed(2)} ·
-				Θ {(num(quote.theta) * qty * mult * (side === 'buy' ? 1 : -1)).toFixed(3)} ·
-				ν {(num(quote.vega) * qty * mult * (side === 'buy' ? 1 : -1)).toFixed(2)}
+				Δ {fmtNum(num(quote.delta) * units, L)} ·
+				Θ {fmtNum(num(quote.theta) * units, L, 3)} ·
+				ν {fmtNum(num(quote.vega) * units, L)}
 			</dd>
 		</dl>
 		{#if opensShort && !shortBlocked}<p class="warnbox">⚠ {t('opt.unbounded')}</p>{/if}

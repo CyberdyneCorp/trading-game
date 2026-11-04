@@ -211,8 +211,35 @@ TEST_CASE("C ABI: plans, answers and the score report in the debrief") {
   tl_place_order_ex(run, 4, 0, 0, "10", nullptr, 0, "95.5", "110", nullptr);
   tl_advance(run, 1000);
   const std::string d = tl_debrief(run);
-  CHECK(d.find("\"score\":{\"version\":4") != std::string::npos);
+  CHECK(d.find("\"score\":{\"version\":6") != std::string::npos);
   CHECK(d.find("\"trades\":[{\"n\":1") != std::string::npos);
+  CHECK(d.find("\"stop\":\"95.5") != std::string::npos);
+  CHECK(d.find("\"safeLeverage\":") != std::string::npos);
+  CHECK(d.find("\"spreadSlippage\":") != std::string::npos);
+  CHECK(d.find("\"greeks\":null") != std::string::npos);  // no option traded
   CHECK(d.find("\"lesson\":") != std::string::npos);
+  tl_run_destroy(run);
+}
+
+TEST_CASE("Regression: C ABI order events name their order type, bracket legs included") {
+  // Before: the client learned order types only from the live order list, so bracket legs placed and
+  // filled or cancelled within one advance showed as "LMT/STOP/TP" in the feed.
+  tl_run* run = tl_run_create("m01-false-breakout", 5);
+  REQUIRE(run != nullptr);
+  tl_place_order_ex(run, 1, 0, 0, "10", nullptr, 0, "95.5", "110", nullptr);
+  tl_advance(run, 1000);
+  const std::string s = tl_state(run);
+  CHECK(s.find("\"orderType\":\"market\"") != std::string::npos);
+  CHECK(s.find("\"orderType\":\"stop_market\"") != std::string::npos);
+  CHECK(s.find("\"orderType\":\"take_profit\"") != std::string::npos);
+  std::size_t at = 0;
+  std::size_t order_events = 0;
+  while ((at = s.find("\"type\":\"order\",\"orderId\":", at)) != std::string::npos) {
+    const std::size_t next = s.find('}', at);
+    CHECK(s.substr(at, next - at).find("\"orderType\":null") == std::string::npos);
+    ++order_events;
+    at = next;
+  }
+  CHECK(order_events >= 3);
   tl_run_destroy(run);
 }
