@@ -13,7 +13,7 @@ Scenarios must travel to browsers, desktops and iPads, work offline, be verifiab
 - Web verifies with WebCrypto Ed25519; native with libsodium/CryptoKit; server with `cryptography`.
 
 ### D2. Scoring and debrief live in the engine repo
-- Scoring (C++20, `engine/src/scoring.cpp` + `engine/include/tradelab/scoring.hpp`, part of the engine library, versioned by `kScoringVersion` = 1) computes score dimensions, findings, per-trade rows (R multiple, plan respected) and the next-lesson code from the run state and command log; the C ABI debrief adds P&L aggregates and buy-and-hold/flat comparisons. Greek attribution is not built yet. Same golden approach as the engine. Clients render codes as text; the server (`services/api`) recomputes by replaying the action log through the Python binding.
+- Scoring (C++20, `engine/src/scoring.cpp` + `engine/include/tradelab/scoring.hpp`, part of the engine library, versioned by `kScoringVersion` = 2) computes score dimensions, findings, per-trade rows (R multiple, plan respected) and the next-lesson code from the run state and command log; the C ABI debrief adds P&L aggregates and buy-and-hold/flat comparisons. Greek attribution is not built yet. Same golden approach as the engine. Clients render codes as text; the server (`services/api`) recomputes by replaying the action log through the Python binding.
 - Mission rules/rubrics are data in the pack, not code. Until packs exist, the five built-in missions live in `engine/src/missions.cpp` (generator spec, rules, option chain) with their texts in the client catalogs (`apps/web/src/lib/game/missions.ts`).
 
 ### D3. Generator

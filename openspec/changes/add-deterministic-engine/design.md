@@ -64,13 +64,17 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 ### D6d. Plans, calibration answers and scoring (execution-policy v4)
 - `RecordPlan` stores the structured plan (side, invalidation, target, confidence, planned risk, skipped, option, has-lose-scenario) at the decision step; free text never reaches the engine (spec: no subjective grading).
 - `AnswerQuestion` is accepted only when a question is due: every 15 steps from the first decision step, while the resolving bar (t+5) exists, once per step. Threshold = close at t; skipped answers are kept but not scored.
-- `engine/scoring` (version 1) derives entries from a position walk over perp fills and per-series option fills, protection from reduce-only stops placed in [t-1, t+2] (bracket children included), and computes risk/plan/calibration with renormalization, findings, next lesson and flat-to-flat trades (perpetual, and per option series closed by a fill or settled at expiry) with R = net / planned risk of the latest non-skipped plan of the same kind (perp or option). Integer arithmetic only, so client and server agree exactly.
+- `engine/scoring` (version 2; v2 changed only the calibration formula) derives entries from a position walk over perp fills and per-series option fills, protection from reduce-only stops placed in [t-1, t+2] (bracket children included), and computes risk/plan/calibration with renormalization, findings, next lesson and flat-to-flat trades (perpetual, and per option series closed by a fill or settled at expiry) with R = net / planned risk of the latest non-skipped plan of the same kind (perp or option). Integer arithmetic only, so client and server agree exactly.
 
 ### D6e. Generator v2 (execution-policy v5)
 - Missions' bars come from the seeded market generator (`generator.hpp`, stream `Market`), which also emits the funding series and the `iv_base` series. Generator v2 changed the generated bars, so the policy version was bumped to 5; execution rules are unchanged from v4.
 
 ### D6f. Fill event order (execution-policy v6)
 - `apply_fill` cancels orphaned reduce-only orders only after emitting the fill, and never the order being filled (it used to log the closing order as cancelled and then filled). The event log changes for every closed position, so the policy version was bumped to 6.
+
+### D6g. Closing through capacity and m05 timing (execution-policy v7)
+- A reduce-only market order (including "close position") whose remainder was cut by bar capacity stays `partially_filled` and keeps executing at the next opens until filled, the position is flat (orphan cancel) or the player cancels it. Other market orders stay IOC. Before, a large close could silently leave part of the position open.
+- Mission m05's jump moved from bars 120-122 to 100-102 (news at 99), before the first expiry (108), so options written at the start are still open when it hits; written at-the-money puts of 200 contracts (about 2x equity in notional) get a margin call in every tested seed, 100 contracts in none. Both change replays, so the policy version was bumped to 7.
 
 ### D7. Digest and checkpoints
 - Canonical little-endian binary serialization of `RunState`; SHA-256 (vendored, constant-time not required). State digest covers the policy version, seed, step, status, leverage, balances, position, orders, option positions, plans, answers, metrics and RNG state; the events digest covers the full event log.

@@ -4,7 +4,7 @@
 // Clients display this report; the server recomputes it from the same commands (never trusts a
 // client-reported score). Integer arithmetic only.
 //
-// Dimensions (scoring version 1): risk 35, plan coherence 25, understanding 25 (not measured yet),
+// Dimensions (scoring version 2): risk 35, plan coherence 25, understanding 25 (not measured yet),
 // calibration 15. A dimension without data is not applicable and the rest are renormalized.
 
 #include <cstdint>
@@ -15,7 +15,7 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kScoringVersion = 1;
+constexpr std::uint32_t kScoringVersion = 2;  // v2: calibration 100 * (1 - 2 * Brier)
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,

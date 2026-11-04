@@ -104,7 +104,7 @@ TEST_CASE("Calibration: questions only on schedule, Brier over at least three re
   const ScoreReport r = score_run(sc, d.state());
   CHECK(r.resolved_answers == 3);    // skipped one not scored
   CHECK(r.brier_bp == 100);          // (0.9 - 1)^2 = 0.01
-  CHECK(r.calibration.score == 99);
+  CHECK(r.calibration.score == 98);  // 100 * (1 - 2 * 0.01)
 }
 
 TEST_CASE("Plans and answers survive checkpoints and are part of the state digest") {
@@ -198,4 +198,20 @@ TEST_CASE("Regression: trade net includes the funding paid while it was open") {
   CHECK(r.trades[0].funding.raw < 0);  // the long paid
   CHECK(r.trades[1].funding.raw > 0);  // the short received
   CHECK(r.trades[0].net.raw + r.trades[1].net.raw == r.net_pnl.raw);
+}
+
+TEST_CASE("Regression: always answering 50% is neutral calibration, not a bonus") {
+  // Before: 100 * (1 - Brier) gave 75 points for answers that carry no information.
+  const Scenario sc = flat(80);
+  Driver d(sc);
+  std::uint32_t answered = 0;
+  while (d.state().status == RunStatus::Active) {
+    if (d.answer(5000).accepted) answered += 1;
+    d.step();
+  }
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(answered >= 3);
+  REQUIRE(r.resolved_answers >= 3);
+  CHECK(r.brier_bp == 2500);
+  CHECK(r.calibration.score == 50);
 }

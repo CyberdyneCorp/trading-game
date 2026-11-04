@@ -22,11 +22,15 @@ Every order SHALL be in exactly one of: `accepted`, `partially_filled`, `filled`
 - **AND** no `filled` event SHALL be emitted until a later step meets its fill conditions
 
 ### Requirement: Market orders
-A market order SHALL fill starting at the first eligible price (next bar open) adjusted by half-spread and slippage against the player, limited by available capacity. Any remainder SHALL be cancelled (IOC) with reason `insufficient_capacity`.
+A market order SHALL fill starting at the first eligible price (next bar open) adjusted by half-spread and slippage against the player, limited by available capacity. Any remainder SHALL be cancelled (IOC) with reason `insufficient_capacity`, except for a reduce-only market order (including "close position"): its capacity-limited remainder SHALL stay working and execute at the following bar opens until it is filled, the position is flat or the player cancels it.
 
 #### Scenario: Partial market fill
 - **WHEN** a market order exceeds the step's remaining capacity
 - **THEN** it SHALL fill up to capacity and cancel the rest with reason `insufficient_capacity`
+
+#### Scenario: Closing a position larger than a bar's capacity
+- **WHEN** the player closes a long of 10 and only 4 contracts of capacity are available per bar
+- **THEN** 4 SHALL fill at the next open and the close order SHALL stay partially filled, filling 4 and then 2 at the following opens until the position is flat
 
 ### Requirement: Limit orders
 A limit order SHALL never fill at a price worse than its limit. Touching the limit price SHALL NOT guarantee a fill; the fill rule for OHLC bars SHALL require the price to trade through the limit by at least one tick unless the scenario declares a different touch policy. Resting limits SHALL keep priority by price then sequence; modifying price or increasing size SHALL reset priority.

@@ -102,7 +102,7 @@ All synthetic, generated from the run seed, starting capital 10,000 (virtual).
 | `m02-funding-squeeze` | Momentum | Perpetual, up to 10×, funding every 4 bars | Funding and the cost of carry | Crowded longs, pullbacks to the EMA, then a squeeze |
 | `m03-volatility-shock` | Quiet market | Perpetual, up to 20× | Margin, leverage and liquidation price | Volatility compression, then a gap shock |
 | `m04-options-buyer` | Calls and puts | Options (buy) + perpetual up to 3× | Payoff, premium, IV and Greeks | IV run-up and crush around a rate decision; breakout direction not guaranteed |
-| `m05-options-writer` | Selling premium | Options (buy and write) + perpetual up to 3× | Writing options, margin and margin calls | Rich premium in a range, then a jump forces a margin call |
+| `m05-options-writer` | Selling premium | Options (buy and write) + perpetual up to 3× | Writing options, margin and margin calls | Rich premium in a range, then a jump before the first expiry forces a margin call on oversized writers |
 
 ## Architecture
 
@@ -288,7 +288,7 @@ stateDiagram-v2
 | Risk | 35 | Penalties for liquidation, entries without a stop, planned risk above 2% of capital, stops beyond the liquidation price, drawdown above 20% |
 | Plan | 25 | Share of entries covered by a plan, and plans that name an invalidation level |
 | Understanding | 25 | Reserved for lesson questions; not scored yet |
-| Calibration | 15 | 100 × (1 − Brier score) of your probability answers (needs 3+ resolved answers) |
+| Calibration | 15 | 100 × (1 − 2 × Brier score) of your probability answers, floored at 0 (needs 3+ resolved answers). Always answering 50% scores 50: no information is neutral, not a bonus |
 
 The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, so the trades add up to the result), findings, and a reveal of what the generator was doing.
 
