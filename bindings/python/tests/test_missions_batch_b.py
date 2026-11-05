@@ -61,8 +61,8 @@ def test_m11_golden_matches_native_cpp():
         run.place_order(4, 0, 1, "60", None, False, "112", "90")
         state = run.advance(1000)
     assert _digests(state) == (
-        "1811f8da95b6fbcc0f59fcbc0b787c9248f03548e7b70d2f683e5fc00d5fe3c3",
-        "f299136913997ac378cc30109f8e6ae8e0dab78da42b14d0591299dc7f0f3e56",
+        "984ecd887e62252b391cbb31ad9d6cd91ad7de4d51f918d6f43765cdf1bbb500",
+        "839e5f90afee251e6cc920fb1b83a13faa1789a97071fabd9f6b538870a1babb",
     )
 
 

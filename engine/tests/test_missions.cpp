@@ -387,8 +387,8 @@ TEST_CASE("Golden: m11 calendar, flat into a release and a trade after it") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"1811f8da95b6fbcc0f59fcbc0b787c9248f03548e7b70d2f683e5fc00d5fe3c3\","
-        "\"eventsDigest\":\"f299136913997ac378cc30109f8e6ae8e0dab78da42b14d0591299dc7f0f3e56\"}");
+        "\"digest\":\"984ecd887e62252b391cbb31ad9d6cd91ad7de4d51f918d6f43765cdf1bbb500\","
+        "\"eventsDigest\":\"839e5f90afee251e6cc920fb1b83a13faa1789a97071fabd9f6b538870a1babb\"}");
 }
 
 TEST_CASE("Golden: m12 final exam, a long, a written straddle and a short") {
