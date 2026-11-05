@@ -17,7 +17,7 @@
 - [ ] 3.5 BFF sign-in against staging; session-expired path
 
 ## 4. Phase 2 MVP
-- [x] 4.1 Limit, trailing, bracket/OCO in ticket — market/limit/stop entries with attached stop + target (engine-side OCO); trailing stop offered when protecting an open position
+- [x] 4.1 Limit, trailing, bracket/OCO in ticket — market/limit/stop entries with attached stop + target (engine-side OCO); trailing stop offered when protecting an open position, by price distance or by percent of the best close (engine policy v16; `TrailField.svelte`, `e2e/engine-rules.spec.ts`)
 - [ ] 4.1a Ticket sizing by notional and by % of equity (today: by risk % with a stop, or by quantity)
 - [x] 4.2 Option chain, option ticket with payoff diagram and Greeks
 - [x] 4.3 Indicators UI with warm-up state

@@ -135,7 +135,7 @@ def test_cross_binding_golden_pack_run_matches_native_cpp():
         run.advance(30)
         run.close_position(4)
         state = run.advance(1000)
-    assert state["digest"] == "0980f8b127e05a58d4e3aae3145db0d7664fb0be853654fc90b9862d0055a834"
+    assert state["digest"] == "b8a96857388428be9fbd73c417462c96e5a589fc54ed698e3dc5c18e35e87c1c"
     assert state["eventsDigest"] == "e3e42dedf85efb5b7fa7b55835e1998d82b3c552100f3c017214b6b585d382da"
 
 

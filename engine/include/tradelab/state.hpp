@@ -30,6 +30,7 @@ struct Order {
   std::uint32_t oco_group = 0;  // siblings share it; a fill on one reduces the others
   Price trail_distance;         // TrailingStop: distance from the best close
   std::uint32_t series = 0;     // 0 = perpetual; otherwise an option series id
+  Rate trail_rate;              // TrailingStop (policy v16): distance as a rate of the best close; 0 = fixed
 
   [[nodiscard]] bool active() const {
     return status == OrderStatus::Accepted || status == OrderStatus::PartiallyFilled ||

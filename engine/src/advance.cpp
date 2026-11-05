@@ -10,10 +10,13 @@
 //   4. close: funding at boundaries, liquidation at the close, trailing triggers ratchet from the
 //      close (effective next bar), metrics, finish/bankruptcy
 //
-// Bracket entries spawn reduce-only stop/take-profit children for each filled quantity; exits in
-// one OCO group reduce each other. Children are appended while matching, hence index loops.
+// Within a phase, orders competing for the bar's capacity are served by price, then sequence (policy
+// v16, `priority_pass`). Bracket entries spawn reduce-only stop/take-profit children for each filled
+// quantity; exits in one OCO group reduce each other. Children are appended while matching
+// (`RunState::orders` is a deque, so references stay valid).
 
 #include <algorithm>
+#include <vector>
 
 #include "accounting.hpp"
 #include "options_exec.hpp"
@@ -136,8 +139,8 @@ bool execute(BarCtx& c, Order& o, const Exec& ex) {
     if (o.reduce_only && c.st.position.flat()) cancel(c.st, o, Reason::PositionClosed);
     return false;
   }
-  if (!detail::margin_allows_fill(c.sc, c.st, o, q, ex.price)) {
-    cancel(c.st, o, Reason::InsufficientMargin);
+  if (const Reason refused = detail::fill_refusal(c.sc, c.st, o, q, ex.price); refused != Reason::None) {
+    cancel(c.st, o, refused);
     return false;
   }
   const std::uint8_t flags = ex.flags | (limited ? kFlagCapacityFromBarVolume : kFlagNone);
@@ -178,6 +181,44 @@ bool execute_stop(BarCtx& c, Order& o, const Exec& ex) {
   return filled;
 }
 
+// ---- capacity priority (policy v16) ------------------------------------------------------
+// Phases follow the bar's own order (open, adverse exits, favorable exits, entries). Within a phase,
+// orders competing for the bar's capacity are served by price, then sequence: the level the market
+// reaches first, then the earlier command sequence (bracket legs carry their entry's), then the id.
+
+// How far along the market's path to the order's level: with a direction (+1 up, -1 down) the signed
+// distance from `from`, so a level already passed ranks first; without one, the distance either way.
+std::int64_t reach_key(const Order& o, Price from, std::int64_t dir) {
+  const std::int64_t d = o.price.raw - from.raw;
+  if (dir != 0) return d * dir;
+  return d < 0 ? -d : d;
+}
+
+template <typename Key>
+bool served_before(const Order& a, const Order& b, const Key& key) {
+  const std::int64_t ka = key(a);
+  const std::int64_t kb = key(b);
+  if (ka != kb) return ka < kb;
+  return a.seq != b.seq ? a.seq < b.seq : a.id < b.id;
+}
+
+// Runs `act` once on each eligible order, best priority first. Eligibility is re-read after every
+// execution, so legs attached by a fill join the same pass and orders the fill made moot drop out.
+template <typename Eligible, typename Key, typename Act>
+void priority_pass(BarCtx& c, const Eligible& eligible, const Key& key, const Act& act) {
+  std::vector<std::uint32_t> served;
+  for (;;) {
+    Order* best = nullptr;
+    for (Order& o : c.st.orders) {
+      if (!eligible(o) || std::find(served.begin(), served.end(), o.id) != served.end()) continue;
+      if (best == nullptr || served_before(o, *best, key)) best = &o;
+    }
+    if (best == nullptr) return;
+    served.push_back(best->id);
+    act(*best);
+  }
+}
+
 bool liquidation_level(const BarCtx& c, Price* out) { return detail::liquidation_price(c.sc, c.st.position, out); }
 
 // ---- 1. open -------------------------------------------------------------------------------
@@ -189,31 +230,38 @@ void open_gap_liquidation(BarCtx& c) {
   if (hit) detail::liquidate(c.sc, c.st, c.bar.open, kFlagGapFill);
 }
 
-void open_gap_orders(BarCtx& c) {
+// True if the open has gapped through a resting perpetual stop or limit.
+bool gapped_through(const BarCtx& c, const Order& o) {
+  if (!o.active() || o.series != 0 || o.type == OrderType::Market || triggered_stop(o)) return false;
+  const bool buy = o.side == OrderSide::Buy;
   const Price open = c.bar.open;
-  for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
-    Order& o = c.st.orders[i];
-    if (!o.active() || o.series != 0 || o.type == OrderType::Market || triggered_stop(o)) continue;
-    const bool buy = o.side == OrderSide::Buy;
-    if (is_stop(o)) {
-      if (buy ? open >= o.price : open <= o.price) execute_stop(c, o, {taker_price(c.sc, open, o.side), false, kFlagGapFill});
-    } else if (buy ? open <= o.price : open >= o.price) {
-      execute(c, o, {open, true, kFlagGapFill});
-    }
-  }
+  if (is_stop(o)) return buy ? open >= o.price : open <= o.price;
+  return buy ? open <= o.price : open >= o.price;
 }
 
-void open_phase(BarCtx& c) {
+void open_gap_orders(BarCtx& c, std::uint32_t index) {
+  // The gap runs from the previous close to the open: levels along it are reached in that direction.
+  const Price from = c.sc.bars[index - 1].close;
+  const std::int64_t dir = c.bar.open > from ? 1 : (c.bar.open < from ? -1 : 0);
+  const auto key = [&](const Order& o) { return reach_key(o, from, dir); };
+  const auto eligible = [&](const Order& o) { return gapped_through(c, o); };
+  priority_pass(c, eligible, key, [&](Order& o) {
+    if (is_stop(o)) execute_stop(c, o, {taker_price(c.sc, c.bar.open, o.side), false, kFlagGapFill});
+    else execute(c, o, {c.bar.open, true, kFlagGapFill});
+  });
+}
+
+bool executes_at_open(const Order& o) { return o.active() && o.series == 0 && (o.type == OrderType::Market || triggered_stop(o)); }
+
+void open_phase(BarCtx& c, std::uint32_t index) {
   open_gap_liquidation(c);
-  open_gap_orders(c);
-  for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
-    const Order& o = c.st.orders[i];
-    if (o.active() && o.series == 0 && (o.type == OrderType::Market || triggered_stop(o))) execute_market(c, c.st.orders[i]);
-  }
+  open_gap_orders(c, index);
+  // Market orders (and triggered stops' remainders) have no price to rank by: sequence only.
+  priority_pass(c, executes_at_open, [](const Order&) { return std::int64_t{0}; }, [&](Order& o) { execute_market(c, o); });
   // Bracket legs attached by fills at the open are already live there: one the open has gapped
   // through (e.g. a stop computed from the previous close) executes at the open, never at a
   // trigger price the bar did not trade after it. Orders checked in the first pass are unchanged.
-  open_gap_orders(c);
+  open_gap_orders(c, index);
 }
 
 // ---- 2/3. intrabar -----------------------------------------------------------------------
@@ -264,18 +312,19 @@ void exit_sweep(BarCtx& c, bool post_entry) {
   }
 }
 
-void favorable_exits(BarCtx& c) {
+bool favorable_exit_reached(const BarCtx& c, const Order& o) {
+  if (c.st.position.flat() || !o.active() || o.series != 0) return false;
+  if (o.type != OrderType::Limit && o.type != OrderType::TakeProfit) return false;
+  if (c.st.position.is_long() != (o.side == OrderSide::Sell)) return false;
   const Price tick = c.sc.contract.tick_size;
-  for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
-    Order& o = c.st.orders[i];
-    if (c.st.position.flat()) return;
-    if (!o.active() || o.series != 0 || (o.type != OrderType::Limit && o.type != OrderType::TakeProfit)) continue;
-    const bool closes = c.st.position.is_long() == (o.side == OrderSide::Sell);
-    if (!closes) continue;
-    const bool reached = o.side == OrderSide::Sell ? c.bar.high.raw >= o.price.raw + tick.raw
-                                                   : c.bar.low.raw <= o.price.raw - tick.raw;
-    if (reached) execute(c, o, {o.price, true, kFlagNone});
-  }
+  return o.side == OrderSide::Sell ? c.bar.high.raw >= o.price.raw + tick.raw : c.bar.low.raw <= o.price.raw - tick.raw;
+}
+
+// Intrabar levels are ranked by distance from the open: the nearer one trades first.
+void favorable_exits(BarCtx& c) {
+  const auto eligible = [&](const Order& o) { return favorable_exit_reached(c, o); };
+  const auto key = [&](const Order& o) { return reach_key(o, c.bar.open, 0); };
+  priority_pass(c, eligible, key, [&](Order& o) { execute(c, o, {o.price, true, kFlagNone}); });
 }
 
 bool entry_reached(const BarCtx& c, const Order& o) {
@@ -286,15 +335,14 @@ bool entry_reached(const BarCtx& c, const Order& o) {
 }
 
 void entries(BarCtx& c) {
-  for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
-    Order& o = c.st.orders[i];
-    if (!o.active() || o.series != 0 || o.reduce_only || o.type == OrderType::Market || !entry_reached(c, o)) continue;
-    if (is_stop(o)) {
-      execute_stop(c, o, {taker_price(c.sc, o.price, o.side), false, kFlagAmbiguousIntrabar});
-    } else {
-      execute(c, o, {o.price, true, kFlagAmbiguousIntrabar});
-    }
-  }
+  const auto eligible = [&](const Order& o) {
+    return o.active() && o.series == 0 && !o.reduce_only && o.type != OrderType::Market && entry_reached(c, o);
+  };
+  const auto key = [&](const Order& o) { return reach_key(o, c.bar.open, 0); };
+  priority_pass(c, eligible, key, [&](Order& o) {
+    if (is_stop(o)) execute_stop(c, o, {taker_price(c.sc, o.price, o.side), false, kFlagAmbiguousIntrabar});
+    else execute(c, o, {o.price, true, kFlagAmbiguousIntrabar});
+  });
 }
 
 void intrabar_phase(BarCtx& c) {
@@ -366,17 +414,14 @@ void finish_or_bankrupt(BarCtx& c) {
   emit_status(st, EventType::RunFinished);
 }
 
-// Trailing triggers follow the best close (never loosen); computed at the close of bar t, so they
-// only take effect from bar t+1 (spec order-execution "Trailing stop").
+// Trailing triggers follow the best close (never loosen) by a fixed distance or, from policy v16, a
+// rate of that close; computed at the close of bar t, so they only take effect from bar t+1 (spec
+// order-execution "Trailing stop").
 void update_trailing(BarCtx& c) {
-  const Price close = c.bar.close;
-  const Price tick = c.sc.contract.tick_size;
   for (Order& o : c.st.orders) {
     if (!o.active() || o.type != OrderType::TrailingStop || triggered_stop(o)) continue;
-    const bool sell = o.side == OrderSide::Sell;
-    const Price raw = Price::from_raw(sell ? close.raw - o.trail_distance.raw : close.raw + o.trail_distance.raw);
-    const Price cand = detail::unwrap(round_to_step(raw, tick, sell ? Rounding::Floor : Rounding::Ceil));
-    if (sell ? cand > o.price : cand < o.price) o.price = cand;
+    const Price cand = detail::trail_trigger(c.sc, o.side, c.bar.close, o.trail_distance, o.trail_rate);
+    if (o.side == OrderSide::Sell ? cand > o.price : cand < o.price) o.price = cand;
   }
 }
 
@@ -419,7 +464,7 @@ void advance(const Scenario& sc, RunState& st) {
   const std::uint32_t index = st.step + 1;
   st.step = index;  // events of this step are stamped with the bar being processed
   BarCtx c{sc, st, sc.bars[index], bar_capacity(sc, sc.bars[index])};
-  open_phase(c);
+  open_phase(c, index);
   detail::option_open_phase(sc, st, index);
   intrabar_phase(c);
   close_phase(c, index);

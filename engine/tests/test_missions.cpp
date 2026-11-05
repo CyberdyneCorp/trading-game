@@ -117,7 +117,7 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"6ab10bbdfa67d8a4703ef743e236860d9becddefb31202c103aaa20b15849bc0\","
+        "\"digest\":\"bc79e4fc53bf3270f51206c25b10221539f6fe0a88c96d975fb7bbc81bdd8cb1\","
         "\"eventsDigest\":\"ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19\"}");
 }
 
@@ -149,7 +149,7 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"006cf554e40656f1765e23e071767e2c2c1335df55d2289c8fb0343128335e66\","
+        "\"digest\":\"bb11ce0a6e35c85373bdae99dac4fad086b1e2d4aa3a2c1c27a757874834b5f2\","
         "\"eventsDigest\":\"908ac0b1ffd77daf85c8c88e59123a55cb3ddc5ab1509965ae294ae637c4c8aa\"}");
 }
 
@@ -272,7 +272,7 @@ TEST_CASE("Golden: m06 thin book, limit entry with a bracket and a market exit")
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"23648bda21adb3552ce57253b0c943955e7969f4fb6a607bc540174ade3c72b5\","
+        "\"digest\":\"7cd85116cbc8ce542853c57bfa417791ee529b08e196c233103a103238edffbe\","
         "\"eventsDigest\":\"b084466a7e0ab87dacc53c40794afcbc017917decfac736279404e82558f009a\"}");
 }
 
@@ -289,7 +289,7 @@ TEST_CASE("Golden: m07 size and exit, a market entry then a trailing stop") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"bc09fbe3240b31707462fd0638c6d14dddbfe73adef73a5359b1f1b7a084f6c8\","
+        "\"digest\":\"62f7221b3600780bed522868c7da9458979a4013af0572ad5ddd2a9432d369ac\","
         "\"eventsDigest\":\"911e8dce2b537d94c11f7c8a8af67a1472f169032d0c6e98d137b4bb95488bd0\"}");
 }
 
@@ -306,7 +306,7 @@ TEST_CASE("Golden: m08 regime switch, a fade and a follow") {
   const std::string d = tl_debrief(run);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"8e469afe0aa2c6373e71b1d487fce597354699e3383601f15d1fd1ebd95d8913\","
+        "\"digest\":\"b7dbc0f8e5b6ec41bcada2f206a1a23f4e2bb0ce1def856c675bfc8372ccdbaa\","
         "\"eventsDigest\":\"e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb\"}");
   CHECK(s.find("\"regimes\"") == std::string::npos);  // the run state never carries the reveal (design D6)
   CHECK(s.find("\"spans\"") == std::string::npos);
@@ -355,7 +355,7 @@ TEST_CASE("Golden: m09 the day before, a straddle bought before the decision and
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"879aea90be67bf4755b6eed7a822d78d78e2e943cad48a0474fb39ef5eb129ab\","
+        "\"digest\":\"69650abe265d7698a74830f71fdc082a9d50e1569f5cb41eaba97dc710c40659\","
         "\"eventsDigest\":\"6afafb44fd90acf3ba94b9a18ffb072d0757af70047b7103f75adcd0a617ea83\"}");
 }
 
@@ -371,7 +371,7 @@ TEST_CASE("Golden: m10 cover, a collar on a long through the rumor") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"df27e859168062e16953133a9322d1f01958fffd9d6cba9a217d481869c35c67\","
+        "\"digest\":\"30fc57526e1931236ada3b3b096dc1e38f55b3887c4db60ceaa26d7e94937dc1\","
         "\"eventsDigest\":\"ae540e1bed50c0d2e6995cc7d63fe6b8d04d772c11c34fd198d65688b87f3251\"}");
 }
 
@@ -387,7 +387,7 @@ TEST_CASE("Golden: m11 calendar, flat into a release and a trade after it") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"9ed49106b9812a758a5f2e0f8e292fbb569733c980dfed7377e409211cfcf074\","
+        "\"digest\":\"2f2a870c0d344616371866fcb18c05f20ca248d4f0c713b986494994f3326750\","
         "\"eventsDigest\":\"839e5f90afee251e6cc920fb1b83a13faa1789a97071fabd9f6b538870a1babb\"}");
 }
 
@@ -405,7 +405,7 @@ TEST_CASE("Golden: m12 final exam, a long, a written straddle and a short") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"0308160dece972e8883958e8ea45fbc168432068e336115b9212a984c3f9651c\","
+        "\"digest\":\"fa1ff6340b5379ca6da597d263d513ca248576132335bd4670c997654a7c72ce\","
         "\"eventsDigest\":\"70f0eb16beb797db73246a800de61e636a5f4593dd699e5a6f64bd4c55fac459\"}");
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimate, fitToMargin, liquidationPrice, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin, type Costs } from './sizing.ts';
+import { estimate, fitToMargin, liquidationPrice, marginTier, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin, type Costs } from './sizing.ts';
 
 const zero: Costs = { multiplier: 1, takerFee: 0, maintenanceMargin: 0.01, halfSpread: 0, slippage: 0 };
 
@@ -75,5 +75,39 @@ describe('opposingEffect', () => {
 		expect(opposingEffect(5, 'buy', 10, 0.1)).toBeNull();
 		expect(opposingEffect(-5, 'sell', 10, 0.1)).toBeNull();
 		expect(opposingEffect(5, 'sell', 0, 0.1)).toBeNull();
+	});
+});
+
+describe('maintenance-margin tiers (policy v16)', () => {
+	// Engine default contract: 0.5% up to 50x; from 50,000 notional 1% (20x), 250,000 2.5% (10x), 1,000,000 5% (5x).
+	const tiered: Costs = {
+		multiplier: 1,
+		takerFee: 0,
+		maintenanceMargin: 0.005,
+		halfSpread: 0,
+		slippage: 0,
+		tiers: [
+			{ floor: 0, mmr: 0.005, maxLeverage: 50 },
+			{ floor: 50_000, mmr: 0.01, maxLeverage: 20 },
+			{ floor: 250_000, mmr: 0.025, maxLeverage: 10 },
+			{ floor: 1_000_000, mmr: 0.05, maxLeverage: 5 }
+		]
+	};
+
+	it('picks the last tier whose floor the notional at entry reaches', () => {
+		expect(marginTier(tiered, 49_999).mmr).toBe(0.005);
+		expect(marginTier(tiered, 50_000).mmr).toBe(0.01);
+		expect(marginTier(tiered, 300_000).maxLeverage).toBe(10);
+		expect(marginTier(zero, 1e9).maxLeverage).toBe(Infinity); // no tiers: one rate, no tier cap
+	});
+
+	it('estimates liquidation at the tier rate, like the engine (600 long @ 100, 10x -> 90.909)', () => {
+		expect(liquidationPrice('buy', 400, 100, 4_000, tiered)).toBeCloseTo(90.4523, 4); // 0.5% tier
+		expect(liquidationPrice('buy', 600, 100, 6_000, tiered)).toBeCloseTo(90.9091, 4); // 1% tier
+	});
+
+	it('fits a large size to the leverage its tier allows', () => {
+		// 3,000 @ 100 = 300,000 notional: the 2.5% tier caps 10x even though the mission allows 20x.
+		expect(fitToMargin(3_000, 100, 40_000, 15, 20, tiered, 0.1)).toEqual({ qty: 3_000, leverage: 10 });
 	});
 });

@@ -20,6 +20,14 @@ struct Bar {
   bool synthetic = false;  // generated (event lab / branch) bar
 };
 
+// Maintenance-margin tier (execution-policy v16): a position whose notional at its average entry is at
+// least `notional_floor` keeps `maintenance_margin` and may be held at no more than `max_leverage`.
+struct MarginTier {
+  Money notional_floor;
+  Rate maintenance_margin;
+  std::int32_t max_leverage = 1;
+};
+
 struct ContractSpec {
   Qty multiplier;          // underlying units per contract (linear perp)
   Price tick_size;
@@ -28,8 +36,11 @@ struct ContractSpec {
   std::int32_t max_leverage = 1;
   Rate maker_fee;          // fraction of notional
   Rate taker_fee;
-  Rate maintenance_margin;  // single tier (execution-policy v1)
+  Rate maintenance_margin;  // first tier: notional below the first floor (up to max_leverage)
   std::uint32_t funding_interval = 8;  // in steps
+  // Higher tiers by notional (policy v16): floors strictly ascending, rates non-decreasing, leverage
+  // non-increasing; empty = one tier for every notional.
+  std::vector<MarginTier> margin_tiers;
 };
 
 struct CostModel {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { fmtPrice, fmtQty } from '#lib/game/format.ts';
+	import { fmtPct, fmtPrice, fmtQty, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { ORDER_TYPE_LABEL } from '#lib/game/eventNames.ts';
 
@@ -24,6 +24,9 @@
 						<td class="num">{o.type === 'market' ? '@open' : (o.series ? 'prêmio ' : '') + fmtPrice(o.price, i18n.locale)}</td>
 						<td>
 							{#if o.reduceOnly}<span class="tag info" title="reduce-only">{t('orders.reduceOnly')}</span>{/if}
+							{#if num(o.trailRate ?? '0') > 0}
+								<span class="tag info" title={t('orders.trailPct')} data-testid="trail-pct">{fmtPct(num(o.trailRate ?? '0'), i18n.locale)}</span>
+							{/if}
 							{#if o.parentId}<span class="tag muted" title={t('orders.child', { id: o.parentId })}>OCO ↳#{o.parentId}</span>{/if}
 							{#if o.bracketStop !== '0.00000000' || o.bracketTp !== '0.00000000'}<span class="tag attention">BRK</span>{/if}
 						</td>

@@ -88,6 +88,7 @@ void visit(Ar& a, Order& o) {
   a.u32(o.oco_group);
   a.fx(o.trail_distance);
   a.u32(o.series);
+  a.fx(o.trail_rate);  // checkpoint format 4 (policy v16)
 }
 
 template <typename Ar>

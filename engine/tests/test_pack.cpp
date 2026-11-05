@@ -270,7 +270,7 @@ TEST_CASE("Golden: scripted run on an imported CSV pack (cross-platform, mirrore
   tl_close_position(run, 4);
   const std::string state = tl_advance(run, 1000);
   tl_run_destroy(run);
-  CHECK(json_text(state, "digest") == "0980f8b127e05a58d4e3aae3145db0d7664fb0be853654fc90b9862d0055a834");
+  CHECK(json_text(state, "digest") == "b8a96857388428be9fbd73c417462c96e5a589fc54ed698e3dc5c18e35e87c1c");
   CHECK(json_text(state, "eventsDigest") == "e3e42dedf85efb5b7fa7b55835e1998d82b3c552100f3c017214b6b585d382da");
 }
 

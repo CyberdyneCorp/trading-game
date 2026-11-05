@@ -6,6 +6,7 @@ the web client does, so a replay reproduces the client's run bit for bit):
   {"k":"lev","lev":3}
   {"k":"order","type":"market|limit|stop_market|take_profit|trailing_stop","side":"buy|sell","qty":"1.0",
    "price":null,"ro":false,"stop":null,"tp":null,"trail":null}
+   (policy v16: a trailing_stop with "trailRate":"0.02" trails 2% of the best close instead of "trail")
   {"k":"opt","series":5,"side":"buy","type":"market|limit","qty":"1.0","premium":null}
   {"k":"margin","amount":"100.00"}
   {"k":"plan","side":"buy","skipped":false,"option":false,"lose":false,"inv":"95.50","target":null,"conf":60,"risk":"100.00"}
@@ -46,6 +47,8 @@ def _order(run: Run, cid: int, a: Mapping[str, Any]) -> Any:
     type_ = _ORDER_TYPES.get(a.get("type", ""))
     if type_ is None:
         raise InvalidAction(f"bad order type in {a!r}")
+    if type_ == _ORDER_TYPES["trailing_stop"] and a.get("trailRate"):
+        return run.place_trailing_rate(cid, _side(a), str(a["qty"]), bool(a.get("ro", False)), str(a["trailRate"]))
     return run.place_order(cid, type_, _side(a), str(a["qty"]), a.get("price"), bool(a.get("ro", False)),
                            a.get("stop"), a.get("tp"), a.get("trail"))
 

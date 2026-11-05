@@ -49,6 +49,7 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_request_advice": (c_char_p, [c_void_p, u32]),
         "tl_run_destroy": (None, [c_void_p]),
         "tl_place_order_ex": (c_char_p, [c_void_p, u32, i32, i32, c_char_p, c_char_p, i32, c_char_p, c_char_p, c_char_p]),
+        "tl_place_trailing_rate": (c_char_p, [c_void_p, u32, i32, c_char_p, i32, c_char_p]),
         "tl_place_option_order": (c_char_p, [c_void_p, u32, u32, i32, i32, c_char_p, c_char_p]),
         "tl_cancel_order": (c_char_p, [c_void_p, u32, u32]),
         "tl_move_order": (c_char_p, [c_void_p, u32, u32, c_char_p]),
@@ -209,6 +210,10 @@ class Run:
                     stop: str | None = None, tp: str | None = None, trail: str | None = None) -> Any:
         return _json(self._lib.tl_place_order_ex(self._h, cid, type_, side, _s(qty), _s(price), int(reduce_only),
                                                  _s(stop), _s(tp), _s(trail)))
+
+    def place_trailing_rate(self, cid: int, side: int, qty: str, reduce_only: bool, rate: str) -> Any:
+        """Trailing stop at a rate of the best close ("0.02" = 2%; policy v16)."""
+        return _json(self._lib.tl_place_trailing_rate(self._h, cid, side, _s(qty), int(reduce_only), _s(rate)))
 
     def place_option_order(self, cid: int, series: int, side: int, type_: int, qty: str, premium: str | None) -> Any:
         return _json(self._lib.tl_place_option_order(self._h, cid, series, side, type_, _s(qty), _s(premium)))

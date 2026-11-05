@@ -54,6 +54,7 @@ type Action =
 			stop?: string | null;
 			tp?: string | null;
 			trail?: string | null;
+			trailRate?: string | null;
 	  }
 	| { k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null }
 	| { k: 'margin'; amount: string }
@@ -95,11 +96,13 @@ interface AbandonedRun {
 	equity: string;
 }
 
-/** Optional order extras: bracket exits (engine-side OCO) and trailing distance. */
+/** Optional order extras: bracket exits (engine-side OCO) and trailing distance or rate (policy v16). */
 export interface OrderExtras {
 	stop?: string | null;
 	takeProfit?: string | null;
 	trail?: string | null;
+	/** Trailing stop distance as a rate of the best close: "0.02" = 2%. */
+	trailRate?: string | null;
 }
 
 export interface Notice {
@@ -558,7 +561,8 @@ export class GameSession {
 			ro: reduceOnly,
 			stop: extras.stop ?? null,
 			tp: extras.takeProfit ?? null,
-			trail: extras.trail ?? null
+			trail: extras.trail ?? null,
+			...(extras.trailRate ? { trailRate: extras.trailRate } : {})
 		});
 		if (res?.warning === 'stop_beyond_liquidation') this.stopWarnings += 1;
 		return res;
@@ -821,7 +825,8 @@ function commandRequest(a: CommandAction, clientId: number): Extract<EngineReque
 				reduceOnly: a.ro,
 				attachStop: a.stop ?? null,
 				attachTp: a.tp ?? null,
-				trailDistance: a.trail ?? null
+				trailDistance: a.trail ?? null,
+				trailRate: a.trailRate ?? null
 			};
 		case 'opt':
 			return { kind: 'option', clientId, series: a.series, side: a.side, type: a.type, qty: a.qty, premium: a.premium };

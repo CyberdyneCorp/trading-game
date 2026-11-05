@@ -29,6 +29,14 @@ export interface Contract {
 	halfSpread: Decimal;
 	slippage: Decimal;
 	capacityFraction: Decimal;
+	/** Maintenance-margin tiers by notional at entry, the base tier first (floor 0); policy v16. */
+	marginTiers?: MarginTier[];
+}
+
+export interface MarginTier {
+	notionalFloor: Decimal;
+	maintenanceMargin: Decimal;
+	maxLeverage: number;
 }
 
 /** [open, high, low, close, volume, synthetic] */
@@ -67,6 +75,8 @@ export interface OrderView {
 	parentId: number;
 	ocoGroup: number;
 	trailDistance: Decimal;
+	/** Trailing distance as a rate of the best close (policy v16); "0" for a fixed distance. */
+	trailRate?: Decimal;
 	bracketStop: Decimal;
 	bracketTp: Decimal;
 	series: number;
