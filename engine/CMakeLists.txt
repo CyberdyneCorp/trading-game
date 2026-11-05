@@ -125,6 +125,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_checkpoint.cpp
     tests/test_engine.cpp
     tests/test_indicators.cpp
+    tests/test_indicator_reference.cpp
     tests/test_missions.cpp
     tests/test_generator.cpp
     tests/test_events.cpp
