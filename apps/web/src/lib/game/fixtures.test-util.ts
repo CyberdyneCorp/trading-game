@@ -24,6 +24,7 @@ export function game(events: EngineEvent[], extra: Partial<GameState> = {}): Gam
 			optionCash: '0', optionRealized: '0' },
 		news: [],
 		calendar: [],
+		upcoming: [],
 		calibration: { due: false, horizon: 5, every: 15, threshold: '100', answered: 0 },
 		advisor: { version: 1, allowance: 0, left: 0, newsLead: 0, calendar: false, advice: [] },
 		indicators: { version: 3, sma20: [], ema50: [], rsi14: [], atr14: [], vwap: [], bbUpper: [], bbLower: [], macd: [], macdSignal: [], macdHist: [], plusDi14: [], minusDi14: [], adx14: [], patternVersion: 1, patterns: [] },

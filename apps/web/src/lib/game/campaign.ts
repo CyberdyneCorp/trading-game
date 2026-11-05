@@ -11,6 +11,7 @@
 // run when the minimum order is unaffordable at that mission's own leverage cap, and the next mission
 // may cap leverage lower (a liquidation at 20x can leave crumbs that no 2x-10x mission can trade).
 
+import type { LegReport } from './campaignReport.ts';
 import { campaignMissions } from './curriculum.ts';
 
 export const CAMPAIGN_CAPITAL = '10000';
@@ -30,6 +31,8 @@ export interface CampaignLeg {
 	startCapital: string;
 	endCapital: string;
 	result: LegResult;
+	/** A mission that reached its debrief: the engine debrief facts the campaign report reads (campaignReport.ts). */
+	report?: LegReport;
 }
 
 export interface CampaignRun {
@@ -92,6 +95,8 @@ export interface RunOutcome {
 	result: LegResult;
 	/** Equity when the run ended (engine debrief finalEquity) or was left (last known equity). */
 	equity: string;
+	/** The run's engine debrief facts, when it reached its debrief. */
+	report?: LegReport;
 }
 
 /**
@@ -104,6 +109,7 @@ export function settleCampaignRun<P extends CampaignProgress>(p: P, link: Campai
 	if (c.legs.some((l) => l.runId === out.runId) || campaignMissions()[c.index] !== out.missionId) return p;
 	const result = legResult(out);
 	const leg: CampaignLeg = { runId: out.runId, missionId: out.missionId, startCapital: c.capital, endCapital: out.equity, result };
+	if (out.report) leg.report = out.report;
 	const next: CampaignRun = { ...c, capital: out.equity, legs: [...c.legs, leg], ...advance(c, result) };
 	const assessed = result === 'finished' && !p.assessed.includes(out.missionId) ? [...p.assessed, out.missionId] : p.assessed;
 	return { ...p, campaign: next, assessed, campaignHistory: archive(p.campaignHistory, next) };

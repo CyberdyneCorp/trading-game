@@ -98,7 +98,7 @@ Missions never force a trade to progress. Observe and wait have their own feedba
 | Events | Expectation vs surprise, liquidity, uncertain reactions | Adjust hypothesis without "good news = up" |
 | Evaluation | Expectancy, costs, sample size, regimes, overfitting | Compare many attempts; never conclude from one trade |
 
-Events comes before Evaluation: the capstone mission assesses Evaluation (design D8.4 in `add-scenarios-and-gameplay`). Lessons include failure examples and high-cost markets. Evaluation windows never overlap tutorial windows (including indicator warm-up).
+Events comes before Evaluation: the capstone mission assesses Evaluation (design D8.4 in `add-scenarios-and-gameplay`). Assessment missions (built): Structure and Orders m06, Futures I m01, Futures II m03, Futures III m02, Risk m07, Options I m04, Options II m04 and m09, Options III m05 and m10, Patterns & indicators m08, Events m11, Evaluation m12 (the capstone, whose debrief carries the campaign report); Foundations has no mission yet. The campaign plays them in that order: m06, m01, m03, m02, m07, m04, m09, m05, m10, m08, m11, m12. Lessons include failure examples and high-cost markets. Evaluation windows never overlap tutorial windows (including indicator warm-up).
 
 ## 6. Gamification without distorting learning
 
@@ -190,7 +190,7 @@ See `openspec/changes/add-cyberdyne-identity-and-backend/`. Summary: CyberdyneAu
 | 4 iPad/iPhone | SwiftUI, Swift C++ interop, offline packs, sync | Same digests; airplane-mode mission |
 | 5 Expansion | Stop-limit, multi-timeframe, editorial admin, online comparable challenges, Android | Per change |
 
-Progress (2026-11-04): phase 0 done; phase 1 done except staging login; from phase 2, eight missions (6 perp, 2 options; batch A of the phase-2 content added m06 thin book, m07 size and exit, m08 regime switch, with a Markov regime generator and a seeded debrief reveal) with first-start tutorials, a campaign that opens with m06, options buy+write, trailing/brackets, indicators (incl. MACD, Bollinger, VWAP, ADX), candle-pattern detection, installable offline PWA and the sync API are built; advisor, points and intel perks are built (`add-advisor-intel-tutorials`); missions m09–m12 are designed (`add-scenarios-and-gameplay` D8, batch B) — see the root `README.md`.
+Progress (2026-11-05): phase 0 done; phase 1 done except staging login; from phase 2, the twelve missions (8 perpetual, 4 with options buy and/or write; batch A added m06 thin book, m07 size and exit, m08 regime switch with a Markov regime generator and a seeded debrief reveal; batch B added m09 the day before, m10 cover, m11 calendar and the m12 capstone, with drawn event outcomes and releases announced with a consensus), six declared regimes (range, trend up and down, high volatility, low liquidity, crowded funding) and three event families (scheduled releases, incidents, flows), first-start tutorials, a twelve-mission campaign that opens with m06 and closes with the capstone's campaign report, options buy+write, trailing/brackets, indicators (incl. MACD, Bollinger, VWAP, ADX), candle-pattern detection, installable offline PWA and the sync API are built; advisor, points and intel perks are built (`add-advisor-intel-tutorials`) — see the root `README.md`.
 
 **Out of MVP:** real money, broker connections, cross margin, hedge mode, portfolio margin, American options, multi-asset portfolios, social trading, global financial ranking, public authoring without moderation, any return promise.
 

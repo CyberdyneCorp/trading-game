@@ -48,6 +48,16 @@ const headlines: Record<Locale, Record<Kind, Record<Tone, string>>> = {
 			pos: 'Formadora de mercado fictícia Lumen amplia suas ofertas',
 			neu: 'Formadora de mercado fictícia Lumen revisa suas ofertas',
 			neg: 'Formadora de mercado fictícia Lumen reduz suas ofertas no livro'
+		},
+		macro_data: {
+			pos: 'Índice de atividade de Varena vem acima do consenso',
+			neu: 'Índice de atividade de Varena vem em linha com o consenso',
+			neg: 'Índice de atividade de Varena vem abaixo do consenso'
+		},
+		network_upgrade: {
+			pos: 'Atualização da rede fictícia Ostra entra no ar antes do previsto',
+			neu: 'Atualização da rede fictícia Ostra entra no ar como previsto',
+			neg: 'Atualização da rede fictícia Ostra é adiada'
 		}
 	},
 	en: {
@@ -90,7 +100,45 @@ const headlines: Record<Locale, Record<Kind, Record<Tone, string>>> = {
 			pos: 'Fictional market maker Lumen widens its quoting',
 			neu: 'Fictional market maker Lumen reviews its quoting',
 			neg: 'Fictional market maker Lumen pulls quotes from the book'
+		},
+		macro_data: {
+			pos: 'Varena activity index beats the consensus',
+			neu: 'Varena activity index comes in line with the consensus',
+			neg: 'Varena activity index misses the consensus'
+		},
+		network_upgrade: {
+			pos: 'Fictional Ostra network upgrade goes live ahead of schedule',
+			neu: 'Fictional Ostra network upgrade goes live as planned',
+			neg: 'Fictional Ostra network upgrade is delayed'
 		}
+	}
+};
+
+// What an announced release is (the upcoming list names the event, never its outcome).
+const kindNames: Record<Locale, Record<Kind, string>> = {
+	'pt-BR': {
+		rate_decision: 'Decisão de juros',
+		regulation_rumor: 'Rumor regulatório',
+		exchange_incident: 'Incidente em exchange',
+		network_outage: 'Falha de rede',
+		liquidity_inflow: 'Fluxo de fundos',
+		institutional_adoption: 'Adoção institucional',
+		rumor_denied: 'Desmentido',
+		liquidity_outflow: 'Formadora de mercado',
+		macro_data: 'Índice de atividade',
+		network_upgrade: 'Atualização da rede'
+	},
+	en: {
+		rate_decision: 'Rate decision',
+		regulation_rumor: 'Regulation rumor',
+		exchange_incident: 'Exchange incident',
+		network_outage: 'Network outage',
+		liquidity_inflow: 'Fund flows',
+		institutional_adoption: 'Institutional adoption',
+		rumor_denied: 'Denial',
+		liquidity_outflow: 'Market maker',
+		macro_data: 'Activity index',
+		network_upgrade: 'Network upgrade'
 	}
 };
 
@@ -102,6 +150,10 @@ const scale: Record<Locale, string[]> = {
 export function headline(n: NewsView, locale: Locale): string {
 	const tone: Tone = n.tone > 0 ? 'pos' : n.tone < 0 ? 'neg' : 'neu';
 	return headlines[locale][n.kind][tone];
+}
+
+export function kindName(kind: Kind, locale: Locale): string {
+	return kindNames[locale][kind];
 }
 
 export function level(v: number, locale: Locale): string {

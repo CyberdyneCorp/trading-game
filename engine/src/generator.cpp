@@ -263,6 +263,54 @@ GeneratorSpec scheduled(const GeneratorSpec& spec, std::uint64_t seed) {
   return out;
 }
 
+namespace {
+
+bool declares_outcome(const ScriptedEvent& ev) {
+  std::uint32_t total = 0;
+  for (const std::uint32_t w : ev.actual_weights) total += w;
+  return total > 0 || ev.intensity_min != 1.0 || ev.intensity_max != 1.0;
+}
+
+std::uint32_t percent(double x) { return static_cast<std::uint32_t>(std::floor(x * 100.0 + 0.5)); }
+
+}  // namespace
+
+EventOutcome draw_outcome(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t index) {
+  EventOutcome out{ev.item.actual, 100};
+  if (!declares_outcome(ev)) return out;
+  Pcg32 rng(seed * 1000003ULL + index, Stream::Outcome);
+  const std::vector<std::uint32_t> weights(ev.actual_weights.begin(), ev.actual_weights.end());
+  const bool drawn = std::any_of(weights.begin(), weights.end(), [](std::uint32_t w) { return w > 0; });
+  if (drawn) out.actual = static_cast<std::int8_t>(static_cast<int>(draw_weighted(rng, weights)) - 2);
+  const std::uint32_t lo = percent(ev.intensity_min);
+  const std::uint32_t hi = std::max(lo, percent(ev.intensity_max));
+  out.intensity_pct = lo + rng.next_bounded(hi - lo + 1);
+  return out;
+}
+
+namespace {
+
+// The headline shows what was drawn: its actual, and a tone that reads it against the consensus
+// (a print in line with expectations, or an incident that turned out harmless, reads neutral).
+void apply_outcome(ScriptedEvent& ev, const EventOutcome& o) {
+  ev.item.actual = o.actual;
+  const int surprise = o.actual - ev.item.expectation;
+  ev.item.tone = static_cast<std::int8_t>(surprise > 0 ? 1 : (surprise < 0 ? -1 : 0));
+  const double k = o.intensity_pct / 100.0;
+  ev.fair_impact *= k;
+  ev.drift *= k;
+}
+
+}  // namespace
+
+GeneratorSpec played(const GeneratorSpec& spec, std::uint64_t seed) {
+  GeneratorSpec out = scheduled(expanded(spec, seed), seed);
+  for (std::uint32_t e = 0; e < out.events.size(); ++e) {
+    if (declares_outcome(out.events[e])) apply_outcome(out.events[e], draw_outcome(out.events[e], seed, e));
+  }
+  return out;
+}
+
 int sample_reaction(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t index) {
   Pcg32 rng(seed * 1000003ULL + index, Stream::Events);
   if (rng.next_unit() < ev.p_none) return 0;
@@ -271,8 +319,9 @@ int sample_reaction(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t i
 }
 
 void generate_market(const GeneratorSpec& declared, std::uint64_t seed, Scenario& out, std::vector<RegimeSpan>* spans) {
-  // The chain is expanded first, so the schedule and everything after it see ordinary segments.
-  const GeneratorSpec spec = scheduled(expanded(declared, seed), seed);
+  // The chain is expanded first, so the schedule and everything after it see ordinary segments; the
+  // drawn outcomes (G2) come last and only touch events that declare them.
+  const GeneratorSpec spec = played(declared, seed);
   Pcg32 rng(seed, Stream::Market);
   GenState g{spec.start_price};
   g.fair = g.ema = det::log(spec.start_price);

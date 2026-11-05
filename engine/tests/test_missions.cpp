@@ -339,3 +339,132 @@ TEST_CASE("m06 is long only at 2x with a thin book; m08 is a 180-bar chain") {
   CHECK(m08.bars.size() == 180);
   CHECK(m08.news.empty());
 }
+
+// Phase-2 batch B (design D8): m09-m12 add their own goldens with default options; every golden above
+// stays byte-identical (drawn outcomes and announcements act only where a mission declares them).
+TEST_CASE("Golden: m09 the day before, a straddle bought before the decision and sold after") {
+  tl_run* run = tl_run_create("m09-event-straddle", 2026);
+  REQUIRE(run != nullptr);
+  tl_advance(run, 8);
+  tl_place_option_order(run, 1, 7, 0, 0, "10", nullptr);  // ATM call, first expiry
+  tl_place_option_order(run, 2, 8, 0, 0, "10", nullptr);  // ATM put
+  tl_advance(run, 12);
+  tl_place_option_order(run, 3, 7, 1, 0, "10", nullptr);
+  tl_place_option_order(run, 4, 8, 1, 0, "10", nullptr);
+  tl_place_order(run, 5, 0, 0, "30", nullptr, 0);
+  const std::string s = tl_advance(run, 1000);
+  tl_run_destroy(run);
+  CHECK(digests_of(s) ==
+        "\"digest\":\"f8581877cfab2ab681fbccbe645dd2256292dd4ffdaafe7da708e55892a8f612\","
+        "\"eventsDigest\":\"6afafb44fd90acf3ba94b9a18ffb072d0757af70047b7103f75adcd0a617ea83\"}");
+}
+
+TEST_CASE("Golden: m10 cover, a collar on a long through the rumor") {
+  tl_run* run = tl_run_create("m10-hedged-book", 2026);
+  REQUIRE(run != nullptr);
+  tl_set_leverage(run, 1, 1);
+  tl_place_order(run, 2, 0, 0, "40", nullptr, 0);
+  tl_place_option_order(run, 3, 20, 0, 0, "40", nullptr);  // put one strike below ATM, second expiry
+  tl_place_option_order(run, 4, 23, 1, 0, "40", nullptr);  // call one strike above ATM, written
+  tl_advance(run, 50);
+  tl_close_position(run, 5);
+  const std::string s = tl_advance(run, 1000);
+  tl_run_destroy(run);
+  CHECK(digests_of(s) ==
+        "\"digest\":\"2ac44480e0c134d34409e396958c79810f99c7636a709b5ad9564bd3957199b2\","
+        "\"eventsDigest\":\"ae540e1bed50c0d2e6995cc7d63fe6b8d04d772c11c34fd198d65688b87f3251\"}");
+}
+
+TEST_CASE("Golden: m11 calendar, flat into a release and a trade after it") {
+  tl_run* run = tl_run_create("m11-news-calendar", 2026);
+  REQUIRE(run != nullptr);
+  tl_set_leverage(run, 1, 3);
+  tl_place_order_ex(run, 2, 0, 0, "60", nullptr, 0, "95", "110", nullptr);
+  tl_advance(run, 20);
+  tl_close_position(run, 3);
+  tl_advance(run, 30);
+  tl_place_order_ex(run, 4, 0, 1, "60", nullptr, 0, "112", "90", nullptr);
+  const std::string s = tl_advance(run, 1000);
+  tl_run_destroy(run);
+  CHECK(digests_of(s) ==
+        "\"digest\":\"984ecd887e62252b391cbb31ad9d6cd91ad7de4d51f918d6f43765cdf1bbb500\","
+        "\"eventsDigest\":\"839e5f90afee251e6cc920fb1b83a13faa1789a97071fabd9f6b538870a1babb\"}");
+}
+
+TEST_CASE("Golden: m12 final exam, a long, a written straddle and a short") {
+  tl_run* run = tl_run_create("m12-capstone", 2026);
+  REQUIRE(run != nullptr);
+  tl_set_leverage(run, 1, 4);
+  tl_place_order_ex(run, 2, 0, 0, "80", nullptr, 0, "95", nullptr, nullptr);
+  tl_place_option_order(run, 3, 7, 1, 0, "10", nullptr);
+  tl_place_option_order(run, 4, 8, 1, 0, "10", nullptr);
+  tl_advance(run, 45);
+  tl_close_position(run, 5);
+  tl_advance(run, 30);
+  tl_place_order_ex(run, 6, 0, 1, "50", nullptr, 0, "115", nullptr, nullptr);
+  const std::string s = tl_advance(run, 1000);
+  tl_run_destroy(run);
+  CHECK(digests_of(s) ==
+        "\"digest\":\"b5a491ebdce0f74d152880b1b4d33ac4ccd4268472c90c06f3d7396a2e59d3c3\","
+        "\"eventsDigest\":\"70f0eb16beb797db73246a800de61e636a5f4593dd699e5a6f64bd4c55fac459\"}");
+}
+
+TEST_CASE("G4 with G2: the reveal reports each event's drawn outcome, intensity, gap and implied move") {
+  CHECK(reveal_digest("m11-news-calendar", 7) == reveal_digest("m11-news-calendar", 7));
+  CHECK(reveal_digest("m11-news-calendar", 7) == "4282fd1e468d68bd8be98bd86422c185e85c48e25559b8c5ff3d6e710b1b3fe8");
+  MissionReveal r;
+  bool intensity_varies = false;
+  for (std::uint64_t seed = 1; seed <= 10; ++seed) {
+    REQUIRE(mission_reveal("m09-event-straddle", seed, r));
+    REQUIRE(r.events.size() == 1);
+    const EventReveal& e = r.events.front();
+    CHECK(e.intensity_pct >= 60);
+    CHECK(e.intensity_pct <= 140);
+    intensity_varies = intensity_varies || e.intensity_pct != 100;
+    CHECK(e.announce_lead == 20);
+    CHECK(e.implied_bp > 0);  // the straddle the day before
+    Scenario sc;
+    REQUIRE(build_mission("m09-event-straddle", seed, sc));
+    CHECK(sc.news.front().actual == e.actual);
+  }
+  CHECK(intensity_varies);
+  const std::string json = tl_mission_reveal("m09-event-straddle", 3);
+  CHECK(json.find("\"announceLead\":20,\"gapBp\":") != std::string::npos);
+  CHECK(json.find("\"impliedBp\":") != std::string::npos);
+}
+
+TEST_CASE("G3 through the C ABI: m09 lists the decision as upcoming with its consensus only") {
+  Scenario sc;
+  REQUIRE(build_mission("m09-event-straddle", 5, sc));
+  const NewsItem& n = sc.news.front();
+  tl_run* run = tl_run_create("m09-event-straddle", 5);
+  const std::string start = tl_state(run);
+  const std::string listed = "\"upcoming\":[{\"step\":" + std::to_string(n.release_step) + ",\"kind\":\"rate_decision\",\"expectation\":0}]";
+  CHECK(start.find(listed) != std::string::npos);  // announced 20 bars ahead: before the first decision
+  CHECK(start.find("\"kind\":\"rate_decision\",\"tone\"") == std::string::npos);
+  const std::string released = tl_advance(run, static_cast<std::int32_t>(n.release_step - sc.mission.warmup_bars));
+  CHECK(released.find("\"upcoming\":[]") != std::string::npos);
+  CHECK(released.find("\"actual\":" + std::to_string(n.actual)) != std::string::npos);
+  tl_run_destroy(run);
+}
+
+TEST_CASE("m09 buys options only (Options III comes later); m10 and m12 write; m11 has no chain") {
+  tl_run* m09 = tl_run_create("m09-event-straddle", 3);
+  CHECK(std::string(tl_state(m09)).find("\"allowShort\":false") != std::string::npos);
+  CHECK(std::string(tl_place_option_order(m09, 1, 7, 1, 0, "1", nullptr)).find("short_options_not_allowed") != std::string::npos);
+  CHECK(std::string(tl_place_option_order(m09, 2, 7, 0, 0, "1", nullptr)).find("\"accepted\":true") != std::string::npos);
+  tl_run_destroy(m09);
+  for (const char* id : {"m10-hedged-book", "m12-capstone"}) {
+    tl_run* run = tl_run_create(id, 3);
+    CHECK(std::string(tl_place_option_order(run, 1, 7, 1, 0, "1", nullptr)).find("\"accepted\":true") != std::string::npos);
+    tl_run_destroy(run);
+  }
+  Scenario m11;
+  REQUIRE(build_mission("m11-news-calendar", 3, m11));
+  CHECK(m11.options.series.empty());
+  CHECK(m11.bars.size() == 200);
+  Scenario m12;
+  REQUIRE(build_mission("m12-capstone", 3, m12));
+  CHECK(m12.bars.size() == 230);
+  CHECK(m12.contract.funding_interval == 8);
+}

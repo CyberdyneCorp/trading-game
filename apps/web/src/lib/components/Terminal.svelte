@@ -298,7 +298,7 @@
 				{#if !session.state.knownScenario}
 					<AdvisorPanel {session} onApply={onApplyAdvice} />
 				{/if}
-				<NewsPanel news={session.state.news} calendar={session.state.calendar} step={session.state.step} />
+				<NewsPanel news={session.state.news} calendar={session.state.calendar} upcoming={session.state.upcoming ?? []} step={session.state.step} />
 				<EventFeed events={session.state.events} names={session.names} />
 			</div>
 		</div>

@@ -158,6 +158,28 @@
 		<text x="110" y="14" class="small up-fill" text-anchor="middle">TREND</text>
 		<path class="avg" d="M8,92 C40,94 60,92 80,86 S120,72 156,66" />
 		<text x="150" y="96" class="small attention" text-anchor="end">ADX</text>
+	{:else if art === 'straddle'}
+		<!-- Call + put at one strike: a V that loses at most the premium, with a breakeven on each side. -->
+		<line class="axis" x1="8" x2="152" y1="56" y2="56" />
+		<path class="payoff" d="M14,14 L80,78 L146,14" />
+		<line class="strike" x1="80" x2="80" y1="8" y2="92" />
+		<circle class="be" cx="37" cy="56" r="3" />
+		<circle class="be" cx="123" cy="56" r="3" />
+		<text x="37" y="50" class="small info" text-anchor="middle">BE</text>
+		<text x="123" y="50" class="small info" text-anchor="middle">BE</text>
+		<text x="84" y="94" class="small muted">strike</text>
+		<text x="84" y="76" class="small down-fill">−{t('tut.art.premium')}</text>
+		<text x="150" y="98" class="small muted" text-anchor="end">{t('tut.art.breakeven')}</text>
+	{:else if art === 'report'}
+		<!-- R multiples of a handful of trades: the average is a guess until the sample grows. -->
+		<line class="axis" x1="10" x2="150" y1="50" y2="50" />
+		{#each [1.8, -1, -1, 2.4, -0.6, -1, 1.2] as r, i (i)}
+			<rect class={r >= 0 ? 'bar-up' : 'bar-down'} x={16 + i * 19} y={r >= 0 ? 50 - r * 14 : 50} width="12" height={Math.abs(r) * 14} />
+		{/each}
+		<line class="avg" x1="10" x2="150" y1="47" y2="47" />
+		<text x="150" y="44" class="small attention" text-anchor="end">E[R]</text>
+		<text x="150" y="14" class="small attention" text-anchor="end">n = 7 &lt; 30</text>
+		<text x="12" y="94" class="small muted">R · {t('tut.art.trades')}</text>
 	{/if}
 </svg>
 
@@ -301,6 +323,17 @@
 	.spread {
 		stroke: var(--attention);
 		stroke-dasharray: 2 2;
+	}
+	.be {
+		fill: var(--info);
+	}
+	.bar-up {
+		fill: var(--up);
+		opacity: 0.7;
+	}
+	.bar-down {
+		fill: var(--down);
+		opacity: 0.7;
 	}
 	.trail {
 		fill: none;

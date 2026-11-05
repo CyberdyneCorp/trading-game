@@ -45,9 +45,6 @@ std::uint32_t release_of(const char* mission, std::uint32_t seed, NewsKind kind)
   return 0;
 }
 
-const char* const kMissions[] = {"m01-false-breakout", "m02-funding-squeeze", "m03-volatility-shock", "m04-options-buyer",
-                                 "m05-options-writer"};
-
 }  // namespace
 
 TEST_CASE("Fast wire I: the m01 denial is visible one bar early, flagged early until its release") {
@@ -113,7 +110,8 @@ TEST_CASE("Economic calendar: m02 lists the rate decision's bar only, until the 
 }
 
 TEST_CASE("Perks change nothing in the market: bars and event digests match the run without them") {
-  for (const char* mission : kMissions) {
+  for (const MissionInfo& info : mission_catalog()) {
+    const char* mission = info.id.c_str();
     for (std::uint32_t seed : {1U, 7U, 42U}) {
       CAPTURE(mission);
       CAPTURE(seed);
@@ -133,4 +131,23 @@ TEST_CASE("Perks change nothing in the market: bars and event digests match the 
       tl_run_destroy(intel);
     }
   }
+}
+
+TEST_CASE("m11 stays fair with intel: a fast wire hands an announced release from upcoming to an early headline") {
+  const std::uint32_t seed = 9;
+  const std::uint32_t r = release_of("m11-news-calendar", seed, NewsKind::RateDecision);
+  const std::string upcoming = "{\"step\":" + std::to_string(r) + ",\"kind\":\"rate_decision\",\"expectation\":0}";
+  tl_run* wire = tl_run_create_ex("m11-news-calendar", seed, 0, 2, 1, nullptr, 0);
+  tl_run* plain = tl_run_create("m11-news-calendar", seed);
+  const std::string before = state_at(wire, r - 3);
+  CHECK(has(before, upcoming));
+  CHECK(has(state_at(plain, r - 3), upcoming));  // the announcement is public: no perk needed
+  const std::string early = state_at(wire, r - 2);
+  CHECK_FALSE(has(early, upcoming));
+  CHECK(has(between(early, "\"step\":" + std::to_string(r) + ",\"kind\":\"rate_decision\"", "}"), "\"early\":true"));
+  const std::string public_view = state_at(plain, r - 2);
+  CHECK(has(public_view, upcoming));
+  CHECK(between(early, "\"bars\":", "\"account\"") == between(public_view, "\"bars\":", "\"account\""));
+  tl_run_destroy(wire);
+  tl_run_destroy(plain);
 }

@@ -187,6 +187,14 @@ export interface Indicators {
 	patterns: PatternHitView[];
 }
 
+/** An announced release not out yet: never its tone, actual or credibility. */
+export interface UpcomingView {
+	step: number;
+	kind: NewsView['kind'];
+	/** The consensus, -2..2. */
+	expectation: number;
+}
+
 export interface NewsView {
 	step: number;
 	kind:
@@ -197,7 +205,9 @@ export interface NewsView {
 		| 'liquidity_inflow'
 		| 'institutional_adoption'
 		| 'rumor_denied'
-		| 'liquidity_outflow';
+		| 'liquidity_outflow'
+		| 'macro_data'
+		| 'network_upgrade';
 	tone: number;
 	credibility: number;
 	expectation: number;
@@ -235,7 +245,8 @@ export type AdviceReasonCode =
 	| 'news_priced'
 	| 'news_early'
 	| 'funding_crowded'
-	| 'low_vol_squeeze';
+	| 'low_vol_squeeze'
+	| 'event_ahead';
 
 /** One reason: `vote` > 0 long, < 0 short, 0 toward wait or a warning; `ref` = bar (pattern, news) or crowded side. */
 export interface AdviceReasonView {
@@ -288,6 +299,8 @@ export interface GameState {
 	news: NewsView[];
 	/** Economic calendar perk: bars of upcoming scheduled releases (rate decisions), nothing else. */
 	calendar: number[];
+	/** Announced releases (G3), from their announcement to their release: kind, bar and consensus only. */
+	upcoming: UpcomingView[];
 	calibration: { due: boolean; horizon: number; every: number; threshold: Decimal; answered: number };
 	advisor: AdvisorState;
 	events: EngineEvent[];
@@ -454,7 +467,29 @@ export interface MissionReveal {
 	mission: string;
 	seed: number;
 	spans: RegimeSpan[];
-	events: { step: number; kind: NewsView['kind']; actual: number; surprise: number; intensityPct: number; reaction: number }[];
+	events: RevealEvent[];
+}
+
+/** One release as it played: the drawn outcome (G2) and what the market did with it. */
+export interface RevealEvent {
+	step: number;
+	kind: NewsView['kind'];
+	actual: number;
+	surprise: number;
+	/** Drawn size: 100 = as designed. */
+	intensityPct: number;
+	/** Sampled transient reaction: 0 none, +1 up, -1 down. */
+	reaction: number;
+	expectation: number;
+	credibility: number;
+	/** Bars between announcement and release; 0 = unannounced. */
+	announceLead: number;
+	/** Open after the release against the release close, basis points. */
+	gapBp: number;
+	/** Close 3 bars after the release against the close before it, basis points. */
+	moveBp: number;
+	/** ATM straddle of the first live expiry the bar before, basis points of the price; -1 without options. */
+	impliedBp: number;
 }
 
 export interface PackReveal {
