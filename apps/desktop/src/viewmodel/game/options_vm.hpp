@@ -77,6 +77,7 @@ class OptionTicketViewModel {
  private:
   struct Calc;
   [[nodiscard]] std::optional<Calc> calc(const GameState& g) const;
+  void costs(Calc& c, double fee_rate) const;
 };
 
 }  // namespace tradelab::desktop::game

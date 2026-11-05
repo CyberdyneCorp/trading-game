@@ -1399,3 +1399,4 @@ desktop.language,English,Português (Brasil)
 desktop.waiting,Calculando…,Working…
 desktop.progress,Avançando {done} de {total},Advancing {done} of {total}
 desktop.qtyInvalid,"Digite uma quantidade válida (ex.: 1,5).",Type a valid quantity (e.g. 1.5).
+desktop.perksFixed,As informações extras valem desde o início da partida: mude antes da primeira ação.,Intel applies from the start of a run: change it before your first action.

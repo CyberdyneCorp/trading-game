@@ -47,7 +47,13 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/sizing.cpp
   src/viewmodel/game/texts.cpp
   src/viewmodel/game/ticket_vm.cpp)
-set(TRADELAB_DESKTOP_GAME_VIEW_SOURCES)
+set(TRADELAB_DESKTOP_GAME_VIEW_SOURCES
+  src/view/game/game_view.cpp
+  src/view/game/game_view_dialogs.cpp
+  src/view/game/game_view_panels.cpp
+  src/view/game/game_view_ticket.cpp
+  src/view/game/scene_painter.cpp
+  src/view/game/widgets.cpp)
 
 # ---- Layers (design "Library split enforces the layers"): model and viewmodel never see Raven. ----
 
@@ -88,7 +94,8 @@ add_library(tradelab_desktop_view STATIC
   src/view/app.cpp
   src/view/app_view.cpp
   src/view/chart_painter.cpp
-  src/view/raven/raven_ui.cpp)
+  src/view/raven/raven_ui.cpp
+  ${TRADELAB_DESKTOP_GAME_VIEW_SOURCES})
 target_link_libraries(tradelab_desktop_view PUBLIC tradelab_desktop_viewmodel tradelab_desktop_platform raven::raven)
 target_compile_options(tradelab_desktop_view PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
 

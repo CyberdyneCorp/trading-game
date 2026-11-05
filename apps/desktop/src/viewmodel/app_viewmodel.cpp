@@ -68,8 +68,8 @@ void AppViewModel::back_to_menu() {
 }
 
 void AppViewModel::set_qty_text(std::string text) {
-  if (text == game_->ticket.qty) return;
-  game_->ticket.qty = std::move(text);
+  if (text == game_->ticket.amount()) return;
+  game_->ticket.amount() = std::move(text);
   game_->touch();
 }
 

@@ -49,22 +49,27 @@ std::optional<double> position_planned_risk(const std::vector<PlanEntry>& journa
   return std::nullopt;
 }
 
-std::vector<std::string> journal_lines(const Texts& t, const std::vector<PlanEntry>& journal) {
+namespace {
+// confidence · invalidation · target · risk · lose scenario of a recorded plan.
+std::string plan_details(const Texts& t, const PlanEntry& p) {
   const Locale L = t.locale();
+  const std::string dot = " \xC2\xB7 ";
+  std::string out = "  " + p.thesis + "  " + t.tr("journal.conf", {{"v", std::to_string(p.confidence)}});
+  if (p.invalidation) out += dot + t.tr("journal.inv", {{"v", fmt::fmt_num(*p.invalidation, L, 2)}});
+  if (p.target) out += dot + t.tr("journal.target", {{"v", fmt::fmt_num(*p.target, L, 2)}});
+  if (p.planned_risk && *p.planned_risk > 0) out += dot + t.tr("journal.risk", {{"v", fmt::fmt_money(*p.planned_risk, L)}});
+  if (!p.lose_scenario.empty()) out += dot + t.tr("journal.lose", {{"v", p.lose_scenario}});
+  return out;
+}
+}  // namespace
+
+std::vector<std::string> journal_lines(const Texts& t, const std::vector<PlanEntry>& journal) {
   std::vector<std::string> out;
   for (const auto& p : journal) {
-    std::string line = "[" + t.tr("journal.bar", {{"step", std::to_string(p.step)}}) + "] " +
-                       (p.buy ? "\xE2\x96\xB2 LONG" : "\xE2\x96\xBC SHORT") + (p.instrument.empty() ? "" : " \xC2\xB7 " + p.instrument);
-    if (p.skipped) {
-      out.push_back(line + " \xE2\x80\x94 " + t.tr("journal.skipped"));
-      continue;
-    }
-    line += "  " + p.thesis + "  " + t.tr("journal.conf", {{"v", std::to_string(p.confidence)}});
-    if (p.invalidation) line += " \xC2\xB7 " + t.tr("journal.inv", {{"v", fmt::fmt_num(*p.invalidation, L, 2)}});
-    if (p.target) line += " \xC2\xB7 " + t.tr("journal.target", {{"v", fmt::fmt_num(*p.target, L, 2)}});
-    if (p.planned_risk && *p.planned_risk > 0) line += " \xC2\xB7 " + t.tr("journal.risk", {{"v", fmt::fmt_money(*p.planned_risk, L)}});
-    if (!p.lose_scenario.empty()) line += " \xC2\xB7 " + t.tr("journal.lose", {{"v", p.lose_scenario}});
-    out.push_back(line);
+    const std::string head = "[" + t.tr("journal.bar", {{"step", std::to_string(p.step)}}) + "] " +
+                             (p.buy ? "\xE2\x96\xB2 LONG" : "\xE2\x96\xBC SHORT") +
+                             (p.instrument.empty() ? "" : " \xC2\xB7 " + p.instrument);
+    out.push_back(head + (p.skipped ? " \xE2\x80\x94 " + t.tr("journal.skipped") : plan_details(t, p)));
   }
   return out;
 }

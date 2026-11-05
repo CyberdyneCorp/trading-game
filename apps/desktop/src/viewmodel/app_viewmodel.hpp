@@ -54,8 +54,8 @@ class AppViewModel {
   void back_to_menu();
 
   // Terminal
-  // The ticket's quantity field (the full terminal is game(): viewmodel/game/game_viewmodel.hpp).
-  [[nodiscard]] const std::string& qty_text() const { return game_->ticket.qty; }
+  // The ticket's amount field of its sizing mode (the full terminal is game(): viewmodel/game).
+  [[nodiscard]] const std::string& qty_text() const { return game_->ticket.amount(); }
   void set_qty_text(std::string text);
   void advance(int steps = 1);
   void buy();   // ticket side: buy

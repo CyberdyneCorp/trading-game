@@ -12,13 +12,20 @@
 
 namespace tradelab::desktop::testing {
 
+inline std::string optional_part(const std::string& prefix, const std::string& value) {
+  return value.empty() ? std::string() : prefix + value;
+}
+
+inline std::string describe_order(const GameCommand& c) {
+  return "order " + std::to_string(c.type) + " " + (c.buy ? "buy" : "sell") + " " + c.qty + optional_part(" @", c.price) +
+         (c.reduce_only ? " ro" : "") + optional_part(" sl ", c.stop) + optional_part(" tp ", c.tp) +
+         optional_part(" trail ", c.trail);
+}
+
 inline std::string describe(const GameCommand& c) {
   const std::string side = c.buy ? "buy" : "sell";
   switch (c.kind) {
-    case GameCommandKind::Order:
-      return "order " + std::to_string(c.type) + " " + side + " " + c.qty + (c.price.empty() ? "" : " @" + c.price) +
-             (c.reduce_only ? " ro" : "") + (c.stop.empty() ? "" : " sl " + c.stop) + (c.tp.empty() ? "" : " tp " + c.tp) +
-             (c.trail.empty() ? "" : " trail " + c.trail);
+    case GameCommandKind::Order: return describe_order(c);
     case GameCommandKind::TrailingRate: return "trail-rate " + side + " " + c.qty + " " + c.trail;
     case GameCommandKind::Option:
       return "option " + std::to_string(c.id) + " " + side + " " + c.qty + (c.price.empty() ? "" : " @" + c.price);

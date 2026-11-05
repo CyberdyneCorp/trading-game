@@ -113,6 +113,12 @@ class GameViewModel {
   [[nodiscard]] std::optional<std::string> pattern_id() const { return pattern_; }
   [[nodiscard]] const std::vector<PlanEntry>& journal() const { return journal_; }
   [[nodiscard]] const OrderDraft* pending_order() const { return pending_order_ ? &*pending_order_ : nullptr; }
+  // A stop dragged past liquidation, waiting for the player's confirmation.
+  struct PendingMove {
+    int order_id = 0;
+    std::string to;
+  };
+  [[nodiscard]] const PendingMove* pending_move() const { return pending_move_ ? &*pending_move_ : nullptr; }
 
   // ---- keyboard ----
   // Returns true when the key was used (the view then stops it).
@@ -122,6 +128,8 @@ class GameViewModel {
   // Frame time for auto-advance.
   void tick(double dt);
   [[nodiscard]] bool muted() const { return muted_; }
+  void toggle_mute() { run_action(Action::Mute); }
+  void toggle_auto() { run_action(Action::Auto); }
 
   // Panel viewmodels and dialog state, edited by the view (text fields) and read back.
   ChartViewModel chart;
@@ -161,6 +169,8 @@ class GameViewModel {
   void move_order(int order_id, double price);
   void picked(double price);
   bool modal_key(const KeyPress& k, std::optional<Action> action);
+  bool escape();
+  bool chart_key(const std::string& name);
   void run_action(Action a);
   [[nodiscard]] bool blocked_for_keys() const;
   [[nodiscard]] bool active() const { return state_ && state_->active(); }
@@ -194,10 +204,6 @@ class GameViewModel {
   Modal modal_ = Modal::None;
   std::optional<OrderDraft> pending_order_;
   std::optional<OptionDraft> pending_option_;
-  struct PendingMove {
-    int order_id = 0;
-    std::string to;
-  };
   std::optional<PendingMove> pending_move_;
   std::optional<std::string> pattern_;
   int tutorial_index_ = 0;

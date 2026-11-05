@@ -36,6 +36,16 @@ bool held(const GameState& g, const OptionQuote* q) {
                      [&](const OptionPosition& p) { return p.series == q->id; });
 }
 
+ChainRow chain_row(const Texts& t, const GameState& g, int expiry, double strike, std::optional<int> selected) {
+  const OptionQuote* call = find_quote(g, expiry, strike, "call");
+  const OptionQuote* put = find_quote(g, expiry, strike, "put");
+  ChainRow row{fmt::fmt_num(strike, t.locale(), 2), g.account.mark > strike, held(g, call) || held(g, put), std::nullopt,
+               std::nullopt};
+  if (call != nullptr) row.call = cell(t, *call, selected);
+  if (put != nullptr) row.put = cell(t, *put, selected);
+  return row;
+}
+
 }  // namespace
 
 std::vector<ChainExpiry> option_chain(const Texts& t, const GameState& g, std::optional<int> selected) {
@@ -48,14 +58,7 @@ std::vector<ChainExpiry> option_chain(const Texts& t, const GameState& g, std::o
     for (const auto& q : g.options.chain) {
       if (q.expiry_step == exp) strikes.insert(q.strike);
     }
-    for (const double k : strikes) {
-      const OptionQuote* call = find_quote(g, exp, k, "call");
-      const OptionQuote* put = find_quote(g, exp, k, "put");
-      ChainRow row{fmt::fmt_num(k, t.locale(), 2), g.account.mark > k, held(g, call) || held(g, put), std::nullopt, std::nullopt};
-      if (call != nullptr) row.call = cell(t, *call, selected);
-      if (put != nullptr) row.put = cell(t, *put, selected);
-      e.rows.push_back(std::move(row));
-    }
+    for (const double k : strikes) e.rows.push_back(chain_row(t, g, exp, k, selected));
     out.push_back(std::move(e));
   }
   return out;
@@ -83,6 +86,16 @@ const OptionQuote* OptionTicketViewModel::quote(const GameState& g) const {
   return nullptr;
 }
 
+// A write posts margin, a buy pays the premium plus the fee: either must fit the available balance.
+void OptionTicketViewModel::costs(Calc& c, double fee_rate) const {
+  if (c.opens_short) {
+    c.margin = write_margin(*c.q, c.f, c.qty, c.mult);
+    c.cost = c.margin;
+  } else if (buy) {
+    c.cost = option_buy_cost(c.leg, c.f, fee_rate);
+  }
+}
+
 std::optional<OptionTicketViewModel::Calc> OptionTicketViewModel::calc(const GameState& g) const {
   Calc c;
   c.q = quote(g);
@@ -104,10 +117,8 @@ std::optional<OptionTicketViewModel::Calc> OptionTicketViewModel::calc(const Gam
   c.leg.premium = c.premium;
   c.units = c.qty * c.mult * (buy ? 1 : -1);
   c.loss = max_loss(c.leg);
-  if (c.opens_short) c.margin = write_margin(*c.q, c.f, c.qty, c.mult);
   c.fee = option_fee(c.leg, c.f, o.fee_rate);
-  if (c.opens_short) c.cost = c.margin;
-  else if (buy) c.cost = option_buy_cost(c.leg, c.f, o.fee_rate);
+  costs(c, o.fee_rate);
   c.cant_afford = c.cost && *c.cost > g.account.available;
   c.no_bid = !buy && !limit && c.q->bid <= 0;
   c.settling = c.q->settling;

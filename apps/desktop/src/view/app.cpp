@@ -18,6 +18,7 @@ App::App(Catalog catalog, AppViewModel::SeedSource seeds) {
                                            if (vm_) vm_->on_snapshot(std::move(snap));
                                          });
   vm_ = std::make_unique<AppViewModel>(std::move(catalog), engine_->missions(), *engine_, std::move(seeds));
+  vm_->game().attach_prefs(&prefs_);
   view_ = std::make_unique<AppView>(*vm_);
 }
 

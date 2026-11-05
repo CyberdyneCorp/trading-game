@@ -25,6 +25,13 @@ std::optional<double> last_atr(const GameState& g) {
   return atr.back();
 }
 
+// The leverage field as the engine gets it: whole, at least 1, at most the cap (empty or invalid: 1).
+int clamp_leverage(const std::string& text, int cap) {
+  const double typed = fmt::parse_decimal(text);
+  const long rounded = std::isfinite(typed) && typed != 0 ? std::lround(typed) : 1;
+  return static_cast<int>(std::min<long>(std::max<long>(1, rounded), cap));
+}
+
 std::string price_text(double v, Locale L) { return fmt::fmt_num(v, L, 2); }
 
 std::string opt_price(const std::optional<double>& v, Locale L) { return v ? price_text(*v, L) : std::string(kDash); }
@@ -121,21 +128,23 @@ TicketViewModel::Calc TicketViewModel::calc(const GameState& g, Locale locale) c
   c.typed_price = fmt::parse_decimal(price);
   c.needs_price = type != TicketType::Market;
   const double typed_entry = or_zero(c.typed_price);
-  c.entry = type == TicketType::Market ? estimated_market_entry(side, c.mark, c.k) : (typed_entry != 0 ? typed_entry : c.mark);
+  const double limit_entry = typed_entry != 0 ? typed_entry : c.mark;
+  c.entry = type == TicketType::Market ? estimated_market_entry(side, c.mark, c.k) : limit_entry;
   c.stop = typed_level(stop);
   c.tp = typed_level(take_profit);
   // Typed sizing amounts; the notional is in credits, so "1.000" in PT-BR is one thousand.
-  double amount = 0;
-  if (size_by == SizeBy::Qty) amount = fmt::parse_decimal(qty);
-  if (size_by == SizeBy::Notional) amount = fmt::parse_amount(notional, locale);
-  if (size_by == SizeBy::Equity) amount = fmt::parse_decimal(equity);
-  if (size_by == SizeBy::Risk) amount = fmt::parse_decimal(risk);
-  c.qty = sized_qty(size_by, {g.account.equity, c.entry, c.stop, or_zero(fmt::parse_decimal(qty)), or_zero(amount)}, c.k,
+  const double typed = size_by == SizeBy::Notional ? fmt::parse_amount(notional, locale) : fmt::parse_decimal(this->amount());
+  c.qty = sized_qty(size_by, {g.account.equity, c.entry, c.stop, or_zero(fmt::parse_decimal(qty)), or_zero(typed)}, c.k,
                     c.lot);
   c.qty_str = fmt::qty_to_lot(c.qty, c.lot);
-  const double typed_lev = fmt::parse_decimal(leverage);
-  const long rounded = std::isfinite(typed_lev) && typed_lev != 0 ? std::lround(typed_lev) : 1;
-  c.lev = static_cast<int>(std::min<long>(std::max<long>(1, rounded), c.cap));
+  c.lev = clamp_leverage(leverage, c.cap);
+  exposure(g, c);
+  return c;
+}
+
+// What the order does to the account: estimate, added exposure, margin, tier and every refusal check.
+void TicketViewModel::exposure(const GameState& g, Calc& c) const {
+  const Contract& k = g.contract;
   const OpenPosition open{c.pos_qty, g.position.entry, g.position.margin, g.leverage};
   c.est = estimate({side, c.qty, c.entry, c.lev, c.stop}, c.k, open);
   const bool same_side = c.pos_qty > 0 == is_buy(side);
@@ -152,7 +161,20 @@ TicketViewModel::Calc TicketViewModel::calc(const GameState& g, Locale locale) c
   c.stop_wrong = c.stop && !stop_on_losing_side(side, c.entry, *c.stop);
   c.tp_wrong = c.tp && !target_on_winning_side(side, c.entry, *c.tp);
   c.needs_beyond_confirm = c.est.stop_beyond_liquidation && g.rules.confirm_stop_beyond_liq;
-  return c;
+}
+
+std::string& TicketViewModel::amount() {
+  return const_cast<std::string&>(static_cast<const TicketViewModel&>(*this).amount());
+}
+
+const std::string& TicketViewModel::amount() const {
+  switch (size_by) {
+    case SizeBy::Risk: return risk;
+    case SizeBy::Notional: return notional;
+    case SizeBy::Equity: return equity;
+    case SizeBy::Qty: break;
+  }
+  return qty;
 }
 
 void TicketViewModel::sync(const GameState& g) {
@@ -224,6 +246,19 @@ TicketView TicketViewModel::view(const Texts& t, const GameState& g, bool busy) 
   return v;
 }
 
+// Sending at another leverage re-margins the open position too (engine set_leverage).
+void TicketViewModel::relever_note(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const {
+  if (c.pos_qty == 0 || c.lev == g.leverage) return;
+  const Locale L = t.locale();
+  const auto to = relevered_liquidation(c.pos_qty > 0 ? Side::Buy : Side::Sell, c.pos_qty, g.position.entry, c.lev, c.k);
+  const auto from = g.account.liquidation;
+  v.relever_closer = to && (!from || std::fabs(c.mark - *to) < std::fabs(c.mark - *from));
+  v.relever = (v.relever_closer ? kWarn : "") + t.tr("ticket.relever", {{"from", std::to_string(g.leverage)},
+                                                                        {"to", std::to_string(c.lev)},
+                                                                        {"liqFrom", opt_price(from, L)},
+                                                                        {"liqTo", opt_price(to, L)}});
+}
+
 void TicketViewModel::notes(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const {
   const Locale L = t.locale();
   if (c.short_blocked) v.short_locked = t.tr("ticket.shortLocked");
@@ -232,16 +267,7 @@ void TicketViewModel::notes(const Texts& t, const GameState& g, const Calc& c, T
     const ShockFactors f = shock_factors(g.contract, *g.liquidity);
     v.shock = kWarn + t.tr("ticket.shock", {{"cost", fmt::fmt_num(f.cost, L, 1)}, {"capacity", fmt::fmt_pct(f.capacity, L, 0)}});
   }
-  if (c.pos_qty != 0 && c.lev != g.leverage) {
-    const auto to = relevered_liquidation(c.pos_qty > 0 ? Side::Buy : Side::Sell, c.pos_qty, g.position.entry, c.lev, c.k);
-    const auto from = g.account.liquidation;
-    v.relever_closer = to && (!from || std::fabs(c.mark - *to) < std::fabs(c.mark - *from));
-    v.relever = (v.relever_closer ? kWarn : "") +
-                t.tr("ticket.relever", {{"from", std::to_string(g.leverage)},
-                                        {"to", std::to_string(c.lev)},
-                                        {"liqFrom", opt_price(from, L)},
-                                        {"liqTo", opt_price(to, L)}});
-  }
+  relever_note(t, g, c, v);
   if (c.opposing) {
     v.opposing = kWarn + t.tr(opposing_key(c.opposing->kind), {{"open", fmt::fmt_num(c.opposing->open, L, 1)},
                                                                {"after", fmt::fmt_num(c.opposing->after, L, 1)}});
@@ -257,6 +283,19 @@ void TicketViewModel::notes(const Texts& t, const GameState& g, const Calc& c, T
   }
   if (c.est.stop_beyond_liquidation) v.beyond_liq = kWarn + t.tr("ticket.stopBeyondLiq");
   if (!c.stop && c.qty > 0) v.no_stop = t.tr("ticket.noStop");
+}
+
+// Trailing presets (ATR multiples) and, by percent, the first trigger on the tick.
+void TicketViewModel::trailing(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const {
+  for (int m = 1; m <= 3; ++m) {
+    v.trail_chips.push_back({std::to_string(m) + "\xC3\x97" "ATR", t.tr("level.trailTitle", {{"n", std::to_string(m)}}),
+                             c.atr ? std::optional<double>(m * *c.atr) : std::nullopt});
+  }
+  const Side exit = g.position.qty > 0 ? Side::Sell : Side::Buy;
+  const auto trigger = prot_trail_pct.empty()
+                           ? std::nullopt
+                           : trail_trigger_from_percent(exit, c.mark, fmt::parse_decimal(prot_trail_pct), c.tick);
+  v.trail_hint = trigger ? t.tr("ticket.trailPctHint", {{"price", price_text(*trigger, t.locale())}}) : t.tr("ticket.trailPctNote");
 }
 
 void TicketViewModel::protection(const Texts& t, const GameState& g, const Calc& c, bool busy, TicketView& v) const {
@@ -279,15 +318,7 @@ void TicketViewModel::protection(const Texts& t, const GameState& g, const Calc&
   if (ptp && !target_on_winning_side(pos_side, c.mark, *ptp)) v.prot_tp_warn = t.tr("level.protTpSide", {{"price", at}});
   const auto liq = g.account.liquidation;
   v.prot_beyond = pstop && liq && (c.pos_qty > 0 ? *pstop <= *liq : *pstop >= *liq) && g.rules.confirm_stop_beyond_liq;
-  for (int m = 1; m <= 3; ++m) {
-    v.trail_chips.push_back({std::to_string(m) + "\xC3\x97" "ATR", t.tr("level.trailTitle", {{"n", std::to_string(m)}}),
-                             c.atr ? std::optional<double>(m * *c.atr) : std::nullopt});
-  }
-  const Side exit = c.pos_qty > 0 ? Side::Sell : Side::Buy;
-  const auto trigger = prot_trail_pct.empty()
-                           ? std::nullopt
-                           : trail_trigger_from_percent(exit, c.mark, fmt::parse_decimal(prot_trail_pct), c.tick);
-  v.trail_hint = trigger ? t.tr("ticket.trailPctHint", {{"price", price_text(*trigger, L)}}) : t.tr("ticket.trailPctNote");
+  trailing(t, g, c, v);
   const bool trail_set = trail_by_pct ? trail_rate_from_percent(fmt::parse_decimal(prot_trail_pct)).has_value()
                                       : !prot_trail.empty();
   v.can_protect = !busy && !v.prot_stop_warn && !v.prot_tp_warn && (!v.prot_beyond || prot_beyond_confirmed()) &&
@@ -355,9 +386,7 @@ void TicketViewModel::apply_advice(const GameState& g, const Advice& a, Locale l
   type = TicketType::Market;
   const Costs costs = costs_of(k, g.liquidity);
   const double entry = estimated_market_entry(side, g.account.mark, costs);
-  const double typed_lev = fmt::parse_decimal(leverage);
-  const long rounded = std::isfinite(typed_lev) && typed_lev != 0 ? std::lround(typed_lev) : 1;
-  const int typed = static_cast<int>(std::min<long>(std::max<long>(1, rounded), k.leverage_cap));
+  const int typed = clamp_leverage(leverage, k.leverage_cap);
   const Fit fit = fit_to_margin(fmt::num(a.size), entry, g.account.available, typed, k.leverage_cap, costs, k.lot);
   qty = fmt::qty_input_text(fit.qty, k.lot, locale);
   leverage = std::to_string(fit.leverage);

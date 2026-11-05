@@ -24,16 +24,16 @@ add_test(NAME desktop_unit COMMAND tradelab_desktop_unit_tests)
 set_tests_properties(desktop_unit PROPERTIES LABELS unit)
 
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
-add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp)
+add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp)
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)
 add_test(NAME desktop_headless COMMAND tradelab_desktop_headless_tests)
-set_tests_properties(desktop_headless PROPERTIES LABELS headless ENVIRONMENT "RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0")
+set_tests_properties(desktop_headless PROPERTIES LABELS headless ENVIRONMENT "RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0;TRADELAB_DATA_DIR=${CMAKE_BINARY_DIR}/test-data/headless")
 
 # ---- Windowed: the real Vulkan renderer driven by injected input; frames saved as PNG. ----
 if(RAVEN_BACKEND_VULKAN)
-  add_executable(tradelab_desktop_windowed_tests main.cpp windowed/test_windowed.cpp support/png.cpp)
+  add_executable(tradelab_desktop_windowed_tests main.cpp windowed/test_windowed.cpp windowed/test_game_windowed.cpp support/png.cpp)
   target_include_directories(tradelab_desktop_windowed_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
   target_include_directories(tradelab_desktop_windowed_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(tradelab_desktop_windowed_tests PRIVATE tradelab_desktop_view)
@@ -44,7 +44,7 @@ if(RAVEN_BACKEND_VULKAN)
   endif()
   add_test(NAME desktop_windowed COMMAND tradelab_desktop_windowed_tests)
   set_tests_properties(desktop_windowed PROPERTIES LABELS windowed
-    ENVIRONMENT "TRADELAB_CAPTURE_DIR=${CMAKE_BINARY_DIR}/captures;RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0")
+    ENVIRONMENT "TRADELAB_CAPTURE_DIR=${CMAKE_BINARY_DIR}/captures;RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0;TRADELAB_DATA_DIR=${CMAKE_BINARY_DIR}/test-data/windowed")
 
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # No usable driver: an ICD list that names nothing. (CI also runs it with libvulkan1 removed.)

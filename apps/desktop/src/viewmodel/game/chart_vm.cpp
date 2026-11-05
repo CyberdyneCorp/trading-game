@@ -120,7 +120,10 @@ class Builder {
       const float by = h - (bx - (x0 + i));
       if (bx > ax) line(ax, ay, bx, by, Ink::Muted, 0.12f);
     }
-    text(x0 + (plot_w_ - x0) / 2, h / 2 - 9, label, Ink::Muted, 18, Anchor::Center);
+    // The web writes it vertically; here it is written across only when the zone is wide enough.
+    if (static_cast<float>(label.size()) * 8 < plot_w_ - x0 - 8) {
+      text(x0 + (plot_w_ - x0) / 2, h / 2 - 9, label, Ink::Muted, 16, Anchor::Center);
+    }
   }
 
   void volume() {
@@ -166,17 +169,28 @@ class Builder {
     }
   }
 
+  // The visible slot of a bar, or -1 when it is off the chart.
+  [[nodiscard]] long slot_of(int step) const {
+    const long i = static_cast<long>(step) - static_cast<long>(first_);
+    return i >= 0 && i < static_cast<long>(count_) ? i : -1;
+  }
+
+  // ▲ buy fills under the price, ▼ sell fills over it, ✖ liquidations.
+  void fill_mark(const EngineEvent& e, long i) {
+    const bool buy = e.side == "buy";
+    const float py = y(fmt::num(e.price));
+    if (e.type == "liquidation") {
+      text(x(static_cast<double>(i)), py - 18, "\xE2\x9C\x96", Ink::Danger, 13, Anchor::Center);
+      return;
+    }
+    text(x(static_cast<double>(i)), buy ? py + 2 : py - 18, buy ? "\xE2\x96\xB2" : "\xE2\x96\xBC", buy ? Ink::Info : Ink::Attention,
+         13, Anchor::Center);
+  }
+
   void fills() {
     for (const auto& e : g_.events) {
-      if (e.type != "fill" && e.type != "liquidation") continue;
-      const long i = static_cast<long>(e.step) - static_cast<long>(first_);
-      if (i < 0 || i >= static_cast<long>(count_)) continue;
-      const bool buy = e.side == "buy";
-      const bool liq = e.type == "liquidation";
-      const float py = y(fmt::num(e.price));
-      const std::string mark = liq ? "\xE2\x9C\x96" : buy ? "\xE2\x96\xB2" : "\xE2\x96\xBC";
-      text(x(static_cast<double>(i)), buy ? py + 2 : py - 18, mark, liq ? Ink::Danger : buy ? Ink::Info : Ink::Attention,
-           13, Anchor::Center);
+      const long i = slot_of(e.step);
+      if ((e.type == "fill" || e.type == "liquidation") && i >= 0) fill_mark(e, i);
     }
   }
 
@@ -218,18 +232,23 @@ class Builder {
   }
 
   // Detected candle patterns: a bracket under (bullish) or over (bearish) the bars that form it.
+  // Lowest low (bullish: the bracket goes under) or highest high of the visible bars of a pattern.
+  [[nodiscard]] double pattern_edge(long start, long end, bool below) const {
+    double edge = below ? 1e300 : -1e300;
+    for (long i = std::max(0L, start); i <= end; ++i) {
+      const GameBar& b = g_.bars[first_ + static_cast<std::size_t>(i)];
+      edge = below ? std::min(edge, b.low) : std::max(edge, b.high);
+    }
+    return edge;
+  }
+
   void patterns() {
     for (const auto& p : g_.indicators.patterns) {
-      const long end = static_cast<long>(p.step) - static_cast<long>(first_);
+      const long end = slot_of(p.step);
+      if (end < 0) continue;
       const long start = end - p.bars + 1;
-      if (end < 0 || start >= static_cast<long>(count_) || end >= static_cast<long>(count_)) continue;
       const bool below = p.bias >= 0;
-      double edge = below ? 1e300 : -1e300;
-      for (long i = std::max(0L, start); i <= end; ++i) {
-        const GameBar& b = g_.bars[first_ + static_cast<std::size_t>(i)];
-        edge = below ? std::min(edge, b.low) : std::max(edge, b.high);
-      }
-      const float yy = y(edge) + (below ? 6.0f : -6.0f);
+      const float yy = y(pattern_edge(start, end, below)) + (below ? 6.0f : -6.0f);
       const Ink ink = p.bias > 0 ? Ink::Up : p.bias < 0 ? Ink::Down : Ink::Attention;
       line(x(static_cast<double>(std::max(0L, start))) - slot_w_ * 0.35f, yy, x(static_cast<double>(end)) + slot_w_ * 0.35f,
            yy, ink, 0.85f);

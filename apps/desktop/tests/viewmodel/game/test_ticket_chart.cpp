@@ -159,7 +159,7 @@ TEST_CASE("chart: a frame has candles, volume, the future zone, levels with tags
   tp.reduce_only = true;
   g.orders.push_back(tp);
   ChartViewModel c;
-  const ChartScene s = c.build(x.t, g, TicketPreview{100.6, 99.0, std::nullopt, 95.0}, false, 900, 420);
+  const ChartScene s = c.build(x.t, g, TicketPreview{100.6, 99.0, std::nullopt, 95.0}, false, 1600, 420);
   CHECK_FALSE(s.empty);
   CHECK(s.rects.size() > 60);
   const auto has_text = [&](std::string_view needle) {
@@ -173,7 +173,7 @@ TEST_CASE("chart: a frame has candles, volume, the future zone, levels with tags
   CHECK(has_text(x.t.tr("chart.future")));
   CHECK(c.frame().zones.size() == 2);  // TP #3 and SL?
   g.status = "finished";
-  const ChartScene done = c.build(x.t, g, std::nullopt, false, 900, 420);
+  const ChartScene done = c.build(x.t, g, std::nullopt, false, 1600, 420);
   CHECK_FALSE(std::any_of(done.texts.begin(), done.texts.end(), [&](const SceneText& t) { return t.text == x.t.tr("chart.future"); }));
 }
 

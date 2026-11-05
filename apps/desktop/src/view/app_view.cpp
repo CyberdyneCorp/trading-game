@@ -25,11 +25,8 @@ void on_chart_paint(Rid /*widget*/, RPainter* painter, float width, float height
   paint_chart(painter, vm->chart(width, height), width, height);
 }
 
-int on_window_event(Rid window, const REvent* e, void* user_data) {
-  if (e->type != R_EVENT_KEY_DOWN || e->key != R_KEY_SPACE) return R_FALSE;
-  auto* vm = static_cast<AppViewModel*>(user_data);
-  const Key key = (e->modifiers & R_MOD_SHIFT) != 0 ? Key::ShiftSpace : Key::Space;
-  return vm->handle_key(key, Rwindow_wants_text_input(window) != 0) ? R_TRUE : R_FALSE;
+int on_window_event(Rid /*window*/, const REvent* e, void* user_data) {
+  return static_cast<AppView*>(user_data)->on_key(e) ? R_TRUE : R_FALSE;
 }
 
 void on_qty_changed(Rid /*input*/, const char* text, void* user_data) {
@@ -110,8 +107,15 @@ bool AppView::build(int width, int height) {
   Rwindow_set_content(window_, switcher_);
   bind_actions();
   bind_widgets();
+  game_view_ = std::make_unique<view::GameView>(vm_, screens_[static_cast<std::size_t>(Screen::Game)], window_);
+  game_view_->bind();
   refresh();
   return true;
+}
+
+bool AppView::on_key(const REvent* e) {
+  if (vm_.screen() != Screen::Game || !game_view_) return false;
+  return game_view_->on_key(e);
 }
 
 Rid AppView::find(std::string_view name) const { return ui::find(switcher_, name); }
@@ -136,7 +140,7 @@ void AppView::bind_widgets() {
   const Rid list = find(names::kMenuList);
   Rlist_view_set_selection_changed_callback(list, on_mission_selected, &vm_);
   Rlist_view_set_activated_callback(list, on_mission_activated, &vm_);
-  Rwindow_set_event_hook(window_, on_window_event, &vm_);
+  Rwindow_set_event_hook(window_, on_window_event, this);
 }
 
 void AppView::fill_mission_list() {
@@ -157,6 +161,7 @@ void AppView::apply_bindings() {
 }
 
 void AppView::refresh() {
+  if (game_view_) game_view_->refresh();
   if (vm_.revision() == shown_revision_) return;
   shown_revision_ = vm_.revision();
   Rswitcher_set_index(switcher_, static_cast<int>(vm_.screen()));
@@ -174,6 +179,9 @@ std::vector<std::string> AppView::missing_names() const {
   }
   for (std::string_view a : names::kActions) {
     if (!ui::action_bound(a)) missing.push_back("action " + std::string(a));
+  }
+  if (game_view_) {
+    for (auto& m : game_view_->missing_names()) missing.push_back(std::move(m));
   }
   return missing;
 }

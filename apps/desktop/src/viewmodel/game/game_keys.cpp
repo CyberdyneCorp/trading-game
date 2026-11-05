@@ -193,6 +193,24 @@ void GameViewModel::run_action(Action a) {
   touch();
 }
 
+// Esc cancels a drag or a pick first, then closes the dialog on top.
+bool GameViewModel::escape() {
+  if (chart.dragging() || pick_ != PickTarget::None) {
+    chart_action(chart.escape(pick_ != PickTarget::None));
+    return true;
+  }
+  const bool closes = modal_ == Modal::Plan || modal_ == Modal::ConfirmMove || modal_ == Modal::Lesson ||
+                      modal_ == Modal::Tutorial || modal_ == Modal::Perks;
+  if (closes) close_modal();
+  return closes;
+}
+
+// The focused chart keeps the navigation keys (per-candle focus) and Enter on a pattern.
+bool GameViewModel::chart_key(const std::string& name) {
+  chart_action(chart.key(*state_, name));
+  return name.rfind("Arrow", 0) == 0 || name == "Home" || name == "End" || name.rfind("Page", 0) == 0;
+}
+
 bool GameViewModel::handle_key(const KeyPress& k) {
   if (remap.waiting) {
     const bool done = remap.key(texts(), keymap_, k.name);
@@ -200,24 +218,11 @@ bool GameViewModel::handle_key(const KeyPress& k) {
     touch();
     return done;
   }
-  if (k.name == "Escape") {
-    if (chart.dragging() || pick_ != PickTarget::None) {
-      chart_action(chart.escape(pick_ != PickTarget::None));
-      return true;
-    }
-    if (modal_ == Modal::Plan || modal_ == Modal::ConfirmMove || modal_ == Modal::Lesson || modal_ == Modal::Tutorial ||
-        modal_ == Modal::Perks) {
-      close_modal();
-      return true;
-    }
-  }
+  if (k.name == "Escape" && escape()) return true;
   if (blocked_for_keys()) return false;
   const auto action = keymap_.action_for(k.name);
   if (modal_key(k, action)) return true;
-  if (k.chart_focused && state_ && !k.typing) {
-    chart_action(chart.key(*state_, k.name));
-    if (k.name.rfind("Arrow", 0) == 0 || k.name == "Home" || k.name == "End" || k.name.rfind("Page", 0) == 0) return true;
-  }
+  if (k.chart_focused && state_ && !k.typing && chart_key(k.name)) return true;
   if (k.typing || k.chord || !action) return false;
   run_action(*action);
   return true;

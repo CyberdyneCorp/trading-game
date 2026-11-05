@@ -86,6 +86,10 @@ class TicketViewModel {
   std::string prot_trail_pct;
   bool trail_by_pct = false;
 
+  // The amount field of the sizing mode (quantity, risk %, notional or % of equity).
+  [[nodiscard]] std::string& amount();
+  [[nodiscard]] const std::string& amount() const;
+
   // The engine state changed: the leverage field follows the account's only when it (or the cap)
   // changes, and stop/target are cleared after a fill (they belonged to that order).
   void sync(const GameState& g);
@@ -113,7 +117,10 @@ class TicketViewModel {
  private:
   struct Calc;
   [[nodiscard]] Calc calc(const GameState& g, Locale locale) const;
+  void exposure(const GameState& g, Calc& c) const;
   void notes(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const;
+  void relever_note(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const;
+  void trailing(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const;
   void protection(const Texts& t, const GameState& g, const Calc& c, bool busy, TicketView& v) const;
   [[nodiscard]] std::string beyond_key() const;
 

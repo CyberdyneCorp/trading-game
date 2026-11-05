@@ -48,23 +48,30 @@ void position_block(const Texts& t, const GameState& g, RailView& r) {
   if (r.liq_danger) r.liq_warning = "\xE2\x9A\xA0 " + t.tr("rail.liqWarning", {{"pct", bp_pct(g.rules.liq_warning_bp, L)}});
 }
 
+const OptionQuote* quote_of(const Options& o, int series) {
+  for (const auto& c : o.chain) {
+    if (c.id == series) return &c;
+  }
+  return nullptr;
+}
+
+// "▲ C 100 · exp 96 × 1,0   ▲ +0,40 cr", marked at the bid (long) or the ask (short).
+Line option_line(const Options& o, const OptionPosition& p, Locale L) {
+  const OptionQuote* q = quote_of(o, p.series);
+  const double mark_px = q == nullptr ? 0 : p.qty > 0 ? q->bid : q->ask;
+  const double pnl = (mark_px - p.avg_premium) * p.qty * o.multiplier;
+  const std::string name = q != nullptr ? series_label(*q, L) : "#" + std::to_string(p.series);
+  return {std::string(p.qty > 0 ? "\xE2\x96\xB2 " : "\xE2\x96\xBC ") + name + " \xC3\x97 " + fmt::fmt_num(std::fabs(p.qty), L, 1) +
+              "   " + signed_money(pnl, L),
+          signed_tone(pnl)};
+}
+
 void options_block(const Texts& t, const GameState& g, RailView& r) {
   const Options& o = g.options;
   if (!o.enabled || o.positions.empty()) return;
   const Locale L = t.locale();
   r.options = true;
-  for (const auto& p : o.positions) {
-    const OptionQuote* q = nullptr;
-    for (const auto& c : o.chain) {
-      if (c.id == p.series) q = &c;
-    }
-    const double mark_px = q != nullptr ? (p.qty > 0 ? q->bid : q->ask) : 0;
-    const double pnl = (mark_px - p.avg_premium) * p.qty * o.multiplier;
-    const std::string name = q != nullptr ? series_label(*q, L) : "#" + std::to_string(p.series);
-    r.option_positions.push_back({std::string(p.qty > 0 ? "\xE2\x96\xB2 " : "\xE2\x96\xBC ") + name + " \xC3\x97 " +
-                                      fmt::fmt_num(std::fabs(p.qty), L, 1) + "   " + signed_money(pnl, L),
-                                  signed_tone(pnl)});
-  }
+  for (const auto& p : o.positions) r.option_positions.push_back(option_line(o, p, L));
   r.option_book.push_back({t.tr("opt.value"), fmt::fmt_money(o.long_value - o.short_value, L, true), Tone::Plain});
   if (o.initial_margin > 0) {
     r.option_book.push_back({t.tr("opt.marginUsed"), fmt::fmt_money(o.initial_margin, L) + " / " + fmt::fmt_money(o.maintenance_margin, L), Tone::Plain});
@@ -131,10 +138,50 @@ std::vector<Line> feed_lines(const Texts& t, const GameState& g, const SeriesNam
   return out;
 }
 
+namespace {
+
+Line news_line(const Texts& t, const News& n) {
+  const std::string early = n.early ? "[" + t.tr("news.early") + "] " : "";
+  return {"[" + std::to_string(n.step) + "] " + early + news_headline(t, n),
+          n.tone > 0 ? Tone::Up : n.tone < 0 ? Tone::Down : Tone::Plain};
+}
+
+// Expected, actual and credibility; an early headline also says when it goes public.
+Line news_meta(const Texts& t, const News& n, int step) {
+  std::string meta = n.early ? t.count("news.publicIn", n.step - step) + kDot : "";
+  meta += t.tr("news.expected") + ": " + news_level(t, n.expectation) + kDot + t.tr("news.actual") + ": " +
+          news_level(t, n.actual) + kDot + t.tr("news.credibility") + " " + std::to_string(n.credibility) + "%";
+  return {meta, Tone::Muted};
+}
+
+// The latest read: stance with confidence, stop and size, the reasons with their votes.
+void advice_read(const Texts& t, const GameState& g, const Advice& a, AdvisorView& v) {
+  const Locale L = t.locale();
+  v.has_read = true;
+  const Tone tone = a.stance == "long" ? Tone::Up : a.stance == "short" ? Tone::Down : Tone::Attention;
+  v.stance = {t.tr("adv.stance." + a.stance) + "   " +
+                  t.tr("adv.confidence", {{"pct", std::to_string(pct_from_bp(a.confidence_bp))}}) + kDot +
+                  t.tr("adv.at", {{"n", std::to_string(a.step)}}),
+              tone};
+  const double size = fmt::num(a.size);
+  if (a.stance != "wait") {
+    v.detail = t.tr("adv.stop") + ": " + fmt::fmt_price(a.stop, L) + kDot + t.tr("adv.size") + ": " +
+               (size > 0 ? fmt::fmt_qty(a.size, L) : std::string(kDash));
+  }
+  v.actionable = a.stance != "wait" && size > 0 && a.step == g.step;
+  for (const auto& r : a.reasons) {
+    v.reasons.push_back({vote_mark(r.vote) + " " + advice_reason_line(t, r, g.indicators.patterns),
+                         r.vote > 0 ? Tone::Up : r.vote < 0 ? Tone::Down : Tone::Muted});
+  }
+  v.disclaimer = t.tr("adv.disclaimer");
+}
+
+}  // namespace
+
 NewsView news_view(const Texts& t, const GameState& g) {
   NewsView v;
   for (const auto& u : g.upcoming) {
-    v.upcoming.push_back("\xF0\x9F\x97\x93 " + t.tr("news.upcomingItem", {{"kind", news_kind(t, u.kind)},
+    v.upcoming.push_back("\xC2\xBB " + t.tr("news.upcomingItem", {{"kind", news_kind(t, u.kind)},
                                                                          {"step", std::to_string(u.step)},
                                                                          {"consensus", news_level(t, u.expectation)}}) +
                          kDot + t.count("news.inBars", u.step - g.step));
@@ -143,18 +190,12 @@ NewsView news_view(const Texts& t, const GameState& g) {
   for (const int at : g.calendar) {
     const bool announced = std::any_of(g.upcoming.begin(), g.upcoming.end(), [&](const Upcoming& u) { return u.step == at; });
     if (announced) continue;
-    v.calendar.push_back("\xF0\x9F\x93\x85 " + t.tr("news.calendarItem", {{"step", std::to_string(at)}}) + kDot +
+    v.calendar.push_back("\xC2\xBB " + t.tr("news.calendarItem", {{"step", std::to_string(at)}}) + kDot +
                          t.count("news.inBars", at - g.step));
   }
   for (auto it = g.news.rbegin(); it != g.news.rend(); ++it) {
-    const News& n = *it;
-    const std::string early = n.early ? "[" + t.tr("news.early") + "] " : "";
-    v.items.push_back({"[" + std::to_string(n.step) + "] " + early + news_headline(t, n),
-                       n.tone > 0 ? Tone::Up : n.tone < 0 ? Tone::Down : Tone::Plain});
-    std::string meta = n.early ? t.count("news.publicIn", n.step - g.step) + kDot : "";
-    meta += t.tr("news.expected") + ": " + news_level(t, n.expectation) + kDot + t.tr("news.actual") + ": " +
-            news_level(t, n.actual) + kDot + t.tr("news.credibility") + " " + std::to_string(n.credibility) + "%";
-    v.items.push_back({meta, Tone::Muted});
+    v.items.push_back(news_line(t, *it));
+    v.items.push_back(news_meta(t, *it, g.step));
   }
   if (g.news.empty()) v.items.push_back({t.tr("news.none"), Tone::Muted});
   v.note = t.tr("news.note");
@@ -163,7 +204,6 @@ NewsView news_view(const Texts& t, const GameState& g) {
 
 AdvisorView advisor_view(const Texts& t, const GameState& g, bool busy) {
   const Advisor& adv = g.advisor;
-  const Locale L = t.locale();
   AdvisorView v;
   v.points = t.tr("adv.left", {{"n", std::to_string(adv.left)}});
   const Advice* latest = adv.advice.empty() ? nullptr : &adv.advice.back();
@@ -174,23 +214,7 @@ AdvisorView advisor_view(const Texts& t, const GameState& g, bool busy) {
     v.intro = t.tr(adv.left == 0 ? "adv.empty" : "adv.intro");
     return v;
   }
-  v.has_read = true;
-  const Tone tone = latest->stance == "long" ? Tone::Up : latest->stance == "short" ? Tone::Down : Tone::Attention;
-  v.stance = {t.tr("adv.stance." + latest->stance) + "   " +
-                  t.tr("adv.confidence", {{"pct", std::to_string(pct_from_bp(latest->confidence_bp))}}) + kDot +
-                  t.tr("adv.at", {{"n", std::to_string(latest->step)}}),
-              tone};
-  if (latest->stance != "wait") {
-    const double size = fmt::num(latest->size);
-    v.detail = t.tr("adv.stop") + ": " + fmt::fmt_price(latest->stop, L) + kDot + t.tr("adv.size") + ": " +
-               (size > 0 ? fmt::fmt_qty(latest->size, L) : std::string(kDash));
-  }
-  v.actionable = latest->stance != "wait" && fmt::num(latest->size) > 0 && latest->step == g.step;
-  for (const auto& r : latest->reasons) {
-    v.reasons.push_back({vote_mark(r.vote) + " " + advice_reason_line(t, r, g.indicators.patterns),
-                         r.vote > 0 ? Tone::Up : r.vote < 0 ? Tone::Down : Tone::Muted});
-  }
-  v.disclaimer = t.tr("adv.disclaimer");
+  advice_read(t, g, *latest, v);
   return v;
 }
 
