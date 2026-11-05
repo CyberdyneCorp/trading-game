@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+	briefTiers,
+	costsOf,
 	estimate,
+	estimatedMarketEntry,
 	fitToMargin,
 	liquidationAfter,
 	liquidationPrice,
@@ -11,11 +14,45 @@ import {
 	qtyForRisk,
 	releveredLiquidation,
 	requiredMargin,
+	shockFactors,
 	sizedQty,
 	type Costs
 } from './sizing.ts';
+import type { Contract } from '#lib/engine/types.ts';
 
 const zero: Costs = { multiplier: 1, takerFee: 0, maintenanceMargin: 0.01, halfSpread: 0, slippage: 0 };
+
+describe('briefTiers', () => {
+	// Playtest: a 5x mission briefed "≥ 50.000: 1% (20x)".
+	it('regression: never lists a tier leverage cap above the mission’s cap', () => {
+		const tiers = [
+			{ notionalFloor: '0', maintenanceMargin: '0.005', maxLeverage: 50 },
+			{ notionalFloor: '50000', maintenanceMargin: '0.01', maxLeverage: 20 },
+			{ notionalFloor: '200000', maintenanceMargin: '0.05', maxLeverage: 3 }
+		];
+		expect(briefTiers({ marginTiers: tiers, leverageCap: 5 })).toEqual([
+			{ floor: 50000, mmr: 0.01, maxLeverage: 5 },
+			{ floor: 200000, mmr: 0.05, maxLeverage: 3 }
+		]);
+		expect(briefTiers({ leverageCap: 5 })).toEqual([]);
+	});
+});
+
+describe('liquidity shocks', () => {
+	// Playtest: on a shocked bar the ticket's estimated entry used the declared spread and understated the cost.
+	it('regression: estimates with the shocked costs of the next bar when the state carries them', () => {
+		const contract = {
+			multiplier: '1', takerFee: '0.0005', maintenanceMargin: '0.005', halfSpread: '0.0001', slippage: '0.0002', capacityFraction: '0.1'
+		} as unknown as Contract;
+		const shocked = { halfSpread: '0.0003', slippage: '0.0006', capacityFraction: '0.05' };
+		expect(estimatedMarketEntry('buy', 100, costsOf(contract))).toBeCloseTo(100.03, 9);
+		expect(estimatedMarketEntry('buy', 100, costsOf(contract, shocked))).toBeCloseTo(100.09, 9);
+		expect(costsOf(contract, null).halfSpread).toBe(0.0001);
+		const f = shockFactors(contract, shocked);
+		expect(f.cost).toBeCloseTo(3, 9);
+		expect(f.capacity).toBeCloseTo(0.5, 9);
+	});
+});
 
 describe('sizing', () => {
 	it('matches the spec sizing example: 10,000 x 1% / (5 + 1) = 16.6', () => {

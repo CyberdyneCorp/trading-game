@@ -45,6 +45,16 @@ export function rewindRange(warmupBars: number, step: number): { min: number; ma
 	return step > warmupBars ? { min: warmupBars, max: step - 1 } : null;
 }
 
+/**
+ * The turn typed in "back to bar" (1 = the first decision) brought into the rewind range, so the
+ * field shows the bar the rewind will actually go to. NaN or an empty field gives the first decision.
+ */
+export function clampRewindTurn(turn: number, warmupBars: number, range: { min: number; max: number }): number {
+	const first = range.min - warmupBars + 1;
+	const last = range.max - warmupBars + 1;
+	return Number.isFinite(turn) ? Math.min(Math.max(Math.round(turn), first), last) : first;
+}
+
 /** Assisted practice is offered outside the campaign (a campaign mission in progress cannot be retried). */
 export function assistAllowed(activeCampaignRun: boolean, status: string): boolean {
 	return !(activeCampaignRun && status === 'active');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assistAllowed, rewindPrefix, rewindRange } from './assisted.ts';
+import { assistAllowed, clampRewindTurn, rewindPrefix, rewindRange } from './assisted.ts';
 import { i18n, t } from './i18n.svelte.ts';
 
 type A = { k: string; n?: number; id?: number };
@@ -33,6 +33,16 @@ describe('assisted practice: rewind prefix', () => {
 		const copy = structuredClone(log);
 		rewindPrefix(log, 60, 65);
 		expect(log).toEqual(copy);
+	});
+
+	// Playtest: after a rewind the field kept "15" above its new max and the rewind went to bar 10 silently.
+	it('regression: brings the typed turn into the rewind range, so the field shows the real target', () => {
+		const range = rewindRange(60, 70)!; // turns 1..10
+		expect(clampRewindTurn(15, 60, range)).toBe(10);
+		expect(clampRewindTurn(0, 60, range)).toBe(1);
+		expect(clampRewindTurn(4.6, 60, range)).toBe(5);
+		expect(clampRewindTurn(NaN, 60, range)).toBe(1);
+		expect(clampRewindTurn(7, 60, range)).toBe(7);
 	});
 
 	it('offers the decisions before the current one, and none at the first', () => {

@@ -2,7 +2,7 @@
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { PlanEntry } from '#lib/game/analysis.ts';
-	import type { AdviceView, OrderSideName } from '#lib/engine/types.ts';
+	import type { AdviceView, OrderSideName, OrderView } from '#lib/engine/types.ts';
 	import AdvisorPanel from './AdvisorPanel.svelte';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { marginFacts, orderFacts, rejectionText, releverFacts, type RejectionFacts } from '#lib/game/rejections.ts';
@@ -14,7 +14,8 @@
 	import { actionFor, keyName, type ShortcutAction } from '#lib/game/shortcuts.ts';
 	import RunJournal from './RunJournal.svelte';
 	import { positionPlannedRisk } from '#lib/game/journal.ts';
-	import { exitOnValidSide } from './chartDrag.ts';
+	import { exitOnValidSide, stopMovedBeyondLiquidation } from './chartDrag.ts';
+	import ConfirmDialog from './ConfirmDialog.svelte';
 	import { fmtPrice, fmtQty, num, priceInputText, priceToTick, qtyInputText } from '#lib/game/format.ts';
 	import { costsOf, estimatedMarketEntry, fitToMargin, type SizeBy } from '#lib/game/sizing.ts';
 	import EventFeed from './EventFeed.svelte';
@@ -122,6 +123,18 @@
 			session.notice = { tone: 'error', text: `✖ ${t(o.type === 'stop_market' ? 'chart.dragStopSide' : 'chart.dragTpSide')}` };
 			return;
 		}
+		// Past liquidation: the same confirmation as placing such a stop (the move waits for the answer).
+		const liq = s.account.liquidationPrice ? num(s.account.liquidationPrice) : null;
+		if (s.missionRules.confirmStopBeyondLiq && stopMovedBeyondLiquidation(o.side, o.type, Number(to), liq)) {
+			pendingMove = { o, to };
+			return;
+		}
+		await sendMove(o, to);
+	}
+
+	let pendingMove = $state<{ o: OrderView; to: string } | null>(null);
+	async function sendMove(o: OrderView, to: string) {
+		pendingMove = null;
 		const res = await session.moveOrder(o, to);
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason);
@@ -330,6 +343,21 @@
 {/if}
 {#if draft && session.state}
 	<PlanDialog {draft} step={session.state.step} onConfirm={onPlan} onCancel={() => (draft = null)} />
+{/if}
+{#if pendingMove && session.state}
+	{@const pm = pendingMove}
+	<ConfirmDialog
+		title={t('chart.moveBeyondTitle')}
+		message={t('chart.moveBeyond', {
+			id: pm.o.id,
+			price: fmtPrice(pm.to, i18n.locale),
+			liq: fmtPrice(session.state.account.liquidationPrice, i18n.locale)
+		})}
+		confirmLabel={t('chart.moveBeyondYes')}
+		cancelLabel={t('chart.moveBeyondNo')}
+		onConfirm={() => void sendMove(pm.o, pm.to)}
+		onCancel={() => (pendingMove = null)}
+	/>
 {/if}
 {#if help}
 	<HelpOverlay onClose={() => (help = false)} />

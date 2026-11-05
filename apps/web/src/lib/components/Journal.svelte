@@ -12,7 +12,7 @@
 	const runs = $derived(journalRuns(session.journalRecords, filter || null));
 	const missions = $derived(journalMissions(session.journalRecords));
 	// A practice run is named by its pack's origin (catalog or imported), as on the briefing.
-	function titleOf(missionId: string, digest = session.journalRecords.find((r) => r.missionId === missionId)?.packDigest) {
+	function titleOf(missionId: string, digest: string | null | undefined = session.journalRecords.find((r) => r.missionId === missionId)?.packDigest) {
 		return missionText(missionId, L, packOriginOf(session.packs, digest)).title;
 	}
 </script>

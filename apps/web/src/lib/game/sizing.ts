@@ -54,6 +54,18 @@ export function costsOf(c: Contract, liquidity?: LiquidityView | null): Costs {
 	};
 }
 
+/**
+ * The higher margin tiers as the run can use them: a tier's leverage cap never shows above the
+ * mission's own cap (a 20x tier in a 5x mission is 5x).
+ */
+export function briefTiers(c: Pick<Contract, 'marginTiers' | 'leverageCap'>): { floor: number; mmr: number; maxLeverage: number }[] {
+	return (c.marginTiers ?? []).slice(1).map((t) => ({
+		floor: Number(t.notionalFloor),
+		mmr: Number(t.maintenanceMargin),
+		maxLeverage: Math.min(t.maxLeverage, c.leverageCap)
+	}));
+}
+
 /** How a liquidity shock scales the contract's spread + slippage and its capacity (1 = as declared). */
 export function shockFactors(c: Contract, liquidity: LiquidityView): { cost: number; capacity: number } {
 	const base = Number(c.halfSpread) + Number(c.slippage);

@@ -6,6 +6,7 @@
 	import PerkPanel from './PerkPanel.svelte';
 	import LessonQuiz from './LessonQuiz.svelte';
 	import { bpPct, objectiveTexts } from '#lib/game/objectives.ts';
+	import { briefTiers } from '#lib/game/sizing.ts';
 	import { fmtMoney, fmtNum, fmtPct, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
@@ -19,11 +20,9 @@
 	const PERMS = ['long', 'short', 'optionsBuy', 'optionsWrite'] as const;
 	const allowed = $derived(PERMS.filter((p) => rules.permissions[p]).map((p) => t(`perm.${p}`)));
 	const notAllowed = $derived(PERMS.filter((p) => !rules.permissions[p]).map((p) => t(`perm.${p}`)));
-	// Higher maintenance tiers by notional (policy v16): "≥ 50.000: 1% (20x)".
+	// Higher maintenance tiers by notional (policy v16): "≥ 50.000: 1% (20x)", capped at the mission's leverage.
 	const tiers = $derived(
-		(c.marginTiers ?? []).slice(1).map((m) =>
-			t('brief.tier', { floor: fmtNum(num(m.notionalFloor), L, 0), mmr: fmtPct(num(m.maintenanceMargin), L, 1), max: m.maxLeverage })
-		)
+		briefTiers(c).map((m) => t('brief.tier', { floor: fmtNum(m.floor, L, 0), mmr: fmtPct(m.mmr, L, 1), max: m.maxLeverage }))
 	);
 	const link = $derived(session.runCampaign);
 	const modeText = $derived.by(() => {
@@ -69,6 +68,7 @@
 					slip: fmtPct(num(c.halfSpread) + num(c.slippage), L, 3),
 					funding: c.fundingInterval
 				})}
+				{#if c.liquidityShocks}<br /><span class="attention" data-testid="brief-shocks">⚠ {t('brief.costsShock')}</span>{/if}
 			</dd>
 		</dl>
 		<h3>{t('brief.objectives')}</h3>

@@ -49,3 +49,13 @@ export function exitOnValidSide(side: OrderSideName, type: OrderTypeName, price:
 	const isStop = type === 'stop_market';
 	return side === 'sell' ? below === isStop : below !== isStop;
 }
+
+/**
+ * A stop moved to or past the position's liquidation price (a sell stop protecting a long at or below
+ * it, a buy stop at or above it): liquidation would happen first. Like placing such a stop, moving one
+ * there needs the player's confirmation when the mission asks for it (MissionRules.confirmStopBeyondLiq).
+ */
+export function stopMovedBeyondLiquidation(side: OrderSideName, type: OrderTypeName, price: number, liquidation: number | null): boolean {
+	if (type !== 'stop_market' || liquidation == null) return false;
+	return side === 'sell' ? price <= liquidation : price >= liquidation;
+}
