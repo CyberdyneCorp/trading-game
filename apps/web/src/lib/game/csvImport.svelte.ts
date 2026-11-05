@@ -2,7 +2,7 @@
 // -> private practice pack. Every rule is checked by the engine; the wizard only guesses defaults.
 
 import type { CsvMeta, CsvReport } from '#lib/engine/types.ts';
-import { packReasonText, t } from './i18n.svelte.ts';
+import { csvMetaText, packReasonText, t } from './i18n.svelte.ts';
 import { CSV_MAX_BYTES, DEFAULT_META, defaultLabel, guessMeta } from './packs.ts';
 import type { GameSession } from './session.svelte.ts';
 
@@ -38,7 +38,7 @@ export class CsvImportWizard {
 		await this.run(async () => {
 			const report = await this.session.validateCsv(this.csv, this.meta);
 			if (report.metaError) {
-				this.error = t('csv.meta', { field: report.metaError });
+				this.error = csvMetaText(report.metaError);
 				return;
 			}
 			this.report = report;

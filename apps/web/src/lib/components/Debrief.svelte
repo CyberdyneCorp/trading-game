@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { describeFinding, describeLesson } from '#lib/game/analysis.ts';
+	import { describeFindings, describeLesson } from '#lib/game/analysis.ts';
 	import { pctFromBp } from '#lib/game/advisor.ts';
-	import { fmtLeverageBp, fmtLiqDistance, greekRows, stopAdvice } from '#lib/game/debrief.ts';
+	import { fmtLeverageBp, fmtLiqDistance, greekRows, revealTexts, stopAdvice } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
@@ -18,6 +18,11 @@
 	const a = $derived({ netPnl: Number(d.netPnl), dims: d.score.dims, total: d.score.total, findings: d.findings, lesson: d.lesson });
 	const trades = $derived(d.trades);
 	const greeks = $derived(greekRows(d.greeks));
+	const findingTexts = $derived(describeFindings(a.findings, L));
+	// Depends on L so the texts follow a language switch.
+	const reveal = $derived(d.reveal && L ? revealTexts(d.reveal, d.alias) : null);
+	// The run can end (game over) before the scenario does; the market line and buy-and-hold do not.
+	const endedEarly = $derived(s.step < s.totalBars - 1);
 	function adviceText(tr: EngineTrade): string | null {
 		const adv = stopAdvice(tr, L);
 		if (!adv) return null;
@@ -110,25 +115,18 @@
 		<section class="panel">
 			<h2 class="panel-title">{t('debrief.reveal')}</h2>
 			{#if d.reveal}
-				<p data-testid="pack-reveal">
-					{t('debrief.revealPack', {
-						alias: d.alias,
-						pair: d.reveal.pair || '—',
-						asset: d.reveal.asset || '—',
-						venue: d.reveal.venue || '—',
-						from: d.reveal.periodFrom,
-						to: d.reveal.periodTo,
-						source: d.reveal.source
-					})}
-				</p>
-				<p class="muted small">{t('debrief.revealTransform', { text: d.reveal.transformation })}</p>
+				<p data-testid="pack-reveal">{reveal?.line}</p>
+				<p class="muted small">{t('debrief.revealTransform', { text: reveal?.transform ?? '' })}</p>
 				{#if d.reveal.gaps > 0}<p class="muted small">{t('debrief.revealGaps', { n: d.reveal.gaps })}</p>{/if}
 			{:else}
 				<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
 				<h3>{t('debrief.scenario')}</h3>
 				<p class="reveal">{missionText(s.mission, L).reveal}</p>
 			{/if}
-			<p class="muted small">{fmtPrice(d.startPrice, L)} → {fmtPrice(d.endPrice, L)}</p>
+			<p class="muted small" data-testid="market-span">{t('debrief.marketSpan', { from: fmtPrice(d.startPrice, L), to: fmtPrice(d.endPrice, L) })}</p>
+			{#if endedEarly}
+				<p class="muted small" data-testid="ended-early">{t('debrief.endedEarly', { step: s.step, end: s.totalBars - 1 })}</p>
+			{/if}
 		</section>
 	</div>
 
@@ -137,7 +135,7 @@
 		<ul>
 			{#each a.findings as f, i (i)}
 				<li class={f.tone === 'bad' ? 'down' : f.tone === 'good' ? 'up' : f.tone === 'warn' ? 'attention' : 'info'}>
-					{f.tone === 'good' ? '✔' : f.tone === 'bad' ? '✖' : f.tone === 'warn' ? '⚠' : 'ℹ'} {describeFinding(f, L)}
+					{f.tone === 'good' ? '✔' : f.tone === 'bad' ? '✖' : f.tone === 'warn' ? '⚠' : 'ℹ'} {findingTexts[i]}
 				</li>
 			{/each}
 		</ul>

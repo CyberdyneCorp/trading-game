@@ -99,6 +99,9 @@ test('an imported CSV becomes a practice mission: masked prices, no reveal until
 	await expect(page.getByText(/Missão concluída/)).toBeVisible();
 	await expect(page.getByTestId('pack-reveal')).toContainText('BTC/USDT');
 	await expect(page.getByTestId('pack-reveal')).toContainText('2023-11-14T22:13:20Z');
+	await expect(page.getByTestId('pack-reveal')).toContainText('CSV importado neste dispositivo');
+	await expect(page.getByText(/Transformação: preços × 100 \/ abertura da barra \d+/)).toBeVisible(); // was the engine's English note
+	await expect(page.getByTestId('ended-early')).toHaveCount(0);
 	await expect(page.getByTestId('debrief-advisor')).toHaveCount(0);
 	expect(errors).toEqual([]);
 });
@@ -152,4 +155,24 @@ test('a saved practice run whose pack was removed does not resume and says why',
 	await page.getByRole('button', { name: /Continuar partida/ }).click();
 	await expect(page.getByTestId('menu-alert')).toContainText('não está mais neste dispositivo');
 	await expect(page.getByRole('button', { name: /Continuar partida/ })).toHaveCount(0);
+});
+
+test('regression: a CSV over 64 KB validates, becomes a pack, and the engine still runs missions after', async ({ page }) => {
+	const errors: string[] = [];
+	page.on('pageerror', (e) => errors.push(String(e)));
+	const big = csvText(2_000);
+	expect(big.length).toBeGreaterThan(100_000); // well past the 64 KB WASM stack
+	await page.goto('/?seed=11');
+	await page.getByTestId('import-csv').click();
+	await chooseCsv(page, 'btc-big.csv', big);
+	await page.getByTestId('csv-validate').click();
+	await expect(page.getByTestId('csv-report')).toContainText('2000 barras');
+	await page.getByTestId('csv-create').click();
+	await expect(page.getByTestId('pack-row')).toHaveCount(1);
+
+	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
+	await page.getByRole('button', { name: 'Pular tutorial' }).click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await expect(page.locator('.turn')).toContainText('Barra');
+	expect(errors).toEqual([]);
 });

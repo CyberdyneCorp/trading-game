@@ -85,6 +85,12 @@ const safeLeverageText: Record<Locale, Partial<Record<EngineFinding['code'], str
 	}
 };
 
+// The liquidation line when the stop_beyond_liq finding already names the stop and the safe leverage.
+const liquidatedOnlyText: Record<Locale, string> = {
+	'pt-BR': 'Liquidação na barra {step} a {price}: a margem isolada inteira ({amount}) foi perdida.',
+	en: 'Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost.'
+};
+
 const lessonText: Record<Locale, Record<LessonCode, string>> = {
 	'pt-BR': {
 		futures2: 'Futuros II — margem, alavancagem e preço de liquidação',
@@ -116,7 +122,24 @@ export function describeFinding(f: EngineFinding, locale: Locale): string {
 		risk: Math.round(Number(f.amount)).toLocaleString(locale)
 	};
 	const template = (f.count > 0 ? safeLeverageText[locale][f.code] : undefined) ?? findingText[locale][f.code];
+	return fill(template, params);
+}
+
+function fill(template: string, params: Record<string, string | number>): string {
 	return template.replace(/\{(\w+)\}/g, (_, k: string) => String(params[k] ?? ''));
+}
+
+/**
+ * Texts for a whole findings list. The safe-leverage advice is said once: when the stop_beyond_liq
+ * finding carries it, the liquidation line only states the loss.
+ */
+export function describeFindings(findings: EngineFinding[], locale: Locale): string[] {
+	const stopNamed = findings.some((f) => f.code === 'stop_beyond_liq' && f.count > 0);
+	return findings.map((f) =>
+		stopNamed && f.code === 'liquidated'
+			? fill(liquidatedOnlyText[locale], { step: f.step, price: fmtPrice(f.price, locale), amount: fmtPrice(f.amount, locale) })
+			: describeFinding(f, locale)
+	);
 }
 
 export function describeLesson(l: LessonCode, locale: Locale): string {

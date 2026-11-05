@@ -13,6 +13,10 @@ The web client SHALL run the WASM engine in a dedicated Web Worker and SHALL com
 - **WHEN** the main thread's memory and message log are inspected mid-run
 - **THEN** no bar, event or reveal data after the current step SHALL be present
 
+#### Scenario: Engine trap
+- **WHEN** an engine call traps (for example a WASM out-of-bounds access)
+- **THEN** the worker SHALL report the error and load a fresh engine instance for the next request, so the app keeps working without a page reload
+
 ### Requirement: Local persistence
 Runs, commands and checkpoints SHALL be stored in IndexedDB, with each command committed before it is acknowledged in the UI. Installed packs SHALL be cached by digest.
 
@@ -28,7 +32,7 @@ The mission menu SHALL mark a mission "Completed" when at least one run of it on
 - **THEN** that mission's card SHALL show the Completed mark and no other card SHALL
 
 ### Requirement: CSV import wizard
-The menu SHALL offer a CSV import wizard that reads the file on the device, asks for the metadata the file cannot carry (asset, pair, venue, bar interval, timestamp unit, volume unit, leverage cap), shows the engine's validation report (errors by line in plain language, gaps with their size, rows, period and whether funding is present) and, only for a valid file, creates a practice mission from a private pack. The wizard SHALL NOT correct data or units on its own; it MAY pre-select the unit and interval guessed from the first rows. Imported markets SHALL be listed and labeled as known scenarios, and during a run the UI SHALL show neither the real asset nor unmasked prices; the reveal SHALL appear only in the debrief. A run on an imported pack SHALL resume after a reload like any other run.
+The menu SHALL offer a CSV import wizard that reads the file on the device, asks for the metadata the file cannot carry (asset, pair, venue, bar interval, timestamp unit, volume unit, leverage cap), shows the engine's validation report (errors by line in plain language, gaps with their size, rows, period and whether funding is present) and, only for a valid file, creates a practice mission from a private pack. The wizard SHALL NOT correct data or units on its own; it MAY pre-select the unit and interval guessed from the first rows. Imported markets SHALL be listed and labeled as known scenarios, and during a run the UI SHALL show neither the real asset nor unmasked prices; the reveal SHALL appear only in the debrief. A run on an imported pack SHALL resume after a reload like any other run. Every file up to the 4 MB wizard limit SHALL reach the engine whole (the CSV is passed through the WASM heap, never the call stack), so the engine's own row limit is the only size rule. A declared value the engine refuses and a refused pack build SHALL be explained in words (the field and its allowed range, the reason), never as a raw engine code. In the debrief, the reveal SHALL be in the player's language for the parts the engine fixes (the CSV-import source and transformation note), SHALL leave out an empty venue, and, when the run ended before the scenario (game over), SHALL say that the market line and buy-and-hold are measured to the end of the scenario.
 
 #### Scenario: Wrong timestamp unit in the wizard (DATA01-web)
 - **WHEN** the player declares seconds for a file whose timestamps are in milliseconds and validates
@@ -37,6 +41,10 @@ The menu SHALL offer a CSV import wizard that reads the file on the device, asks
 #### Scenario: Practice run on an imported market
 - **WHEN** the player creates a mission from a valid CSV and plays it to the end
 - **THEN** the briefing and top bar SHALL mark it as a known scenario with masked prices, and the debrief SHALL reveal the pair and the period
+
+#### Scenario: File larger than 64 KB
+- **WHEN** the player imports a valid 2,000-row CSV (over 100 KB)
+- **THEN** the wizard SHALL validate it and create the mission, and missions SHALL still start afterwards
 
 #### Scenario: Pack from an unknown signer
 - **WHEN** the player loads a `.tlpack` file not signed by this device or a pinned publisher

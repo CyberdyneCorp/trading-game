@@ -1,9 +1,9 @@
 // Display helpers for the engine debrief (report-only numbers computed by engine/src/debrief.cpp).
 // The client formats; it never recomputes attribution, costs or leverage advice.
 
-import type { EngineTrade, GreekAttribution } from '#lib/engine/types.ts';
+import type { EngineTrade, GreekAttribution, PackReveal } from '#lib/engine/types.ts';
 import { fmtPct, fmtPrice, num } from './format.ts';
-import type { Locale } from './i18n.svelte';
+import { t, type Locale } from './i18n.svelte.ts';
 
 export type GreekKey = 'delta' | 'gamma' | 'theta' | 'vega' | 'residual';
 
@@ -43,4 +43,25 @@ export interface StopAdvice {
 export function stopAdvice(tr: EngineTrade, locale: Locale): StopAdvice | null {
 	if (tr.series !== 0 || !tr.stopBeyondLiq) return null;
 	return { stop: fmtPrice(tr.stop, locale), liq: fmtPrice(tr.liqPrice, locale), lev: tr.safeLeverage ?? 0, used: tr.leverage ?? 0 };
+}
+
+// The fixed transformation note the engine writes into a CSV-import pack (engine/src/pack_build.cpp).
+const CSV_TRANSFORM = /^prices x 100 \/ open of bar (\d+), half-even to 0\.01; volume x the inverse$/;
+
+/** Reveal sentence and transformation note of a pack, in the player's language where the text is known. */
+export function revealTexts(r: PackReveal, alias: string): { line: string; transform: string } {
+	const params = {
+		alias,
+		pair: r.pair || '—',
+		asset: r.asset || '—',
+		venue: r.venue,
+		from: r.periodFrom,
+		to: r.periodTo,
+		source: r.source === 'csv-import' ? t('debrief.sourceCsv') : r.source
+	};
+	const bar = CSV_TRANSFORM.exec(r.transformation)?.[1];
+	return {
+		line: t(r.venue ? 'debrief.revealPack' : 'debrief.revealPackNoVenue', params),
+		transform: bar ? t('debrief.transformCsv', { bar }) : r.transformation
+	};
 }
