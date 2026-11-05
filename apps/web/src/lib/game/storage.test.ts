@@ -122,12 +122,12 @@ describe('RunStore (IndexedDB)', () => {
 
 	it('keeps the campaign run, its history and the assessed missions across a save', async () => {
 		const p = startCampaign(EMPTY_PROGRESS, 'c1', 5);
-		const done = settleCampaignRun(p, { id: 'c1', index: 0 }, { runId: 'r1', missionId: 'm01-false-breakout', result: 'finished', equity: '9500' });
+		const done = settleCampaignRun(p, { id: 'c1', index: 0 }, { runId: 'r1', missionId: 'm06-thin-book', result: 'finished', equity: '9500' });
 		await store.saveProgress(done);
 		const back = await store.progress();
 		expect(back.campaign?.capital).toBe('9500');
 		expect(back.campaign?.index).toBe(1);
-		expect(back.assessed).toEqual(['m01-false-breakout']);
+		expect(back.assessed).toEqual(['m06-thin-book']);
 	});
 
 	it('drops damaged progress fields instead of failing', () => {

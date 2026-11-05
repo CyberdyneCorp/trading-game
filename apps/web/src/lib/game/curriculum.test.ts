@@ -15,15 +15,22 @@ const M02 = 'm02-funding-squeeze';
 const M03 = 'm03-volatility-shock';
 const M04 = 'm04-options-buyer';
 const M05 = 'm05-options-writer';
+const M06 = 'm06-thin-book';
+const M07 = 'm07-trend-trailing';
+const M08 = 'm08-regime-switch';
 
-// What each built-in mission's engine rules allow (engine/src/missions.cpp): every mission allows
-// shorting the perpetual and a leverage cap above 2x; m04 lists options, m05 also lets you write them.
+// What each built-in mission's engine rules allow (engine/src/missions.cpp): m06 is long only with a
+// 2x cap (it comes before Futures I and II); every other mission allows shorting the perpetual and a
+// leverage cap above 2x; m04 lists options, m05 also lets you write them.
 const missionUses: Record<string, Unlock[]> = {
 	[M01]: ['short', 'leverage'],
 	[M02]: ['short', 'leverage'],
 	[M03]: ['short', 'leverage'],
 	[M04]: ['short', 'leverage', 'optionsBuy'],
-	[M05]: ['short', 'leverage', 'optionsBuy', 'optionsWrite']
+	[M05]: ['short', 'leverage', 'optionsBuy', 'optionsWrite'],
+	[M06]: [],
+	[M07]: ['short', 'leverage'],
+	[M08]: ['short', 'leverage']
 };
 
 describe('curriculum graph', () => {
@@ -35,8 +42,16 @@ describe('curriculum graph', () => {
 		STAGES.forEach((s, i) => expect(s.requires).toEqual(i === 0 ? [] : [STAGES[i - 1].id]));
 	});
 
-	it('orders the campaign by the curriculum (Futures II before Futures III), each mission once', () => {
-		expect(campaignMissions()).toEqual([M01, M03, M02, M04, M05]);
+	it('orders the campaign by the curriculum (design D8.4 batch A), each mission once', () => {
+		expect(campaignMissions()).toEqual([M06, M01, M03, M02, M07, M04, M05, M08]);
+	});
+
+	it('m06 assesses Structure and Orders, m07 Risk sizing, m08 Patterns & Indicators', () => {
+		const byStage = Object.fromEntries(STAGES.map((s) => [s.id, s.missions]));
+		expect(byStage.structure).toEqual([M06]);
+		expect(byStage.orders).toEqual([M06]);
+		expect(byStage.risk).toEqual([M07]);
+		expect(byStage.patterns).toEqual([M08]);
 	});
 
 	it('each unlock belongs to exactly one stage', () => {
@@ -47,25 +62,29 @@ describe('curriculum graph', () => {
 });
 
 describe('gating', () => {
-	it('on a fresh profile only Futures I is open; later stages are locked, empty ones coming soon', () => {
-		expect(stageStatus('futures1', [])).toBe('open');
-		expect(stageStatus('futures2', [])).toBe('locked');
-		expect(stageStatus('options3', [])).toBe('locked');
+	it('Stage without content: on a fresh profile Foundations is coming soon and Structure is open', () => {
 		expect(stageStatus('foundations', [])).toBe('soon');
-		expect(stageStatus('risk', [])).toBe('soon');
+		expect(stageStatus('structure', [])).toBe('open');
+		expect(stageStatus('orders', [])).toBe('locked');
+		expect(stageStatus('futures1', [])).toBe('locked');
+		expect(stageStatus('evaluation', [])).toBe('soon');
 	});
 
-	it('passing a stage opens the next one; stages without content do not block (Risk sizing)', () => {
-		expect(stageStatus('futures1', [M01])).toBe('passed');
-		expect(stageStatus('futures2', [M01])).toBe('open');
-		expect(stageStatus('options1', [M01, M03])).toBe('locked'); // Futures III not passed yet
-		expect(stageStatus('options1', [M01, M03, M02])).toBe('open');
+	it('passing a stage opens the next one; m06 passes Structure and Orders at once', () => {
+		expect(stageStatus('structure', [M06])).toBe('passed');
+		expect(stageStatus('orders', [M06])).toBe('passed');
+		expect(stageStatus('futures1', [M06])).toBe('open');
+		expect(stageStatus('futures2', [M06, M01])).toBe('open');
+		expect(stageStatus('options1', [M06, M01, M03, M02])).toBe('locked'); // Risk sizing not passed yet
+		expect(stageStatus('options1', [M06, M01, M03, M02, M07])).toBe('open');
+		expect(stageStatus('patterns', [M06, M01, M03, M02, M07, M04])).toBe('locked'); // Options III first
+		expect(stageStatus('patterns', [M06, M01, M03, M02, M07, M04, M05])).toBe('open');
 	});
 
 	it('a mission assessing two stages passes both (m04: Options I and II)', () => {
 		expect(stagePassed('options1', [M04])).toBe(true);
 		expect(stagePassed('options2', [M04])).toBe(true);
-		expect(stagePassed('risk', [M01, M02, M03, M04, M05])).toBe(false); // no content: never "passed"
+		expect(stagePassed('evaluation', [M01, M02, M03, M04, M05, M06, M07, M08])).toBe(false); // no content: never "passed"
 	});
 
 	it('Writing locked: before Options III is passed, options writing is locked in other campaign missions', () => {
@@ -78,6 +97,13 @@ describe('gating', () => {
 	it("a stage's own assessment mission has its unlocks (it is where they are taught)", () => {
 		expect(campaignPermissions(M05, [M01, M03, M02, M04]).granted).toContain('optionsWrite');
 		expect(campaignPermissions(M03, [M01]).leverageCap).toBeNull(); // Futures II: leverage is the lesson
+	});
+
+	it('m06, the first campaign mission, allows no shorting and keeps the 2x cap: its locks need nothing new', () => {
+		const { locked, leverageCap } = campaignPermissions(M06, []);
+		expect(locked).toEqual(['short', 'leverage', 'optionsBuy', 'optionsWrite']);
+		expect(leverageCap).toBe(LOCKED_LEVERAGE_CAP); // the same as m06's own cap
+		expect(missionUses[M06]).toEqual([]);
 	});
 
 	it('leverage above 2x stays locked in campaign missions until Futures II is passed', () => {
@@ -100,8 +126,9 @@ describe('gating', () => {
 
 describe('summary', () => {
 	it('counts passed stages among the stages that have content', () => {
-		expect(curriculumSummary([])).toEqual({ passed: 0, withContent: 6 });
-		expect(curriculumSummary([M01, M03])).toEqual({ passed: 2, withContent: 6 });
-		expect(curriculumSummary([M04])).toEqual({ passed: 2, withContent: 6 }); // Options I and II
+		expect(curriculumSummary([])).toEqual({ passed: 0, withContent: 10 });
+		expect(curriculumSummary([M01, M03])).toEqual({ passed: 2, withContent: 10 });
+		expect(curriculumSummary([M04])).toEqual({ passed: 2, withContent: 10 }); // Options I and II
+		expect(curriculumSummary([M06])).toEqual({ passed: 2, withContent: 10 }); // Structure and Orders
 	});
 });

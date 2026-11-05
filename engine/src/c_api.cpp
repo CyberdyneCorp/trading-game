@@ -215,7 +215,7 @@ void write_indicators(JsonOut& j, const Scenario& sc, std::uint32_t step) {
 
 const char* news_kind_name(NewsKind k) {
   static constexpr const char* kNames[] = {"rate_decision",  "regulation_rumor",       "exchange_incident", "network_outage",
-                                           "liquidity_inflow", "institutional_adoption", "rumor_denied"};
+                                           "liquidity_inflow", "institutional_adoption", "rumor_denied", "liquidity_outflow"};
   return kNames[static_cast<std::size_t>(k)];
 }
 
@@ -325,7 +325,14 @@ void write_dim(JsonOut& j, std::string_view name, const Dimension& d) {
   j.end_obj();
 }
 
-void write_trade(JsonOut& j, const TradeRow& t) {
+// The regime a trade was entered in (scoring v9; built-in missions only, after the run).
+void write_entry_regime(JsonOut& j, const std::vector<RegimeSpan>& spans, std::uint32_t entry_step) {
+  const RegimeSpan* span = span_at(spans, entry_step);
+  j.key("regime");
+  if (span != nullptr) j.str(regime_label_name(span->label)); else j.null();
+}
+
+void write_trade(JsonOut& j, const TradeRow& t, const std::vector<RegimeSpan>& spans) {
   j.begin_obj().field("n", t.n).field("series", t.series).field("side", t.is_long ? "long" : "short").field("entryStep", t.entry_step).key("exitStep");
   if (t.exit_step) j.num(*t.exit_step); else j.null();
   j.field("qty", t.qty).field("entryAvg", t.entry_avg).field("exitAvg", t.exit_avg).field("pnl", t.pnl);
@@ -341,10 +348,35 @@ void write_trade(JsonOut& j, const TradeRow& t) {
   if (t.r_bp) j.num(*t.r_bp); else j.null();
   j.key("planRespected");
   if (t.plan_respected) j.boolean(*t.plan_respected); else j.null();
+  write_entry_regime(j, spans, t.entry_step);
   j.end_obj();
 }
 
-void write_score(JsonOut& j, const ScoreReport& r) {
+void write_span(JsonOut& j, const RegimeSpan& s) {
+  j.field("start", s.start).field("bars", s.bars).field("label", regime_label_name(s.label));
+  j.field("direction", std::int32_t{s.direction});
+}
+
+void write_tally(JsonOut& j, std::string_view name, const SignalTally& t) {
+  j.key(name).begin_obj().field("hits", t.hits).field("samples", t.samples).end_obj();
+}
+
+// Debrief only: the signals-by-regime table of this run (scoring v9).
+void write_regime_signals(JsonOut& j, const std::vector<RegimeSignals>& rows) {
+  j.key("regimes").begin_arr();
+  for (const RegimeSignals& r : rows) {
+    j.begin_obj();
+    write_span(j, r.span);
+    write_tally(j, "rsiFade", r.rsi_fade);
+    write_tally(j, "bollingerFade", r.bollinger_fade);
+    write_tally(j, "macdFollow", r.macd_follow);
+    write_tally(j, "smaFollow", r.sma_follow);
+    j.end_obj();
+  }
+  j.end_arr();
+}
+
+void write_score(JsonOut& j, const ScoreReport& r, const std::vector<RegimeSpan>& spans) {
   j.key("score").begin_obj().field("version", kScoringVersion).key("total");
   if (r.total) j.num(*r.total); else j.null();
   j.key("dims").begin_obj();
@@ -362,7 +394,7 @@ void write_score(JsonOut& j, const ScoreReport& r) {
   j.key("calibration").begin_obj().field("resolved", r.resolved_answers).key("brierBp");
   if (r.brier_bp) j.num(*r.brier_bp); else j.null();
   j.end_obj().key("trades").begin_arr();
-  for (const TradeRow& t : r.trades) write_trade(j, t);
+  for (const TradeRow& t : r.trades) write_trade(j, t, spans);
   j.end_arr();
   write_advice_rows(j, r);
   j.field("spreadSlippage", r.spread_cost).field("writtenOff", r.written_off).key("greeks");
@@ -499,6 +531,31 @@ bool apply_checkpoint(tl_run& run, const char* checkpoint_hex) {
 using namespace tradelab;
 
 extern "C" {
+
+const char* tl_mission_reveal(const char* mission_id, uint32_t seed) {
+  static std::string buffer;
+  MissionReveal r;
+  if (mission_id == nullptr || !mission_reveal(mission_id, seed, r)) {
+    buffer = "{\"error\":\"unknown_mission\"}";
+    return buffer.c_str();
+  }
+  JsonOut j;
+  j.begin_obj().field("mission", std::string(mission_id)).field("seed", seed).key("spans").begin_arr();
+  for (const RegimeSpan& s : r.spans) {
+    j.begin_obj();
+    write_span(j, s);
+    j.end_obj();
+  }
+  j.end_arr().key("events").begin_arr();
+  for (const EventReveal& e : r.events) {
+    j.begin_obj().field("step", e.release_step).field("kind", news_kind_name(e.kind)).field("actual", std::int32_t{e.actual});
+    j.field("surprise", std::int32_t{e.surprise}).field("intensityPct", e.intensity_pct).field("reaction", std::int32_t{e.reaction});
+    j.end_obj();
+  }
+  j.end_arr().end_obj();
+  buffer = j.text();
+  return buffer.c_str();
+}
 
 const char* tl_version(void) {
   static const std::string version = std::string("{\"engine\":\"") + kEngineVersion + "\",\"executionPolicy\":" +
@@ -679,9 +736,11 @@ const char* tl_debrief(tl_run* run) {
   j.field("finalEquity", account_view(sc, run->state).equity);
   j.field("buyAndHoldPnl", buy_and_hold_pnl(sc, run->state)).field("flatPnl", Money{});
   j.field("syntheticMarket", !run->from_pack).field("seed", run->state.seed);
+  MissionReveal reveal;
   if (run->from_pack) write_pack_reveal(j, run->pack);
+  else if (mission_reveal(sc.id, run->state.seed, reveal)) write_regime_signals(j, signals_by_regime(sc, run->state, reveal.spans));
   j.field("startPrice", sc.bars[sc.mission.warmup_bars].close).field("endPrice", sc.bars[run->state.step].close);
-  write_score(j, score_run(sc, run->state));
+  write_score(j, score_run(sc, run->state), reveal.spans);
   j.end_obj();
   run->buffer = j.text();
   return run->buffer.c_str();

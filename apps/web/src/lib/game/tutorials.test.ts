@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { TUTORIAL_MISSIONS, tutorialFor } from './tutorials.ts';
 
-const MISSIONS = ['m01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer'];
-// What the scenarios were built to do is revealed only in the debrief.
-const SPOILERS = /rompimento falso|false breakout|incidente|incident|outage|falha de rede|choque|shock|crash/i;
+import { campaignMissions } from './curriculum.ts';
+
+const MISSIONS = [
+	'm01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer',
+	'm06-thin-book', 'm07-trend-trailing', 'm08-regime-switch'
+];
+// What the scenarios were built to do is revealed only in the debrief: no outcome, no direction, no
+// timing (m06 leaves its range, m07's trend direction, m08's switches).
+const SPOILERS =
+	/rompimento falso|false breakout|incidente|incident|outage|falha de rede|choque|shock|crash|sai do range|leaves? the range|liquidez volta|liquidity returns|para cima|upward|tend[êe]ncia de alta|trend up|sem avisar|without warning|troca de regime|regime switch/i;
 
 // A sentence ends at . ! ? followed by a capital letter or the end ("LIQ? mostra" is one sentence).
 const sentences = (s: string) => s.split(/[.!?](?:\s+(?=[A-ZÀ-Ú"])|$)/).filter((x) => x.trim().length > 0).length;
@@ -33,10 +40,21 @@ describe('mission tutorials', () => {
 	});
 
 	it('the first mission introduces the advisor, its cost and how points are earned (spec mission-tutorial)', () => {
-		const en = tutorialFor('m01-false-breakout', 'en').find((c) => c.art === 'advisor');
-		const pt = tutorialFor('m01-false-breakout', 'pt-BR').find((c) => c.art === 'advisor');
-		expect(en?.body).toMatch(/advisor.*1 point.*plan and a stop/s);
-		expect(pt?.body).toMatch(/assessor.*1 ponto.*plano e stop/s);
+		// m06 opens the campaign (design D8.4); m01 keeps its card for free play.
+		for (const id of [campaignMissions()[0], 'm01-false-breakout']) {
+			const en = tutorialFor(id, 'en').find((c) => c.art === 'advisor');
+			const pt = tutorialFor(id, 'pt-BR').find((c) => c.art === 'advisor');
+			expect(en?.body, id).toMatch(/advisor.*1 point.*plan and a stop/s);
+			expect(pt?.body, id).toMatch(/assessor.*1 ponto.*plano e stop/s);
+		}
+	});
+
+	it('the campaign starts with m06, whose cards introduce the chart and the thin book (spec curriculum)', () => {
+		expect(campaignMissions()[0]).toBe('m06-thin-book');
+		const arts = tutorialFor('m06-thin-book', 'en').map((c) => c.art);
+		expect(arts).toEqual(['chart', 'book', 'ticket', 'risk', 'advisor']);
+		expect(tutorialFor('m07-trend-trailing', 'en').map((c) => c.art)).toContain('trail');
+		expect(tutorialFor('m08-regime-switch', 'en').map((c) => c.art)).toContain('regime');
 	});
 
 	it('an unknown mission has no tutorial', () => {

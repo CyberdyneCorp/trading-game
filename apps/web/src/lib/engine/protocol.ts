@@ -8,6 +8,7 @@ import type {
 	DebriefData,
 	GameState,
 	MissionInfo,
+	MissionReveal,
 	OrderSideName,
 	OrderTypeName,
 	PackCheck,
@@ -65,7 +66,9 @@ export type EngineRequest =
 	| { kind: 'close'; clientId: number }
 	| { kind: 'advice'; clientId: number }
 	| { kind: 'advance'; steps: number }
-	| { kind: 'debrief' };
+	| { kind: 'debrief' }
+	// The current run's seeded reveal (G4); refused while the run is active (design D6).
+	| { kind: 'reveal' };
 
 export interface CommandResponse {
 	result: CommandResult;
@@ -93,6 +96,8 @@ interface ResponseMap {
 	startPack: GameState;
 	advance: GameState;
 	debrief: DebriefData;
+	/** Null for runs on imported packs (their reveal is in the debrief). */
+	reveal: MissionReveal | null;
 }
 
 export type EngineResponse<K extends EngineRequest['kind']> = K extends keyof ResponseMap ? ResponseMap[K] : CommandResponse;

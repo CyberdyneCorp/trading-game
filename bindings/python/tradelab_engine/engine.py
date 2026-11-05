@@ -62,6 +62,7 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_advance": (c_char_p, [c_void_p, i32]),
         "tl_state": (c_char_p, [c_void_p]),
         "tl_debrief": (c_char_p, [c_void_p]),
+        "tl_mission_reveal": (c_char_p, [c_char_p, u32]),
         "tl_csv_validate": (c_char_p, [c_char_p, c_char_p]),
         "tl_pack_build_csv": (c_char_p, [c_char_p, c_char_p, c_char_p]),
         "tl_blob_data": (ctypes.POINTER(ctypes.c_uint8), []),
@@ -92,6 +93,12 @@ def engine_version() -> dict[str, Any]:
 
 def missions() -> list[dict[str, Any]]:
     return _json(load_library().tl_missions())
+
+
+def mission_reveal(mission_id: str, seed: int) -> dict[str, Any]:
+    """G4 seeded reveal of a built-in mission: regime spans as played and event outcomes, or
+    {"error": "unknown_mission"}. It describes a run's future: only for finished runs (design D6)."""
+    return _json(load_library().tl_mission_reveal(mission_id.encode(), seed))
 
 
 # ---- scenario packs and CSV import (spec scenario-packs) ----

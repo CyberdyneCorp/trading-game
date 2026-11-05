@@ -132,6 +132,32 @@
 		<line class="arrow" x1="84" x2="66" y1="27" y2="27" />
 		<path class="arrow-head" d="M60,27 L67,23 L67,31 Z" />
 		<text x="114" y="60" class="small info" text-anchor="middle">−1</text>
+	{:else if art === 'book'}
+		<!-- An order book with few resting quotes: a wide spread, and a big order eats several levels. -->
+		{#each [0, 1, 2] as k (k)}
+			<rect class="ask" x="44" y={14 + k * 11} width={18 + k * 14} height="8" />
+			<rect class="bid" x="44" y={60 + k * 11} width={14 + k * 16} height="8" />
+		{/each}
+		<line class="spread" x1="40" x2="120" y1="46" y2="46" />
+		<line class="spread" x1="40" x2="120" y1="56" y2="56" />
+		<text x="124" y="54" class="small attention">{t('tut.art.spread')}</text>
+		<line class="arrow" x1="18" x2="38" y1="40" y2="18" />
+		<text x="8" y="50" class="small info">MKT</text>
+		<text x="124" y="22" class="small muted">{t('tut.art.capacity')}</text>
+	{:else if art === 'trail'}
+		<!-- A trailing stop ratchets up behind the best close, one bar late, and never moves down. -->
+		{@render candles(TREND, 14, 18)}
+		<path class="trail" d="M8,{y(10)} H32 V{y(18)} H50 V{y(28)} H86 V{y(34)} H104 V{y(45)} H140 V{y(56)} H156" />
+		<text x="150" y={y(62)} class="small attention" text-anchor="end">TRAIL</text>
+	{:else if art === 'regime'}
+		<!-- The same chart in two regimes: a range (fade the edges), then a trend (follow); ADX turns late. -->
+		{@render candles(RANGE.slice(0, 4), 12, 11)}
+		{@render candles(TREND.slice(2), 66, 15)}
+		<line class="muted-line" x1="58" x2="58" y1="8" y2="84" />
+		<text x="30" y="14" class="small info" text-anchor="middle">RANGE</text>
+		<text x="110" y="14" class="small up-fill" text-anchor="middle">TREND</text>
+		<path class="avg" d="M8,92 C40,94 60,92 80,86 S120,72 156,66" />
+		<text x="150" y="96" class="small attention" text-anchor="end">ADX</text>
 	{/if}
 </svg>
 
@@ -263,5 +289,23 @@
 	}
 	.info-stroke {
 		stroke: var(--info);
+	}
+	.ask {
+		fill: var(--down);
+		opacity: 0.6;
+	}
+	.bid {
+		fill: var(--up);
+		opacity: 0.6;
+	}
+	.spread {
+		stroke: var(--attention);
+		stroke-dasharray: 2 2;
+	}
+	.trail {
+		fill: none;
+		stroke: var(--attention);
+		stroke-width: 1.5;
+		stroke-dasharray: 4 2;
 	}
 </style>

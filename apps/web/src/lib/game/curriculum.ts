@@ -36,16 +36,16 @@ export interface Stage {
 
 export const STAGES: readonly Stage[] = [
 	{ id: 'foundations', requires: [], missions: [], unlocks: [] },
-	{ id: 'structure', requires: ['foundations'], missions: [], unlocks: [] },
-	{ id: 'orders', requires: ['structure'], missions: [], unlocks: [] },
+	{ id: 'structure', requires: ['foundations'], missions: ['m06-thin-book'], unlocks: [] },
+	{ id: 'orders', requires: ['structure'], missions: ['m06-thin-book'], unlocks: [] },
 	{ id: 'futures1', requires: ['orders'], missions: ['m01-false-breakout'], unlocks: ['short'] },
 	{ id: 'futures2', requires: ['futures1'], missions: ['m03-volatility-shock'], unlocks: ['leverage'] },
 	{ id: 'futures3', requires: ['futures2'], missions: ['m02-funding-squeeze'], unlocks: [] },
-	{ id: 'risk', requires: ['futures3'], missions: [], unlocks: [] },
+	{ id: 'risk', requires: ['futures3'], missions: ['m07-trend-trailing'], unlocks: [] },
 	{ id: 'options1', requires: ['risk'], missions: ['m04-options-buyer'], unlocks: ['optionsBuy'] },
 	{ id: 'options2', requires: ['options1'], missions: ['m04-options-buyer'], unlocks: [] },
 	{ id: 'options3', requires: ['options2'], missions: ['m05-options-writer'], unlocks: ['optionsWrite'] },
-	{ id: 'patterns', requires: ['options3'], missions: [], unlocks: [] },
+	{ id: 'patterns', requires: ['options3'], missions: ['m08-regime-switch'], unlocks: [] },
 	{ id: 'evaluation', requires: ['patterns'], missions: [], unlocks: [] },
 	{ id: 'events', requires: ['evaluation'], missions: [], unlocks: [] }
 ];

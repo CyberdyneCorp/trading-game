@@ -2,7 +2,8 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { describeFindings, describeLesson } from '#lib/game/analysis.ts';
 	import { pctFromBp } from '#lib/game/advisor.ts';
-	import { fmtLeverageBp, fmtLiqDistance, greekRows, revealTexts, stopAdvice } from '#lib/game/debrief.ts';
+	import RegimeReveal from './RegimeReveal.svelte';
+	import { fmtLeverageBp, fmtLiqDistance, greekRows, regimeName, revealTexts, stopAdvice } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
@@ -177,6 +178,7 @@
 						<th>#</th><th>{t('trade.side')}</th><th class="num">{t('trade.entry')}</th><th class="num">{t('trade.exit')}</th>
 						<th class="num">{t('trade.net')}</th><th class="num">R</th><th class="num">{t('trade.bars')}</th>
 						<th>{t('trade.reason')}</th><th>{t('trade.plan')}</th>
+						{#if session.reveal}<th>{t('trade.regime')}</th>{/if}
 					</tr>
 				</thead>
 				<tbody>
@@ -196,9 +198,10 @@
 							<td class={tr.planRespected === false ? 'down' : tr.planRespected ? 'up' : 'muted'}>
 								{tr.planRespected == null ? '—' : tr.planRespected ? '✔ ' + t('trade.respected') : '✖ ' + t('trade.violated')}
 							</td>
+							{#if session.reveal}<td data-testid="trade-regime">{tr.regime ? regimeName(tr.regime) : '—'}</td>{/if}
 						</tr>
 						{#if advice}
-							<tr class="advice"><td></td><td colspan="8" class="down">✖ {advice}</td></tr>
+							<tr class="advice"><td></td><td colspan={session.reveal ? 9 : 8} class="down">✖ {advice}</td></tr>
 						{/if}
 					{/each}
 				</tbody>
@@ -248,6 +251,9 @@
 	<section class="panel chart-panel">
 		<Chart game={s} />
 	</section>
+	{#if session.reveal}
+		<RegimeReveal spans={session.reveal.spans} rows={d.regimes} from={s.warmupBars} to={s.step} />
+	{/if}
 
 	<section class="panel">
 		<h2 class="panel-title">{t('debrief.timeline')}</h2>

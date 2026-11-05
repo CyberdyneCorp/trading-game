@@ -1,10 +1,12 @@
 #include <doctest/doctest.h>
 
+#include <span>
 #include <string>
 
 #include "tradelab/c_api.h"
 #include "tradelab/engine.hpp"
 #include "tradelab/generator.hpp"
+#include "tradelab/sha256.hpp"
 
 using namespace tradelab;
 
@@ -211,7 +213,7 @@ TEST_CASE("C ABI: plans, answers and the score report in the debrief") {
   tl_place_order_ex(run, 4, 0, 0, "10", nullptr, 0, "95.5", "110", nullptr);
   tl_advance(run, 1000);
   const std::string d = tl_debrief(run);
-  CHECK(d.find("\"score\":{\"version\":8") != std::string::npos);
+  CHECK(d.find("\"score\":{\"version\":9") != std::string::npos);
   CHECK(d.find("\"trades\":[{\"n\":1") != std::string::npos);
   CHECK(d.find("\"stop\":\"95.5") != std::string::npos);
   CHECK(d.find("\"safeLeverage\":") != std::string::npos);
@@ -242,4 +244,98 @@ TEST_CASE("Regression: C ABI order events name their order type, bracket legs in
   }
   CHECK(order_events >= 3);
   tl_run_destroy(run);
+}
+
+// Phase-2 batch A (design D8): each new mission adds its own golden with default options; the m01 and
+// m05 goldens above stay byte-identical (no execution-policy change).
+namespace {
+
+std::string digests_of(const std::string& state) { return state.substr(state.find("\"digest\"")); }
+
+std::string reveal_digest(const char* mission, std::uint32_t seed) {
+  const std::string json = tl_mission_reveal(mission, seed);
+  const auto* bytes = reinterpret_cast<const std::uint8_t*>(json.data());
+  return to_hex(sha256(std::span<const std::uint8_t>(bytes, json.size())));
+}
+
+}  // namespace
+
+TEST_CASE("Golden: m06 thin book, limit entry with a bracket and a market exit") {
+  tl_run* run = tl_run_create("m06-thin-book", 2026);
+  REQUIRE(run != nullptr);
+  tl_set_leverage(run, 1, 2);
+  tl_place_order_ex(run, 2, 1, 0, "40", "99.5", 0, "97.5", "102", nullptr);  // limit buy with a bracket
+  tl_advance(run, 30);
+  tl_place_order(run, 3, 0, 0, "150", nullptr, 0);  // larger than a thin bar's capacity
+  tl_advance(run, 40);
+  tl_close_position(run, 4);
+  const std::string s = tl_advance(run, 1000);
+  tl_run_destroy(run);
+  CHECK(digests_of(s) ==
+        "\"digest\":\"d5b0e646f08b7cf586edce5af8f4fc187f697343c446c479ae4affd397f719d5\","
+        "\"eventsDigest\":\"b084466a7e0ab87dacc53c40794afcbc017917decfac736279404e82558f009a\"}");
+}
+
+TEST_CASE("Golden: m07 size and exit, a market entry then a trailing stop") {
+  tl_run* run = tl_run_create("m07-trend-trailing", 2026);
+  REQUIRE(run != nullptr);
+  tl_set_leverage(run, 1, 5);
+  tl_advance(run, 15);
+  tl_place_order(run, 2, 0, 0, "60", nullptr, 0);
+  tl_advance(run, 1);
+  tl_place_order_ex(run, 3, 4, 1, "60", nullptr, 1, nullptr, nullptr, "2.5");  // trailing stop, reduce-only
+  tl_advance(run, 40);
+  tl_place_order(run, 4, 0, 1, "30", nullptr, 0);
+  const std::string s = tl_advance(run, 1000);
+  tl_run_destroy(run);
+  CHECK(digests_of(s) ==
+        "\"digest\":\"bad3d1e12d53fcef5277ae752b349dcb072c01bef6bd13894a9deccd464fc7e4\","
+        "\"eventsDigest\":\"911e8dce2b537d94c11f7c8a8af67a1472f169032d0c6e98d137b4bb95488bd0\"}");
+}
+
+TEST_CASE("Golden: m08 regime switch, a fade and a follow") {
+  tl_run* run = tl_run_create("m08-regime-switch", 2026);
+  REQUIRE(run != nullptr);
+  tl_set_leverage(run, 1, 3);
+  tl_place_order_ex(run, 2, 0, 1, "50", nullptr, 0, "104", "96", nullptr);
+  tl_advance(run, 35);
+  tl_close_position(run, 3);
+  tl_place_order_ex(run, 4, 0, 0, "80", nullptr, 0, "90", nullptr, nullptr);
+  tl_advance(run, 30);
+  const std::string s = tl_advance(run, 1000);
+  const std::string d = tl_debrief(run);
+  tl_run_destroy(run);
+  CHECK(digests_of(s) ==
+        "\"digest\":\"75a589774815c40b9fd7d9cca722a7fe14287701c1d9e618de58622cc5d3b895\","
+        "\"eventsDigest\":\"e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb\"}");
+  CHECK(s.find("\"regimes\"") == std::string::npos);  // the run state never carries the reveal (design D6)
+  CHECK(s.find("\"spans\"") == std::string::npos);
+  CHECK(d.find("\"regimes\":[{\"start\":60") != std::string::npos);  // signals by regime, from the first decision
+  CHECK(d.find("\"rsiFade\":{\"hits\":") != std::string::npos);
+  CHECK(d.find("\"regime\":\"") != std::string::npos);  // each trade tagged with its entry regime
+}
+
+TEST_CASE("G4: tl_mission_reveal is a pure function of mission and seed (Python parity digest)") {
+  CHECK(reveal_digest("m08-regime-switch", 7) == reveal_digest("m08-regime-switch", 7));
+  CHECK(reveal_digest("m08-regime-switch", 7) != reveal_digest("m08-regime-switch", 8));
+  CHECK(reveal_digest("m08-regime-switch", 7) == "5ac2b53bfc31fa0cdf7d25d56bda08345c3bde8978808ef514f9ba76af9ee02f");
+  CHECK(std::string(tl_mission_reveal("nope", 1)) == "{\"error\":\"unknown_mission\"}");
+  const std::string m01 = tl_mission_reveal("m01-false-breakout", 4);
+  CHECK(m01.find("\"kind\":\"rumor_denied\",\"actual\":-1,\"surprise\":-2,\"intensityPct\":100") != std::string::npos);
+}
+
+TEST_CASE("m06 is long only at 2x with a thin book; m08 is a 180-bar chain") {
+  tl_run* run = tl_run_create("m06-thin-book", 3);
+  const std::string s = tl_state(run);
+  CHECK(s.find("\"allowShort\":false") != std::string::npos);
+  CHECK(s.find("\"leverageCap\":2") != std::string::npos);
+  CHECK(s.find("\"halfSpread\":\"0.0010000000\"") != std::string::npos);
+  CHECK(s.find("\"capacityFraction\":\"0.0400000000\"") != std::string::npos);
+  const std::string r = tl_place_order(run, 1, 0, 1, "10", nullptr, 0);
+  CHECK(r.find("short_not_allowed") != std::string::npos);
+  tl_run_destroy(run);
+  Scenario m08;
+  REQUIRE(build_mission("m08-regime-switch", 3, m08));
+  CHECK(m08.bars.size() == 180);
+  CHECK(m08.news.empty());
 }

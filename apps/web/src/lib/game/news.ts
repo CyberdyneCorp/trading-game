@@ -43,6 +43,11 @@ const headlines: Record<Locale, Record<Kind, Record<Tone, string>>> = {
 			pos: 'Gestora fictícia Arbor confirma interesse',
 			neu: 'Gestora fictícia Arbor não comenta rumores',
 			neg: 'Gestora fictícia Arbor nega rumor de compra'
+		},
+		liquidity_outflow: {
+			pos: 'Formadora de mercado fictícia Lumen amplia suas ofertas',
+			neu: 'Formadora de mercado fictícia Lumen revisa suas ofertas',
+			neg: 'Formadora de mercado fictícia Lumen reduz suas ofertas no livro'
 		}
 	},
 	en: {
@@ -80,6 +85,11 @@ const headlines: Record<Locale, Record<Kind, Record<Tone, string>>> = {
 			pos: 'Fictional manager Arbor confirms interest',
 			neu: 'Fictional manager Arbor declines to comment',
 			neg: 'Fictional manager Arbor denies buying rumor'
+		},
+		liquidity_outflow: {
+			pos: 'Fictional market maker Lumen widens its quoting',
+			neu: 'Fictional market maker Lumen reviews its quoting',
+			neg: 'Fictional market maker Lumen pulls quotes from the book'
 		}
 	}
 };

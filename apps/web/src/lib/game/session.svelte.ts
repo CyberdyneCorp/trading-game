@@ -13,6 +13,7 @@ import {
 	type DebriefData,
 	type GameState,
 	type MissionInfo,
+	type MissionReveal,
 	type OrderSideName,
 	type OrderTypeName,
 	type OrderView,
@@ -122,6 +123,8 @@ export class GameSession {
 		if (v) this.names.observe(v);
 	}
 	debrief = $state<DebriefData | null>(null);
+	/** Seeded reveal of a built-in mission (regime spans, event outcomes); loaded only after the run ended. */
+	reveal = $state<MissionReveal | null>(null);
 	journal = $state<PlanEntry[]>([]);
 	notice = $state<Notice | null>(null);
 	stopWarnings = $state(0);
@@ -680,6 +683,7 @@ export class GameSession {
 		this.journal = [];
 		this.notice = null;
 		this.debrief = null;
+		this.reveal = null;
 		this.stopWarnings = 0;
 		this.queued = 0;
 		this.runCampaign = null;
@@ -732,6 +736,7 @@ export class GameSession {
 
 	private async loadDebrief(): Promise<void> {
 		this.debrief = await this.eng().request({ kind: 'debrief' });
+		this.reveal = await this.eng().request({ kind: 'reveal' });
 		this.settleEnded();
 	}
 

@@ -257,3 +257,144 @@ TEST_CASE("Schedule: the first segment's length is drawn per seed; later events 
   }
   for (const int n : seen) CHECK(n > 10);  // every lead in the range occurs
 }
+
+// ---- G1 Markov regime chain (generator v3, design D8.1) ---------------------------------------
+
+namespace {
+
+RegimeChain three_state_chain() {
+  RegimeChain c;
+  c.states = {{.vol = 0.005, .anchor = Anchor::Level, .reversion = 0.01, .band = 0.02, .label = RegimeLabel::Range},
+              {.drift = 0.003, .vol = 0.006, .anchor = Anchor::Trend, .reversion = 0.03, .random_direction = true,
+               .label = RegimeLabel::Trend},
+              {.vol = 0.011, .label = RegimeLabel::HighVol}};
+  c.transitions = {{0, 600, 400}, {500, 0, 500}, {700, 300, 0}};
+  c.initial = {500, 300, 200};
+  c.min_dwell = 8;
+  c.max_dwell = 20;
+  c.bars = 400;
+  return c;
+}
+
+}  // namespace
+
+TEST_CASE("G1: each transition's frequency over 2,000 seeds is within 3 points of its row") {
+  const RegimeChain c = three_state_chain();
+  std::vector<std::vector<int>> counts(3, std::vector<int>(3, 0));
+  std::vector<int> firsts(3, 0);
+  for (std::uint64_t seed = 1; seed <= 2000; ++seed) {
+    const auto path = chain_path(c, seed);
+    firsts[path.front().first] += 1;
+    for (std::size_t k = 1; k < path.size(); ++k) counts[path[k - 1].first][path[k].first] += 1;
+  }
+  for (std::size_t from = 0; from < 3; ++from) {
+    int row = 0;
+    for (const int n : counts[from]) row += n;
+    REQUIRE(row > 1000);
+    for (std::size_t to = 0; to < 3; ++to) {
+      const double seen = 100.0 * counts[from][to] / row;
+      CHECK(std::fabs(seen - c.transitions[from][to] / 10.0) <= 3.0);
+    }
+  }
+  for (std::size_t s = 0; s < 3; ++s) CHECK(std::fabs(100.0 * firsts[s] / 2000.0 - c.initial[s] / 10.0) <= 3.0);
+}
+
+TEST_CASE("G1: the chain fills exactly its length; every dwell is in range except the cut last visit") {
+  RegimeChain c = three_state_chain();
+  c.at = 1;
+  GeneratorSpec spec;
+  spec.segments = {{.bars = 30, .vol = 0.005}, {.bars = 20, .vol = 0.005}};
+  spec.chain = c;
+  for (std::uint64_t seed = 1; seed <= 300; ++seed) {
+    const auto path = chain_path(c, seed);
+    std::uint32_t total = 0;
+    for (std::size_t k = 0; k < path.size(); ++k) {
+      total += path[k].second;
+      if (k + 1 < path.size()) {
+        CHECK(path[k].second >= c.min_dwell);
+        CHECK(path[k].second <= c.max_dwell);
+      }
+      CHECK(path[k].second >= 1);
+    }
+    CHECK(total == c.bars);
+    const GeneratorSpec e = expanded(spec, seed);
+    CHECK(e.segments.size() == path.size() + 2);
+    CHECK(e.segments.front().bars == 30);  // inserted at index 1
+    CHECK(e.segments.back().bars == 20);
+    CHECK(gen(spec, seed).bars.size() == 450);
+  }
+}
+
+TEST_CASE("G1: a spec without a chain expands to itself; every reveal tiles its market") {
+  for (const MissionInfo& m : mission_catalog()) {
+    Scenario a;
+    REQUIRE(build_mission(m.id, 3, a));
+    MissionReveal r;
+    REQUIRE(mission_reveal(m.id, 3, r));
+    std::uint32_t covered = 0;
+    for (const RegimeSpan& s : r.spans) {
+      CHECK(s.start == covered);
+      covered += s.bars;
+    }
+    CHECK(covered == a.bars.size());
+  }
+  GeneratorSpec plain;
+  plain.segments = {{.bars = 10}, {.bars = 5}};
+  const GeneratorSpec same = expanded(plain, 9);
+  REQUIRE(same.segments.size() == 2);
+  CHECK(same.segments[0].bars == 10);
+  CHECK(same.segments[1].bars == 5);
+}
+
+TEST_CASE("G1: two chains that agree up to bar k give identical bars, funding and IV up to bar k") {
+  // Funding for bar i is published at the close of bar i-1 from the segment that bar belonged to, so
+  // the next visit is never announced by the funding rate (nor by IV or the bars).
+  RegimeChain c = three_state_chain();
+  c.states[2].funding_bias = 0.002;
+  GeneratorSpec spec;
+  spec.chain = c;
+  for (std::uint64_t seed = 1; seed <= 40; ++seed) {
+    const auto path = chain_path(c, seed);
+    if (path.size() < 3) continue;
+    const std::uint32_t k = path[0].second + path[1].second;  // first bar of the third visit
+    GeneratorSpec other = spec;
+    other.chain.reset();
+    other.segments = expanded(spec, seed).segments;
+    Segment& third = other.segments[2];
+    third.drift = 0.02;
+    third.funding_bias = -0.002;
+    third.iv_mult = 3.0;
+    third.label = RegimeLabel::Shock;
+    const Scenario a = gen(spec, seed);
+    const Scenario b = gen(other, seed);
+    for (std::uint32_t i = 0; i < k; ++i) {
+      CHECK(a.bars[i].close == b.bars[i].close);
+      CHECK(a.options.iv_base[i].raw == b.options.iv_base[i].raw);
+    }
+    for (std::uint32_t i = 0; i <= k; ++i) CHECK(a.funding_rate[i].raw == b.funding_rate[i].raw);
+  }
+}
+
+TEST_CASE("G4: the reveal records each segment's label and drawn direction, and events' reactions") {
+  for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+    MissionReveal r;
+    REQUIRE(mission_reveal("m08-regime-switch", seed, r));
+    CHECK(r.events.empty());
+    for (const RegimeSpan& s : r.spans) {
+      CHECK(s.label != RegimeLabel::Unlabeled);
+      if (s.label == RegimeLabel::Range) CHECK(s.direction == 0);
+      if (s.label == RegimeLabel::Trend) CHECK((s.direction == 1 || s.direction == -1));
+    }
+    REQUIRE(mission_reveal("m01-false-breakout", seed, r));
+    Scenario m01;
+    REQUIRE(build_mission("m01-false-breakout", seed, m01));
+    REQUIRE(r.events.size() == m01.news.size());
+    for (std::size_t e = 0; e < r.events.size(); ++e) {
+      CHECK(r.events[e].release_step == m01.news[e].release_step);  // the schedule as played
+      CHECK(r.events[e].surprise == m01.news[e].actual - m01.news[e].expectation);
+      CHECK(r.events[e].intensity_pct == 100);
+    }
+  }
+  MissionReveal none;
+  CHECK_FALSE(mission_reveal("nope", 1, none));
+}

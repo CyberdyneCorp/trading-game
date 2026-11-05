@@ -196,7 +196,8 @@ export interface NewsView {
 		| 'network_outage'
 		| 'liquidity_inflow'
 		| 'institutional_adoption'
-		| 'rumor_denied';
+		| 'rumor_denied'
+		| 'liquidity_outflow';
 	tone: number;
 	credibility: number;
 	expectation: number;
@@ -355,6 +356,8 @@ export interface EngineTrade {
 	plannedRisk: Decimal;
 	rBp: number | null;
 	planRespected: boolean | null;
+	/** Scoring v9: the revealed regime the trade was entered in (built-in missions; null for packs). */
+	regime?: RegimeLabel | null;
 	/** Perpetual rows only: the trade's stop (stop order, else the plan's invalidation; 0 = none). */
 	stop?: Decimal;
 	/** Perpetual rows only: highest leverage the position carried (at entry or re-leveraged while open) and the liquidation price it implied (0 = none). */
@@ -418,6 +421,40 @@ export interface DebriefData {
 	/** Pack runs only: what the masked market really was (never sent before the debrief). */
 	knownScenario?: boolean;
 	reveal?: PackReveal;
+	/** Built-in missions (scoring v9): signals by revealed regime over this run's decision window. */
+	regimes?: RegimeSignals[];
+}
+
+/** Generator v3 segment labels (engine RegimeLabel). */
+export type RegimeLabel = 'unlabeled' | 'range' | 'trend' | 'high_vol' | 'low_liquidity' | 'crowded' | 'calm' | 'shock';
+
+/** One regime as it played: start bar, length, label and, for a drawn direction, +1 up / -1 down (0 = not drawn). */
+export interface RegimeSpan {
+	start: number;
+	bars: number;
+	label: RegimeLabel;
+	direction: number;
+}
+
+export interface SignalTally {
+	hits: number;
+	samples: number;
+}
+
+/** Hits and samples of four common reads inside one revealed span (entered at the next open, 5-bar horizon). */
+export interface RegimeSignals extends RegimeSpan {
+	rsiFade: SignalTally;
+	bollingerFade: SignalTally;
+	macdFollow: SignalTally;
+	smaFollow: SignalTally;
+}
+
+/** G4 seeded reveal (tl_mission_reveal): the worker answers only once the run has ended. */
+export interface MissionReveal {
+	mission: string;
+	seed: number;
+	spans: RegimeSpan[];
+	events: { step: number; kind: NewsView['kind']; actual: number; surprise: number; intensityPct: number; reaction: number }[];
 }
 
 export interface PackReveal {

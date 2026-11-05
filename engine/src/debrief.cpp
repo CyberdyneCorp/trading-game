@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "accounting.hpp"
+#include "tradelab/indicators.hpp"
 #include "tradelab/options.hpp"
 #include "tradelab/scoring.hpp"
 
@@ -263,6 +264,88 @@ std::optional<GreekAttribution> greek_attribution(const Scenario& sc, const RunS
   g.total = option_total(sc, st);
   g.residual = Money::from_raw(g.total.raw - g.delta.raw - g.gamma.raw - g.theta.raw - g.vega.raw);
   return g;
+}
+
+namespace {
+
+void tally(SignalTally& t, int direction, std::int64_t move) {
+  if (direction == 0 || move == 0) return;
+  t.samples += 1;
+  t.hits += (move > 0) == (direction > 0) ? 1 : 0;
+}
+
+int sign_of(std::int64_t x) {
+  if (x == 0) return 0;
+  return x > 0 ? 1 : -1;
+}
+
+// -1 / 0 / +1: v below lo, between, above hi.
+int outside(Price v, Price lo, Price hi) {
+  if (v.raw < lo.raw) return -1;
+  return v.raw > hi.raw ? 1 : 0;
+}
+
+// Indicator reads are 0 while the indicator is still warming up (no value at bar i).
+int rsi_side(const Series& rsi14, std::uint32_t i) {
+  const std::optional<Price>& v = rsi14[i];
+  if (!v.has_value()) return 0;
+  return outside(*v, Price::from_raw(30 * Price::kScale), Price::from_raw(70 * Price::kScale));
+}
+
+int band_side(const Bollinger& b, std::uint32_t i, Price close) {
+  const std::optional<Price>& lo = b.lower[i];
+  const std::optional<Price>& hi = b.upper[i];
+  if (!lo.has_value() || !hi.has_value()) return 0;
+  return outside(close, *lo, *hi);
+}
+
+int value_sign(const Series& s, std::uint32_t i) {
+  const std::optional<Price>& v = s[i];
+  if (!v.has_value()) return 0;
+  return sign_of(v->raw);
+}
+
+// Which side of the indicator value the reference price is on.
+int side_of(const Series& s, std::uint32_t i, Price reference) {
+  const std::optional<Price>& v = s[i];
+  if (!v.has_value()) return 0;
+  return sign_of(reference.raw - v->raw);
+}
+
+struct Reads {
+  Series rsi14;
+  Bollinger bands;
+  Macd macd_;
+  Series sma20;
+};
+
+void read_bar(const Scenario& sc, const Reads& r, std::uint32_t i, RegimeSignals& out) {
+  const std::int64_t move = sc.bars[i + kSignalHorizon].close.raw - sc.bars[i + 1].open.raw;
+  const Price close = sc.bars[i].close;
+  tally(out.rsi_fade, -rsi_side(r.rsi14, i), move);
+  tally(out.bollinger_fade, -band_side(r.bands, i, close), move);
+  tally(out.macd_follow, value_sign(r.macd_.histogram, i), move);
+  tally(out.sma_follow, side_of(r.sma20, i, close), move);
+}
+
+}  // namespace
+
+std::vector<RegimeSignals> signals_by_regime(const Scenario& sc, const RunState& st, const std::vector<RegimeSpan>& spans) {
+  std::vector<RegimeSignals> out;
+  const std::uint32_t first = sc.mission.warmup_bars;
+  const std::uint32_t last = st.step;
+  if (last <= first) return out;
+  const Reads r{rsi(sc, last, 14), bollinger(sc, last, 20, 2), macd(sc, last, 12, 26, 9), sma(sc, last, 20)};
+  for (const RegimeSpan& s : spans) {
+    const std::uint32_t from = std::max(s.start, first);
+    const std::uint32_t to = std::min(s.start + s.bars, last + 1);  // exclusive
+    if (from >= to) continue;
+    RegimeSignals row;
+    row.span = {from, to - from, s.label, s.direction};
+    for (std::uint32_t i = from; i < to && i + kSignalHorizon <= last; ++i) read_bar(sc, r, i, row);
+    out.push_back(row);
+  }
+  return out;
 }
 
 Money buy_and_hold_pnl(const Scenario& sc, const RunState& st) {

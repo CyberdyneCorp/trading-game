@@ -71,6 +71,12 @@ const char* tl_state(tl_run* run);
 /* Available once the run is finished or bankrupt; otherwise {"error":"run_active"}. */
 const char* tl_debrief(tl_run* run);
 
+/* G4 seeded reveal of a built-in mission (run-less, static buffer): the regime spans as played
+ * {"start","bars","label","direction"} and each event's {"step","kind","actual","surprise",
+ * "intensityPct","reaction"}; {"error":"unknown_mission"} otherwise. It describes the future of a run
+ * on that mission and seed: clients ask for it only after the run has ended (design D6). */
+const char* tl_mission_reveal(const char* mission_id, uint32_t seed);
+
 /* ---- Scenario packs and private CSV import (spec scenario-packs). ----
  * Packs are byte buffers (pointer + size). trusted_keys_json is [{"id":"...","key":"<64 hex>"}]:
  * the client's pinned publisher keys plus its own device key. Reason codes are listed in

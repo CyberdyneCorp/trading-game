@@ -104,15 +104,21 @@ Bar make_bar(const Segment& seg, const GeneratorSpec& spec, GenState& g, Pcg32& 
   return b;
 }
 
-// Segment start: fix the range level, reset compression, draw the direction if it is random.
-void start_segment(const Segment& seg, const GeneratorSpec& spec, GenState& g, Pcg32& rng) {
+// Segment start: fix the range level, reset compression, draw the direction if it is random, and
+// record the segment as played when the caller asked for the reveal.
+void start_segment(const Segment& seg, const GeneratorSpec& spec, GenState& g, Pcg32& rng, std::uint32_t index,
+                   std::vector<RegimeSpan>* spans) {
   const double x = det::log(g.close);
   g.level = x;
   g.vol_mult = 1.0;
   g.direction = 1.0;
-  if (!seg.random_direction) return;
-  const double p_up = 1.0 / (1.0 + det::exp(-spec.tilt * (g.fair - x)));
-  g.direction = rng.next_unit() < p_up ? 1.0 : -1.0;
+  if (seg.random_direction) {
+    const double p_up = 1.0 / (1.0 + det::exp(-spec.tilt * (g.fair - x)));
+    g.direction = rng.next_unit() < p_up ? 1.0 : -1.0;
+  }
+  if (spans == nullptr) return;
+  const std::int8_t drawn = seg.random_direction ? static_cast<std::int8_t>(g.direction) : std::int8_t{0};
+  spans->push_back({index, seg.bars, seg.label, drawn});
 }
 
 int surprise_of(const NewsItem& item) { return item.actual - item.expectation; }
@@ -177,6 +183,19 @@ Vol implied_vol(const Segment& seg, const GeneratorSpec& spec, GenState& g) {
   return Vol::from_raw(static_cast<std::int64_t>(std::floor(iv * Vol::kScale + 0.5)));
 }
 
+// Index drawn with probability weight / sum(weights), integer draws only.
+std::uint32_t draw_weighted(Pcg32& rng, const std::vector<std::uint32_t>& weights) {
+  std::uint32_t total = 0;
+  for (const std::uint32_t w : weights) total += w;
+  if (total == 0) return 0;
+  std::uint32_t r = rng.next_bounded(total);
+  for (std::uint32_t i = 0; i < weights.size(); ++i) {
+    if (r < weights[i]) return i;
+    r -= weights[i];
+  }
+  return static_cast<std::uint32_t>(weights.size() - 1);
+}
+
 std::int32_t draw_lead(const GeneratorSpec& spec, std::uint64_t seed) {
   if (spec.lead_jitter_max <= spec.lead_jitter_min) return spec.lead_jitter_min;
   Pcg32 rng(seed, Stream::Schedule);
@@ -185,6 +204,50 @@ std::int32_t draw_lead(const GeneratorSpec& spec, std::uint64_t seed) {
 }
 
 }  // namespace
+
+const char* regime_label_name(RegimeLabel label) {
+  static constexpr const char* kNames[] = {"unlabeled", "range", "trend", "high_vol", "low_liquidity", "crowded", "calm", "shock"};
+  return kNames[static_cast<std::size_t>(label)];
+}
+
+std::vector<std::pair<std::uint32_t, std::uint32_t>> chain_path(const RegimeChain& chain, std::uint64_t seed) {
+  std::vector<std::pair<std::uint32_t, std::uint32_t>> path;
+  if (chain.states.empty() || chain.bars == 0) return path;
+  Pcg32 rng(seed, Stream::Regime);
+  const std::uint32_t min_dwell = std::max<std::uint32_t>(1, chain.min_dwell);
+  const std::uint32_t span = std::max(chain.max_dwell, min_dwell) - min_dwell + 1;
+  std::uint32_t state = draw_weighted(rng, chain.initial);
+  std::uint32_t left = chain.bars;
+  while (left > 0) {
+    const std::uint32_t dwell = std::min(left, min_dwell + rng.next_bounded(span));
+    path.emplace_back(state, dwell);
+    left -= dwell;
+    if (left > 0) state = draw_weighted(rng, chain.transitions[state]);
+  }
+  return path;
+}
+
+GeneratorSpec expanded(const GeneratorSpec& spec, std::uint64_t seed) {
+  if (!spec.chain) return spec;
+  GeneratorSpec out = spec;
+  out.chain.reset();
+  std::vector<Segment> visits;
+  for (const auto& [state, bars] : chain_path(*spec.chain, seed)) {
+    Segment s = spec.chain->states[state];
+    s.bars = bars;
+    visits.push_back(s);
+  }
+  const auto at = static_cast<std::ptrdiff_t>(std::min<std::size_t>(spec.chain->at, out.segments.size()));
+  out.segments.insert(out.segments.begin() + at, visits.begin(), visits.end());
+  return out;
+}
+
+const RegimeSpan* span_at(const std::vector<RegimeSpan>& spans, std::uint32_t step) {
+  for (const RegimeSpan& s : spans) {
+    if (step >= s.start && step < s.start + s.bars) return &s;
+  }
+  return nullptr;
+}
 
 GeneratorSpec scheduled(const GeneratorSpec& spec, std::uint64_t seed) {
   GeneratorSpec out = spec;
@@ -207,8 +270,9 @@ int sample_reaction(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t i
   return rng.next_unit() < ev.p_align ? dir : -dir;
 }
 
-void generate_market(const GeneratorSpec& declared, std::uint64_t seed, Scenario& out) {
-  const GeneratorSpec spec = scheduled(declared, seed);
+void generate_market(const GeneratorSpec& declared, std::uint64_t seed, Scenario& out, std::vector<RegimeSpan>* spans) {
+  // The chain is expanded first, so the schedule and everything after it see ordinary segments.
+  const GeneratorSpec spec = scheduled(expanded(declared, seed), seed);
   Pcg32 rng(seed, Stream::Market);
   GenState g{spec.start_price};
   g.fair = g.ema = det::log(spec.start_price);
@@ -226,7 +290,7 @@ void generate_market(const GeneratorSpec& declared, std::uint64_t seed, Scenario
   for (const Segment& base : spec.segments) {
     for (std::uint32_t i = 0; i < base.bars; ++i, ++index) {
       apply_news(spec, index, g);  // before the segment start: a breakout sees the news it follows
-      if (i == 0) start_segment(base, spec, g, rng);
+      if (i == 0) start_segment(base, spec, g, rng, index, spans);
       const Segment seg = with_events(base, spec, index);
       g.event_drift = reaction_drift(spec, reactions, index);
       // The rate for bar i is published at the close of bar i-1, so it may only use state up to i-1.
