@@ -115,7 +115,7 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"f9e6d831dd72aebe392d68257c693731da6cf478a4e750ce5903e94e1476bf2d\","
+        "\"digest\":\"77e3aadce955743193752c7f7d80c8491c95397086c910ea44a86838b01c2d16\","
         "\"eventsDigest\":\"ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19\"}");
 }
 
@@ -147,7 +147,7 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"4548fca4bd531de2b01d6ad6d89a6fbab0b59edfc0dd998ceeac9cd362e45c35\","
+        "\"digest\":\"7a4cfc92ecc4087fdec9151220c51b576dd4929c49e5a4eddd7eda89dbda2134\","
         "\"eventsDigest\":\"908ac0b1ffd77daf85c8c88e59123a55cb3ddc5ab1509965ae294ae637c4c8aa\"}");
 }
 
@@ -211,7 +211,7 @@ TEST_CASE("C ABI: plans, answers and the score report in the debrief") {
   tl_place_order_ex(run, 4, 0, 0, "10", nullptr, 0, "95.5", "110", nullptr);
   tl_advance(run, 1000);
   const std::string d = tl_debrief(run);
-  CHECK(d.find("\"score\":{\"version\":7") != std::string::npos);
+  CHECK(d.find("\"score\":{\"version\":8") != std::string::npos);
   CHECK(d.find("\"trades\":[{\"n\":1") != std::string::npos);
   CHECK(d.find("\"stop\":\"95.5") != std::string::npos);
   CHECK(d.find("\"safeLeverage\":") != std::string::npos);

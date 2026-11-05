@@ -18,7 +18,10 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kScoringVersion = 7;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall
+// v8: Greek attribution by full revaluation (gaps land in delta/gamma), side-aware IV finding (iv_rise
+// for written options), wrote_options finding, lucky_win when a trade had no plan, the buy-and-hold
+// benchmark and market span measured to the run's last bar.
+constexpr std::uint32_t kScoringVersion = 8;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,
@@ -36,8 +39,10 @@ enum class FindingCode : std::uint8_t {
   Bankrupt,
   MarginCalled,  // written options bought back by force (step, buy-back premium, loss)
   ThetaDecay,    // time decay (theta) explains at least half of an option loss (amount = theta P&L lost)
-  IvCrush,       // falling implied volatility (vega) explains at least half of an option loss
+  IvCrush,       // falling implied volatility (vega) on bought options explains at least half of an option loss
   GoodProcessWin,  // a profit where every trade had a plan and limited risk (the counterpart of GoodProcessLoss)
+  IvRise,        // rising implied volatility (vega) on written options explains at least half of an option loss
+  WroteOptions,  // options were written and no margin call followed: risk limited by neither a stop nor a premium
 };
 
 enum class FindingTone : std::uint8_t { Good = 0, Warn, Bad, Info };
@@ -93,15 +98,17 @@ struct TradeRow {
   std::int32_t safe_leverage = 0;
 };
 
-// Approximate option P&L attribution (spec gameplay-loop "Debrief"): per bar and held series, from the
-// quote at the start of each interval (previous close -> open, open -> close or settlement) as
-// delta*dF + gamma*dF^2/2 + theta*dt + vega*dIV. The residual is the rest of the option P&L (before
-// fees): spread paid against the mid, fills away from the reference quote and higher-order terms.
+// Option P&L attribution (spec gameplay-loop "Debrief"), by full revaluation per bar and held series:
+// the price legs (previous close -> open, open -> close or settlement, at the previous step's quote)
+// split the mid change into delta = start delta x dF and gamma = the rest; the time leg (one step at
+// that forward, intrinsic at expiry) into vega = average vega x dIV and theta = the rest. The residual
+// is the rest of the option P&L (before fees): the spread paid against the mid at fills, and rounding.
 struct GreekAttribution {
   Money delta;
   Money gamma;
   Money theta;
   Money vega;
+  Money vega_written;  // part of vega from written (short) positions; not a separate line, picks the IV finding
   Money residual;
   Money total;  // option P&L before fees: realized + open positions at the final mid
 };
@@ -160,5 +167,8 @@ std::optional<GreekAttribution> greek_attribution(const Scenario& sc, const RunS
 void annotate_stop(const Scenario& sc, const RunState& st, TradeRow& t);
 // Adds an open trade's unrealized P&L at the final mark to its pnl and net (as in the account equity).
 void mark_open_trade(const Scenario& sc, const RunState& st, TradeRow& t);
+// Buy-and-hold benchmark: 1x long from the first eligible open to the close of the run's last bar (the
+// scenario's end, or the game-over bar), taker fees both ways; 0 before the first decision.
+Money buy_and_hold_pnl(const Scenario& sc, const RunState& st);
 
 }  // namespace tradelab

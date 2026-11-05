@@ -45,3 +45,13 @@ export function journalRuns(records: readonly RunRecord<PlanEntry, unknown>[], m
 export function journalMissions(records: readonly RunRecord<PlanEntry, unknown>[]): string[] {
 	return [...new Set(records.filter((r) => r.journal.length > 0).map((r) => r.missionId))];
 }
+
+/**
+ * Planned risk of the open perpetual position: the last perpetual plan (or skipped plan, which still
+ * carries the ticket estimate). The journal is part of the stored run, so the POSIÇÃO panel keeps
+ * showing it after a reload and resume (before, it lived only in the terminal view and was lost).
+ */
+export function positionPlannedRisk(journal: readonly PlanEntry[]): number | null {
+	const last = journal.findLast((p) => p.instrument == null);
+	return last?.plannedRisk != null && last.plannedRisk > 0 ? last.plannedRisk : null;
+}

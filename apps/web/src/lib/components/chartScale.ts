@@ -4,6 +4,14 @@
 // when it is near the candles; a far level would squash them into a thin band, so it is pinned to
 // the pane edge instead with an arrow pointing to where it really is.
 
+import { fmtNum, fmtPrice } from '#lib/game/format.ts';
+import type { Locale } from '#lib/game/i18n.svelte.ts';
+
+/** Cells of the screen-reader candle table: OHLC as prices and the volume, in the player's locale. */
+export function candleCells(b: readonly number[], locale: Locale): string[] {
+	return [...b.slice(0, 4).map((p) => fmtPrice(String(p), locale)), fmtNum(b[4], locale, 0)];
+}
+
 export const NEAR_FRACTION = 0.5; // a level within half the candle span of the candles is "near"
 export const LABEL_H = 16; // height of a price tag on the axis
 

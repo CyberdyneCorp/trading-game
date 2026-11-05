@@ -84,6 +84,18 @@ describe('theta and IV findings point to the Options lesson', () => {
 		expect(describeFinding(theta, 'pt-BR')).toContain('theta) custou 1.234,50 cr');
 		expect(describeFinding({ ...theta, code: 'iv_crush' }, 'en')).toContain('(vega) cost 1,234.50 cr');
 	});
+	it('regression: a writer hurt by rising IV is not told about an IV crush or buying with high IV', () => {
+		const rise: EngineFinding = { code: 'iv_rise', tone: 'warn', step: 0, count: 0, price: '0', requested: '0', amount: '80' };
+		const pt = describeFinding(rise, 'pt-BR');
+		expect(pt).toContain('A alta da volatilidade implícita (vega) custou 80,00 cr nas opções vendidas');
+		expect(pt).not.toMatch(/queda|Comprar com IV alta/);
+		expect(describeFinding(rise, 'en')).not.toMatch(/Falling|Buying when IV/);
+	});
+	it('regression: a naked write says why it gets no good-process credit (never "limited risk")', () => {
+		const w: EngineFinding = { code: 'wrote_options', tone: 'warn', step: 0, count: 0, price: '0', requested: '0', amount: '0' };
+		expect(describeFinding(w, 'pt-BR')).toMatch(/a descoberto.*nem pelo prêmio/);
+		expect(describeFinding(w, 'pt-BR')).not.toMatch(/risco limitado/);
+	});
 	it('names the Options lesson', () => {
 		expect(describeLesson('options', 'pt-BR')).toMatch(/^Opções II/);
 		expect(describeLesson('options', 'en')).toMatch(/^Options II/);

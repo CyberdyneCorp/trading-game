@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 // CSV import wizard and practice runs on imported packs (web-client task 4.5; spec scenario-packs).
 
 /** An hourly market in millisecond timestamps around 30,000 (a real-looking BTC level). */
-function csvText(rows = 120, gapAfter = -1): string {
+function csvText(rows = 120, gapAfter = -1, stepMs = 3_600_000): string {
 	let out = 'timestamp,open,high,low,close,volume\n';
 	let close = 30_000;
 	for (let i = 0, t = 0; i < rows; i++, t++) {
@@ -12,7 +12,7 @@ function csvText(rows = 120, gapAfter = -1): string {
 		close = Math.round((open + (((i * 7919) % 401) - 200) * 0.5) * 100) / 100;
 		const high = (Math.max(open, close) + 12).toFixed(2);
 		const low = (Math.min(open, close) - 9).toFixed(2);
-		out += `${1_700_000_000_000 + t * 3_600_000},${open.toFixed(2)},${high},${low},${close.toFixed(2)},${(100 + (i % 37)).toFixed(1)}\n`;
+		out += `${1_700_000_000_000 + t * stepMs},${open.toFixed(2)},${high},${low},${close.toFixed(2)},${(100 + (i % 37)).toFixed(1)}\n`;
 	}
 	return out;
 }
@@ -116,6 +116,13 @@ test('regression: a finished practice run does not change the advisor point bala
 		await page.waitForTimeout(60);
 	}
 	await expect(page.getByText(/Missão concluída/)).toBeVisible(); // a finished mission run would earn 2
+	// Regression: nor is it a completed mission in the curriculum (before: "1 de 5"), now or after a reload.
+	await page.getByRole('button', { name: /Voltar às missões/ }).click();
+	await page.getByTestId('open-curriculum').click();
+	await expect(page.getByText(/Missões concluídas \(qualquer modo\): 0 de 5/)).toBeVisible();
+	await page.goto('/?seed=11');
+	await page.getByTestId('open-curriculum').click();
+	await expect(page.getByText(/Missões concluídas \(qualquer modo\): 0 de 5/)).toBeVisible();
 	await page.goto('/?seed=11');
 	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
 	await page.getByRole('button', { name: 'Pular tutorial' }).click();
@@ -134,6 +141,21 @@ test('a practice run resumes after a reload by replaying it on the stored pack',
 	await page.getByRole('button', { name: /Continuar partida/ }).click();
 	await expect(page.locator('.turn')).toContainText('Barra 4');
 	await expect(page.locator('header.top')).toContainText('CONHECIDO');
+});
+
+test('regression: the top bar shows the imported market interval (15m), not "1h"', async ({ page }) => {
+	await page.goto('/?seed=11');
+	await page.getByTestId('import-csv').click();
+	await chooseCsv(page, 'btc-15m.csv', csvText(120, -1, 900_000));
+	await page.getByTestId('csv-validate').click();
+	await expect(page.getByTestId('csv-report')).toContainText('Arquivo válido');
+	await page.getByTestId('csv-create').click();
+	await expect(page.getByTestId('pack-row')).toContainText('· 15m');
+	await page.getByTestId('pack-start').click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await answerIfAsked(page);
+	await expect(page.locator('.turn')).toContainText('· 15m');
+	await expect(page.locator('.turn')).not.toContainText('1h');
 });
 
 test('a pack file that fails verification is refused with its reason', async ({ page }) => {

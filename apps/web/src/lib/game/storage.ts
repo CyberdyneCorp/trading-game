@@ -273,7 +273,8 @@ export class RunStore<A, J, Q> {
 	async finishedMissions(): Promise<string[]> {
 		const tx = this.db.transaction('runs', 'readonly');
 		const runs = (await req(tx.objectStore('runs').getAll())) as RunRecord<J, Q>[];
-		return [...new Set(runs.filter((r) => r.status === 'finished').map((r) => r.missionId))];
+		// Practice runs on an imported pack are not missions: they never count as completed.
+		return [...new Set(runs.filter((r) => r.status === 'finished' && !r.packDigest).map((r) => r.missionId))];
 	}
 
 	/** Imports a run saved by the previous localStorage format (v1), then removes the legacy key. */
