@@ -1,0 +1,22 @@
+<!-- TradeLab terminal-ui theme (the web's apps/web/src/app.css tokens): dark green phosphor, square
+     corners, no glass. Text classes match the web's: muted, up, down, attention, info, accent, title.
+     tests/viewmodel/test_theme.cpp checks WCAG 2.2 AA contrast for every text class on the window and
+     panel colours declared here. -->
+<Theme Name="TradeLab" Look="RavenDark" Accent="#39FF88" Dark="true" Material="Solid" Motion="Smooth" CornerRadius="0">
+    <Colors Window="#0B1010" Panel="#121C1B" Border="#24413A" Text="#E3F5EA" TextDisabled="#5F7F70"
+            TextPlaceholder="#8FB3A1" AccentText="#0B1010" Control="#172423" ControlHovered="#1E302E"
+            ControlPressed="#24413A" ControlBorder="#24413A" Input="#0B1010" Focus="#4FD8FF"
+            Selection="#24413A" RowHovered="#172423" Track="#24413A" Handle="#8FB3A1" HandleHovered="#E3F5EA"
+            Separator="#24413A" Header="#121C1B" HeaderHovered="#172423" TabActive="#172423"
+            Popup="#121C1B" PopupBorder="#24413A" Tooltip="#172423" TooltipText="#E3F5EA" Switch="#39FF88"
+            Success="#39FF88" Warning="#FFC857" Danger="#FF5F7A" Link="#4FD8FF"/>
+    <Metrics CornerRadius="0" BorderWidth="1" PopupRadius="0"/>
+    <Style Widget="Label" Class="muted" Text="#8FB3A1"/>
+    <Style Widget="Label" Class="up" Text="#39FF88"/>
+    <Style Widget="Label" Class="down" Text="#FF5F7A"/>
+    <Style Widget="Label" Class="attention" Text="#FFC857"/>
+    <Style Widget="Label" Class="info" Text="#4FD8FF"/>
+    <Style Widget="Label" Class="accent" Text="#39FF88"/>
+    <Style Widget="Label" Class="title" Text="#39FF88"/>
+    <Style Class="panel" Panel="#121C1B"/>
+</Theme>

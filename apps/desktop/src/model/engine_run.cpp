@@ -70,6 +70,7 @@ Snapshot snapshot_from_state(const json::Value& state) {
   s.bars = bars_from(state["bars"]);
   read_account(s, state["account"], state["position"]);
   s.digest = state["digest"].as_string();
+  s.state = state;
   return s;
 }
 
@@ -81,11 +82,14 @@ Debrief debrief_from_json(const json::Value& d) {
   out.score_total = static_cast<int>(d["score"]["total"].as_int(-1));
   out.lesson = d["lesson"].as_string();
   out.entries = to_int(d["entries"]);
+  out.raw = d;
   return out;
 }
 
-std::unique_ptr<EngineRun> EngineRun::create(const std::string& mission, std::uint32_t seed) {
-  tl_run* run = tl_run_create(mission.c_str(), seed);
+std::unique_ptr<EngineRun> EngineRun::create(const std::string& mission, std::uint32_t seed,
+                                             const StartOptions& options) {
+  const char* balance = options.starting_balance.empty() ? nullptr : options.starting_balance.c_str();
+  tl_run* run = tl_run_create_ex(mission.c_str(), seed, 0, 0, 0, balance, options.leverage_cap);
   if (run == nullptr) return nullptr;
   return std::unique_ptr<EngineRun>(new EngineRun(run, seed));
 }
@@ -113,7 +117,12 @@ Snapshot EngineRun::snapshot() const {
   const json::Value state = parse_or_null(tl_state(run_));
   Snapshot s = snapshot_from_state(state);
   s.seed = seed_;
-  if (!s.active()) s.debrief = debrief_from_json(parse_or_null(tl_debrief(run_)));
+  if (!s.active()) {
+    s.debrief = debrief_from_json(parse_or_null(tl_debrief(run_)));
+    // The seeded reveal describes the run's future: asked for only once it has ended (design D6).
+    const json::Value reveal = parse_or_null(tl_mission_reveal(s.mission.c_str(), seed_));
+    if (!reveal.has("error")) s.debrief->reveal = reveal;
+  }
   return s;
 }
 

@@ -34,5 +34,53 @@
   "desktop.qtyInvalid": {
     "pt-BR": "Digite uma quantidade válida (ex.: 1,5).",
     "en": "Type a valid quantity (e.g. 1.5)."
+  },
+  "desktop.crt.scanlines": {
+    "pt-BR": "Linhas de varredura",
+    "en": "Scanlines"
+  },
+  "desktop.crt.bloom": {
+    "pt-BR": "Brilho (bloom)",
+    "en": "Glow (bloom)"
+  },
+  "desktop.crt.noise": {
+    "pt-BR": "Ruído",
+    "en": "Noise"
+  },
+  "desktop.crt.reducedMotion": {
+    "pt-BR": "O sistema pede movimento reduzido: o efeito CRT fica desligado.",
+    "en": "The system asks for reduced motion: the CRT effect stays off."
+  },
+  "desktop.textScale": {
+    "pt-BR": "Tamanho do texto {pct}",
+    "en": "Text size {pct}"
+  },
+  "desktop.keys.colKey": {
+    "pt-BR": "Tecla",
+    "en": "Key"
+  },
+  "desktop.about.fonts": {
+    "pt-BR": "Fontes: VT323 (títulos) e IBM Plex Mono (texto e números), ambas sob a SIL Open Font License 1.1.",
+    "en": "Fonts: VT323 (titles) and IBM Plex Mono (text and numbers), both under the SIL Open Font License 1.1."
+  },
+  "desktop.curriculum.colStage": {
+    "pt-BR": "Estágio",
+    "en": "Stage"
+  },
+  "desktop.curriculum.colStatus": {
+    "pt-BR": "Situação",
+    "en": "Status"
+  },
+  "desktop.curriculum.colContent": {
+    "pt-BR": "Conteúdo",
+    "en": "Content"
+  },
+  "desktop.curriculum.colUnlocks": {
+    "pt-BR": "Libera",
+    "en": "Unlocks"
+  },
+  "desktop.chart.debrief": {
+    "pt-BR": "Gráfico da partida, da primeira decisão ao fim",
+    "en": "Chart of the run, from the first decision to the end"
   }
 }

@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SCREEN_PATHS, screenContentJson, screenRows } from './screen_sources.mjs';
 
 export const DESKTOP_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const REPO_DIR = path.resolve(DESKTOP_DIR, '../..');
@@ -16,7 +17,9 @@ export const DEFAULT_PATHS = {
 	webPacks: path.join(REPO_DIR, 'apps/web/src/lib/game/packs.ts'),
 	desktopJson: path.join(DESKTOP_DIR, 'resources/i18n/desktop.json'),
 	csv: path.join(DESKTOP_DIR, 'resources/i18n/strings.csv'),
-	pinnedKeys: path.join(DESKTOP_DIR, 'resources/packs/pinned_keys.json')
+	pinnedKeys: path.join(DESKTOP_DIR, 'resources/packs/pinned_keys.json'),
+	// Screen texts and data kept outside i18n.svelte.ts (optional: see screen_sources.mjs).
+	...SCREEN_PATHS
 };
 
 const LOCALES = ['pt-BR', 'en'];
@@ -66,6 +69,10 @@ export function readConsts(ts, file) {
 			return evaluate(node.expression);
 		}
 		if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+		if (ts.isNumericLiteral(node)) return Number(node.text);
+		if (node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword) {
+			return node.kind === ts.SyntaxKind.TrueKeyword;
+		}
 		if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
 			return evaluate(node.left) + evaluate(node.right);
 		}
@@ -144,6 +151,9 @@ export function buildCatalog(ts, paths) {
 			add(`mission.${id}.${field}`, byLocale['pt-BR']?.[field] ?? '', byLocale.en?.[field] ?? '', 'web missions');
 		}
 	}
+	const screens = screenRows(ts, paths, readConsts);
+	problems.push(...screens.problems);
+	for (const [key, ptText, enText, origin] of screens.rows) add(key, ptText, enText, origin);
 	const desktop = JSON.parse(readFileSync(paths.desktopJson, 'utf8'));
 	for (const [key, byLocale] of Object.entries(desktop)) {
 		if (rows.has(key)) problems.push(`desktop.json: key '${key}' duplicates a web key`);
@@ -177,5 +187,6 @@ export function pinnedKeysJson(ts, paths) {
 
 export function generate(ts, paths) {
 	const { rows, problems } = buildCatalog(ts, paths);
-	return { csv: toCsv(rows), pinnedKeys: pinnedKeysJson(ts, paths), problems };
+	const content = screenContentJson(ts, paths, readConsts);
+	return { csv: toCsv(rows), pinnedKeys: pinnedKeysJson(ts, paths), content, problems };
 }

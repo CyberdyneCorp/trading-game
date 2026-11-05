@@ -51,6 +51,7 @@ void set_text(Rid widget, const std::string& text) {
       break;
     }
     case R_WIDGET_BUTTON: Rbutton_set_text(widget, text.c_str()); break;
+    case R_WIDGET_CHECKBOX: Rcheckbox_set_text(widget, text.c_str()); break;
     case R_WIDGET_TEXT_INPUT: {
       const char* cur = Rtext_input_get_text(widget);
       if (cur == nullptr || text != cur) Rtext_input_set_text(widget, text.c_str());

@@ -1,0 +1,20 @@
+<!-- Curriculum map (web CurriculumMap.svelte). Texts and the stage table from screens::curriculum(). -->
+<ScrollBox Name="curriculum-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="curriculum-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="curriculum-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Label Name="curriculum-note" Wrap="true" Class="muted"/>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Name="curriculum-progress" Spacing="4"/>
+        </Border>
+        <Table Name="curriculum-stages" Height="380"/>
+        <HBox Spacing="12">
+            <ListView Name="curriculum-lessons" Width="420" Height="64"/>
+            <Button Name="curriculum-lesson-start" Style="Primary" OnClicked="tl.curriculum.lesson" Slot.VAlign="Top"/>
+        </HBox>
+    </VBox>
+</Border>
+</ScrollBox>

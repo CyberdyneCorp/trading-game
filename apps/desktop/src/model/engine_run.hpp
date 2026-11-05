@@ -29,7 +29,8 @@ Debrief debrief_from_json(const json::Value& debrief);
 class EngineRun {
  public:
   // nullptr for an unknown mission id.
-  static std::unique_ptr<EngineRun> create(const std::string& mission, std::uint32_t seed);
+  static std::unique_ptr<EngineRun> create(const std::string& mission, std::uint32_t seed,
+                                           const StartOptions& options = {});
   ~EngineRun();
   EngineRun(const EngineRun&) = delete;
   EngineRun& operator=(const EngineRun&) = delete;

@@ -1,5 +1,6 @@
 #include "view/app_view.hpp"
 
+#include <raven/raven_accessibility.h>
 #include <raven/raven_controls.h>
 #include <raven/raven_draw.h>
 #include <raven/raven_layout.h>
@@ -14,6 +15,7 @@
 #include "model/resources.hpp"
 #include "view/chart_painter.hpp"
 #include "view/raven/raven_ui.hpp"
+#include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
 
 namespace tradelab::desktop {
@@ -26,8 +28,9 @@ void on_chart_paint(Rid /*widget*/, RPainter* painter, float width, float height
 }
 
 int on_window_event(Rid window, const REvent* e, void* user_data) {
-  if (e->type != R_EVENT_KEY_DOWN || e->key != R_KEY_SPACE) return R_FALSE;
   auto* vm = static_cast<AppViewModel*>(user_data);
+  if (ShellView::capture_key(*vm, e)) return R_TRUE;  // Settings waits for a new shortcut key
+  if (e->type != R_EVENT_KEY_DOWN || e->key != R_KEY_SPACE) return R_FALSE;
   const Key key = (e->modifiers & R_MOD_SHIFT) != 0 ? Key::ShiftSpace : Key::Space;
   return vm->handle_key(key, Rwindow_wants_text_input(window) != 0) ? R_TRUE : R_FALSE;
 }
@@ -107,7 +110,13 @@ bool AppView::build(int width, int height) {
     if (screens_[i] == R_INVALID_ID) return false;
     Rwidget_add_child(switcher_, screens_[i]);
   }
-  Rwindow_set_content(window_, switcher_);
+  // The shell screens' glue and the retro look: theme, fonts, CRT overlay stacked over the screens.
+  shell_ = std::make_unique<ShellView>(vm_, switcher_);
+  Rwindow_set_content(window_, shell_->look().create(switcher_));
+  RAccessibilitySettings system{};
+  Raccessibility_get_system_settings(&system);
+  vm_.set_reduce_motion(system.reduce_motion != 0);
+  Raccessibility_set_focus_always_visible(R_TRUE);  // keyboard-only play: the focus is always shown
   bind_actions();
   bind_widgets();
   refresh();
@@ -128,6 +137,7 @@ void AppView::bind_actions() {
   ui::bind_action(names::kActGameMenu, [&vm] { vm.back_to_menu(); });
   ui::bind_action(names::kActDebriefMenu, [&vm] { vm.back_to_menu(); });
   ui::bind_action(names::kActAgain, [&vm] { vm.play_again(); });
+  shell_->bind();
 }
 
 void AppView::bind_widgets() {
@@ -139,28 +149,16 @@ void AppView::bind_widgets() {
   Rwindow_set_event_hook(window_, on_window_event, &vm_);
 }
 
-void AppView::fill_mission_list() {
-  const Rid list = find(names::kMenuList);
-  if (list_filled_ && list_locale_ == vm_.locale()) return;
-  Rlist_view_clear_items(list);
-  for (const auto& title : vm_.mission_titles()) Rlist_view_add_item(list, title.c_str());
-  Rlist_view_set_selected(list, vm_.selected());
-  list_filled_ = true;
-  list_locale_ = vm_.locale();
-}
-
 void AppView::apply_bindings() {
-  for (const Binding& b : vm_.bindings()) {
-    const Rid w = find(b.widget);
-    if (w != R_INVALID_ID) ui::set_text(w, b.text);
-  }
+  shell_->apply(vm_.screen_model());
+  const Settings& s = vm_.settings();
+  shell_->look().apply(s.colorblind, s.text_scale, vm_.crt_state());
 }
 
 void AppView::refresh() {
   if (vm_.revision() == shown_revision_) return;
   shown_revision_ = vm_.revision();
   Rswitcher_set_index(switcher_, static_cast<int>(vm_.screen()));
-  if (vm_.screen() == Screen::Menu) fill_mission_list();
   if (vm_.screen() == Screen::Game) ui::set_text(find(names::kGameQty), vm_.qty_text());
   apply_bindings();
   Rwidget_set_enabled(find(names::kMenuStart), vm_.waiting() ? R_FALSE : R_TRUE);
@@ -172,7 +170,14 @@ std::vector<std::string> AppView::missing_names() const {
   for (std::string_view w : names::kWidgets) {
     if (find(w) == R_INVALID_ID) missing.push_back("widget " + std::string(w));
   }
+  for (std::string_view w : names::kShellWidgets) {
+    if (find(w) == R_INVALID_ID && w != names::kCrtOverlay) missing.push_back("widget " + std::string(w));
+  }
+  if (shell_->look().overlay() == R_INVALID_ID) missing.push_back("widget " + std::string(names::kCrtOverlay));
   for (std::string_view a : names::kActions) {
+    if (!ui::action_bound(a)) missing.push_back("action " + std::string(a));
+  }
+  for (std::string_view a : names::kShellActions) {
     if (!ui::action_bound(a)) missing.push_back("action " + std::string(a));
   }
   return missing;

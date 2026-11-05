@@ -8,10 +8,14 @@ namespace tradelab::desktop {
 
 AppViewModel::AppViewModel(Catalog catalog, std::vector<MissionInfo> missions, EngineCommands& engine,
                            SeedSource seeds)
-    : catalog_(std::move(catalog)), missions_(std::move(missions)), engine_(engine), seeds_(std::move(seeds)) {}
+    : catalog_(std::move(catalog)), missions_(std::move(missions)), engine_(engine), seeds_(std::move(seeds)) {
+  init_shell();
+}
 
 void AppViewModel::set_locale(Locale locale) {
   catalog_.set_locale(locale);
+  shell_.settings.locale = locale;
+  save_settings();
   touch();
 }
 
@@ -42,11 +46,17 @@ bool AppViewModel::send(const std::function<void()>& command) {
 }
 
 void AppViewModel::start_selected() {
-  if (missions_.empty() || screen_ != Screen::Menu) return;
-  const std::string id = missions_[static_cast<std::size_t>(selected_)].id;
-  if (send([&] { engine_.start(id, seeds_()); })) {
+  if (missions_.empty()) return;
+  start_mission(missions_[static_cast<std::size_t>(selected_)].id, {}, std::nullopt);
+}
+
+void AppViewModel::start_mission(const std::string& id, const StartOptions& options, std::optional<CampaignLink> link) {
+  if (screen_ != Screen::Menu || in_flight_ > 0) return;
+  leave_active_run();
+  if (send([&] { engine_.start_with(id, seeds_(), options); })) {
     start_pending_ = true;
     run_mission_ = id;
+    shell_.run_campaign = std::move(link);
     notice_.clear();
   }
 }
@@ -103,9 +113,10 @@ bool AppViewModel::handle_key(Key key, bool typing) {
 }
 
 void AppViewModel::play_again() {
-  if (screen_ != Screen::Debrief) return;
+  if (screen_ != Screen::Debrief || shell_.run_campaign) return;
   screen_ = Screen::Menu;
-  start_selected();
+  start_mission(run_mission_.empty() ? missions_.at(static_cast<std::size_t>(selected_)).id : run_mission_, {},
+                std::nullopt);
 }
 
 void AppViewModel::on_snapshot(std::shared_ptr<const Snapshot> snap) {
@@ -113,6 +124,7 @@ void AppViewModel::on_snapshot(std::shared_ptr<const Snapshot> snap) {
   snap_ = std::move(snap);
   apply_results(*snap_);
   if (screen_ == Screen::Game && !snap_->active() && snap_->debrief) screen_ = Screen::Debrief;
+  if (!snap_->active() && snap_->debrief) settle_ended_run();
   touch();
 }
 
@@ -125,7 +137,10 @@ void AppViewModel::apply_results(const Snapshot& s) {
 
 void AppViewModel::apply_result(const CommandResult& r) {
   if (r.kind == CommandKind::Start) {
-    if (start_pending_ && r.accepted && screen_ == Screen::Menu) screen_ = Screen::Briefing;
+    if (start_pending_ && r.accepted && screen_ == Screen::Menu) {
+      screen_ = Screen::Briefing;
+      record_started_run();
+    }
     start_pending_ = false;
   }
   if (r.kind == CommandKind::Market) notice_ = r.accepted ? std::string() : "\xE2\x9C\x96 " + reason_text(r.reason);  // ✖

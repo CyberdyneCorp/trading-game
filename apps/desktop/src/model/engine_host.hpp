@@ -26,6 +26,10 @@ class EngineCommands {
  public:
   virtual ~EngineCommands() = default;
   virtual void start(const std::string& mission, std::uint32_t seed) = 0;
+  // A run with start options (campaign capital, leverage gate). The default ignores them (fakes).
+  virtual void start_with(const std::string& mission, std::uint32_t seed, const StartOptions& /*options*/) {
+    start(mission, seed);
+  }
   virtual void advance(int steps) = 0;
   virtual void market(Side side, const std::string& qty) = 0;
 };
@@ -46,6 +50,7 @@ class EngineHost final : public EngineCommands {
   [[nodiscard]] const std::vector<MissionInfo>& missions() const { return missions_; }
 
   void start(const std::string& mission, std::uint32_t seed) override;
+  void start_with(const std::string& mission, std::uint32_t seed, const StartOptions& options) override;
   void advance(int steps) override;
   void market(Side side, const std::string& qty) override;
 
@@ -61,6 +66,7 @@ class EngineHost final : public EngineCommands {
     int steps = 0;
     Side side = Side::Buy;
     std::string qty;
+    StartOptions options;
   };
 
   // Shared with posted tasks so a task that runs after the host is gone does nothing.

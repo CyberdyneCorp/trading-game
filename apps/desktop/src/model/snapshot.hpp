@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "model/json.hpp"
+
 namespace tradelab::desktop {
 
 struct MissionInfo {
@@ -40,6 +42,15 @@ struct Debrief {
   int score_total = -1;  // -1: no score
   std::string lesson;
   int entries = 0;
+  json::Value raw;     // the whole tl_debrief document (debrief screen: findings, trades, Greeks...)
+  json::Value reveal;  // tl_mission_reveal of a built-in mission (regimes, releases); null otherwise
+};
+
+// Engine start options of a run (tl_run_create_ex): a campaign mission carries its capital and the
+// curriculum's leverage gate. Empty / 0 = the mission's own.
+struct StartOptions {
+  std::string starting_balance;
+  int leverage_cap = 0;
 };
 
 struct Snapshot {
@@ -77,6 +88,7 @@ struct Snapshot {
   int progress_done = 0;  // batch advance: steps done of progress_total
   int progress_total = 0;
   std::optional<Debrief> debrief;
+  json::Value state;  // the whole tl_state document the fields above were read from
 
   [[nodiscard]] bool active() const { return status == "active"; }
 };

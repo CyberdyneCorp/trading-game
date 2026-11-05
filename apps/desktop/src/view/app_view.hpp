@@ -7,9 +7,11 @@
 
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "view/screens/shell_view.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 
 namespace tradelab::desktop {
@@ -28,20 +30,19 @@ class AppView {
   [[nodiscard]] Rid find(std::string_view name) const;
   // Named widgets and actions of widget_names.hpp that are missing from the views or unbound.
   [[nodiscard]] std::vector<std::string> missing_names() const;
+  [[nodiscard]] ShellView& shell() { return *shell_; }
 
  private:
   void bind_actions();
   void bind_widgets();
   void apply_bindings();
-  void fill_mission_list();
 
   AppViewModel& vm_;
   Rid window_ = R_INVALID_ID;
   Rid switcher_ = R_INVALID_ID;
-  std::array<Rid, 4> screens_{R_INVALID_ID, R_INVALID_ID, R_INVALID_ID, R_INVALID_ID};
+  std::array<Rid, 8> screens_{};
+  std::unique_ptr<ShellView> shell_;
   std::uint64_t shown_revision_ = 0;
-  Locale list_locale_ = Locale::PtBR;
-  bool list_filled_ = false;
 };
 
 // Starts Raven on the null platform and backend (no window system, no GPU): headless tests.

@@ -22,13 +22,22 @@ EngineHost::~EngineHost() {
 }
 
 void EngineHost::start(const std::string& mission, std::uint32_t seed) {
-  enqueue(Command{CommandKind::Start, mission, seed, 0, Side::Buy, {}});
+  enqueue(Command{CommandKind::Start, mission, seed, 0, Side::Buy, {}, {}});
 }
 
-void EngineHost::advance(int steps) { enqueue(Command{CommandKind::Advance, {}, 0, steps, Side::Buy, {}}); }
+void EngineHost::start_with(const std::string& mission, std::uint32_t seed, const StartOptions& options) {
+  Command c;
+  c.kind = CommandKind::Start;
+  c.mission = mission;
+  c.seed = seed;
+  c.options = options;
+  enqueue(std::move(c));
+}
+
+void EngineHost::advance(int steps) { enqueue(Command{CommandKind::Advance, {}, 0, steps, Side::Buy, {}, {}}); }
 
 void EngineHost::market(Side side, const std::string& qty) {
-  enqueue(Command{CommandKind::Market, {}, 0, 0, side, qty});
+  enqueue(Command{CommandKind::Market, {}, 0, 0, side, qty, {}});
 }
 
 void EngineHost::wait_idle() {
@@ -73,7 +82,7 @@ void EngineHost::execute(const Command& c) {
 }
 
 void EngineHost::run_start(const Command& c) {
-  run_ = EngineRun::create(c.mission, c.seed);
+  run_ = EngineRun::create(c.mission, c.seed, c.options);
   if (!run_) {
     Snapshot s;
     s.mission = c.mission;
