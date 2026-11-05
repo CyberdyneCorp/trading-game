@@ -15,6 +15,8 @@
 		takeProfit: string | null;
 		estimate: TicketEstimate;
 		increases: boolean;
+		/** Margin plus fee of the part that adds exposure (the ticket's estimate, quoted if refused). */
+		required: number;
 	}
 
 	/** Draft levels the chart previews while the player edits the ticket. */
@@ -28,8 +30,8 @@
 
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { costsOf, estimate, estimatedMarketEntry, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin } from '#lib/game/sizing.ts';
-	import { fmtMoney, fmtNum, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
+	import { costsOf, estimate, estimatedMarketEntry, marginTier, opposingEffect, releveredLiquidation, requiredMargin, sizedQty, type SizeBy } from '#lib/game/sizing.ts';
+	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
 		distanceOf,
@@ -40,9 +42,13 @@
 		swingStop,
 		targetFromR,
 		targetOnWinningSide,
+		trailRateFromPercent,
 		type BarTuple
 	} from '#lib/game/stops.ts';
 	import LevelField, { type LevelChip } from './LevelField.svelte';
+	import { keymap } from '#lib/game/keymap.svelte.ts';
+	import { keyLabel } from '#lib/game/shortcuts.ts';
+	import TrailField from './TrailField.svelte';
 
 	let {
 		session,
@@ -64,7 +70,7 @@
 		stopInput?: string;
 		tpInput?: string;
 		/** Sizing mode and quantity; bindable so the advisor's suggested size can be applied. */
-		sizeBy?: 'qty' | 'risk';
+		sizeBy?: SizeBy;
 		qtyInput?: string;
 		/** Leverage field; bindable so applying the advisor's size can raise it to fit the margin. */
 		leverage?: number;
@@ -88,7 +94,16 @@
 	});
 	const bars = $derived(s.bars.map((b) => b.slice(0, 5).map(Number) as BarTuple));
 
-	let riskPct = $state(1);
+	// Typed amounts per sizing mode, read with either decimal mark ("0,5" or "0.5").
+	let riskInput = $state('1');
+	let notionalInput = $state('1000');
+	let equityInput = $state('10');
+	const AMOUNT: Record<SizeBy, () => string> = {
+		qty: () => qtyInput,
+		notional: () => notionalInput,
+		equity: () => equityInput,
+		risk: () => riskInput
+	};
 	let priceInput = $state('');
 
 	// The field follows the account leverage only when that (or the cap) changes. Every command returns
@@ -114,14 +129,15 @@
 
 	const entry = $derived(orderType === 'market' ? estimatedMarketEntry(side, mark, k) : parseDecimal(priceInput) || mark);
 	const stop = $derived(stopInput ? parseDecimal(stopInput) : null);
-	const qty = $derived.by(() => {
-		if (sizeBy === 'risk' && stop != null) return qtyForRisk(num(s.account.equity), riskPct, entry, stop, k, lot);
-		return Math.floor((parseDecimal(qtyInput) || 0) / lot + 1e-9) * lot;
-	});
+	const qty = $derived(
+		sizedQty(sizeBy, { equity: num(s.account.equity), entry, stop, qty: parseDecimal(qtyInput) || 0, amount: parseDecimal(AMOUNT[sizeBy]()) || 0 }, k, lot)
+	);
 	const qtyStr = $derived(qtyToLot(qty, lot));
 	// The field can hold anything typed; orders and estimates use the value clamped to the mission cap.
 	const lev = $derived(Math.min(Math.max(1, Math.round(leverage || 1)), cap));
-	const est = $derived(estimate({ side, qty, entry, leverage: lev, stop }, k));
+	// Liquidation of the position this order leads to (an add, a reduction or a reversal), not of the order alone.
+	const openPos = $derived({ qty: posQty, entry: num(s.position.entry), margin: num(s.position.margin), leverage: s.leverage });
+	const est = $derived(estimate({ side, qty, entry, leverage: lev, stop }, k, openPos));
 	const shortBlocked = $derived(!s.contract.allowShort && side === 'sell' && posQty <= 0);
 	const increases = $derived(posQty === 0 || posQty > 0 === (side === 'buy') || qty > Math.abs(posQty));
 	// Against an open position the order reduces, closes or reverses it rather than opening a new trade.
@@ -130,17 +146,35 @@
 	const addedQty = $derived(posQty === 0 || posQty > 0 === (side === 'buy') ? qty : Math.max(0, qty - Math.abs(posQty)));
 	const needMargin = $derived(requiredMargin(addedQty, entry, lev, k));
 	const cantAfford = $derived(addedQty > 0 && needMargin > num(s.account.available));
+	// Policy v16: the position this order leads to sits in a margin tier that may cap leverage lower.
+	const notionalAfter = $derived(
+		(posQty !== 0 && posQty > 0 === (side === 'buy') ? Math.abs(posQty) * num(s.position.entry) * k.multiplier : 0) +
+			addedQty * entry * k.multiplier
+	);
+	const tier = $derived(marginTier(k, notionalAfter));
+	const aboveTier = $derived(addedQty > 0 && lev > tier.maxLeverage);
 	const tp = $derived(tpInput ? parseDecimal(tpInput) : null);
 	const stopWrongSide = $derived(stop != null && !stopOnLosingSide(side, entry, stop));
 	const tpWrongSide = $derived(tp != null && !targetOnWinningSide(side, entry, tp));
 	const needsPrice = $derived(orderType !== 'market');
+	// A stop beyond liquidation needs an explicit confirmation when the mission asks for one (engine
+	// MissionRules, task 4.1); the confirmation belongs to the exact order it was given for.
+	let beyondConfirmed = $state(false);
+	const beyondKey = $derived(`${side}|${qty}|${lev}|${stopInput}|${orderType}|${priceInput}`);
+	$effect(() => {
+		void beyondKey;
+		beyondConfirmed = false;
+	});
+	const needsBeyondConfirm = $derived(est.stopBeyondLiquidation && s.missionRules.confirmStopBeyondLiq);
 	const canSubmit = $derived(
 		!session.busy &&
 			qty > 0 &&
 			!shortBlocked &&
 			!cantAfford &&
+			!aboveTier &&
 			!stopWrongSide &&
 			!tpWrongSide &&
+			(!needsBeyondConfirm || beyondConfirmed) &&
 			(!needsPrice || parseDecimal(priceInput) > 0)
 	);
 
@@ -155,7 +189,8 @@
 			stop: stopInput ? priceToTick(parseDecimal(stopInput), tick) : null,
 			takeProfit: tpInput ? priceToTick(parseDecimal(tpInput), tick) : null,
 			estimate: est,
-			increases
+			increases,
+			required: needMargin
 		});
 	}
 
@@ -197,6 +232,10 @@
 	let protStop = $state('');
 	let protTp = $state('');
 	let protTrail = $state('');
+	let protTrailPct = $state('');
+	let trailMode = $state<'price' | 'pct'>('price');
+	const trailRate = $derived(trailMode === 'pct' && protTrailPct ? trailRateFromPercent(parseDecimal(protTrailPct)) : null);
+	const trailSet = $derived(trailMode === 'pct' ? trailRate != null : !!protTrail);
 	const posSide = $derived<OrderSideName>(posQty > 0 ? 'buy' : 'sell');
 	const posEntry = $derived(num(s.position.entry));
 	const protStopN = $derived(protStop ? parseDecimal(protStop) : null);
@@ -204,6 +243,16 @@
 	const protStopWarn = $derived(
 		protStopN != null && !stopOnLosingSide(posSide, mark, protStopN) ? t('level.protStopSide', { price: fmtPrice(s.account.mark, L) }) : null
 	);
+	// A protective stop for the open position beyond its liquidation price also asks for confirmation.
+	const liqNow = $derived(s.account.liquidationPrice ? num(s.account.liquidationPrice) : null);
+	const protBeyond = $derived(
+		protStopN != null && liqNow != null && (posQty > 0 ? protStopN <= liqNow : protStopN >= liqNow) && s.missionRules.confirmStopBeyondLiq
+	);
+	let protConfirmed = $state(false);
+	$effect(() => {
+		void protStop;
+		protConfirmed = false;
+	});
 	const protTpWarn = $derived(
 		protTpN != null && !targetOnWinningSide(posSide, mark, protTpN) ? t('level.protTpSide', { price: fmtPrice(s.account.mark, L) }) : null
 	);
@@ -221,10 +270,16 @@
 		const size = s.position.qty.replace('-', '');
 		if (protStop) await session.placeOrder('stop_market', exit, size, priceToTick(parseDecimal(protStop), tick), true);
 		if (protTp) await session.placeOrder('take_profit', exit, size, priceToTick(parseDecimal(protTp), tick), true);
-		if (protTrail) await session.placeOrder('trailing_stop', exit, size, null, true, { trail: priceToTick(parseDecimal(protTrail), tick) });
+		if (trailSet) await session.placeOrder('trailing_stop', exit, size, null, true, trailExtras());
 		protStop = '';
 		protTp = '';
 		protTrail = '';
+		protTrailPct = '';
+	}
+
+	// A trailing stop by percent of the close (policy v16) or by a fixed price distance.
+	function trailExtras() {
+		return trailMode === 'pct' ? { trailRate } : { trail: priceToTick(parseDecimal(protTrail), tick) };
 	}
 </script>
 
@@ -264,12 +319,24 @@
 			<select bind:value={sizeBy}>
 				<option value="risk">{t('ticket.sizeRisk')}</option>
 				<option value="qty">{t('ticket.sizeQty')}</option>
+				<option value="notional">{t('ticket.sizeNotional')}</option>
+				<option value="equity">{t('ticket.sizeEquity')}</option>
 			</select>
 		</label>
 		{#if sizeBy === 'risk'}
 			<label>
 				{t('ticket.riskPct')}
-				<input type="number" min="0.1" max="10" step="0.1" bind:value={riskPct} />
+				<input inputmode="decimal" bind:value={riskInput} data-testid="ticket-risk" />
+			</label>
+		{:else if sizeBy === 'notional'}
+			<label>
+				{t('ticket.notional')}
+				<input inputmode="decimal" bind:value={notionalInput} data-testid="ticket-notional" />
+			</label>
+		{:else if sizeBy === 'equity'}
+			<label>
+				{t('ticket.equityPct')}
+				<input inputmode="decimal" bind:value={equityInput} data-testid="ticket-equity" />
 			</label>
 		{:else}
 			<label>
@@ -305,11 +372,12 @@
 	{/if}
 
 	<dl class="kv est">
-		<dt>{t('ticket.qty')}</dt><dd>{fmtQty(qtyStr, L)}</dd>
+		<dt>{t('ticket.qty')}</dt><dd data-testid="ticket-est-qty">{fmtQty(qtyStr, L)}</dd>
+		<dt>{t('ticket.estNotional')}</dt><dd data-testid="ticket-est-notional">{fmtMoney(est.notional, L)}</dd>
 		<dt>{t('ticket.estEntry')}</dt><dd>{fmtPrice(String(entry), L)}</dd>
 		<dt>{t('ticket.estMargin')}</dt><dd>{fmtMoney(est.margin, L)}</dd>
 		<dt>{t('ticket.estFee')}</dt><dd>{fmtMoney(est.fee, L)}</dd>
-		<dt>{t('ticket.estLiq')}</dt><dd class="down">{est.liquidation ? fmtPrice(String(est.liquidation), L) : '—'}</dd>
+		<dt>{t('ticket.estLiq')}</dt><dd class="down" data-testid="ticket-est-liq">{est.liquidation ? fmtPrice(String(est.liquidation), L) : '—'}</dd>
 		<dt>{t('ticket.estRisk')}</dt><dd>{est.plannedRisk != null ? fmtMoney(est.plannedRisk, L) : '—'}</dd>
 	</dl>
 	{#if relever}
@@ -332,7 +400,22 @@
 			⚠ {t('ticket.cantAfford', { need: fmtMoney(needMargin, L), avail: fmtMoney(s.account.available, L) })}
 		</p>
 	{/if}
-	{#if est.stopBeyondLiquidation}<p class="warnbox" role="alert">⚠ {t('ticket.stopBeyondLiq')}</p>{/if}
+	{#if aboveTier}
+		<p class="warnbox" role="alert" data-testid="ticket-above-tier">
+			⚠ {t('ticket.aboveTier', { notional: fmtMoney(notionalAfter, L), max: tier.maxLeverage, mmr: fmtPct(tier.mmr, L, 1) })}
+		</p>
+	{/if}
+	{#if est.stopBeyondLiquidation}
+		<div class="warnbox" role="alert" data-testid="ticket-beyond-liq">
+			⚠ {t('ticket.stopBeyondLiq')}
+			{#if needsBeyondConfirm}
+				<label class="confirm">
+					<input type="checkbox" bind:checked={beyondConfirmed} data-testid="ticket-confirm-beyond" />
+					{t('ticket.confirmBeyond')}
+				</label>
+			{/if}
+		</div>
+	{/if}
 	{#if stop == null && qty > 0}<p class="small attention">{t('ticket.noStop')}</p>{/if}
 	<p class="small muted">{t('ticket.attachNote')}</p>
 
@@ -366,14 +449,23 @@
 				{onPick}
 			/>
 			<div class="full">
-				<LevelField testid="protect-trail" label={t('ticket.trail')} bind:value={protTrail} {tick} chips={trailChips} />
+				<TrailField bind:distance={protTrail} bind:pct={protTrailPct} bind:mode={trailMode} {tick} chips={trailChips} exit={posQty > 0 ? 'sell' : 'buy'} close={mark} />
 			</div>
 		</div>
 		<div class="row">
-			<button onclick={protect} disabled={session.busy || !!protStopWarn || !!protTpWarn || (!protStop && !protTp && !protTrail)}>
+			{#if protBeyond}
+				<div class="warnbox" role="alert" data-testid="protect-beyond-liq">
+					⚠ {t('ticket.stopBeyondLiq')}
+					<label class="confirm"><input type="checkbox" bind:checked={protConfirmed} data-testid="protect-confirm-beyond" /> {t('ticket.confirmBeyond')}</label>
+				</div>
+			{/if}
+			<button
+				onclick={protect}
+				disabled={session.busy || !!protStopWarn || !!protTpWarn || (protBeyond && !protConfirmed) || (!protStop && !protTp && !trailSet)}
+			>
 				{t('ticket.protectSubmit')}
 			</button>
-			<button class="warn" onclick={() => session.closePosition()} disabled={session.busy}>✕ {t('ticket.close')} <kbd>X</kbd></button>
+			<button class="warn" onclick={() => session.closePosition()} disabled={session.busy}>✕ {t('ticket.close')} <kbd>{keyLabel(keymap.map.close)}</kbd></button>
 		</div>
 	{/if}
 </section>
@@ -419,6 +511,18 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
+	}
+	/* The stop-beyond-liquidation confirmation: checkbox beside its sentence, not on a line of its own. */
+	label.confirm {
+		flex-direction: row;
+		align-items: flex-start;
+		gap: 0.4rem;
+		margin-top: 0.3rem;
+		color: inherit;
+	}
+	label.confirm input {
+		margin: 0.1rem 0 0;
+		flex-shrink: 0;
 	}
 	.est {
 		font-size: 0.85rem;

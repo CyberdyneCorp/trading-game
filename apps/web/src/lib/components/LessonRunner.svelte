@@ -4,7 +4,7 @@
 	// market. A wrong answer explains and lets the player choose again; the first try is what counts
 	// for the score. Finishing records the lesson in local progress.
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { firstTryScore, lessonById, lessonText, type Choice } from '#lib/game/lessons.ts';
+	import { firstTryScore, lessonById, lessonText, type Choice } from '#lib/game/academy.ts';
 	import { fmtPct } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import LessonChart from './LessonChart.svelte';
@@ -25,7 +25,7 @@
 	const score = $derived(lesson ? firstTryScore(lesson, firstTry) : { right: 0, total: 0 });
 
 	function choiceText(c: Choice): string {
-		if (c.kind === 'bar') return t('lesson.bar', { n: c.bar });
+		if (c.kind === 'bar') return t('academy.bar', { n: c.bar });
 		if (c.kind === 'pct') return fmtPct(c.value / 100, i18n.locale, 2, true);
 		return st?.choices?.[c.id] ?? c.id;
 	}
@@ -48,20 +48,20 @@
 
 <main class="lesson">
 	{#if !lesson}
-		<p class="panel down" role="alert">{t('lesson.missing')}</p>
-		<button onclick={() => session.openCurriculum()}>{t('lesson.leave')}</button>
+		<p class="panel down" role="alert">{t('academy.missing')}</p>
+		<button onclick={() => session.openCurriculum()}>{t('academy.leave')}</button>
 	{:else if finished}
 		<section class="panel" aria-live="polite" data-testid="lesson-done">
-			<h1>{t('lesson.doneTitle')}</h1>
+			<h1>{t('academy.doneTitle')}</h1>
 			<p>{text.title}</p>
-			<p data-testid="lesson-score">{t('lesson.doneScore', { right: score.right, total: score.total })}</p>
-			<p class="muted">{t('lesson.doneNote')}</p>
-			<button class="primary" onclick={() => session.finishLesson(lesson.id)} data-testid="lesson-finish">{t('lesson.finish')}</button>
+			<p data-testid="lesson-score">{t('academy.doneScore', { right: score.right, total: score.total })}</p>
+			<p class="muted">{t('academy.doneNote')}</p>
+			<button class="primary" onclick={() => session.finishLesson(lesson.id)} data-testid="lesson-finish">{t('academy.finish')}</button>
 		</section>
 	{:else if step && st}
 		<section class="panel" aria-labelledby="lesson-step-title">
 			<p class="muted head">
-				<span>{text.title} · <span class="tag info" data-testid="lesson-phase">{t(`lesson.phase.${step.phase}`)}</span></span>
+				<span>{text.title} · <span class="tag info" data-testid="lesson-phase">{t(`academy.phase.${step.phase}`)}</span></span>
 				<span data-testid="lesson-step">{t('tut.step', { n: i + 1, total: lesson.steps.length })}</span>
 			</p>
 			<h1 id="lesson-step-title">{st.title}</h1>
@@ -83,17 +83,17 @@
 				</div>
 				{#if picked !== null}
 					<p class={solved ? 'up' : 'down'} role="status" data-testid="lesson-feedback">
-						<strong>{solved ? t('lesson.right') : t('lesson.wrong')}</strong>
+						<strong>{solved ? t('academy.right') : t('academy.wrong')}</strong>
 						{solved ? st.right : st.wrong}
 					</p>
 				{/if}
 			{/if}
 			<div class="actions">
-				<button class="link" onclick={() => session.openCurriculum()}>{t('lesson.leave')}</button>
+				<button class="link" onclick={() => session.openCurriculum()}>{t('academy.leave')}</button>
 				<span class="nav">
 					<button onclick={() => ((i -= 1), (picked = null))} disabled={i === 0}>{t('tut.prev')}</button>
 					<button class="primary" onclick={next} disabled={!solved} data-testid="lesson-next">
-						{last ? t('lesson.complete') : t('tut.next')}
+						{last ? t('academy.complete') : t('tut.next')}
 					</button>
 				</span>
 			</div>

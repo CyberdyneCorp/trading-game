@@ -40,11 +40,15 @@ An indicator SHALL emit no value until it has received at least its declared war
 - **THEN** its value SHALL be absent (`null`) and its first value SHALL appear after 5 more bars
 
 ### Requirement: Gaps in data
-When the scenario marks a bar as a synthetic continuity bar (no trading), indicators SHALL apply the scenario's declared gap policy (skip or carry forward), and such bars SHALL provide zero executable capacity.
+When the scenario marks a bar as a synthetic continuity bar (no trading: it repeats the previous close with zero volume), indicators SHALL apply the scenario's declared gap policy (skip or carry forward), and such bars SHALL provide zero executable capacity. Under skip, indicators and candle patterns SHALL be computed over the trading bars only and SHALL have no value at a continuity bar; under carry forward, the continuity bar SHALL be an input at the carried close with zero volume. No candle pattern SHALL complete at a continuity bar. Orders working when a continuity bar occurs SHALL neither execute nor trigger in it and SHALL stay working until the next trading bar.
 
 #### Scenario: Continuity bar
 - **WHEN** a continuity bar occurs during an open market order
-- **THEN** no fill SHALL occur in that bar and indicators SHALL follow the declared gap policy
+- **THEN** no fill SHALL occur in that bar, the order SHALL execute at the next trading bar's open, and indicators SHALL follow the declared gap policy
+
+#### Scenario: Skip versus carry forward
+- **WHEN** closes 100, 102, 104, a continuity bar at 104, then 110, and SMA(3)
+- **THEN** under skip SMA(3) SHALL be absent at the continuity bar and (102 + 104 + 110) / 3 at the next bar; under carry forward it SHALL be (102 + 104 + 104) / 3 at the continuity bar and (104 + 104 + 110) / 3 at the next
 
 ### Requirement: Closed-bar only
 Indicator values exposed at decision step `t` SHALL be computed from closed bars up to and including `t` only.
@@ -52,3 +56,10 @@ Indicator values exposed at decision step `t` SHALL be computed from closed bars
 #### Scenario: Indicator independent of next bar
 - **WHEN** bar `t+1` is altered
 - **THEN** all indicator values at step `t` SHALL be unchanged
+
+### Requirement: Reference values
+Indicator values SHALL be tested against a published reference dataset, vendored with its license and attribution: TA-Lib's 252-bar daily regression series with TA-Lib's own outputs for the game's parameters. Where the formulas are the same (SMA, EMA, RSI, ATR, VWAP over one session, Bollinger) the warm-up SHALL equal TA-Lib's lookback and every value SHALL agree within 1e-6. Where TA-Lib seeds its smoothing differently (MACD: the fast EMA seeded at the slow EMA's first bar; +DI/-DI/ADX: Wilder sums seeded with period - 1 bars) values SHALL agree within 1e-6 (MACD) and 1e-3 points (DI/ADX) from bar 150 on, once the seed difference has decayed, and the MACD signal, DI and ADX warm-ups SHALL equal TA-Lib's.
+
+#### Scenario: RSI against the reference
+- **WHEN** RSI(14) is computed over the reference series
+- **THEN** it SHALL be absent exactly where TA-Lib's RSI(14) is and within 1e-6 of it on every other bar

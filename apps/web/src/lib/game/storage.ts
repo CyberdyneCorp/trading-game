@@ -5,8 +5,10 @@
 // so anything the UI showed as accepted survives a crash or a closed tab. Resume replays the log
 // through the deterministic engine; the stored digest only verifies the replay.
 
+import type { AssistedLink } from './assisted.ts';
 import type { CampaignLink, CampaignProgress, CampaignRun } from './campaign.ts';
 import type { PartialStore } from './download.ts';
+import type { SeriesKey } from './eventNames.ts';
 import { START_POINTS } from './points.ts';
 
 export interface RunRecord<J = unknown, Q = unknown> {
@@ -33,20 +35,51 @@ export interface RunRecord<J = unknown, Q = unknown> {
 	campaign?: CampaignLink;
 	/** Last known engine equity (decimal string): what a campaign mission carries when it is left. */
 	equity?: string;
+	/** Assisted practice (rewind or another market, task 4.8): excluded from progress, points and the campaign. */
+	assisted?: AssistedLink;
+	/**
+	 * Path of the engine build the run started on (engine pinning, see engineCache.ts); absent on
+	 * runs recorded before pinning, which resume on the current build.
+	 */
+	engine?: string;
 }
 
 /**
- * An installed pack, stored by digest after the engine verified it (spec web-client "Persistent
- * offline storage"; IndexedDB stands in for OPFS). `label` is the player's own name for it.
+ * The latest checkpoint of a run (spec web-client "Local persistence"): the engine's opaque
+ * RunState after the first `actions` logged actions. Resume restores it and replays only the tail.
+ * Only valid on the engine build that wrote it.
  */
+export interface Checkpoint {
+	runId: string;
+	actions: number;
+	hex: string;
+	digest: string;
+	engine: string;
+	/**
+	 * Option series seen up to the checkpoint ([id, kind/strike/expiry], see eventNames.ts): a series
+	 * that expired before it is no longer in the restored state, but its fills and settlement still are.
+	 */
+	seriesNames?: [number, SeriesKey][];
+}
+
 /** Where an installed pack came from: a CSV imported on this device, or the pack catalog. */
 export type PackOrigin = 'import' | 'catalog';
 
+/**
+ * An installed pack's index entry, by digest, written after the engine verified it (spec
+ * web-client "Persistent offline storage"). Its bytes live in the Origin Private File System
+ * (`location: 'opfs'`, see packStore.ts) or, where OPFS is unavailable, in `bytes` here
+ * (`location: 'idb'`; entries written before OPFS have no location and keep their bytes here).
+ * `label` is the player's own name for it.
+ */
 export interface StoredPack {
 	digest: string;
 	scenarioId: string;
 	label: string;
-	bytes: Uint8Array;
+	bytes?: Uint8Array;
+	location?: 'opfs' | 'idb';
+	/** Byte length of the pack, to detect a truncated or evicted file. */
+	size?: number;
 	private: boolean;
 	totalBars: number;
 	warmupBars: number;
@@ -117,7 +150,7 @@ export function migrateProgress(row: Record<string, unknown> | undefined): Progr
 }
 
 const DB_NAME = 'tradelab';
-const DB_VERSION = 2; // v2: packs store
+const DB_VERSION = 3; // v2: packs store; v3: checkpoints store
 const LEGACY_KEY = 'tradelab.run.v1';
 
 function req<T>(r: IDBRequest<T>): Promise<T> {
@@ -153,6 +186,7 @@ export function openDb(factory: IDBFactory = indexedDB): Promise<IDBDatabase> {
 			if (!db.objectStoreNames.contains('actions')) db.createObjectStore('actions', { keyPath: ['runId', 'seq'] });
 			if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
 			if (!db.objectStoreNames.contains('packs')) db.createObjectStore('packs', { keyPath: 'digest' });
+			if (!db.objectStoreNames.contains('checkpoints')) db.createObjectStore('checkpoints', { keyPath: 'runId' });
 		};
 		open.onsuccess = () => resolve(open.result);
 		open.onerror = () => reject(open.error);
@@ -221,6 +255,28 @@ export class RunStore<A, J, Q> implements PartialStore {
 		const actions: A[] = [];
 		for (let i = 0; i < rows.length && rows[i].seq === i; i++) actions.push(rows[i].action);
 		return { record, actions };
+	}
+
+	/** Keeps only the run's latest checkpoint (an older one is never needed to resume). */
+	async saveCheckpoint(cp: Checkpoint): Promise<void> {
+		const tx = this.db.transaction('checkpoints', 'readwrite');
+		const store = tx.objectStore('checkpoints');
+		const prev = (await req(store.get(cp.runId))) as Checkpoint | undefined;
+		if (!prev || prev.actions <= cp.actions) store.put(cp);
+		await done(tx);
+	}
+
+	async checkpoint(runId: string): Promise<Checkpoint | null> {
+		const tx = this.db.transaction('checkpoints', 'readonly');
+		return ((await req(tx.objectStore('checkpoints').get(runId))) as Checkpoint | undefined) ?? null;
+	}
+
+	/** Checkpoints of runs that can no longer be resumed are dropped (only the active run resumes). */
+	async pruneCheckpoints(keepRunId: string | null): Promise<void> {
+		const tx = this.db.transaction('checkpoints', 'readwrite');
+		const store = tx.objectStore('checkpoints');
+		for (const key of (await req(store.getAllKeys())) as string[]) if (key !== keepRunId) store.delete(key);
+		await done(tx);
 	}
 
 	async progress(): Promise<Progress> {
@@ -332,8 +388,8 @@ export class RunStore<A, J, Q> implements PartialStore {
 	async finishedMissions(): Promise<string[]> {
 		const tx = this.db.transaction('runs', 'readonly');
 		const runs = (await req(tx.objectStore('runs').getAll())) as RunRecord<J, Q>[];
-		// Practice runs on an imported pack are not missions: they never count as completed.
-		return [...new Set(runs.filter((r) => r.status === 'finished' && !r.packDigest).map((r) => r.missionId))];
+		// Practice runs on an imported pack are not missions, and assisted attempts do not count either.
+		return [...new Set(runs.filter((r) => r.status === 'finished' && !r.packDigest && !r.assisted).map((r) => r.missionId))];
 	}
 
 	/** Imports a run saved by the previous localStorage format (v1), then removes the legacy key. */

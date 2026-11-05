@@ -15,18 +15,38 @@ bool bar_valid(const Bar& b, Price tick) {
          on_grid(b.close.raw, tick.raw);
 }
 
+// Each added tier must sit above the previous one and leave initial margin above maintenance at its
+// own leverage cap (max_leverage * rate < 1), or a position would be liquidatable as it opens.
+bool tier_valid(const MarginTier& t, const MarginTier& prev) {
+  if (t.notional_floor <= prev.notional_floor || t.maintenance_margin < prev.maintenance_margin) return false;
+  if (t.max_leverage < 1 || t.max_leverage > prev.max_leverage) return false;
+  return static_cast<i128>(t.maintenance_margin.raw) * t.max_leverage < Rate::kScale;
+}
+
+bool tiers_valid(const ContractSpec& c) {
+  MarginTier prev{Money{}, c.maintenance_margin, c.max_leverage};
+  for (const MarginTier& t : c.margin_tiers) {
+    if (!tier_valid(t, prev)) return false;
+    prev = t;
+  }
+  return true;
+}
+
 bool contract_valid(const ContractSpec& c) {
   if (c.tick_size.raw <= 0 || c.lot_size.raw <= 0 || c.multiplier.raw <= 0) return false;
   if (c.min_qty.raw < c.lot_size.raw || !on_grid(c.min_qty.raw, c.lot_size.raw)) return false;
   if (c.max_leverage < 1 || c.max_leverage > 125 || c.funding_interval == 0) return false;
   const bool fees_ok = c.maker_fee.raw >= 0 && c.taker_fee.raw >= 0 && c.taker_fee < rate_one();
-  return fees_ok && c.maintenance_margin.raw > 0 && c.maintenance_margin < rate_one();
+  return fees_ok && c.maintenance_margin.raw > 0 && c.maintenance_margin < rate_one() && tiers_valid(c);
 }
 
 bool mission_valid(const Scenario& s) {
   const MissionRules& m = s.mission;
   if (m.initial_balance.raw <= 0 || m.leverage_cap < 1) return false;
-  return m.warmup_bars + 2 <= s.bars.size();
+  if (m.liq_warning_bp > 10'000 || m.drawdown_budget_bp == 0 || m.drawdown_budget_bp > 10'000) return false;
+  const bool codes_ok = std::all_of(m.objectives.begin(), m.objectives.end(),
+                                    [](const Objective& o) { return o.code <= ObjectiveCode::ReadCampaignReport && o.value_bp <= 10'000; });
+  return codes_ok && m.warmup_bars + 2 <= s.bars.size();
 }
 
 bool series_valid(const Scenario& s, const OptionSeries& x, std::uint32_t index) {
@@ -43,7 +63,7 @@ bool options_valid(const Scenario& s) {
   for (std::uint32_t i = 0; i < o.series.size(); ++i) {
     if (!series_valid(s, o.series[i], i)) return false;
   }
-  return o.im_floor.raw > 0 && o.mm_base.raw > 0 && o.settlement_bars >= 1;
+  return o.im_floor.raw > 0 && o.mm_base.raw > 0 && o.settlement_minutes >= 1;
 }
 
 bool news_valid(const Scenario& s) {
@@ -55,7 +75,63 @@ bool news_valid(const Scenario& s) {
   return true;
 }
 
+// A continuity bar repeats the previous close with no volume (nothing traded); bar 0 has no previous.
+bool continuity_valid(const Scenario& s) {
+  for (std::size_t i = 0; i < s.bars.size(); ++i) {
+    const Bar& b = s.bars[i];
+    if (!b.continuity) continue;
+    if (i == 0 || b.volume.raw != 0) return false;
+    const Price c = s.bars[i - 1].close;
+    if (b.open != c || b.high != c || b.low != c || b.close != c) return false;
+  }
+  return true;
+}
+
+bool liquidity_valid(const Scenario& s) {
+  for (const LiquidityShock& l : s.liquidity) {
+    const bool span_ok = l.start >= 1 && l.bars >= 1 && l.start < s.bars.size() && l.bars <= s.bars.size() - l.start;
+    if (!span_ok || l.spread_pct < 10 || l.spread_pct > 1000 || l.capacity_pct > 1000) return false;
+  }
+  return true;
+}
+
+bool mark_valid(const Scenario& s) {
+  if (s.mark.empty()) return true;
+  if (s.mark.size() != s.bars.size()) return false;
+  return std::all_of(s.mark.begin(), s.mark.end(), [&s](const Bar& b) { return bar_valid(b, s.contract.tick_size); });
+}
+
+// Sub-bars end at their bar's close, stay on the tick grid and never start before bar 0's open.
+bool sub_bars_valid(const Scenario& s) {
+  const std::uint64_t step = s.options.minutes_per_step;
+  for (const SubBars& x : s.sub_bars) {
+    if (x.bar >= s.bars.size() || x.minutes == 0 || x.closes.empty()) return false;
+    if (x.closes.back() != s.bars[x.bar].close) return false;
+    if (static_cast<std::uint64_t>(x.minutes) * x.closes.size() > (x.bar + 1ULL) * step) return false;
+    const auto bad = [&s](Price p) { return p.raw <= 0 || !on_grid(p.raw, s.contract.tick_size.raw); };
+    if (std::any_of(x.closes.begin(), x.closes.end(), bad)) return false;
+  }
+  return true;
+}
+
+std::int64_t scaled(std::int64_t raw, std::uint32_t pct, bool up) {
+  const std::int64_t num = raw * static_cast<std::int64_t>(pct);  // raw <= 1e10, pct <= 1000: no overflow
+  return up ? (num + 99) / 100 : num / 100;
+}
+
 }  // namespace
+
+CostModel costs_at(const Scenario& s, std::uint32_t bar) {
+  CostModel c = s.costs;
+  for (const LiquidityShock& l : s.liquidity) {
+    if (bar < l.start || bar - l.start >= l.bars) continue;
+    // Capped so overlapping shocks stay finite: a cost never exceeds half the price.
+    c.half_spread = Rate::from_raw(std::min(scaled(c.half_spread.raw, l.spread_pct, true), Rate::kScale / 2));
+    c.slippage = Rate::from_raw(std::min(scaled(c.slippage.raw, l.spread_pct, true), Rate::kScale / 2));
+    c.capacity_fraction = Rate::from_raw(std::min(scaled(c.capacity_fraction.raw, l.capacity_pct, false), Rate::kScale));
+  }
+  return c;
+}
 
 ScenarioError validate(const Scenario& s) {
   if (s.bars.size() < 3) return ScenarioError::TooFewBars;
@@ -67,6 +143,10 @@ ScenarioError validate(const Scenario& s) {
   if (!mission_valid(s)) return ScenarioError::InvalidMission;
   if (!options_valid(s)) return ScenarioError::InvalidOptions;
   if (!news_valid(s)) return ScenarioError::InvalidNews;
+  if (!liquidity_valid(s)) return ScenarioError::InvalidLiquidity;
+  if (!mark_valid(s)) return ScenarioError::InvalidMark;
+  if (!continuity_valid(s)) return ScenarioError::InvalidContinuity;
+  if (!sub_bars_valid(s)) return ScenarioError::InvalidSubBars;
   return ScenarioError::Ok;
 }
 

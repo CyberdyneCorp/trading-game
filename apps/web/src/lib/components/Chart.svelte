@@ -3,9 +3,11 @@
 	// the area right of the last bar is drawn as an explicit "unknown future" zone.
 	import type { GameState } from '#lib/engine/types.ts';
 	import { fmtNum, fmtPrice, fmtQty } from '#lib/game/format.ts';
-	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { OSCILLATORS, type Oscillator, type Palette } from './chartPanes.ts';
-	import { candleCells, candleRange, hitsTag, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
+	import { candleRange, drawnCandles, hitsTag, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
+	import { candleText, stepFocus } from './chartA11y.ts';
+	import ChartTable from './ChartTable.svelte';
 	import { patternName } from '#lib/game/candlePatterns.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
 	import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragTarget, type DragZone } from './chartDrag.ts';
@@ -52,6 +54,19 @@
 	let grabbable = $state<DragTarget | null>(null);
 	let zones: DragZone[] = [];
 	let suppressClick = false;
+	// Keyboard: the focused candle (absolute bar index), what is announced for it, and the bar table.
+	let focusBar = $state<number | null>(null);
+	let announce = $state('');
+	let tableOpen = $state(false);
+	let tableToggle = $state<HTMLButtonElement | null>(null);
+	let wrap = $state<HTMLDivElement | null>(null);
+
+	// Closing the table hands the focus back to its toggle: focus left on one of its buttons kept the
+	// table on screen (it shows while focus is inside it) after Esc had closed it.
+	function closeTable() {
+		tableOpen = false;
+		if (wrap?.querySelector('.bar-table')?.contains(document.activeElement)) tableToggle?.focus();
+	}
 
 	// Bars still needed before an indicator has a value (spec indicators "Warm-up").
 	function warming(series: (string | null)[], need: number): number {
@@ -73,6 +88,10 @@
 	const bars = $derived(game.bars.map((b) => b.slice(0, 5).map(Number) as [number, number, number, number, number]));
 	const first = $derived(Math.max(0, bars.length - zoom));
 	const visible = $derived(bars.slice(first));
+	// Continuity bars (engine policy v17): a gap in the data, no trading. Drawn as a shaded slot with a
+	// dashed line at the carried close instead of a candle.
+	const continuity = $derived(game.bars.map((b) => b[6] === true));
+	const visibleGaps = $derived(continuity.slice(first).filter(Boolean).length);
 
 	const futureSlots = () => (game.status === 'active' ? FUTURE_SLOTS : 1);
 
@@ -180,6 +199,7 @@
 		if (game.status === 'active') drawFuture(ctx, visible.length * slotW, plotW, priceH);
 		drawVolume(ctx, slotW, volTop, volH, x);
 		drawCandles(ctx, slotW, x, y);
+		drawContinuity(ctx, slotW, priceH, x, y);
 		drawFills(ctx, x, y);
 		drawNews(ctx, x, priceH);
 		if (showSma) drawLine(ctx, game.indicators.sma20, cssVar('--attention'), x, y);
@@ -270,44 +290,72 @@
 		ctx.restore();
 	}
 
+	// One path per direction (not one draw call per bar), at most one candle per pixel column
+	// (drawnCandles), so thousands of bars redraw within a frame.
 	function drawVolume(ctx: CanvasRenderingContext2D, slotW: number, top: number, h: number, x: (i: number) => number) {
-		const maxV = Math.max(...visible.map((b) => b[4]), 1);
-		const up = cssVar('--up');
-		const down = cssVar('--down');
-		visible.forEach((b, i) => {
-			const vh = Math.max(1, Math.round((b[4] / maxV) * h));
-			ctx.globalAlpha = 0.45;
-			ctx.fillStyle = b[3] >= b[0] ? up : down;
-			ctx.fillRect(Math.round(x(i) - slotW * 0.35), top + h - vh, Math.max(1, Math.round(slotW * 0.7)), vh);
-		});
+		const candles = drawnCandles(visible, slotW);
+		let maxV = 1;
+		for (const k of candles) maxV = Math.max(maxV, k.v);
+		const w = Math.max(1, Math.round(slotW * 0.7));
+		ctx.globalAlpha = 0.45;
+		for (const rising of [true, false]) {
+			ctx.fillStyle = cssVar(rising ? '--up' : '--down');
+			ctx.beginPath();
+			for (const k of candles) {
+				if (k.c >= k.o !== rising) continue;
+				const vh = Math.max(1, Math.round((k.v / maxV) * h));
+				ctx.rect(Math.round(x(k.at) - slotW * 0.35), top + h - vh, w, vh);
+			}
+			ctx.fill();
+		}
 		ctx.globalAlpha = 1;
 	}
 
-	// Up candles hollow, down candles filled: direction is readable without color.
+	// Up candles hollow, down candles filled: direction is readable without color. Drawn as one path
+	// per direction and part (wicks, then bodies over them).
 	function drawCandles(ctx: CanvasRenderingContext2D, slotW: number, x: (i: number) => number, y: (p: number) => number) {
-		const up = cssVar('--up');
-		const down = cssVar('--down');
 		const bodyW = Math.max(1, Math.floor(slotW * 0.6));
-		visible.forEach(([o, h, l, c], i) => {
-			const color = c >= o ? up : down;
-			const cx = x(i);
-			ctx.strokeStyle = color;
-			ctx.fillStyle = color;
-			ctx.beginPath();
-			ctx.moveTo(cx, y(h));
-			ctx.lineTo(cx, y(l));
-			ctx.stroke();
-			const top = y(Math.max(o, c));
-			const bh = Math.max(1, y(Math.min(o, c)) - top);
-			const bx = Math.round(cx - bodyW / 2) + 0.5;
-			if (c >= o) {
-				ctx.fillStyle = cssVar('--bg');
-				ctx.fillRect(bx, top, bodyW, bh);
-				ctx.strokeRect(bx, top, bodyW, bh);
-			} else {
-				ctx.fillRect(bx - 0.5, top - 0.5, bodyW + 1, bh + 1);
+		const bg = cssVar('--bg');
+		const candles = drawnCandles(visible, slotW, continuity.slice(first)); // continuity bars: drawContinuity marks the slot
+		for (const rising of [true, false]) {
+			const color = cssVar(rising ? '--up' : '--down');
+			const wicks = new Path2D();
+			const bodies = new Path2D();
+			for (const { at, o, h, l, c } of candles) {
+				if (c >= o !== rising) continue;
+				const cx = x(at);
+				wicks.moveTo(cx, y(h));
+				wicks.lineTo(cx, y(l));
+				const top = y(Math.max(o, c));
+				const bh = Math.max(1, y(Math.min(o, c)) - top);
+				const bx = Math.round(cx - bodyW / 2) + 0.5;
+				if (rising) bodies.rect(bx, top, bodyW, bh);
+				else bodies.rect(bx - 0.5, top - 0.5, bodyW + 1, bh + 1);
 			}
+			ctx.strokeStyle = color;
+			ctx.stroke(wicks);
+			ctx.fillStyle = rising ? bg : color;
+			ctx.fill(bodies);
+			if (rising) ctx.stroke(bodies);
+		}
+	}
+
+	function drawContinuity(ctx: CanvasRenderingContext2D, slotW: number, priceH: number, x: (i: number) => number, y: (p: number) => number) {
+		if (visibleGaps === 0) return;
+		ctx.save();
+		ctx.fillStyle = 'rgba(143,179,161,0.10)';
+		ctx.strokeStyle = cssVar('--muted');
+		ctx.setLineDash([2, 2]);
+		visible.forEach((b, i) => {
+			if (!continuity[first + i]) return;
+			const cx = x(i);
+			ctx.fillRect(Math.round(cx - slotW / 2), 0, Math.max(1, Math.round(slotW)), priceH);
+			ctx.beginPath();
+			ctx.moveTo(cx - slotW * 0.4, y(b[3]));
+			ctx.lineTo(cx + slotW * 0.4, y(b[3]));
+			ctx.stroke();
 		});
+		ctx.restore();
 	}
 
 	function drawFills(ctx: CanvasRenderingContext2D, x: (i: number) => number, y: (p: number) => number) {
@@ -522,6 +570,36 @@
 	function onKeydown(e: KeyboardEvent) {
 		if (picking && e.key === 'Escape') onCancelPick?.();
 		if (drag && e.key === 'Escape') cancelDrag();
+		if (tableOpen && e.key === 'Escape') closeTable();
+	}
+
+	// Per-candle keyboard focus: arrows, Page Up/Down, Home/End move it and announce the bar;
+	// Enter opens the cheat-sheet card of a pattern on it. Space is left to the game (advance).
+	function focusCandle(i: number) {
+		focusBar = i;
+		if (i < first) zoom = Math.min(Math.max(30, bars.length - i), bars.length);
+		hover = i - Math.max(0, bars.length - zoom);
+		const names = patternsAt(i).map((p) => patternName(p.id, i18n.locale));
+		const gap = continuity[i] ? ` (${t('chart.noTrading')})` : '';
+		announce = candleText(i, bars[i], names, i18n.locale) + gap;
+	}
+
+	// Keyboard focus announces the current bar; a mouse click that focuses the chart does not move the
+	// hover (the click acts on the bar under the pointer).
+	function onChartFocus() {
+		if (focusBar == null && bars.length && box?.matches(':focus-visible')) focusCandle(bars.length - 1);
+	}
+
+	function onChartKey(e: KeyboardEvent) {
+		if (e.key === 'Enter' && focusBar != null) {
+			const hit = patternsAt(focusBar)[0];
+			if (hit) onPattern?.(hit.id);
+			return;
+		}
+		const next = stepFocus(e.key, focusBar, bars.length);
+		if (next == null) return;
+		e.preventDefault();
+		focusCandle(next);
 	}
 
 	function onWheel(e: WheelEvent) {
@@ -541,7 +619,6 @@
 
 	const hoverBar = $derived(hover != null ? visible[hover] : visible[visible.length - 1]);
 	const hoverIndex = $derived(hover != null ? first + hover : bars.length - 1);
-	const tableRows = $derived(bars.slice(-20).map((b, i) => ({ i: bars.length - 20 + i, b })).filter((r) => r.i >= 0));
 
 	$effect(() => {
 		if (!box) return;
@@ -563,28 +640,32 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="chart-wrap">
-	<div class="readout num" aria-hidden="true">
-		{#if hoverBar}
-			<span class="muted">#{hoverIndex}</span>
-			O {fmtPrice(String(hoverBar[0]), i18n.locale)}
-			H {fmtPrice(String(hoverBar[1]), i18n.locale)}
-			L {fmtPrice(String(hoverBar[2]), i18n.locale)}
-			C {fmtPrice(String(hoverBar[3]), i18n.locale)}
-			<span class="muted">V {fmtQty(String(hoverBar[4]), i18n.locale)}</span>
-			{@const rsiV = game.indicators.rsi14[hoverIndex]}
-			{@const atrV = game.indicators.atr14[hoverIndex]}
-			<span class="info">RSI14 {fmtOsc(rsiV, 1)}</span>
-			<span class="muted">ATR14 {atrV != null ? fmtPrice(atrV, i18n.locale) : '—'}</span>
-			{@const ind = game.indicators}
-			{#if showBb}<span class="bb">BB {ind.bbLower[hoverIndex] != null ? `${fmtPrice(ind.bbLower[hoverIndex]!, i18n.locale)}–${fmtPrice(ind.bbUpper[hoverIndex]!, i18n.locale)}` : '—'}</span>{/if}
-			{#if showVwap}<span class="vwap">VWAP {ind.vwap[hoverIndex] != null ? fmtPrice(ind.vwap[hoverIndex]!, i18n.locale) : '—'}</span>{/if}
-			{#if osc === 'macd'}
-				<span class="muted">MACD {fmtOsc(ind.macd[hoverIndex], 3)} / {fmtOsc(ind.macdSignal[hoverIndex], 3)}</span>
-			{:else if osc === 'adx'}
-				<span class="muted">ADX {fmtOsc(ind.adx14[hoverIndex], 1)} · +DI {fmtOsc(ind.plusDi14[hoverIndex], 1)} · −DI {fmtOsc(ind.minusDi14[hoverIndex], 1)}</span>
+<div class="chart-wrap" bind:this={wrap}>
+	<div class="readout num">
+		<!-- The hover values repeat the accessible bar table; the indicator toggles stay reachable. -->
+		<span class="hover-values" aria-hidden="true">
+			{#if hoverBar}
+				<span class="muted">#{hoverIndex}</span>
+				O {fmtPrice(String(hoverBar[0]), i18n.locale)}
+				H {fmtPrice(String(hoverBar[1]), i18n.locale)}
+				L {fmtPrice(String(hoverBar[2]), i18n.locale)}
+				C {fmtPrice(String(hoverBar[3]), i18n.locale)}
+				<span class="muted">V {fmtQty(String(hoverBar[4]), i18n.locale)}</span>
+				{#if continuity[hoverIndex]}<span class="attention" data-testid="continuity-tag">{t('chart.noTrading')}</span>{/if}
+				{@const rsiV = game.indicators.rsi14[hoverIndex]}
+				{@const atrV = game.indicators.atr14[hoverIndex]}
+				<span class="info">RSI14 {fmtOsc(rsiV, 1)}</span>
+				<span class="muted">ATR14 {atrV != null ? fmtPrice(atrV, i18n.locale) : '—'}</span>
+				{@const ind = game.indicators}
+				{#if showBb}<span class="bb">BB {ind.bbLower[hoverIndex] != null ? `${fmtPrice(ind.bbLower[hoverIndex]!, i18n.locale)}–${fmtPrice(ind.bbUpper[hoverIndex]!, i18n.locale)}` : '—'}</span>{/if}
+				{#if showVwap}<span class="vwap">VWAP {ind.vwap[hoverIndex] != null ? fmtPrice(ind.vwap[hoverIndex]!, i18n.locale) : '—'}</span>{/if}
+				{#if osc === 'macd'}
+					<span class="muted">MACD {fmtOsc(ind.macd[hoverIndex], 3)} / {fmtOsc(ind.macdSignal[hoverIndex], 3)}</span>
+				{:else if osc === 'adx'}
+					<span class="muted">ADX {fmtOsc(ind.adx14[hoverIndex], 1)} · +DI {fmtOsc(ind.plusDi14[hoverIndex], 1)} · −DI {fmtOsc(ind.minusDi14[hoverIndex], 1)}</span>
+				{/if}
 			{/if}
-		{/if}
+		</span>
 		<label class="toggle attention"><input type="checkbox" bind:checked={showSma} /> SMA20</label>
 		<label class="toggle info"><input type="checkbox" bind:checked={showEma} /> EMA50</label>
 		<label class="toggle vwap"><input type="checkbox" bind:checked={showVwap} /> VWAP</label>
@@ -602,6 +683,14 @@
 		{#if warming(game.indicators.ema50, 50) > 0}
 			<span class="muted">{t('chart.warming', { name: 'EMA50', n: warming(game.indicators.ema50, 50) })}</span>
 		{/if}
+		<button class="toggle table-toggle" bind:this={tableToggle} aria-expanded={tableOpen} onclick={() => (tableOpen ? closeTable() : (tableOpen = true))} data-testid="chart-table-toggle">
+			▦ {t('chart.tableToggle')}
+		</button>
+		{#if visibleGaps > 0}
+			<span class="muted" data-testid="continuity-legend" title={t('chart.continuityHelp', { policy: t(game.contract.gapPolicy === 'carryForward' ? 'gap.carryForward' : 'gap.skip') })}>
+				▒ {tCount('chart.continuityBars', visibleGaps)}
+			</span>
+		{/if}
 		{#if picking}<span class="attention" role="status">⌖ {t('chart.pickHint')}</span>{/if}
 	</div>
 	<!-- Always present at a fixed height: showing a pattern must not move or resize the chart. -->
@@ -615,7 +704,29 @@
 			{/each}
 		{/if}
 	</div>
-	<div class="canvas-box" class:picking class:grab={grabbable || drag} bind:this={box} data-testid="chart-box">
+	<!-- A slider over the closed bars: the focused candle is its value, announced as aria-valuetext. -->
+	<div
+		class="canvas-box"
+		class:picking
+		class:grab={grabbable || drag}
+		bind:this={box}
+		data-testid="chart-box"
+		tabindex="0"
+		role="slider"
+		aria-label={t('chart.focusHint')}
+		aria-describedby="chart-summary"
+		aria-valuemin={0}
+		aria-valuemax={Math.max(0, bars.length - 1)}
+		aria-valuenow={focusBar ?? Math.max(0, bars.length - 1)}
+		aria-valuetext={announce || undefined}
+		onkeydown={onChartKey}
+		onfocus={onChartFocus}
+		onblur={() => {
+			focusBar = null;
+			hover = null;
+		}}
+	>
+		{#if bars.length === 0}<p class="nodata muted" role="status" data-testid="chart-nodata">{t('chart.noData')}</p>{/if}
 		<canvas
 			bind:this={canvas}
 			style="width:{width}px;height:{height}px"
@@ -633,25 +744,19 @@
 			aria-hidden="true"
 		></canvas>
 	</div>
-	<table class="sr-only">
-		<caption>{t('chart.table')}</caption>
-		<thead><tr><th>#</th><th>O</th><th>H</th><th>L</th><th>C</th><th>V</th></tr></thead>
-		<tbody>
-			{#each tableRows as row (row.i)}
-				<tr>
-					<td>{row.i}</td>{#each candleCells(row.b, i18n.locale) as cell, j (j)}<td>{cell}</td>{/each}
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<ChartTable {bars} {continuity} open={tableOpen} onClose={closeTable} />
 </div>
 
 <style>
 	.chart-wrap {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		height: 100%;
 		min-height: 260px;
+	}
+	.hover-values {
+		display: contents;
 	}
 	.readout {
 		text-align: left;
@@ -698,6 +803,21 @@
 		white-space: nowrap;
 	}
 	.pattern {
+		font-size: 0.75rem;
+		padding: 0 0.4rem;
+		min-height: 0;
+	}
+	.canvas-box:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+	}
+	.nodata {
+		position: absolute;
+		inset: 40% 0 auto;
+		text-align: center;
+		margin: 0;
+	}
+	.table-toggle {
 		font-size: 0.75rem;
 		padding: 0 0.4rem;
 		min-height: 0;

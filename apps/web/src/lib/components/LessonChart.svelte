@@ -2,7 +2,7 @@
 	// Small illustrative chart for Academy lessons: candles with volume, bar numbers, an optional
 	// highlighted bar, and the unknown future hatched after the last closed bar (nothing drawn there).
 	// `anatomy` draws one large candle with its parts named. A screen-reader table lists the bars.
-	import type { LessonChart } from '#lib/game/lessons.ts';
+	import type { LessonChart } from '#lib/game/academy.ts';
 	import { fmtNum } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
@@ -26,13 +26,13 @@
 	const y = (p: number) => 10 + ((hi - p) / (hi - lo || 1)) * (PRICE_H - 20);
 	const cx = (i: number) => left + slot * i + slot / 2;
 	const fmt = (v: number) => fmtNum(v, L, digits);
-	const desc = $derived(t('lesson.market', { market: chart.market, interval: chart.interval }));
+	const desc = $derived(t('academy.market', { market: chart.market, interval: chart.interval }));
 </script>
 
 <figure class="lesson-chart">
 	<figcaption>
 		<span>{desc}</span>
-		<span class="tag attention">{t('lesson.illustrative')}</span>
+		<span class="tag attention">{t('academy.illustrative')}</span>
 	</figcaption>
 	<svg viewBox="0 0 {W} {H}" role="img" aria-label={desc} data-testid="lesson-chart">
 		{#if !chart.anatomy}
@@ -46,7 +46,7 @@
 				</pattern>
 			</defs>
 			<rect x={left + slot * known} y="0" width={slot * (n - known)} height={PRICE_H + VOL_H} fill="url(#future-hatch)" />
-			<text class="future" x={left + slot * (known + (n - known) / 2)} y={PRICE_H / 2} text-anchor="middle">{t('lesson.future')}</text>
+			<text class="future" x={left + slot * (known + (n - known) / 2)} y={PRICE_H / 2} text-anchor="middle">{t('academy.future')}</text>
 		{/if}
 		{#each shown as c, i (i)}
 			{@const up = c.c >= c.o}
@@ -73,13 +73,13 @@
 		{#if chart.anatomy}
 			{@const c = chart.candles[0]}
 			{@const x0 = cx(0) + 45}
-			<text class="label" x={x0} y={y(c.h) + 4}>{t('lesson.art.high')} {fmt(c.h)}</text>
-			<text class="label" x={x0} y={y(c.c) + 4}>{t('lesson.art.close')} {fmt(c.c)}</text>
-			<text class="label" x={x0} y={y(c.o) + 4}>{t('lesson.art.open')} {fmt(c.o)}</text>
-			<text class="label" x={x0} y={y(c.l) + 4}>{t('lesson.art.low')} {fmt(c.l)}</text>
-			<text class="label muted" x={cx(0) - 45} y={(y(c.o) + y(c.c)) / 2 + 4} text-anchor="end">{t('lesson.art.body')}</text>
-			<text class="label muted" x={cx(0) - 45} y={(y(c.h) + y(c.c)) / 2 + 4} text-anchor="end">{t('lesson.art.wick')}</text>
-			<text class="label muted" x={cx(0) - 45} y={(y(c.o) + y(c.l)) / 2 + 4} text-anchor="end">{t('lesson.art.wick')}</text>
+			<text class="label" x={x0} y={y(c.h) + 4}>{t('academy.art.high')} {fmt(c.h)}</text>
+			<text class="label" x={x0} y={y(c.c) + 4}>{t('academy.art.close')} {fmt(c.c)}</text>
+			<text class="label" x={x0} y={y(c.o) + 4}>{t('academy.art.open')} {fmt(c.o)}</text>
+			<text class="label" x={x0} y={y(c.l) + 4}>{t('academy.art.low')} {fmt(c.l)}</text>
+			<text class="label muted" x={cx(0) - 45} y={(y(c.o) + y(c.c)) / 2 + 4} text-anchor="end">{t('academy.art.body')}</text>
+			<text class="label muted" x={cx(0) - 45} y={(y(c.h) + y(c.c)) / 2 + 4} text-anchor="end">{t('academy.art.wick')}</text>
+			<text class="label muted" x={cx(0) - 45} y={(y(c.o) + y(c.l)) / 2 + 4} text-anchor="end">{t('academy.art.wick')}</text>
 		{/if}
 	</svg>
 	{#if !chart.anatomy}
@@ -87,12 +87,12 @@
 			<caption>{desc}</caption>
 			<thead>
 				<tr>
-					<th>{t('lesson.col.bar')}</th>
-					<th>{t('lesson.art.open')}</th>
-					<th>{t('lesson.art.high')}</th>
-					<th>{t('lesson.art.low')}</th>
-					<th>{t('lesson.art.close')}</th>
-					<th>{t('lesson.col.volume')}</th>
+					<th>{t('academy.col.bar')}</th>
+					<th>{t('academy.art.open')}</th>
+					<th>{t('academy.art.high')}</th>
+					<th>{t('academy.art.low')}</th>
+					<th>{t('academy.art.close')}</th>
+					<th>{t('academy.col.volume')}</th>
 				</tr>
 			</thead>
 			<tbody>

@@ -1,0 +1,1155 @@
+# TradeLab engine IDL: the enumerations shared by state, commands, events and the debrief, and the
+# JSON shapes the C ABI (engine/include/tradelab/c_api.h) returns. engine/idl/gen.py writes:
+#   engine/include/tradelab/idl_types.hpp   C++ enums (numeric values) and their JSON names
+#   engine/tests/idl_schema.hpp             the shapes, checked against real C ABI output
+#   apps/web/src/lib/engine/types.ts        TypeScript types for the web client
+# Never edit those files by hand: edit this one and run `python3 engine/idl/gen.py`.
+#
+# Syntax
+#   # comment                     ignored
+#   /// text                      documentation of the next declaration, member or field
+#   enum Name : u8|i8 [ts=TsName, codes=CONST] { Member = value ["json"] }
+#                                 C++ enum class + JSON name (default: Member in snake_case);
+#                                 numeric values are part of the recorded-run format: never
+#                                 renumber, only append. [cpp_only] keeps it out of TypeScript.
+#   union Name = "lit" | 1 | Ref  TypeScript-only union of literals and other types
+#   tuple Name = [T, T, T?]       fixed-length JSON array (T? = optional trailing element)
+#   struct Name [: Base] { field[?]: Type }   JSON object; `?` = the key may be absent
+# Types: string, int, bool, Decimal (fixed-point value as a decimal string: display it, never do
+# state math on it), a declared name, T[] (array), T | null, ( ... ) for grouping.
+
+# --- Enumerations -----------------------------------------------------------------------------
+
+enum OrderSide : u8 [ts=OrderSideName, codes=SIDE_CODE] {
+  Buy = 0
+  Sell = 1
+}
+
+enum OrderType : u8 [ts=OrderTypeName, codes=ORDER_TYPE_CODE] {
+  Market = 0
+  Limit = 1
+  StopMarket = 2
+  /// Limit order on the exit side, always reduce-only.
+  TakeProfit = 3
+  /// Stop-market whose trigger ratchets with closes (effective next bar).
+  TrailingStop = 4
+}
+
+enum OrderStatus : u8 [ts=OrderStatusName] {
+  Accepted = 0
+  PartiallyFilled = 1
+  Filled = 2
+  Cancelled = 3
+  Rejected = 4
+  Expired = 5
+  Triggered = 6
+}
+
+/// Why a command was refused or an order changed; also the informational warning of an accepted order.
+enum Reason : u8 [ts=ReasonCode] {
+  None = 0
+  InsufficientMargin = 1
+  LeverageAboveCap = 2
+  InvalidTick = 3
+  InvalidQuantity = 4
+  UnsupportedOrderType = 5
+  ReduceOnlyWouldIncrease = 6
+  RunBankrupt = 7
+  RunFinished = 8
+  InsufficientCapacity = 9
+  Liquidation = 10
+  PositionClosed = 11
+  UserCancelled = 12
+  UnknownOrder = 13
+  InvalidSequence = 14
+  WrongDecisionStep = 15
+  NumericOverflow = 16
+  InvalidLeverage = 17
+  PositionOpen = 18
+  /// Informational flag on accepted orders.
+  StopBeyondLiquidation = 19
+  ShortNotAllowed = 20
+  Expired = 21
+  InvalidBracket = 22
+  OcoSiblingFilled = 23
+  SeriesNotListed = 24
+  ShortOptionsNotAllowed = 25
+  NoBid = 26
+  MarginCall = 27
+  MarginBelowInitial = 28
+  NoQuestionDue = 29
+  InvalidPlan = 30
+  /// RequestAdvice with no allowance left (changes no state).
+  NoAdviceLeft = 31
+  /// OrderUpdate reason: a working exit moved to a new trigger (MoveOrder).
+  OrderMoved = 32
+  /// The position's notional tier caps leverage below the run's (policy v16).
+  LeverageAboveTier = 33
+  /// The option order would execute inside its series' settlement window (policy v17).
+  SeriesSettling = 34
+  /// AnswerLesson: the mission has no such lesson question (scoring v11).
+  UnknownQuestion = 35
+  /// AnswerLesson: each question is answered once.
+  AlreadyAnswered = 36
+  /// AnswerLesson: choice out of range or a negative numeric answer.
+  InvalidAnswer = 37
+}
+
+enum EventType : u8 [ts=EventTypeName] {
+  /// Status change of an order (see OrderStatus).
+  OrderUpdate = 0 "order"
+  Fill = 1
+  Funding = 2
+  Liquidation = 3
+  Bankrupt = 4
+  RunFinished = 5
+  LeverageChanged = 6
+  OptionSettlement = 7
+  MarginCall = 8
+  MarginAdjusted = 9
+}
+
+enum RunStatus : u8 {
+  Active = 0
+  Finished = 1
+  Bankrupt = 2
+}
+
+/// Player commands (the recorded-run format); each is one C ABI call (see the *Command structs).
+enum CommandType : u8 [cpp_only] {
+  PlaceOrder = 0
+  CancelOrder = 1
+  SetLeverage = 2
+  ClosePosition = 3
+  /// order_type Market or Limit; price = premium limit; series required.
+  PlaceOptionOrder = 4
+  /// Add (> 0) or remove (< 0) isolated margin on the open perpetual position.
+  AdjustMargin = 5
+  /// Structured plan for the next exposure-increasing order.
+  RecordPlan = 6
+  /// Calibration answer for the question due at this step.
+  AnswerQuestion = 7
+  /// Advisor read of the visible market; uses one unit of the allowance.
+  RequestAdvice = 8
+  /// order_id + price: moves a working reduce-only stop/take-profit, keeping its OCO link (v13).
+  MoveOrder = 9
+  /// question + choice or value: a structured lesson answer (understanding dimension, scoring v11).
+  AnswerLesson = 10
+}
+
+/// Advisor (spec advisor): what the advice says. Short/Wait/Long = -1/0/+1.
+enum AdviceStance : i8 {
+  Short = -1
+  Wait = 0
+  Long = 1
+}
+
+enum AdviceReasonCode : u8 {
+  RegimeTrendUp = 0
+  RegimeTrendDown = 1
+  RegimeRange = 2
+  RsiExtreme = 3
+  BandFade = 4
+  MacdMomentum = 5
+  Pattern = 6
+  NewsPriced = 7
+  NewsEarly = 8
+  FundingCrowded = 9
+  LowVolSqueeze = 10
+  /// An announced release within the next bars (G3): toward wait.
+  EventAhead = 11
+}
+
+/// How indicators treat continuity bars (policy v17): Skip leaves them out of every input (no value at
+/// a continuity bar; VWAP sessions still count real bars); CarryForward feeds them as flat bars at the
+/// previous close with zero volume.
+enum GapPolicy : u8 {
+  Skip = 0 "skip"
+  CarryForward = 1 "carryForward"
+}
+
+enum OptionKind : u8 {
+  Call = 0
+  Put = 1
+}
+
+enum NewsKind : u8 {
+  RateDecision = 0
+  RegulationRumor = 1
+  ExchangeIncident = 2
+  NetworkOutage = 3
+  LiquidityInflow = 4
+  InstitutionalAdoption = 5
+  RumorDenied = 6
+  /// Phase-2 flows (design D8): appended, existing values keep their numbers.
+  LiquidityOutflow = 7
+  /// Phase-2 scheduled releases: a fictional economic print.
+  MacroData = 8
+  NetworkUpgrade = 9
+}
+
+/// What a generated segment is, for the debrief reveal and for tests (generator v3). It never feeds generation.
+enum RegimeLabel : u8 {
+  Unlabeled = 0
+  Range = 1
+  Trend = 2
+  HighVol = 3
+  LowLiquidity = 4
+  Crowded = 5
+  Calm = 6
+  Shock = 7
+}
+
+enum FindingCode : u8 {
+  Waited = 0
+  Liquidated = 1
+  StopBeyondLiq = 2
+  NoStop = 3
+  GapSlippage = 4
+  FundingCost = 5
+  Ambiguous = 6
+  Capacity = 7
+  GoodProcessLoss = 8
+  LuckyWin = 9
+  NoPlan = 10
+  Oversized = 11
+  Bankrupt = 12
+  /// Written options bought back by force (step, buy-back premium, loss).
+  MarginCalled = 13
+  /// Time decay (theta) explains at least half of an option loss (amount = theta P&L lost).
+  ThetaDecay = 14
+  /// Falling implied volatility (vega) on bought options explains at least half of an option loss.
+  IvCrush = 15
+  /// A profit where every trade had a plan and limited risk (the counterpart of GoodProcessLoss).
+  GoodProcessWin = 16
+  /// Rising implied volatility (vega) on written options explains at least half of an option loss.
+  IvRise = 17
+  /// Options were written and no margin call followed: risk limited by neither a stop nor a premium.
+  WroteOptions = 18
+  /// Scoring v11: liquidation closer to the entry than twice the stop distance (step, leverage, stop, liquidation price).
+  LeverageVsStop = 19
+  /// Scoring v11: the closest liquidation distance at a close fell below the mission's warning distance (count = bp).
+  LiqBuffer = 20
+  /// Scoring v11: max drawdown above the mission's drawdown budget (count = budget bp, amount = drawdown).
+  DrawdownBudget = 21
+}
+
+enum FindingTone : u8 {
+  Good = 0
+  Warn = 1
+  Bad = 2
+  Info = 3
+}
+
+enum LessonCode : u8 {
+  Futures2 = 0 "futures2"
+  Risk = 1
+  Futures3 = 2 "futures3"
+  Orders = 3
+  Structure = 4
+  Evaluation = 5
+  Options = 6
+}
+
+/// What a mission asks of the player (task 4.1): the client renders each code as text in the player's
+/// language; the objective's `valueBp` is its number where it has one (a share in basis points).
+enum ObjectiveCode : u8 {
+  /// A hypothesis and an invalidation level before every entry.
+  PlanEveryEntry = 0
+  /// Planned risk of at most valueBp of equity per idea.
+  RiskPerIdea = 1
+  /// Do not get liquidated; waiting is a valid decision.
+  NoLiquidationWaitOk = 2
+  /// Keep the distance to liquidation above valueBp.
+  LiqDistance = 3
+  /// Choose leverage from the stop, not from the cap.
+  LeverageFromStop = 4
+  LiquidationLosesMargin = 5
+  BankruptcyGameOver = 6
+  /// Before buying, write the scenario in which the option loses.
+  OptionLoseScenario = 7
+  PremiumVsBreakeven = 8
+  WatchIvEvent = 9
+  /// Before writing, compute the margin and the worst case.
+  WriterWorstCase = 10
+  MaintenanceBuffer = 11
+  ThetaForSeller = 12
+  LimitOrdersAtZones = 13
+  UnfilledLimitOk = 14
+  /// Risk of at most valueBp per idea, quantity set by the stop.
+  RiskFromStop = 15
+  TrailNotTighterThanAtr = 16
+  /// Finish without a drawdown above valueBp (the mission's drawdown budget).
+  DrawdownBudget = 17
+  RegimeInPlan = 18
+  OneToolPerRegime = 19
+  StraddleBreakevens = 20
+  StraddleLoseScenario = 21
+  /// Do not pay more than valueBp of equity in premium.
+  PremiumBudget = 22
+  StructureMaxLoss = 23
+  WrittenMarginBuffer = 24
+  FundingVsTheta = 25
+  DecideBeforeRelease = 26
+  NoChasingHeadline = 27
+  /// Planned risk of at most valueBp, counting the gap.
+  RiskWithGap = 28
+  FinishMission = 29
+  PlanAndStopEveryEntry = 30
+  NoLiquidationNoMarginCall = 31
+  ReadCampaignReport = 32
+}
+
+/// What the player did at a decision point (task 4.2, spec gameplay-loop "Waiting is a decision").
+enum DecisionKind : u8 {
+  /// No order placed, cancelled or moved, no leverage or margin change, and no exposure.
+  Wait = 0
+  /// No such command while a position (perpetual or option) stayed open.
+  Hold = 1
+  /// At least one accepted command that placed, cancelled or moved an order, or changed leverage or margin.
+  Act = 2
+}
+
+/// How a round trip ended (scoring v10: from the order type; a stop in profit is a stop).
+enum ExitReason : u8 {
+  Stop = 0
+  Target = 1
+  Manual = 2
+  Liquidation = 3
+  Open = 4
+  Expiry = 5
+  MarginCall = 6
+  Trailing = 7
+}
+
+/// Advice in the debrief: a long or short read is right when the close 5 bars after the next open moved its way.
+enum AdviceOutcome : u8 {
+  Right = 0
+  Wrong = 1
+  Wait = 2
+  Open = 3
+}
+
+# --- Missions and version ---------------------------------------------------------------------
+
+/// tl_version.
+struct EngineVersion {
+  engine: string
+  executionPolicy: int
+}
+
+/// One entry of tl_missions.
+struct MissionInfo {
+  id: string
+  totalBars: int
+  warmupBars: int
+  leverageCap: int
+  allowShort: bool
+}
+
+# --- State (tl_state, tl_advance) -------------------------------------------------------------
+
+/// Maintenance-margin tier by notional at entry (policy v16).
+struct MarginTier {
+  notionalFloor: Decimal
+  maintenanceMargin: Decimal
+  maxLeverage: int
+}
+
+struct Contract {
+  tickSize: Decimal
+  lotSize: Decimal
+  minQty: Decimal
+  multiplier: Decimal
+  maxLeverage: int
+  leverageCap: int
+  makerFee: Decimal
+  takerFee: Decimal
+  maintenanceMargin: Decimal
+  fundingInterval: int
+  allowShort: bool
+  halfSpread: Decimal
+  slippage: Decimal
+  capacityFraction: Decimal
+  /// Maintenance-margin tiers by notional at entry, the base tier first (floor 0); policy v16.
+  marginTiers?: MarginTier[]
+  /// Policy v17: true when the scenario has no mark series, so margin and liquidation use the last price.
+  markFromLastPrice?: bool
+  /// Policy v17: how indicators treat continuity bars (no trading).
+  gapPolicy?: GapPolicy
+}
+
+/// [open, high, low, close, volume, synthetic, continuity]; continuity (policy v17): the market did not trade.
+tuple BarTuple = [Decimal, Decimal, Decimal, Decimal, Decimal, bool, bool?]
+
+struct Account {
+  wallet: Decimal
+  equity: Decimal
+  unrealized: Decimal
+  positionMargin: Decimal
+  orderMargin: Decimal
+  available: Decimal
+  notional: Decimal
+  mark: Decimal
+  liquidationPrice: Decimal | null
+  nextFundingRate: Decimal
+  nextFundingStep: int
+}
+
+struct Position {
+  /// Signed: > 0 long, < 0 short.
+  qty: Decimal
+  entry: Decimal
+  margin: Decimal
+}
+
+struct OrderView {
+  id: int
+  type: OrderType
+  side: OrderSide
+  qty: Decimal
+  filled: Decimal
+  price: Decimal
+  reduceOnly: bool
+  status: OrderStatus
+  placedStep: int
+  parentId: int
+  ocoGroup: int
+  trailDistance: Decimal
+  /// Trailing distance as a rate of the best close (policy v16); "0" for a fixed distance.
+  trailRate?: Decimal
+  bracketStop: Decimal
+  bracketTp: Decimal
+  series: int
+}
+
+struct EngineEvent {
+  seq: int
+  step: int
+  type: EventType
+  orderId: int
+  /// Type of the order the event refers to; null for events without an order.
+  orderType: OrderType | null
+  status: OrderStatus
+  reason: Reason
+  side: OrderSide
+  qty: Decimal
+  price: Decimal
+  requested: Decimal
+  amount: Decimal
+  pnl: Decimal
+  ambiguous: bool
+  gap: bool
+  capacityLimited: bool
+  series: int
+  approximate: bool
+}
+
+struct Totals {
+  realizedPnl: Decimal
+  feesPaid: Decimal
+  fundingNet: Decimal
+  insuranceAbsorbed: Decimal
+  turnover: Decimal
+  peakEquity: Decimal
+  maxDrawdown: Decimal
+  peakLeverageBp: int
+  minLiqDistanceBp: int
+  liquidations: int
+  fills: int
+  ambiguousFills: int
+  optionCash: Decimal
+  optionRealized: Decimal
+}
+
+struct OptionQuoteView {
+  id: int
+  kind: OptionKind
+  strike: Decimal
+  listStep: int
+  expiryStep: int
+  listed: bool
+  bid: Decimal
+  ask: Decimal
+  mid: Decimal
+  iv: Decimal
+  delta: Decimal
+  gamma: Decimal
+  theta: Decimal
+  vega: Decimal
+  ivFromRealized: bool
+  /// Policy v17: an order placed now would execute inside the settlement window (refused, series_settling).
+  settling?: bool
+}
+
+struct OptionPositionView {
+  series: int
+  /// Signed.
+  qty: Decimal
+  avgPremium: Decimal
+}
+
+struct OptionsView {
+  enabled: bool
+  allowShort: bool
+  multiplier: Decimal
+  premiumTick: Decimal
+  lotSize: Decimal
+  /// Settlement window in market time, minutes (policy v17).
+  settlementMinutes?: int
+  longValue: Decimal
+  shortValue: Decimal
+  initialMargin: Decimal
+  maintenanceMargin: Decimal
+  chain: OptionQuoteView[]
+  positions: OptionPositionView[]
+}
+
+union PatternBias = -1 | 0 | 1
+
+struct PatternHitView {
+  /// Bar that completes the pattern.
+  step: int
+  /// Matches the cheat sheet ids.
+  id: string
+  bars: int
+  bias: PatternBias
+}
+
+struct Indicators {
+  version: int
+  sma20: (Decimal | null)[]
+  ema50: (Decimal | null)[]
+  rsi14: (Decimal | null)[]
+  atr14: (Decimal | null)[]
+  vwap: (Decimal | null)[]
+  bbUpper: (Decimal | null)[]
+  bbLower: (Decimal | null)[]
+  macd: (Decimal | null)[]
+  macdSignal: (Decimal | null)[]
+  macdHist: (Decimal | null)[]
+  plusDi14: (Decimal | null)[]
+  minusDi14: (Decimal | null)[]
+  adx14: (Decimal | null)[]
+  patternVersion: int
+  patterns: PatternHitView[]
+}
+
+/// An announced release not out yet: never its tone, actual or credibility.
+struct UpcomingView {
+  step: int
+  kind: NewsKind
+  /// The consensus, -2..2.
+  expectation: int
+}
+
+struct NewsView {
+  step: int
+  kind: NewsKind
+  tone: int
+  credibility: int
+  expectation: int
+  actual: int
+  /// Delivered ahead of its public release by a fast wire (until `step`).
+  early: bool
+}
+
+/// Calibration question state at the current step.
+struct CalibrationState {
+  due: bool
+  horizon: int
+  every: int
+  threshold: Decimal
+  answered: int
+}
+
+/// One reason: `vote` > 0 long, < 0 short, 0 toward wait or a warning; `ref` = bar (pattern, news) or crowded side.
+struct AdviceReasonView {
+  code: AdviceReasonCode
+  vote: int
+  ref: int
+}
+
+struct AdviceView {
+  step: int
+  stance: AdviceStance
+  confidenceBp: int
+  /// "0" when waiting.
+  stop: Decimal
+  /// "0" when waiting or below the minimum order.
+  size: Decimal
+  reasons: AdviceReasonView[]
+}
+
+struct AdvisorState {
+  version: int
+  allowance: int
+  left: int
+  newsLead: int
+  calendar: bool
+  advice: AdviceView[]
+}
+
+/// A mission objective (task 4.1).
+struct MissionObjective {
+  code: ObjectiveCode
+  valueBp: int
+}
+
+/// Instrument permissions: long always, short = allowShort, options buying when a chain is listed,
+/// options writing when the option spec allows it.
+struct MissionPermissions {
+  long: bool
+  short: bool
+  optionsBuy: bool
+  optionsWrite: bool
+}
+
+/// The mission's rules as the run plays them (task 4.1): what the briefing lists and the ticket enforces.
+struct MissionRulesView {
+  initialBalance: Decimal
+  leverageCap: int
+  warmupBars: int
+  permissions: MissionPermissions
+  objectives: MissionObjective[]
+  /// Warn at decision points when liquidation is closer than this to the last close (basis points).
+  liqWarningBp: int
+  /// Max drawdown the mission allows, basis points of the run's initial capital (risk score).
+  drawdownBudgetBp: int
+  /// The ticket asks for explicit confirmation of a stop beyond the liquidation price.
+  confirmStopBeyondLiq: bool
+}
+
+struct GameState {
+  mission: string
+  alias: string
+  status: RunStatus
+  /// 'synthetic' for built-in missions; the pack mode ('historical', ...) for pack runs.
+  marketMode: string
+  /// Imported packs are known scenarios (spec scenario-packs "Reveal metadata").
+  knownScenario: bool
+  /// Bar interval in seconds: 3600 for the missions, the declared one for a pack (e.g. 900).
+  stepSeconds: int
+  step: int
+  lastDecisionStep: int
+  warmupBars: int
+  totalBars: int
+  initialBalance: Decimal
+  leverage: int
+  contract: Contract
+  missionRules: MissionRulesView
+  bars: BarTuple[]
+  account: Account
+  position: Position
+  orders: OrderView[]
+  options: OptionsView
+  indicators: Indicators
+  news: NewsView[]
+  /// Economic calendar perk: bars of upcoming scheduled releases (rate decisions), nothing else.
+  calendar: int[]
+  /// Announced releases (G3), from their announcement to their release: kind, bar and consensus only.
+  upcoming: UpcomingView[]
+  calibration: CalibrationState
+  advisor: AdvisorState
+  events: EngineEvent[]
+  totals: Totals
+  digest: string
+  eventsDigest: string
+}
+
+# --- Commands ---------------------------------------------------------------------------------
+# Each command is one C ABI call at the current decision step; the engine assigns the sequence
+# number and decision step. Decimal inputs are decimal strings (null = not set).
+
+/// tl_place_order_ex / tl_place_trailing_rate.
+struct PlaceOrderCommand {
+  clientId: int
+  type: OrderType
+  side: OrderSide
+  qty: string
+  price: string | null
+  reduceOnly: bool
+  attachStop: string | null
+  attachTp: string | null
+  trailDistance: string | null
+  /// Policy v16: a trailing stop at this rate of the best close ("0.02" = 2%) instead of a distance.
+  trailRate?: string | null
+}
+
+union OptionOrderType = "market" | "limit"
+
+/// tl_place_option_order.
+struct PlaceOptionOrderCommand {
+  clientId: int
+  series: int
+  side: OrderSide
+  type: OptionOrderType
+  qty: string
+  premium: string | null
+}
+
+/// tl_adjust_margin: add (> 0) or remove (< 0) isolated margin.
+struct AdjustMarginCommand {
+  clientId: int
+  amount: string
+}
+
+/// tl_record_plan: the plan for the next exposure-increasing order.
+struct RecordPlanCommand {
+  clientId: int
+  side: OrderSide
+  skipped: bool
+  option: bool
+  loseScenario: bool
+  invalidation: string | null
+  target: string | null
+  confidence: int
+  plannedRisk: string | null
+}
+
+/// tl_answer_question: probability in basis points, or skipped.
+struct AnswerQuestionCommand {
+  clientId: int
+  pBp: int
+  skipped: bool
+}
+
+/// tl_answer_lesson: a lesson question of the mission's rubric (scoring v11); `choice` for multiple
+/// choice, `value` (decimal string) for a numeric question.
+struct AnswerLessonCommand {
+  clientId: int
+  question: int
+  choice: int
+  value: string | null
+  skipped: bool
+}
+
+/// tl_cancel_order.
+struct CancelOrderCommand {
+  clientId: int
+  orderId: int
+}
+
+/// tl_move_order: a working reduce-only stop or take-profit to a new price (policy v13).
+struct MoveOrderCommand {
+  clientId: int
+  orderId: int
+  price: string
+}
+
+/// tl_set_leverage.
+struct SetLeverageCommand {
+  clientId: int
+  leverage: int
+}
+
+/// tl_close_position and tl_request_advice take only the idempotency key.
+struct ClientIdCommand {
+  clientId: int
+}
+
+struct CommandResult {
+  accepted: bool
+  reason: Reason
+  orderId: int
+  warning: Reason | null
+}
+
+/// Start options of a run: advice allowance and intel perks (engine policy v11); campaign capital
+/// carried in and the curriculum's leverage cap (policy v12; absent = the mission's own rules).
+struct RunOptionsView {
+  adviceAllowance: int
+  newsLead: int
+  calendar: bool
+  /// Decimal string > 0.
+  startingBalance?: string
+  /// > 0 lowers the mission's leverage cap.
+  leverageCap?: int
+}
+
+# --- Debrief (tl_debrief) ---------------------------------------------------------------------
+
+struct EngineFinding {
+  code: FindingCode
+  tone: FindingTone
+  step: int
+  count: int
+  price: Decimal
+  requested: Decimal
+  amount: Decimal
+}
+
+struct EngineTrade {
+  n: int
+  /// 0 = perpetual; otherwise the option series (prices are premiums).
+  series: int
+  /// Option rows only.
+  kind?: OptionKind
+  strike?: Decimal
+  expiryStep?: int
+  side: TradeSide
+  entryStep: int
+  exitStep: int | null
+  qty: Decimal
+  entryAvg: Decimal
+  exitAvg: Decimal
+  pnl: Decimal
+  fees: Decimal
+  /// Funding received (+) or paid (-) while the trade was open; included in `net`.
+  funding: Decimal
+  net: Decimal
+  bars: int
+  reason: ExitReason
+  plannedRisk: Decimal
+  rBp: int | null
+  planRespected: bool | null
+  /// Scoring v9: the revealed regime the trade was entered in (built-in missions; null for packs).
+  regime?: RegimeLabel | null
+  /// Perpetual rows only: the trade's stop (stop order, else the plan's invalidation; 0 = none).
+  stop?: Decimal
+  /// Perpetual rows only: highest leverage the position carried (at entry or re-leveraged while open).
+  leverage?: int
+  /// Perpetual rows only: the liquidation price that leverage implied (0 = none).
+  liqPrice?: Decimal
+  stopBeyondLiq?: bool
+  /// Highest leverage that would have kept the stop in front of liquidation (0 = not even 1x); null when it was in front.
+  safeLeverage?: int | null
+}
+
+union TradeSide = "long" | "short"
+
+/// Approximate option P&L by Greek (engine); the residual is the spread paid (full revaluation, scoring v8).
+struct GreekAttribution {
+  delta: Decimal
+  gamma: Decimal
+  theta: Decimal
+  vega: Decimal
+  residual: Decimal
+  total: Decimal
+}
+
+struct ScoreDimension {
+  weight: int
+  score: int | null
+}
+
+struct ScoreDimensions {
+  risk: ScoreDimension
+  plan: ScoreDimension
+  understanding: ScoreDimension
+  calibration: ScoreDimension
+}
+
+struct ScoreSummary {
+  version: int
+  total: int | null
+  dims: ScoreDimensions
+}
+
+struct CalibrationSummary {
+  resolved: int
+  brierBp: int | null
+}
+
+/// Each piece of advice with its outcome 5 bars after the next open.
+struct AdviceRowView {
+  step: int
+  stance: AdviceStance
+  confidenceBp: int
+  outcome: AdviceOutcome
+}
+
+/// One regime as it played: start bar, length, label and, for a drawn direction, +1 up / -1 down (0 = not drawn).
+struct RegimeSpan {
+  start: int
+  bars: int
+  label: RegimeLabel
+  direction: int
+}
+
+struct SignalTally {
+  hits: int
+  samples: int
+}
+
+/// Hits and samples of four common reads inside one revealed span (entered at the next open, 5-bar horizon).
+struct RegimeSignals : RegimeSpan {
+  rsiFade: SignalTally
+  bollingerFade: SignalTally
+  macdFollow: SignalTally
+  smaFollow: SignalTally
+}
+
+struct PackReveal {
+  asset: string
+  pair: string
+  venue: string
+  periodFrom: string
+  periodTo: string
+  source: string
+  transformation: string
+  gaps: int
+  /// 'skip' / 'carryForward' when the gaps were filled with continuity bars, '' when the bars were joined.
+  gapPolicy: PackGapPolicy
+}
+
+/// What the player did at one decision step (engine decision record, task 4.2).
+struct DecisionView {
+  step: int
+  kind: DecisionKind
+}
+
+union LessonKind = "choice" | "numeric"
+
+/// A lesson question without its key (texts are in the client catalogs by id).
+struct LessonQuestionInfo {
+  id: string
+  kind: LessonKind
+  /// Multiple choice: number of options; 0 for a numeric question.
+  choices: int
+  points: int
+}
+
+/// tl_lesson: a mission's lesson questions without the answer key (task 4.5).
+struct LessonInfo {
+  mission: string
+  reviewed: bool
+  questions: LessonQuestionInfo[]
+}
+
+/// Debrief: one lesson question with the player's answer and the key.
+struct LessonResultView {
+  id: string
+  kind: LessonKind
+  points: int
+  maxPoints: int
+  answered: bool
+  skipped: bool
+  correct: bool
+  /// Choice index or decimal string; null when skipped or unanswered.
+  given: int | Decimal | null
+  answer: int | Decimal
+}
+
+/// Debrief: the lesson questions of the mission's rubric (scoring v11).
+struct LessonResults {
+  reviewed: bool
+  points: int
+  total: int
+  questions: LessonResultView[]
+}
+
+struct DebriefData {
+  mission: string
+  alias: string
+  status: RunStatus
+  finalEquity: Decimal
+  buyAndHoldPnl: Decimal
+  flatPnl: Decimal
+  syntheticMarket: bool
+  seed: int
+  startPrice: Decimal
+  endPrice: Decimal
+  score: ScoreSummary
+  findings: EngineFinding[]
+  lesson: LessonCode
+  entries: int
+  netPnl: Decimal
+  calibration: CalibrationSummary
+  trades: EngineTrade[]
+  /// Spread + slippage paid against the reference price; already inside the fill prices.
+  spreadSlippage: Decimal
+  /// Option loss beyond the balance that the simulated fund covered (wallet floored at 0); usually 0.
+  writtenOff: Decimal
+  /// Null when no option was traded.
+  greeks: GreekAttribution | null
+  /// Engine-computed advisor points earned by this run (capped at 6).
+  advisorPointsEarned: int
+  advice: AdviceRowView[]
+  adviceHitBp: int | null
+  /// Pack runs only: what the masked market really was (never sent before the debrief).
+  knownScenario?: bool
+  /// Pack runs only: the pack's mode ('historical', ...).
+  marketMode?: string
+  /// Pack runs only: the pack's content digest.
+  packDigest?: string
+  reveal?: PackReveal
+  /// Built-in missions (scoring v9): signals by revealed regime over this run's decision window.
+  regimes?: RegimeSignals[]
+  /// Scoring v11: the mission's rules as the run played them.
+  missionRules: MissionRulesView
+  /// Scoring v11: what the player did at each decision step the run advanced through.
+  decisions: DecisionView[]
+  /// Scoring v11: the lesson questions; null for a mission without a rubric.
+  lessons: LessonResults | null
+}
+
+# --- Seeded reveal (tl_mission_reveal) --------------------------------------------------------
+
+/// One release as it played: the drawn outcome (G2) and what the market did with it.
+struct RevealEvent {
+  step: int
+  kind: NewsKind
+  actual: int
+  surprise: int
+  /// Drawn size: 100 = as designed.
+  intensityPct: int
+  /// Sampled transient reaction: 0 none, +1 up, -1 down.
+  reaction: int
+  expectation: int
+  credibility: int
+  /// Bars between announcement and release; 0 = unannounced.
+  announceLead: int
+  /// Open after the release against the release close, basis points.
+  gapBp: int
+  /// Close 3 bars after the release against the close before it, basis points.
+  moveBp: int
+  /// ATM straddle of the first live expiry the bar before, basis points of the price; -1 without options.
+  impliedBp: int
+}
+
+/// G4 seeded reveal (tl_mission_reveal): the worker answers only once the run has ended.
+struct MissionReveal {
+  mission: string
+  seed: int
+  spans: RegimeSpan[]
+  events: RevealEvent[]
+}
+
+# --- Private CSV import and packs -------------------------------------------------------------
+
+struct CsvIssue {
+  line: int
+  code: string
+}
+
+struct CsvGap {
+  line: int
+  from: int
+  to: int
+  missing: int
+}
+
+/// Engine CSV report (tl_csv_validate). Codes are stable; see engine/src/csv_import.cpp.
+struct CsvReport {
+  ok: bool
+  rows: int
+  errors: CsvIssue[]
+  errorCount: int
+  gaps: CsvGap[]
+  gapCount: int
+  hasFunding: bool
+  firstTime: int
+  lastTime: int
+}
+
+/// tl_csv_validate when the metadata itself is unusable: the offending field instead of a report.
+struct CsvMetaError {
+  ok: bool
+  metaError: string
+}
+
+union CsvValidation = CsvReport | CsvMetaError
+
+union VolumeUnit = "base" | "quote"
+union TimestampUnit = "s" | "ms"
+union GapFill = "none" | GapPolicy
+
+/// tl_pack_build_csv; the pack bytes come from tl_blob_data / tl_blob_size.
+struct CsvPackBuild {
+  ok: bool
+  reason: string
+  /// Unusable metadata or device seed only: the offending metadata field ('' for the seed).
+  detail?: string
+  report?: CsvReport
+  scenarioId?: string
+  digest?: string
+  size?: int
+}
+
+/// What the player declares about a CSV (spec scenario-packs "Private CSV import").
+struct CsvMeta {
+  asset: string
+  pair: string
+  venue: string
+  volumeUnit: VolumeUnit
+  intervalSeconds: int
+  timestampUnit: TimestampUnit
+  leverageCap: int
+  /// Policy v17: 'none' joins the bars across a gap; the others fill it with continuity bars.
+  gapFill?: GapFill
+}
+
+union PackGapPolicy = GapPolicy | ""
+
+/// Pack summary from tl_pack_validate: identity and rules, never prices or the reveal.
+struct PackSummary {
+  scenarioId: string
+  mode: string
+  private: bool
+  knownScenario: bool
+  digest: string
+  signingKeyId: string
+  timeframe: string
+  totalBars: int
+  warmupBars: int
+  leverageCap: int
+  allowShort: bool
+  gaps: int
+  /// 'skip' / 'carryForward' when the import filled its gaps with continuity bars, else ''.
+  gapPolicy?: PackGapPolicy
+}
+
+struct PackCheck {
+  ok: bool
+  reason: string
+  detail: string
+  pack?: PackSummary
+}
+
+struct TrustedKey {
+  id: string
+  key: string
+}
+
+/// tl_device_key: this device's signing key for its own imports; tl_signing_key: a publisher key.
+struct DeviceKey {
+  id: string
+  publicKey: string
+}
+
+/// tl_pack_source_mission / tl_pack_source_csv (tools/packer, native only): the uncompressed source
+/// archive is in tl_blob_data / tl_blob_size.
+struct PackSourceResult {
+  ok: bool
+  reason: string
+  /// The offending metadata field, or what failed (e.g. the unknown mission).
+  detail: string
+  /// tl_pack_source_csv only, once the metadata parsed.
+  report?: CsvReport
+  scenarioId?: string
+  /// File names in the source archive, manifest.json excluded.
+  files?: string[]
+}
+
+/// tl_pack_write / tl_pack_resign (tools/packer, native only): the signed pack is in tl_blob_data.
+struct PackWriteResult {
+  ok: bool
+  reason: string
+  digest: string
+  size: int
+  signingKeyId: string
+}
+
+# --- Checkpoints and errors -------------------------------------------------------------------
+
+/// tl_checkpoint: the run state as hex, restored by tl_run_restore / tl_run_restore_pack.
+struct Checkpoint {
+  checkpoint: string
+  step: int
+}
+
+/// What a call returns instead of its result when it cannot answer (e.g. run_active, unknown_mission).
+struct EngineError {
+  error: string
+}

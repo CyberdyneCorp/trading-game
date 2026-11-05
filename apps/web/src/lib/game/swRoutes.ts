@@ -8,9 +8,21 @@
 //             /catalog/*: the manifest must be fresh (offline, the app shows its own copy) and packs
 //             are downloaded in byte ranges into IndexedDB, never into a cache.
 
+import { BACKGROUND_CACHE } from './download.ts';
+
 export type SwRoute = 'navigate' | 'cache' | 'media' | 'network';
 
 export const AUDIO_CACHE = 'tradelab-audio-v1';
+/** Engine builds pinned by unfinished runs (engineCache.ts); survives app updates. */
+export const ENGINE_CACHE = 'tradelab-engines-v1';
+
+/**
+ * Caches an activating version keeps: its own, the audio cache, the pinned engine builds and the
+ * Background Fetch results a catalog download left for the page to install.
+ */
+export function keepCache(name: string, current: string): boolean {
+	return name === current || name === AUDIO_CACHE || name === ENGINE_CACHE || name === BACKGROUND_CACHE;
+}
 
 export const isAudio = (path: string) => /\/audio\/[^/]+$/.test(path);
 

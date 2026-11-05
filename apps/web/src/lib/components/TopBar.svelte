@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { keymap } from '#lib/game/keymap.svelte.ts';
+	import { keyLabel } from '#lib/game/shortcuts.ts';
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import { campaignMissions } from '#lib/game/curriculum.ts';
-	import { intervalLabel } from '#lib/game/packs.ts';
+	import { branchTurn, intervalLabel } from '#lib/game/packs.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { AUTO_SPEEDS, type AutoPlay } from '#lib/game/autoplay.svelte.ts';
@@ -18,6 +20,7 @@
 	const playable = $derived(s ? s.lastDecisionStep - s.warmupBars + 1 : 0);
 	const turn = $derived(s ? s.step - s.warmupBars + 1 : 0);
 	const missionTitle = $derived(s ? missionText(s.mission, i18n.locale, session.runPackOrigin).title : '');
+	const branch = $derived(s ? branchTurn(s) : null);
 </script>
 
 {#if s}
@@ -31,6 +34,12 @@
 			{:else}
 				<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
 			{/if}
+			{#if session.runAssisted}
+				<span class="tag attention" title={t('assist.banner')} data-testid="assisted-tag">{t('assist.tag')}</span>
+			{/if}
+			{#if branch !== null}
+				<span class="tag attention" title={t('top.branchNote', { bar: branch })} data-testid="branch-tag">{t('top.branch')}</span>
+			{/if}
 			{#if session.runCampaign}
 				<span class="tag info" data-testid="campaign-tag">{t('campaign.tag', { n: session.runCampaign.index + 1, total: campaignMissions().length })}</span>
 			{/if}
@@ -42,7 +51,7 @@
 		</div>
 		<div class="actions">
 			<button class="primary" onclick={() => session.advance(1)} disabled={session.busy || s.status !== 'active'}>
-				▶ {t('top.advance')} <kbd>Space</kbd>
+				▶ {t('top.advance')} <kbd>{keyLabel(keymap.map.advance)}</kbd>
 			</button>
 			<div class="auto" role="group" aria-label={t('auto.title')}>
 				<button
@@ -52,7 +61,7 @@
 					aria-pressed={auto.running}
 					data-testid="auto-toggle"
 				>
-					{auto.running ? '⏸' : '⏵'} {t(auto.running ? 'auto.pause' : 'auto.play')} <kbd>A</kbd>
+					{auto.running ? '⏸' : '⏵'} {t(auto.running ? 'auto.pause' : 'auto.play')} <kbd>{keyLabel(keymap.map.auto)}</kbd>
 				</button>
 				<select
 					aria-label={t('auto.speed')}
@@ -66,7 +75,7 @@
 					{t('auto.pauseOnEvents')}
 				</label>
 			</div>
-			<button onclick={onPatterns} title="P">{t('patterns.open')} <kbd>P</kbd></button>
+			<button onclick={onPatterns} title={keyLabel(keymap.map.patterns)}>{t('patterns.open')} <kbd>{keyLabel(keymap.map.patterns)}</kbd></button>
 			<button
 				onclick={() => sound.toggleMute()}
 				aria-label={sound.muted ? t('sound.unmute') : t('sound.mute')}

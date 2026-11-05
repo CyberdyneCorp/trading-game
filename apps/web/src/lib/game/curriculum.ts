@@ -32,7 +32,7 @@ export interface Stage {
 	requires: StageId[];
 	/** Assessment missions (engine mission ids). */
 	missions: string[];
-	/** Academy lessons (lessons.ts ids) for stages without a mission; no missions and no lessons = no content yet. */
+	/** Academy lessons (academy.ts ids) for stages without a mission; no missions and no lessons = no content yet. */
 	lessons: string[];
 	unlocks: Unlock[];
 }

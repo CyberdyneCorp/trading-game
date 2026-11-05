@@ -2,16 +2,16 @@
 // import"; web-client task 4.5). Validation itself lives in the engine (tl_csv_validate), so web,
 // desktop and iPad report identical errors; this file only guesses defaults and formats.
 
-import type { CsvMeta, TrustedKey } from '#lib/engine/types.ts';
+import type { BarTuple, CsvMeta, GapFill, TrustedKey } from '#lib/engine/types.ts';
 
 /**
- * Development catalog key: signs the sample packs of the static catalog (`static/catalog`, built by
- * scripts/build-sample-catalog.py; its seed is kept outside the repository). It is replaced by the
- * production publisher key at the key ceremony (design D1).
+ * Development catalog key: the publisher key that signs the sample packs of the static catalog
+ * (`static/catalog`, built through the packer by scripts/build-sample-catalog.py; its seed is kept
+ * outside the repository). It is replaced by the production publisher key at the key ceremony (design D1).
  */
 export const DEV_CATALOG_KEY: TrustedKey = {
-	id: 'device-e83d839d424e574a',
-	key: '99e219ba7f30d414730de4c0ff8972c218117e3a1279fe675de4cc0552acf889'
+	id: 'publisher-4eec1d54ffe7656f',
+	key: '8fcdf973bd8ca7d2efa1920ee1751d45da5170a54f79027ff8f4b16a149daa37'
 };
 
 /**
@@ -29,6 +29,13 @@ export const CSV_MAX_BYTES = 4 * 1024 * 1024;
 /** Same limit as the engine (PackLimits::max_pack_bytes). */
 export const PACK_MAX_BYTES = 16 * 1024 * 1024;
 
+/** How the import treats gaps (policy v17), with the label key of each choice in the wizard. */
+export const GAP_FILLS = [
+	{ value: 'none', label: 'csv.gapFill.none' },
+	{ value: 'skip', label: 'csv.gapFill.skip' },
+	{ value: 'carryForward', label: 'csv.gapFill.carryForward' }
+] as const satisfies readonly { value: GapFill; label: string }[];
+
 export const INTERVALS: readonly { seconds: number; label: string }[] = [
 	{ seconds: 60, label: '1m' },
 	{ seconds: 300, label: '5m' },
@@ -45,7 +52,8 @@ export const DEFAULT_META: CsvMeta = {
 	volumeUnit: 'base',
 	intervalSeconds: 3600,
 	timestampUnit: 's',
-	leverageCap: 5
+	leverageCap: 5,
+	gapFill: 'none'
 };
 
 const MILLIS_THRESHOLD = 1e11; // same rule as the engine: seconds past year 5000 are milliseconds
@@ -75,6 +83,17 @@ export function guessMeta(csv: string, base: CsvMeta = DEFAULT_META): CsvMeta {
 	return { ...base, timestampUnit, intervalSeconds: known ? known.seconds : base.intervalSeconds };
 }
 
+/**
+ * First visible synthetic bar of a branch pack (spec market-generator "Branch labeling": every bar
+ * after the branch point is flagged synthetic), as a 1-based decision-turn number; null when no
+ * synthetic bar is visible yet or the market is not a branch.
+ */
+export function branchTurn(state: { marketMode: string; warmupBars: number; bars: readonly BarTuple[] }): number | null {
+	if (state.marketMode !== 'branch') return null;
+	const first = state.bars.findIndex((b) => b[5]);
+	return first < 0 ? null : first - state.warmupBars + 1;
+}
+
 /** "15m", "1h", ... for a bar interval in seconds (the top bar and pack names). */
 export function intervalLabel(seconds: number): string {
 	return INTERVALS.find((i) => i.seconds === seconds)?.label ?? `${seconds}s`;
@@ -89,6 +108,34 @@ export function defaultLabel(meta: CsvMeta, fileName: string): string {
 
 export function isoUtc(seconds: number): string {
 	return new Date(seconds * 1000).toISOString().replace('.000Z', 'Z');
+}
+
+const TAR_BLOCK = 512;
+
+/** Size of the tar entry whose header starts at `at`, or null when it is not a ustar header. */
+function tarEntrySize(bytes: Uint8Array, at: number): number | null {
+	const magic = String.fromCharCode(...bytes.subarray(at + 257, at + 262));
+	if (magic !== 'ustar') return null;
+	const field = String.fromCharCode(...bytes.subarray(at + 124, at + 136)).replace(/[\0 ]+$/, '').trim();
+	return /^[0-7]+$/.test(field) ? parseInt(field, 8) : null;
+}
+
+/**
+ * Whether a `.tlpack` file is a pack cut short, as an interrupted download leaves it: its tar headers
+ * are valid but an entry's data, or the end-of-archive marker, is missing. A file that is not a pack
+ * at all is not "cut" (the engine's refusal reason is shown for it instead).
+ */
+export function packLooksCut(bytes: Uint8Array): boolean {
+	let pos = 0;
+	let headers = 0;
+	while (pos + TAR_BLOCK <= bytes.length) {
+		if (bytes.subarray(pos, pos + TAR_BLOCK).every((b) => b === 0)) return false; // end marker: complete
+		const size = tarEntrySize(bytes, pos);
+		if (size == null) return false;
+		headers += 1;
+		pos += TAR_BLOCK + Math.ceil(size / TAR_BLOCK) * TAR_BLOCK;
+	}
+	return headers > 0;
 }
 
 /** 32 random bytes for the device signing seed (stored once per device). */

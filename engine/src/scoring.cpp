@@ -1,5 +1,7 @@
 #include "tradelab/scoring.hpp"
 
+#include "tradelab/lessons.hpp"
+
 #include <algorithm>
 #include <cstdint>
 #include <optional>
@@ -238,6 +240,9 @@ struct Facts {
   std::optional<std::pair<std::uint32_t, Money>> oversized;  // entry step, planned risk
   bool all_planned = true;  // every trade had a (non-skipped) plan
   bool wrote_options = false;  // an option position was opened by writing (risk not limited by a premium)
+  // v11: the first perpetual trade whose liquidation price was closer to its entry than twice its stop
+  // distance at the highest leverage it carried (a gap of one more stop distance would liquidate it).
+  std::optional<TradeRow> tight_stop;
 };
 
 bool grows_exposure(std::int64_t pos, std::int64_t q) { return pos == 0 || (q > 0) == (pos > 0) || abs64(q) > abs64(pos); }
@@ -289,11 +294,21 @@ void count_fills(const RunState& st, Facts& f) {
 // The risk declared for each trade's entries (planned, or sent without a plan, which still carries
 // the ticket's estimate), from the plan matched to each entry order (order_plan): the plan of an
 // order that was rejected and never filled is not a trade.
+// Leverage against the stop distance (scoring v11): the liquidation price, at the highest leverage the
+// trade carried, lies closer to the entry than twice the stop's distance from it.
+bool leverage_tight_to_stop(const TradeRow& t) {
+  if (t.series != 0 || t.stop.raw <= 0 || t.liq_price.raw <= 0) return false;
+  const i128 stop_dist = abs64(t.entry_avg.raw - t.stop.raw);
+  const i128 liq_dist = abs64(t.entry_avg.raw - t.liq_price.raw);
+  return liq_dist < 2 * stop_dist;
+}
+
 void trade_facts(const Scenario& sc, const RunState& st, Facts& f) {
   const std::int64_t limit = run_initial_balance(sc, st).raw / 50;  // 2% of the run's initial capital
   for (const TradeRow& t : build_trades(sc, st)) {
     if (!f.oversized && t.declared_risk.raw > limit) f.oversized = std::make_pair(t.entry_step, t.declared_risk);
     f.all_planned = f.all_planned && t.planned_risk.raw > 0;
+    if (!f.tight_stop && leverage_tight_to_stop(t)) f.tight_stop = t;
   }
 }
 
@@ -311,6 +326,17 @@ Facts collect(const Scenario& sc, const RunState& st) {
 
 // ---- dimensions ---------------------------------------------------------------------------
 
+// Max drawdown above the mission's drawdown budget (a share of the run's initial capital).
+bool over_drawdown_budget(const Scenario& sc, const RunState& st) {
+  return static_cast<i128>(st.metrics.max_drawdown.raw) * kBp > static_cast<i128>(run_initial_balance(sc, st).raw) * sc.mission.drawdown_budget_bp;
+}
+
+// The closest liquidation distance seen at a close fell below the mission's warning distance.
+bool thin_liq_buffer(const Scenario& sc, const RunState& st) {
+  const std::int64_t d = st.metrics.min_liq_distance_bp;
+  return d >= 0 && d < static_cast<std::int64_t>(sc.mission.liq_warning_bp);
+}
+
 std::int32_t risk_score(const Scenario& sc, const RunState& st, const Facts& f) {
   if (f.entries == 0 && f.liquidations.empty()) return 100;
   std::int32_t s = 100;
@@ -318,7 +344,9 @@ std::int32_t risk_score(const Scenario& sc, const RunState& st, const Facts& f) 
   s -= static_cast<std::int32_t>(std::min<std::uint32_t>(40, f.unprotected * 20));
   if (f.oversized) s -= 20;
   if (f.stop_warnings > 0) s -= 15;
-  if (st.metrics.max_drawdown.raw * 5 > run_initial_balance(sc, st).raw) s -= 15;  // > 20%
+  if (over_drawdown_budget(sc, st)) s -= 15;  // v11: the mission's budget (20% unless it declares one)
+  if (f.tight_stop) s -= 10;                  // v11: leverage too high for the stop distance
+  if (thin_liq_buffer(sc, st)) s -= 10;       // v11: liquidation came closer than the mission's warning distance
   return std::max(0, s);
 }
 
@@ -352,6 +380,32 @@ void calibration(const Scenario& sc, const RunState& st, ScoreReport& r) {
   // = (n * 1e10 - 200 * sum_sq) / (n * 1e8)
   const std::int64_t score = round_div(static_cast<i128>(n) * kBp * kBp * 100 - 200 * sum_sq, static_cast<i128>(n) * kBp * kBp);
   r.calibration.score = static_cast<std::int32_t>(std::max<std::int64_t>(0, score));
+}
+
+// Understanding (task 4.5, scoring v11): points of the right answers over the points of every question
+// in the mission's rubric (skipped and unanswered questions earn 0). Applicable only with a rubric a
+// human has reviewed and at least one answer or skip recorded: a run whose player never saw the
+// questions keeps the dimension not applicable, as before.
+void understanding(const Rubric* rubric, const RunState& st, ScoreReport& r) {
+  if (rubric == nullptr) return;
+  r.lessons_reviewed = rubric->reviewed;
+  for (std::uint32_t i = 0; i < rubric->questions.size(); ++i) {
+    const LessonQuestion& q = rubric->questions[i];
+    LessonResult res;
+    res.question = i;
+    const auto it = std::find_if(st.lesson_answers.begin(), st.lesson_answers.end(), [i](const LessonAnswer& a) { return a.question == i; });
+    if (it != st.lesson_answers.end()) {
+      res.answered = !it->skipped;
+      res.skipped = it->skipped;
+      res.correct = lesson_correct(q, *it);
+    }
+    res.points = res.correct ? q.points : 0;
+    r.lesson_points += res.points;
+    r.lesson_points_total += q.points;
+    r.lessons.push_back(res);
+  }
+  if (!rubric->reviewed || st.lesson_answers.empty() || r.lesson_points_total == 0) return;
+  r.understanding.score = static_cast<std::int32_t>(round_div(static_cast<i128>(r.lesson_points) * 100, r.lesson_points_total));
 }
 
 void combine(ScoreReport& r) {
@@ -417,6 +471,22 @@ void risk_findings(const RunState& st, const Facts& f, ScoreReport& r) {
   }
 }
 
+// Scoring v11 risk inputs. A stop already beyond liquidation is named by its own finding.
+void budget_findings(const Scenario& sc, const RunState& st, const Facts& f, ScoreReport& r) {
+  if (f.tight_stop && !f.tight_stop->stop_beyond_liq) {
+    const TradeRow& t = *f.tight_stop;
+    r.findings.push_back(mk(FindingCode::LeverageVsStop, FindingTone::Warn, t.entry_step, static_cast<std::uint32_t>(t.leverage), t.stop,
+                            t.liq_price));
+  }
+  if (thin_liq_buffer(sc, st)) {
+    r.findings.push_back(mk(FindingCode::LiqBuffer, FindingTone::Warn, 0, static_cast<std::uint32_t>(st.metrics.min_liq_distance_bp)));
+  }
+  if (over_drawdown_budget(sc, st)) {
+    r.findings.push_back(
+        mk(FindingCode::DrawdownBudget, FindingTone::Warn, 0, sc.mission.drawdown_budget_bp, Price{}, Price{}, st.metrics.max_drawdown));
+  }
+}
+
 void outcome_findings(const Facts& f, ScoreReport& r) {
   const bool planned = f.planned > 0;
   if (f.entries == 0) add(r, FindingCode::Waited, FindingTone::Good);
@@ -473,6 +543,8 @@ LessonCode pick_lesson(const ScoreReport& r) {
   // A margin call on written options (even one that ends in bankruptcy) is a sizing lesson.
   if (has(r, FindingCode::NoStop) || has(r, FindingCode::Oversized) || has(r, FindingCode::MarginCalled)) return LessonCode::Risk;
   if (has(r, FindingCode::Bankrupt)) return LessonCode::Futures2;
+  if (has(r, FindingCode::LeverageVsStop) || has(r, FindingCode::LiqBuffer)) return LessonCode::Futures2;
+  if (has(r, FindingCode::DrawdownBudget)) return LessonCode::Risk;
   if (has(r, FindingCode::ThetaDecay) || has(r, FindingCode::IvCrush) || has(r, FindingCode::IvRise)) return LessonCode::Options;
   if (has(r, FindingCode::FundingCost)) return LessonCode::Futures3;
   if (has(r, FindingCode::GapSlippage)) return LessonCode::Orders;
@@ -598,7 +670,9 @@ std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
   return rows;
 }
 
-ScoreReport score_run(const Scenario& sc, const RunState& st) {
+ScoreReport score_run(const Scenario& sc, const RunState& st) { return score_run(sc, st, rubric_for(sc.id)); }
+
+ScoreReport score_run(const Scenario& sc, const RunState& st, const Rubric* rubric) {
   ScoreReport r;
   const Facts f = collect(sc, st);
   r.entries = f.entries;
@@ -606,12 +680,14 @@ ScoreReport score_run(const Scenario& sc, const RunState& st) {
   r.risk.score = risk_score(sc, st, f);
   r.plan.score = plan_score(f);
   calibration(sc, st, r);
+  understanding(rubric, st, r);
   combine(r);
   r.trades = build_trades(sc, st);
   r.spread_cost = spread_slippage_cost(sc, st);
   r.written_off = written_off(st, r);
   r.greeks = greek_attribution(sc, st);
   risk_findings(st, f, r);
+  budget_findings(sc, st, f, r);
   outcome_findings(f, r);
   execution_findings(st, f, r);
   greek_findings(r);

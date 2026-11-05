@@ -8,6 +8,7 @@
 
 import type { Locale } from './i18n.svelte.ts';
 import { PACK_MAX_BYTES } from './packs.ts';
+import type { Quota } from './packStore.ts';
 
 export const CATALOG_SCHEMA = 1;
 
@@ -84,11 +85,6 @@ export type EntryStatus = 'installed' | 'partial' | 'none';
 export function entryStatus(e: CatalogEntry, installed: ReadonlySet<string>, partial: ReadonlyMap<string, number>): EntryStatus {
 	if (installed.has(e.digest)) return 'installed';
 	return (partial.get(e.digest) ?? 0) > 0 ? 'partial' : 'none';
-}
-
-export interface Quota {
-	usage: number;
-	quota: number;
 }
 
 /**

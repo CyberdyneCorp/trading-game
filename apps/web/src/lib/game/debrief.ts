@@ -1,7 +1,7 @@
 // Display helpers for the engine debrief (report-only numbers computed by engine/src/debrief.cpp).
 // The client formats; it never recomputes attribution, costs or leverage advice.
 
-import type { Account, EngineTrade, GreekAttribution, NewsView, PackReveal, RegimeSignals, RegimeSpan, RevealEvent, SignalTally } from '#lib/engine/types.ts';
+import type { Account, DecisionView, EngineTrade, GreekAttribution, NewsView, PackReveal, RegimeSignals, RegimeSpan, RevealEvent, SignalTally } from '#lib/engine/types.ts';
 import { fmtPct, fmtPrice, num } from './format.ts';
 import { t, type Locale } from './i18n.svelte.ts';
 import { headline } from './news.ts';
@@ -50,8 +50,19 @@ export function stopAdvice(tr: EngineTrade, locale: Locale): StopAdvice | null {
 // The fixed transformation note the engine writes into a CSV-import pack (engine/src/pack_build.cpp).
 const CSV_TRANSFORM = /^prices x 100 \/ open of bar (\d+), half-even to 0\.01; volume x the inverse$/;
 
-/** Reveal sentence and transformation note of a pack, in the player's language where the text is known. */
-export function revealTexts(r: PackReveal, alias: string, origin: PackOrigin | null = null): { line: string; transform: string } {
+/**
+ * Reveal sentence and transformation note of a pack, in the player's language where the text is known.
+ * A synthetic pack (generated bars, e.g. `packer generate`) has no real market to reveal; an empty
+ * transform means there is no note to show. `origin` says whether a CSV-import pack was imported on
+ * this device or downloaded from the catalog.
+ */
+export function revealTexts(
+	r: PackReveal,
+	alias: string,
+	marketMode = 'historical',
+	origin: PackOrigin | null = null
+): { line: string; transform: string } {
+	if (marketMode === 'synthetic') return { line: t('debrief.revealPackSynthetic', { alias }), transform: '' };
 	const params = {
 		alias,
 		pair: r.pair || '—',
@@ -168,4 +179,11 @@ export function releaseRows(events: readonly RevealEvent[], trades: readonly Eng
 /** Signed basis points as a percentage with the locale's decimal separator: "+2,35%" / "+2.35%". */
 export function fmtBp(bp: number, locale: Locale): string {
 	return fmtPct(bp / 10000, locale, 2, true);
+}
+
+/** How many decision steps the player acted, held a position or waited at (engine decision records). */
+export function decisionCounts(decisions: readonly DecisionView[]): { act: number; hold: number; wait: number } {
+	const out = { act: 0, hold: 0, wait: 0 };
+	for (const d of decisions) out[d.kind] += 1;
+	return out;
 }

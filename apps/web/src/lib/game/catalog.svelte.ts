@@ -6,7 +6,7 @@
 // downloads disabled ("needs a connection"), and installed packs stay playable.
 
 import type { PackCheck } from '#lib/engine/types.ts';
-import { CATALOG_URL, entryStatus, parseCatalog, spaceShortfall, type CatalogEntry, type EntryStatus, type Quota } from './catalog.ts';
+import { CATALOG_URL, entryStatus, parseCatalog, spaceShortfall, type CatalogEntry, type EntryStatus } from './catalog.ts';
 import {
 	backgroundId,
 	BACKGROUND_CACHE,
@@ -19,6 +19,7 @@ import {
 	type DownloadFailure,
 	type PartialStore
 } from './download.ts';
+import { storageQuota, type Quota } from './packStore.ts';
 
 export interface CatalogStore extends PartialStore {
 	partialSizes(): Promise<Map<string, number>>;
@@ -73,7 +74,7 @@ export class CatalogModel {
 		this.listenBackground();
 		const store = this.host.catalogStore;
 		this.partial = (await store?.partialSizes().catch(() => null)) ?? new Map();
-		this.quota = await estimate();
+		this.quota = await storageQuota();
 		const abs = new URL(this.url, typeof location === 'undefined' ? 'http://localhost/' : location.href).href;
 		const fresh = this.host.online() ? await this.fetchCatalog(abs) : null;
 		if (fresh) {
@@ -206,12 +207,6 @@ export class CatalogModel {
 			else this.set(e, { phase: 'failed', received: 0, size: e.size, reason: 'hash_mismatch' });
 		}
 	}
-}
-
-async function estimate(): Promise<Quota | null> {
-	if (typeof navigator === 'undefined' || !navigator.storage?.estimate) return null;
-	const q = await navigator.storage.estimate().catch(() => null);
-	return q && typeof q.quota === 'number' ? { usage: q.usage ?? 0, quota: q.quota } : null;
 }
 
 async function backgroundEnv(): Promise<BackgroundEnv> {

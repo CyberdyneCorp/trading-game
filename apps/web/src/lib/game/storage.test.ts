@@ -87,6 +87,12 @@ describe('RunStore (IndexedDB)', () => {
 		expect((await store.finishedMissions()).sort()).toEqual(['m01-false-breakout', 'm03-volatility-shock']);
 	});
 
+	it('an assisted attempt (rewind or another market) is not a completed mission', async () => {
+		await store.createRun({ ...record('x'), missionId: 'm07-trend-trailing', status: 'finished', assisted: { from: 'a', kind: 'rewind', step: 70 } });
+		await store.createRun({ ...record('y'), missionId: 'm08-regime-switch', status: 'finished', assisted: { from: 'b', kind: 'seed' } });
+		expect(await store.finishedMissions()).toEqual([]);
+	});
+
 	it('regression: a finished practice run on an imported CSV pack is not a completed mission', async () => {
 		await store.createRun({ ...record('p'), missionId: 'csv-abc123', status: 'finished', packDigest: 'd1' });
 		expect(await store.finishedMissions()).toEqual([]);
@@ -207,5 +213,43 @@ describe('RunStore (IndexedDB)', () => {
 		expect(run?.record.missionId).toBe('m02-funding-squeeze');
 		expect(run?.actions).toEqual([{ k: 'adv', n: 1 }]);
 		expect(storage.getItem('tradelab.run.v1')).toBeNull();
+	});
+
+	it('keeps only the latest checkpoint of a run and drops those of runs that cannot resume', async () => {
+		const cp = (runId: string, actions: number) => ({ runId, actions, hex: `hex${actions}`, digest: `d${actions}`, engine: '/e.mjs' });
+		expect(await store.checkpoint('r1')).toBeNull();
+		await store.saveCheckpoint(cp('r1', 20));
+		await store.saveCheckpoint(cp('r1', 40));
+		await store.saveCheckpoint(cp('r1', 20)); // a late write of an older one never wins
+		expect(await store.checkpoint('r1')).toMatchObject({ actions: 40, hex: 'hex40', digest: 'd40' });
+		await store.saveCheckpoint(cp('r2', 20));
+		await store.pruneCheckpoints('r2');
+		expect(await store.checkpoint('r1')).toBeNull();
+		expect(await store.checkpoint('r2')).not.toBeNull();
+		await store.pruneCheckpoints(null);
+		expect(await store.checkpoint('r2')).toBeNull();
+	});
+
+	it('opens a version-2 database (no checkpoints store) and adds the store', async () => {
+		globalThis.indexedDB = new IDBFactory();
+		await new Promise<void>((resolve, reject) => {
+			const open = indexedDB.open('tradelab', 2);
+			open.onupgradeneeded = () => {
+				open.result.createObjectStore('runs', { keyPath: 'runId' });
+				open.result.createObjectStore('actions', { keyPath: ['runId', 'seq'] });
+				open.result.createObjectStore('meta', { keyPath: 'key' });
+				open.result.createObjectStore('packs', { keyPath: 'digest' });
+			};
+			open.onsuccess = () => {
+				open.result.transaction('runs', 'readwrite').objectStore('runs').put(record('kept'));
+				open.result.close();
+				resolve();
+			};
+			open.onerror = () => reject(open.error);
+		});
+		const upgraded = new RunStore<Action, unknown, unknown>(await openDb());
+		expect((await upgraded.runs()).map((r) => r.runId)).toEqual(['kept']);
+		await upgraded.saveCheckpoint({ runId: 'kept', actions: 20, hex: 'h', digest: 'd', engine: '/e.mjs' });
+		expect(await upgraded.checkpoint('kept')).not.toBeNull();
 	});
 });

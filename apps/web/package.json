@@ -11,10 +11,14 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && svelte-check --tsconfig ./tsconfig.service-worker.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"engine:build": "./scripts/build-engine.sh",
+		"engine:size": "node scripts/check-wasm-size.mjs",
+		"engine:types": "python3 ../../engine/idl/gen.py",
 		"test": "vitest run",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"budget:size": "node scripts/check-budgets.mjs"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "^4.14.0",
 		"@fontsource/ibm-plex-mono": "^5.3.0",
 		"@fontsource/vt323": "^5.3.0",
 		"@playwright/test": "^1.56.1",

@@ -22,7 +22,7 @@ def test_cross_binding_golden_matches_native_cpp():
         run.advance(30)
         run.close_position(6)
         state = run.advance(1000)
-    assert state["digest"] == "6ab10bbdfa67d8a4703ef743e236860d9becddefb31202c103aaa20b15849bc0"
+    assert state["digest"] == "0296b3e88ee2cc9697a1d904530457a71bde1f58ba1b52136c154e5c2e0907f1"
     assert state["eventsDigest"] == "ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19"
 
 
@@ -40,7 +40,7 @@ def test_replay_action_log_reproduces_and_scores():
     assert a.digest == b.digest
     assert a.status in {"finished", "bankrupt"}
     assert a.debrief is not None
-    assert a.debrief["score"]["version"] == 10
+    assert a.debrief["score"]["version"] == 11
     assert a.debrief["trades"][0]["n"] == 1
     assert [r["accepted"] for r in a.results if r is not None] == [True, True, True]
 
@@ -79,7 +79,7 @@ def test_cross_binding_golden_with_advice_matches_native_cpp():
         state = run.advance(1000)
     assert state["advisor"]["left"] == 1
     assert len(state["advisor"]["advice"]) == 2
-    assert state["digest"] == "10ad393347fd13bcb033c8a6bf4816298c1d312668ad888a2c1faa6b2a28a4ce"
+    assert state["digest"] == "b4b86bfad81a81b303c7833879798fd8d2db50b783f8409a587b0e171d7c5963"
     assert state["eventsDigest"] == "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f"
 
 
@@ -149,3 +149,39 @@ def test_replay_move_keeps_the_bracket_stop_in_its_oco_group():
     assert after["price"] == "81.00000000"
     assert after["ocoGroup"] == stop["ocoGroup"] != 0
     assert len(moved.state["orders"]) == len(before.state["orders"])
+
+
+def test_percentage_trailing_stop_policy_v16():
+    """A trailing stop placed as a rate of the close: the binding and the replay action agree."""
+    with Run("m07-trend-trailing", 3) as run:
+        run.place_order(1, 0, 0, "1", None, False)
+        run.advance(1)
+        res = run.place_trailing_rate(2, 1, "1", True, "0.03")
+        assert res["accepted"] is True
+        order = next(o for o in run.state()["orders"] if o["id"] == res["orderId"])
+        assert order["type"] == "trailing_stop"
+        assert order["trailRate"] == "0.0300000000"
+        assert order["trailDistance"] == "0.00000000"
+        assert run.place_trailing_rate(3, 1, "1", True, "1.5")["reason"] == "invalid_tick"
+        direct = run.advance(1000)["digest"]
+    log = [
+        {"k": "order", "type": "market", "side": "buy", "qty": "1", "price": None, "ro": False},
+        {"k": "adv", "n": 1},
+        {"k": "order", "type": "trailing_stop", "side": "sell", "qty": "1", "price": None, "ro": True,
+         "trailRate": "0.03"},
+        {"k": "order", "type": "trailing_stop", "side": "sell", "qty": "1", "price": None, "ro": True,
+         "trailRate": "1.5"},
+        {"k": "adv", "n": 1000},
+    ]
+    assert replay("m07-trend-trailing", 3, log).digest == direct
+
+
+def test_margin_tiers_in_contract_and_tier_rejection_policy_v16():
+    with Run("m03-volatility-shock", 4, RunOptions(starting_balance="20000")) as run:
+        tiers = run.state()["contract"]["marginTiers"]
+        assert [t["maxLeverage"] for t in tiers] == [50, 20, 10, 5]
+        assert tiers[0]["notionalFloor"] == "0.00000000"
+        assert run.set_leverage(1, 20)["accepted"] is True
+        price = float(run.state()["bars"][-1][3])
+        qty = f"{int(300_000 / price)}.0"  # ~300,000 notional at 20x: the 2.5% tier caps 10x
+        assert run.place_order(2, 0, 0, qty, None, False)["reason"] == "leverage_above_tier"

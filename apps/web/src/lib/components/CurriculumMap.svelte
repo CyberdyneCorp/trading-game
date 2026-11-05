@@ -7,7 +7,7 @@
 	import { fmtMoney } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
-	import { lessonText } from '#lib/game/lessons.ts';
+	import { lessonText } from '#lib/game/academy.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const L = $derived(i18n.locale);

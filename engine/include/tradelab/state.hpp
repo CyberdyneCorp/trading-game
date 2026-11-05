@@ -30,6 +30,7 @@ struct Order {
   std::uint32_t oco_group = 0;  // siblings share it; a fill on one reduces the others
   Price trail_distance;         // TrailingStop: distance from the best close
   std::uint32_t series = 0;     // 0 = perpetual; otherwise an option series id
+  Rate trail_rate;              // TrailingStop (policy v16): distance as a rate of the best close; 0 = fixed
 
   [[nodiscard]] bool active() const {
     return status == OrderStatus::Accepted || status == OrderStatus::PartiallyFilled ||
@@ -101,6 +102,25 @@ struct CalibrationAnswer {
   Price threshold;
   std::uint32_t horizon = 0;
   std::uint32_t p_bp = 0;
+  bool skipped = false;
+};
+
+// What the player did at a decision point, recorded by `advance` for the step it leaves (task 4.2,
+// spec gameplay-loop "Waiting is a decision"). A pure function of the commands and the state at that
+// step, so it is kept outside the state digest (like the command log) and in the checkpoint.
+// DecisionKind (wait, hold, act) is declared in the IDL (idl_types.hpp).
+struct DecisionRecord {
+  std::uint32_t step = 0;
+  DecisionKind kind = DecisionKind::Wait;
+};
+
+// Answer to a lesson question (task 4.5): `question` indexes the mission's rubric (lessons.hpp);
+// `choice` for multiple choice, `value` for a numeric answer. Skipped answers are kept and score 0.
+struct LessonAnswer {
+  std::uint32_t step = 0;
+  std::uint32_t question = 0;
+  std::uint32_t choice = 0;
+  Money value;
   bool skipped = false;
 };
 
@@ -177,6 +197,9 @@ struct RunState {
   RunOptions options;
   std::uint32_t advice_left = 0;  // starts at options.advice_allowance
   std::vector<Advice> advice;     // every accepted RequestAdvice, in order
+
+  std::vector<LessonAnswer> lesson_answers;  // in the state digest only when present (a run without answers hashes as before)
+  std::vector<DecisionRecord> decisions;     // one per advanced decision step; not a digest input (derived)
 };
 
 }  // namespace tradelab
