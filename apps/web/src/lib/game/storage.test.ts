@@ -87,6 +87,11 @@ describe('RunStore (IndexedDB)', () => {
 		expect((await store.finishedMissions()).sort()).toEqual(['m01-false-breakout', 'm03-volatility-shock']);
 	});
 
+	it('regression: a finished practice run on an imported CSV pack is not a completed mission', async () => {
+		await store.createRun({ ...record('p'), missionId: 'csv-abc123', status: 'finished', packDigest: 'd1' });
+		expect(await store.finishedMissions()).toEqual([]);
+	});
+
 	it('keeps player progress (tutorials seen, advisor points) and starts empty with 3 points', async () => {
 		expect(await store.progress()).toEqual(EMPTY_PROGRESS);
 		await store.saveProgress({ ...EMPTY_PROGRESS, tutorialsSeen: ['m01-false-breakout'], advisorPoints: 5, settledRuns: ['r1'] });
@@ -108,6 +113,7 @@ describe('RunStore (IndexedDB)', () => {
 			tutorialsSeen: ['m01-false-breakout'],
 			advisorPoints: 7,
 			settledRuns: ['r9'],
+			perksIntroduced: [],
 			campaign: null,
 			campaignHistory: [],
 			assessed: []

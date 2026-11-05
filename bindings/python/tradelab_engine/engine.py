@@ -51,6 +51,7 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_place_order_ex": (c_char_p, [c_void_p, u32, i32, i32, c_char_p, c_char_p, i32, c_char_p, c_char_p, c_char_p]),
         "tl_place_option_order": (c_char_p, [c_void_p, u32, u32, i32, i32, c_char_p, c_char_p]),
         "tl_cancel_order": (c_char_p, [c_void_p, u32, u32]),
+        "tl_move_order": (c_char_p, [c_void_p, u32, u32, c_char_p]),
         "tl_set_leverage": (c_char_p, [c_void_p, u32, i32]),
         "tl_close_position": (c_char_p, [c_void_p, u32]),
         "tl_adjust_margin": (c_char_p, [c_void_p, u32, c_char_p]),
@@ -207,6 +208,9 @@ class Run:
 
     def cancel(self, cid: int, order_id: int) -> Any:
         return _json(self._lib.tl_cancel_order(self._h, cid, order_id))
+
+    def move_order(self, cid: int, order_id: int, price: str) -> Any:
+        return _json(self._lib.tl_move_order(self._h, cid, order_id, _s(price)))
 
     def set_leverage(self, cid: int, leverage: int) -> Any:
         return _json(self._lib.tl_set_leverage(self._h, cid, leverage))

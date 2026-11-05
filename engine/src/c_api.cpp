@@ -22,13 +22,15 @@ using tradelab::detail::JsonOut;
 namespace tradelab {
 namespace {
 
+constexpr std::uint32_t kMissionStepSeconds = 3600;  // the built-in missions trade hourly bars
+
 const char* reason_name(Reason r) {
   static constexpr const char* kNames[] = {
       "none", "insufficient_margin", "leverage_above_cap", "invalid_tick", "invalid_quantity",
       "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
       "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
       "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left"};
+      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left", "order_moved"};
   const auto i = static_cast<std::size_t>(r);
   return i < std::size(kNames) ? kNames[i] : "unknown";
 }
@@ -217,14 +219,27 @@ const char* news_kind_name(NewsKind k) {
   return kNames[static_cast<std::size_t>(k)];
 }
 
-// Only news published at or before the current step: the future never crosses the ABI.
-void write_news(JsonOut& j, const Scenario& sc, std::uint32_t step) {
+// News published by the current step, plus the headlines a fast wire (news_lead) delivers early,
+// flagged `early` until their release step. Bars after the step never cross the ABI.
+void write_news(JsonOut& j, const Scenario& sc, const RunState& st) {
+  const std::uint32_t visible_until = st.step + st.options.news_lead;
   j.key("news").begin_arr();
   for (const NewsItem& n : sc.news) {
-    if (n.release_step > step) continue;
+    if (n.release_step > visible_until) continue;
     j.begin_obj().field("step", n.release_step).field("kind", news_kind_name(n.kind)).field("tone", std::int32_t{n.tone});
     j.field("credibility", std::uint32_t{n.credibility}).field("expectation", std::int32_t{n.expectation});
-    j.field("actual", std::int32_t{n.actual}).end_obj();
+    j.field("actual", std::int32_t{n.actual}).field("early", n.release_step > st.step).end_obj();
+  }
+  j.end_arr();
+}
+
+// Economic calendar perk: the release step of each scheduled item (rate decisions) not visible yet;
+// never its expectation, value or tone. Empty without the perk.
+void write_calendar(JsonOut& j, const Scenario& sc, const RunState& st) {
+  const std::uint32_t visible_until = st.step + st.options.news_lead;
+  j.key("calendar").begin_arr();
+  for (const NewsItem& n : sc.news) {
+    if (st.options.calendar && n.kind == NewsKind::RateDecision && n.release_step > visible_until) j.num(n.release_step);
   }
   j.end_arr();
 }
@@ -284,7 +299,8 @@ const char* finding_name(FindingCode c) {
   static constexpr const char* kNames[] = {"waited",          "liquidated", "stop_beyond_liq", "no_stop",   "gap_slippage",
                                            "funding_cost",    "ambiguous",  "capacity",        "good_process_loss",
                                            "lucky_win",       "no_plan",    "oversized",       "bankrupt",
-                                           "margin_called",   "theta_decay", "iv_crush",        "good_process_win"};
+                                           "margin_called",   "theta_decay", "iv_crush",        "good_process_win",
+                                           "iv_rise",         "wrote_options"};
   return kNames[static_cast<std::size_t>(c)];
 }
 
@@ -366,6 +382,8 @@ const char* state_json(tl_run& r) {
   j.begin_obj();
   j.field("mission", sc.id).field("alias", sc.alias).field("status", run_status_name(st.status));
   j.field("marketMode", r.from_pack ? r.pack.mode : std::string("synthetic")).field("knownScenario", r.from_pack);
+  // Bar interval: the pack's declared one (an imported CSV can be 15m), else the missions' hourly bars.
+  j.field("stepSeconds", r.from_pack ? r.pack.step_seconds : kMissionStepSeconds);
   j.field("step", st.step).field("lastDecisionStep", last_decision_step(sc));
   j.field("warmupBars", sc.mission.warmup_bars).field("totalBars", static_cast<std::uint32_t>(sc.bars.size()));
   j.field("initialBalance", run_initial_balance(sc, st)).field("leverage", st.leverage);
@@ -375,7 +393,8 @@ const char* state_json(tl_run& r) {
   write_orders(j, st);
   write_options(j, sc, st);
   write_indicators(j, sc, st.step);
-  write_news(j, sc, st.step);
+  write_news(j, sc, st);
+  write_calendar(j, sc, st);
   write_calibration_state(j, sc, st);
   write_advisor(j, st);
   j.key("events").begin_arr();
@@ -458,19 +477,6 @@ void write_pack_reveal(JsonOut& j, const PackInfo& p) {
   j.key("reveal").begin_obj().field("asset", r.asset).field("pair", r.pair).field("venue", r.venue);
   j.field("periodFrom", r.period_from).field("periodTo", r.period_to).field("source", r.source);
   j.field("transformation", r.transformation).field("gaps", p.gaps).end_obj();
-}
-
-// Buy-and-hold benchmark: 1x long from the first eligible open to the final close, taker fees both ways.
-Money buy_and_hold(const Scenario& sc, const RunState& st) {
-  const Price entry = sc.bars[sc.mission.warmup_bars + 1].open;
-  const Price exit = sc.bars.back().close;
-  const Money budget = run_initial_balance(sc, st);
-  const Qty raw = detail::unwrap(div<Qty>(budget, Money::from_raw(entry.raw), Rounding::Floor));
-  const Qty qty = detail::unwrap(round_to_step(Qty::from_raw(raw.raw * 999 / 1000), sc.contract.lot_size, Rounding::Floor));
-  const Money pnl = detail::unwrap(mul<Money>(qty, Price::from_raw(exit.raw - entry.raw), Rounding::Floor));
-  const Money fees = Money::from_raw(detail::fee_for(detail::notional(sc, qty, entry, Rounding::Ceil), sc.contract.taker_fee).raw +
-                                     detail::fee_for(detail::notional(sc, qty, exit, Rounding::Ceil), sc.contract.taker_fee).raw);
-  return Money::from_raw(pnl.raw - fees.raw);
 }
 
 }  // namespace
@@ -636,6 +642,13 @@ const char* tl_cancel_order(tl_run* run, uint32_t client_id, uint32_t order_id) 
   return result_json(*run, apply_command(run->scenario, run->state, c));
 }
 
+const char* tl_move_order(tl_run* run, uint32_t client_id, uint32_t order_id, const char* price) {
+  Command c = next_command(*run, CommandType::MoveOrder, client_id);
+  c.order_id = order_id;
+  if (!parse_optional_price(price, &c.price, true)) return error_json(*run, "invalid_tick");
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
 const char* tl_set_leverage(tl_run* run, uint32_t client_id, int32_t leverage) {
   Command c = next_command(*run, CommandType::SetLeverage, client_id);
   c.leverage = leverage;
@@ -664,10 +677,10 @@ const char* tl_debrief(tl_run* run) {
   j.begin_obj().field("mission", sc.id).field("alias", sc.alias);
   j.field("status", run_status_name(run->state.status));
   j.field("finalEquity", account_view(sc, run->state).equity);
-  j.field("buyAndHoldPnl", buy_and_hold(sc, run->state)).field("flatPnl", Money{});
+  j.field("buyAndHoldPnl", buy_and_hold_pnl(sc, run->state)).field("flatPnl", Money{});
   j.field("syntheticMarket", !run->from_pack).field("seed", run->state.seed);
   if (run->from_pack) write_pack_reveal(j, run->pack);
-  j.field("startPrice", sc.bars[sc.mission.warmup_bars].close).field("endPrice", sc.bars.back().close);
+  j.field("startPrice", sc.bars[sc.mission.warmup_bars].close).field("endPrice", sc.bars[run->state.step].close);
   write_score(j, score_run(sc, run->state));
   j.end_obj();
   run->buffer = j.text();

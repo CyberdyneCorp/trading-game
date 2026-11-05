@@ -26,6 +26,11 @@ describe('describeEvent', () => {
 		expect(describeEvent({ ...leg, orderType: 'take_profit', side: 'buy' }, 'pt-BR')?.text).toMatch(/\(TP compra 52,8\)/);
 	});
 
+	it('a moved stop reads as moved to its new price, not as a new order', () => {
+		const moved = fill({ type: 'order', status: 'accepted', reason: 'order_moved', orderId: 6, orderType: 'stop_market', side: 'sell', series: 0, requested: '97.50000000' });
+		expect(describeEvent(moved, 'pt-BR')?.text).toBe('Ordem #6 movida para 97,50');
+	});
+
 	it('names an ordinary fill by its order id', () => {
 		expect(describeEvent(fill({}), 'pt-BR')?.text).toMatch(/Execução #3/);
 	});

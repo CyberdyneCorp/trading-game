@@ -71,6 +71,7 @@ mindmap
       Curriculum map and unlocks
       Plan journal
       Honest advisor and points
+      Intel perks
       Pre-trade plan
       Calibration questions
       Process vs outcome debrief
@@ -91,13 +92,14 @@ mindmap
 | Journal | Every plan you wrote (thesis, invalidation, target, confidence, planned risk), run by run, filterable by mission. It stays on the device and is never scored. |
 | Perpetual futures | Isolated margin, leverage up to the mission cap, funding every N bars, mark-to-market, liquidation, bankruptcy (game over when you can't afford the minimum order). |
 | Options | Cash-settled European calls/puts priced with Black-76 on the perpetual, with an IV model, Greeks, option chain, writing with margin and margin calls. |
-| Orders | Market / limit / stop entries, reduce-only stop-loss and take-profit (brackets, OCO), trailing stop, costs (fees, spread, slippage, bar-volume capacity). The ticket warns when a new leverage would re-margin the open position (liquidation before → after), and both tickets refuse an order whose margin (or an option buy whose premium) exceeds the available balance. |
-| Stop/target tools | Stop presets (1×/2× ATR, swing low/high, 1%/2%), targets at 1R/2R/3R, "mark on chart" picking, stop/target lines draggable on the chart (a working STOP/TP is moved by replace-then-cancel), live reward/risk and an unprotected-position warning. |
+| Orders | Market / limit / stop entries, reduce-only stop-loss and take-profit (brackets, OCO), trailing stop, costs (fees, spread, slippage, bar-volume capacity). The ticket warns when a new leverage would re-margin the open position (liquidation before → after), both tickets refuse an order whose margin (or an option buy whose premium) exceeds the available balance, an order against the open position says whether it reduces, closes or reverses it, and a market sell of an option with no bid (0,00) is refused. |
+| Stop/target tools | Stop presets (1×/2× ATR, swing low/high, 1%/2%), targets at 1R/2R/3R, "mark on chart" picking, stop/target lines draggable on the chart (a working STOP/TP is moved in place by the engine's `MoveOrder`, policy v13, so a bracket leg keeps its OCO link), live reward/risk and an unprotected-position warning. |
 | Indicators | SMA20, EMA50, VWAP (24-bar sessions) and Bollinger(20,2) overlays; RSI14, MACD(12,26,9) and ADX14/±DI panes; ATR14. All computed in the engine from closed bars only. |
 | Candle patterns | 29 single- and multi-candle patterns detected in context (e.g. hammer vs hanging man), marked on the chart and linked to a cheat sheet that also covers 9 chart patterns. Each candle drawing animates the textbook outcome (confirmation candle, then follow-through) and the failure (close through the stop). |
 | Coaching | Pre-trade plan (side, invalidation, target, risk), calibration questions ("what's the probability that…?"), debrief that scores **process, not P&L**. |
 | Advisor | An honest coach in the engine: for 1 point it reads what is visible now (regime, RSI, Bollinger, MACD, ADX, the latest candle pattern, released news, funding) and answers long, short or wait with a confidence of 50–65%, a 2×ATR stop, a size risking 1% and its reasons. "Put stop and size in the ticket" fills the ticket without sending anything, raising the leverage when the size needs more margin than 1x allows. The debrief lists every read and whether it was right 5 bars later. Points are earned by disciplined trades (see [Advisor points](#advisor-points)). |
-| Auto-advance | Plays bars on a timer, waits for any open dialog, pauses on fills, liquidation, margin calls, option expiry and news. |
+| Intel perks | Legal information products unlocked by finishing distinct missions: an economic calendar (bar of the next rate decision, nothing about its content) and a fast news wire (headlines 1 or 2 bars before their public release, marked early). Toggles on the free-play briefing, on by default; the bars are identical with or without them, and the run is labeled "with intel" (see [Intel perks](#intel-perks)). |
+| Auto-advance | Plays bars on a timer, waits for any open dialog, pauses on fills, liquidation, margin calls, option expiry and news (also when a fast wire delivers a headline early). |
 | Sound | Music follows the moment: menu theme, in-game theme, and a tense theme when you are near liquidation or under a margin call. Closing a trade plays a win or loss sting. `M` mutes; music and effects volumes are separate. Audio (`apps/web/static/audio`, MP3 96 kbps) is cached on first play, not at install. |
 | Imported markets | A CSV import wizard turns your own OHLCV file (optional funding) into a practice mission. The engine validates it (order, duplicates, OHLC consistency, timestamp unit, interval) and reports gaps without filling them, masks prices to a base of 100, and stores the result as a private pack signed by the device. The asset, pair and period are revealed only in the debrief. Signed `.tlpack` files can be exported and loaded; packs from unknown keys are refused. |
 | Offline | Installable PWA; every action is committed to IndexedDB before it reaches the engine, so a reload resumes exactly where you were. |
@@ -310,7 +312,21 @@ The advisor is no oracle. It says "wait" most of the time and, when it commits, 
 | m04 rate decision, surprise +1 | +2.50% | 65% | +3.29% |
 | m05 network outage, surprise -2 | -7.99% | 62% | +2.11% |
 
-So the edge belongs to whoever was positioned, with a stop, before the news. A trade placed after the headline is late, as in a real market. m02's inflow row is high because it lands during the uptrend: the trend does the work, not the headline.
+So the edge belongs to whoever was positioned, with a stop, before the news. A trade placed after the headline is late, as in a real market.
+
+**Fast wire (intel perk).** The same headlines followed from the first open after a fast wire shows them (right, then average move in their favor, 10 bars after release; same 100 seeds, since perks never change the bars):
+
+| News, followed for 10 bars after release | Public (next open) | Fast wire I (1 bar early) | Fast wire II (2 bars early) |
+|---|---|---|---|
+| m01 rumor, surprise 0 | 54%, +0.24% | 58%, +0.93% | 64%, +1.70% |
+| m01 credible denial, surprise -2 | 57%, +0.36% | 88%, +4.69% | 92%, +5.16% |
+| m02 inflow, surprise 0 | 71%, +1.12% | 71%, +1.16% | 70%, +1.30% |
+| m02 rate decision, surprise -1 | 62%, +1.24% | 79%, +3.88% | 79%, +4.33% |
+| m03 exchange incident, surprise -2 | 41%, -1.06% | 70%, +6.75% | 70%, +6.79% |
+| m04 rate decision, surprise +1 | 65%, +3.29% | 73%, +5.80% | 73%, +5.80% |
+| m05 network outage, surprise -2 | 62%, +2.11% | 88%, +10.12% | 88%, +10.12% |
+
+A fast wire turns a late trade into one placed before the gap, so a credible shock goes from about a coin flip to 70–92% right and +4 to +10% per trade. Most of the edge comes from the first bar (Fast wire I); the second adds little, because the gap is what the early headline buys. That is why perks are opt-in, labeled "with intel" in the debrief and the run record, and kept out of campaign runs. The no-surprise items (m01 rumor, m02 inflow) gain little: there is no gap to get ahead of. m02's inflow row is high because it lands during the uptrend: the trend does the work, not the headline.
 
 **Timing.** Each mission's calm opening phase lasts a different number of bars per seed: m01 70–82, m02 56–70, m03 70–90, m04 64–76 and m05 66–82. Every later segment and headline moves with it, so the story is the same but the bar it turns on is not. The option missions keep their shocks before the first expiry.
 
@@ -377,13 +393,14 @@ From the menu: **Campaign** (missions in curriculum order, capital carried), **f
 
 The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, and a trade still open at the end includes its unrealized P&L, so the trades add up to the result), findings, and a reveal of what the generator was doing.
 
-Next to the score, the debrief shows outcome facts that are **not** score inputs (all computed by the engine, scoring v7):
+Next to the score, the debrief shows outcome facts that are **not** score inputs (all computed by the engine, scoring v8):
 
 - Net P&L split into realized trading P&L, fees, funding, option P&L, and a separate **spread and slippage** line: what taker fills paid against their reference price (the open, or the stop's trigger) and option fills against the quote's mid. It is already inside the fill prices, not an extra charge. After a margin-call bankruptcy, a **written-off** line shows the option loss beyond the balance that the simulated fund covered (the wallet stops at zero), so the lines still add up to the result.
 - Max drawdown, peak exposure, **turnover** (traded notional) and the **closest the mark came to liquidation**.
-- For options, the **P&L by Greek** (delta, gamma, theta, vega and a residual), labeled approximate: bar by bar, from the Greeks of the quote at the start of each interval; the residual holds the spread paid and higher-order effects, so the five lines add up to the option P&L before fees.
+- For options, the **P&L by Greek** (delta, gamma, theta, vega and a residual), labeled approximate: bar by bar by full revaluation, so a gap or a crash lands in delta and gamma with its real sign (price moves: delta = start delta × move, gamma = the rest; time: vega = average vega × IV change, theta = the rest); the residual is the spread paid at the fills, so the five lines add up to the option P&L before fees.
 - For a perpetual trade whose stop (stop order, else the plan's invalidation) sat at or beyond its liquidation price (at the highest leverage the position carried, including a re-leverage while it was open): the **highest leverage that would have kept the stop in front** of liquidation, also named in the liquidation and stop-beyond-liquidation findings.
-- When time decay (theta) or a falling implied volatility (vega) explains at least half of an option loss, a finding says so and the next lesson is Options II (IV and Greeks).
+- When time decay (theta) on bought options, or implied volatility (vega) explains at least half of an option loss, a finding says so and the next lesson is Options II (IV and Greeks). The IV finding follows the side that lost: a falling IV on bought options, or a rising IV on written ones. A written option never gets good-process credit, and a finding says why.
+- The flat and buy-and-hold comparisons and the market span run to the run's last bar: after a game over they stop at the game-over bar.
 
 ### Campaign and curriculum
 
@@ -400,7 +417,7 @@ Finishing a mission in a campaign run passes its curriculum stages for good: ban
 
 A stage's own assessment mission always has its unlocks (it is where they are taught), so in the campaign order only the leverage cap ever bites (in m01 until Futures II is passed); a unit test checks that no campaign mission meets a lock the engine cannot enforce. Free play keeps every mission's own rules and does not pass stages.
 
-Progress lives in IndexedDB `meta.progress` (version 2): tutorials seen, advisor points, the campaign run, ended campaign runs and the missions assessed. A record from an older build is migrated on load (its tutorials and points are kept).
+Progress lives in IndexedDB `meta.progress` (version 2): tutorials seen, advisor points, the intel perks already explained, the campaign run, ended campaign runs and the missions assessed. A record from an older build is migrated on load (its tutorials and points are kept).
 
 ### Advisor points
 
@@ -414,6 +431,18 @@ Points pay for advisor reads and are earned by process, never bought. The engine
 | Cap per run | 6 |
 
 The device keeps the balance (IndexedDB `meta.progress`): it starts at 3 and is capped at 10. A run's advice allowance is the balance when it starts; when the run ends the balance becomes balance − reads used + points earned, applied once per run even after a reload. Starting a new run while another can still be resumed settles the one left behind (its reads are charged, it earns nothing), so restarting never refunds reads. Each trade is matched to the plan recorded for its own entry order, so a plan for the next order on the same bar never takes the points of the trade before it. The first mission's tutorial explains this. Each read is an engine command (`RequestAdvice`) in the action log, so a replay or the server's re-simulation reproduces it; with no allowance left it is rejected and changes nothing.
+
+### Intel perks
+
+Perks are modeled on legal products, never on insider information: an economic calendar like the ones brokers publish, and a low-latency news feed like the ones professional desks subscribe to. They unlock by the number of **distinct built-in missions finished** on the device (any mode; imported markets do not count):
+
+| Distinct finished missions | Perk | What the engine adds to the state |
+|---|---|---|
+| 1 | Economic calendar | `calendar`: the bar of each coming rate decision not visible yet (no expectation, value or tone) |
+| 2 | Fast wire I | headlines from 1 bar before their release (`newsLead` 1), flagged `early` until then |
+| 4 | Fast wire II | headlines from 2 bars before their release (`newsLead` 2) |
+
+The free-play briefing lists them: unlocked perks are toggles (on by default), locked ones show what is missing ("conclua 2 missões diferentes (1 de 2)"), and the first briefing after an unlock explains the new perk in a card. The choice is part of the run's start options (`newsLead`, `calendar`), so the engine, the run record, a resume and the server's re-simulation all use it. Perks never change a bar, a gap or a fill (`engine/tests/test_intel.cpp` compares bars and event digests with and without them in every mission) and never show a bar after the decision step. A run played with a perk is labeled **with intel** in the debrief and the journal; its score is still computed. Campaign missions and practice on imported markets start without perks, so campaign runs stay comparable.
 
 ## Specs (OpenSpec)
 
@@ -430,16 +459,14 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v2, execution policy v12, scoring v7 with the full debrief), the five missions with first-start tutorials, campaign runs with carried capital, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
+Built: the deterministic engine (perps, options, indicators, patterns, generator v2, execution policy v13, scoring v8 with the full debrief), the five missions with first-start tutorials, campaign runs with carried capital, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, legal intel perks (economic calendar, fast wire) unlocked by finished missions, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay with each run's start options, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
 
 Next:
 
-- Legal intel perks unlocked by finished missions: economic calendar and fast wire (`add-advisor-intel-tutorials`, phase 3). The engine already takes the start options (`news_lead`, `calendar`) and the advisor already reads a fast-wire headline; the state view, the briefing toggles and the server re-simulation with stored options come with that phase.
 - Missions m06–m12 toward the phase-2 target (12 missions, ≥4 regimes, 3 event families, options chapters), designed in `add-scenarios-and-gameplay` (design D8, tasks 6.A and 6.B), and the lessons runner (concept, demonstration, decision, feedback, transfer) for the curriculum stages that have no mission yet.
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.
 - Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data).
-- Server replay of runs with start options (advisor allowance, campaign capital and leverage cap): the API replays with default options today.
 - Desktop client (C++20, Dear ImGui + SDL3), then iPad/iPhone (SwiftUI).
 
 ## Tests

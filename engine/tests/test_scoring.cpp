@@ -424,3 +424,36 @@ TEST_CASE("No shortfall is reported when the fund covered nothing") {
   d.step(5);
   CHECK(score_run(sc, d.state()).written_off.raw == 0);
 }
+
+TEST_CASE("Regression: a profitable planned naked option write is never praised as limited risk") {
+  // Before: no good-process credit, but no finding either: "What happened" was empty.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "104", "100", "104"},
+                               {"104", "108", "104", "108"}, {"108", "108", "108", "108"}});
+  add_options(sc, 4, {"100"}, true);
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Sell, nullptr, "100", false, true).accepted);
+  REQUIRE(d.option(2, OrderSide::Sell, "5").accepted);  // put 100, expires worthless
+  d.step(4);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.net_pnl.raw > 0);
+  CHECK_FALSE(has(r, FindingCode::GoodProcessWin));
+  CHECK(has(r, FindingCode::WroteOptions));
+}
+
+TEST_CASE("Regression: a profit where one trade had no plan says so (findings never empty)") {
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "106", "100", "105"},
+                               {"105", "105", "105", "105"}, {"105", "111", "105", "110"}, {"110", "110", "110", "110"}});
+  Driver d(sc);
+  d.plan(OrderSide::Buy, "95", "50");
+  d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "95", "105");
+  d.step(2);
+  REQUIRE(d.state().position.flat());
+  d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "100", "110");  // no plan this time
+  d.step(3);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 2);
+  REQUIRE(r.net_pnl.raw > 0);
+  CHECK_FALSE(has(r, FindingCode::GoodProcessWin));
+  CHECK(has(r, FindingCode::LuckyWin));
+  CHECK_FALSE(r.findings.empty());
+}

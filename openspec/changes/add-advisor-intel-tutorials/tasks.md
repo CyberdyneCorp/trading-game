@@ -21,7 +21,7 @@ Delivered in three PRs, in this order: tutorials (client only), advisor and poin
 - [x] 2.9 Playtest fixes: a run replaced by a new one is settled then (advice used, nothing earned); applying the advisor's size raises the ticket leverage to fit the margin (or cuts the size at the cap); the advisor panel no longer clips its read in its own scroll box; advisor points follow the plan matched to each entry order (scoring v7); unit, engine and e2e regression tests
 
 ## 3. Intel perks (PR 3, engine + web)
-- [ ] 3.1 Engine: `news_lead` visibility with `early` flag, calendar list in the state view; tests that bars are identical with and without perks
-- [ ] 3.2 Web: perk unlocks from distinct finished missions, briefing toggles (locked perks show their requirement), perk tutorial/briefing card, "with intel" label in the debrief and run record; unit and e2e tests
-- [ ] 3.3 Backend re-simulation accepts stored start options (Python binding); test
-- [ ] 3.4 README and market-study note on how much Fast wire changes news trades
+- [x] 3.1 Engine: `news_lead` visibility with `early` flag, calendar list in the state view; tests that bars are identical with and without perks (`test_intel.cpp`: early flag at lead 1 and 2, calendar hand-over, bars and event digests in every mission; state view only, no policy bump, no digest change; Python parity test)
+- [x] 3.2 Web: perk unlocks from distinct finished missions, briefing toggles (locked perks show their requirement), perk tutorial/briefing card, "with intel" label in the debrief and run record; unit and e2e tests (`perks.ts`, `PerkPanel`, `NewsPanel` early headlines and calendar, auto-advance pause on an early headline, journal label; free play only: campaign and practice runs start without perks; `perks.test.ts`, `journal.test.ts`, `e2e/perks.spec.ts`)
+- [x] 3.3 Backend re-simulation accepts stored start options (Python binding); test (sync `options`, stored with the run, conflict when changed, range-checked, `withIntel` in the run view; `services/api/tests/test_api.py`)
+- [x] 3.4 README and market-study note on how much Fast wire changes news trades (`tools/market_study.py` fast-wire table; README "What can the player predict?" and "Intel perks")

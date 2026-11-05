@@ -154,6 +154,23 @@ CommandResult cancel_order(RunState& st, const Command& c) {
   return reject(Reason::UnknownOrder);
 }
 
+// Policy v13: moves a working protective exit (a reduce-only stop or take-profit on the perpetual) to a
+// new trigger in place. It keeps its id, quantity, bracket parent and OCO group, so a moved bracket leg
+// still cancels its sibling (before, the client replaced it with a plain stop and the OCO link was lost).
+// Like placing an exit, the side of the price is not checked here: a stop through the market fills at
+// the next open.
+CommandResult move_order(const Scenario& sc, RunState& st, const Command& c) {
+  const auto it = std::find_if(st.orders.begin(), st.orders.end(), [&c](const Order& o) { return o.id == c.order_id; });
+  if (it == st.orders.end() || !it->active()) return reject(Reason::UnknownOrder);
+  Order& o = *it;
+  const bool exit = o.series == 0 && o.reduce_only && (o.type == OrderType::StopMarket || o.type == OrderType::TakeProfit);
+  if (!exit) return reject(Reason::UnsupportedOrderType);
+  if (!on_tick(c.price, sc.contract.tick_size)) return reject(Reason::InvalidTick);
+  o.price = c.price;
+  detail::emit_order_update(st, o, Reason::OrderMoved);
+  return CommandResult{true, Reason::None, o.id, stop_warning(sc, st, o)};
+}
+
 CommandResult set_leverage(const Scenario& sc, RunState& st, const Command& c) {
   const std::int32_t cap = run_leverage_cap(sc, st);
   if (c.leverage < 1) return reject(Reason::InvalidLeverage);
@@ -240,6 +257,7 @@ CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
     case CommandType::RecordPlan: return record_plan(st, c);
     case CommandType::AnswerQuestion: return answer_question(sc, st, c);
     case CommandType::RequestAdvice: return request_advice(sc, st);
+    case CommandType::MoveOrder: return move_order(sc, st, c);
   }
   return reject(Reason::UnsupportedOrderType);
 }

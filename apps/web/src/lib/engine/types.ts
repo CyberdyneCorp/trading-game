@@ -201,6 +201,8 @@ export interface NewsView {
 	credibility: number;
 	expectation: number;
 	actual: number;
+	/** Delivered ahead of its public release by a fast wire (until `step`). */
+	early: boolean;
 }
 
 /**
@@ -267,6 +269,8 @@ export interface GameState {
 	marketMode: string;
 	/** Imported packs are known scenarios (spec scenario-packs "Reveal metadata"). */
 	knownScenario: boolean;
+	/** Bar interval in seconds: 3600 for the missions, the declared one for a pack (e.g. 900). */
+	stepSeconds: number;
 	step: number;
 	lastDecisionStep: number;
 	warmupBars: number;
@@ -281,6 +285,8 @@ export interface GameState {
 	options: OptionsView;
 	indicators: Indicators;
 	news: NewsView[];
+	/** Economic calendar perk: bars of upcoming scheduled releases (rate decisions), nothing else. */
+	calendar: number[];
 	calibration: { due: boolean; horizon: number; every: number; threshold: Decimal; answered: number };
 	advisor: AdvisorState;
 	events: EngineEvent[];
@@ -314,7 +320,9 @@ export interface EngineFinding {
 		| 'margin_called'
 		| 'theta_decay'
 		| 'iv_crush'
-		| 'good_process_win';
+		| 'good_process_win'
+		| 'iv_rise'
+		| 'wrote_options';
 	tone: 'good' | 'warn' | 'bad' | 'info';
 	step: number;
 	count: number;

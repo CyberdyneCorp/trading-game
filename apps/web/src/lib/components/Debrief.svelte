@@ -6,6 +6,7 @@
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
+	import { perksUsed } from '#lib/game/perks.ts';
 	import CampaignOutcome from './CampaignOutcome.svelte';
 	import Chart from './Chart.svelte';
 	import { describeEvent } from './EventFeed.svelte';
@@ -22,7 +23,7 @@
 	const findingTexts = $derived(describeFindings(a.findings, L));
 	// Depends on L so the texts follow a language switch.
 	const reveal = $derived(d.reveal && L ? revealTexts(d.reveal, d.alias) : null);
-	// The run can end (game over) before the scenario does; the market line and buy-and-hold do not.
+	// The run can end (game over) before the scenario does; the market line and buy-and-hold stop with it.
 	const endedEarly = $derived(s.step < s.totalBars - 1);
 	function adviceText(tr: EngineTrade): string | null {
 		const adv = stopAdvice(tr, L);
@@ -48,7 +49,7 @@
 	const timeline = $derived(
 		[
 			...s.events
-				.filter((e) => e.type !== 'order' || e.status !== 'accepted')
+				.filter((e) => e.type !== 'order' || e.status !== 'accepted' || e.reason === 'order_moved')
 				.map((e) => ({ step: e.step, key: `e${e.seq}`, text: describeEvent(e, L, session.names)?.text ?? '', tone: describeEvent(e, L, session.names)?.tone ?? '' })),
 			...session.journal.map((p, i) => ({
 				step: p.step,
@@ -62,6 +63,7 @@
 			.filter((x) => x.text)
 			.sort((x, y) => x.step - y.step)
 	);
+	const intel = $derived(perksUsed(session.options));
 	const points = $derived({ used: s.advisor.advice.length, earned: d.advisorPointsEarned, balance: session.progress.advisorPoints });
 	const judged = $derived(d.advice.filter((x) => x.outcome === 'right' || x.outcome === 'wrong').length);
 	const dimLabels = { risk: 'debrief.risk', plan: 'debrief.plan', understanding: 'debrief.understanding', calibration: 'debrief.calibration' } as const;
@@ -77,6 +79,12 @@
 		<h1>{t('debrief.finished')}</h1>
 	{/if}
 	<p class="muted">{missionText(s.mission, L).title}</p>
+	{#if intel.length}
+		<p class="intel" data-testid="debrief-intel">
+			<span class="tag attention">{t('debrief.intel')}</span>
+			{t('debrief.intelNote', { perks: intel.map((p) => t(`perk.${p}`)).join(', ') })}
+		</p>
+	{/if}
 	<CampaignOutcome {session} />
 
 	<div class="grid">

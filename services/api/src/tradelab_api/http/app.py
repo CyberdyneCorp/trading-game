@@ -22,7 +22,7 @@ from ..domain.errors import DomainError, InvalidLog, NotFound
 from ..domain.models import IncomingRun
 from ..ports import Replayer, TokenVerifier
 from .body_limit import BodyLimit
-from .schemas import SyncBatchIn, SyncOutcomeOut
+from .schemas import RunIn, SyncBatchIn, SyncOutcomeOut
 
 
 class SystemClock:
@@ -93,7 +93,7 @@ def create_app(settings: Settings, verifier: TokenVerifier, replayer: Replayer, 
             raise HTTPException(413, f"at most {MAX_RUNS_PER_BATCH} runs per batch")
         incoming = [
             IncomingRun(r.runId, r.missionId, r.seed, r.executionPolicy, [(a.seq, a.action) for a in r.actions],
-                        r.clientDigest, r.clientActionCount)
+                        r.clientDigest, r.clientActionCount, _options(r))
             for r in body.runs
         ]
 
@@ -129,6 +129,11 @@ def create_app(settings: Settings, verifier: TokenVerifier, replayer: Replayer, 
         return await idempotent(request, s, owner, idempotency_key, lambda: {"deletedRuns": svc.erase(owner)})
 
     return app
+
+
+def _options(r: RunIn) -> dict[str, Any] | None:
+    """Start options without their defaults, so a default run stores None however the client sent it."""
+    return (r.options.model_dump(exclude_defaults=True) or None) if r.options else None
 
 
 def json_dumps(value: Any) -> str:

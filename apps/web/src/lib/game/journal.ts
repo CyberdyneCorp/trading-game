@@ -2,6 +2,7 @@
 // stays on this device and is never scored (spec mission-scoring "No subjective LLM grading").
 
 import type { PlanEntry } from './analysis.ts';
+import { withIntel } from './perks.ts';
 import type { RunRecord } from './storage.ts';
 
 export type RunMode = 'campaign' | 'free' | 'practice';
@@ -13,6 +14,8 @@ export interface JournalRun {
 	createdAt: number;
 	mode: RunMode;
 	status: RunRecord['status'];
+	/** Played with an intel perk (its start options): labeled "with intel". */
+	intel: boolean;
 	entries: PlanEntry[];
 }
 
@@ -33,6 +36,7 @@ export function journalRuns(records: readonly RunRecord<PlanEntry, unknown>[], m
 			createdAt: r.createdAt,
 			mode: runMode(r),
 			status: r.status,
+			intel: withIntel(r.options),
 			entries: [...r.journal].sort((x, y) => x.step - y.step)
 		}));
 }
@@ -40,4 +44,14 @@ export function journalRuns(records: readonly RunRecord<PlanEntry, unknown>[], m
 /** Missions that have journal entries, in first-seen order (for the filter). */
 export function journalMissions(records: readonly RunRecord<PlanEntry, unknown>[]): string[] {
 	return [...new Set(records.filter((r) => r.journal.length > 0).map((r) => r.missionId))];
+}
+
+/**
+ * Planned risk of the open perpetual position: the last perpetual plan (or skipped plan, which still
+ * carries the ticket estimate). The journal is part of the stored run, so the POSIÇÃO panel keeps
+ * showing it after a reload and resume (before, it lived only in the terminal view and was lost).
+ */
+export function positionPlannedRisk(journal: readonly PlanEntry[]): number | null {
+	const last = journal.findLast((p) => p.instrument == null);
+	return last?.plannedRisk != null && last.plannedRisk > 0 ? last.plannedRisk : null;
 }

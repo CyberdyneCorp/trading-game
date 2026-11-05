@@ -3,6 +3,7 @@
 	import { missionText } from '#lib/game/missions.ts';
 	import { campaignMissions, campaignPermissions, LOCKED_LEVERAGE_CAP, unlockStage } from '#lib/game/curriculum.ts';
 	import { tutorialFor } from '#lib/game/tutorials.ts';
+	import PerkPanel from './PerkPanel.svelte';
 	import { fmtMoney, fmtPct, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
@@ -55,6 +56,7 @@
 		{#if locked.length}
 			<p class="locked" data-testid="campaign-locked">🔒 {t('campaign.locked', { what: locked.join(', ') })}</p>
 		{/if}
+		<PerkPanel {session} />
 		<p class="rules">{t('brief.rules')}</p>
 		<p class="muted small">{txt.topic}</p>
 		<div class="actions">

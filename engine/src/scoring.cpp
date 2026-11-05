@@ -422,8 +422,12 @@ void outcome_findings(const Facts& f, ScoreReport& r) {
                      std::none_of(r.trades.begin(), r.trades.end(), [](const TradeRow& t) { return t.stop_beyond_liq; });
   if (r.net_pnl.raw < 0 && clean) add(r, FindingCode::GoodProcessLoss, FindingTone::Good);
   if (r.net_pnl.raw > 0 && clean) add(r, FindingCode::GoodProcessWin, FindingTone::Good);
-  if (r.net_pnl.raw > 0 && (!planned || f.unprotected > 0)) add(r, FindingCode::LuckyWin, FindingTone::Warn);
+  // Scoring v8: a trade without its own plan also makes a profit unproven (before, a run where only some
+  // trades had a plan got neither credit nor this warning, and "What happened" was empty).
+  if (r.net_pnl.raw > 0 && (!f.all_planned || f.unprotected > 0)) add(r, FindingCode::LuckyWin, FindingTone::Warn);
   if (f.entries > 0 && !planned) add(r, FindingCode::NoPlan, FindingTone::Warn);
+  // Says why a written option gets no good-process credit (a margin call already says more).
+  if (f.wrote_options && f.margin_calls.empty()) add(r, FindingCode::WroteOptions, FindingTone::Warn);
 }
 
 void execution_findings(const RunState& st, const Facts& f, ScoreReport& r) {
@@ -438,14 +442,19 @@ void execution_findings(const RunState& st, const Facts& f, ScoreReport& r) {
 }
 
 // Theta or vega explaining at least half of an option loss points to the Options lesson (IV and Greeks).
+// Only bought options lose to theta. A vega loss is a falling IV on bought options (iv_crush) or a
+// rising IV on written ones (iv_rise), whichever side lost more of it.
 void greek_findings(ScoreReport& r) {
   if (!r.greeks || r.greeks->total.raw >= 0) return;
-  const std::int64_t loss = -r.greeks->total.raw;
-  if (r.greeks->theta.raw < 0 && -2 * r.greeks->theta.raw >= loss) {
-    r.findings.push_back(mk(FindingCode::ThetaDecay, FindingTone::Warn, 0, 0, Price{}, Price{}, Money::from_raw(-r.greeks->theta.raw)));
+  const GreekAttribution& g = *r.greeks;
+  const std::int64_t loss = -g.total.raw;
+  if (g.theta.raw < 0 && -2 * g.theta.raw >= loss) {
+    r.findings.push_back(mk(FindingCode::ThetaDecay, FindingTone::Warn, 0, 0, Price{}, Price{}, Money::from_raw(-g.theta.raw)));
   }
-  if (r.greeks->vega.raw < 0 && -2 * r.greeks->vega.raw >= loss) {
-    r.findings.push_back(mk(FindingCode::IvCrush, FindingTone::Warn, 0, 0, Price{}, Price{}, Money::from_raw(-r.greeks->vega.raw)));
+  if (g.vega.raw < 0 && -2 * g.vega.raw >= loss) {
+    const bool written = g.vega_written.raw < g.vega.raw - g.vega_written.raw;
+    const FindingCode code = written ? FindingCode::IvRise : FindingCode::IvCrush;
+    r.findings.push_back(mk(code, FindingTone::Warn, 0, 0, Price{}, Price{}, Money::from_raw(-g.vega.raw)));
   }
 }
 
@@ -458,7 +467,7 @@ LessonCode pick_lesson(const ScoreReport& r) {
   // A margin call on written options (even one that ends in bankruptcy) is a sizing lesson.
   if (has(r, FindingCode::NoStop) || has(r, FindingCode::Oversized) || has(r, FindingCode::MarginCalled)) return LessonCode::Risk;
   if (has(r, FindingCode::Bankrupt)) return LessonCode::Futures2;
-  if (has(r, FindingCode::ThetaDecay) || has(r, FindingCode::IvCrush)) return LessonCode::Options;
+  if (has(r, FindingCode::ThetaDecay) || has(r, FindingCode::IvCrush) || has(r, FindingCode::IvRise)) return LessonCode::Options;
   if (has(r, FindingCode::FundingCost)) return LessonCode::Futures3;
   if (has(r, FindingCode::GapSlippage)) return LessonCode::Orders;
   if (has(r, FindingCode::NoPlan)) return LessonCode::Structure;

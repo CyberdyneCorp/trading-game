@@ -1,7 +1,7 @@
 // Fictional headlines for scenario news (spec market-generator "Events": never attributed to real
 // people or companies). Text sentiment is only what the player reads, not what the market does.
 
-import type { NewsView } from '#lib/engine/types.ts';
+import type { GameState, NewsView } from '#lib/engine/types.ts';
 import type { Locale } from './i18n.svelte';
 
 type Kind = NewsView['kind'];
@@ -96,4 +96,12 @@ export function headline(n: NewsView, locale: Locale): string {
 
 export function level(v: number, locale: Locale): string {
 	return scale[locale][Math.max(0, Math.min(4, v + 2))];
+}
+
+/**
+ * A headline reaches the player at this step: its public release, or its early delivery by a
+ * fast wire (`newsLead` bars before). Auto-advance pauses on both.
+ */
+export function newsArrived(s: Pick<GameState, 'step' | 'news' | 'advisor'>): boolean {
+	return s.news.some((n) => n.step === s.step || (n.early && n.step - s.advisor.newsLead === s.step));
 }

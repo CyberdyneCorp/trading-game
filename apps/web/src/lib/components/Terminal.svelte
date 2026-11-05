@@ -9,11 +9,13 @@
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
 	import { keepsKey } from '#lib/game/hotkeys.ts';
-	import { exitOnValidSide, remainingQty } from './chartDrag.ts';
-	import { fmtQty, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
+	import { positionPlannedRisk } from '#lib/game/journal.ts';
+	import { exitOnValidSide } from './chartDrag.ts';
+	import { fmtPrice, fmtQty, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { costsOf, estimatedMarketEntry, fitToMargin } from '#lib/game/sizing.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
+	import { newsArrived } from '#lib/game/news.ts';
 	import HelpOverlay from './HelpOverlay.svelte';
 	import OrderTicket, { type OrderDraft, type TicketPreview } from './OrderTicket.svelte';
 	import OptionChain from './OptionChain.svelte';
@@ -50,7 +52,7 @@
 			if (!s) return null;
 			const hit = s.events.find((e) => e.step === s.step && NOTABLE[e.type]);
 			if (hit) return NOTABLE[hit.type] ?? null;
-			return s.news.some((n) => n.step === s.step) ? 'news' : null;
+			return newsArrived(s) ? 'news' : null;
 		}
 	});
 	$effect(() => () => auto.stop());
@@ -64,7 +66,6 @@
 		patterns = true;
 	}
 	let side = $state<OrderSideName>('buy');
-	let lastPlannedRisk = $state<number | null>(null);
 	let preview = $state<TicketPreview | null>(null);
 	// Pending "mark on chart" request from a stop/target field: the chart calls it with a price.
 	let pick = $state<((price: number) => void) | null>(null);
@@ -98,7 +99,7 @@
 		else ticketTp = priceToTick(price, tick);
 	}
 
-	// Dropping a working STOP/TP line moves that order (replace, then cancel the old one).
+	// Dropping a working STOP/TP line moves that order in place (a bracket leg stays in its OCO pair).
 	async function onMoveOrder(orderId: number, price: number) {
 		const s = session.state;
 		const o = s?.orders.find((x) => x.id === orderId);
@@ -109,10 +110,10 @@
 			session.notice = { tone: 'error', text: `✖ ${t(o.type === 'stop_market' ? 'chart.dragStopSide' : 'chart.dragTpSide')}` };
 			return;
 		}
-		const res = await session.moveOrder(o, to, remainingQty(o));
+		const res = await session.moveOrder(o, to);
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason);
-		session.notice = { tone: 'ok', text: t('chart.moved', { id: o.id, price: to, next: res.orderId }) };
+		session.notice = { tone: 'ok', text: t('chart.moved', { id: o.id, price: fmtPrice(to, i18n.locale) }) };
 	}
 
 	function onPicked(price: number) {
@@ -180,7 +181,6 @@
 		const res = await session.placeOrder(d.type, d.side, d.qty, d.price, false, { stop: d.stop, takeProfit: d.takeProfit });
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason);
-		lastPlannedRisk = d.estimate.plannedRisk;
 		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${fmtQty(d.qty, i18n.locale)}` };
 	}
 
@@ -259,7 +259,7 @@
 				/></section>
 			<RightRail
 				game={session.state}
-				plannedRisk={Number(session.state.position.qty) !== 0 ? lastPlannedRisk : null}
+				plannedRisk={Number(session.state.position.qty) !== 0 ? positionPlannedRisk(session.journal) : null}
 				onMargin={async (amount) => {
 					const r = await session.adjustMargin(amount);
 					if (r && !r.accepted) notify(r.reason);
@@ -293,7 +293,7 @@
 				{#if !session.state.knownScenario}
 					<AdvisorPanel {session} onApply={onApplyAdvice} />
 				{/if}
-				<NewsPanel news={session.state.news} />
+				<NewsPanel news={session.state.news} calendar={session.state.calendar} step={session.state.step} />
 				<EventFeed events={session.state.events} names={session.names} />
 			</div>
 		</div>

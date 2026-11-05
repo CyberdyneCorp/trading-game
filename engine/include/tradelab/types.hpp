@@ -60,6 +60,7 @@ enum class Reason : std::uint8_t {
   NoQuestionDue = 29,
   InvalidPlan = 30,
   NoAdviceLeft = 31,  // RequestAdvice with no allowance left (changes no state)
+  OrderMoved = 32,    // OrderUpdate reason: a working exit moved to a new trigger (MoveOrder)
 };
 
 enum class EventType : std::uint8_t {

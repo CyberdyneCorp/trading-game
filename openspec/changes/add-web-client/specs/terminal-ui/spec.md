@@ -7,7 +7,7 @@ Defines the client-independent user-experience contract of the retro trading ter
 ## ADDED Requirements
 
 ### Requirement: Terminal layout on large screens
-On screens at least 1024 points wide in landscape, the chart and right rail SHALL sit side by side (below 1280 the lower area folds into two columns and the page scrolls; below 1024 every panel stacks at its natural height without overlapping), and the terminal SHALL show: a top bar (market alias, mode label, timeframe, step counter, offline/sync status, advance controls: an advance-one-bar button and auto-advance; five bars stay on `Shift+Space` without a button); a dominant chart (candles, volume, entry/stop/target/liquidation lines, option strikes on demand); a right rail (equity, wallet balance, available balance, position side and size, leverage, liquidation price and distance, next funding rate, planned risk, mission objective); a lower area (order ticket, option chain, fills, plan, journal); and a bottom strip (knowledge cards, released news).
+On screens at least 1024 points wide in landscape, the chart and right rail SHALL sit side by side (below 1280 the lower area folds into two columns and the page scrolls; below 1024 every panel stacks at its natural height without overlapping), and the terminal SHALL show: a top bar (market alias, mode label, timeframe (the market's bar interval: 1h for the missions, the declared interval of an imported market), step counter, offline/sync status, advance controls: an advance-one-bar button and auto-advance; five bars stay on `Shift+Space` without a button); a dominant chart (candles, volume, entry/stop/target/liquidation lines, option strikes on demand); a right rail (equity, wallet balance, available balance, position side and size, leverage, liquidation price and distance, next funding rate, planned risk (from the stored plan, so it survives a reload and resume), mission objective); a lower area (order ticket, option chain, fills, plan, journal); and a bottom strip (knowledge cards, released news).
 
 #### Scenario: Liquidation always visible
 - **WHEN** the player has an open perpetual position
@@ -35,11 +35,15 @@ Submit order, close position and advance market SHALL be visually and spatially 
 - **THEN** the UI SHALL explain the required and available margin
 
 ### Requirement: Order ticket for perpetuals
-The ticket SHALL accept size as quantity, notional, % of equity or risk budget; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. With a position open, a leverage different from the position's SHALL show that sending re-margins the open position too, with its liquidation price before and after (as a warning when it moves closer). When the initial margin plus fee of the part that adds exposure exceeds the available balance, the ticket SHALL say so and SHALL NOT submit. The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
+The ticket SHALL accept size as quantity, notional, % of equity or risk budget; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. With a position open, a leverage different from the position's SHALL show that sending re-margins the open position too, with its liquidation price before and after (as a warning when it moves closer). When the initial margin plus fee of the part that adds exposure exceeds the available balance, the ticket SHALL say so and SHALL NOT submit. With a position open, an order on the opposite side (however it was sized, by risk included) SHALL say whether it reduces the position (and to what), closes it, or closes it and opens the rest on the other side. The leverage field SHALL keep the value the player typed until the account leverage or the cap changes (other commands, such as asking the advisor, SHALL NOT reset it). The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
 
 #### Scenario: Live recalculation
 - **WHEN** the player changes leverage from 3× to 10×
 - **THEN** margin and liquidation price in the ticket SHALL update before submission
+
+#### Scenario: An opposite order against an open long
+- **WHEN** a long of 10 is open and the player sets a sell of 4
+- **THEN** the ticket SHALL say the order only reduces the position to 6, not opens a new trade
 
 #### Scenario: Order the balance cannot carry
 - **WHEN** the player types 200 units at about 103 at 1× with 10,000 available
@@ -48,11 +52,15 @@ The ticket SHALL accept size as quantity, notional, % of equity or risk budget; 
 ### Requirement: Stop and target tools
 Stop-loss and take-profit fields (new orders and protection of an open position) SHALL offer one-click presets — stop at 1× and 2× ATR(14), beyond the 10-bar swing low/high, at 1% and 2%; target at 1R, 2R and 3R of the stop distance — and a "mark on chart" mode where a click on the price pane sets the level (Escape cancels; Space SHALL NOT advance while marking). Each level SHALL show its distance from the entry in price, percent and ATR multiples, and the target SHALL show its reward/risk ratio. A stop on the profit side or a target on the loss side SHALL be flagged and block submission. Draft entry, stop, target and estimated liquidation SHALL be previewed on the chart before submission. The price scale SHALL follow the candles: a level within half the candle range of them widens the scale, a farther level SHALL be pinned to the pane edge with an arrow instead of squashing the candles, and price tags SHALL never overlap. An open position without a reduce-only stop or trailing stop SHALL show an "unprotected" warning. Presets SHALL be disabled while their input (e.g. ATR) is warming up. After a fill the new-order stop and target SHALL be cleared, so the next order is not sized to a previous trade's stop.
 
-Stop and target lines SHALL be draggable with the mouse (pointer), by the line or its price tag, and marked as draggable (⇕). Dragging a draft SL?/TP? line SHALL edit the ticket field live, snapped to the tick, and Escape during the drag SHALL restore the previous value. Dropping a working reduce-only STOP or TP line SHALL move that order: a replacement for the remaining quantity is placed first, and the old order SHALL be cancelled only if the replacement was accepted, so a rejected move never leaves the position unprotected. A drop on the wrong side of the current price (a stop that would trigger, or a target that would fill, at the next open) SHALL be refused with an explanation, leaving the order unchanged. The price scale SHALL stay fixed during a drag. Trailing stops, entry orders and option orders SHALL NOT be draggable.
+Stop and target lines SHALL be draggable with the mouse (pointer), by the line or its price tag, and marked as draggable (⇕). Dragging a draft SL?/TP? line SHALL edit the ticket field live, snapped to the tick, and Escape during the drag SHALL restore the previous value. Dropping a working reduce-only STOP or TP line SHALL move that order in place with the engine's MoveOrder command (policy v13): it keeps its id, quantity, bracket parent and OCO link, so a moved bracket leg still cancels its sibling, and a rejected move leaves the order where it was. A drop on the wrong side of the current price (a stop that would trigger, or a target that would fill, at the next open) SHALL be refused with an explanation, leaving the order unchanged. The price scale SHALL stay fixed during a drag. Trailing stops, entry orders and option orders SHALL NOT be draggable.
 
 #### Scenario: ATR stop with a 2R target
 - **WHEN** the player clicks "2×ATR" and then "2R" on a buy ticket
 - **THEN** the stop SHALL be two ATRs below the estimated entry, the target twice that distance above it, and the ticket SHALL show "R:R 1:2.0"
+
+#### Scenario: A moved bracket stop stays in its OCO pair
+- **WHEN** the player drags the STOP leg of a bracket to a new price on the right side of the market
+- **THEN** the same order SHALL be at the new price, both legs SHALL still show OCO, and the feed SHALL say the order was moved
 
 #### Scenario: Stop cleared after a fill
 - **WHEN** a bracket entry with a stop and a target fills
@@ -106,7 +114,7 @@ The terminal SHALL offer an auto-advance mode (button and `A`) that advances one
 - **THEN** no bar SHALL advance until it is answered, after which auto-advance SHALL continue
 
 ### Requirement: Option chain and option ticket
-The option chain SHALL list listed series by expiry and strike with bid, ask, IV and delta, labeled "simulated premiums". The option ticket SHALL show premium, max loss for buys, margin for writes, breakeven, a payoff-at-expiry diagram and Greeks before submission. When the total premium of a buy, or the margin of a write, exceeds the available balance, the ticket SHALL say so and SHALL NOT submit.
+The option chain SHALL list listed series by expiry and strike with bid, ask, IV and delta, labeled "simulated premiums". The option ticket SHALL show premium, max loss for buys, margin for writes, breakeven, a payoff-at-expiry diagram and Greeks before submission. When the total premium of a buy, or the margin of a write, exceeds the available balance, the ticket SHALL say so and SHALL NOT submit. A market sell of a series whose bid is 0 SHALL be refused with that reason (the engine would cancel it). Greeks and other numbers that round to zero SHALL NOT show a minus sign ("0,00", never "-0,00").
 
 #### Scenario: Payoff preview
 - **WHEN** the player selects a long put

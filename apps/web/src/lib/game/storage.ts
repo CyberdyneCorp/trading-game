@@ -58,7 +58,8 @@ export interface StoredRun<A, J, Q> {
 
 /**
  * Per-device player progress (specs mission-tutorial, progression-rewards, curriculum). Version 2
- * adds the campaign run, its history and the missions assessed in a campaign (curriculum stages).
+ * adds the campaign run, its history and the missions assessed in a campaign (curriculum stages);
+ * `perksIntroduced` is a later key of version 2 (absent = none explained yet).
  */
 export interface Progress extends CampaignProgress {
 	version: 2;
@@ -67,6 +68,8 @@ export interface Progress extends CampaignProgress {
 	advisorPoints: number;
 	/** Runs whose points were already settled (idempotency). */
 	settledRuns: string[];
+	/** Intel perks already explained on a briefing (perks.ts). */
+	perksIntroduced: string[];
 }
 
 export const EMPTY_PROGRESS: Progress = {
@@ -74,6 +77,7 @@ export const EMPTY_PROGRESS: Progress = {
 	tutorialsSeen: [],
 	advisorPoints: START_POINTS,
 	settledRuns: [],
+	perksIntroduced: [],
 	campaign: null,
 	campaignHistory: [],
 	assessed: []
@@ -95,6 +99,7 @@ export function migrateProgress(row: Record<string, unknown> | undefined): Progr
 		tutorialsSeen: strings(r.tutorialsSeen),
 		advisorPoints: typeof r.advisorPoints === 'number' ? r.advisorPoints : START_POINTS,
 		settledRuns: strings(r.settledRuns),
+		perksIntroduced: strings(r.perksIntroduced),
 		campaign: isCampaign(r.campaign) ? r.campaign : null,
 		campaignHistory: history,
 		assessed: strings(r.assessed)
@@ -268,7 +273,8 @@ export class RunStore<A, J, Q> {
 	async finishedMissions(): Promise<string[]> {
 		const tx = this.db.transaction('runs', 'readonly');
 		const runs = (await req(tx.objectStore('runs').getAll())) as RunRecord<J, Q>[];
-		return [...new Set(runs.filter((r) => r.status === 'finished').map((r) => r.missionId))];
+		// Practice runs on an imported pack are not missions: they never count as completed.
+		return [...new Set(runs.filter((r) => r.status === 'finished' && !r.packDigest).map((r) => r.missionId))];
 	}
 
 	/** Imports a run saved by the previous localStorage format (v1), then removes the legacy key. */

@@ -15,7 +15,7 @@ export function bars(closes: number[]): BarTuple[] {
 
 export function game(events: EngineEvent[], extra: Partial<GameState> = {}): GameState {
 	return {
-		mission: 'm01-false-breakout', alias: 'K1A', status: 'finished', marketMode: 'synthetic', knownScenario: false, step: 10, lastDecisionStep: 9, warmupBars: 0,
+		mission: 'm01-false-breakout', alias: 'K1A', status: 'finished', marketMode: 'synthetic', knownScenario: false, stepSeconds: 3600, step: 10, lastDecisionStep: 9, warmupBars: 0,
 		totalBars: 11, initialBalance: '10000', leverage: 1,
 		contract: {} as GameState['contract'], bars: [], account: {} as GameState['account'],
 		position: { qty: '0', entry: '0', margin: '0' }, orders: [], events,
@@ -23,6 +23,7 @@ export function game(events: EngineEvent[], extra: Partial<GameState> = {}): Gam
 			maxDrawdown: '0', peakLeverageBp: 0, minLiqDistanceBp: -1, liquidations: 0, fills: 0, ambiguousFills: 0,
 			optionCash: '0', optionRealized: '0' },
 		news: [],
+		calendar: [],
 		calibration: { due: false, horizon: 5, every: 15, threshold: '100', answered: 0 },
 		advisor: { version: 1, allowance: 0, left: 0, newsLead: 0, calendar: false, advice: [] },
 		indicators: { version: 3, sma20: [], ema50: [], rsi14: [], atr14: [], vwap: [], bbUpper: [], bbLower: [], macd: [], macdSignal: [], macdHist: [], plusDi14: [], minusDi14: [], adx14: [], patternVersion: 1, patterns: [] },

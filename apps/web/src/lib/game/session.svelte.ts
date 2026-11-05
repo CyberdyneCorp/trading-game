@@ -33,6 +33,7 @@ import {
 import { campaignPermissions } from './curriculum.ts';
 import { t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
+import { distinctFinished, newPerks, perkOptions, perksUsed, unlockedPerks, type PerkId } from './perks.ts';
 import { randomSeedBytes, trustedKeys } from './packs.ts';
 import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type RunRecord, type StoredPack } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
@@ -67,6 +68,7 @@ type Action =
 	  }
 	| { k: 'ans'; pBp: number; skipped: boolean }
 	| { k: 'cancel'; id: number }
+	| { k: 'move'; id: number; price: string }
 	| { k: 'close' }
 	| { k: 'advice' }
 	| { k: 'adv'; n: number };
@@ -145,6 +147,8 @@ export class GameSession {
 	options = $state<RunOptionsView>({ ...DEFAULT_RUN_OPTIONS });
 	/** The campaign mission the current run plays; null in free play and practice. */
 	runCampaign = $state<CampaignLink | null>(null);
+	/** Intel perks enabled for the current run (briefing toggles; empty outside free play). */
+	perkChoice = $state<PerkId[]>([]);
 	/** Run headers for the journal screen (loaded when it opens). */
 	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
 
@@ -213,11 +217,48 @@ export class GameSession {
 		return this.fixedSeed ?? Math.floor(Math.random() * 1_000_000_000);
 	}
 
-	/** Free play: any mission with its own rules (no campaign capital, no curriculum gate). */
+	/** Free play: any mission with its own rules (no campaign capital, no curriculum gate), with every unlocked perk on. */
 	async startMission(missionId: string, seed = this.randomSeed()): Promise<void> {
 		await this.exclusive(async () => {
 			await this.settleAbandoned();
-			await this.launch(missionId, seed, { ...DEFAULT_RUN_OPTIONS, adviceAllowance: allowanceFor(this.progress) }, null);
+			const perks = this.perksUnlocked;
+			const options = { ...DEFAULT_RUN_OPTIONS, adviceAllowance: allowanceFor(this.progress), ...perkOptions(perks) };
+			await this.launch(missionId, seed, options, null, perks);
+		});
+	}
+
+	// ---- intel perks (spec progression-rewards "Intel perks unlocked by completed missions") ----
+
+	/** Distinct built-in missions finished on this device (imported packs do not count). */
+	get finishedCount(): number {
+		return distinctFinished(this.completed, this.missions.map((m) => m.id));
+	}
+
+	get perksUnlocked(): PerkId[] {
+		return unlockedPerks(this.finishedCount);
+	}
+
+	/** Perks apply to free play only: campaign missions and practice packs start without them. */
+	get perksAllowed(): boolean {
+		return !this.runCampaign && !this.state?.knownScenario;
+	}
+
+	/** Unlocked perks this briefing must explain before the player can use them. */
+	get perksToIntroduce(): PerkId[] {
+		return this.perksAllowed ? newPerks(this.perksUnlocked, this.progress.perksIntroduced) : [];
+	}
+
+	/**
+	 * Briefing toggle. Perks are start options, so the run (no action yet) restarts on the same seed
+	 * with the new options and its record follows; the market is the same with or without them.
+	 */
+	async setPerk(id: PerkId, on: boolean): Promise<void> {
+		if (!this.perksAllowed || !this.perksUnlocked.includes(id) || this.log.length > 0) return;
+		await this.exclusive(async () => {
+			this.perkChoice = on ? [...new Set([...this.perkChoice, id])] : this.perkChoice.filter((p) => p !== id);
+			this.options = { ...this.options, ...perkOptions(this.perkChoice) };
+			this.state = await this.eng().request({ kind: 'start', missionId: this.missionId, seed: this.seed, options: { ...this.options } });
+			await this.store?.updateRun(this.runId, { options: { ...this.options }, digest: this.state.digest }).catch(() => (this.durable = false));
 		});
 	}
 
@@ -278,9 +319,16 @@ export class GameSession {
 		});
 	}
 
-	private async launch(missionId: string, seed: number, options: RunOptionsView, campaign: CampaignLink | null): Promise<void> {
+	private async launch(
+		missionId: string,
+		seed: number,
+		options: RunOptionsView,
+		campaign: CampaignLink | null,
+		perks: PerkId[] = []
+	): Promise<void> {
 		this.resetRun(missionId, seed);
 		this.options = options;
+		this.perkChoice = perks;
 		this.runCampaign = campaign;
 		this.state = await this.eng().request({ kind: 'start', missionId, seed, options: { ...options } });
 		await this.createRunRecord(missionId, seed, { campaign: campaign ?? undefined });
@@ -429,6 +477,7 @@ export class GameSession {
 		this.resetRun(r.missionId, r.seed);
 		this.runId = r.runId;
 		this.runCampaign = r.campaign ?? null;
+		this.perkChoice = perksUsed(this.options);
 		this.state = state;
 		for (const a of run.actions) await this.exec(a, false);
 		// Keep the replayed history so the next action gets the right sequence number.
@@ -472,7 +521,10 @@ export class GameSession {
 		this.screen = 'briefing';
 	}
 
+	/** Leaves the briefing for the terminal; the perks it explained are remembered as introduced. */
 	enterTerminal(): void {
+		const shown = this.perksToIntroduce;
+		if (shown.length) this.saveProgress({ ...this.progress, perksIntroduced: [...this.progress.perksIntroduced, ...shown] });
 		this.screen = 'terminal';
 	}
 
@@ -528,15 +580,13 @@ export class GameSession {
 	}
 
 	/**
-	 * Moves a working protective order: the replacement is placed first and the old order is
-	 * cancelled only if it was accepted, so a rejected move leaves the original protection in place.
+	 * Moves a working stop or take-profit in place (engine MoveOrder, policy v13): same order id,
+	 * quantity and OCO link, so a moved bracket leg still cancels its sibling. A rejected move leaves
+	 * the order where it was.
 	 */
-	async moveOrder(o: OrderView, price: string, qty: string): Promise<CommandResult | null> {
-		let res: CommandResult | null = null;
-		await this.sequence(async () => {
-			res = await this.placeOrder(o.type, o.side, qty, price, true);
-			if (res?.accepted) await this.cancel(o.id);
-		});
+	async moveOrder(o: OrderView, price: string): Promise<CommandResult | null> {
+		const res = await this.command({ k: 'move', id: o.id, price });
+		if (res?.warning === 'stop_beyond_liquidation') this.stopWarnings += 1;
 		return res;
 	}
 
@@ -633,6 +683,7 @@ export class GameSession {
 		this.stopWarnings = 0;
 		this.queued = 0;
 		this.runCampaign = null;
+		this.perkChoice = [];
 		this.names.reset();
 	}
 
@@ -672,8 +723,9 @@ export class GameSession {
 	}
 
 	// In memory too: the menu must not wait for the fire-and-forget header write in persist().
+	// A practice run on an imported pack is not a mission, so it never counts as completed.
 	private markCompleted(): void {
-		if (this.state?.status === 'finished' && !this.completed.includes(this.missionId)) {
+		if (this.state?.status === 'finished' && !this.state.knownScenario && !this.completed.includes(this.missionId)) {
 			this.completed = [...this.completed, this.missionId];
 		}
 	}
@@ -785,6 +837,8 @@ function commandRequest(a: CommandAction, clientId: number): Extract<EngineReque
 			return { kind: 'margin', clientId, amount: a.amount };
 		case 'cancel':
 			return { kind: 'cancel', clientId, orderId: a.id };
+		case 'move':
+			return { kind: 'move', clientId, orderId: a.id, price: a.price };
 		case 'close':
 			return { kind: 'close', clientId };
 		case 'advice':

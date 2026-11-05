@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { csvIssueText, i18n, packReasonText } from './i18n.svelte.ts';
-import { DEFAULT_META, defaultLabel, guessMeta, isoUtc, PINNED_PUBLISHER_KEYS, trustedKeys } from './packs.ts';
+import { DEFAULT_META, defaultLabel, guessMeta, intervalLabel, isoUtc, PINNED_PUBLISHER_KEYS, trustedKeys } from './packs.ts';
 
 // Every CSV issue code the engine can emit (engine/src/csv_import.cpp header).
 const CSV_CODES = [
@@ -32,6 +32,12 @@ describe('pack helpers', () => {
 		expect(defaultLabel({ ...DEFAULT_META, pair: 'BTC/USDT', intervalSeconds: 14400 }, 'x.csv')).toBe('BTC/USDT · 4h');
 		expect(defaultLabel({ ...DEFAULT_META, asset: 'ETH' }, 'x.csv')).toBe('ETH · 1h');
 		expect(defaultLabel(DEFAULT_META, 'my-data.csv')).toBe('my-data · 1h');
+	});
+
+	it('regression: the top bar names the market interval (a 15-minute import said "1h")', () => {
+		expect(intervalLabel(900)).toBe('15m');
+		expect(intervalLabel(3600)).toBe('1h');
+		expect(intervalLabel(120)).toBe('120s');
 	});
 
 	it('trusts the pinned publishers plus this device', () => {

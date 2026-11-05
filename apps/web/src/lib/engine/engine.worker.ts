@@ -16,6 +16,7 @@ interface Api {
 	place: Fn;
 	option: Fn;
 	cancel: Fn;
+	move: Fn;
 	margin: Fn;
 	plan: Fn;
 	answer: Fn;
@@ -52,6 +53,7 @@ async function load(): Promise<Api> {
 		]),
 		option: w('tl_place_option_order', 'number', ['number', 'number', 'number', 'number', 'number', 'string', 'string']),
 		cancel: w('tl_cancel_order', 'number', ['number', 'number', 'number']),
+		move: w('tl_move_order', 'number', ['number', 'number', 'number', 'string']),
 		margin: w('tl_adjust_margin', 'number', ['number', 'number', 'string']),
 		plan: w('tl_record_plan', 'number', [
 			'number', 'number', 'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string'
@@ -215,6 +217,8 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			return withState(a, a.margin(requireRun(), req.clientId, req.amount));
 		case 'cancel':
 			return withState(a, a.cancel(requireRun(), req.clientId, req.orderId));
+		case 'move':
+			return withState(a, a.move(requireRun(), req.clientId, req.orderId, req.price));
 		case 'leverage':
 			return withState(a, a.leverage(requireRun(), req.clientId, req.leverage));
 		case 'close':

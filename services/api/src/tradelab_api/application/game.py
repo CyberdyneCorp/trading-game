@@ -63,11 +63,14 @@ class GameService:
     def _owned_or_new(self, owner: str, device_id: str, inc: IncomingRun) -> Run:
         run = self._runs.get(inc.run_id)
         if run is None:
-            return Run(inc.run_id, owner, inc.mission_id, inc.seed, inc.execution_policy, device_id, self._clock.now())
+            return Run(inc.run_id, owner, inc.mission_id, inc.seed, inc.execution_policy, device_id, self._clock.now(),
+                       options=inc.options or None)
         if run.owner != owner:
             raise NotFound()  # never reveal that someone else's run exists
         if (run.mission_id, run.seed) != (inc.mission_id, inc.seed):
             raise Conflict("run id reused for another mission or seed")
+        if (run.options or None) != (inc.options or None):
+            raise Conflict("start options differ from the stored ones")
         return run
 
     def _new_prefix(self, stored: list[tuple[int, Action]], incoming: list[tuple[int, Action]]) -> list[tuple[int, Action]]:
@@ -88,7 +91,7 @@ class GameService:
 
     def _replay(self, run: Run, actions: list[Action]) -> dict[str, Any]:
         try:
-            return self._replayer.replay(run.mission_id, run.seed, actions)
+            return self._replayer.replay(run.mission_id, run.seed, actions, run.options)
         except ValueError as exc:
             raise InvalidLog(str(exc)) from exc
 
@@ -158,6 +161,8 @@ def _run_view(run: Run) -> dict[str, Any]:
         "serverDigest": run.server_digest,
         "digestMismatch": run.digest_mismatch,
         "scoreTotal": run.score_total,
+        "options": run.options,
+        "withIntel": run.with_intel,
     }
 
 
