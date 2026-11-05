@@ -11,6 +11,9 @@
 	import { CAPSTONE_MISSION, missionText } from '#lib/game/missions.ts';
 	import { perksUsed } from '#lib/game/perks.ts';
 	import CampaignOutcome from './CampaignOutcome.svelte';
+	import AssistPanel from './AssistPanel.svelte';
+	import DecisionStrip from './DecisionStrip.svelte';
+	import LessonResults from './LessonResults.svelte';
 	import Chart from './Chart.svelte';
 	import { describeEvent } from './EventFeed.svelte';
 	import type { EngineTrade } from '#lib/engine/types.ts';
@@ -76,7 +79,8 @@
 		const c = session.progress.campaign;
 		return s.mission === CAPSTONE_MISSION && link && c && c.id === link.id ? c.legs : null;
 	});
-	const points = $derived({ used: s.advisor.advice.length, earned: d.advisorPointsEarned, balance: session.progress.advisorPoints });
+	// Assisted practice earns no points (it is never settled), whatever the engine counted for the run.
+	const points = $derived({ used: s.advisor.advice.length, earned: session.runAssisted ? 0 : d.advisorPointsEarned, balance: session.progress.advisorPoints });
 	const judged = $derived(d.advice.filter((x) => x.outcome === 'right' || x.outcome === 'wrong').length);
 	const dimLabels = { risk: 'debrief.risk', plan: 'debrief.plan', understanding: 'debrief.understanding', calibration: 'debrief.calibration' } as const;
 </script>
@@ -91,6 +95,9 @@
 		<h1>{t('debrief.finished')}</h1>
 	{/if}
 	<p class="muted">{missionText(s.mission, L).title}</p>
+	{#if session.runAssisted}
+		<p class="assisted" data-testid="debrief-assisted"><span class="tag attention">{t('assist.tag')}</span> {t('assist.banner')}</p>
+	{/if}
 	{#if intel.length}
 		<p class="intel" data-testid="debrief-intel">
 			<span class="tag attention">{t('debrief.intel')}</span>
@@ -168,6 +175,9 @@
 		<p><strong>{t('debrief.nextLesson')}:</strong> <span class="info">{describeLesson(a.lesson, L)}</span></p>
 		<p class="muted small">{t('debrief.disclaimer')}</p>
 	</section>
+
+	{#if d.lessons}<LessonResults mission={s.mission} lessons={d.lessons} />{/if}
+	<DecisionStrip decisions={d.decisions} />
 
 	{#if d.greeks}
 		<section class="panel" data-testid="debrief-greeks">
@@ -279,6 +289,8 @@
 			{/each}
 		</ol>
 	</section>
+
+	<AssistPanel {session} />
 
 	<div class="actions">
 		<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>

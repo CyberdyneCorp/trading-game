@@ -9,9 +9,15 @@ Defines the client-independent mission flow: briefing, observing, planning, acti
 ### Requirement: Mission briefing
 Before the first decision point, the player SHALL be shown virtual capital, costs (fees, spread, funding interval), leverage cap, allowed instruments (long, short, options buying, options writing), objectives, mode (historical/synthetic/branch) and the market alias.
 
+Objectives, instrument permissions, the leverage cap, the liquidation-warning distance, the drawdown budget and whether a stop beyond liquidation needs explicit confirmation SHALL be mission data in the engine (`MissionRules`), sent with the run state; clients SHALL only render them (objective codes as text in the player's language, numbers in the player's locale). A mission that declares no objectives (an imported pack) SHALL use the common ones: plan every entry, planned risk of at most 2% per idea, no liquidation.
+
 #### Scenario: Instrument permissions visible
 - **WHEN** a mission disables options writing
 - **THEN** the briefing SHALL state it and the order ticket SHALL not offer selling options to open
+
+#### Scenario: Objectives from the engine
+- **WHEN** m02 declares the objective "keep the distance to liquidation above 10%" and a 10% warning distance
+- **THEN** the briefing SHALL list that objective with the number formatted in the locale (10% in PT-BR and English), and the terminal SHALL warn when liquidation comes within 10% of the last close
 
 ### Requirement: Time stops at decisions
 The market SHALL advance only when the player explicitly advances (one step or a declared batch). Submitting an order, closing a position and advancing SHALL be distinct actions.
@@ -30,12 +36,18 @@ When the player submits an order that opens or increases a position, the client 
 ### Requirement: Waiting is a decision
 Advancing without trading SHALL be recorded as a `wait` decision and SHALL receive feedback in the debrief. No mission objective SHALL require a minimum number of trades.
 
+The engine SHALL record, for every decision step it advances through, an explicit decision record: `act` when an accepted command placed, cancelled or moved an order or changed leverage or margin at that step; `hold` when no such command was sent while a position (perpetual or option) stayed open; `wait` otherwise. Plans, calibration answers, lesson answers and advice requests are not trades. The records SHALL be derived from the state at each step (not a state-digest input), kept in checkpoints, and listed in the debrief per decision step (scoring version 11).
+
 #### Scenario: No trade when no hypothesis (EDU02)
 - **WHEN** a player completes a mission without trading
 - **THEN** the score SHALL NOT be reduced for lack of turnover
 
+#### Scenario: Each decision is recorded
+- **WHEN** the player advances once flat, then buys and advances, then advances again while holding
+- **THEN** the debrief SHALL list the decisions as wait, act and hold for those three steps
+
 ### Requirement: Liquidation warnings
-Clients SHALL warn at decision points when a position's liquidation price is within a mission-declared distance (in ATR or percent) of the last close, and SHALL warn on the order ticket when a stop lies beyond the liquidation price. The engine SHALL accept such an order with the warning `stop_beyond_liquidation`, and the risk score SHALL reflect it.
+Clients SHALL warn at decision points when a position's liquidation price is within a mission-declared distance (a percentage of the last close, `MissionRules.liq_warning_bp`; 3% unless the mission declares another) of the last close, and SHALL warn on the order ticket when a stop lies beyond the liquidation price. When the mission asks for it (`confirm_stop_beyond_liq`, the default), the ticket SHALL require an explicit confirmation before sending such an order, for a new order and for a protective stop on an open position. The engine SHALL accept such an order with the warning `stop_beyond_liquidation`, and the risk score SHALL reflect it.
 
 #### Scenario: Stop beyond liquidation warning
 - **WHEN** a player places a long stop below the liquidation price
@@ -66,9 +78,15 @@ A campaign run SHALL play the curriculum's assessment missions in stage order. E
 ### Requirement: Assisted practice
 Rewinding or changing seed SHALL create a new attempt flagged `assisted`, SHALL preserve the original attempt unchanged and SHALL exclude assisted attempts from non-assisted progress metrics.
 
+A rewind SHALL rebuild the run from its own logged actions before the chosen decision step (same market and start options), so the new attempt resumes exactly there; changing seed SHALL start the same mission on another market. An assisted attempt SHALL start without the advisor, SHALL NOT count as completing a mission (or toward perks that count completed missions), SHALL NOT earn or spend advisor points and SHALL NOT be a campaign leg; a campaign mission in progress SHALL NOT be rewound (after its debrief it may). Assisted attempts SHALL be labeled as such in the terminal, the debrief and the journal.
+
 #### Scenario: Rewind keeps original
 - **WHEN** the player rewinds a completed run
 - **THEN** the original run and its score SHALL remain available and unchanged
+
+#### Scenario: Assisted attempt excluded from progress
+- **WHEN** the player rewinds a free-play run of m01 to bar 3 and finishes the rewound attempt
+- **THEN** the debrief SHALL label it assisted with no advisor points earned, and m01 SHALL NOT be marked completed by it
 
 ### Requirement: Debrief
 On completion the debrief SHALL show: market reveal (if permitted) and historical/synthetic label; timeline of plans, news, orders, fills, funding, margin changes, liquidations and expiries; net P&L split into realized trading P&L, the P&L still open at the end (unrealized, options included), fees, spread/slippage, funding, option premium/settlement and, after a bankruptcy, the loss beyond the balance that the simulated fund covered; max drawdown, peak leverage, minimum liquidation distance, turnover; requested vs trigger vs executed price per fill; `ambiguousIntrabar` and capacity approximations; comparison with staying flat and with a 1× long held from the first eligible bar to the run's last bar (the game-over bar when the run ended early, never prices after it); for options, an approximate P&L attribution to delta, gamma, theta and vega, labeled approximate; separation of good process, favorable luck and items needing more samples; a recommended next lesson based on observable errors.

@@ -7,6 +7,7 @@ import type {
 	CsvReport,
 	DebriefData,
 	GameState,
+	LessonInfo,
 	MissionInfo,
 	MissionReveal,
 	OrderSideName,
@@ -60,6 +61,8 @@ export type EngineRequest =
 			plannedRisk: string | null;
 	  }
 	| { kind: 'answer'; clientId: number; pBp: number; skipped: boolean }
+	| { kind: 'lesson'; missionId: string }
+	| { kind: 'lessonAnswer'; clientId: number; question: number; choice: number; value: string | null; skipped: boolean }
 	| { kind: 'cancel'; clientId: number; orderId: number }
 	| { kind: 'move'; clientId: number; orderId: number; price: string }
 	| { kind: 'leverage'; clientId: number; leverage: number }
@@ -96,6 +99,8 @@ interface ResponseMap {
 	startPack: GameState;
 	advance: GameState;
 	debrief: DebriefData;
+	/** Null for a mission without lesson questions. */
+	lesson: LessonInfo | null;
 	/** Null for runs on imported packs (their reveal is in the debrief). */
 	reveal: MissionReveal | null;
 }

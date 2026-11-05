@@ -2,7 +2,7 @@
 	import type { GameState } from '#lib/engine/types.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseDecimal, signMark } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
-	import { missionText } from '#lib/game/missions.ts';
+	import { bpPct, objectiveTexts } from '#lib/game/objectives.ts';
 	import { positionGreeks, seriesLabel } from '#lib/game/optionsMath.ts';
 
 	let {
@@ -24,7 +24,9 @@
 	const pnlTotal = $derived(equity - num(game.initialBalance));
 	const liq = $derived(a.liquidationPrice ? num(a.liquidationPrice) : null);
 	const liqDist = $derived(liq != null ? Math.abs(num(a.mark) - liq) / num(a.mark) : null);
-	const liqDanger = $derived(liqDist != null && liqDist < 0.03);
+	// The mission declares how close is too close (engine MissionRules, task 4.1; 3% by default).
+	const liqWarn = $derived(game.missionRules.liqWarningBp / 10_000);
+	const liqDanger = $derived(liqDist != null && liqDist < liqWarn);
 	const funding = $derived(num(a.nextFundingRate));
 	const fundingIn = $derived(a.nextFundingStep - game.step);
 	const levEff = $derived(equity > 0 ? num(a.notional) / equity : 0);
@@ -71,7 +73,7 @@
 				<div class="muted">{t('rail.liq')}</div>
 				<div class="liq-price num">{liq != null ? fmtPrice(String(liq), L) : '—'}</div>
 				<div class="num">{t('rail.liqDistance')}: {liqDist != null ? fmtPct(liqDist, L) : '—'}</div>
-				{#if liqDanger}<div class="attention">⚠ {t('rail.liqWarning')}</div>{/if}
+				{#if liqDanger}<div class="attention" data-testid="liq-warning">⚠ {t('rail.liqWarning', { pct: bpPct(game.missionRules.liqWarningBp, L) })}</div>{/if}
 			</div>
 			{#if onMargin}
 				<div class="margin-ctl">
@@ -126,7 +128,7 @@
 	<section class="panel">
 		<h2 class="panel-title">{t('rail.objective')}</h2>
 		<ul class="objectives">
-			{#each missionText(game.mission, L).objectives as o (o)}
+			{#each objectiveTexts(game.missionRules, L) as o (o)}
 				<li>{o}</li>
 			{/each}
 		</ul>

@@ -1,7 +1,7 @@
 // Display helpers for the engine debrief (report-only numbers computed by engine/src/debrief.cpp).
 // The client formats; it never recomputes attribution, costs or leverage advice.
 
-import type { Account, EngineTrade, GreekAttribution, NewsView, PackReveal, RegimeSignals, RegimeSpan, RevealEvent, SignalTally } from '#lib/engine/types.ts';
+import type { Account, DecisionView, EngineTrade, GreekAttribution, NewsView, PackReveal, RegimeSignals, RegimeSpan, RevealEvent, SignalTally } from '#lib/engine/types.ts';
 import { fmtPct, fmtPrice, num } from './format.ts';
 import { t, type Locale } from './i18n.svelte.ts';
 import { headline } from './news.ts';
@@ -167,4 +167,11 @@ export function releaseRows(events: readonly RevealEvent[], trades: readonly Eng
 /** Signed basis points as a percentage with the locale's decimal separator: "+2,35%" / "+2.35%". */
 export function fmtBp(bp: number, locale: Locale): string {
 	return fmtPct(bp / 10000, locale, 2, true);
+}
+
+/** How many decision steps the player acted, held a position or waited at (engine decision records). */
+export function decisionCounts(decisions: readonly DecisionView[]): { act: number; hold: number; wait: number } {
+	const out = { act: 0, hold: 0, wait: 0 };
+	for (const d of decisions) out[d.kind] += 1;
+	return out;
 }

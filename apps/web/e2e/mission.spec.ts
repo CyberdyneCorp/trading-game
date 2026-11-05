@@ -435,6 +435,9 @@ test('debrief: spread/slippage, turnover, closest liquidation and the leverage t
 	const near = await inputNumber(stop.locator('input')); // 2% under the entry
 	await stop.locator('input').fill(((near / 0.98) * 0.7).toFixed(2)); // 30% under: beyond a 5x liquidation
 	await expect(page.getByText(/O stop está além do preço de liquidação/)).toBeVisible();
+	// The mission asks for explicit confirmation of a stop beyond liquidation (engine MissionRules).
+	await expect(page.getByRole('button', { name: /Enviar ordem/ })).toBeDisabled();
+	await page.getByTestId('ticket-confirm-beyond').check();
 	await page.getByRole('button', { name: /Enviar ordem/ }).click();
 	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
 	await advance(page);

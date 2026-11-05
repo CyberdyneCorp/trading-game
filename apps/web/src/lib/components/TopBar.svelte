@@ -30,6 +30,9 @@
 			{:else}
 				<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
 			{/if}
+			{#if session.runAssisted}
+				<span class="tag attention" title={t('assist.banner')} data-testid="assisted-tag">{t('assist.tag')}</span>
+			{/if}
 			{#if session.runCampaign}
 				<span class="tag info" data-testid="campaign-tag">{t('campaign.tag', { n: session.runCampaign.index + 1, total: campaignMissions().length })}</span>
 			{/if}

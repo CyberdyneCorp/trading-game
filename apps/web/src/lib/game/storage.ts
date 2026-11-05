@@ -5,6 +5,7 @@
 // so anything the UI showed as accepted survives a crash or a closed tab. Resume replays the log
 // through the deterministic engine; the stored digest only verifies the replay.
 
+import type { AssistedLink } from './assisted.ts';
 import type { CampaignLink, CampaignProgress, CampaignRun } from './campaign.ts';
 import { START_POINTS } from './points.ts';
 
@@ -32,6 +33,8 @@ export interface RunRecord<J = unknown, Q = unknown> {
 	campaign?: CampaignLink;
 	/** Last known engine equity (decimal string): what a campaign mission carries when it is left. */
 	equity?: string;
+	/** Assisted practice (rewind or another market, task 4.8): excluded from progress, points and the campaign. */
+	assisted?: AssistedLink;
 }
 
 /**
@@ -273,8 +276,8 @@ export class RunStore<A, J, Q> {
 	async finishedMissions(): Promise<string[]> {
 		const tx = this.db.transaction('runs', 'readonly');
 		const runs = (await req(tx.objectStore('runs').getAll())) as RunRecord<J, Q>[];
-		// Practice runs on an imported pack are not missions: they never count as completed.
-		return [...new Set(runs.filter((r) => r.status === 'finished' && !r.packDigest).map((r) => r.missionId))];
+		// Practice runs on an imported pack are not missions, and assisted attempts do not count either.
+		return [...new Set(runs.filter((r) => r.status === 'finished' && !r.packDigest && !r.assisted).map((r) => r.missionId))];
 	}
 
 	/** Imports a run saved by the previous localStorage format (v1), then removes the legacy key. */

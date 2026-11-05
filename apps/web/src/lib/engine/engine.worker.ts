@@ -21,6 +21,8 @@ interface Api {
 	margin: Fn;
 	plan: Fn;
 	answer: Fn;
+	lessonAnswer: Fn;
+	lesson: Fn;
 	leverage: Fn;
 	close: Fn;
 	advice: Fn;
@@ -63,6 +65,8 @@ async function load(): Promise<Api> {
 			'number', 'number', 'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string'
 		]),
 		answer: w('tl_answer_question', 'number', ['number', 'number', 'number', 'number']),
+		lessonAnswer: w('tl_answer_lesson', 'number', ['number', 'number', 'number', 'number', 'string', 'number']),
+		lesson: w('tl_lesson', 'number', ['string']),
 		leverage: w('tl_set_leverage', 'number', ['number', 'number', 'number']),
 		close: w('tl_close_position', 'number', ['number', 'number']),
 		advice: w('tl_request_advice', 'number', ['number', 'number']),
@@ -153,6 +157,12 @@ function reveal(a: Api): unknown {
 	return current ? json(a.reveal(current.missionId, current.seed)) : null;
 }
 
+// The mission's lesson questions (no answer key crosses: the engine keeps it until the debrief).
+function lessonInfo(a: Api, missionId: string): unknown {
+	const info = json(a.lesson(missionId)) as { error?: string };
+	return info.error ? null : info;
+}
+
 function withState(a: Api, resultPtr: number) {
 	const result = json(resultPtr);
 	return { result, state: json(a.state(requireRun())) };
@@ -228,6 +238,13 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			);
 		case 'answer':
 			return withState(a, a.answer(requireRun(), req.clientId, req.pBp, req.skipped ? 1 : 0));
+		case 'lesson':
+			return lessonInfo(a, req.missionId);
+		case 'lessonAnswer':
+			return withState(
+				a,
+				a.lessonAnswer(requireRun(), req.clientId, req.question, req.choice, req.value ?? '', req.skipped ? 1 : 0)
+			);
 		case 'margin':
 			return withState(a, a.margin(requireRun(), req.clientId, req.amount));
 		case 'cancel':

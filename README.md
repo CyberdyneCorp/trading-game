@@ -520,19 +520,23 @@ stateDiagram-v2
 From the menu: **Campaign** (missions in curriculum order, capital carried), **free play** (any mission, its own rules), practice on imported markets, the **curriculum map** and the **journal**.
 
 1. **Tutorial** — the first time you start a mission on a device, 3–5 short illustrated cards explain its concept, what to watch and which controls to use (arrows or Enter to page, Esc to skip). They never hint at what the market will do. Replay them from the briefing.
-2. **Briefing** — the mission's story, objectives, instrument and leverage cap. A warm-up history is already on the chart.
+2. **Briefing** — the mission's story, objectives, what is allowed (long, short, buying options, writing options), the leverage cap and the mission's limits (how close liquidation may come before the terminal warns, the drawdown budget). Objectives, permissions and limits are engine data (`MissionRules`), rendered in your language. A few **lesson questions** (multiple choice or a number; a decimal comma is fine) can be answered once each; the debrief corrects them. A warm-up history is already on the chart.
 3. **Plan** — before trading, write the hypothesis: side, invalidation (stop), target and risk. You can also explicitly plan to stay out — not trading is a valid decision.
 4. **Trading** — advance bar by bar (or with auto-advance). Place orders, move stops, read news, watch funding, ask the advisor for a read (1 point). The game occasionally asks calibration questions ("probability price is higher in 10 bars?").
 5. **Debrief** — the engine scores the run on process:
 
 | Dimension | Weight | What it measures |
 |---|---|---|
-| Risk | 35 | Penalties for a liquidation or an option margin call, entries without a stop, trades entered with planned risk above 2% of capital, stops beyond the liquidation price, drawdown above 20% |
+| Risk | 35 | Penalties for a liquidation or an option margin call, entries without a stop, trades entered with planned risk above 2% of capital, stops beyond the liquidation price, drawdown above the mission's budget (20% unless it declares one; m07 10%), leverage too high for the stop (liquidation closer to the entry than twice the stop distance) and liquidation coming closer than the mission's warning distance (3% unless it declares one; m02 10%) |
 | Plan | 25 | Share of entries covered by a plan, and plans that name an invalidation level |
-| Understanding | 25 | Reserved for lesson questions; not scored yet |
+| Understanding | 25 | Points of the right lesson answers over all the mission's questions (a skip scores 0), against a rubric a person has reviewed (`engine/rubrics/lessons.json`, `reviewed` flag). The shipped rubrics are not reviewed yet, so the answers are corrected in the debrief but the dimension stays n/a; a run whose player never saw the questions is n/a too |
 | Calibration | 15 | 100 × (1 − 2 × Brier score) of your probability answers, floored at 0 (needs 3+ resolved answers). Always answering 50% scores 50: no information is neutral, not a bonus |
 
 The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, and a trade still open at the end includes its unrealized P&L, so the trades add up to the result), findings, and a reveal of what the generator was doing.
+
+Every advance records what you did at that decision (acted, held a position, or waited out of the market); the debrief shows the count and a strip of all decisions (scoring v11). Waiting costs nothing.
+
+**Assisted practice.** From the terminal or the debrief you can rewind to an earlier bar or play the same mission on another market. Either makes a new attempt flagged *assisted* (without the advisor): the original attempt keeps its record and score, and an assisted attempt never counts as completing a mission, earns no advisor points and is never a campaign leg. A campaign mission in progress cannot be rewound; after its debrief it can.
 
 The exit reason comes from the order that closed the trade (scoring v10): stop, trailing stop, target (a take-profit or limit), manual (a market order), liquidation, expiry or margin call. A stop that exits in profit is still a stop.
 
@@ -603,7 +607,7 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v4 with a Markov regime chain, drawn event outcomes and announced releases, execution policy v15, scoring v10 with the full debrief and the seeded reveal), the twelve phase-2 missions with first-start tutorials (batch A: m06 thin book, m07 size and exit, m08 regime switch; batch B: m09 the day before, m10 cover, m11 calendar, m12 final exam), campaign runs with carried capital and the capstone's campaign report, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, legal intel perks (economic calendar, fast wire) unlocked by finished missions, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay with each run's start options, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
+Built: the deterministic engine (perps, options, indicators, patterns, generator v4 with a Markov regime chain, drawn event outcomes and announced releases, execution policy v15, scoring v11 with the full debrief, the seeded reveal, mission rules as engine data, decision records and lesson questions), the twelve phase-2 missions with first-start tutorials (batch A: m06 thin book, m07 size and exit, m08 regime switch; batch B: m09 the day before, m10 cover, m11 calendar, m12 final exam), campaign runs with carried capital and the capstone's campaign report, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, legal intel perks (economic calendar, fast wire) unlocked by finished missions, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay with each run's start options, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
 
 Next:
 

@@ -18,6 +18,10 @@ export function game(events: EngineEvent[], extra: Partial<GameState> = {}): Gam
 		mission: 'm01-false-breakout', alias: 'K1A', status: 'finished', marketMode: 'synthetic', knownScenario: false, stepSeconds: 3600, step: 10, lastDecisionStep: 9, warmupBars: 0,
 		totalBars: 11, initialBalance: '10000', leverage: 1,
 		contract: {} as GameState['contract'], bars: [], account: {} as GameState['account'],
+		missionRules: {
+			initialBalance: '10000', leverageCap: 5, warmupBars: 0, permissions: { long: true, short: true, optionsBuy: false, optionsWrite: false },
+			objectives: [{ code: 'plan_every_entry', valueBp: 0 }], liqWarningBp: 300, drawdownBudgetBp: 2000, confirmStopBeyondLiq: true
+		},
 		position: { qty: '0', entry: '0', margin: '0' }, orders: [], events,
 		totals: { realizedPnl: '0', feesPaid: '0', fundingNet: '0', insuranceAbsorbed: '0', turnover: '0', peakEquity: '10000',
 			maxDrawdown: '0', peakLeverageBp: 0, minLiqDistanceBp: -1, liquidations: 0, fills: 0, ambiguousFills: 0,

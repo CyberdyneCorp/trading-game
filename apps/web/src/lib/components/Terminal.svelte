@@ -25,6 +25,7 @@
 	import PatternSheet from './PatternSheet.svelte';
 	import PlanDialog from './PlanDialog.svelte';
 	import RightRail from './RightRail.svelte';
+	import AssistPanel from './AssistPanel.svelte';
 	import TopBar from './TopBar.svelte';
 
 	let { session }: { session: GameSession } = $props();
@@ -300,6 +301,7 @@
 				{/if}
 				<NewsPanel news={session.state.news} calendar={session.state.calendar} upcoming={session.state.upcoming ?? []} step={session.state.step} />
 				<EventFeed events={session.state.events} names={session.names} />
+				<AssistPanel {session} />
 			</div>
 		</div>
 	</div>
