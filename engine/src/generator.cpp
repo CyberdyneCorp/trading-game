@@ -290,14 +290,12 @@ EventOutcome draw_outcome(const ScriptedEvent& ev, std::uint64_t seed, std::uint
 
 namespace {
 
-int sign_of(int v) { return (v > 0) - (v < 0); }
-
-// The headline shows what was drawn: its actual, and a tone that reads the surprise (or, when there
-// is none, the actual itself: an incident that turned out harmless reads neutral).
+// The headline shows what was drawn: its actual, and a tone that reads it against the consensus
+// (a print in line with expectations, or an incident that turned out harmless, reads neutral).
 void apply_outcome(ScriptedEvent& ev, const EventOutcome& o) {
   ev.item.actual = o.actual;
   const int surprise = o.actual - ev.item.expectation;
-  ev.item.tone = static_cast<std::int8_t>(surprise != 0 ? sign_of(surprise) : sign_of(o.actual));
+  ev.item.tone = static_cast<std::int8_t>(surprise > 0 ? 1 : (surprise < 0 ? -1 : 0));
   const double k = o.intensity_pct / 100.0;
   ev.fair_impact *= k;
   ev.drift *= k;

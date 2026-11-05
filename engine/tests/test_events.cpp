@@ -128,6 +128,11 @@ TEST_CASE("G2: the drawn actual is in the headline; a drawn surprise of 0 does n
   harmless.item.kind = NewsKind::ExchangeIncident;
   harmless.item.tone = -1;
   CHECK(gen(one_release(harmless), 3).news.front().tone == 0);
+  // A print in line with a positive consensus reads neutral too.
+  ScriptedEvent in_line = decision({0, 0, 0, 1000, 0});
+  in_line.item.expectation = 1;
+  in_line.item.tone = 1;
+  CHECK(gen(one_release(in_line), 3).news.front().tone == 0);
   // Expected outcome: the same market as an event with no fair-value impact at all.
   ScriptedEvent expected = decision({0, 0, 1000, 0, 0});
   ScriptedEvent no_impact = expected;
