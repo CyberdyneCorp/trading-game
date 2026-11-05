@@ -25,7 +25,12 @@ struct OpenTrade {
   std::int64_t entry_qty = 0;
   i128 exit_notional = 0;
   std::int64_t exit_qty = 0;
+  std::vector<std::uint32_t> entry_orders;  // orders whose fills opened or added to the trade
 };
+
+void add_entry_order(OpenTrade& t, std::uint32_t order_id) {
+  if (std::find(t.entry_orders.begin(), t.entry_orders.end(), order_id) == t.entry_orders.end()) t.entry_orders.push_back(order_id);
+}
 
 OpenTrade open_trade(std::uint32_t n, const Event& e, std::int64_t qty_abs) {
   OpenTrade t;
@@ -37,15 +42,58 @@ OpenTrade open_trade(std::uint32_t n, const Event& e, std::int64_t qty_abs) {
   t.row.entry_avg = e.price;
   t.entry_notional = static_cast<i128>(qty_abs) * e.price.raw;
   t.entry_qty = qty_abs;
+  add_entry_order(t, e.order_id);
   return t;
 }
 
-const PlanRecord* plan_for(const RunState& st, std::uint32_t entry_step, std::uint32_t after, bool option) {
-  const PlanRecord* best = nullptr;
+const Order* find_order(const RunState& st, std::uint32_t id) {
+  const auto it = std::find_if(st.orders.begin(), st.orders.end(), [id](const Order& o) { return o.id == id; });
+  return it != st.orders.end() ? &*it : nullptr;
+}
+
+// Orders a plan can belong to: placed by the player, not reduce-only and not a bracket child.
+bool plannable(const Order& o) { return !o.reduce_only && o.parent_id == 0; }
+
+// Plannable orders placed at the same decision step, on the same kind of instrument and side.
+bool same_slot(const Order& a, const Order& b) {
+  return plannable(a) && a.placed_step == b.placed_step && (a.series != 0) == (b.series != 0) &&
+         a.side == b.side;
+}
+
+// Spec mission-scoring "Plan per entry": a plan is recorded for the next exposure-increasing order,
+// in the same decision step. The state keeps plans and orders apart, so the plans and orders of one
+// step, kind and side are paired from the last one back: a retry after a rejected order records a
+// newer plan, which supersedes the rejected attempt's, and two orders sent in one step (a second
+// option leg, an add) each keep their own plan instead of the later one's.
+const PlanRecord* order_plan(const RunState& st, std::uint32_t order_id) {
+  const Order* o = find_order(st, order_id);
+  if (o == nullptr || !plannable(*o)) return nullptr;
+  const auto later = static_cast<std::size_t>(
+      std::count_if(st.orders.begin(), st.orders.end(), [o](const Order& x) { return x.id > o->id && same_slot(x, *o); }));
+  std::vector<const PlanRecord*> plans;
   for (const PlanRecord& p : st.plans) {
-    if (!p.skipped && p.option == option && p.step <= entry_step && p.step >= after) best = &p;
+    if (p.step == o->placed_step && p.option == (o->series != 0) && p.side == o->side) plans.push_back(&p);
   }
-  return best;
+  return later < plans.size() ? plans[plans.size() - 1 - later] : nullptr;
+}
+
+struct EntryPlans {
+  const PlanRecord* first = nullptr;  // first non-skipped plan: invalidation, stop and verdict
+  Money risk;                         // planned risk of all non-skipped plans (an add adds its risk)
+  Money largest_declared;             // largest risk declared for one entry, skipped plans included
+};
+
+EntryPlans entry_plans(const RunState& st, const OpenTrade& o) {
+  EntryPlans r;
+  for (const std::uint32_t id : o.entry_orders) {
+    const PlanRecord* p = order_plan(st, id);
+    if (p == nullptr) continue;
+    r.largest_declared = std::max(r.largest_declared, p->planned_risk);
+    if (p->skipped) continue;
+    if (r.first == nullptr) r.first = p;
+    r.risk = Money::from_raw(r.risk.raw + p->planned_risk.raw);
+  }
+  return r;
 }
 
 ExitReason exit_reason(const TradeRow& t, const Event& fill) {
@@ -64,18 +112,19 @@ std::optional<bool> respected(const TradeRow& t, const PlanRecord* plan) {
   return t.is_long ? t.exit_avg.raw >= plan->invalidation.raw - tol : t.exit_avg.raw <= plan->invalidation.raw + tol;
 }
 
-TradeRow finalize(const RunState& st, OpenTrade& o, std::uint32_t after) {
+TradeRow finalize(const RunState& st, const OpenTrade& o) {
   TradeRow t = o.row;
   if (o.exit_qty > 0) t.exit_avg = Price::from_raw(round_div(o.exit_notional, o.exit_qty));
   t.net = Money::from_raw(t.pnl.raw - t.fees.raw + t.funding.raw);
   t.bars = t.exit_step.value_or(st.step) - t.entry_step;
-  const PlanRecord* plan = plan_for(st, t.entry_step, after, t.series != 0);
-  if (plan != nullptr && plan->planned_risk.raw > 0) {
-    t.planned_risk = plan->planned_risk;
-    if (t.exit_step) t.r_bp = round_div(static_cast<i128>(t.net.raw) * kBp, plan->planned_risk.raw);
+  const EntryPlans plans = entry_plans(st, o);
+  t.declared_risk = plans.largest_declared;
+  if (plans.risk.raw > 0) {
+    t.planned_risk = plans.risk;
+    if (t.exit_step) t.r_bp = round_div(static_cast<i128>(t.net.raw) * kBp, plans.risk.raw);
   }
-  t.plan_respected = respected(t, plan);
-  if (plan != nullptr && t.series == 0) t.stop = plan->invalidation;  // a stop order overrides it (annotate_stop)
+  t.plan_respected = respected(t, plans.first);
+  if (plans.first != nullptr && t.series == 0) t.stop = plans.first->invalidation;  // a stop order overrides it (annotate_stop)
   return t;
 }
 
@@ -84,15 +133,13 @@ struct Walker {
   std::vector<TradeRow> out;
   std::optional<OpenTrade> cur;
   std::int64_t pos = 0;
-  std::uint32_t last_exit = 0;
 
   void close(std::uint32_t step, ExitReason reason) {
     if (!cur) return;
     OpenTrade& t = *cur;
     t.row.exit_step = step;
     t.row.reason = reason;
-    out.push_back(finalize(st, t, last_exit));
-    last_exit = step;
+    out.push_back(finalize(st, t));
     cur.reset();
   }
 
@@ -131,6 +178,7 @@ struct Walker {
     } else if ((q > 0) == (pos > 0)) {
       cur->entry_notional += static_cast<i128>(abs64(q)) * e.price.raw;
       cur->entry_qty += abs64(q);
+      add_entry_order(*cur, e.order_id);
       cur->row.qty = Qty::from_raw(std::max(cur->row.qty.raw, abs64(next)));
       cur->row.entry_avg = Price::from_raw(round_div(cur->entry_notional, cur->entry_qty));
     } else {
@@ -232,25 +280,14 @@ void count_fills(const RunState& st, Facts& f) {
   }
 }
 
-// The risk declared for a trade's entry: the latest plan of the same kind (planned or sent without
-// a plan, which still carries the ticket's estimate) recorded since the previous trade ended. A
-// retry after a rejected order records a newer plan, which supersedes the rejected attempt's.
-Money entry_risk(const RunState& st, const TradeRow& t, std::uint32_t after) {
-  const PlanRecord* latest = nullptr;
-  for (const PlanRecord& p : st.plans) {
-    if (p.option == (t.series != 0) && p.step <= t.entry_step && p.step >= after) latest = &p;
-  }
-  return latest != nullptr ? latest->planned_risk : Money{};
-}
-
+// The risk declared for each trade's entries (planned, or sent without a plan, which still carries
+// the ticket's estimate), from the plan matched to each entry order (order_plan): the plan of an
+// order that was rejected and never filled is not a trade.
 void trade_facts(const Scenario& sc, const RunState& st, Facts& f) {
   const std::int64_t limit = sc.mission.initial_balance.raw / 50;  // 2% of initial capital
-  std::uint32_t after = 0;
   for (const TradeRow& t : build_trades(sc, st)) {
-    const Money risk = entry_risk(st, t, after);
-    if (!f.oversized && risk.raw > limit) f.oversized = std::make_pair(t.entry_step, risk);
+    if (!f.oversized && t.declared_risk.raw > limit) f.oversized = std::make_pair(t.entry_step, t.declared_risk);
     f.all_planned = f.all_planned && t.planned_risk.raw > 0;
-    after = t.exit_step.value_or(after);
   }
 }
 
@@ -470,6 +507,16 @@ void advice_summary(const Scenario& sc, const RunState& st, ScoreReport& r) {
   if (judged > 0) r.advice_hit_bp = round_div(static_cast<i128>(right) * kBp, judged);
 }
 
+// Loss beyond the balance that the simulated fund covered when the wallet was floored at zero (a
+// margin-call buy-back or a settlement larger than the balance): the trades' nets minus the result.
+// A perpetual liquidation's rows already stop at the margin lost, so only option losses show here.
+Money written_off(const RunState& st, const ScoreReport& r) {
+  if (st.insurance_absorbed.raw <= 0) return Money{};
+  std::int64_t nets = 0;
+  for (const TradeRow& t : r.trades) nets += t.net.raw;
+  return Money::from_raw(std::max<std::int64_t>(0, r.net_pnl.raw - nets));
+}
+
 }  // namespace
 
 std::uint32_t advisor_points(const RunState& st, const std::vector<TradeRow>& trades) {
@@ -521,7 +568,7 @@ std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
   for (const Event& e : st.events) route(e, perp, option_walker);
   std::vector<TradeRow> rows;
   const auto take = [&](Walker& w) {
-    if (w.cur) w.out.push_back(finalize(st, *w.cur, w.last_exit));
+    if (w.cur) w.out.push_back(finalize(st, *w.cur));
     rows.insert(rows.end(), w.out.begin(), w.out.end());
   };
   take(perp);
@@ -547,6 +594,7 @@ ScoreReport score_run(const Scenario& sc, const RunState& st) {
   combine(r);
   r.trades = build_trades(sc, st);
   r.spread_cost = spread_slippage_cost(sc, st);
+  r.written_off = written_off(st, r);
   r.greeks = greek_attribution(sc, st);
   risk_findings(st, f, r);
   outcome_findings(f, r);

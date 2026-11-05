@@ -349,7 +349,7 @@ void write_score(JsonOut& j, const ScoreReport& r) {
   for (const TradeRow& t : r.trades) write_trade(j, t);
   j.end_arr();
   write_advice_rows(j, r);
-  j.field("spreadSlippage", r.spread_cost).key("greeks");
+  j.field("spreadSlippage", r.spread_cost).field("writtenOff", r.written_off).key("greeks");
   if (!r.greeks) {
     j.null();
     return;

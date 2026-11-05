@@ -4,7 +4,7 @@
 // Clients display this report; the server recomputes it from the same commands (never trusts a
 // client-reported score). Integer arithmetic only.
 //
-// Dimensions (scoring version 6): risk 35, plan coherence 25, understanding 25 (not measured yet),
+// Dimensions (scoring version 7): risk 35, plan coherence 25, understanding 25 (not measured yet),
 // calibration 15. A dimension without data is not applicable and the rest are renormalized.
 // Report-only debrief facts (spread/slippage cost, option P&L by Greek, the leverage that would have
 // kept a stop in front of liquidation) never feed the score.
@@ -18,7 +18,7 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kScoringVersion = 6;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes
+constexpr std::uint32_t kScoringVersion = 7;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,
@@ -77,7 +77,8 @@ struct TradeRow {
   Money net;             // pnl - fees + funding
   std::uint32_t bars = 0;
   ExitReason reason = ExitReason::Open;
-  Money planned_risk;    // 0 = no plan / unknown
+  Money planned_risk;    // 0 = no plan / unknown; the sum of the plans of the entry orders (an add adds its risk)
+  Money declared_risk;   // largest risk declared for one entry order, skipped plans included (oversized check)
   std::optional<std::int64_t> r_bp;  // net / planned risk, in basis points (10000 = 1R)
   std::optional<bool> plan_respected;
   // Perpetual rows only: the protective stop (first reduce-only stop of the trade, else the plan's
@@ -138,6 +139,7 @@ struct ScoreReport {
   std::optional<std::int64_t> brier_bp;  // Brier score in basis points of 1.0
   Money net_pnl;
   Money spread_cost;  // spread + slippage paid against the reference price (already inside fill prices)
+  Money written_off;  // option loss beyond the balance covered by the simulated fund (wallet floored at 0)
   std::optional<GreekAttribution> greeks;  // only when options were traded
   std::uint32_t advisor_points_earned = 0;
   std::vector<AdviceRow> advice;

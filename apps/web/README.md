@@ -47,7 +47,7 @@ scripts/                   build-engine.sh (Emscripten), make-icons.py (PWA icon
 static/                    manifest.webmanifest, icons
 ```
 
-Game rules, fills, scoring and the debrief come from the engine; the client formats engine decimal strings for display and never computes authoritative state (ticket previews in `sizing.ts`/`optionsMath.ts` mirror engine formulas for display only). Runs persist as an append-only action log in IndexedDB (`tradelab` DB: `runs`, `actions`, `meta`, `packs`); resume replays the log through the deterministic engine. A run record also keeps its start options (advice allowance), and `meta.progress` keeps the tutorials seen and the advisor point balance (`points.ts`: start 3, cap 10, settled once per run id).
+Game rules, fills, scoring and the debrief come from the engine; the client formats engine decimal strings for display and never computes authoritative state (ticket previews in `sizing.ts`/`optionsMath.ts` mirror engine formulas for display only). Runs persist as an append-only action log in IndexedDB (`tradelab` DB: `runs`, `actions`, `meta`, `packs`); resume replays the log through the deterministic engine. A run record also keeps its start options (advice allowance), and `meta.progress` keeps the tutorials seen and the advisor point balance (`points.ts`: start 3, cap 10, settled once per run id; a resumable run is settled, earning nothing, when another run is started).
 
 ## Imported markets (CSV and packs)
 

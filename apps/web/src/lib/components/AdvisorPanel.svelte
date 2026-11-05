@@ -50,26 +50,27 @@
 					<dt>{t('adv.size')}</dt><dd>{num(latest.size) > 0 ? fmtQty(latest.size, L) : '—'}</dd>
 				</dl>
 			{/if}
+			{#if actionable}
+				<button class="apply" onclick={apply}>{t('adv.apply')}</button>
+			{/if}
 			<ul class="reasons">
 				{#each latest.reasons as r, i (i)}
 					<li><span class={r.vote > 0 ? 'up' : r.vote < 0 ? 'down' : 'muted'}>{voteMark(r.vote)}</span> {reasonLine(r, s.indicators.patterns, L)}</li>
 				{/each}
 			</ul>
-			{#if actionable}
-				<button onclick={apply}>{t('adv.apply')}</button>
-			{/if}
 			<p class="muted small">{t('adv.disclaimer')}</p>
 		</div>
 	{/if}
 </section>
 
 <style>
+	/* Never a scroll box of its own: the read, its action and the disclaimer stay together, and the
+	   column around it scrolls when the screen is short. */
 	.advisor {
-		overflow: auto;
 		flex-shrink: 0;
-		max-height: 45%;
 	}
-	.ask {
+	.ask,
+	.apply {
 		width: 100%;
 		margin-bottom: 0.3rem;
 	}

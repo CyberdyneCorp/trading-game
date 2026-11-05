@@ -35,11 +35,15 @@ Submit order, close position and advance market SHALL be visually and spatially 
 - **THEN** the UI SHALL explain the required and available margin
 
 ### Requirement: Order ticket for perpetuals
-The ticket SHALL accept size as quantity, notional, % of equity or risk budget; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. With a position open, a leverage different from the position's SHALL show that sending re-margins the open position too, with its liquidation price before and after (as a warning when it moves closer). The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
+The ticket SHALL accept size as quantity, notional, % of equity or risk budget; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. With a position open, a leverage different from the position's SHALL show that sending re-margins the open position too, with its liquidation price before and after (as a warning when it moves closer). When the initial margin plus fee of the part that adds exposure exceeds the available balance, the ticket SHALL say so and SHALL NOT submit. The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
 
 #### Scenario: Live recalculation
 - **WHEN** the player changes leverage from 3× to 10×
 - **THEN** margin and liquidation price in the ticket SHALL update before submission
+
+#### Scenario: Order the balance cannot carry
+- **WHEN** the player types 200 units at about 103 at 1× with 10,000 available
+- **THEN** the ticket SHALL warn that the required margin exceeds the available balance and the submit button SHALL be disabled
 
 ### Requirement: Stop and target tools
 Stop-loss and take-profit fields (new orders and protection of an open position) SHALL offer one-click presets — stop at 1× and 2× ATR(14), beyond the 10-bar swing low/high, at 1% and 2%; target at 1R, 2R and 3R of the stop distance — and a "mark on chart" mode where a click on the price pane sets the level (Escape cancels; Space SHALL NOT advance while marking). Each level SHALL show its distance from the entry in price, percent and ATR multiples, and the target SHALL show its reward/risk ratio. A stop on the profit side or a target on the loss side SHALL be flagged and block submission. Draft entry, stop, target and estimated liquidation SHALL be previewed on the chart before submission. The price scale SHALL follow the candles: a level within half the candle range of them widens the scale, a farther level SHALL be pinned to the pane edge with an arrow instead of squashing the candles, and price tags SHALL never overlap. An open position without a reduce-only stop or trailing stop SHALL show an "unprotected" warning. Presets SHALL be disabled while their input (e.g. ATR) is warming up. After a fill the new-order stop and target SHALL be cleared, so the next order is not sized to a previous trade's stop.

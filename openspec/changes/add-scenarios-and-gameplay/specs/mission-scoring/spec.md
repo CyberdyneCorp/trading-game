@@ -7,7 +7,7 @@ Defines how a mission attempt is graded so that the score rewards risk disciplin
 ## ADDED Requirements
 
 ### Requirement: Score dimensions
-The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 6) from the command log with integer arithmetic only.
+The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 7) from the command log with integer arithmetic only.
 
 Entries are exposure-increasing fills of the perpetual and of each option series (buying or writing to open). Plan coherence SHALL be non-applicable when the attempt has no entries. Otherwise, in scoring versions 1 and 2, it SHALL be `70 × min(plans, entries) / entries + 30 × plans with an invalidation level / plans`, where skipped plans do not count as plans, and 0 when no plan was recorded.
 
@@ -27,6 +27,14 @@ Entries are exposure-increasing fills of the perpetual and of each option series
 - **WHEN** a trade is still open at the end of the mission
 - **THEN** its P&L SHALL include the unrealized P&L at the final mark, valued as in the account equity (the perpetual at the last close, a long option at the bid, a written option at the ask), so a single open trade's net equals the mission result (scoring version 5; before, an open trade showed only its fees and funding)
 
+#### Scenario: A plan belongs to the order it was recorded for
+- **WHEN** the player records a plan and sends an order, and on the bar that order fills records a second plan for a new order (a flip, an add, or a second option leg sent on one bar)
+- **THEN** each trade SHALL use the plan recorded for its own entry order: a plan is matched to the next exposure-increasing order of the same kind (perpetual or option) and side placed in the same decision step, the plans and orders of one step pairing from the last one back (so a retry after a rejected order uses the newer plan); a trade's planned risk SHALL be the sum of the plans of the orders that opened or added to it, and its invalidation (stop and plan verdict) SHALL come from the first of them (scoring version 7; before, the latest plan up to the entry fill bar replaced the trade's own plan)
+
+#### Scenario: A shortfall the fund covered is shown
+- **WHEN** a margin-call buy-back or a settlement costs more than the balance and the wallet is floored at zero
+- **THEN** the report SHALL include the written-off amount (the result minus the sum of the trades' nets, reported only when the simulated fund absorbed a shortfall), so the trade rows plus that line add up to the result (scoring version 7)
+
 #### Scenario: Skipped plan has no R
 - **WHEN** a trade's plan was skipped
 - **THEN** the trade SHALL have no planned risk and no R multiple, even if the client sent a risk estimate with the skipped plan
@@ -38,7 +46,7 @@ Entries are exposure-increasing fills of the perpetual and of each option series
 ### Requirement: Risk dimension
 The risk dimension SHALL evaluate adherence to planned risk, leverage relative to the mission cap and to the stop distance, distance kept from liquidation, drawdown versus mission budget and exposure under declared uncertainty. Using higher leverage SHALL never increase the risk score.
 
-Scoring version 3 SHALL start at 100 and subtract: 40 if any liquidation or option margin call (forced buy-back of written options) occurred; 20 per perpetual entry without a reduce-only stop or trailing stop placed around it (at most 40; option entries are not counted: a bought option's premium is its maximum loss, and written options are policed by margin calls); 20 if any trade that actually happened was entered with a planned risk above 2% of initial capital (the risk of the latest plan, or of the ticket estimate when sent without a plan, recorded for that entry; the plan of an order that was rejected and never filled does not count); 15 if any order was accepted with a stop beyond the liquidation price; 15 if the maximum drawdown exceeded 20% of initial capital; floored at 0.
+Scoring version 3 SHALL start at 100 and subtract: 40 if any liquidation or option margin call (forced buy-back of written options) occurred; 20 per perpetual entry without a reduce-only stop or trailing stop placed around it (at most 40; option entries are not counted: a bought option's premium is its maximum loss, and written options are policed by margin calls); 20 if any trade that actually happened was entered with a planned risk above 2% of initial capital (the risk of the plan, or of the ticket estimate when sent without a plan, recorded for one of its entry orders; the plan of an order that was rejected and never filled does not count); 15 if any order was accepted with a stop beyond the liquidation price; 15 if the maximum drawdown exceeded 20% of initial capital; floored at 0.
 
 #### Scenario: Rejected order is not an entry
 - **WHEN** an oversized order is rejected and the player retries with a size within 2% risk

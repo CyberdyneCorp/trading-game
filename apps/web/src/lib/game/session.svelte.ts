@@ -23,7 +23,7 @@ import {
 import type { PlanEntry } from './analysis';
 import { stepsUntilNextQuestion } from './calibration.ts';
 import { t } from './i18n.svelte.ts';
-import { allowanceFor, settleRun } from './points.ts';
+import { adviceUsed, allowanceFor, settleRun } from './points.ts';
 import { randomSeedBytes, trustedKeys } from './packs.ts';
 import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type StoredPack } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
@@ -191,6 +191,7 @@ export class GameSession {
 
 	async startMission(missionId: string, seed = this.randomSeed()): Promise<void> {
 		await this.exclusive(async () => {
+			await this.settleAbandoned();
 			this.resetRun(missionId, seed);
 			this.options = { ...DEFAULT_RUN_OPTIONS, adviceAllowance: allowanceFor(this.progress) };
 			this.state = await this.eng().request({ kind: 'start', missionId, seed, options: { ...this.options } });
@@ -204,6 +205,7 @@ export class GameSession {
 		const pack = this.packs.find((p) => p.digest === digest);
 		if (!pack) return;
 		await this.exclusive(async () => {
+			await this.settleAbandoned();
 			this.resetRun(pack.scenarioId, seed);
 			this.options = { ...DEFAULT_RUN_OPTIONS }; // pack runs start without advisor or perks
 			this.state = await this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
@@ -581,7 +583,29 @@ export class GameSession {
 		const s = this.state;
 		const d = this.debrief;
 		if (!s || !d || s.status === 'active' || s.knownScenario) return;
-		const next = settleRun(this.progress, this.runId, s.advisor.advice.length, d.advisorPointsEarned);
+		this.saveProgress(settleRun(this.progress, this.runId, s.advisor.advice.length, d.advisorPointsEarned));
+	}
+
+	// Starting a run replaces the resumable one, which never reaches its debrief: charge the advice it
+	// used now (it earns nothing), or leaving a run would give its reads back for free.
+	private async settleAbandoned(): Promise<void> {
+		const run = await this.abandonedRun();
+		if (run) this.saveProgress(settleRun(this.progress, run.runId, run.used, 0));
+	}
+
+	// The stored active run (also after a reload), else the one in memory when nothing is stored.
+	private async abandonedRun(): Promise<{ runId: string; used: number } | null> {
+		const stored = await this.store?.activeRun().catch(() => null);
+		if (stored) {
+			const r = stored.record;
+			return r.status === 'active' && !r.packDigest ? { runId: r.runId, used: adviceUsed(stored.actions) } : null;
+		}
+		const s = this.state;
+		if (!s || s.status !== 'active' || s.knownScenario || !this.runId) return null;
+		return { runId: this.runId, used: s.advisor.advice.length };
+	}
+
+	private saveProgress(next: Progress): void {
 		if (next === this.progress) return;
 		this.progress = next;
 		void this.store?.saveProgress($state.snapshot(this.progress)).catch(() => (this.durable = false));

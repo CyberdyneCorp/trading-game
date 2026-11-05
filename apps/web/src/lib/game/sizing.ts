@@ -95,3 +95,31 @@ export function qtyForRisk(equity: number, riskPct: number, entry: number, stop:
 	const units = budget / ((distance + costPerUnit) * k.multiplier);
 	return Math.floor(units / lot + 1e-9) * lot;
 }
+
+/** What the engine reserves to accept an order: initial margin plus the taker fee on the part that adds exposure. */
+export function requiredMargin(incQty: number, entry: number, leverage: number, k: Costs): number {
+	const notional = incQty * k.multiplier * entry;
+	return notional / Math.max(1, leverage) + notional * k.takerFee;
+}
+
+/**
+ * Fits an order to the available balance, so a suggested size never fills a ticket the engine would
+ * reject: the lowest whole leverage from `from` up to `cap` that covers its margin, else the largest
+ * quantity (to the lot) that fits at the cap.
+ */
+export function fitToMargin(
+	qty: number,
+	entry: number,
+	available: number,
+	from: number,
+	cap: number,
+	k: Costs,
+	lot: number
+): { qty: number; leverage: number } {
+	for (let lev = Math.max(1, from); lev <= cap; lev++) {
+		if (requiredMargin(qty, entry, lev, k) <= available) return { qty, leverage: lev };
+	}
+	const perUnit = requiredMargin(1, entry, cap, k);
+	const fits = perUnit > 0 ? Math.floor(available / perUnit / lot + 1e-9) * lot : 0;
+	return { qty: Math.min(qty, fits), leverage: cap };
+}
