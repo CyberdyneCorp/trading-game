@@ -1,5 +1,6 @@
 #include "view/game/game_view.hpp"
 
+#include <algorithm>
 #include <raven/raven_accessibility.h>
 #include <raven/raven_controls.h>
 #include <raven/raven_draw.h>

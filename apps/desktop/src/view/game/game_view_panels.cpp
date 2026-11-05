@@ -1,4 +1,5 @@
 // GameView: static labels, top bar, chart texts and bar table, rail, orders, advisor, news, feed.
+#include <algorithm>
 #include <raven/raven_accessibility.h>
 #include <raven/raven_controls.h>
 #include <raven/raven_widget.h>

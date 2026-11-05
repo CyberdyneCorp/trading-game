@@ -1,6 +1,7 @@
 // GameViewModel with a fake engine: the command pipeline (one at a time, plan before an entry, queued
 // advances), notices with numbers, dialogs, keyboard, chart drags, protection, options, advisor, perks
 // and points. Values typed as a PT-BR player would (decimal comma).
+#include <algorithm>
 #include <doctest/doctest.h>
 
 #include <filesystem>

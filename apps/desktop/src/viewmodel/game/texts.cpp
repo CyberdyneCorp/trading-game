@@ -1,5 +1,6 @@
 #include "viewmodel/game/texts.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <utility>

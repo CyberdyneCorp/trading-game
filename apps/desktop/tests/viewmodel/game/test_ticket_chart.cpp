@@ -1,6 +1,9 @@
 // The order ticket (OrderTicket.svelte) and the chart viewmodel (Chart.svelte) on hand-made states.
 #include <doctest/doctest.h>
 
+#include <algorithm>
+#include <cmath>
+
 #include "support/fake_engine.hpp"
 #include "viewmodel/format.hpp"
 #include "viewmodel/game/chart_vm.hpp"
