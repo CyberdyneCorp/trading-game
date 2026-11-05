@@ -93,6 +93,7 @@ enum class AdviceReasonCode : std::uint8_t {
   NewsEarly = 8,
   FundingCrowded = 9,
   LowVolSqueeze = 10,
+  EventAhead = 11,  // an announced release within the next bars (G3): toward wait
 };
 
 // Bit flags on events.

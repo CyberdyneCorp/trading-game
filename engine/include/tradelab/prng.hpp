@@ -15,6 +15,7 @@ enum class Stream : std::uint64_t {
   Sandbox = 4,   // sandbox scenario variants
   Schedule = 5,  // per-seed timing of scripted segments and events
   Regime = 6,    // Markov regime chain path (generator v3, G1)
+  Outcome = 7,   // drawn event actuals and intensities (generator v4, G2)
 };
 
 class Pcg32 {

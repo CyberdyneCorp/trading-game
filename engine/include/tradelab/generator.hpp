@@ -15,6 +15,7 @@
 //   - news priced on arrival (an opening gap) and a per-seed schedule for scripted segments.
 // Volume is tied to |return|; funding follows recent drift.
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -25,9 +26,9 @@
 
 namespace tradelab {
 
-// v3: optional Markov regime chain (G1) and segment labels; not a digest input. Missions without a
-// chain generate exactly as in v2.
-constexpr std::uint32_t kGeneratorVersion = 3;
+// v3: optional Markov regime chain (G1) and segment labels; v4: drawn event outcomes and intensity
+// (G2). Not a digest input: specs that declare neither generate exactly as in v2.
+constexpr std::uint32_t kGeneratorVersion = 4;
 
 enum class Anchor : std::uint8_t {
   None,   // no structural pull besides the fair value
@@ -86,6 +87,18 @@ struct ScriptedEvent {
   double vol_mult = 1.5;       // volatility multiplier while active
   double iv_mult = 1.0;        // implied-vol multiplier while active
   double fair_impact = 0.03;   // log fair-value shift per unit of surprise at full credibility
+  // G2 (design D8.1): per-mille weights for the actual -2..+2, drawn per seed on Stream::Outcome;
+  // all zero = item.actual as declared. The intensity, a factor on fair_impact and on the reaction
+  // drift, is drawn in whole percent within [intensity_min, intensity_max] (default 1, 1).
+  std::array<std::uint32_t, 5> actual_weights{};
+  double intensity_min = 1.0;
+  double intensity_max = 1.0;
+};
+
+// What G2 drew for one event and seed: the actual and the intensity in percent (100 = as declared).
+struct EventOutcome {
+  std::int8_t actual = 0;
+  std::uint32_t intensity_pct = 100;
 };
 
 struct GeneratorSpec {
@@ -139,6 +152,14 @@ GeneratorSpec scheduled(const GeneratorSpec& spec, std::uint64_t seed);
 // Sampled reaction sign for an event (-1, 0, +1); exposed for distribution tests.
 int sample_reaction(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t index);
 
+// G2: the event's drawn actual and intensity for a seed (its declared actual and 100% when it
+// declares neither weights nor an intensity range); exposed for distribution tests.
+EventOutcome draw_outcome(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t index);
+
+// The spec as it plays for a seed: chain expanded, schedule applied, then each event's drawn actual
+// written into its headline and its intensity applied to fair_impact and drift.
+GeneratorSpec played(const GeneratorSpec& spec, std::uint64_t seed);
+
 // G4 (design D8.1): what a mission's market was, for the debrief only. Clients ask for it after the
 // run has ended (leak prevention, design D6).
 struct EventReveal {
@@ -148,6 +169,12 @@ struct EventReveal {
   std::int8_t surprise = 0;
   std::uint32_t intensity_pct = 100;  // factor on fair impact and reaction drift (100 = as declared)
   std::int8_t reaction = 0;           // sampled transient reaction: 0 none, +1/-1 up/down
+  std::int8_t expectation = 0;        // the consensus
+  std::uint8_t credibility = 100;
+  std::uint32_t announce_lead = 0;    // 0 = unannounced (G3)
+  std::int32_t gap_bp = 0;            // open after the release against the release close, basis points
+  std::int32_t move_bp = 0;           // close 3 bars after the release against the close before it
+  std::int32_t implied_bp = -1;       // ATM straddle of the first live expiry at the bar before, -1 = no options
 };
 
 struct MissionReveal {

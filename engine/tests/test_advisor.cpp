@@ -293,7 +293,7 @@ TEST_CASE("C ABI: start options, advice in the state and the debrief, no_advice_
   tl_run* run = tl_run_create_ex("m01-false-breakout", 5, 2, 0, 0, nullptr, 0);
   REQUIRE(run != nullptr);
   std::string s = tl_state(run);
-  CHECK(s.find("\"advisor\":{\"version\":1,\"allowance\":2,\"left\":2,\"newsLead\":0,\"calendar\":false,\"advice\":[]}") !=
+  CHECK(s.find("\"advisor\":{\"version\":2,\"allowance\":2,\"left\":2,\"newsLead\":0,\"calendar\":false,\"advice\":[]}") !=
         std::string::npos);
   std::string r = tl_request_advice(run, 1);
   CHECK(r.find("\"accepted\":true") != std::string::npos);

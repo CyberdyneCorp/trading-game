@@ -1,4 +1,4 @@
-// What the player's tools are worth in the built-in missions (all eight) (README "What can the player
+// What the player's tools are worth in the built-in missions (all twelve) (README "What can the player
 // predict?"). Every signal is read at a bar's close and entered at the next bar's open, the first
 // price a player can get. The bands keep the missions readable but never easy: no indicator far
 // from a coin flip, news priced on arrival rather than drifting in, scripted shocks that do not
@@ -129,32 +129,30 @@ TEST_CASE("Mission realism: no indicator alone is far from a coin flip") {
 
 TEST_CASE("Mission realism: news is priced on arrival; following it afterwards is no free trade") {
   // Before: following m01's denial, m03's incident or m05's outage from the next open won 86-98%.
+  // Outcomes are drawn per seed in the phase-2 missions (G2), so credible size-2 surprises are
+  // counted per mission and event kind wherever a seed drew one (design D8.3).
   std::map<std::string, Hits> follow;
-  std::map<std::string, double> gap;
-  std::size_t credible_shocks = 0;  // event kinds per mission with a credible size-2 surprise
-  for (const MissionInfo& m : mission_catalog()) {
-    Scenario s;
-    REQUIRE(build_mission(m.id, 1, s));
-    for (const NewsItem& n : s.news) credible_shocks += n.credibility >= 80 && std::abs(n.actual - n.expectation) >= 2 ? 1 : 0;
-  }
+  std::map<std::string, std::pair<double, int>> gap;  // signed by the surprise: sum, count
   for (const Market& mk : markets()) {
     for (const NewsItem& n : mk.s.news) {
       const std::uint32_t i = n.release_step;
       const int surprise = n.actual - n.expectation;
       const std::string key = mk.s.id + "/" + std::to_string(static_cast<int>(n.kind));
       follow[key].add(sign(surprise) != 0 ? sign(surprise) : n.tone, std::log(mk.close(i + kNewsHorizon) / mk.open(i + 1)));
-      if (n.credibility >= 80 && std::abs(surprise) >= 2) gap[key] += std::log(mk.open(i + 1) / mk.close(i)) / kSeeds;
+      if (n.credibility < 80 || std::abs(surprise) < 2) continue;
+      gap[key].first += sign(surprise) * std::log(mk.open(i + 1) / mk.close(i));
+      gap[key].second += 1;
     }
   }
   for (const auto& [key, h] : follow) {
     MESSAGE(key << ": follow from the next open " << h.rate());
     CHECK(h.rate() < 0.72);
   }
-  REQUIRE(gap.size() == credible_shocks);  // m01 denial, m03 incident, m05 outage so far
-  REQUIRE(credible_shocks >= 3);
+  REQUIRE(gap.size() >= 3);  // m01 denial, m03 incident, m05 outage, and drawn ones since batch B
   for (const auto& [key, g] : gap) {
-    MESSAGE(key << ": average gap at the next open " << g);
-    CHECK(g < -0.03);  // most of a credible -2 surprise is in the gap
+    const double mean = g.first / g.second;
+    MESSAGE(key << ": average gap at the next open, in the surprise's direction " << mean << " (" << g.second << ")");
+    CHECK(mean > 0.03);  // most of a credible size-2 surprise is in the gap
   }
 }
 

@@ -48,7 +48,8 @@ bool options_valid(const Scenario& s) {
 
 bool news_valid(const Scenario& s) {
   for (const NewsItem& n : s.news) {
-    if (n.release_step >= s.bars.size() || n.credibility > 100 || n.kind > NewsKind::LiquidityOutflow) return false;
+    if (n.release_step >= s.bars.size() || n.credibility > 100 || n.kind > NewsKind::NetworkUpgrade) return false;
+    if (n.announce_lead > n.release_step) return false;
     if (n.expectation < -2 || n.expectation > 2 || n.actual < -2 || n.actual > 2 || n.tone < -1 || n.tone > 1) return false;
   }
   return true;
