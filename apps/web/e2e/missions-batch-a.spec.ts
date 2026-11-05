@@ -25,18 +25,20 @@ async function playToEnd(page: Page) {
 	await expect(page.getByText(/Missão concluída|GAME OVER/)).toBeVisible();
 }
 
-async function startMission(page: Page, seed: number, index: number, title: RegExp, leverage: string) {
+async function startMission(page: Page, seed: number, index: number, title: RegExp, leverage: string, instrument: string) {
 	await page.goto(`/?seed=${seed}`);
 	await page.getByRole('button', { name: /Iniciar missão/ }).nth(index).click();
 	await page.getByRole('button', { name: 'Pular tutorial' }).click();
 	await expect(page.getByRole('heading', { name: title })).toBeVisible();
 	await expect(page.getByText(leverage)).toBeVisible(); // the mission's own cap, from the engine
+	await expect(page.getByText(instrument, { exact: true })).toBeVisible(); // its short permission, from the engine
 	await page.getByRole('button', { name: /Abrir terminal/ }).click();
 	await answerIfAsked(page);
 }
 
 async function buyWithPlan(page: Page, thesis: string) {
 	await page.getByTestId('ticket-stop').getByRole('button', { name: '2%', exact: true }).click();
+	await expect(page.getByTestId('ticket-stop').locator('input')).toHaveValue(/^\d+,\d{2}$/); // PT-BR decimal comma
 	await page.getByRole('button', { name: /Enviar ordem/ }).click();
 	await page.locator('textarea').fill(thesis);
 	await page.getByRole('button', { name: /Registrar plano/ }).click();
@@ -54,7 +56,7 @@ async function expectRegimeReveal(page: Page) {
 test('m06 thin book: long only, a limit-friendly book; the debrief shows the costs and the thin phase', async ({ page }) => {
 	const errors: string[] = [];
 	page.on('pageerror', (e) => errors.push(String(e)));
-	await startMission(page, 606, INDEX.m06, /Missão 06 · Livro fino/, '1x – 2x');
+	await startMission(page, 606, INDEX.m06, /Missão 06 · Livro fino/, '1x – 2x', 'Futuro perpétuo linear (somente long)');
 	await page.getByRole('radio', { name: /Vender \/ Short/ }).click();
 	await expect(page.getByText('Short indisponível nesta missão')).toBeVisible();
 	await page.getByRole('radio', { name: /Comprar \/ Long/ }).click();
@@ -70,7 +72,7 @@ test('m06 thin book: long only, a limit-friendly book; the debrief shows the cos
 });
 
 test('m07 size and exit: a trailing stop protects the trade; the reveal names the trend', async ({ page }) => {
-	await startMission(page, 707, INDEX.m07, /Missão 07 · Tamanho e saída/, '1x – 5x');
+	await startMission(page, 707, INDEX.m07, /Missão 07 · Tamanho e saída/, '1x – 5x', 'Futuro perpétuo linear (long e short)');
 	await buyWithPlan(page, 'Compro com stop pelo risco');
 	await advance(page);
 	await expect(page.getByText(/Execução #1/)).toBeVisible();
@@ -83,7 +85,7 @@ test('m07 size and exit: a trailing stop protects the trade; the reveal names th
 });
 
 test('m08 signals: the regime band and the signals-by-regime table appear only in the debrief', async ({ page }) => {
-	await startMission(page, 808, INDEX.m08, /Missão 08 · Sinais/, '1x – 5x');
+	await startMission(page, 808, INDEX.m08, /Missão 08 · Sinais/, '1x – 5x', 'Futuro perpétuo linear (long e short)');
 	await expect(page.getByTestId('debrief-regimes')).toHaveCount(0); // nothing of the reveal during the run
 	await buyWithPlan(page, 'Lateral: compro a sobrevenda');
 	await playToEnd(page);

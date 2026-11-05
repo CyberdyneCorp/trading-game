@@ -3,7 +3,7 @@
 	import { describeFindings, describeLesson } from '#lib/game/analysis.ts';
 	import { pctFromBp } from '#lib/game/advisor.ts';
 	import RegimeReveal from './RegimeReveal.svelte';
-	import { fmtLeverageBp, fmtLiqDistance, greekRows, regimeName, revealTexts, stopAdvice } from '#lib/game/debrief.ts';
+	import { entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
@@ -47,6 +47,8 @@
 	});
 	const bankrupt = $derived(s.status === 'bankrupt');
 	const hold = $derived(num(d.buyAndHoldPnl));
+	// Still open at the end: part of the net result, so the outcome lines add up to it.
+	const openAtEnd = $derived(openPnl(s.account));
 	const timeline = $derived(
 		[
 			...s.events
@@ -59,7 +61,8 @@
 					? `✎ ${t('debrief.noPlan')}`
 					: `✎ ${t('debrief.planLine', { thesis: p.thesis, inv: planLevel(p.invalidation), target: planLevel(p.target), conf: p.confidence })}`,
 				tone: 'info'
-			}))
+			})),
+			...newsTimeline(s.news, L)
 		]
 			.filter((x) => x.text)
 			.sort((x, y) => x.step - y.step)
@@ -95,6 +98,9 @@
 			<p class="muted">{fmtPct(a.netPnl / num(s.initialBalance), L, 2, true)} · {t('debrief.netPnl')}</p>
 			<dl class="kv">
 				<dt>{t('rail.realized')}</dt><dd>{fmtMoney(s.totals.realizedPnl, L, true)}</dd>
+				{#if openAtEnd !== 0}
+					<dt>{t('debrief.openPnl')}</dt><dd class={openAtEnd >= 0 ? 'up' : 'down'} data-testid="debrief-open">{fmtMoney(openAtEnd, L, true)}</dd>
+				{/if}
 				<dt>{t('rail.fees')}</dt><dd>{fmtMoney(s.totals.feesPaid, L)}</dd>
 				<dt>{t('rail.funding')}</dt><dd>{fmtMoney(s.totals.fundingNet, L, true)}</dd>
 				<dt>{t('debrief.spread')}</dt><dd data-testid="debrief-spread">{fmtMoney(d.spreadSlippage, L)}</dd>
@@ -198,7 +204,7 @@
 							<td class={tr.planRespected === false ? 'down' : tr.planRespected ? 'up' : 'muted'}>
 								{tr.planRespected == null ? '—' : tr.planRespected ? '✔ ' + t('trade.respected') : '✖ ' + t('trade.violated')}
 							</td>
-							{#if session.reveal}<td data-testid="trade-regime">{tr.regime ? regimeName(tr.regime) : '—'}</td>{/if}
+							{#if session.reveal}<td data-testid="trade-regime">{entryRegimeName(tr, session.reveal.spans)}</td>{/if}
 						</tr>
 						{#if advice}
 							<tr class="advice"><td></td><td colspan={session.reveal ? 9 : 8} class="down">✖ {advice}</td></tr>

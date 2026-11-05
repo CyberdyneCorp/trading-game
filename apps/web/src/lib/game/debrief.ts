@@ -1,9 +1,10 @@
 // Display helpers for the engine debrief (report-only numbers computed by engine/src/debrief.cpp).
 // The client formats; it never recomputes attribution, costs or leverage advice.
 
-import type { EngineTrade, GreekAttribution, PackReveal, RegimeSignals, RegimeSpan, SignalTally } from '#lib/engine/types.ts';
+import type { Account, EngineTrade, GreekAttribution, NewsView, PackReveal, RegimeSignals, RegimeSpan, SignalTally } from '#lib/engine/types.ts';
 import { fmtPct, fmtPrice, num } from './format.ts';
 import { t, type Locale } from './i18n.svelte.ts';
+import { headline } from './news.ts';
 
 export type GreekKey = 'delta' | 'gamma' | 'theta' | 'vega' | 'residual';
 
@@ -96,6 +97,32 @@ export function regimeName(label: RegimeSpan['label'], direction = 0): string {
 	const name = t(`regime.${label}`);
 	if (direction === 0) return name;
 	return `${name} ${t(direction > 0 ? 'regime.up' : 'regime.down')}`;
+}
+
+/** A trade's entry regime with the drawn direction of the span it was entered in ("Tendência de alta"). */
+export function entryRegimeName(tr: EngineTrade, spans: readonly RegimeSpan[]): string {
+	if (!tr.regime) return '—';
+	const span = spans.find((s) => s.label === tr.regime && tr.entryStep >= s.start && tr.entryStep < s.start + s.bars);
+	return regimeName(tr.regime, span?.direction ?? 0);
+}
+
+/** P&L of what is still open at the end (perpetual unrealized plus open options): equity minus wallet. */
+export function openPnl(account: Pick<Account, 'equity' | 'wallet'>): number {
+	return num(account.equity) - num(account.wallet);
+}
+
+export interface TimelineRow {
+	step: number;
+	key: string;
+	text: string;
+	tone: string;
+}
+
+/** Released headlines as debrief timeline rows (a fast-wire item still early is not in the market yet). */
+export function newsTimeline(news: readonly NewsView[], locale: Locale): TimelineRow[] {
+	return news
+		.filter((n) => !n.early)
+		.map((n) => ({ step: n.step, key: `n${n.step}-${n.kind}`, text: `📰 ${headline(n, locale)}`, tone: n.tone > 0 ? 'up' : n.tone < 0 ? 'down' : 'info' }));
 }
 
 /** Rows of the signals-by-regime table: only spans where at least one signal fired. */

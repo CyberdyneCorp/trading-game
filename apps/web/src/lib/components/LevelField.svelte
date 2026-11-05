@@ -9,8 +9,8 @@
 <script lang="ts">
 	// A price input for a stop or target with one-click presets, a "pick on chart" button and a
 	// distance readout (spec terminal-ui "Stop and target tools").
-	import { priceToTick } from '#lib/game/format.ts';
-	import { t } from '#lib/game/i18n.svelte.ts';
+	import { priceInputText } from '#lib/game/format.ts';
+	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
 	let {
 		label,
@@ -35,7 +35,7 @@
 	const id = $props.id();
 
 	function set(price: number) {
-		value = priceToTick(price, tick);
+		value = priceInputText(price, tick, i18n.locale);
 	}
 </script>
 

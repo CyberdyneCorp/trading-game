@@ -156,7 +156,7 @@ texts['m06-thin-book'] = {
 		],
 		topic: 'Estrutura e Ordens · zonas, limite × mercado, spread e capacidade',
 		reveal:
-			'Este cenário foi desenhado como um LIVRO FINO: suporte e resistência eram zonas, e cada ordem a mercado pagava spread e slippage (cerca de 0,6% ida e volta, um quarto do range). A manchete da formadora de mercado reduzindo ofertas não trazia surpresa: mudou o custo, não o valor justo, e o range ficou mais fino e mais nervoso — ordens grandes executaram em partes e stops saíram além do preço. Depois a liquidez voltou com uma surpresa positiva modesta e o mercado saiu do range em uma direção sorteada, mais vezes para cima. Quem comprou com limitada na zona e saiu com alvo pagou uma fração do custo de quem usou ordens a mercado.'
+			'Este cenário foi desenhado como um LIVRO FINO: suporte e resistência eram zonas, e cada ordem a mercado pagava spread e slippage (cerca de 0,6% ida e volta, um quarto do range). A manchete da formadora de mercado reduzindo ofertas não trazia surpresa: mudou a profundidade do livro, não o valor justo. Spread e slippage ficaram iguais, mas cada barra passou a aceitar menos contratos e o range ficou mais nervoso — ordens grandes executaram em partes e stops saíram além do preço. Depois a liquidez voltou com uma surpresa positiva modesta e o mercado saiu do range em uma direção sorteada, mais vezes para cima. Quem comprou com limitada na zona e saiu com alvo pagou uma fração do custo de quem usou ordens a mercado.'
 	},
 	en: {
 		title: 'Mission 06 · Thin book',
@@ -168,7 +168,7 @@ texts['m06-thin-book'] = {
 		],
 		topic: 'Structure and Orders · zones, limit vs market, spread and capacity',
 		reveal:
-			'This scenario was designed as a THIN BOOK: support and resistance were zones, and every market order paid spread and slippage (about 0.6% per round trip, a quarter of the range). The market maker pulling quotes carried no surprise: it changed costs, not fair value, and the range turned thinner and jumpier — large orders filled in pieces and stops filled beyond their price. Then liquidity returned with a modest positive surprise and the market left the range in a drawn direction, more often up. Buying with a limit at the zone and exiting at a target cost a fraction of what market orders paid.'
+			'This scenario was designed as a THIN BOOK: support and resistance were zones, and every market order paid spread and slippage (about 0.6% per round trip, a quarter of the range). The market maker pulling quotes carried no surprise: it changed the depth of the book, not fair value. Spread and slippage stayed the same, but each bar took fewer contracts and the range turned jumpier — large orders filled in pieces and stops filled beyond their price. Then liquidity returned with a modest positive surprise and the market left the range in a drawn direction, more often up. Buying with a limit at the zone and exiting at a target cost a fraction of what market orders paid.'
 	}
 };
 

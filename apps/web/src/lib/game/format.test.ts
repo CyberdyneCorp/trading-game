@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtNum, parseDecimal, planHeadline, priceToTick, qtyToLot, signMark } from './format.ts';
+import { fmtNum, parseDecimal, planHeadline, priceInputText, priceToTick, qtyToLot, signMark } from './format.ts';
 
 describe('format', () => {
 	it('floors quantities to the lot and emits engine decimal strings', () => {
@@ -10,6 +10,13 @@ describe('format', () => {
 	it('rounds prices to the tick', () => {
 		expect(priceToTick(100.123, 0.01)).toBe('100.12');
 		expect(priceToTick(-1, 0.01)).toBe('');
+	});
+	it('regression: a level written into a PT-BR input uses the decimal comma (chips wrote "99.96")', () => {
+		expect(priceInputText(99.957, 0.01, 'pt-BR')).toBe('99,96');
+		expect(priceInputText(1234.5, 0.01, 'pt-BR')).toBe('1234,50'); // no grouping in an input
+		expect(priceInputText(99.957, 0.01, 'en')).toBe('99.96');
+		expect(priceInputText(-1, 0.01, 'pt-BR')).toBe('');
+		expect(parseDecimal(priceInputText(106.594, 0.01, 'pt-BR'))).toBe(106.59); // reads back
 	});
 	it('regression: reads a level typed with a PT-BR decimal comma (was NaN)', () => {
 		expect(parseDecimal('95,56')).toBe(95.56);

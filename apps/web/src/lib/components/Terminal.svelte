@@ -11,7 +11,7 @@
 	import { keepsKey } from '#lib/game/hotkeys.ts';
 	import { positionPlannedRisk } from '#lib/game/journal.ts';
 	import { exitOnValidSide } from './chartDrag.ts';
-	import { fmtPrice, fmtQty, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
+	import { fmtPrice, fmtQty, num, priceInputText, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { costsOf, estimatedMarketEntry, fitToMargin } from '#lib/game/sizing.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
@@ -81,7 +81,7 @@
 	function onApplyAdvice(a: AdviceView) {
 		const c = session.state!.contract;
 		side = a.stance === 'short' ? 'sell' : 'buy';
-		ticketStop = priceToTick(num(a.stop), num(c.tickSize));
+		ticketStop = priceInputText(num(a.stop), num(c.tickSize), i18n.locale);
 		ticketSizeBy = 'qty';
 		// The read is sized for a market entry at the mark: a stale limit price would change its risk.
 		ticketType = 'market';
@@ -100,8 +100,8 @@
 	// Dragging SL?/TP? on the chart edits the ticket fields, snapped to the tick.
 	function onDragLevel(which: 'stop' | 'tp', price: number) {
 		const tick = num(session.state!.contract.tickSize);
-		if (which === 'stop') ticketStop = priceToTick(price, tick);
-		else ticketTp = priceToTick(price, tick);
+		if (which === 'stop') ticketStop = priceInputText(price, tick, i18n.locale);
+		else ticketTp = priceInputText(price, tick, i18n.locale);
 	}
 
 	// Dropping a working STOP/TP line moves that order in place (a bracket leg stays in its OCO pair).
