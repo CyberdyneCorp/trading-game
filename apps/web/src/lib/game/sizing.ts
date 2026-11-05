@@ -22,12 +22,21 @@ export interface TicketEstimate {
 	stopBeyondLiquidation: boolean;
 }
 
+/** A maintenance-margin tier: from `floor` notional (at entry) up, rate `mmr` and at most `maxLeverage`. */
+export interface Tier {
+	floor: number;
+	mmr: number;
+	maxLeverage: number;
+}
+
 export interface Costs {
 	multiplier: number;
 	takerFee: number;
+	/** Base maintenance rate; the tiers (policy v16), when present, start with it. */
 	maintenanceMargin: number;
 	halfSpread: number;
 	slippage: number;
+	tiers?: Tier[];
 }
 
 export function costsOf(c: Contract): Costs {
@@ -36,8 +45,19 @@ export function costsOf(c: Contract): Costs {
 		takerFee: Number(c.takerFee),
 		maintenanceMargin: Number(c.maintenanceMargin),
 		halfSpread: Number(c.halfSpread),
-		slippage: Number(c.slippage)
+		slippage: Number(c.slippage),
+		tiers: (c.marginTiers ?? []).map((t) => ({ floor: Number(t.notionalFloor), mmr: Number(t.maintenanceMargin), maxLeverage: t.maxLeverage }))
 	};
+}
+
+/** The tier of a position of `notional` at its entry, as the engine picks it (the last floor reached). */
+export function marginTier(k: Costs, notional: number): Tier {
+	let tier: Tier = { floor: 0, mmr: k.maintenanceMargin, maxLeverage: Infinity };
+	for (const t of k.tiers ?? []) {
+		if (notional < t.floor) break;
+		tier = t;
+	}
+	return tier;
 }
 
 /** Market orders fill at the next open adjusted against the player; estimate from the last close. */
@@ -46,15 +66,19 @@ export function estimatedMarketEntry(side: Side, mark: number, k: Costs): number
 	return side === 'buy' ? mark * (1 + adj) : mark * (1 - adj);
 }
 
-/** Isolated-margin liquidation price (same formula as the engine, execution-policy v1). */
+/**
+ * Isolated-margin liquidation price (same formula as the engine, execution-policy v1), at the
+ * maintenance rate of the tier of the position's notional at entry (policy v16).
+ */
 export function liquidationPrice(side: Side, qty: number, entry: number, margin: number, k: Costs): number | null {
 	const u = qty * k.multiplier;
 	if (u <= 0) return null;
+	const mmr = marginTier(k, u * entry).mmr;
 	if (side === 'buy') {
 		const num = u * entry - margin;
-		return num <= 0 ? null : num / (u * (1 - k.maintenanceMargin));
+		return num <= 0 ? null : num / (u * (1 - mmr));
 	}
-	return (u * entry + margin) / (u * (1 + k.maintenanceMargin));
+	return (u * entry + margin) / (u * (1 + mmr));
 }
 
 /**
@@ -116,6 +140,8 @@ export function fitToMargin(
 	k: Costs,
 	lot: number
 ): { qty: number; leverage: number } {
+	// A large size sits in a margin tier that may allow less leverage than the mission (policy v16).
+	cap = Math.min(cap, marginTier(k, qty * k.multiplier * entry).maxLeverage);
 	for (let lev = Math.max(1, from); lev <= cap; lev++) {
 		if (requiredMargin(qty, entry, lev, k) <= available) return { qty, leverage: lev };
 	}

@@ -4,7 +4,7 @@
 	import { campaignMissions, campaignPermissions, LOCKED_LEVERAGE_CAP, unlockStage } from '#lib/game/curriculum.ts';
 	import { tutorialFor } from '#lib/game/tutorials.ts';
 	import PerkPanel from './PerkPanel.svelte';
-	import { fmtMoney, fmtPct, num } from '#lib/game/format.ts';
+	import { fmtMoney, fmtNum, fmtPct, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
 	let { session }: { session: GameSession } = $props();
@@ -12,6 +12,12 @@
 	const L = $derived(i18n.locale);
 	const c = $derived(s.contract);
 	const txt = $derived(missionText(s.mission, L));
+	// Higher maintenance tiers by notional (policy v16): "≥ 50.000: 1% (20x)".
+	const tiers = $derived(
+		(c.marginTiers ?? []).slice(1).map((m) =>
+			t('brief.tier', { floor: fmtNum(num(m.notionalFloor), L, 0), mmr: fmtPct(num(m.maintenanceMargin), L, 1), max: m.maxLeverage })
+		)
+	);
 	const link = $derived(session.runCampaign);
 	const modeText = $derived.by(() => {
 		if (link) return t(link.index === 0 ? 'brief.modeCampaignFirst' : 'brief.modeCampaign', { n: link.index + 1, total: campaignMissions().length, seed: session.seed });
@@ -40,6 +46,7 @@
 			<dt>{t('brief.instrument')}</dt><dd>{t(c.allowShort ? 'brief.instrumentValue' : 'brief.instrumentValueLong')}</dd>
 			<dt>{t('brief.leverage')}</dt><dd>1x – {c.leverageCap}x</dd>
 			<dt>{t('brief.mmr')}</dt><dd>{fmtPct(num(c.maintenanceMargin), L)}</dd>
+			{#if tiers.length}<dt>{t('brief.tiers')}</dt><dd data-testid="brief-tiers">{tiers.join(' · ')}</dd>{/if}
 			<dt>{t('brief.costs')}</dt>
 			<dd>
 				{t('brief.costsValue', {

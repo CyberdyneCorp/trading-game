@@ -21,11 +21,11 @@
 ## 4. Order execution
 - [x] 4.1 Market, limit, stop-market, take-profit, trailing (close-based)
 - [x] 4.2 Lifecycle states and events; rejection reasons enum (`types.hpp`; `triggered` is defined but not emitted, see spec "Order lifecycle")
-- [ ] 4.3 Costs: fees, spread, slippage, tick/lot; capacity with priority — done: maker/taker fees, half-spread + slippage, tick/lot validation, shared per-bar capacity from bar volume with `capacityFromBarVolume` on limited fills; pending: price-then-sequence priority for capacity (orders are currently served by phase, then placement order)
+- [x] 4.3 Costs: fees, spread, slippage, tick/lot; capacity with priority — maker/taker fees, half-spread + slippage, tick/lot validation, shared per-bar capacity from bar volume with `capacityFromBarVolume` on limited fills; within each phase capacity is served by price (the level reached first), then sequence (policy v16, design D6j, `tests/test_policy_v16.cpp`)
 - [x] 4.4 Bracket/OCO, reduce-only, orphan cancellation (policy v14: an exit larger than the position it closes cancels its remainder on the same bar); `MoveOrder` (policy v13) moves a working stop/take-profit in place, keeping its OCO link (`tests/test_brackets.cpp`, Python replay action `move`)
 - [x] 4.5 Conservative intrabar policy with `ambiguousIntrabar` flags
 - [x] 4.6 Goldens SIM03–SIM07
-- [ ] 4.7 Percentage trailing distance — pending: trailing stops take a fixed price distance only (design D6b)
+- [x] 4.7 Percentage trailing distance (policy v16, design D6j): `trail_rate` command/order field, `tl_place_trailing_rate`, Python `Run.place_trailing_rate` and replay `trailRate`, web protect-position percent option (`TrailField.svelte`)
 
 ## 5. Perpetual futures
 - [x] 5.1 One-way positions, average entry, flips
@@ -33,7 +33,7 @@
 - [x] 5.3 Liquidation price + liquidation (adverse extreme first, gap handling, insurance fund)
 - [x] 5.4 Funding from series or synthetic rule (the generator emits the funding series)
 - [x] 5.5 Property tests: reconciliation (SIM08), non-negative balances; goldens FUT01–FUT04
-- [ ] 5.6 Maintenance-margin tiers by notional — pending: `ContractSpec` has a single `maintenance_margin` rate
+- [x] 5.6 Maintenance-margin tiers by notional (policy v16, design D6j): `ContractSpec.margin_tiers` keyed by notional at entry for the liquidation price, `leverage_above_tier` on placement, fill and `SetLeverage`, debrief safe leverage and the web ticket's liquidation estimate and tier warning use the tier; default tiers on built-in missions
 - [ ] 5.7 Mark-price bars for unrealized P&L, margin and liquidation, and the scenario flag `markFromLastPrice` when absent — pending: everything uses last-price closes and no scenario flag is exposed
 
 ## 6. Options

@@ -30,7 +30,7 @@ const char* reason_name(Reason r) {
       "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
       "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
       "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left", "order_moved"};
+      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left", "order_moved", "leverage_above_tier"};
   const auto i = static_cast<std::size_t>(r);
   return i < std::size(kNames) ? kNames[i] : "unknown";
 }
@@ -59,6 +59,19 @@ const char* run_status_name(RunStatus s) {
 
 const char* side_name(OrderSide s) { return s == OrderSide::Buy ? "buy" : "sell"; }
 
+// Every maintenance-margin tier, the base one first (floor 0), so clients estimate liquidation with
+// the same tier as the engine (policy v16).
+void write_margin_tiers(JsonOut& j, const ContractSpec& k) {
+  j.key("marginTiers").begin_arr();
+  j.begin_obj().field("notionalFloor", Money{}).field("maintenanceMargin", k.maintenance_margin);
+  j.field("maxLeverage", k.max_leverage).end_obj();
+  for (const MarginTier& t : k.margin_tiers) {
+    j.begin_obj().field("notionalFloor", t.notional_floor).field("maintenanceMargin", t.maintenance_margin);
+    j.field("maxLeverage", t.max_leverage).end_obj();
+  }
+  j.end_arr();
+}
+
 void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
   const ContractSpec& k = sc.contract;
   j.key("contract").begin_obj();
@@ -69,6 +82,7 @@ void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.field("fundingInterval", k.funding_interval).field("allowShort", sc.mission.allow_short);
   j.field("halfSpread", sc.costs.half_spread).field("slippage", sc.costs.slippage);
   j.field("capacityFraction", sc.costs.capacity_fraction);
+  write_margin_tiers(j, k);
   j.end_obj();
 }
 
@@ -105,6 +119,7 @@ void write_orders(JsonOut& j, const RunState& st) {
     j.field("qty", o.qty).field("filled", o.filled).field("price", o.price);
     j.field("reduceOnly", o.reduce_only).field("status", status_name(o.status)).field("placedStep", o.placed_step);
     j.field("parentId", o.parent_id).field("ocoGroup", o.oco_group).field("trailDistance", o.trail_distance);
+    j.field("trailRate", o.trail_rate);
     j.field("bracketStop", o.bracket_stop).field("bracketTp", o.bracket_tp).field("series", o.series);
     j.end_obj();
   }
@@ -638,6 +653,22 @@ const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int
       !parse_optional_price(trail_distance, &c.trail_distance, false)) {
     return error_json(*run, "invalid_tick");
   }
+  c.reduce_only = reduce_only != 0;
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_place_trailing_rate(tl_run* run, uint32_t client_id, int32_t side, const char* qty,
+                                   int32_t reduce_only, const char* trail_rate) {
+  if (side < 0 || side > 1) return error_json(*run, "unsupported_order_type");
+  Command c = next_command(*run, CommandType::PlaceOrder, client_id);
+  c.order_type = OrderType::TrailingStop;
+  c.side = static_cast<OrderSide>(side);
+  const auto q = parse_decimal<Qty>(qty == nullptr ? "" : qty);
+  if (!q.ok()) return error_json(*run, "invalid_quantity");
+  c.qty = q.value();
+  const auto r = parse_decimal<Rate>(trail_rate == nullptr ? "" : trail_rate);
+  if (!r.ok()) return error_json(*run, "invalid_tick");
+  c.trail_rate = r.value();
   c.reduce_only = reduce_only != 0;
   return result_json(*run, apply_command(run->scenario, run->state, c));
 }

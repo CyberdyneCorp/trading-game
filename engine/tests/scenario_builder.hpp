@@ -109,6 +109,15 @@ class Driver {
     c.reduce_only = reduce_only;
     return apply_command(sc_, st_, c);
   }
+  CommandResult trailing_rate(OrderSide side, const char* qty, const char* rate, bool reduce_only = true) {
+    Command c = base(CommandType::PlaceOrder);
+    c.order_type = OrderType::TrailingStop;
+    c.side = side;
+    c.qty = Q(qty);
+    c.trail_rate = R(rate);
+    c.reduce_only = reduce_only;
+    return apply_command(sc_, st_, c);
+  }
   CommandResult option(std::uint32_t series, OrderSide side, const char* qty, const char* limit = nullptr) {
     Command c = base(CommandType::PlaceOptionOrder);
     c.series = series;

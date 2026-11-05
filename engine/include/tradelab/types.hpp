@@ -61,6 +61,7 @@ enum class Reason : std::uint8_t {
   InvalidPlan = 30,
   NoAdviceLeft = 31,  // RequestAdvice with no allowance left (changes no state)
   OrderMoved = 32,    // OrderUpdate reason: a working exit moved to a new trigger (MoveOrder)
+  LeverageAboveTier = 33,  // the position's notional tier caps leverage below the run's (policy v16)
 };
 
 enum class EventType : std::uint8_t {

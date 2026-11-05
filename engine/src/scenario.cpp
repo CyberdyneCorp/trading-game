@@ -15,12 +15,29 @@ bool bar_valid(const Bar& b, Price tick) {
          on_grid(b.close.raw, tick.raw);
 }
 
+// Each added tier must sit above the previous one and leave initial margin above maintenance at its
+// own leverage cap (max_leverage * rate < 1), or a position would be liquidatable as it opens.
+bool tier_valid(const MarginTier& t, const MarginTier& prev) {
+  if (t.notional_floor <= prev.notional_floor || t.maintenance_margin < prev.maintenance_margin) return false;
+  if (t.max_leverage < 1 || t.max_leverage > prev.max_leverage) return false;
+  return static_cast<i128>(t.maintenance_margin.raw) * t.max_leverage < Rate::kScale;
+}
+
+bool tiers_valid(const ContractSpec& c) {
+  MarginTier prev{Money{}, c.maintenance_margin, c.max_leverage};
+  for (const MarginTier& t : c.margin_tiers) {
+    if (!tier_valid(t, prev)) return false;
+    prev = t;
+  }
+  return true;
+}
+
 bool contract_valid(const ContractSpec& c) {
   if (c.tick_size.raw <= 0 || c.lot_size.raw <= 0 || c.multiplier.raw <= 0) return false;
   if (c.min_qty.raw < c.lot_size.raw || !on_grid(c.min_qty.raw, c.lot_size.raw)) return false;
   if (c.max_leverage < 1 || c.max_leverage > 125 || c.funding_interval == 0) return false;
   const bool fees_ok = c.maker_fee.raw >= 0 && c.taker_fee.raw >= 0 && c.taker_fee < rate_one();
-  return fees_ok && c.maintenance_margin.raw > 0 && c.maintenance_margin < rate_one();
+  return fees_ok && c.maintenance_margin.raw > 0 && c.maintenance_margin < rate_one() && tiers_valid(c);
 }
 
 bool mission_valid(const Scenario& s) {

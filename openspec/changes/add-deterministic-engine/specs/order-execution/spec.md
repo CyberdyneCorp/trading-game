@@ -56,11 +56,15 @@ A stop-market order SHALL convert to a market order when triggered and SHALL NOT
 - **AND** the debrief data SHALL record requested trigger 95 and executed price
 
 ### Requirement: Trailing stop
-A trailing stop-market SHALL track the best close observed since activation by a fixed distance or percentage. In OHLC mode, a trailing update computed at the close of bar `t` SHALL only be effective from bar `t+1`.
+A trailing stop-market SHALL track the best close observed since activation by a fixed distance or percentage. In OHLC mode, a trailing update computed at the close of bar `t` SHALL only be effective from bar `t+1`. A percentage trail (execution policy 16) SHALL take its distance as a rate of each close in (0, 1), with the distance rounded up and the trigger rounded outward onto the tick (down for a sell, up for a buy); an order SHALL give exactly one of a distance or a rate, otherwise it SHALL be rejected with `invalid_tick`.
 
 #### Scenario: Trailing uses closes
 - **WHEN** a bar has a high that would have tightened the trail but closes lower
 - **THEN** the trail SHALL be updated from the close, not the high
+
+#### Scenario: Percentage trail
+- **WHEN** a long places a 2% trailing stop at a close of 100 and the next bar closes at 110
+- **THEN** the trigger SHALL be 98 and then 107.80, effective from the bar after that close
 
 ### Requirement: Brackets, OCO and reduce-only
 Exit orders of a bracket SHALL be reduce-only and SHALL share the filled entry quantity. Partial entry fills SHALL create protection only for the filled quantity. A fill on one exit SHALL reduce its sibling by the same quantity. When the position reaches zero, all other reduce-only orders for that market SHALL be cancelled with reason `position_closed`, after the fill event that closed it; the order whose fill closed the position SHALL NOT be reported as cancelled when it filled completely. When its quantity was larger than the position it closed (e.g. a bracket leg left at its size after a partial close), its unfilled remainder SHALL be cancelled with reason `position_closed` on the same bar, right after its own fill update (execution policy v14), so no exit stays working without a position. A reduce-only order SHALL never increase or flip a position.
@@ -93,7 +97,7 @@ When only OHLC data is available the engine SHALL: process the open (gaps) first
 - **AND** the fill SHALL be flagged `ambiguousIntrabar`
 
 ### Requirement: Costs
-Each fill SHALL charge the scenario's maker fee (limits and take-profits) or taker fee (market and stop fills) on notional, and taker fills SHALL pay half-spread plus slippage against the player, rounded onto the tick grid. Quantities that are not a multiple of the lot size (or below the minimum quantity for non-reduce-only orders) SHALL be rejected with reason `invalid_quantity`; client sizing helpers round down to the lot before submitting. Prices and trailing distances not on a tick SHALL be rejected with reason `invalid_tick`.
+Each fill SHALL charge the scenario's maker fee (limits and take-profits) or taker fee (market and stop fills) on notional, and taker fills SHALL pay half-spread plus slippage against the player, rounded onto the tick grid. Quantities that are not a multiple of the lot size (or below the minimum quantity for non-reduce-only orders) SHALL be rejected with reason `invalid_quantity`; client sizing helpers round down to the lot before submitting. Prices and trailing distances not on a tick, and trailing rates outside (0, 1), SHALL be rejected with reason `invalid_tick`.
 
 #### Scenario: Lot rounding
 - **WHEN** a risk-sized order computes 16.66 contracts with a lot size of 0.1
@@ -101,11 +105,15 @@ Each fill SHALL charge the scenario's maker fee (limits and take-profits) or tak
 - **AND** an order submitted with 16.66 SHALL be rejected with reason `invalid_quantity`
 
 ### Requirement: Shared capacity
-The sum of all player fills in a step SHALL NOT exceed the step's simulated capacity (the scenario's capacity fraction of bar volume, rounded down to the lot). In OHLC mode capacity derived from bar volume is a retrospective approximation: a fill limited by it SHALL be flagged `capacityFromBarVolume` (`capacityLimited` in the C ABI JSON), and capacity SHALL NOT be shown to the player before the bar completes.
+The sum of all player fills in a step SHALL NOT exceed the step's simulated capacity (the scenario's capacity fraction of bar volume, rounded down to the lot). In OHLC mode capacity derived from bar volume is a retrospective approximation: a fill limited by it SHALL be flagged `capacityFromBarVolume` (`capacityLimited` in the C ABI JSON), and capacity SHALL NOT be shown to the player before the bar completes. The step's phases keep the bar's own order (open, adverse exits, favorable exits, entries); within a phase, orders competing for capacity SHALL be served by price priority, then sequence (execution policy 16): the level the market reaches first (at the open, along the gap from the previous close; intrabar, nearest to the open), then the earlier command sequence (bracket legs carry their entry's), then the order id. Market orders at the open SHALL be served by sequence.
 
 #### Scenario: Capacity exhausted
 - **WHEN** two orders compete for capacity in one step
 - **THEN** they SHALL be filled by price priority then sequence until capacity is exhausted
+
+#### Scenario: Better price first, whatever the placement order
+- **WHEN** a buy limit at 98 is placed before a buy limit at 99, and a bar falling from 100 to 97 has capacity for only one of them
+- **THEN** the limit at 99 SHALL fill and the limit at 98 SHALL keep resting
 
 ### Requirement: Margin check on acceptance
 An order that would open or increase a position SHALL be rejected with reason `insufficient_margin` if available balance cannot cover its initial margin plus estimated taker fees at the order's worst admissible price (its limit or trigger price; for market orders the last close plus twice the half-spread and slippage). Accepted resting orders SHALL reserve that margin until they fill or are cancelled, and the margin SHALL be checked again at fill. Reduce-only orders SHALL NOT require margin.

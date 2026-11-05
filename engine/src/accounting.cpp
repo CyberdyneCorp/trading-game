@@ -27,10 +27,25 @@ Money unrealized_pnl(const Scenario& sc, const Position& p, Price mark) {
   return unwrap(mul<Money>(units(sc, p.qty), diff, Rounding::Floor));
 }
 
+MarginTier margin_tier(const ContractSpec& c, Money n) {
+  MarginTier t{Money{}, c.maintenance_margin, c.max_leverage};
+  for (const MarginTier& x : c.margin_tiers) {
+    if (n < x.notional_floor) break;
+    t = x;
+  }
+  return t;
+}
+
+Money notional_after(const Scenario& sc, const Position& p, OrderSide side, Qty inc, Price px) {
+  const Money add = notional(sc, inc, px, Rounding::Ceil);
+  const bool same_side = !p.flat() && p.is_long() == (side == OrderSide::Buy);
+  return same_side ? Money::from_raw(notional(sc, p.qty, p.entry, Rounding::Ceil).raw + add.raw) : add;
+}
+
 bool liquidation_price(const Scenario& sc, const Position& p, Price* out) {
   if (p.flat()) return false;
   const Qty u = units(sc, abs_qty(p.qty));
-  const Rate mmr = sc.contract.maintenance_margin;
+  const Rate mmr = margin_tier(sc.contract, notional(sc, p.qty, p.entry, Rounding::Ceil)).maintenance_margin;
   const Rate one = rate_one();
   if (p.is_long()) {
     // L = (u*E - M) / (u*(1 - mmr)); rounded up so liquidation is never later than the formula.
@@ -45,6 +60,14 @@ bool liquidation_price(const Scenario& sc, const Position& p, Price* out) {
   const Qty den = unwrap(mul<Qty>(u, Rate::from_raw(one.raw + mmr.raw), Rounding::Ceil));
   *out = unwrap(div<Price>(num, den, Rounding::Floor));
   return true;
+}
+
+Price trail_trigger(const Scenario& sc, OrderSide side, Price close, Price distance, Rate rate) {
+  const bool sell = side == OrderSide::Sell;
+  const Price dist = rate.raw > 0 ? unwrap(mul<Price>(close, rate, Rounding::Ceil)) : distance;
+  const Price raw = Price::from_raw(sell ? close.raw - dist.raw : close.raw + dist.raw);
+  const Price px = unwrap(round_to_step(raw, sc.contract.tick_size, sell ? Rounding::Floor : Rounding::Ceil));
+  return std::max(px, sc.contract.tick_size);
 }
 
 void push_event(RunState& st, Event ev) {

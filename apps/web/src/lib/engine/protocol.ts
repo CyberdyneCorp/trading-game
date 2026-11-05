@@ -36,6 +36,8 @@ export type EngineRequest =
 			attachStop: string | null;
 			attachTp: string | null;
 			trailDistance: string | null;
+			/** Policy v16: a trailing stop at this rate of the best close ("0.02" = 2%) instead of a distance. */
+			trailRate?: string | null;
 	  }
 	| {
 			kind: 'option';

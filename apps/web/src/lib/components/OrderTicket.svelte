@@ -28,8 +28,8 @@
 
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { costsOf, estimate, estimatedMarketEntry, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin } from '#lib/game/sizing.ts';
-	import { fmtMoney, fmtNum, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
+	import { costsOf, estimate, estimatedMarketEntry, marginTier, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin } from '#lib/game/sizing.ts';
+	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
 		distanceOf,
@@ -40,9 +40,11 @@
 		swingStop,
 		targetFromR,
 		targetOnWinningSide,
+		trailRateFromPercent,
 		type BarTuple
 	} from '#lib/game/stops.ts';
 	import LevelField, { type LevelChip } from './LevelField.svelte';
+	import TrailField from './TrailField.svelte';
 
 	let {
 		session,
@@ -130,6 +132,13 @@
 	const addedQty = $derived(posQty === 0 || posQty > 0 === (side === 'buy') ? qty : Math.max(0, qty - Math.abs(posQty)));
 	const needMargin = $derived(requiredMargin(addedQty, entry, lev, k));
 	const cantAfford = $derived(addedQty > 0 && needMargin > num(s.account.available));
+	// Policy v16: the position this order leads to sits in a margin tier that may cap leverage lower.
+	const notionalAfter = $derived(
+		(posQty !== 0 && posQty > 0 === (side === 'buy') ? Math.abs(posQty) * num(s.position.entry) * k.multiplier : 0) +
+			addedQty * entry * k.multiplier
+	);
+	const tier = $derived(marginTier(k, notionalAfter));
+	const aboveTier = $derived(addedQty > 0 && lev > tier.maxLeverage);
 	const tp = $derived(tpInput ? parseDecimal(tpInput) : null);
 	const stopWrongSide = $derived(stop != null && !stopOnLosingSide(side, entry, stop));
 	const tpWrongSide = $derived(tp != null && !targetOnWinningSide(side, entry, tp));
@@ -139,6 +148,7 @@
 			qty > 0 &&
 			!shortBlocked &&
 			!cantAfford &&
+			!aboveTier &&
 			!stopWrongSide &&
 			!tpWrongSide &&
 			(!needsPrice || parseDecimal(priceInput) > 0)
@@ -197,6 +207,10 @@
 	let protStop = $state('');
 	let protTp = $state('');
 	let protTrail = $state('');
+	let protTrailPct = $state('');
+	let trailMode = $state<'price' | 'pct'>('price');
+	const trailRate = $derived(trailMode === 'pct' && protTrailPct ? trailRateFromPercent(parseDecimal(protTrailPct)) : null);
+	const trailSet = $derived(trailMode === 'pct' ? trailRate != null : !!protTrail);
 	const posSide = $derived<OrderSideName>(posQty > 0 ? 'buy' : 'sell');
 	const posEntry = $derived(num(s.position.entry));
 	const protStopN = $derived(protStop ? parseDecimal(protStop) : null);
@@ -221,10 +235,16 @@
 		const size = s.position.qty.replace('-', '');
 		if (protStop) await session.placeOrder('stop_market', exit, size, priceToTick(parseDecimal(protStop), tick), true);
 		if (protTp) await session.placeOrder('take_profit', exit, size, priceToTick(parseDecimal(protTp), tick), true);
-		if (protTrail) await session.placeOrder('trailing_stop', exit, size, null, true, { trail: priceToTick(parseDecimal(protTrail), tick) });
+		if (trailSet) await session.placeOrder('trailing_stop', exit, size, null, true, trailExtras());
 		protStop = '';
 		protTp = '';
 		protTrail = '';
+		protTrailPct = '';
+	}
+
+	// A trailing stop by percent of the close (policy v16) or by a fixed price distance.
+	function trailExtras() {
+		return trailMode === 'pct' ? { trailRate } : { trail: priceToTick(parseDecimal(protTrail), tick) };
 	}
 </script>
 
@@ -332,6 +352,11 @@
 			⚠ {t('ticket.cantAfford', { need: fmtMoney(needMargin, L), avail: fmtMoney(s.account.available, L) })}
 		</p>
 	{/if}
+	{#if aboveTier}
+		<p class="warnbox" role="alert" data-testid="ticket-above-tier">
+			⚠ {t('ticket.aboveTier', { notional: fmtMoney(notionalAfter, L), max: tier.maxLeverage, mmr: fmtPct(tier.mmr, L, 1) })}
+		</p>
+	{/if}
 	{#if est.stopBeyondLiquidation}<p class="warnbox" role="alert">⚠ {t('ticket.stopBeyondLiq')}</p>{/if}
 	{#if stop == null && qty > 0}<p class="small attention">{t('ticket.noStop')}</p>{/if}
 	<p class="small muted">{t('ticket.attachNote')}</p>
@@ -366,11 +391,11 @@
 				{onPick}
 			/>
 			<div class="full">
-				<LevelField testid="protect-trail" label={t('ticket.trail')} bind:value={protTrail} {tick} chips={trailChips} />
+				<TrailField bind:distance={protTrail} bind:pct={protTrailPct} bind:mode={trailMode} {tick} chips={trailChips} exit={posQty > 0 ? 'sell' : 'buy'} close={mark} />
 			</div>
 		</div>
 		<div class="row">
-			<button onclick={protect} disabled={session.busy || !!protStopWarn || !!protTpWarn || (!protStop && !protTp && !protTrail)}>
+			<button onclick={protect} disabled={session.busy || !!protStopWarn || !!protTpWarn || (!protStop && !protTp && !trailSet)}>
 				{t('ticket.protectSubmit')}
 			</button>
 			<button class="warn" onclick={() => session.closePosition()} disabled={session.busy}>✕ {t('ticket.close')} <kbd>X</kbd></button>

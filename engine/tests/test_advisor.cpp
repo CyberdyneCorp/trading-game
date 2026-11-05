@@ -329,6 +329,6 @@ TEST_CASE("Golden: scripted run with start options and advice is bit-frozen acro
   CHECK(s.find("\"allowance\":3,\"left\":1,\"newsLead\":1,\"calendar\":true") != std::string::npos);
   CHECK(s.find("\"type\":\"fill\"") != std::string::npos);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"10ad393347fd13bcb033c8a6bf4816298c1d312668ad888a2c1faa6b2a28a4ce\","
+        "\"digest\":\"e249f38ada213a269e8dc4743d58f1dfdada962e0a00abd6f24d18f918fa474f\","
         "\"eventsDigest\":\"c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f\"}");
 }

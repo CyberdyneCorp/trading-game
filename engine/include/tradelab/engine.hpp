@@ -13,7 +13,7 @@ namespace tradelab {
 // Engine release, checked against a pack's engineCompatibility range.
 inline constexpr const char* kEngineVersion = "0.1.0";
 
-constexpr std::uint32_t kExecutionPolicyVersion = 15;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap); v13 MoveOrder (a working exit moved in place, OCO link kept); v14 an exit that closes the position cancels its own remainder on the same bar; v15 a stop cut short by capacity executes its remainder at the next opens (it is a market order once triggered)
+constexpr std::uint32_t kExecutionPolicyVersion = 16;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap); v13 MoveOrder (a working exit moved in place, OCO link kept); v14 an exit that closes the position cancels its own remainder on the same bar; v15 a stop cut short by capacity executes its remainder at the next opens (it is a market order once triggered); v16 capacity served by price then sequence within each phase, percentage trailing stops, maintenance-margin tiers by notional
 
 // Calibration questions (spec mission-scoring "Calibration"): asked every kQuestionEvery steps from
 // the first decision step while the resolving bar exists; resolved kQuestionHorizon bars later.
@@ -47,7 +47,8 @@ struct Command {
   std::int32_t leverage = 1;   // SetLeverage
   Price attach_stop;           // PlaceOrder bracket: protective stop for the filled quantity
   Price attach_tp;             // PlaceOrder bracket: take-profit for the filled quantity
-  Price trail_distance;        // TrailingStop
+  Price trail_distance;        // TrailingStop: fixed distance from the best close
+  Rate trail_rate;             // TrailingStop (policy v16): or a rate of it, e.g. 0.02 = 2% (one of the two)
   std::uint32_t series = 0;    // PlaceOptionOrder
   Money margin_delta;          // AdjustMargin
   PlanRecord plan;             // RecordPlan (step is set by the engine)

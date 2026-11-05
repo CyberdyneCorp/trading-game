@@ -24,6 +24,7 @@ void write_order(Writer& w, const Order& o) {
   w.u32(o.oco_group);
   w.fixed(o.trail_distance);
   w.u32(o.series);
+  w.fixed(o.trail_rate);  // policy v16
 }
 
 void write_event(Writer& w, const Event& e) {
