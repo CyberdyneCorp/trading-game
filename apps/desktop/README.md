@@ -2,7 +2,7 @@
 
 C++20 client on [Raven](https://github.com/oscar-soirey/Raven) (C11 GUI library, Apache-2.0) that links the engine (`tradelab::engine`) directly. The web client (`apps/web`) is the reference for every screen, behaviour and text. Plan and requirements: `openspec/changes/add-native-clients` (`desktop-client` spec, design "Desktop", tasks section 1).
 
-**Status: foundation.** Mission menu (12 missions), briefing, a first terminal (candle chart, Space / Shift+Space to advance 1 / 5 bars, market buy/sell with comma input, the account line) and a first debrief, in PT-BR (default) and en. Not yet: the full terminal, storage and resume, packs, audio, theme/CRT, packaging, updates (see the open tasks). Guest-only and offline: sign-in and sync wait for Cyberdyne Auth. Windows is out of scope for this change.
+**Status: shell screens and retro look.** Menu (resume line for a run left from the terminal, campaign panel, the 12 missions with their Completed mark, settings), briefing (mission rules, permissions, limits, margin tiers, mark-price note, costs, campaign locks), the full debrief (score dimensions, findings, next lesson, per-trade R table with the stop/liquidation advice, P&L split by Greek, spread/slippage, safe leverage, regime and release reveal tables, campaign outcome and report, decisions, advisor reads, timeline), campaign runs, curriculum map, journal, the Academy lesson runner and settings (language, shortcuts, CRT effects, text scale, colorblind palette), a first terminal (candle chart, Space / Shift+Space, market buy/sell with comma input, the account line), in PT-BR (default) and en, with the TradeLab theme, bundled fonts and a CRT post-process. Progress and settings live in memory until the SQLite store (task 1.9) backs their repositories. Not yet: the full terminal, storage and resume across launches, packs, audio, packaging, updates (see the open tasks). Guest-only and offline: sign-in and sync wait for Cyberdyne Auth. Windows is out of scope for this change.
 
 ## Requirements
 
@@ -48,13 +48,21 @@ src/model/        tradelab_desktop_model: engine adapter (engine_run: C ABI tl_*
                   command queue, coalesced snapshots), json reader, i18n catalog + {name} formatter, embedded resources
 src/viewmodel/    tradelab_desktop_viewmodel: AppViewModel (screen flow, commands, texts per named widget),
                   format (port of the web's format.ts), chart_geometry, vulkan_message, widget_names
+                  shell screens: shell.cpp (run life as progress sees it, campaign, lessons, settings commands),
+                  screens/ (one ScreenModel per screen: texts, screen-reader names, toned lines, tables, flags),
+                  ports of the web helpers (curriculum, campaign + campaignReport, journal, shortcuts as keymap,
+                  analysis/objectives/debrief texts as report_texts, the Academy lesson runner)
 src/view/         tradelab_desktop_view (the only target linking Raven): App wiring, AppView (XML screens in a
-                  Switcher, actions, keyboard hook), chart painter; raven/ adapter (Rtask_post, actions, find, text)
+                  Switcher, actions, keyboard hook), chart painter; raven/ adapter (Rtask_post, actions, find, text);
+                  screens/ (ShellView: applies ScreenModels and binds the shell's callbacks; RetroLook: theme,
+                  fonts, text scale, CRT overlay)
 src/platform/     system language, native error alert
 src/main.cpp      tradelab executable
 resources/        views/*.xml (one per screen), i18n/strings.csv (generated), i18n/desktop.json (desktop-only
-                  texts), packs/pinned_keys.json (generated)
-scripts/          gen_i18n.mjs, check_i18n.mjs, i18n_lib.mjs, check_raven_pin.py
+                  texts), packs/pinned_keys.json and web/content.json (generated), theme/*.theme.xml,
+                  fonts/ (OFL), shaders/crt.frag + crt.spv
+scripts/          gen_i18n.mjs, check_i18n.mjs, i18n_lib.mjs, screen_sources.mjs, check_raven_pin.py,
+                  build_shaders.sh, check_complexity.sh
 tests/            unit (model + viewmodel), headless, windowed, cmake rules, scripts; support/ (driver, PNG, UI queue)
 ```
 
@@ -66,14 +74,23 @@ Views are embedded in the binary (`cmake/EmbedResources.cmake`); widget and acti
 
 Never retyped: `scripts/gen_i18n.mjs` reads `apps/web/src/lib/game/i18n.svelte.ts` (`pt`, `en`), `missions.ts` (mission texts → `mission.<id>.<field>`) and `packs.ts` (pinned publisher keys) with the web's own TypeScript compiler API, adds `resources/i18n/desktop.json`, and writes `resources/i18n/strings.csv` (Raven's locale CSV, `key,pt-BR,en`) and `resources/packs/pinned_keys.json`.
 
+The shell screens' other web sources go through `scripts/screen_sources.mjs`: texts from `objectives.ts` (`objective.<code>`), `analysis.ts` (`finding.<code>[.safe|.one]`, `finding.liquidatedOnly`, `nextLesson.<code>`), `news.ts` (`newsKind.<kind>`, `newsLevel.<0..4>`) and `academy.ts` (`academyLesson.<id>.…`), and the screen rules as data in `resources/web/content.json` (curriculum `STAGES`, campaign constants, `REPORT_MIN_TRADES`, `AFTER_RELEASE_BARS`, `SHORTCUT_ACTIONS` / `DEFAULT_KEYMAP`, and academy `LESSONS`, read by transpiling the module since it is built with helpers). `check_i18n.mjs` fails when any of them drifts.
+
 ```bash
 (cd apps/web && npm ci)                      # the generator uses apps/web/node_modules/typescript
 node apps/desktop/scripts/gen_i18n.mjs       # after any web i18n / missions / packs / desktop.json change
 node apps/desktop/scripts/check_i18n.mjs     # CI: drift, duplicate keys, placeholder mismatch
-node --test apps/desktop/tests/scripts/check_i18n.test.mjs
+node --test apps/desktop/tests/scripts/check_i18n.test.mjs apps/desktop/tests/scripts/screen_sources.test.mjs
 ```
 
 Numbers follow the web's `format.ts` (ported with its test vectors): decimal comma and `.` grouping in PT-BR, never `-0,00`; typed numbers accept either decimal mark (`1,5` = 1.5).
+
+## Retro look
+
+- **Theme:** `resources/theme/tradelab.theme.xml` (the web's `app.css` tokens: window `#0B1010`, panel `#121C1B`, accent `#39FF88`, text `#E3F5EA`, attention `#FFC857`, info `#4FD8FF`; square corners, solid, short transitions) with the label classes `muted up down attention info accent title`; `tradelab-cb.theme.xml` is the colorblind palette (blue/orange for up/down, the web's `data-palette='cb'`). A unit test checks WCAG 2.2 AA (4.5:1) for every text colour on every background the theme declares.
+- **Fonts** (bundled, embedded in the binary): IBM Plex Mono for text, tables and numbers, VT323 for titles only; both SIL Open Font License 1.1 (`resources/fonts/OFL-*.txt`; named in Settings). VT323 draws one font pixel per 0.08 em (its cap height is 7 pixels of 80/1000 em), so 12.5 px is one screen pixel per font pixel: titles use 25, 37.5 and 50 px.
+- **CRT:** `resources/shaders/crt.frag` (a Raven effect, `raven_shader.h`) runs on a full-window overlay `Border` that reads what is behind it: scanlines, bloom, a fixed grain and a vignette; nothing depends on time, so it never flickers. Settings has the master toggle (the web's `settings.crt`) and one per effect; all are off when the system asks for reduced motion. Without a usable shader (null backend, a driver refusing it) the overlay stays collapsed. `crt.spv` is checked in, so builds need no shader compiler: after editing the shader run `scripts/build_shaders.sh <Raven checkout>` (glslangValidator); a `script` test fails when `crt.spv.sha256` no longer matches `crt.frag`.
+- **Accessibility:** every control has a screen-reader name (mission Start buttons say which mission), tables are Raven `Table`s, the focus ring is always shown, and every shell screen is usable from the keyboard (Tab / Enter / arrows); text scale 100–200% in Settings (`Raccessibility_set_text_scale`).
 
 ## Test
 
@@ -84,12 +101,12 @@ ctest --test-dir build/macos-release -L windowed --output-on-failure   # needs a
 
 | Label | What |
 |---|---|
-| `unit` | `tradelab_desktop_unit_tests` (doctest): json, i18n, format (web vectors), chart geometry, AppViewModel with a fake engine and with the real EngineHost, EngineHost (50-step batch = 50 single steps by digest, sink only on the UI thread, FIFO under concurrent enqueue, coalescing), Vulkan message |
-| `headless` | `tradelab_desktop_headless_tests`: Raven null platform + null backend; every view loads, every named widget/action exists and is bound, injected clicks/keys/text play mission 01 from the menu to the debrief |
-| `windowed` | `tradelab_desktop_windowed_tests`: the Vulkan renderer driven by `Rwindow_inject_*`; `Rwindow_capture` frames saved as PNG in `$TRADELAB_CAPTURE_DIR` (default `build/<preset>/captures`); m01 to the debrief and a 1024×768 terminal |
+| `unit` | `tradelab_desktop_unit_tests` (doctest): json, i18n, format (web vectors), chart geometry, AppViewModel with a fake engine and with the real EngineHost, the shell's web ports (curriculum, campaign + report, journal, shortcuts, lesson runner, finding/objective texts, release rows, CRT toggles), every shell screen from real engine snapshots, theme contrast, EngineHost (50-step batch = 50 single steps by digest, sink only on the UI thread, FIFO under concurrent enqueue, coalescing), Vulkan message |
+| `headless` | `tradelab_desktop_headless_tests`: Raven null platform + null backend; every view loads, every named widget/action exists and is bound, injected clicks/keys/text play mission 01 from the menu to the debrief; keyboard-only menu → briefing → terminal; every shown control of every shell screen has a screen-reader name; curriculum map → Academy lesson → stage passed; journal; settings (palette, CRT, text scale, a remapped shortcut) |
+| `windowed` | `tradelab_desktop_windowed_tests`: the Vulkan renderer driven by `Rwindow_inject_*`; `Rwindow_capture` frames saved as PNG in `$TRADELAB_CAPTURE_DIR` (default `build/<preset>/captures`); m01 to the debrief and a 1024×768 terminal; a campaign mission from the menu through its briefing to its debrief and on to the next; curriculum map, an Academy lesson (chart pixels), journal; CRT on/off and the colorblind palette |
 | `novulkan` | Linux: the app with no usable Vulkan driver must exit 3 with the message (PT-BR and en) |
 | `cmake` | configure with `-ffast-math` fails naming the flag; a viewmodel file including a Raven header fails to build while the same file builds in the view layer |
-| `script` | `check_raven_pin.py` and its tests |
+| `script` | `check_raven_pin.py` and its tests; the checked-in `crt.spv` matches `crt.frag` and is SPIR-V |
 
 Linux in Docker (what CI does):
 
