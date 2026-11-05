@@ -158,7 +158,7 @@ const TEXTS: Record<string, Record<Locale, LessonText>> = {
 				pct: {
 					title: 'Decisão: calcule o retorno',
 					body: 'A barra 5 abriu em 99,40 e fechou em 100,60. Qual foi o retorno dela?',
-					right: 'Certo: (100,60 − 99,40) / 99,40 = +1,21%.',
+					right: '(100,60 − 99,40) / 99,40 = +1,21%.',
 					wrong: 'Retorno = (fechamento − abertura) / abertura. Aqui: 1,20 / 99,40.'
 				},
 				known: {
@@ -182,7 +182,7 @@ const TEXTS: Record<string, Record<Locale, LessonText>> = {
 				move: {
 					title: 'Transferência: retorno em outro nível de preço',
 					body: 'Do fechamento da barra 1 (2.425) ao fechamento da barra 4 (2.394), qual foi o retorno?',
-					right: 'Certo: −31 / 2.425 = −1,28%. No mercado X, 31 pontos seriam cerca de 30%: por isso se compara em retorno.',
+					right: '−31 / 2.425 = −1,28%. No mercado X, 31 pontos seriam cerca de 30%: por isso se compara em retorno.',
 					wrong: 'Use os fechamentos: (2.394 − 2.425) / 2.425.'
 				}
 			}
@@ -206,13 +206,13 @@ const TEXTS: Record<string, Record<Locale, LessonText>> = {
 				wick: {
 					title: 'Decision: read the wicks',
 					body: 'Which bar closed below its open and has the longest lower wick?',
-					right: 'Right. Bar 6 opened at 100.60, went down to 97.90 and closed at 100.20: a 2.30 lower wick. Sellers pushed, buyers brought it back.',
+					right: 'Bar 6 opened at 100.60, went down to 97.90 and closed at 100.20: a 2.30 lower wick. Sellers pushed, buyers brought it back.',
 					wrong: 'Not yet. The lower wick runs from the lower of open and close down to the low. Compare the down bars (close below open).'
 				},
 				pct: {
 					title: 'Decision: work out the return',
 					body: 'Bar 5 opened at 99.40 and closed at 100.60. What was its return?',
-					right: 'Right: (100.60 − 99.40) / 99.40 = +1.21%.',
+					right: '(100.60 − 99.40) / 99.40 = +1.21%.',
 					wrong: 'Return = (close − open) / open. Here: 1.20 / 99.40.'
 				},
 				known: {
@@ -236,7 +236,7 @@ const TEXTS: Record<string, Record<Locale, LessonText>> = {
 				move: {
 					title: 'Transfer: return at another price level',
 					body: 'From the close of bar 1 (2,425) to the close of bar 4 (2,394), what was the return?',
-					right: 'Right: −31 / 2,425 = −1.28%. In market X, 31 points would be about 30%: that is why moves are compared as returns.',
+					right: '−31 / 2,425 = −1.28%. In market X, 31 points would be about 30%: that is why moves are compared as returns.',
 					wrong: 'Use the closes: (2,394 − 2,425) / 2,425.'
 				}
 			}

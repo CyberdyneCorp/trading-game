@@ -94,4 +94,17 @@ describe('Academy lessons', () => {
 		]);
 		expect(firstTryScore(lesson, tries)).toEqual({ right: 2, total: 5 });
 	});
+
+	// Playtest: the feedback line already starts with "Right." / "Correto."; a text that opened with
+	// "Right:" or "Certo:" read "Right. Right: …".
+	it('feedback texts never repeat the right/wrong label the runner puts before them', () => {
+		const label = { 'pt-BR': /^(certo|correto|errado|tente de novo)\b/i, en: /^(right|correct|wrong|try again)\b/i } as const;
+		for (const l of LESSONS) {
+			for (const locale of ['pt-BR', 'en'] as const) {
+				for (const st of Object.values(lessonText(l.id, locale).steps)) {
+					for (const fb of [st.right, st.wrong]) if (fb) expect(fb).not.toMatch(label[locale]);
+				}
+			}
+		}
+	});
 });
