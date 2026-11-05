@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 // Scoring v11 in the game (add-scenarios-and-gameplay 4.1, 4.2, 4.5, 4.8): the briefing renders the
 // engine's mission rules, lesson questions are engine commands corrected in the debrief, every
@@ -101,4 +101,73 @@ test('assisted practice: a rewind is a new attempt flagged assisted; the origina
 	await expect(page.getByText('Concluída', { exact: true })).toHaveCount(0);
 	await page.reload();
 	await expect(page.getByText('Concluída', { exact: true })).toHaveCount(0);
+});
+
+// Playtest regressions: the confirmation's checkbox sits beside its sentence, and a stop beyond
+// liquidation is gated on the new-order ticket and on the protective-stop form.
+async function expectInlineCheckbox(box: Locator) {
+	const b = (await box.boundingBox())!;
+	const l = (await box.locator('xpath=ancestor::label[1]').boundingBox())!;
+	expect(b.width).toBeLessThan(24); // a checkbox, not stretched across the box with the mark centred
+	expect(b.x - l.x).toBeLessThan(4); // at the start of the line
+	expect(b.y - l.y).toBeLessThan(6); // on the sentence's first line
+	expect(l.height).toBeLessThan(b.height * 4); // the sentence wraps beside it, not under it
+}
+
+test('stop beyond liquidation: confirmed on the ticket and on the protective form, checkbox inline', async ({ page }) => {
+	await page.setViewportSize({ width: 1024, height: 800 });
+	await openBriefing(page, 41, 2); // m03, leverage up to 20x
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await answerIfAsked(page);
+	const ticket = page.locator('section.ticket');
+	const lev = ticket.locator('label', { hasText: 'Alavancagem' }).locator('input');
+	await lev.fill('20');
+	await lev.blur();
+	await ticket.locator('label', { hasText: 'Dimensionar por' }).locator('select').selectOption('qty');
+	await ticket.locator('label', { hasText: /^Quantidade/ }).locator('input').fill('10');
+	await ticket.getByTestId('ticket-stop').locator('input').fill('90,00'); // ~11% below; liquidation ~4.5% below
+	const confirm = ticket.getByTestId('ticket-confirm-beyond');
+	await expect(confirm).toBeVisible();
+	await expectInlineCheckbox(confirm);
+	const submit = ticket.locator('button.submit');
+	await expect(submit).toBeDisabled();
+	await confirm.check();
+	await expect(submit).toBeEnabled();
+	await ticket.getByTestId('ticket-stop').locator('input').fill('');
+	await submit.click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await ticket.getByTestId('protect-stop').locator('input').fill('90,00');
+	const protect = ticket.getByTestId('protect-confirm-beyond');
+	await expect(protect).toBeVisible();
+	await expectInlineCheckbox(protect);
+	const send = ticket.getByRole('button', { name: 'Enviar stop/alvo' });
+	await expect(send).toBeDisabled();
+	await protect.check();
+	await expect(send).toBeEnabled();
+});
+
+test('assisted attempt: no advisor panel; briefing lesson answers survive a rewind to the first decision', async ({ page }) => {
+	await openBriefing(page, 77, 0); // m01
+	const questions = page.getByTestId('lesson-question');
+	await questions.nth(0).getByRole('radio', { name: /ponto de invalidação/ }).check();
+	await questions.nth(0).getByRole('button', { name: 'Responder' }).click();
+	await questions.nth(1).locator('input').fill('200');
+	await questions.nth(1).getByRole('button', { name: 'Responder' }).click();
+	await expect(questions.nth(1).getByTestId('lesson-done')).toBeVisible();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await answerIfAsked(page);
+	await expect(page.getByTestId('advisor-points')).toBeVisible();
+	for (let i = 0; i < 4; i++) await advance(page);
+	const assist = page.getByTestId('assist-panel');
+	await assist.locator('summary').click();
+	await expect(assist).toContainText('sem assessor');
+	await assist.getByTestId('assist-turn').fill('1');
+	await assist.getByTestId('assist-rewind').click();
+	await expect(page.getByTestId('assisted-tag')).toBeVisible();
+	await expect(page.getByText(/Barra 1 de/)).toBeVisible();
+	await expect(page.getByTestId('advisor-points')).toHaveCount(0);
+	await playToEnd(page);
+	await expect(page.getByTestId('debrief-assisted')).toContainText('pontos do assessor');
+	await expect(page.getByTestId('debrief-lessons')).toContainText('2 de 2 pontos');
 });

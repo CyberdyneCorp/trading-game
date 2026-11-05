@@ -763,9 +763,9 @@ const pt = {
 	'assist.rewindTo': 'Voltar à barra',
 	'assist.rewind': '⟲ Voltar no tempo',
 	'assist.newSeed': '↻ Mesma missão, outro mercado',
-	'assist.note': 'Cria uma nova tentativa marcada como assistida, sem conselheiro; a tentativa original fica como está. Tentativas assistidas não contam para o progresso, os pontos nem a campanha.',
+	'assist.note': 'Cria uma nova tentativa marcada como assistida, sem assessor; a tentativa original fica como está. Tentativas assistidas não contam para o progresso, os pontos nem a campanha.',
 	'assist.tag': 'ASSISTIDA',
-	'assist.banner': 'Prática assistida: esta tentativa não conta para o progresso, os pontos do conselheiro nem a campanha.',
+	'assist.banner': 'Prática assistida: esta tentativa não conta para o progresso, os pontos do assessor nem a campanha.',
 	'assist.campaignBlocked': 'Numa missão de campanha em andamento não dá para voltar no tempo; depois do debrief, sim.',
 	'journal.assisted': 'assistida'
 } as const;

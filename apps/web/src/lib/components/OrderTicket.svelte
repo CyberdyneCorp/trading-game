@@ -403,7 +403,7 @@
 			{#if protBeyond}
 				<div class="warnbox" role="alert" data-testid="protect-beyond-liq">
 					⚠ {t('ticket.stopBeyondLiq')}
-					<label class="confirm"><input type="checkbox" bind:checked={protConfirmed} /> {t('ticket.confirmBeyond')}</label>
+					<label class="confirm"><input type="checkbox" bind:checked={protConfirmed} data-testid="protect-confirm-beyond" /> {t('ticket.confirmBeyond')}</label>
 				</div>
 			{/if}
 			<button
@@ -458,6 +458,18 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
+	}
+	/* The stop-beyond-liquidation confirmation: checkbox beside its sentence, not on a line of its own. */
+	label.confirm {
+		flex-direction: row;
+		align-items: flex-start;
+		gap: 0.4rem;
+		margin-top: 0.3rem;
+		color: inherit;
+	}
+	label.confirm input {
+		margin: 0.1rem 0 0;
+		flex-shrink: 0;
 	}
 	.est {
 		font-size: 0.85rem;

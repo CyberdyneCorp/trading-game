@@ -296,7 +296,8 @@
 				{/if}
 			</div>
 			<div class="stack side">
-				{#if !session.state.knownScenario}
+				<!-- Practice packs and assisted attempts start without the advisor, so it is not offered. -->
+				{#if !session.state.knownScenario && !session.runAssisted}
 					<AdvisorPanel {session} onApply={onApplyAdvice} />
 				{/if}
 				<NewsPanel news={session.state.news} calendar={session.state.calendar} upcoming={session.state.upcoming ?? []} step={session.state.step} />

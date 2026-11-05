@@ -17,13 +17,18 @@ type LoggedAction = { k: string; n?: number };
 /**
  * The prefix of an action log that brings a run from `startStep` back to the decision at `toStep`,
  * before anything was done there: commands at earlier steps are kept, an advance that crosses
- * `toStep` is shortened to end on it, and nothing after it is kept.
+ * `toStep` is shortened to end on it, and nothing after it is kept. Lesson answers belong to the
+ * briefing (they are only given there, before the first advance), so every rewind keeps them, even
+ * one to the first decision.
  */
 export function rewindPrefix<A extends LoggedAction>(actions: readonly A[], startStep: number, toStep: number): A[] {
 	const out: A[] = [];
 	let step = startStep;
 	for (const a of actions) {
-		if (step >= toStep) break;
+		if (step >= toStep) {
+			if (a.k === 'lesson') out.push(a);
+			continue;
+		}
 		if (a.k !== 'adv') {
 			out.push(a);
 			continue;

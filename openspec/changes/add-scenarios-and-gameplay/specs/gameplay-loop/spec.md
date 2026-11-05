@@ -78,7 +78,7 @@ A campaign run SHALL play the curriculum's assessment missions in stage order. E
 ### Requirement: Assisted practice
 Rewinding or changing seed SHALL create a new attempt flagged `assisted`, SHALL preserve the original attempt unchanged and SHALL exclude assisted attempts from non-assisted progress metrics.
 
-A rewind SHALL rebuild the run from its own logged actions before the chosen decision step (same market and start options), so the new attempt resumes exactly there; changing seed SHALL start the same mission on another market. An assisted attempt SHALL start without the advisor, SHALL NOT count as completing a mission (or toward perks that count completed missions), SHALL NOT earn or spend advisor points and SHALL NOT be a campaign leg; a campaign mission in progress SHALL NOT be rewound (after its debrief it may). Assisted attempts SHALL be labeled as such in the terminal, the debrief and the journal.
+A rewind SHALL rebuild the run from its own logged actions before the chosen decision step (same market and start options), so the new attempt resumes exactly there, and SHALL keep the lesson answers given on the briefing even when it rewinds to the first decision; changing seed SHALL start the same mission on another market. An assisted attempt SHALL start without the advisor, SHALL NOT count as completing a mission (or toward perks that count completed missions), SHALL NOT earn or spend advisor points and SHALL NOT be a campaign leg; a campaign mission in progress SHALL NOT be rewound (after its debrief it may). Assisted attempts SHALL be labeled as such in the terminal, the debrief and the journal.
 
 #### Scenario: Rewind keeps original
 - **WHEN** the player rewinds a completed run

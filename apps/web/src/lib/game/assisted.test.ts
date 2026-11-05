@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { assistAllowed, rewindPrefix, rewindRange } from './assisted.ts';
+import { i18n, t } from './i18n.svelte.ts';
 
 type A = { k: string; n?: number; id?: number };
 
@@ -22,8 +23,10 @@ describe('assisted practice: rewind prefix', () => {
 		expect(rewindPrefix(log, 60, 73)).toEqual(log.slice(0, 4));
 	});
 
-	it('rewinding to the first decision keeps only what was done before any advance', () => {
-		expect(rewindPrefix(log, 60, 60)).toEqual([]);
+	it('rewinding to the first decision keeps the briefing lesson answers and nothing done at that decision', () => {
+		expect(rewindPrefix(log, 60, 60)).toEqual([{ k: 'lesson' }]);
+		const firstStep: A[] = [{ k: 'lesson' }, { k: 'lev' }, { k: 'lesson' }, { k: 'order', id: 1 }, { k: 'adv', n: 2 }];
+		expect(rewindPrefix(firstStep, 60, 60)).toEqual([{ k: 'lesson' }, { k: 'lesson' }]);
 	});
 
 	it('never edits the original log', () => {
@@ -41,5 +44,16 @@ describe('assisted practice: rewind prefix', () => {
 		expect(assistAllowed(true, 'active')).toBe(false);
 		expect(assistAllowed(true, 'finished')).toBe(true);
 		expect(assistAllowed(false, 'active')).toBe(true);
+	});
+});
+
+describe('assisted practice texts', () => {
+	it('name the advisor with the same word as its panel (PT-BR "assessor")', () => {
+		i18n.locale = 'pt-BR';
+		expect(t('adv.title').toLowerCase()).toBe('assessor');
+		for (const key of ['assist.note', 'assist.banner'] as const) {
+			expect(t(key)).toContain('assessor');
+			expect(t(key)).not.toMatch(/conselheir/);
+		}
 	});
 });
