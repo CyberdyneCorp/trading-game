@@ -378,6 +378,7 @@ PackBuild build_csv_pack(std::string_view csv, const CsvMeta& meta, const Import
   out.report = std::move(src.report);
   if (!src.ok()) return build_failed(std::move(out), src.reason);
   std::vector<PackFile> files;
+  files.reserve(src.files.size());
   for (PackFile& f : src.files) files.push_back(is_bin(f.name) ? stored(std::move(f)) : std::move(f));
   PackBuild signed_out = signed_pack(src.manifest, files, device_seed, "device");
   signed_out.report = std::move(out.report);

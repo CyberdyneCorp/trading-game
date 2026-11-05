@@ -151,6 +151,8 @@ export class GameSession {
 	options = $state<RunOptionsView>({ ...DEFAULT_RUN_OPTIONS });
 	/** The campaign mission the current run plays; null in free play and practice. */
 	runCampaign = $state<CampaignLink | null>(null);
+	/** Digest of the pack this run plays; null for a built-in mission. */
+	runPack = $state<string | null>(null);
 	/** Intel perks enabled for the current run (briefing toggles; empty outside free play). */
 	perkChoice = $state<PerkId[]>([]);
 	/** Run headers for the journal screen (loaded when it opens). */
@@ -222,6 +224,12 @@ export class GameSession {
 	}
 
 	/** Free play: any mission with its own rules (no campaign capital, no curriculum gate), with every unlocked perk on. */
+	/** "Play again" from the debrief: the same pack on a new seed, or the mission on a new market. */
+	async playAgain(): Promise<void> {
+		if (this.runPack) await this.startPack(this.runPack);
+		else await this.startMission(this.missionId);
+	}
+
 	async startMission(missionId: string, seed = this.randomSeed()): Promise<void> {
 		await this.exclusive(async () => {
 			await this.settleAbandoned();
@@ -357,6 +365,7 @@ export class GameSession {
 		await this.exclusive(async () => {
 			await this.settleAbandoned();
 			this.resetRun(pack.scenarioId, seed);
+			this.runPack = digest;
 			this.options = { ...DEFAULT_RUN_OPTIONS }; // pack runs start without advisor or perks
 			this.state = await this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
 			await this.createRunRecord(pack.scenarioId, seed, { packDigest: digest });
@@ -481,6 +490,7 @@ export class GameSession {
 		this.resetRun(r.missionId, r.seed);
 		this.runId = r.runId;
 		this.runCampaign = r.campaign ?? null;
+		this.runPack = r.packDigest ?? null;
 		this.perkChoice = perksUsed(this.options);
 		this.state = state;
 		for (const a of run.actions) await this.exec(a, false);
@@ -688,6 +698,7 @@ export class GameSession {
 		this.stopWarnings = 0;
 		this.queued = 0;
 		this.runCampaign = null;
+		this.runPack = null;
 		this.perkChoice = [];
 		this.names.reset();
 	}

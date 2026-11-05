@@ -31,7 +31,7 @@
 		if (e.reason === 'order_moved') return t('feed.moved', { id: e.orderId, price: fmtPrice(e.requested, L) });
 		if (e.status === 'accepted') {
 			const type = e.orderType ? ORDER_TYPE_LABEL[e.orderType] : 'MKT';
-			const series = e.series ? `${names.seriesName(e.series)} ` : '';
+			const series = e.series ? `${names.seriesName(e.series, L)} ` : '';
 			return t('feed.accepted', { id: e.orderId, type: series + type, side: t(`side.${e.side}`), qty: fmtQty(e.qty, L) });
 		}
 		if (e.status === 'cancelled') return t('feed.cancelled', { id: e.orderId, reason: reasonText(e.reason) });
@@ -42,10 +42,10 @@
 	export function describeEvent(e: EngineEvent, L: Locale, names: EventNames = NO_NAMES): { text: string; tone: string } | null {
 		switch (e.type) {
 			case 'fill':
-				return { text: (e.series ? `${names.seriesName(e.series)} ` : '') + fillLine(e, L), tone: e.side === 'buy' ? 'info' : 'attention' };
+				return { text: (e.series ? `${names.seriesName(e.series, L)} ` : '') + fillLine(e, L), tone: e.side === 'buy' ? 'info' : 'attention' };
 			case 'option_settlement':
 				return {
-					text: t('feed.settlement', { series: names.seriesName(e.series), price: fmtPrice(e.price, L), value: fmtPrice(e.requested, L), amount: fmtMoney(e.amount, L, true) }) + (e.approximate ? ` [${t('feed.approxSettle')}]` : ''),
+					text: t('feed.settlement', { series: names.seriesName(e.series, L), price: fmtPrice(e.price, L), value: fmtPrice(e.requested, L), amount: fmtMoney(e.amount, L, true) }) + (e.approximate ? ` [${t('feed.approxSettle')}]` : ''),
 					tone: Number(e.amount) >= 0 ? 'up' : 'down'
 				};
 			case 'margin_adjusted':

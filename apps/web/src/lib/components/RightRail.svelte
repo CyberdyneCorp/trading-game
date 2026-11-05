@@ -96,7 +96,7 @@
 					{@const markPx = q ? num(qty > 0 ? q.bid : q.ask) : 0}
 					{@const pnl = (markPx - num(p.avgPremium)) * qty * num(opts.multiplier)}
 					<li>
-						<span class={qty > 0 ? 'up' : 'down'}>{qty > 0 ? '▲' : '▼'} {q ? seriesLabel(q) : `#${p.series}`} × {fmtQty(String(Math.abs(qty)), L)}</span>
+						<span class={qty > 0 ? 'up' : 'down'}>{qty > 0 ? '▲' : '▼'} {q ? seriesLabel(q, L) : `#${p.series}`} × {fmtQty(String(Math.abs(qty)), L)}</span>
 						<span class="num {pnl >= 0 ? 'up' : 'down'}">{signMark(pnl)} {fmtMoney(pnl, L, true)}</span>
 					</li>
 				{/each}

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { fmtPrice, fmtQty } from '#lib/game/format.ts';
+	import { fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
-	import { ORDER_TYPE_LABEL } from '#lib/game/eventNames.ts';
+	import { ORDER_TYPE_LABEL, orderPriceText } from '#lib/game/eventNames.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const orders = $derived(session.state?.orders ?? []);
@@ -18,10 +18,10 @@
 				{#each orders as o (o.id)}
 					<tr>
 						<td class="muted">#{o.id}</td>
-						<td>{o.series ? `${session.names.seriesName(o.series)} ` : ''}{ORDER_TYPE_LABEL[o.type]}</td>
+						<td>{o.series ? `${session.names.seriesName(o.series, i18n.locale)} ` : ''}{ORDER_TYPE_LABEL[o.type]}</td>
 						<td class={o.side === 'buy' ? 'up' : 'down'}>{o.side === 'buy' ? '▲' : '▼'} {o.side.toUpperCase()}</td>
 						<td class="num">{fmtQty(o.qty, i18n.locale)}</td>
-						<td class="num">{o.type === 'market' ? '@open' : (o.series ? 'prêmio ' : '') + fmtPrice(o.price, i18n.locale)}</td>
+						<td class="num">{orderPriceText(o, i18n.locale)}</td>
 						<td>
 							{#if o.reduceOnly}<span class="tag info" title="reduce-only">{t('orders.reduceOnly')}</span>{/if}
 							{#if o.parentId}<span class="tag muted" title={t('orders.child', { id: o.parentId })}>OCO ↳#{o.parentId}</span>{/if}
