@@ -13,6 +13,7 @@
 namespace tradelab {
 namespace {
 
+using detail::JsonMember;
 using detail::JsonOut;
 using detail::JsonValue;
 
@@ -36,12 +37,12 @@ JsonValue json_int(std::uint64_t n) {
 
 void set_member(JsonValue& obj, const std::string& key, JsonValue v) {
   for (auto& m : obj.members) {
-    if (m.first == key) {
-      m.second = std::move(v);
+    if (m.key == key) {
+      m.value = std::move(v);
       return;
     }
   }
-  obj.members.emplace_back(key, std::move(v));
+  obj.members.push_back(JsonMember{key, std::move(v)});
 }
 
 JsonValue files_json(const std::vector<PackFile>& files) {

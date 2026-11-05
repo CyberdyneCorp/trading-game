@@ -22,6 +22,8 @@ struct JsonLimits {
   std::size_t max_members = 256;   // per object or array
 };
 
+struct JsonMember;
+
 struct JsonValue {
   enum class Kind : std::uint8_t { Null, Bool, Int, String, Array, Object };
   Kind kind = Kind::Null;
@@ -29,11 +31,18 @@ struct JsonValue {
   std::int64_t integer = 0;
   std::string text;
   std::vector<JsonValue> items;                            // Array
-  std::vector<std::pair<std::string, JsonValue>> members;  // Object, in document order
+  // Object, in document order. A named struct, not std::pair: pair<string, JsonValue> would need
+  // JsonValue complete here, which libstdc++ rejects (vector itself allows an incomplete type).
+  std::vector<JsonMember> members;
 
   // Object lookup; nullptr when absent or when this is not an object.
   [[nodiscard]] const JsonValue* find(std::string_view key) const;
   [[nodiscard]] bool is(Kind k) const { return kind == k; }
+};
+
+struct JsonMember {
+  std::string key;
+  JsonValue value;
 };
 
 struct JsonParse {

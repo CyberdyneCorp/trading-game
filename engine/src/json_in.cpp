@@ -222,8 +222,8 @@ class Parser {
     skip_ws();
     if (!consume(':')) return error("syntax");
     skip_ws();
-    v.members.emplace_back(std::move(key), JsonValue{});
-    return value(v.members.back().second, depth + 1);
+    v.members.push_back(JsonMember{std::move(key), JsonValue{}});
+    return value(v.members.back().value, depth + 1);
   }
 
   bool object(JsonValue& v, std::uint32_t depth) {
@@ -291,16 +291,16 @@ void write_string(std::string& out, std::string_view s) {
 void write_value(std::string& out, const JsonValue& v);
 
 void write_object(std::string& out, const JsonValue& v) {
-  std::vector<std::pair<std::vector<std::uint16_t>, const std::pair<std::string, JsonValue>*>> sorted;
+  std::vector<std::pair<std::vector<std::uint16_t>, const JsonMember*>> sorted;
   sorted.reserve(v.members.size());
-  for (const auto& m : v.members) sorted.emplace_back(utf16_units(m.first), &m);
+  for (const auto& m : v.members) sorted.emplace_back(utf16_units(m.key), &m);
   std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
   out += '{';
   for (std::size_t i = 0; i < sorted.size(); ++i) {
     if (i > 0) out += ',';
-    write_string(out, sorted[i].second->first);
+    write_string(out, sorted[i].second->key);
     out += ':';
-    write_value(out, sorted[i].second->second);
+    write_value(out, sorted[i].second->value);
   }
   out += '}';
 }
@@ -328,7 +328,7 @@ void write_value(std::string& out, const JsonValue& v) {
 const JsonValue* JsonValue::find(std::string_view key) const {
   if (kind != Kind::Object) return nullptr;
   for (const auto& m : members) {
-    if (m.first == key) return &m.second;
+    if (m.key == key) return &m.value;
   }
   return nullptr;
 }
