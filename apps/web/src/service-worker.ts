@@ -9,11 +9,12 @@
 import { self } from '$app/service-worker';
 import { assets, immutable, prerendered } from '$app/manifest';
 import { version } from '$app/env';
-import { AUDIO_CACHE, isAudio, rangeResponse, swRoute } from '#lib/game/swRoutes.ts';
+import { AUDIO_CACHE, isAudio, isCatalog, rangeResponse, swRoute } from '#lib/game/swRoutes.ts';
+import { BACKGROUND_CACHE } from '#lib/game/download.ts';
 
 const CACHE = `tradelab-${version}`;
 const SHELL = new URL('./', self.registration.scope).href;
-const FILES = [...immutable, ...assets.filter((f) => !isAudio(f.path)), ...prerendered].map((f) => new URL(f.path, self.registration.scope).href);
+const FILES = [...immutable, ...assets.filter((f) => !isAudio(f.path) && !isCatalog(f.path)), ...prerendered].map((f) => new URL(f.path, self.registration.scope).href);
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll([...new Set([SHELL, ...FILES])])));
@@ -22,7 +23,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
 	event.waitUntil(
 		(async () => {
-			for (const key of await caches.keys()) if (key !== CACHE && key !== AUDIO_CACHE) await caches.delete(key);
+			for (const key of await caches.keys()) if (key !== CACHE && key !== AUDIO_CACHE && key !== BACKGROUND_CACHE) await caches.delete(key);
 			await self.clients.claim();
 		})()
 	);
@@ -70,3 +71,37 @@ self.addEventListener('fetch', (event) => {
 	if (route === 'media') return event.respondWith(media(request, event));
 	event.respondWith(route === 'navigate' ? navigate(request) : cacheFirst(request));
 });
+
+// Background Fetch (installed app, web-client task 5.3): the browser downloads a pack even after the
+// app is closed. The finished response is parked in BACKGROUND_CACHE; the page checks its size and
+// SHA-256, has the engine verify it, installs it into IndexedDB and deletes the cached copy.
+interface BgFetchRecord {
+	request: Request;
+	responseReady: Promise<Response>;
+}
+interface BgFetchEvent extends ExtendableEvent {
+	registration: { id: string; matchAll(): Promise<BgFetchRecord[]> };
+	updateUI?(options: { title: string }): Promise<void>;
+}
+
+async function notify(id: string, ok: boolean): Promise<void> {
+	for (const c of await self.clients.matchAll({ type: 'window' })) c.postMessage({ type: 'bgfetch', id, ok });
+}
+
+self.addEventListener('backgroundfetchsuccess' as 'message', (event) => {
+	const e = event as unknown as BgFetchEvent;
+	e.waitUntil(
+		(async () => {
+			const cache = await caches.open(BACKGROUND_CACHE);
+			for (const rec of await e.registration.matchAll()) await cache.put(rec.request.url, await rec.responseReady);
+			await notify(e.registration.id, true);
+		})()
+	);
+});
+
+for (const type of ['backgroundfetchfail', 'backgroundfetchabort']) {
+	self.addEventListener(type as 'message', (event) => {
+		const e = event as unknown as BgFetchEvent;
+		e.waitUntil(notify(e.registration.id, false));
+	});
+}

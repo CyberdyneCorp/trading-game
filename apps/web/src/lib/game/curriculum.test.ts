@@ -82,13 +82,21 @@ describe('curriculum graph', () => {
 });
 
 describe('gating', () => {
-	it('Stage without content: on a fresh profile Foundations is coming soon and Structure is open', () => {
-		expect(stageStatus('foundations', [])).toBe('soon');
+	it('Stage taught by a lesson: on a fresh profile Foundations is open (its lesson) and Structure is open too', () => {
+		expect(stageStatus('foundations', [])).toBe('open');
 		expect(stageStatus('structure', [])).toBe('open');
 		expect(stageStatus('orders', [])).toBe('locked');
 		expect(stageStatus('futures1', [])).toBe('locked');
 		expect(stageStatus('evaluation', [])).toBe('locked');
 		expect(stageStatus('events', [])).toBe('locked');
+	});
+
+	it('Foundations passes with its lesson; the lesson never gates the stages after it', () => {
+		expect(STAGES[0].lessons).toEqual(['foundations-bar']);
+		expect(stageStatus('foundations', [], ['foundations-bar'])).toBe('passed');
+		expect(stagePassed('foundations', [M06, M01])).toBe(false);
+		expect(stageStatus('structure', [], [])).toBe('open');
+		expect(stageStatus('futures1', [M06], [])).toBe('open');
 	});
 
 	it('passing a stage opens the next one; m06 passes Structure and Orders at once', () => {
@@ -167,11 +175,12 @@ describe('gating', () => {
 
 describe('summary', () => {
 	it('counts passed stages among the stages that have content', () => {
-		expect(curriculumSummary([])).toEqual({ passed: 0, withContent: 12 });
-		expect(curriculumSummary([M01, M03])).toEqual({ passed: 2, withContent: 12 });
-		expect(curriculumSummary([M04])).toEqual({ passed: 1, withContent: 12 }); // Options I; Options II needs m09
-		expect(curriculumSummary([M04, M09])).toEqual({ passed: 2, withContent: 12 }); // Options I and II
-		expect(curriculumSummary([M06])).toEqual({ passed: 2, withContent: 12 }); // Structure and Orders
-		expect(curriculumSummary([M11, M12])).toEqual({ passed: 2, withContent: 12 }); // Events and Evaluation
+		expect(curriculumSummary([])).toEqual({ passed: 0, withContent: 13 });
+		expect(curriculumSummary([M01, M03])).toEqual({ passed: 2, withContent: 13 });
+		expect(curriculumSummary([M04])).toEqual({ passed: 1, withContent: 13 }); // Options I; Options II needs m09
+		expect(curriculumSummary([M04, M09])).toEqual({ passed: 2, withContent: 13 }); // Options I and II
+		expect(curriculumSummary([M06])).toEqual({ passed: 2, withContent: 13 }); // Structure and Orders
+		expect(curriculumSummary([M11, M12])).toEqual({ passed: 2, withContent: 13 }); // Events and Evaluation
+		expect(curriculumSummary([M06], ['foundations-bar'])).toEqual({ passed: 3, withContent: 13 }); // + Foundations by its lesson
 	});
 });

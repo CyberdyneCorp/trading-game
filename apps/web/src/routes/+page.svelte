@@ -8,7 +8,9 @@
 	import { moodFor, StingTracker } from '#lib/game/audioRules.ts';
 	import Briefing from '#lib/components/Briefing.svelte';
 	import CsvImport from '#lib/components/CsvImport.svelte';
+	import Catalog from '#lib/components/Catalog.svelte';
 	import CurriculumMap from '#lib/components/CurriculumMap.svelte';
+	import LessonRunner from '#lib/components/LessonRunner.svelte';
 	import Journal from '#lib/components/Journal.svelte';
 	import Tutorial from '#lib/components/Tutorial.svelte';
 	import CrtOverlay from '#lib/components/CrtOverlay.svelte';
@@ -56,6 +58,10 @@
 	<CsvImport {session} />
 {:else if session.screen === 'curriculum'}
 	<CurriculumMap {session} />
+{:else if session.screen === 'lesson'}
+	<LessonRunner {session} />
+{:else if session.screen === 'catalog'}
+	<Catalog {session} />
 {:else if session.screen === 'journal'}
 	<Journal {session} />
 {:else if session.screen === 'tutorial'}

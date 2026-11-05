@@ -5,10 +5,20 @@
 import type { CsvMeta, TrustedKey } from '#lib/engine/types.ts';
 
 /**
- * Publisher keys pinned in this build (design D1 rotation list). Empty until the publisher key
- * ceremony: until then only packs signed by this device (private CSV imports) install.
+ * Development catalog key: signs the sample packs of the static catalog (`static/catalog`, built by
+ * scripts/build-sample-catalog.py; its seed is kept outside the repository). It is replaced by the
+ * production publisher key at the key ceremony (design D1).
  */
-export const PINNED_PUBLISHER_KEYS: readonly TrustedKey[] = [];
+export const DEV_CATALOG_KEY: TrustedKey = {
+	id: 'device-e83d839d424e574a',
+	key: '99e219ba7f30d414730de4c0ff8972c218117e3a1279fe675de4cc0552acf889'
+};
+
+/**
+ * Publisher keys pinned in this build (design D1 rotation list). A pack installs only when it is
+ * signed by one of these or by this device (its own CSV imports).
+ */
+export const PINNED_PUBLISHER_KEYS: readonly TrustedKey[] = [DEV_CATALOG_KEY];
 
 export function trustedKeys(device: TrustedKey | null): TrustedKey[] {
 	return device ? [...PINNED_PUBLISHER_KEYS, device] : [...PINNED_PUBLISHER_KEYS];

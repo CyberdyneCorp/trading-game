@@ -101,8 +101,8 @@ test('campaign: starts with m06, capital carries into the next mission, leverage
 	await expect(page.locator('[data-stage=orders]')).toHaveAttribute('data-status', 'passed');
 	await expect(page.locator('[data-stage=futures1]')).toHaveAttribute('data-status', 'open');
 	await expect(page.locator('[data-stage=options3]')).toHaveAttribute('data-status', 'locked');
-	await expect(page.locator('[data-stage=foundations]')).toHaveAttribute('data-status', 'soon');
-	await expect(page.getByTestId('curriculum-summary')).toHaveText('2 de 12 estágios com conteúdo aprovados');
+	await expect(page.locator('[data-stage=foundations]')).toHaveAttribute('data-status', 'open'); // taught by its lesson, not passed by the campaign
+	await expect(page.getByTestId('curriculum-summary')).toHaveText('2 de 13 estágios com conteúdo aprovados');
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
 
 	await page.getByTestId('open-journal').click();
@@ -182,7 +182,7 @@ test('a progress record from before campaigns loads: tutorials kept, no campaign
 	await seedProgress(page, { tutorialsSeen: ['m01-false-breakout'], advisorPoints: 6, settledRuns: ['old-run'] });
 	await expect(page.getByTestId('campaign-start')).toHaveText(/Começar campanha/);
 	await page.getByTestId('open-curriculum').click();
-	await expect(page.getByTestId('curriculum-summary')).toHaveText('0 de 12 estágios com conteúdo aprovados');
+	await expect(page.getByTestId('curriculum-summary')).toHaveText('0 de 13 estágios com conteúdo aprovados');
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
 	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
 	await expect(page.getByText(/Laboratório sintético/)).toBeVisible(); // tutorial already seen: straight to the briefing

@@ -4,7 +4,9 @@
 //   media:    /audio/* — not precached (19 MB); kept in its own cache after the first play and
 //             served with byte ranges (media elements send Range requests; Safari needs 206)
 //   network:  everything else, untouched — including /api/*, which must never be served from a
-//             cache (session, sync and progress responses are per player and change).
+//             cache (session, sync and progress responses are per player and change), and
+//             /catalog/*: the manifest must be fresh (offline, the app shows its own copy) and packs
+//             are downloaded in byte ranges into IndexedDB, never into a cache.
 
 export type SwRoute = 'navigate' | 'cache' | 'media' | 'network';
 
@@ -12,9 +14,13 @@ export const AUDIO_CACHE = 'tradelab-audio-v1';
 
 export const isAudio = (path: string) => /\/audio\/[^/]+$/.test(path);
 
+/** Static pack catalog (manifest and .tlpack files): never precached, never cached. */
+export const isCatalog = (path: string) => path === '/catalog' || path.startsWith('/catalog/');
+
 export function swRoute(method: string, mode: RequestMode, url: URL, origin: string): SwRoute {
 	if (method !== 'GET' || url.origin !== origin) return 'network';
 	if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return 'network';
+	if (isCatalog(url.pathname)) return 'network';
 	if (isAudio(url.pathname)) return 'media';
 	return mode === 'navigate' ? 'navigate' : 'cache';
 }

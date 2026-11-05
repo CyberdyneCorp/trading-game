@@ -28,11 +28,15 @@ A stage's assessment is completed by finishing (not going bankrupt in) its asses
 - **AND** once Futures II is passed, a later campaign run SHALL start that mission with its own 5× cap
 
 ### Requirement: Curriculum as data
-The stage graph (stages, their prerequisites, assessment missions and unlocks) and the unlock rules SHALL be data, not code paths per stage. A stage with no assessment content yet SHALL be shown as coming soon and SHALL NOT block the stages after it. The client SHALL show a curriculum map with each stage's status (passed, open, locked, coming soon), its assessment missions and its unlocks, and the player's progress.
+The stage graph (stages, their prerequisites, assessment missions, lessons and unlocks) and the unlock rules SHALL be data, not code paths per stage. A stage with neither an assessment mission nor a lesson SHALL be shown as coming soon and SHALL NOT block the stages after it. A stage taught only by Academy lessons SHALL be passed when its lessons are completed (progress recorded on the device) and SHALL NOT block the stages after it either, since the campaign does not gate on lessons. The client SHALL show a curriculum map with each stage's status (passed, open, locked, coming soon), its assessment missions and its unlocks, and the player's progress.
 
-#### Scenario: Stage without content
-- **WHEN** a stage has no assessment mission (Foundations, taught only by its Academy lesson) and the stages before it are cleared
-- **THEN** it SHALL show as coming soon and the stage after it (Structure) SHALL be open
+#### Scenario: Stage taught by a lesson
+- **WHEN** a stage has no assessment mission (Foundations, taught only by its Academy lesson) and its lesson is not completed
+- **THEN** it SHALL show as open with its lesson, and the stage after it (Structure) SHALL be open
+
+#### Scenario: Lesson completed
+- **WHEN** the player completes the Foundations lesson
+- **THEN** Foundations SHALL show as passed, also after a reload
 
 ### Requirement: Failure examples
 Every pattern and indicator lesson SHALL include at least one example where the pattern fails and one high-cost market example. Illustrative examples SHALL be labeled as illustrative and SHALL NOT imply a real success frequency.

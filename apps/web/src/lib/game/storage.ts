@@ -6,6 +6,7 @@
 // through the deterministic engine; the stored digest only verifies the replay.
 
 import type { CampaignLink, CampaignProgress, CampaignRun } from './campaign.ts';
+import type { PartialStore } from './download.ts';
 import { START_POINTS } from './points.ts';
 
 export interface RunRecord<J = unknown, Q = unknown> {
@@ -70,6 +71,8 @@ export interface Progress extends CampaignProgress {
 	settledRuns: string[];
 	/** Intel perks already explained on a briefing (perks.ts). */
 	perksIntroduced: string[];
+	/** Academy lessons completed (lessons.ts); a later key of version 2 (absent = none). */
+	lessonsDone: string[];
 }
 
 export const EMPTY_PROGRESS: Progress = {
@@ -78,6 +81,7 @@ export const EMPTY_PROGRESS: Progress = {
 	advisorPoints: START_POINTS,
 	settledRuns: [],
 	perksIntroduced: [],
+	lessonsDone: [],
 	campaign: null,
 	campaignHistory: [],
 	assessed: []
@@ -100,6 +104,7 @@ export function migrateProgress(row: Record<string, unknown> | undefined): Progr
 		advisorPoints: typeof r.advisorPoints === 'number' ? r.advisorPoints : START_POINTS,
 		settledRuns: strings(r.settledRuns),
 		perksIntroduced: strings(r.perksIntroduced),
+		lessonsDone: strings(r.lessonsDone),
 		campaign: isCampaign(r.campaign) ? r.campaign : null,
 		campaignHistory: history,
 		assessed: strings(r.assessed)
@@ -154,7 +159,13 @@ export function newRunId(): string {
 	return `run-${Date.now().toString(36)}-${rnd}`;
 }
 
-export class RunStore<A, J, Q> {
+// Partial pack downloads (download.ts) live in the `meta` store as one row per chunk, keyed
+// `dl:<digest>:<index>` with a zero-padded index so key order is chunk order.
+const chunkKey = (digest: string, i: number) => `dl:${digest}:${String(i).padStart(6, '0')}`;
+const chunkRange = (digest: string) => IDBKeyRange.bound(`dl:${digest}:`, `dl:${digest}:\uffff`);
+const ALL_CHUNKS = () => IDBKeyRange.bound('dl:', 'dl:\uffff');
+
+export class RunStore<A, J, Q> implements PartialStore {
 	constructor(private db: IDBDatabase) {}
 
 	/** Stores a new run and makes it the active one; the run it replaces, if unfinished, is left. */
@@ -240,6 +251,49 @@ export class RunStore<A, J, Q> {
 	async deletePack(digest: string): Promise<void> {
 		const tx = this.db.transaction('packs', 'readwrite');
 		tx.objectStore('packs').delete(digest);
+		await done(tx);
+	}
+
+	async partialChunks(digest: string): Promise<Uint8Array[]> {
+		const tx = this.db.transaction('meta', 'readonly');
+		const rows = (await req(tx.objectStore('meta').getAll(chunkRange(digest)))) as { key: string; bytes: Uint8Array }[];
+		return rows.map((r) => r.bytes);
+	}
+
+	async savePartialChunk(digest: string, index: number, bytes: Uint8Array): Promise<void> {
+		const tx = this.db.transaction('meta', 'readwrite');
+		tx.objectStore('meta').put({ key: chunkKey(digest, index), bytes });
+		await done(tx);
+	}
+
+	async clearPartial(digest: string): Promise<void> {
+		const tx = this.db.transaction('meta', 'readwrite');
+		tx.objectStore('meta').delete(chunkRange(digest));
+		await done(tx);
+	}
+
+	/** Bytes received so far for every unfinished download, by digest. */
+	async partialSizes(): Promise<Map<string, number>> {
+		const tx = this.db.transaction('meta', 'readonly');
+		const rows = (await req(tx.objectStore('meta').getAll(ALL_CHUNKS()))) as { key: string; bytes: Uint8Array }[];
+		const out = new Map<string, number>();
+		for (const r of rows) {
+			const digest = r.key.split(':')[1];
+			out.set(digest, (out.get(digest) ?? 0) + r.bytes.length);
+		}
+		return out;
+	}
+
+	/** The last catalog manifest read online (shown offline), with the URL it came from. */
+	async cachedCatalog(): Promise<{ url: string; json: unknown } | null> {
+		const tx = this.db.transaction('meta', 'readonly');
+		const row = (await req(tx.objectStore('meta').get('catalog'))) as { url: string; json: unknown } | undefined;
+		return row ? { url: row.url, json: row.json } : null;
+	}
+
+	async saveCatalog(url: string, json: unknown): Promise<void> {
+		const tx = this.db.transaction('meta', 'readwrite');
+		tx.objectStore('meta').put({ key: 'catalog', url, json });
 		await done(tx);
 	}
 

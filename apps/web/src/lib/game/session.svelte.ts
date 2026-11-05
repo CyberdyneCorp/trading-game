@@ -32,6 +32,7 @@ import {
 	type LegResult
 } from './campaign.ts';
 import { legReport } from './campaignReport.ts';
+import { CatalogModel, type CatalogHost, type CatalogStore } from './catalog.svelte.ts';
 import { campaignPermissions } from './curriculum.ts';
 import { t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
@@ -40,7 +41,18 @@ import { randomSeedBytes, trustedKeys } from './packs.ts';
 import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type RunRecord, type StoredPack } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
 
-export type Screen = 'loading' | 'menu' | 'import' | 'tutorial' | 'briefing' | 'terminal' | 'debrief' | 'curriculum' | 'journal';
+export type Screen =
+	| 'loading'
+	| 'menu'
+	| 'import'
+	| 'tutorial'
+	| 'briefing'
+	| 'terminal'
+	| 'debrief'
+	| 'curriculum'
+	| 'journal'
+	| 'lesson'
+	| 'catalog';
 
 type Action =
 	| { k: 'lev'; lev: number }
@@ -107,7 +119,7 @@ export interface Notice {
 	text: string;
 }
 
-export class GameSession {
+export class GameSession implements CatalogHost {
 	screen = $state<Screen>('loading');
 	error = $state<string | null>(null);
 	missions = $state<MissionInfo[]>([]);
@@ -155,6 +167,10 @@ export class GameSession {
 	perkChoice = $state<PerkId[]>([]);
 	/** Run headers for the journal screen (loaded when it opens). */
 	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
+	/** The Academy lesson open on the 'lesson' screen. */
+	lessonId = $state('');
+	/** Pack catalog and downloads (catalog screen). */
+	readonly catalog: CatalogModel = new CatalogModel(this);
 
 	private engine: EngineClient | null = null;
 	private log: Action[] = [];
@@ -343,6 +359,40 @@ export class GameSession {
 
 	openCurriculum(): void {
 		this.screen = 'curriculum';
+	}
+
+	// ---- Academy lessons (curriculum stages without a mission; web-client task 4.4) ----
+
+	openLesson(id: string): void {
+		this.lessonId = id;
+		this.screen = 'lesson';
+	}
+
+	/** Records a completed lesson in local progress (passes its stage) and returns to the map. */
+	finishLesson(id: string): void {
+		if (!this.progress.lessonsDone.includes(id)) {
+			this.saveProgress({ ...this.progress, lessonsDone: [...this.progress.lessonsDone, id] });
+		}
+		this.screen = 'curriculum';
+	}
+
+	// ---- pack catalog (web-client tasks 4.4, 5.3, 5.5) ----
+
+	async openCatalog(): Promise<void> {
+		this.screen = 'catalog';
+		await this.catalog.load();
+	}
+
+	get installedDigests(): ReadonlySet<string> {
+		return new Set(this.packs.map((p) => p.digest));
+	}
+
+	get catalogStore(): CatalogStore | null {
+		return this.store;
+	}
+
+	online(): boolean {
+		return typeof navigator === 'undefined' || navigator.onLine;
 	}
 
 	async openJournal(): Promise<void> {
