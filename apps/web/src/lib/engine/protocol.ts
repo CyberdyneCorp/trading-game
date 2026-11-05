@@ -28,7 +28,9 @@ import type {
 } from './types';
 
 export type EngineRequest =
-	| { kind: 'init' }
+	// Loads the engine build at `engineUrl` (this version's, or a run's pinned older build).
+	| { kind: 'init'; engineUrl: string }
+	| { kind: 'useEngine'; engineUrl: string }
 	| { kind: 'start'; missionId: string; seed: number; options?: RunOptionsView }
 	// Packs and CSV import: bytes cross the worker boundary, prices only as tl_state reveals them.
 	| { kind: 'deviceKey'; seedHex: string }
@@ -53,7 +55,10 @@ export type EngineRequest =
 	| { kind: 'advance'; steps: number }
 	| { kind: 'debrief' }
 	// The current run's seeded reveal (G4); refused while the run is active (design D6).
-	| { kind: 'reveal' };
+	| { kind: 'reveal' }
+	// Checkpoints (opaque engine RunState: no scenario bars) and restore + replay of the tail.
+	| { kind: 'checkpoint' }
+	| { kind: 'restore'; missionId: string; seed: number; checkpoint: string; pack?: Uint8Array; keys?: TrustedKey[] };
 
 export interface CommandResponse {
 	result: CommandResult;
@@ -73,6 +78,10 @@ export interface CsvBuildResult {
 
 interface ResponseMap {
 	init: { version: EngineVersion; missions: MissionInfo[] };
+	useEngine: EngineVersion;
+	checkpoint: { checkpoint: string; step: number };
+	/** Null when the engine refuses the checkpoint (another format, scenario or a damaged one). */
+	restore: GameState | null;
 	deviceKey: TrustedKey;
 	csvValidate: CsvValidation;
 	csvBuild: CsvBuildResult;

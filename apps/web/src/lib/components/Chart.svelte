@@ -5,7 +5,7 @@
 	import { fmtNum, fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { OSCILLATORS, type Oscillator, type Palette } from './chartPanes.ts';
-	import { candleCells, candleRange, hitsTag, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
+	import { candleCells, candleRange, drawnCandles, hitsTag, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
 	import { patternName } from '#lib/game/candlePatterns.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
 	import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragTarget, type DragZone } from './chartDrag.ts';
@@ -275,45 +275,54 @@
 		ctx.restore();
 	}
 
+	// One path per direction (not one draw call per bar), at most one candle per pixel column
+	// (drawnCandles), so thousands of bars redraw within a frame.
 	function drawVolume(ctx: CanvasRenderingContext2D, slotW: number, top: number, h: number, x: (i: number) => number) {
-		const maxV = Math.max(...visible.map((b) => b[4]), 1);
-		const up = cssVar('--up');
-		const down = cssVar('--down');
-		visible.forEach((b, i) => {
-			const vh = Math.max(1, Math.round((b[4] / maxV) * h));
-			ctx.globalAlpha = 0.45;
-			ctx.fillStyle = b[3] >= b[0] ? up : down;
-			ctx.fillRect(Math.round(x(i) - slotW * 0.35), top + h - vh, Math.max(1, Math.round(slotW * 0.7)), vh);
-		});
+		const candles = drawnCandles(visible, slotW);
+		let maxV = 1;
+		for (const k of candles) maxV = Math.max(maxV, k.v);
+		const w = Math.max(1, Math.round(slotW * 0.7));
+		ctx.globalAlpha = 0.45;
+		for (const rising of [true, false]) {
+			ctx.fillStyle = cssVar(rising ? '--up' : '--down');
+			ctx.beginPath();
+			for (const k of candles) {
+				if (k.c >= k.o !== rising) continue;
+				const vh = Math.max(1, Math.round((k.v / maxV) * h));
+				ctx.rect(Math.round(x(k.at) - slotW * 0.35), top + h - vh, w, vh);
+			}
+			ctx.fill();
+		}
 		ctx.globalAlpha = 1;
 	}
 
-	// Up candles hollow, down candles filled: direction is readable without color.
+	// Up candles hollow, down candles filled: direction is readable without color. Drawn as one path
+	// per direction and part (wicks, then bodies over them).
 	function drawCandles(ctx: CanvasRenderingContext2D, slotW: number, x: (i: number) => number, y: (p: number) => number) {
-		const up = cssVar('--up');
-		const down = cssVar('--down');
 		const bodyW = Math.max(1, Math.floor(slotW * 0.6));
-		visible.forEach(([o, h, l, c], i) => {
-			if (continuity[first + i]) return; // no candle: drawContinuity marks the slot
-			const color = c >= o ? up : down;
-			const cx = x(i);
-			ctx.strokeStyle = color;
-			ctx.fillStyle = color;
-			ctx.beginPath();
-			ctx.moveTo(cx, y(h));
-			ctx.lineTo(cx, y(l));
-			ctx.stroke();
-			const top = y(Math.max(o, c));
-			const bh = Math.max(1, y(Math.min(o, c)) - top);
-			const bx = Math.round(cx - bodyW / 2) + 0.5;
-			if (c >= o) {
-				ctx.fillStyle = cssVar('--bg');
-				ctx.fillRect(bx, top, bodyW, bh);
-				ctx.strokeRect(bx, top, bodyW, bh);
-			} else {
-				ctx.fillRect(bx - 0.5, top - 0.5, bodyW + 1, bh + 1);
+		const bg = cssVar('--bg');
+		const candles = drawnCandles(visible, slotW, continuity.slice(first)); // continuity bars: drawContinuity marks the slot
+		for (const rising of [true, false]) {
+			const color = cssVar(rising ? '--up' : '--down');
+			const wicks = new Path2D();
+			const bodies = new Path2D();
+			for (const { at, o, h, l, c } of candles) {
+				if (c >= o !== rising) continue;
+				const cx = x(at);
+				wicks.moveTo(cx, y(h));
+				wicks.lineTo(cx, y(l));
+				const top = y(Math.max(o, c));
+				const bh = Math.max(1, y(Math.min(o, c)) - top);
+				const bx = Math.round(cx - bodyW / 2) + 0.5;
+				if (rising) bodies.rect(bx, top, bodyW, bh);
+				else bodies.rect(bx - 0.5, top - 0.5, bodyW + 1, bh + 1);
 			}
-		});
+			ctx.strokeStyle = color;
+			ctx.stroke(wicks);
+			ctx.fillStyle = rising ? bg : color;
+			ctx.fill(bodies);
+			if (rising) ctx.stroke(bodies);
+		}
 	}
 
 	function drawContinuity(ctx: CanvasRenderingContext2D, slotW: number, priceH: number, x: (i: number) => number, y: (p: number) => number) {
@@ -588,28 +597,31 @@
 <svelte:window onkeydown={onKeydown} />
 
 <div class="chart-wrap">
-	<div class="readout num" aria-hidden="true">
-		{#if hoverBar}
-			<span class="muted">#{hoverIndex}</span>
-			O {fmtPrice(String(hoverBar[0]), i18n.locale)}
-			H {fmtPrice(String(hoverBar[1]), i18n.locale)}
-			L {fmtPrice(String(hoverBar[2]), i18n.locale)}
-			C {fmtPrice(String(hoverBar[3]), i18n.locale)}
-			<span class="muted">V {fmtQty(String(hoverBar[4]), i18n.locale)}</span>
-			{#if continuity[hoverIndex]}<span class="attention" data-testid="continuity-tag">{t('chart.noTrading')}</span>{/if}
-			{@const rsiV = game.indicators.rsi14[hoverIndex]}
-			{@const atrV = game.indicators.atr14[hoverIndex]}
-			<span class="info">RSI14 {fmtOsc(rsiV, 1)}</span>
-			<span class="muted">ATR14 {atrV != null ? fmtPrice(atrV, i18n.locale) : '—'}</span>
-			{@const ind = game.indicators}
-			{#if showBb}<span class="bb">BB {ind.bbLower[hoverIndex] != null ? `${fmtPrice(ind.bbLower[hoverIndex]!, i18n.locale)}–${fmtPrice(ind.bbUpper[hoverIndex]!, i18n.locale)}` : '—'}</span>{/if}
-			{#if showVwap}<span class="vwap">VWAP {ind.vwap[hoverIndex] != null ? fmtPrice(ind.vwap[hoverIndex]!, i18n.locale) : '—'}</span>{/if}
-			{#if osc === 'macd'}
-				<span class="muted">MACD {fmtOsc(ind.macd[hoverIndex], 3)} / {fmtOsc(ind.macdSignal[hoverIndex], 3)}</span>
-			{:else if osc === 'adx'}
-				<span class="muted">ADX {fmtOsc(ind.adx14[hoverIndex], 1)} · +DI {fmtOsc(ind.plusDi14[hoverIndex], 1)} · −DI {fmtOsc(ind.minusDi14[hoverIndex], 1)}</span>
+	<div class="readout num">
+		<!-- The hover values repeat the accessible bar table; the indicator toggles stay reachable. -->
+		<span class="hover-values" aria-hidden="true">
+			{#if hoverBar}
+				<span class="muted">#{hoverIndex}</span>
+				O {fmtPrice(String(hoverBar[0]), i18n.locale)}
+				H {fmtPrice(String(hoverBar[1]), i18n.locale)}
+				L {fmtPrice(String(hoverBar[2]), i18n.locale)}
+				C {fmtPrice(String(hoverBar[3]), i18n.locale)}
+				<span class="muted">V {fmtQty(String(hoverBar[4]), i18n.locale)}</span>
+				{#if continuity[hoverIndex]}<span class="attention" data-testid="continuity-tag">{t('chart.noTrading')}</span>{/if}
+				{@const rsiV = game.indicators.rsi14[hoverIndex]}
+				{@const atrV = game.indicators.atr14[hoverIndex]}
+				<span class="info">RSI14 {fmtOsc(rsiV, 1)}</span>
+				<span class="muted">ATR14 {atrV != null ? fmtPrice(atrV, i18n.locale) : '—'}</span>
+				{@const ind = game.indicators}
+				{#if showBb}<span class="bb">BB {ind.bbLower[hoverIndex] != null ? `${fmtPrice(ind.bbLower[hoverIndex]!, i18n.locale)}–${fmtPrice(ind.bbUpper[hoverIndex]!, i18n.locale)}` : '—'}</span>{/if}
+				{#if showVwap}<span class="vwap">VWAP {ind.vwap[hoverIndex] != null ? fmtPrice(ind.vwap[hoverIndex]!, i18n.locale) : '—'}</span>{/if}
+				{#if osc === 'macd'}
+					<span class="muted">MACD {fmtOsc(ind.macd[hoverIndex], 3)} / {fmtOsc(ind.macdSignal[hoverIndex], 3)}</span>
+				{:else if osc === 'adx'}
+					<span class="muted">ADX {fmtOsc(ind.adx14[hoverIndex], 1)} · +DI {fmtOsc(ind.plusDi14[hoverIndex], 1)} · −DI {fmtOsc(ind.minusDi14[hoverIndex], 1)}</span>
+				{/if}
 			{/if}
-		{/if}
+		</span>
 		<label class="toggle attention"><input type="checkbox" bind:checked={showSma} /> SMA20</label>
 		<label class="toggle info"><input type="checkbox" bind:checked={showEma} /> EMA50</label>
 		<label class="toggle vwap"><input type="checkbox" bind:checked={showVwap} /> VWAP</label>
@@ -682,6 +694,9 @@
 		flex-direction: column;
 		height: 100%;
 		min-height: 260px;
+	}
+	.hover-values {
+		display: contents;
 	}
 	.readout {
 		text-align: left;

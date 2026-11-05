@@ -40,7 +40,9 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
-      - name: E2E (Chromium)
+      - name: Bundle-size budget (initial JS + WASM under 1 MB gzipped)
+        run: npm run budget:size
+      - name: E2E (Chromium + WebKit; axe, offline, performance budgets)
         run: |
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
           npm run test:e2e

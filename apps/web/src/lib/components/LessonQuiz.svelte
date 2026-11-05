@@ -46,7 +46,14 @@
 					{/each}
 				{:else}
 					<label class="numeric">
-						<input type="text" inputmode="decimal" bind:value={typed[q.index]} aria-invalid={invalid[q.index] ?? false} />
+						<!-- Named by the question: the label around it holds only the unit, often empty (axe "label"). -->
+						<input
+							type="text"
+							inputmode="decimal"
+							aria-label={q.text.prompt}
+							bind:value={typed[q.index]}
+							aria-invalid={invalid[q.index] ?? false}
+						/>
 						{q.text.unit ?? ''}
 					</label>
 					{#if invalid[q.index]}<p class="small attention">{t('lesson.invalid')}</p>{/if}

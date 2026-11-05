@@ -9,7 +9,7 @@
 import { self } from '$app/service-worker';
 import { assets, immutable, prerendered } from '$app/manifest';
 import { version } from '$app/env';
-import { AUDIO_CACHE, isAudio, rangeResponse, swRoute } from '#lib/game/swRoutes.ts';
+import { AUDIO_CACHE, isAudio, keepCache, rangeResponse, swRoute } from '#lib/game/swRoutes.ts';
 
 const CACHE = `tradelab-${version}`;
 const SHELL = new URL('./', self.registration.scope).href;
@@ -22,7 +22,8 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
 	event.waitUntil(
 		(async () => {
-			for (const key of await caches.keys()) if (key !== CACHE && key !== AUDIO_CACHE) await caches.delete(key);
+			// The engine cache keeps the builds unfinished runs started on (pinned by the page).
+			for (const key of await caches.keys()) if (!keepCache(key, CACHE)) await caches.delete(key);
 			await self.clients.claim();
 		})()
 	);
@@ -42,6 +43,8 @@ async function navigate(request: Request): Promise<Response> {
 	return (await caches.match(SHELL)) ?? Response.error();
 }
 
+// Every cache is searched, so a pinned engine build of an older version is served from the
+// engine cache after the update removed it from the server and from this version's cache.
 async function cacheFirst(request: Request): Promise<Response> {
 	const hit = await caches.match(request);
 	if (hit) return hit;
