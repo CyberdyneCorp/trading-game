@@ -2,6 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { GameSession } from '#lib/game/session.svelte.ts';
 	import { settings } from '#lib/game/settings.svelte.ts';
+	import { keymap } from '#lib/game/keymap.svelte.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { t } from '#lib/game/i18n.svelte.ts';
 	import { sound } from '#lib/game/sound.svelte.ts';
@@ -30,6 +31,7 @@
 
 	onMount(() => {
 		settings.load();
+		keymap.load();
 		pwa.init();
 		// Browsers only allow audio after a user gesture.
 		const unlock = () => sound.unlock();

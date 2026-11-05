@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { csvIssueText, i18n, packReasonText } from './i18n.svelte.ts';
-import { DEFAULT_META, defaultLabel, guessMeta, intervalLabel, isoUtc, PINNED_PUBLISHER_KEYS, trustedKeys } from './packs.ts';
+import { DEFAULT_META, defaultLabel, guessMeta, intervalLabel, isoUtc, packLooksCut, PINNED_PUBLISHER_KEYS, trustedKeys } from './packs.ts';
 
 // Every CSV issue code the engine can emit (engine/src/csv_import.cpp header).
 const CSV_CODES = [
@@ -63,5 +63,38 @@ describe('CSV issue and pack reason texts', () => {
 		expect(packReasonText('hash_mismatch')).toBe('a data file was changed (hash mismatch)');
 		expect(packReasonText('brand_new')).toBe('brand_new');
 		i18n.locale = 'pt-BR';
+	});
+});
+
+/** A minimal ustar archive like the engine's tar_write: header, data padded to 512, two zero blocks. */
+function tar(files: [string, number][]): Uint8Array {
+	const blocks: number[] = [];
+	for (const [name, size] of files) {
+		const h = new Uint8Array(512);
+		h.set([...name].map((c) => c.charCodeAt(0)), 0);
+		h.set([...size.toString(8).padStart(11, '0')].map((c) => c.charCodeAt(0)), 124);
+		h.set([...'ustar'].map((c) => c.charCodeAt(0)), 257);
+		blocks.push(...h, ...new Uint8Array(Math.ceil(size / 512) * 512).fill(1));
+	}
+	return new Uint8Array([...blocks, ...new Uint8Array(1024)]);
+}
+
+describe('packLooksCut (download interrupted)', () => {
+	const full = tar([['manifest.json', 700], ['manifest.sig', 64]]);
+
+	it('a complete pack is not cut', () => {
+		expect(packLooksCut(full)).toBe(false);
+	});
+
+	it('a pack cut inside an entry or before the end marker is cut', () => {
+		expect(packLooksCut(full.subarray(0, 900))).toBe(true); // inside manifest.json
+		expect(packLooksCut(full.subarray(0, 512 * 3))).toBe(true); // manifest.json whole, sig missing
+		expect(packLooksCut(full.subarray(0, full.length - 1024))).toBe(true); // no end marker
+	});
+
+	it('a file that is not a pack is not called cut', () => {
+		expect(packLooksCut(new Uint8Array(2048).fill(7))).toBe(false);
+		expect(packLooksCut(new Uint8Array(0))).toBe(false);
+		expect(packLooksCut(full.subarray(0, 100))).toBe(false); // not even one header
 	});
 });

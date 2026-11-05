@@ -81,6 +81,19 @@ export function priceInputText(price: number, tick: number, locale: Locale): str
 	return locale === 'pt-BR' ? s.replace('.', ',') : s;
 }
 
+/** A file size in the locale: "812 B", "3,4 KB", "1,2 MB" (1 KB = 1,024 bytes). */
+export function fmtBytes(bytes: number, locale: Locale): string {
+	if (bytes < 1024) return `${fmtNum(bytes, locale, 0)} B`;
+	if (bytes < 1024 * 1024) return `${fmtNum(bytes / 1024, locale, 1)} KB`;
+	return `${fmtNum(bytes / (1024 * 1024), locale, 1)} MB`;
+}
+
+/** A quantity on the lot as the player would type it in an input: "16,6" in PT-BR, "16.6" in English. */
+export function qtyInputText(qty: number, lot: number, locale: Locale): string {
+	const s = qtyToLot(qty, lot);
+	return locale === 'pt-BR' ? s.replace('.', ',') : s;
+}
+
 /** Plan dialog headline: "▲ LONG 49,9 · 3x", or "▼ C 100 · exp 96 × 20" for an option. */
 export function planHeadline(
 	d: { side: 'buy' | 'sell'; qty: Decimal; leverage: number },

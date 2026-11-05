@@ -464,7 +464,8 @@ test('isolated margin can be added and removed only down to the initial margin',
 	await expect(page.getByText(/Margem isolada ajustada: \+100,00 cr/)).toBeVisible();
 	await page.getByRole('button', { name: '− margem' }).click();
 	await page.getByRole('button', { name: '− margem' }).click();
-	await expect(page.getByText(/margem ficaria abaixo da inicial/)).toBeVisible(); // reason codes are translated
+	// Reason codes are translated, with the numbers behind them in the locale.
+	await expect(page.locator('.notice')).toContainText(/a margem ficaria em [\d.]+,\d\d cr, abaixo da margem inicial de [\d.]+,\d\d cr/);
 });
 
 test('news appear only once released (no lookahead), with fictional headlines', async ({ page }) => {
@@ -765,7 +766,8 @@ test('advisor: a read costs a point, fills the ticket without sending, runs out 
 
 	await page.getByRole('button', { name: /Levar stop e tamanho ao ticket/ }).click();
 	await expect(page.getByTestId('ticket-stop').locator('input')).toHaveValue('103,67');
-	await expect(page.locator('label:has-text("Quantidade") input')).toHaveValue('41.8');
+	// Regression: written with the PT-BR decimal comma (before, "41.8").
+	await expect(page.locator('label:has-text("Quantidade") input')).toHaveValue('41,8');
 	await expect(page.getByText(/Nenhuma ordem foi enviada/)).toBeVisible();
 	await expect(page.locator('.orders').getByText('STOP')).toHaveCount(0); // nothing was placed
 
@@ -958,7 +960,8 @@ test('regression: applying the advisor read keeps the typed leverage and goes ba
 	await page.getByRole('button', { name: /Pedir leitura/ }).click();
 	await expect(page.getByTestId('advice').getByText('SHORT')).toBeVisible();
 	await page.getByRole('button', { name: /Levar stop e tamanho ao ticket/ }).click();
-	await expect(page.locator('label:has-text("Quantidade") input')).toHaveValue('41.8');
+	// Regression: written with the PT-BR decimal comma (before, "41.8").
+	await expect(page.locator('label:has-text("Quantidade") input')).toHaveValue('41,8');
 	await expect(lev).toHaveValue('3');
 	await expect(type).toHaveValue('market');
 	await expect(page.locator('label:has-text("Preço") input')).toHaveCount(0);

@@ -4,15 +4,19 @@
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { AdviceView, OrderSideName } from '#lib/engine/types.ts';
 	import AdvisorPanel from './AdvisorPanel.svelte';
-	import { i18n, reasonText, t } from '#lib/game/i18n.svelte.ts';
+	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { marginFacts, orderFacts, rejectionText, releverFacts, type RejectionFacts } from '#lib/game/rejections.ts';
 	import { AutoPlay, type PauseReason } from '#lib/game/autoplay.svelte.ts';
 	import CalibrationDialog from './CalibrationDialog.svelte';
 	import Chart from './Chart.svelte';
 	import { keepsKey } from '#lib/game/hotkeys.ts';
+	import { keymap } from '#lib/game/keymap.svelte.ts';
+	import { actionFor, keyName, type ShortcutAction } from '#lib/game/shortcuts.ts';
+	import RunJournal from './RunJournal.svelte';
 	import { positionPlannedRisk } from '#lib/game/journal.ts';
 	import { exitOnValidSide } from './chartDrag.ts';
-	import { fmtPrice, fmtQty, num, priceInputText, priceToTick, qtyToLot } from '#lib/game/format.ts';
-	import { costsOf, estimatedMarketEntry, fitToMargin } from '#lib/game/sizing.ts';
+	import { fmtPrice, fmtQty, num, priceInputText, priceToTick, qtyInputText } from '#lib/game/format.ts';
+	import { costsOf, estimatedMarketEntry, fitToMargin, type SizeBy } from '#lib/game/sizing.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
 	import { newsArrived } from '#lib/game/news.ts';
@@ -31,6 +35,7 @@
 
 	let draft = $state<OrderDraft | null>(null);
 	let help = $state(false);
+	let journalOpen = $state(false);
 	let patterns = $state(false);
 	let patternFocus = $state<string | null>(null);
 
@@ -44,7 +49,7 @@
 	// Auto-advance: same advance as Space; waits while any dialog is open, pauses on notable bars.
 	const auto = new AutoPlay({
 		ready: () =>
-			!draft && !optDraft && !pick && !patterns && !help && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
+			!draft && !optDraft && !pick && !patterns && !help && !journalOpen && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
 		finished: () => session.state?.status !== 'active',
 		advance: () => session.advance(1),
 		notable: () => {
@@ -72,7 +77,7 @@
 
 	let ticketStop = $state('');
 	let ticketTp = $state('');
-	let ticketSizeBy = $state<'qty' | 'risk'>('risk');
+	let ticketSizeBy = $state<SizeBy>('risk');
 	let ticketQty = $state('10');
 	let ticketLeverage = $state(1);
 	let ticketType = $state<TicketOrderType>('market');
@@ -92,7 +97,8 @@
 		const entry = estimatedMarketEntry(side, num(s.account.mark), k);
 		const typed = Math.min(Math.max(1, Math.round(ticketLeverage || 1)), c.leverageCap);
 		const fit = fitToMargin(num(a.size), entry, num(s.account.available), typed, c.leverageCap, k, num(c.lotSize));
-		ticketQty = qtyToLot(fit.qty, num(c.lotSize));
+		// Written as the player would type it: "16,6" in PT-BR (before, the dot form "16.6").
+		ticketQty = qtyInputText(fit.qty, num(c.lotSize), i18n.locale);
 		ticketLeverage = fit.leverage;
 		tab = 'perp';
 	}
@@ -141,7 +147,7 @@
 	async function sendOption(d: OptionDraft) {
 		const res = await session.placeOptionOrder(d.series, d.side, d.type, d.qty, d.premium);
 		if (!res) return;
-		if (!res.accepted) return notify(res.reason);
+		if (!res.accepted) return notify(res.reason, d.risk != null ? { need: d.risk, available: num(session.state!.account.available) } : {});
 		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${d.label} × ${fmtQty(d.qty, i18n.locale)}` };
 	}
 
@@ -162,7 +168,8 @@
 					stop: null,
 					takeProfit: null,
 					estimate: { notional: 0, margin: 0, fee: 0, liquidation: null, plannedRisk: optDraft.risk, stopBeyondLiquidation: false },
-					increases: true
+					increases: true,
+					required: 0
 				}
 			: null
 	);
@@ -181,18 +188,18 @@
 		if (!s) return;
 		if (d.leverage !== s.leverage) {
 			const r = await session.setLeverage(d.leverage);
-			if (r && !r.accepted) return notify(r.reason);
+			if (r && !r.accepted) return notify(r.reason, releverFacts(s, d.leverage));
 		}
 		const res = await session.placeOrder(d.type, d.side, d.qty, d.price, false, { stop: d.stop, takeProfit: d.takeProfit });
 		if (!res) return;
-		if (!res.accepted) return notify(res.reason);
+		if (!res.accepted) return notify(res.reason, orderFacts(session.state!, d.required, d.leverage));
 		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${fmtQty(d.qty, i18n.locale)}` };
 	}
 
 	const sideWord = (side: 'buy' | 'sell') => t(`side.${side}`);
 
-	function notify(reason: string) {
-		session.notice = { tone: 'error', text: `✖ ${reasonText(reason)}` };
+	function notify(reason: string, facts: RejectionFacts = {}) {
+		session.notice = { tone: 'error', text: `✖ ${rejectionText(reason, facts)}` };
 	}
 
 	function onSubmit(d: OrderDraft) {
@@ -213,36 +220,42 @@
 		return keepsKey(e.target as HTMLElement | null, e.key);
 	}
 
-	// Advance (Space) never shares a key with submission (Enter inside the ticket).
+	// Shortcuts come from the player's key map (remappable; advance never takes Enter, which submits).
+	const actions: Record<ShortcutAction, () => void> = {
+		// While auto-advance runs, the advance keys take control back instead of advancing.
+		advance: () => (auto.running ? auto.stop() : session.advance(1)),
+		advance5: () => (auto.running ? auto.stop() : session.advance(5)),
+		auto: () => auto.toggle(),
+		mute: () => sound.toggleMute(),
+		buy: () => (side = 'buy'),
+		sell: () => (side = 'sell'),
+		close: () => void session.closePosition(),
+		help: () => (help = !help),
+		patterns: () => openPattern(null),
+		options: () => {
+			if (optionsOn) tab = tab === 'options' ? 'perp' : 'options';
+		},
+		journal: () => (journalOpen = true)
+	};
+
+	// The pattern sheet, the help overlay and the journal are modal: only their own key and Esc act,
+	// so the advance key cannot move the market behind them.
+	function modalKey(e: KeyboardEvent, action: ShortcutAction | null): boolean {
+		const closes = (own: ShortcutAction) => e.key === 'Escape' || action === own;
+		if (patterns) patterns = !closes('patterns');
+		else if (help) help = !closes('help');
+		else if (journalOpen) journalOpen = !closes('journal');
+		else return false;
+		return true;
+	}
+
 	function onKey(e: KeyboardEvent) {
-		if (draft || optDraft || session.pendingQuestion || pick) return;
-		if (patterns) {
-			// The sheet is modal: only P / Esc (close) reach the game, so Space cannot advance behind it.
-			if (e.key === 'Escape' || e.key.toLowerCase() === 'p') patterns = false;
-			return;
-		}
-		if (help) {
-			// Help is modal too: Space must not advance the market behind it.
-			if (e.key === 'Escape' || e.key === '?') help = false;
-			return;
-		}
-		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
-		const actions: Record<string, () => void> = {
-			// While auto-advance runs, Space takes control back instead of advancing.
-			' ': () => (auto.running ? auto.stop() : session.advance(e.shiftKey ? 5 : 1)),
-			a: () => auto.toggle(),
-			m: () => sound.toggleMute(),
-			b: () => (side = 'buy'),
-			s: () => (side = 'sell'),
-			x: () => void session.closePosition(),
-			'?': () => (help = !help),
-			p: () => openPattern(null)
-		};
-		const fn = actions[e.key.toLowerCase()];
-		if (fn) {
-			e.preventDefault();
-			fn();
-		}
+		if (keymap.capturing || draft || optDraft || session.pendingQuestion || pick) return;
+		const action = actionFor(keymap.map, keyName(e));
+		if (modalKey(e, action)) return;
+		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey || !action) return;
+		e.preventDefault();
+		actions[action]();
 	}
 </script>
 
@@ -266,8 +279,9 @@
 				game={session.state}
 				plannedRisk={Number(session.state.position.qty) !== 0 ? positionPlannedRisk(session.journal) : null}
 				onMargin={async (amount) => {
+					const before = session.state!;
 					const r = await session.adjustMargin(amount);
-					if (r && !r.accepted) notify(r.reason);
+					if (r && !r.accepted) notify(r.reason, marginFacts(before, Number(amount)));
 				}}
 			/>
 		</div>
@@ -316,6 +330,9 @@
 {/if}
 {#if help}
 	<HelpOverlay onClose={() => (help = false)} />
+{/if}
+{#if journalOpen}
+	<RunJournal entries={session.journal} onClose={() => (journalOpen = false)} />
 {/if}
 {#if patterns}
 	<PatternSheet focus={patternFocus} onClose={() => (patterns = false)} />

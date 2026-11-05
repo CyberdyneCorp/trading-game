@@ -15,6 +15,8 @@
 		takeProfit: string | null;
 		estimate: TicketEstimate;
 		increases: boolean;
+		/** Margin plus fee of the part that adds exposure (the ticket's estimate, quoted if refused). */
+		required: number;
 	}
 
 	/** Draft levels the chart previews while the player edits the ticket. */
@@ -28,7 +30,7 @@
 
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { costsOf, estimate, estimatedMarketEntry, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin } from '#lib/game/sizing.ts';
+	import { costsOf, estimate, estimatedMarketEntry, opposingEffect, releveredLiquidation, requiredMargin, sizedQty, type SizeBy } from '#lib/game/sizing.ts';
 	import { fmtMoney, fmtNum, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
@@ -43,6 +45,8 @@
 		type BarTuple
 	} from '#lib/game/stops.ts';
 	import LevelField, { type LevelChip } from './LevelField.svelte';
+	import { keymap } from '#lib/game/keymap.svelte.ts';
+	import { keyLabel } from '#lib/game/shortcuts.ts';
 
 	let {
 		session,
@@ -64,7 +68,7 @@
 		stopInput?: string;
 		tpInput?: string;
 		/** Sizing mode and quantity; bindable so the advisor's suggested size can be applied. */
-		sizeBy?: 'qty' | 'risk';
+		sizeBy?: SizeBy;
 		qtyInput?: string;
 		/** Leverage field; bindable so applying the advisor's size can raise it to fit the margin. */
 		leverage?: number;
@@ -88,7 +92,16 @@
 	});
 	const bars = $derived(s.bars.map((b) => b.slice(0, 5).map(Number) as BarTuple));
 
-	let riskPct = $state(1);
+	// Typed amounts per sizing mode, read with either decimal mark ("0,5" or "0.5").
+	let riskInput = $state('1');
+	let notionalInput = $state('1000');
+	let equityInput = $state('10');
+	const AMOUNT: Record<SizeBy, () => string> = {
+		qty: () => qtyInput,
+		notional: () => notionalInput,
+		equity: () => equityInput,
+		risk: () => riskInput
+	};
 	let priceInput = $state('');
 
 	// The field follows the account leverage only when that (or the cap) changes. Every command returns
@@ -114,10 +127,9 @@
 
 	const entry = $derived(orderType === 'market' ? estimatedMarketEntry(side, mark, k) : parseDecimal(priceInput) || mark);
 	const stop = $derived(stopInput ? parseDecimal(stopInput) : null);
-	const qty = $derived.by(() => {
-		if (sizeBy === 'risk' && stop != null) return qtyForRisk(num(s.account.equity), riskPct, entry, stop, k, lot);
-		return Math.floor((parseDecimal(qtyInput) || 0) / lot + 1e-9) * lot;
-	});
+	const qty = $derived(
+		sizedQty(sizeBy, { equity: num(s.account.equity), entry, stop, qty: parseDecimal(qtyInput) || 0, amount: parseDecimal(AMOUNT[sizeBy]()) || 0 }, k, lot)
+	);
 	const qtyStr = $derived(qtyToLot(qty, lot));
 	// The field can hold anything typed; orders and estimates use the value clamped to the mission cap.
 	const lev = $derived(Math.min(Math.max(1, Math.round(leverage || 1)), cap));
@@ -155,7 +167,8 @@
 			stop: stopInput ? priceToTick(parseDecimal(stopInput), tick) : null,
 			takeProfit: tpInput ? priceToTick(parseDecimal(tpInput), tick) : null,
 			estimate: est,
-			increases
+			increases,
+			required: needMargin
 		});
 	}
 
@@ -264,12 +277,24 @@
 			<select bind:value={sizeBy}>
 				<option value="risk">{t('ticket.sizeRisk')}</option>
 				<option value="qty">{t('ticket.sizeQty')}</option>
+				<option value="notional">{t('ticket.sizeNotional')}</option>
+				<option value="equity">{t('ticket.sizeEquity')}</option>
 			</select>
 		</label>
 		{#if sizeBy === 'risk'}
 			<label>
 				{t('ticket.riskPct')}
-				<input type="number" min="0.1" max="10" step="0.1" bind:value={riskPct} />
+				<input inputmode="decimal" bind:value={riskInput} data-testid="ticket-risk" />
+			</label>
+		{:else if sizeBy === 'notional'}
+			<label>
+				{t('ticket.notional')}
+				<input inputmode="decimal" bind:value={notionalInput} data-testid="ticket-notional" />
+			</label>
+		{:else if sizeBy === 'equity'}
+			<label>
+				{t('ticket.equityPct')}
+				<input inputmode="decimal" bind:value={equityInput} data-testid="ticket-equity" />
 			</label>
 		{:else}
 			<label>
@@ -305,7 +330,8 @@
 	{/if}
 
 	<dl class="kv est">
-		<dt>{t('ticket.qty')}</dt><dd>{fmtQty(qtyStr, L)}</dd>
+		<dt>{t('ticket.qty')}</dt><dd data-testid="ticket-est-qty">{fmtQty(qtyStr, L)}</dd>
+		<dt>{t('ticket.estNotional')}</dt><dd data-testid="ticket-est-notional">{fmtMoney(est.notional, L)}</dd>
 		<dt>{t('ticket.estEntry')}</dt><dd>{fmtPrice(String(entry), L)}</dd>
 		<dt>{t('ticket.estMargin')}</dt><dd>{fmtMoney(est.margin, L)}</dd>
 		<dt>{t('ticket.estFee')}</dt><dd>{fmtMoney(est.fee, L)}</dd>
@@ -373,7 +399,7 @@
 			<button onclick={protect} disabled={session.busy || !!protStopWarn || !!protTpWarn || (!protStop && !protTp && !protTrail)}>
 				{t('ticket.protectSubmit')}
 			</button>
-			<button class="warn" onclick={() => session.closePosition()} disabled={session.busy}>✕ {t('ticket.close')} <kbd>X</kbd></button>
+			<button class="warn" onclick={() => session.closePosition()} disabled={session.busy}>✕ {t('ticket.close')} <kbd>{keyLabel(keymap.map.close)}</kbd></button>
 		</div>
 	{/if}
 </section>

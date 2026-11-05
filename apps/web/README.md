@@ -36,13 +36,15 @@ src/
   lib/engine/              model bridge: engine.worker.ts (WASM host), client.ts, protocol.ts, types.ts, reveal.ts (reveal gate), wasm/
   lib/game/                view-models (session, autoplay, settings, pwa, i18n, audio, sound, csvImport — *.svelte.ts rune classes),
                            IndexedDB storage, and pure helpers (sizing, stops, optionsMath, calibration,
-                           analysis, debrief, format, news, hotkeys, tutorials, advisor, points, perks, curriculum, campaign, journal, candle/chart
+                           analysis, debrief, format, news, hotkeys, shortcuts (+ keymap.svelte.ts), rejections, tutorials, advisor, points, perks, curriculum, campaign, journal, candle/chart
                            pattern catalogs, patternOutcome and packs) with *.test.ts next to them
   lib/components/          views: Terminal, Chart (+ chartPanes.ts), OrderTicket, OptionTicket, OptionChain,
                            RightRail, TopBar, AdvisorPanel, Briefing (+ PerkPanel), Tutorial (+ TutorialArt), Debrief (+ RegimeReveal), MissionMenu, dialogs,
                            PatternSheet (+ PatternAnimation), HelpOverlay, CsvImport, CampaignPanel, CampaignOutcome,
-                           CurriculumMap, Journal; chartDrag.ts (stop/target line drag)
+                           CurriculumMap, Journal (+ JournalEntries, RunJournal), ShortcutSettings, ChartTable (+ chartA11y.ts);
+                           chartDrag.ts (stop/target line drag)
 e2e/                       Playwright: mission.spec.ts (gameplay), missions-batch-a.spec.ts (m06–m08 to the debrief), missions-batch-b.spec.ts (m09–m12 to the debrief, announced calendar, campaign report), campaign.spec.ts (campaign, curriculum, journal), perks.spec.ts (intel perks),
+                           gameplay-ux.spec.ts (sizing modes, rejection numbers, liquidation flow, UX01 bar table, shortcuts, run journal, interrupted pack download),
                            packs.spec.ts (CSV import, practice packs),
                            offline.spec.ts (OFF01-web)
 scripts/                   build-engine.sh (Emscripten), make-icons.py (PWA icons)
@@ -50,6 +52,14 @@ static/                    manifest.webmanifest, icons
 ```
 
 Game rules, fills, scoring and the debrief come from the engine; the seeded reveal of a built-in mission (regime spans, event outcomes) comes from `tl_mission_reveal` through the worker's `reveal` request, which the worker refuses while the run is active (`src/lib/engine/reveal.ts`, checked by `reveal.test.ts`), and the debrief draws it as a regime band, a signals-by-regime table (`RegimeReveal`) and a per-release table (`ReleaseReveal`: consensus, drawn outcome and size, gap, reaction, positioned before or after, implied against realized move); the client formats engine decimal strings for display and never computes authoritative state (ticket previews in `sizing.ts`/`optionsMath.ts` mirror engine formulas for display only). Runs persist as an append-only action log in IndexedDB (`tradelab` DB: `runs`, `actions`, `meta`, `packs`); resume replays the log through the deterministic engine. A run record also keeps its start options (advice allowance, intel perks; campaign capital and leverage cap), its campaign link and its last equity, and `meta.progress` (version 2, `migrateProgress` reads older shapes) keeps the tutorials seen, the intel perks already explained, the advisor point balance (`points.ts`: start 3, cap 10, settled once per run id; a resumable run is settled, earning nothing, when another run is started), the campaign run, ended campaign runs and the missions assessed in a campaign (`campaign.ts`, `curriculum.ts`; a campaign mission is settled once per run id from the engine's final equity, and a left one from its last equity; a leg that reached its debrief also stores the engine's trade and cost facts, which `campaignReport.ts` adds up for the capstone's `CampaignReport`).
+
+## Ticket, rejections, accessible chart and shortcuts
+
+- **Sizing:** the ticket sizes by quantity, notional (cr), % of equity (exposure: the notional is that share of equity) or risk % to a stop (`sizedQty` in `sizing.ts`, rounded down to the lot); every amount accepts the decimal comma and the estimates show the resulting notional. The advisor's apply writes its stop and size the way the player would type them (`priceInputText`, `qtyInputText`: "41,8" in PT-BR).
+- **Rejections:** a refused command shows the plain-language reason with the numbers behind it in the locale (`rejections.ts`): required vs available margin (orders, a lower leverage that re-margins the open position, adding margin), the margin left vs the initial margin, the leverage vs the cap. The engine returns only the code; the figures are the client's display estimates.
+- **States:** "no data" on the chart before any closed bar; "download interrupted" when a `.tlpack` cannot be read or is cut short (`packLooksCut` in `packs.ts`). Session expired, sync pending and device conflict wait for the backend.
+- **Accessible chart:** `ChartTable` holds every closed bar in pages of 50 (the default page ends with the current bar, UX01) plus a text summary; it is visually hidden until "Table" opens it (Esc closes) or keyboard focus enters it. The canvas box is a keyboard slider: arrows, Page Up/Down and Home/End move the focused candle, its OHLCV and patterns are announced (`aria-valuetext`), Enter opens its pattern card, and Space still advances.
+- **Shortcuts:** defaults in `shortcuts.ts` (Space, Shift+Space, B, S, X, P, A, M, O option chain, J run journal, ?), remappable in the menu settings and from the help overlay (`ShortcutSettings`), saved per viewer in localStorage (`tradelab.keymap.v1`). A key used by another action is refused naming it; Enter, Esc, Tab, arrows and Home/End/Page keys are reserved. The help overlay and button hints show the current keys.
 
 ## Campaign, curriculum map and journal
 

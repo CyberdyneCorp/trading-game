@@ -5,7 +5,9 @@
 	import { fmtNum, fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { OSCILLATORS, type Oscillator, type Palette } from './chartPanes.ts';
-	import { candleCells, candleRange, hitsTag, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
+	import { candleRange, hitsTag, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
+	import { candleText, stepFocus } from './chartA11y.ts';
+	import ChartTable from './ChartTable.svelte';
 	import { patternName } from '#lib/game/candlePatterns.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
 	import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragTarget, type DragZone } from './chartDrag.ts';
@@ -52,6 +54,10 @@
 	let grabbable = $state<DragTarget | null>(null);
 	let zones: DragZone[] = [];
 	let suppressClick = false;
+	// Keyboard: the focused candle (absolute bar index), what is announced for it, and the bar table.
+	let focusBar = $state<number | null>(null);
+	let announce = $state('');
+	let tableOpen = $state(false);
 
 	// Bars still needed before an indicator has a value (spec indicators "Warm-up").
 	function warming(series: (string | null)[], need: number): number {
@@ -522,6 +528,35 @@
 	function onKeydown(e: KeyboardEvent) {
 		if (picking && e.key === 'Escape') onCancelPick?.();
 		if (drag && e.key === 'Escape') cancelDrag();
+		if (tableOpen && e.key === 'Escape') tableOpen = false;
+	}
+
+	// Per-candle keyboard focus: arrows, Page Up/Down, Home/End move it and announce the bar;
+	// Enter opens the cheat-sheet card of a pattern on it. Space is left to the game (advance).
+	function focusCandle(i: number) {
+		focusBar = i;
+		if (i < first) zoom = Math.min(Math.max(30, bars.length - i), bars.length);
+		hover = i - Math.max(0, bars.length - zoom);
+		const names = patternsAt(i).map((p) => patternName(p.id, i18n.locale));
+		announce = candleText(i, bars[i], names, i18n.locale);
+	}
+
+	// Keyboard focus announces the current bar; a mouse click that focuses the chart does not move the
+	// hover (the click acts on the bar under the pointer).
+	function onChartFocus() {
+		if (focusBar == null && bars.length && box?.matches(':focus-visible')) focusCandle(bars.length - 1);
+	}
+
+	function onChartKey(e: KeyboardEvent) {
+		if (e.key === 'Enter' && focusBar != null) {
+			const hit = patternsAt(focusBar)[0];
+			if (hit) onPattern?.(hit.id);
+			return;
+		}
+		const next = stepFocus(e.key, focusBar, bars.length);
+		if (next == null) return;
+		e.preventDefault();
+		focusCandle(next);
 	}
 
 	function onWheel(e: WheelEvent) {
@@ -541,7 +576,6 @@
 
 	const hoverBar = $derived(hover != null ? visible[hover] : visible[visible.length - 1]);
 	const hoverIndex = $derived(hover != null ? first + hover : bars.length - 1);
-	const tableRows = $derived(bars.slice(-20).map((b, i) => ({ i: bars.length - 20 + i, b })).filter((r) => r.i >= 0));
 
 	$effect(() => {
 		if (!box) return;
@@ -602,6 +636,9 @@
 		{#if warming(game.indicators.ema50, 50) > 0}
 			<span class="muted">{t('chart.warming', { name: 'EMA50', n: warming(game.indicators.ema50, 50) })}</span>
 		{/if}
+		<button class="toggle table-toggle" aria-expanded={tableOpen} onclick={() => (tableOpen = !tableOpen)} data-testid="chart-table-toggle">
+			▦ {t('chart.tableToggle')}
+		</button>
 		{#if picking}<span class="attention" role="status">⌖ {t('chart.pickHint')}</span>{/if}
 	</div>
 	<!-- Always present at a fixed height: showing a pattern must not move or resize the chart. -->
@@ -615,7 +652,29 @@
 			{/each}
 		{/if}
 	</div>
-	<div class="canvas-box" class:picking class:grab={grabbable || drag} bind:this={box} data-testid="chart-box">
+	<!-- A slider over the closed bars: the focused candle is its value, announced as aria-valuetext. -->
+	<div
+		class="canvas-box"
+		class:picking
+		class:grab={grabbable || drag}
+		bind:this={box}
+		data-testid="chart-box"
+		tabindex="0"
+		role="slider"
+		aria-label={t('chart.focusHint')}
+		aria-describedby="chart-summary"
+		aria-valuemin={0}
+		aria-valuemax={Math.max(0, bars.length - 1)}
+		aria-valuenow={focusBar ?? Math.max(0, bars.length - 1)}
+		aria-valuetext={announce || undefined}
+		onkeydown={onChartKey}
+		onfocus={onChartFocus}
+		onblur={() => {
+			focusBar = null;
+			hover = null;
+		}}
+	>
+		{#if bars.length === 0}<p class="nodata muted" role="status" data-testid="chart-nodata">{t('chart.noData')}</p>{/if}
 		<canvas
 			bind:this={canvas}
 			style="width:{width}px;height:{height}px"
@@ -633,21 +692,12 @@
 			aria-hidden="true"
 		></canvas>
 	</div>
-	<table class="sr-only">
-		<caption>{t('chart.table')}</caption>
-		<thead><tr><th>#</th><th>O</th><th>H</th><th>L</th><th>C</th><th>V</th></tr></thead>
-		<tbody>
-			{#each tableRows as row (row.i)}
-				<tr>
-					<td>{row.i}</td>{#each candleCells(row.b, i18n.locale) as cell, j (j)}<td>{cell}</td>{/each}
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<ChartTable {bars} open={tableOpen} onClose={() => (tableOpen = false)} />
 </div>
 
 <style>
 	.chart-wrap {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		height: 100%;
@@ -698,6 +748,21 @@
 		white-space: nowrap;
 	}
 	.pattern {
+		font-size: 0.75rem;
+		padding: 0 0.4rem;
+		min-height: 0;
+	}
+	.canvas-box:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+	}
+	.nodata {
+		position: absolute;
+		inset: 40% 0 auto;
+		text-align: center;
+		margin: 0;
+	}
+	.table-toggle {
 		font-size: 0.75rem;
 		padding: 0 0.4rem;
 		min-height: 0;

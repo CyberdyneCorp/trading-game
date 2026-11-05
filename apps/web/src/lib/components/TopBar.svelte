@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { keymap } from '#lib/game/keymap.svelte.ts';
+	import { keyLabel } from '#lib/game/shortcuts.ts';
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
@@ -41,7 +43,7 @@
 		</div>
 		<div class="actions">
 			<button class="primary" onclick={() => session.advance(1)} disabled={session.busy || s.status !== 'active'}>
-				▶ {t('top.advance')} <kbd>Space</kbd>
+				▶ {t('top.advance')} <kbd>{keyLabel(keymap.map.advance)}</kbd>
 			</button>
 			<div class="auto" role="group" aria-label={t('auto.title')}>
 				<button
@@ -51,7 +53,7 @@
 					aria-pressed={auto.running}
 					data-testid="auto-toggle"
 				>
-					{auto.running ? '⏸' : '⏵'} {t(auto.running ? 'auto.pause' : 'auto.play')} <kbd>A</kbd>
+					{auto.running ? '⏸' : '⏵'} {t(auto.running ? 'auto.pause' : 'auto.play')} <kbd>{keyLabel(keymap.map.auto)}</kbd>
 				</button>
 				<select
 					aria-label={t('auto.speed')}
@@ -65,7 +67,7 @@
 					{t('auto.pauseOnEvents')}
 				</label>
 			</div>
-			<button onclick={onPatterns} title="P">{t('patterns.open')} <kbd>P</kbd></button>
+			<button onclick={onPatterns} title={keyLabel(keymap.map.patterns)}>{t('patterns.open')} <kbd>{keyLabel(keymap.map.patterns)}</kbd></button>
 			<button
 				onclick={() => sound.toggleMute()}
 				aria-label={sound.muted ? t('sound.unmute') : t('sound.mute')}

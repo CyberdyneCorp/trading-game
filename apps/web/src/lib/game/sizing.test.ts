@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { estimate, fitToMargin, liquidationPrice, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin, type Costs } from './sizing.ts';
+import {
+	estimate,
+	fitToMargin,
+	liquidationPrice,
+	opposingEffect,
+	qtyForEquityPct,
+	qtyForNotional,
+	qtyForRisk,
+	releveredLiquidation,
+	requiredMargin,
+	sizedQty,
+	type Costs
+} from './sizing.ts';
 
 const zero: Costs = { multiplier: 1, takerFee: 0, maintenanceMargin: 0.01, halfSpread: 0, slippage: 0 };
 
@@ -60,6 +72,31 @@ describe('fitting an order to the available balance', () => {
 		expect(fit.qty).toBeLessThan(500);
 		expect(requiredMargin(fit.qty, 100, 5, k)).toBeLessThanOrEqual(10_000);
 		expect(requiredMargin(fit.qty + 0.1, 100, 5, k)).toBeGreaterThan(10_000);
+	});
+});
+
+describe('sizing by notional and by % of equity', () => {
+	const k: Costs = { multiplier: 1, takerFee: 0.0005, maintenanceMargin: 0.005, halfSpread: 0, slippage: 0 };
+	const x = { equity: 10_000, entry: 103, stop: null, qty: 7, amount: 0 };
+
+	it('a notional buys what it covers at the entry, rounded down to the lot', () => {
+		expect(qtyForNotional(1_000, 103, k, 0.1)).toBeCloseTo(9.7, 9); // 1,000 / 103 = 9.708
+		expect(qtyForNotional(1_000, 103, { ...k, multiplier: 10 }, 0.1)).toBeCloseTo(0.9, 9);
+		expect(qtyForNotional(0, 103, k, 0.1)).toBe(0);
+		expect(qtyForNotional(Number.NaN, 103, k, 0.1)).toBe(0);
+	});
+
+	it('% of equity is exposure: 100% is one times the equity, 250% needs leverage', () => {
+		expect(qtyForEquityPct(10_000, 10, 100, k, 0.1)).toBeCloseTo(10, 9);
+		expect(qtyForEquityPct(10_000, 250, 100, k, 1)).toBe(250);
+	});
+
+	it('sizedQty picks the mode; risk without a stop keeps the quantity field', () => {
+		expect(sizedQty('qty', { ...x, qty: 7.25 }, k, 0.1)).toBeCloseTo(7.2, 9);
+		expect(sizedQty('notional', { ...x, amount: 1_030 }, k, 0.1)).toBeCloseTo(10, 9);
+		expect(sizedQty('equity', { ...x, amount: 20.6 }, k, 1)).toBe(20);
+		expect(sizedQty('risk', x, k, 0.1)).toBe(7);
+		expect(sizedQty('risk', { ...x, stop: 100, amount: 1 }, k, 0.1)).toBe(qtyForRisk(10_000, 1, 103, 100, k, 0.1));
 	});
 });
 
