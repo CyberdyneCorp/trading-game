@@ -26,6 +26,23 @@ target_link_libraries(tradelab_desktop_unit_tests PRIVATE tradelab_desktop_viewm
 add_test(NAME desktop_unit COMMAND tradelab_desktop_unit_tests)
 set_tests_properties(desktop_unit PROPERTIES LABELS unit)
 
+# ---- Storage and packs (unit label): SQLite repository, recorder/resume, OFF02 crash child, packs. ----
+# The crash child plays a session through EngineHost + SQLite and SIGKILLs itself at a TRADELAB_FAULT point.
+add_executable(tradelab_desktop_crash_child storage/crash_child.cpp)
+target_include_directories(tradelab_desktop_crash_child PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(tradelab_desktop_crash_child PRIVATE tradelab_desktop_model)
+target_sources(tradelab_desktop_unit_tests PRIVATE
+  storage/test_run_store.cpp
+  storage/test_recorder.cpp
+  storage/test_crash_recovery.cpp
+  storage/test_scripted_pack.cpp
+  packs/test_packs.cpp
+  packs/test_download.cpp)
+add_dependencies(tradelab_desktop_unit_tests tradelab_desktop_crash_child)
+target_compile_definitions(tradelab_desktop_unit_tests PRIVATE
+  TRADELAB_CRASH_CHILD="$<TARGET_FILE:tradelab_desktop_crash_child>"
+  TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog")
+
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
 add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp
   headless/test_headless_shell.cpp)

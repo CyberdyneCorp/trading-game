@@ -280,6 +280,30 @@ TEST_CASE("shell: curriculum map statuses, Academy lesson to completion, stage p
   CHECK(m.text_of(names::kCurriculumLessonStart) == "Refazer lição");
 }
 
+// Regression: the terminal kept its plans to itself, so the Journal screen never listed them.
+TEST_CASE("shell: a plan recorded in the terminal reaches the run's journal") {
+  Fixture f;
+  RealRun a;
+  f.vm.start_selected();
+  f.enter(a);
+  auto& game = f.vm.game();
+  game.ticket.size_by = game::SizeBy::Qty;
+  game.ticket.qty = "1,5";
+  game.ticket.stop = "95,5";
+  game.submit();
+  REQUIRE(game.modal() == game::Modal::Plan);
+  game.plan.thesis = "rompimento com volume";
+  game.plan_confirm(false);
+  const RunRecord* run = nullptr;
+  for (const auto& r : f.vm.progress().runs) {
+    if (r.run_id == f.vm.shell().run_id) run = &r;
+  }
+  REQUIRE(run != nullptr);
+  REQUIRE(run->journal.size() == 1);
+  CHECK(run->journal[0].thesis == "rompimento com volume");
+  CHECK(run->journal[0].buy);
+}
+
 TEST_CASE("shell: journal lists the plans of the runs, newest first, with a mission filter") {
   Fixture f;
   RealRun a;
@@ -344,9 +368,12 @@ TEST_CASE("shell: settings toggle CRT effects, palette, text scale, language and
   CHECK(m.text_of(names::kSettingsKeyMessage) == "\"Boleta: comprar\" agora usa K.");
   CHECK(m.table_of(names::kSettingsKeys)->rows[2][1] == "K");
   CHECK(repo.load()->keymap.at("buy") == "k");
+  // Regression: the terminal used its own map, so a key remapped here did nothing in play.
+  CHECK(f.vm.game().keymap().key(game::Action::Buy) == "k");
   CHECK_FALSE(f.vm.capture_key("x"));  // not waiting any more
   f.vm.reset_keys();
   CHECK(f.vm.shell().keymap.at("buy") == "b");
+  CHECK(f.vm.game().keymap().key(game::Action::Buy) == "b");
 
   f.vm.set_locale(Locale::En);
   CHECK(repo.load()->locale == Locale::En);

@@ -1,23 +1,15 @@
 #include "model/game_command.hpp"
 
-#include <tradelab/c_api.h>
-
 #include <utility>
 
-#include "model/engine_run.hpp"
+#include "model/json.hpp"
 
 namespace tradelab::desktop {
 
-namespace {
-
-const char* opt(const std::string& s) { return s.empty() ? nullptr : s.c_str(); }
-
-int side_code(bool buy) { return buy ? 0 : 1; }
-
-CommandResult result_from(GameCommandKind kind, const char* text) {
+CommandResult game_result(GameCommandKind kind, const std::string& text) {
   CommandResult r{CommandKind::Game, false, "invalid"};
   r.game = kind;
-  const auto v = json::parse(text != nullptr ? text : "");
+  const auto v = json::parse(text);
   if (!v) return r;
   r.accepted = (*v)["accepted"].as_bool(false);
   r.reason = (*v)["reason"].as_string("invalid");
@@ -25,42 +17,6 @@ CommandResult result_from(GameCommandKind kind, const char* text) {
   r.warning = (*v)["warning"].as_string();
   return r;
 }
-
-const char* run_order(tl_run* run, std::uint32_t id, const GameCommand& c) {
-  return tl_place_order_ex(run, id, c.type, side_code(c.buy), c.qty.c_str(), opt(c.price), c.reduce_only ? 1 : 0,
-                           opt(c.stop), opt(c.tp), opt(c.trail));
-}
-
-const char* run_plan(tl_run* run, std::uint32_t id, const GameCommand& c) {
-  return tl_record_plan(run, id, side_code(c.buy), c.skipped ? 1 : 0, c.option ? 1 : 0, c.lose_scenario ? 1 : 0,
-                        opt(c.stop), opt(c.tp), c.number, opt(c.amount));
-}
-
-const char* dispatch(tl_run* run, std::uint32_t id, const GameCommand& c) {
-  switch (c.kind) {
-    case GameCommandKind::Order: return run_order(run, id, c);
-    case GameCommandKind::TrailingRate:
-      return tl_place_trailing_rate(run, id, side_code(c.buy), c.qty.c_str(), c.reduce_only ? 1 : 0, c.trail.c_str());
-    case GameCommandKind::Option:
-      return tl_place_option_order(run, id, static_cast<std::uint32_t>(c.id), side_code(c.buy), c.type, c.qty.c_str(),
-                                   opt(c.price));
-    case GameCommandKind::Cancel: return tl_cancel_order(run, id, static_cast<std::uint32_t>(c.id));
-    case GameCommandKind::Move: return tl_move_order(run, id, static_cast<std::uint32_t>(c.id), c.price.c_str());
-    case GameCommandKind::Leverage: return tl_set_leverage(run, id, c.number);
-    case GameCommandKind::Close: return tl_close_position(run, id);
-    case GameCommandKind::Margin: return tl_adjust_margin(run, id, c.amount.c_str());
-    case GameCommandKind::Plan: return run_plan(run, id, c);
-    case GameCommandKind::Answer: return tl_answer_question(run, id, c.number, c.skipped ? 1 : 0);
-    case GameCommandKind::Lesson:
-      return tl_answer_lesson(run, id, static_cast<std::uint32_t>(c.id), static_cast<std::uint32_t>(c.number),
-                              opt(c.amount), c.skipped ? 1 : 0);
-    case GameCommandKind::Advice: return tl_request_advice(run, id);
-    case GameCommandKind::None: break;
-  }
-  return nullptr;
-}
-
-}  // namespace
 
 GameCommand GameCommand::order(OrderType type, bool buy, std::string qty, std::string price, bool reduce_only,
                                std::string stop, std::string tp, std::string trail) {
@@ -170,10 +126,6 @@ GameCommand GameCommand::advice() {
   GameCommand c;
   c.kind = GameCommandKind::Advice;
   return c;
-}
-
-CommandResult EngineRun::execute(const GameCommand& c) {
-  return result_from(c.kind, dispatch(run_, next_client_id_++, c));
 }
 
 }  // namespace tradelab::desktop

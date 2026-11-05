@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "support/driver.hpp"
+#include "support/game_flows.hpp"
 #include "support/png.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -20,6 +21,7 @@
 using namespace tradelab::desktop;
 namespace names = tradelab::desktop::names;
 using tradelab::desktop::testing::Driver;
+using tradelab::desktop::testing::Terminal;
 
 namespace {
 
@@ -75,8 +77,11 @@ struct RavenSession {
   ~RavenSession() { Rshutdown(); }
 };
 
-void play_to_debrief(Driver& d, App& app) {
+// Shift+Space (five bars, never past a calibration question) until the run ends; questions skipped.
+void play_to_debrief(Driver& d, App& app, Terminal& t) {
   for (int guard = 0; guard < 100 && app.vm().screen() == Screen::Game; ++guard) {
+    t.skip_question();
+    d.focus(names::kGameAdvance);
     d.key(R_KEY_SPACE, R_MOD_SHIFT);
     REQUIRE(d.idle());
   }
@@ -98,10 +103,13 @@ TEST_CASE("windowed shell: a campaign mission from the menu to its debrief, then
   CHECK(d.text(names::kBriefLocked).find("Bloqueado nesta missão da campanha") != std::string::npos);
   CHECK(capture(d, window, "shell-01-campaign-briefing").saved);
   REQUIRE(d.click(names::kBriefGo));
+  Terminal t(app, d);
+  t.skip_question();
+  d.choose(names::game::kSizeBy, 1);  // by quantity
   d.type_into(names::kGameQty, "1,5");
   REQUIRE(d.click(names::kGameBuy));
-  REQUIRE(d.idle());
-  play_to_debrief(d, app);
+  t.submit_with_plan();
+  play_to_debrief(d, app, t);
   REQUIRE(app.vm().screen() == Screen::Debrief);
   const Frame debrief = capture(d, window, "shell-02-campaign-debrief");
   CHECK(debrief.saved);

@@ -58,6 +58,7 @@ void AppViewModel::save_progress() { shell_.progress_repo->save(shell_.progress)
 void AppViewModel::save_settings() {
   shell_.settings.keymap = std::map<std::string, std::string>(shell_.keymap.begin(), shell_.keymap.end());
   shell_.settings_repo->save(shell_.settings);
+  game_->set_keymap(shell_.settings.keymap);  // the terminal reads the same shortcuts
 }
 
 // ---- The run's life ----
@@ -160,6 +161,8 @@ void AppViewModel::open_journal() {
 void AppViewModel::open_settings() {
   shell_.capturing_key = false;
   shell_.key_message.clear();
+  // Remaps made in the terminal's help dialog show here too.
+  shell_.keymap = sanitize_keymap(web_content(), game_->keymap().to_map());
   screen_ = Screen::Settings;
   touch();
 }

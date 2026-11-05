@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 build="${1:?build directory}"
 extra=()
 if [[ "$(uname)" == "Darwin" ]]; then extra+=("--extra-arg=-isysroot$(xcrun --show-sdk-path)"); fi
-files=(src/*/*.cpp src/*/*/*.cpp src/main.cpp tests/{model,viewmodel,headless,windowed,support}/*.cpp tests/viewmodel/game/*.cpp)
+files=(src/*/*.cpp src/*/*/*.cpp src/main.cpp tests/{model,viewmodel,headless,windowed,support,storage,packs}/*.cpp tests/viewmodel/game/*.cpp)
 "${CLANG_TIDY:-clang-tidy}" -p "$build" --quiet "${extra[@]}" \
   --checks='-*,readability-function-cognitive-complexity' \
   --config='{CheckOptions: {readability-function-cognitive-complexity.Threshold: 15, readability-function-cognitive-complexity.IgnoreMacros: true}}' \

@@ -96,14 +96,16 @@
                                     <Button Name="game-sell" Slot.Fill="1" OnClicked="tl.game.sell"/>
                                 </HBox>
                                 <Label Name="game-short-locked" Color="#FFC857" Wrap="true" TextSize="12"/>
+                                <!-- One field per row: with the theme's monospace font a label and its field do not
+                                     fit beside a combo box in the 340 px ticket column. -->
                                 <Grid Columns="1,1" Spacing="4">
                                     <ComboBox Name="game-type" Slot.Column="0" Slot.Row="0"/>
-                                    <HBox Spacing="4" Slot.Column="1" Slot.Row="0">
+                                    <ComboBox Name="game-size-by" Slot.Column="1" Slot.Row="0"/>
+                                    <HBox Spacing="4" Slot.Column="0" Slot.Row="1" Slot.ColumnSpan="2">
                                         <Label Name="game-lev-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
                                         <TextInput Name="game-leverage" Width="40"/>
                                     </HBox>
-                                    <ComboBox Name="game-size-by" Slot.Column="0" Slot.Row="1"/>
-                                    <HBox Spacing="4" Slot.Column="1" Slot.Row="1">
+                                    <HBox Spacing="4" Slot.Column="0" Slot.Row="2" Slot.ColumnSpan="2">
                                         <Label Name="game-qty-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
                                         <TextInput Name="game-qty" Slot.Fill="1"/>
                                     </HBox>

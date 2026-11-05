@@ -9,25 +9,15 @@
 
 #include "model/game_command.hpp"
 #include "model/game_state.hpp"
+#include "model/progress.hpp"
 #include "viewmodel/game/shortcuts.hpp"
 #include "viewmodel/game/sizing.hpp"
 #include "viewmodel/game/texts.hpp"
 
 namespace tradelab::desktop::game {
 
-// A recorded plan (web analysis.ts PlanEntry); the free text stays on the device.
-struct PlanEntry {
-  int step = 0;
-  bool buy = true;
-  std::string thesis;
-  std::optional<double> invalidation;
-  std::optional<double> target;
-  int confidence = 0;
-  std::optional<double> planned_risk;
-  bool skipped = false;
-  std::string lose_scenario;
-  std::string instrument;  // option series label; "" = perpetual
-};
+// A recorded plan (web analysis.ts PlanEntry, model/progress.hpp); the free text stays on the device.
+using PlanEntry = desktop::PlanEntry;
 
 // The planned risk of the open perpetual position: the last perpetual plan's (journal.ts).
 std::optional<double> position_planned_risk(const std::vector<PlanEntry>& journal);

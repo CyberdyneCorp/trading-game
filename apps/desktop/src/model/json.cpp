@@ -278,6 +278,11 @@ const Value& Value::operator[](std::string_view key) const {
 
 bool Value::has(std::string_view key) const { return kind_ == Kind::Object && fields_ && fields_->contains(key); }
 
+const std::map<std::string, Value, std::less<>>& Value::fields() const {
+  static const std::map<std::string, Value, std::less<>> empty;
+  return kind_ == Kind::Object && fields_ ? *fields_ : empty;
+}
+
 std::optional<Value> parse(std::string_view text) { return Parser(text).document(); }
 
 }  // namespace tradelab::desktop::json

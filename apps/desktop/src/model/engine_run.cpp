@@ -94,11 +94,22 @@ std::unique_ptr<EngineRun> EngineRun::create(const std::string& mission, std::ui
   tl_run* run = tl_run_create_ex(mission.c_str(), seed, static_cast<std::uint32_t>(o.advice_allowance),
                                  static_cast<std::uint32_t>(o.news_lead), o.calendar ? 1 : 0, balance,
                                  o.leverage_cap);
+  auto out = adopt(run, seed);
+  if (out) out->load_lesson(mission);
+  return out;
+}
+
+std::unique_ptr<EngineRun> EngineRun::adopt(tl_run* run, std::uint32_t seed) {
   if (run == nullptr) return nullptr;
   auto out = std::unique_ptr<EngineRun>(new EngineRun(run, seed));
-  const json::Value lesson = parse_or_null(tl_lesson(mission.c_str()));
-  if (!lesson.has("error")) out->lesson_ = lesson_info_from_json(lesson);
+  out->load_lesson(parse_or_null(tl_state(run))["mission"].as_string());
   return out;
+}
+
+// Built-in missions only; a pack scenario has none (tl_lesson answers with an error).
+void EngineRun::load_lesson(const std::string& mission) {
+  const json::Value lesson = parse_or_null(tl_lesson(mission.c_str()));
+  lesson_ = lesson.has("error") ? LessonInfo{} : lesson_info_from_json(lesson);
 }
 
 EngineRun::~EngineRun() { tl_run_destroy(run_); }

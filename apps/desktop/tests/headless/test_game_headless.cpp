@@ -112,3 +112,47 @@ TEST_CASE("headless terminal: shortcuts, help with remapping, chart focus and th
   CHECK(Rtable_get_row_count(table) == 50);
   CHECK(std::string(Rtable_get_cell(table, 49, 0)) == std::to_string(t.g().bars.size() - 1));
 }
+
+namespace {
+
+// Visible inputs, buttons and combo boxes that stick out of the scroll panel they live in.
+void collect_overflows(Rid w, float left, float right, std::vector<std::string>& out) {
+  if (Rwidget_get_visibility(w) != R_VISIBLE) return;
+  float x = 0, y = 0, width = 0, height = 0;
+  Rwidget_get_rect(w, &x, &y, &width, &height);
+  const RWidgetType type = Rwidget_get_type(w);
+  if (type == R_WIDGET_SCROLL_BOX && width > 0) {
+    left = x;
+    right = x + width;
+  }
+  const bool control = type == R_WIDGET_TEXT_INPUT || type == R_WIDGET_BUTTON || type == R_WIDGET_COMBO_BOX;
+  if (control && width > 0 && (x < left - 0.5F || x + width > right + 0.5F)) {
+    const char* name = Rwidget_get_name(w);
+    out.push_back(std::string(name != nullptr ? name : "(unnamed)") + " x=" + std::to_string(x) + ".." +
+                  std::to_string(x + width) + " panel=" + std::to_string(left) + ".." + std::to_string(right));
+  }
+  for (int i = 0; i < Rwidget_get_child_count(w); ++i) collect_overflows(Rwidget_get_child(w, i), left, right, out);
+}
+
+}  // namespace
+
+// Regression: with the theme's monospace font the ticket's label + field rows overflowed the 340 px
+// ticket column, so a click on the amount field landed in the next panel and typing went nowhere.
+TEST_CASE("headless terminal: with the retro theme every terminal control fits inside its panel") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 1u; });
+  REQUIRE(app.build(1280, 800));
+  Driver d(app);
+  d.frames(2);
+  Terminal t(app, d);
+  REQUIRE(d.click(names::kMenuStart));
+  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.click(names::kBriefGo));
+  t.skip_question();
+  d.frames(2);
+  std::vector<std::string> overflows;
+  collect_overflows(Rwindow_get_content(d.window()), -1e9F, 1e9F, overflows);
+  std::string all;
+  for (const auto& o : overflows) all += o + "\n";
+  CHECK_MESSAGE(overflows.empty(), all);
+}

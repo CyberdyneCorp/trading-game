@@ -86,5 +86,17 @@
   "desktop.chart.debrief": {
     "pt-BR": "Gráfico da partida, da primeira decisão ao fim",
     "en": "Chart of the run, from the first decision to the end"
+  },
+  "desktop.alreadyRunning.title": {
+    "pt-BR": "O TradeLab já está aberto",
+    "en": "TradeLab is already open"
+  },
+  "desktop.alreadyRunning.body": {
+    "pt-BR": "Outra janela do TradeLab está usando os dados salvos deste usuário. Use essa janela ou feche-a antes de abrir o TradeLab de novo.",
+    "en": "Another TradeLab window is using this user's saved data. Use that window, or close it before opening TradeLab again."
+  },
+  "desktop.storageUnavailable": {
+    "pt-BR": "Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.",
+    "en": "The saved data could not be opened ({detail}): this session will not be saved."
   }
 }

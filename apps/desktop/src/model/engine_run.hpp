@@ -44,12 +44,19 @@ class EngineRun {
   bool advance(int steps);
   // Market order; returns the engine's result {"accepted","reason",...}.
   CommandResult place_market(Side side, const std::string& qty);
-  // A terminal command (model/game_command.cpp); the result carries the engine's order id and warning.
-  CommandResult execute(const GameCommand& c);
   [[nodiscard]] Snapshot snapshot() const;
+
+  // Storage (model/storage): takes ownership of a run built by another tl_* constructor (pack, restore).
+  // The mission's lesson questions are read as create() does.
+  static std::unique_ptr<EngineRun> adopt(tl_run* run, std::uint32_t seed);
+  [[nodiscard]] tl_run* handle() const { return run_; }
+  // Client ids: one per non-advance command, 1, 2, ... (a replay hands out the same ids).
+  std::uint32_t take_client_id() { return next_client_id_++; }
+  void set_next_client_id(std::uint32_t id) { next_client_id_ = id; }
 
  private:
   EngineRun(tl_run* run, std::uint32_t seed) : run_(run), seed_(seed) {}
+  void load_lesson(const std::string& mission);
   tl_run* run_;
   std::uint32_t seed_;
   LessonInfo lesson_;

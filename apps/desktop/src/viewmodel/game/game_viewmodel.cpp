@@ -40,6 +40,14 @@ void GameViewModel::set_notice(Line l) {
   touch();
 }
 
+void GameViewModel::set_keymap(const std::map<std::string, std::string>& map) {
+  const Keymap next = Keymap::sanitized(map);
+  if (next == keymap_) return;
+  keymap_ = next;
+  save_prefs();
+  touch();
+}
+
 void GameViewModel::save_prefs() {
   prefs_.keymap = keymap_.to_map();
   if (prefs_file_ != nullptr) prefs_file_->save(prefs_);
@@ -400,6 +408,7 @@ void GameViewModel::plan_confirm(bool skipped) {
   if (!skipped && !plan.can_save()) return;
   const PlanEntry e = plan.entry(state_->step, skipped);
   journal_.push_back(e);
+  if (plan_sink_) plan_sink_(e);
   modal_ = Modal::None;
   chain_.push_back(Step{plan.command(e), false, {}});
   if (pending_order_) {

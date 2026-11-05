@@ -4,6 +4,11 @@
 // on the UI thread, newer snapshots replace it instead of queueing more tasks, so at most one hand-off
 // per UI frame. The hand-off itself is the `Post` function (Rtask_post in the app, a test queue in
 // tests), which keeps this layer free of Raven.
+//
+// Persistence (model/storage, optional: tests may run without it): every command that changes the run is
+// a storage::Action committed to SQLite BEFORE the engine applies it, and the acknowledgement is published
+// only after the run header (and every 20 actions a checkpoint) is written. New commands follow the same
+// path: build the Action, recorder_->perform(), settle(), publish.
 #pragma once
 
 #include <condition_variable>
@@ -18,8 +23,13 @@
 
 #include "model/engine_run.hpp"
 #include "model/snapshot.hpp"
+#include "model/storage/storage.hpp"
 
 namespace tradelab::desktop {
+
+namespace storage {
+class RunRecorder;
+}  // namespace storage
 
 // What viewmodels may ask of the engine (EngineHost in the app, fakes in viewmodel tests).
 class EngineCommands {
@@ -34,6 +44,9 @@ class EngineCommands {
   virtual void start_with(const std::string& mission, std::uint32_t seed, const RunOptions& /*options*/) {
     start(mission, seed);
   }
+  // Storage (no-ops where there is none): the active saved run, or a new run on an installed pack.
+  virtual void resume() {}
+  virtual void start_pack(const std::string& /*digest*/, std::uint32_t /*seed*/) {}
 };
 
 class EngineHost final : public EngineCommands {
@@ -43,7 +56,10 @@ class EngineHost final : public EngineCommands {
   using Post = std::function<void(Task)>;
   using Sink = std::function<void(std::shared_ptr<const Snapshot>)>;
 
-  EngineHost(Post post, Sink sink);
+  using StorageJob = std::function<void(storage::Storage&)>;
+
+  // With `storage`, runs are persisted and resumable (it is used on the worker only from then on).
+  EngineHost(Post post, Sink sink, std::unique_ptr<storage::Storage> storage = nullptr);
   ~EngineHost() override;
   EngineHost(const EngineHost&) = delete;
   EngineHost& operator=(const EngineHost&) = delete;
@@ -56,6 +72,11 @@ class EngineHost final : public EngineCommands {
   void market(Side side, const std::string& qty) override;
   void game(const GameCommand& command) override;
   void start_with(const std::string& mission, std::uint32_t seed, const RunOptions& options) override;
+  void resume() override;
+  void start_pack(const std::string& digest, std::uint32_t seed) override;
+  // Runs `job` on the worker, in queue order, with the storage (pack install/import, catalog downloads:
+  // the engine's run-less calls must stay on this thread). Not run when the host has no storage.
+  void post_storage_job(StorageJob job);
 
   // Blocks until every queued command has run (tests and shutdown only; the UI never waits).
   void wait_idle();
@@ -71,6 +92,8 @@ class EngineHost final : public EngineCommands {
     std::string qty;
     GameCommand game;
     RunOptions options;
+    std::string digest;
+    StorageJob job;
   };
 
   // Shared with posted tasks so a task that runs after the host is gone does nothing.
@@ -89,6 +112,10 @@ class EngineHost final : public EngineCommands {
   void run_advance(int steps);
   void run_market(const Command& c);
   void run_game(const Command& c);
+  void run_resume();
+  void run_start_pack(const Command& c);
+  void settle(Snapshot& s);
+  void publish_refusal(CommandKind kind, const std::string& reason);
   [[nodiscard]] bool delivery_pending() const;
   void publish(Snapshot s);
   static void deliver(const std::shared_ptr<Mailbox>& box);
@@ -106,6 +133,8 @@ class EngineHost final : public EngineCommands {
 
   // Worker-only state.
   std::unique_ptr<EngineRun> run_;
+  std::unique_ptr<storage::Storage> storage_;
+  std::unique_ptr<storage::RunRecorder> recorder_;
   std::uint64_t seq_ = 0;
 
   std::thread worker_;

@@ -1479,3 +1479,6 @@ desktop.curriculum.colStatus,Situação,Status
 desktop.curriculum.colContent,Conteúdo,Content
 desktop.curriculum.colUnlocks,Libera,Unlocks
 desktop.chart.debrief,"Gráfico da partida, da primeira decisão ao fim","Chart of the run, from the first decision to the end"
+desktop.alreadyRunning.title,O TradeLab já está aberto,TradeLab is already open
+desktop.alreadyRunning.body,Outra janela do TradeLab está usando os dados salvos deste usuário. Use essa janela ou feche-a antes de abrir o TradeLab de novo.,"Another TradeLab window is using this user's saved data. Use that window, or close it before opening TradeLab again."
+desktop.storageUnavailable,Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.,The saved data could not be opened ({detail}): this session will not be saved.

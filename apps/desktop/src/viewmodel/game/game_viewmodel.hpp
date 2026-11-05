@@ -56,6 +56,8 @@ class GameViewModel {
 
   // Loads the shortcut map and progress from `file` and saves there from now on (null: none).
   void attach_prefs(PrefsFile* file);
+  // Called with each plan the player records (AppViewModel keeps it in the run's journal).
+  void set_plan_sink(std::function<void(const PlanEntry&)> sink) { plan_sink_ = std::move(sink); }
 
   [[nodiscard]] Texts texts() const { return Texts(*catalog_); }
   [[nodiscard]] std::uint64_t revision() const { return revision_ + chart.revision(); }
@@ -125,6 +127,8 @@ class GameViewModel {
   bool handle_key(const KeyPress& k);
   [[nodiscard]] const Keymap& keymap() const { return keymap_; }
   void reset_keymap();
+  // A map remapped elsewhere (Settings): sanitized like a stored one, then saved with the prefs.
+  void set_keymap(const std::map<std::string, std::string>& map);
   // Frame time for auto-advance.
   void tick(double dt);
   [[nodiscard]] bool muted() const { return muted_; }
@@ -208,6 +212,7 @@ class GameViewModel {
   std::optional<std::string> pattern_;
   int tutorial_index_ = 0;
   std::vector<PlanEntry> journal_;
+  std::function<void(const PlanEntry&)> plan_sink_;
   SeriesNames names_;
   bool muted_ = false;
   std::uint64_t revision_ = 1;

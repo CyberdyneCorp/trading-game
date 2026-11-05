@@ -1,7 +1,8 @@
 // Terminal commands sent to the engine worker (CommandKind::Game): one per C ABI call the web's
 // session.svelte.ts makes (place / trailing rate / option / cancel / move / leverage / close / margin /
 // plan / calibration answer / lesson answer / advice). Values are decimal strings already snapped to
-// the tick or lot by the viewmodel; the engine validates everything again.
+// the tick or lot by the viewmodel; the engine validates everything again. The worker turns each into a
+// logged storage::Action (storage::actions::from_game) so it is committed and replayable.
 #pragma once
 
 #include <cstdint>
@@ -46,5 +47,8 @@ struct GameCommand {
   static GameCommand lesson(int question, int choice, std::string value, bool skipped);
   static GameCommand advice();
 };
+
+// The engine's command result JSON ({"accepted","reason","orderId","warning"}) as a CommandResult.
+CommandResult game_result(GameCommandKind kind, const std::string& result_json);
 
 }  // namespace tradelab::desktop

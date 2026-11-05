@@ -30,7 +30,7 @@ struct Bar {
   double volume = 0;
 };
 
-enum class CommandKind : std::uint8_t { Start, Advance, Market, Game };
+enum class CommandKind : std::uint8_t { Start, Advance, Market, Game, Resume, StartPack };
 
 // Terminal commands (CommandKind::Game), one per engine call of the C ABI (model/game_command.hpp).
 enum class GameCommandKind : std::uint8_t {
@@ -82,6 +82,8 @@ struct RunOptions {
   bool calendar = false;
   std::string starting_balance;
   int leverage_cap = 0;
+
+  bool operator==(const RunOptions&) const = default;
 };
 
 struct Snapshot {
@@ -122,6 +124,12 @@ struct Snapshot {
   // The full terminal state (orders, options, indicators, news, advisor...), shared and immutable.
   std::shared_ptr<const GameState> game;
   json::Value state;  // the whole tl_state document the fields above were read from
+
+  // Storage (model/storage): the snapshot answering a resume carries its notice ("engine_changed",
+  // "policy_changed", "digest_mismatch", "pack_missing", "damaged"; "" = none) and detail.
+  std::string resume_notice;
+  std::string resume_detail;
+  bool durable = true;  // false once a storage write failed: play goes on but may not resume
 
   [[nodiscard]] bool active() const { return status == "active"; }
 };

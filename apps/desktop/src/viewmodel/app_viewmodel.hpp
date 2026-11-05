@@ -99,7 +99,6 @@ class AppViewModel {
   [[nodiscard]] const ShellState& shell() const { return shell_; }
   [[nodiscard]] const Progress& progress() const { return shell_.progress; }
   [[nodiscard]] const Settings& settings() const { return shell_.settings; }
-  [[nodiscard]] const Catalog& catalog() const { return catalog_; }
   // Everything the current screen shows (texts, names, lines, tables, flags).
   [[nodiscard]] ScreenModel screen_model() const;
 

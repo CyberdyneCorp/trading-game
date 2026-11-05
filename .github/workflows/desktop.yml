@@ -36,7 +36,7 @@ jobs:
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake ninja-build git python3 \
-            libx11-dev zlib1g-dev libvulkan1 mesa-vulkan-drivers xvfb xauth clang clang-tidy
+            libx11-dev zlib1g-dev libvulkan1 mesa-vulkan-drivers xvfb xauth clang clang-tidy libcurl4
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }

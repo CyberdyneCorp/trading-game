@@ -12,6 +12,7 @@ AppViewModel::AppViewModel(Catalog catalog, std::vector<MissionInfo> missions, E
   std::vector<std::string> ids;
   for (const auto& m : missions_) ids.push_back(m.id);
   game_ = std::make_unique<game::GameViewModel>(catalog_, engine_, nullptr, std::move(ids));
+  game_->set_plan_sink([this](const PlanEntry& e) { add_journal_entry(e); });  // the Journal screen
   init_shell();
 }
 
