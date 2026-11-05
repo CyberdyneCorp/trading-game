@@ -37,7 +37,7 @@ export class CsvImportWizard {
 	async validate(): Promise<void> {
 		await this.run(async () => {
 			const report = await this.session.validateCsv(this.csv, this.meta);
-			if ('metaError' in report) {
+			if (report.metaError) {
 				this.error = csvMetaText(report.metaError);
 				return;
 			}

@@ -20,6 +20,19 @@ constexpr std::uint32_t kExecutionPolicyVersion = 17;  // v2 brackets/OCO, trail
 constexpr std::uint32_t kQuestionEvery = 15;
 constexpr std::uint32_t kQuestionHorizon = 5;
 
+enum class CommandType : std::uint8_t {
+  PlaceOrder = 0,
+  CancelOrder = 1,
+  SetLeverage = 2,
+  ClosePosition = 3,
+  PlaceOptionOrder = 4,  // order_type Market or Limit; price = premium limit; series required
+  AdjustMargin = 5,      // add (> 0) or remove (< 0) isolated margin on the open perpetual position
+  RecordPlan = 6,        // structured plan for the next exposure-increasing order
+  AnswerQuestion = 7,    // calibration answer for the question due at this step
+  RequestAdvice = 8,     // advisor read of the visible market; uses one unit of the allowance
+  MoveOrder = 9,         // order_id + price: moves a working reduce-only stop/take-profit, keeping its OCO link (v13)
+};
+
 struct Command {
   std::uint64_t seq = 0;            // strictly increasing per run
   std::uint32_t decision_step = 0;  // must equal the run's current step

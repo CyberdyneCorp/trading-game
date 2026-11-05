@@ -106,8 +106,6 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ninja-build clang-tidy-18
       - name: Banned APIs
         run: python3 tools/check_engine_bans.py engine/src engine/include
-      - name: Generated IDL files are current (engine/idl/gen.py)
-        run: python3 engine/idl/gen.py --check
       - name: clang-tidy (incl. cognitive complexity <= 15)
         working-directory: engine
         env: { CXX: clang++-18 }

@@ -36,6 +36,9 @@ enum class Anchor : std::uint8_t {
   Trend,  // an EMA of log price: trend with pullbacks to its average
 };
 
+// What a segment is, for the debrief reveal and for tests. It never feeds generation.
+enum class RegimeLabel : std::uint8_t { Unlabeled = 0, Range, Trend, HighVol, LowLiquidity, Crowded, Calm, Shock };
+
 const char* regime_label_name(RegimeLabel label);
 
 // Fields are declared in the order missions use designated initializers.

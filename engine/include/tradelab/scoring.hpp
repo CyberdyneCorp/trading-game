@@ -25,6 +25,30 @@ namespace tradelab {
 // v9 (report-only, no digest change): signals by revealed regime and each trade's entry regime (G4).
 constexpr std::uint32_t kScoringVersion = 10;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall; v8: full-revaluation Greek attribution, side-aware IV finding; v9: signals by regime, entry regime; v10: exit reason from the order type (a stop in profit is a stop, trailing stops named)
 
+enum class FindingCode : std::uint8_t {
+  Waited = 0,
+  Liquidated,
+  StopBeyondLiq,
+  NoStop,
+  GapSlippage,
+  FundingCost,
+  Ambiguous,
+  Capacity,
+  GoodProcessLoss,
+  LuckyWin,
+  NoPlan,
+  Oversized,
+  Bankrupt,
+  MarginCalled,  // written options bought back by force (step, buy-back premium, loss)
+  ThetaDecay,    // time decay (theta) explains at least half of an option loss (amount = theta P&L lost)
+  IvCrush,       // falling implied volatility (vega) on bought options explains at least half of an option loss
+  GoodProcessWin,  // a profit where every trade had a plan and limited risk (the counterpart of GoodProcessLoss)
+  IvRise,        // rising implied volatility (vega) on written options explains at least half of an option loss
+  WroteOptions,  // options were written and no margin call followed: risk limited by neither a stop nor a premium
+};
+
+enum class FindingTone : std::uint8_t { Good = 0, Warn, Bad, Info };
+
 struct Finding {
   FindingCode code = FindingCode::Waited;
   FindingTone tone = FindingTone::Info;
@@ -34,6 +58,10 @@ struct Finding {
   Price requested;
   Money amount;
 };
+
+enum class LessonCode : std::uint8_t { Futures2 = 0, Risk, Futures3, Orders, Structure, Evaluation, Options };
+
+enum class ExitReason : std::uint8_t { Stop = 0, Target, Manual, Liquidation, Open, Expiry, MarginCall, Trailing };
 
 // One round trip: a perpetual position (series 0) or an option position in one series, from the
 // fill that opens it to the fill, liquidation or expiry settlement that closes it. Option prices
@@ -86,6 +114,10 @@ struct GreekAttribution {
   Money residual;
   Money total;  // option P&L before fees: realized + open positions at the final mid
 };
+
+// Advice in the debrief (spec advisor "Advice in the terminal and the debrief"): a long or short
+// read is right when the close kAdviceHorizon bars after the next open moved its way.
+enum class AdviceOutcome : std::uint8_t { Right = 0, Wrong, Wait, Open };
 
 struct AdviceRow {
   std::uint32_t step = 0;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CsvBuildResult } from '#lib/engine/protocol.ts';
-import type { CsvMeta, CsvReport, CsvValidation } from '#lib/engine/types.ts';
+import type { CsvMeta, CsvReport } from '#lib/engine/types.ts';
 import { CsvImportWizard } from './csvImport.svelte.ts';
 import { i18n } from './i18n.svelte.ts';
 import type { GameSession } from './session.svelte.ts';
@@ -9,7 +9,7 @@ const OK: CsvReport = {
 	ok: true, rows: 120, errors: [], errorCount: 0, gaps: [], gapCount: 0, hasFunding: false, firstTime: 0, lastTime: 0
 };
 
-function fakeSession(report: CsvValidation, build: Partial<CsvBuildResult> = {}) {
+function fakeSession(report: CsvReport, build: Partial<CsvBuildResult> = {}) {
 	const calls: { meta?: CsvMeta; label?: string; menu: number } = { menu: 0 };
 	const session = {
 		validateCsv: async (_csv: string, meta: CsvMeta) => ((calls.meta = meta), report),
@@ -41,7 +41,7 @@ describe('CsvImportWizard', () => {
 	});
 
 	it('stays on the metadata step when the engine rejects a declared value', async () => {
-		const { session } = fakeSession({ ok: false, metaError: 'intervalSeconds' });
+		const { session } = fakeSession({ ...OK, ok: false, metaError: 'intervalSeconds' });
 		const w = new CsvImportWizard(session);
 		await w.chooseFile(file(CSV));
 		i18n.locale = 'en';
@@ -52,7 +52,7 @@ describe('CsvImportWizard', () => {
 	});
 
 	it('regression: a refused leverage names the field in words and gives the allowed range', async () => {
-		const { session } = fakeSession({ ok: false, metaError: 'leverageCap' });
+		const { session } = fakeSession({ ...OK, ok: false, metaError: 'leverageCap' });
 		const w = new CsvImportWizard(session);
 		await w.chooseFile(file(CSV));
 		await w.validate();

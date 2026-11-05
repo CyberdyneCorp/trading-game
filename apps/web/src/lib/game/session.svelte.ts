@@ -5,21 +5,21 @@
 import { EventNames } from './eventNames.ts';
 import { EngineClient } from '#lib/engine/client.ts';
 import type { CsvBuildResult, EngineRequest } from '#lib/engine/protocol.ts';
-import { DEFAULT_RUN_OPTIONS } from '#lib/engine/defaults.ts';
-import type {
-	CommandResult,
-	CsvMeta,
-	CsvValidation,
-	DebriefData,
-	GameState,
-	MissionInfo,
-	MissionReveal,
-	OrderSideName,
-	OrderTypeName,
-	OrderView,
-	PackCheck,
-	RunOptionsView,
-	TrustedKey
+import {
+	DEFAULT_RUN_OPTIONS,
+	type CommandResult,
+	type CsvMeta,
+	type CsvReport,
+	type DebriefData,
+	type GameState,
+	type MissionInfo,
+	type MissionReveal,
+	type OrderSideName,
+	type OrderTypeName,
+	type OrderView,
+	type PackCheck,
+	type RunOptionsView,
+	type TrustedKey
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
 import { stepsUntilNextQuestion } from './calibration.ts';
@@ -414,7 +414,7 @@ export class GameSession {
 		return trustedKeys((await this.deviceIdentity()).key);
 	}
 
-	async validateCsv(csv: string, meta: CsvMeta): Promise<CsvValidation> {
+	async validateCsv(csv: string, meta: CsvMeta): Promise<CsvReport> {
 		return this.eng().request({ kind: 'csvValidate', csv, meta: { ...meta } });
 	}
 
