@@ -120,6 +120,15 @@ std::optional<bool> respected(const TradeRow& t, const PlanRecord* plan) {
   return t.is_long ? t.exit_avg.raw >= plan->invalidation.raw - tol : t.exit_avg.raw <= plan->invalidation.raw + tol;
 }
 
+// Scoring v12: a trade closed by its stop, triggered at or inside the plan's invalidation (1%
+// tolerance), kept its plan even when a gap or slippage filled it further away: the market chose the
+// fill price, not the player. `invalidation` is the plan's; t.stop is the stop order's trigger.
+void credit_stop_exit(TradeRow& t, Price invalidation) {
+  if (t.plan_respected != false || t.reason != ExitReason::Stop || invalidation.raw == 0 || t.stop.raw == 0) return;
+  const std::int64_t tol = invalidation.raw / 100;
+  t.plan_respected = t.is_long ? t.stop.raw >= invalidation.raw - tol : t.stop.raw <= invalidation.raw + tol;
+}
+
 TradeRow finalize(const RunState& st, const OpenTrade& o) {
   TradeRow t = o.row;
   if (o.exit_qty > 0) t.exit_avg = Price::from_raw(round_div(o.exit_notional, o.exit_qty));
@@ -664,7 +673,9 @@ std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
   for (std::size_t i = 0; i < rows.size(); ++i) {
     rows[i].n = static_cast<std::uint32_t>(i + 1);
     describe_series(sc, rows[i]);
+    const Price invalidation = rows[i].stop;  // the plan's (finalize); annotate_stop puts the stop order's
     annotate_stop(sc, st, rows[i]);
+    credit_stop_exit(rows[i], invalidation);
     mark_open_trade(sc, st, rows[i]);
   }
   return rows;

@@ -63,7 +63,7 @@ def test_m08_golden_and_signals_by_regime_match_native_cpp():
         "9cca2b0bb58cba31fb272c72780e4d0937dd784538d28bb36869c74e82fea9d8",
         "e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb",
     )
-    assert debrief["score"]["version"] == 11
+    assert debrief["score"]["version"] == 12
     assert debrief["regimes"][0]["start"] == 60
     assert {r["label"] for r in debrief["regimes"]} <= {"range", "trend", "high_vol"}
     assert all(t["regime"] in {"range", "trend", "high_vol"} for t in debrief["trades"])

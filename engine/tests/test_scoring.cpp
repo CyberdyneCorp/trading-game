@@ -52,6 +52,31 @@ TEST_CASE("EDU01: a planned, protected, stopped-out loss is credited as good pro
   CHECK(r.trades[0].r_bp == -10000);  // lost exactly the planned 50 credits = -1R
 }
 
+// Regression (playtest): a stop at the plan's invalidation that a gap filled 3% lower was listed as
+// "plan violated", next to a plan-coherence score of 100.
+TEST_CASE("Scoring v12: a stop at the invalidation filled through a gap keeps the plan") {
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"}, {"92", "93", "91", "92"}, {"92", "92", "92", "92"}});
+  Driver d(sc);
+  d.plan(OrderSide::Buy, "95", "50");
+  d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "95", nullptr);
+  d.step(4);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 1);
+  CHECK(r.trades[0].reason == ExitReason::Stop);
+  CHECK(r.trades[0].exit_avg.raw < Price::from_raw(9'400'000'000).raw);  // filled at the gap, beyond 1%
+  CHECK(r.trades[0].plan_respected == true);
+
+  // A stop placed beyond the invalidation is still a broken plan.
+  Driver wide(sc);
+  wide.plan(OrderSide::Buy, "97", "50");
+  wide.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "95", nullptr);
+  wide.step(4);
+  const ScoreReport w = score_run(sc, wide.state());
+  REQUIRE(w.trades.size() == 1);
+  CHECK(w.trades[0].plan_respected == false);
+}
+
 TEST_CASE("Liquidation dominates risk and recommends Futures II") {
   Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"},
                                {"100", "100", "80", "85"}, {"85", "85", "85", "85"}});

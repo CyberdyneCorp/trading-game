@@ -27,7 +27,9 @@ namespace tradelab {
 // v11: understanding from structured lesson answers against reviewed rubrics; risk adds leverage vs
 // stop distance, the liquidation distance kept against the mission's warning distance, and drawdown
 // against the mission's budget; per-decision records (act, hold, wait) in the debrief.
-constexpr std::uint32_t kScoringVersion = 11;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall; v8: full-revaluation Greek attribution, side-aware IV finding; v9: signals by regime, entry regime; v10: exit reason from the order type (a stop in profit is a stop, trailing stops named); v11: see above
+// v12 (report-only): a trade closed by its stop, triggered at or inside the plan's invalidation, keeps
+// its plan (planRespected) even when a gap filled it further away.
+constexpr std::uint32_t kScoringVersion = 12;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall; v8: full-revaluation Greek attribution, side-aware IV finding; v9: signals by regime, entry regime; v10: exit reason from the order type (a stop in profit is a stop, trailing stops named); v11, v12: see above
 
 struct Finding {
   FindingCode code = FindingCode::Waited;
