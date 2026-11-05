@@ -5,7 +5,8 @@
 import createTradelab, { type TradelabModule } from './wasm/tradelab.mjs';
 import type { CsvBuildResult, EngineRequest, WorkerEnvelope, WorkerReply } from './protocol';
 import { revealAllowed } from './reveal';
-import { DEFAULT_RUN_OPTIONS, ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
+import { DEFAULT_RUN_OPTIONS } from './defaults';
+import { ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
 
 type Fn = (...a: unknown[]) => number;
 

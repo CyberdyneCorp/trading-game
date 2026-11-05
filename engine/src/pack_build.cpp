@@ -218,7 +218,7 @@ PackBuild build_csv_pack(std::string_view csv, const CsvMeta& meta, const Import
   const auto n = static_cast<std::uint32_t>(raw.size());
   CsvPlan plan{meta, out.report, rules.warmup_bars == 0 ? auto_warmup(n) : rules.warmup_bars, rules.leverage_cap,
                practice_contract(meta.interval_seconds), {}};
-  if (fill) plan.gap_policy = *rules.fill_gaps == GapPolicy::CarryForward ? "carryForward" : "skip";
+  if (fill) plan.gap_policy = json_name(*rules.fill_gaps);
   if (!meta_ok(meta) || plan.leverage_cap < 1 || plan.leverage_cap > 20 || plan.warmup + kMinPlayable > n) {
     return failed(std::move(out), "invalid_rules");
   }
