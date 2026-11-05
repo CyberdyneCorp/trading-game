@@ -169,8 +169,9 @@ std::string plan_level(const AppViewModel& vm, const std::optional<double>& v) {
 
 // The timeline: trades opened and closed (engine trade rows), the plans of this run's journal and the
 // released headlines, by bar.
-void timeline(const AppViewModel& vm, const json::Value& d, const Snapshot& s, ScreenModel& m) {
-  std::vector<std::pair<long, Line>> rows;
+using TimelineRows = std::vector<std::pair<long, Line>>;
+
+void trade_rows(const AppViewModel& vm, const json::Value& d, TimelineRows& rows) {
   for (const auto& tr : d["trades"].items()) {
     rows.push_back({as_long(tr["entryStep"]), {trade_label(vm.catalog(), tr) + " \xC3\x97 " + fmt::fmt_qty(tr["qty"].as_string(), vm.locale()) +
                                                     " @ " + fmt::fmt_price(tr["entryAvg"].as_string(), vm.locale()),
@@ -181,6 +182,9 @@ void timeline(const AppViewModel& vm, const json::Value& d, const Snapshot& s, S
                                                   fmt::fmt_money(tr["net"].as_string(), vm.locale(), true),
                                               Tone::Info}});
   }
+}
+
+void plan_rows(const AppViewModel& vm, TimelineRows& rows) {
   for (const auto& r : vm.progress().runs) {
     if (r.run_id != vm.shell().run_id) continue;
     for (const auto& p : r.journal) {
@@ -190,12 +194,22 @@ void timeline(const AppViewModel& vm, const json::Value& d, const Snapshot& s, S
       rows.push_back({p.step, {"\xE2\x9C\x8E " + text, Tone::Info}});
     }
   }
+}
+
+void news_rows(const AppViewModel& vm, const Snapshot& s, TimelineRows& rows) {
   for (const auto& n : s.state["news"].items()) {
     if (n["early"].as_bool(false)) continue;
     const long tone = as_long(n["tone"]);
     rows.push_back({as_long(n["step"]), {"\xF0\x9F\x93\xB0 " + vm.tr("newsKind." + n["kind"].as_string()),
                                          tone > 0 ? Tone::Up : tone < 0 ? Tone::Down : Tone::Info}});
   }
+}
+
+void timeline(const AppViewModel& vm, const json::Value& d, const Snapshot& s, ScreenModel& m) {
+  TimelineRows rows;
+  trade_rows(vm, d, rows);
+  plan_rows(vm, rows);
+  news_rows(vm, s, rows);
   std::ranges::stable_sort(rows, [](const auto& a, const auto& b) { return a.first < b.first; });
   WidgetLines out{names::kDebriefTimeline, {{vm.tr("debrief.timeline"), Tone::Title}}};
   for (auto& [step, line] : rows) out.lines.push_back({"[" + str(step) + "] " + line.text, line.tone});

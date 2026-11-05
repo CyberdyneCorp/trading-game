@@ -46,7 +46,7 @@ jobs:
         run: |
           (cd apps/web && npm ci --ignore-scripts)
           node apps/desktop/scripts/check_i18n.mjs
-          node --test apps/desktop/tests/scripts/check_i18n.test.mjs
+          node --test apps/desktop/tests/scripts/check_i18n.test.mjs apps/desktop/tests/scripts/screen_sources.test.mjs
       - name: Build
         working-directory: apps/desktop
         run: |

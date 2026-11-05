@@ -39,7 +39,7 @@ void paint_lesson_chart(Rid /*w*/, RPainter* p, float width, float height, void*
   }
   // Scaled from the closed bars only; the unknown future is hatched and nothing is drawn in it.
   const float known_width = width * static_cast<float>(known) / static_cast<float>(std::max(1, total));
-  const ChartGeometry g = chart_geometry(bars, known_width, height);
+  const ChartGeometry g = chart_geometry(bars, known_width, height, std::max(1, known));
   paint_chart(p, g, known_width, height);
   for (float x = known_width; x < width; x += 8.0f) {
     Rdraw_line(p, x, height, std::min(width, x + height), 0, 1.0f, kHatch[0], kHatch[1], kHatch[2], 0.8f);
@@ -71,6 +71,28 @@ void paint_regime_band(Rid /*w*/, RPainter* p, float width, float height, void* 
       Rdraw_text(p, R_INVALID_ID, 0, x + 4, 4, name.c_str(), 0xE3 / 255.0f, 0xF5 / 255.0f, 0xEA / 255.0f, 1.0f);
     }
   }
+}
+
+// ---- Tables ----
+
+// A "#" column keeps a narrow fixed width; the others share the rest.
+void set_columns(Rid table, const std::vector<std::string>& columns) {
+  Rtable_clear_columns(table);
+  for (const auto& c : columns) Rtable_add_column(table, c.c_str(), 0);
+  const bool index = !columns.empty() && columns[0] == "#";
+  for (int c = 0; c < static_cast<int>(columns.size()); ++c) Rtable_set_column_fill(table, c, index && c == 0 ? 0.0f : 1.0f);
+  if (index) Rtable_set_column_width(table, 0, 44);
+}
+
+// Cells may hold '|' (Rtable_add_row's separator), so each is set on its own. The selection is kept.
+void set_rows(Rid table, const std::vector<std::vector<std::string>>& rows) {
+  const int selected = Rtable_get_selected(table);
+  Rtable_clear_rows(table);
+  for (const auto& row : rows) {
+    const int r = Rtable_add_row(table, nullptr);
+    for (int c = 0; c < static_cast<int>(row.size()); ++c) Rtable_set_cell(table, r, c, row[static_cast<std::size_t>(c)].c_str());
+  }
+  if (selected >= 0 && selected < static_cast<int>(rows.size())) Rtable_set_selected(table, selected);
 }
 
 // ---- Widget callbacks ----
@@ -185,7 +207,6 @@ void ShellView::bind_callbacks() {
 }
 
 void ShellView::apply(const ScreenModel& m) {
-  applying_ = true;
   for (const auto& t : m.texts) {
     const Rid w = find(t.widget);
     if (w != R_INVALID_ID) ui::set_text(w, t.text);
@@ -194,16 +215,20 @@ void ShellView::apply(const ScreenModel& m) {
   for (const auto& l : m.lines) apply_lines(l);
   for (const auto& t : m.tables) apply_table(t);
   for (const auto& it : m.items) apply_items(it);
+  apply_flags(m);
+}
+
+// Widget callbacks fired by these setters see the viewmodel's own values: no-ops there.
+void ShellView::apply_flags(const ScreenModel& m) {
   for (const auto& f : m.visible) Rwidget_set_visibility(find(f.widget), f.on ? R_VISIBLE : R_COLLAPSED);
   for (const auto& f : m.enabled) Rwidget_set_enabled(find(f.widget), f.on ? R_TRUE : R_FALSE);
   for (const auto& f : m.checked) {
     const Rid w = find(f.widget);
     if ((Rcheckbox_is_checked(w) != 0) != f.on) Rcheckbox_set_checked(w, f.on ? R_TRUE : R_FALSE);
   }
-  if (const Rid slider = find(names::kSettingsTextScale); slider != R_INVALID_ID) {
-    if (Rslider_get_value(slider) != vm_.settings().text_scale) Rslider_set_value(slider, vm_.settings().text_scale);
-  }
-  applying_ = false;
+  const Rid slider = find(names::kSettingsTextScale);
+  const float scale = vm_.settings().text_scale;
+  if (slider != R_INVALID_ID && Rslider_get_value(slider) != scale) Rslider_set_value(slider, scale);
 }
 
 void ShellView::apply_lines(const WidgetLines& l) {
@@ -235,18 +260,8 @@ void ShellView::apply_table(const WidgetTable& t) {
   if (it != tables_.end() && it->second.columns == t.columns && it->second.rows == t.rows) return;
   const Rid table = find(t.widget);
   if (table == R_INVALID_ID) return;
-  if (it == tables_.end() || it->second.columns != t.columns) {
-    Rtable_clear_columns(table);
-    for (const auto& c : t.columns) Rtable_add_column(table, c.c_str(), 0);
-    for (int c = 0; c < static_cast<int>(t.columns.size()); ++c) Rtable_set_column_fill(table, c, c == 0 ? 0.3f : 1.0f);
-  }
-  const int selected = Rtable_get_selected(table);
-  Rtable_clear_rows(table);
-  for (const auto& row : t.rows) {
-    const int r = Rtable_add_row(table, nullptr);
-    for (int c = 0; c < static_cast<int>(row.size()); ++c) Rtable_set_cell(table, r, c, row[static_cast<std::size_t>(c)].c_str());
-  }
-  if (selected >= 0 && selected < static_cast<int>(t.rows.size())) Rtable_set_selected(table, selected);
+  if (it == tables_.end() || it->second.columns != t.columns) set_columns(table, t.columns);
+  set_rows(table, t.rows);
   tables_[std::string(t.widget)] = t;
 }
 

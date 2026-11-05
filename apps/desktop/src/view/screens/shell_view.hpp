@@ -35,12 +35,12 @@ class ShellView {
   void apply_lines(const WidgetLines& l);
   void apply_table(const WidgetTable& t);
   void apply_items(const WidgetItems& it);
+  void apply_flags(const ScreenModel& m);
   void bind_callbacks();
 
   AppViewModel& vm_;
   Rid scope_;
   RetroLook look_;
-  bool applying_ = false;  // widget callbacks fired by apply() are not user input
   std::map<std::string, std::vector<Line>, std::less<>> lines_;
   std::map<std::string, WidgetTable, std::less<>> tables_;
   std::map<std::string, WidgetItems, std::less<>> items_;

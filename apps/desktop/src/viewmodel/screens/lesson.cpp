@@ -35,6 +35,8 @@ void bar_table(const AppViewModel& vm, const LessonChart& chart, ScreenModel& m)
                       fmt::fmt_num(k.c, L, 2), fmt::fmt_num(k.v, L, 0)});
   }
   m.tables.push_back(std::move(t));
+  m.name(names::kLessonBars, vm.tr("academy.market", {{"market", chart.market}, {"interval", chart.interval}}) +
+                                 std::string(kSep) + vm.tr("academy.illustrative"));
   m.text(names::kLessonChartNote, vm.tr("academy.illustrative") + std::string(kSep) +
                                       vm.tr("academy.market", {{"market", chart.market}, {"interval", chart.interval}}) +
                                       (chart.known > 0 ? std::string(kSep) + vm.tr("academy.future") : ""));
