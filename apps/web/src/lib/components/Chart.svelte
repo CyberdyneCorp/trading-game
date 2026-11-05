@@ -5,7 +5,7 @@
 	import { fmtNum, fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { OSCILLATORS, type Oscillator, type Palette } from './chartPanes.ts';
-	import { candleRange, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
+	import { candleRange, hitsTag, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
 	import { patternName } from '#lib/game/candlePatterns.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
 	import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragTarget, type DragZone } from './chartDrag.ts';
@@ -174,7 +174,8 @@
 
 		ctx.fillStyle = cssVar('--bg');
 		ctx.fillRect(0, 0, width, height);
-		drawGrid(ctx, lo, hi, plotW, priceH, y);
+		const tags = levelLayout(lv, priceH, y, lo, hi);
+		drawGrid(ctx, lo, hi, plotW, priceH, y, tags.tagY);
 		drawWarmup(ctx, slotW, priceH);
 		if (game.status === 'active') drawFuture(ctx, visible.length * slotW, plotW, priceH);
 		drawVolume(ctx, slotW, volTop, volH, x);
@@ -186,7 +187,7 @@
 		if (showBb) drawBands(ctx, x, y);
 		if (showPatterns) drawPatterns(ctx, slotW, x, y);
 		if (showVwap) drawLine(ctx, game.indicators.vwap, cssVar('--vwap'), x, y);
-		drawLevels(ctx, lv, plotW, priceH, y, lo, hi);
+		drawLevels(ctx, tags, plotW);
 		if (osc !== 'none') {
 			const pane = { top: oscTop, h: oscH, width: plotW, first, count: visible.length, x, slotW };
 			OSCILLATORS[osc](ctx, pane, game.indicators, palette());
@@ -219,7 +220,8 @@
 		ctx.fillText(fmtNum(price, i18n.locale), plotW + 6, y(price) + 4);
 	}
 
-	function drawGrid(ctx: CanvasRenderingContext2D, lo: number, hi: number, plotW: number, priceH: number, y: (p: number) => number) {
+	// Grid lines with axis prices; a price that would sit under a level tag is left out.
+	function drawGrid(ctx: CanvasRenderingContext2D, lo: number, hi: number, plotW: number, priceH: number, y: (p: number) => number, tagY: number[]) {
 		ctx.strokeStyle = cssVar('--line');
 		ctx.fillStyle = cssVar('--muted');
 		ctx.font = '12px "IBM Plex Mono", monospace';
@@ -234,7 +236,7 @@
 			ctx.lineTo(plotW, yy);
 			ctx.stroke();
 			ctx.globalAlpha = 1;
-			if (yy < priceH) ctx.fillText(fmtNum(p, i18n.locale), plotW + 6, yy + 4);
+			if (yy < priceH && !hitsTag(yy, tagY)) ctx.fillText(fmtNum(p, i18n.locale), plotW + 6, yy + 4);
 		}
 	}
 
@@ -408,11 +410,14 @@
 
 	// Lines at their price (or pinned to the edge with an arrow when off-scale); tags spread apart so
 	// nearby levels (ENTRY? on ENTRY) stay readable.
-	function drawLevels(ctx: CanvasRenderingContext2D, lv: Level[], plotW: number, priceH: number, y: (p: number) => number, lo: number, hi: number) {
+	function levelLayout(lv: Level[], priceH: number, y: (p: number) => number, lo: number, hi: number) {
 		const shown = lv.filter((l) => l.price > 0);
 		const pins = shown.map((l) => pinOf(l.price, lo, hi));
 		const lineY = shown.map((l, i) => (pins[i] === 'above' ? 4.5 : pins[i] === 'below' ? priceH - 3.5 : y(l.price)));
-		const tagY = spreadLabels(lineY, 0, priceH);
+		return { shown, pins, lineY, tagY: spreadLabels(lineY, 0, priceH) };
+	}
+
+	function drawLevels(ctx: CanvasRenderingContext2D, { shown, pins, lineY, tagY }: ReturnType<typeof levelLayout>, plotW: number) {
 		ctx.font = '11px "IBM Plex Mono", monospace';
 		shown.forEach((l, i) => drawLevel(ctx, l, plotW, lineY[i], tagY[i], pins[i]));
 		zones = shown.flatMap((l, i) => (l.drag ? [{ target: l.drag, price: l.price, lineY: lineY[i], tagY: tagY[i] }] : []));

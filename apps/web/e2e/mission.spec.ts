@@ -916,4 +916,6 @@ test('regression: after a margin-call bankruptcy the debrief shows the loss the 
 	for (let i = 0; i < 60 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) await advance(page);
 	await expect(page.getByRole('heading', { name: 'GAME OVER' })).toBeVisible();
 	await expect(page.getByTestId('debrief-written-off')).toHaveText(/^\+[\d.]+,\d\d cr$/);
+	// The market line and buy-and-hold run to the end of the scenario, past the game over: say so.
+	await expect(page.getByTestId('ended-early')).toContainText(/A partida acabou na barra \d+: .*até o fim do cenário/);
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LABEL_H, pinOf, priceRange, spreadLabels } from './chartScale.ts';
+import { hitsTag, LABEL_H, pinOf, priceRange, spreadLabels } from './chartScale.ts';
 
 describe('priceRange', () => {
 	it('regression: a far liquidation level does not squash the candles', () => {
@@ -36,5 +36,14 @@ describe('spreadLabels', () => {
 		const sorted = [...ys].sort((a, b) => a - b);
 		expect(sorted[1] - sorted[0]).toBeGreaterThanOrEqual(LABEL_H);
 		expect(sorted[2] - sorted[1]).toBeGreaterThanOrEqual(LABEL_H);
+	});
+});
+
+describe('hitsTag', () => {
+	it('regression: an axis price under the ENTRY? tag is hidden, one clear of it is drawn', () => {
+		const tags = spreadLabels([212], 0, 400); // ENTRY? 98,16
+		expect(hitsTag(205, tags)).toBe(true); // the 98,46 grid label half-hidden behind it
+		expect(hitsTag(212 + LABEL_H, tags)).toBe(false);
+		expect(hitsTag(205, [])).toBe(false);
 	});
 });

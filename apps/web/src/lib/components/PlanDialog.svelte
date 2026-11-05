@@ -2,7 +2,7 @@
 	// Structured plan before an exposure-increasing order (spec gameplay-loop "Plan before advance").
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { OrderDraft } from './OrderTicket.svelte';
-	import { fmtMoney, parseDecimal } from '#lib/game/format.ts';
+	import { fmtMoney, parseDecimal, planHeadline } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
 	let {
@@ -63,7 +63,7 @@
 		<h2 id="plan-title">{t('plan.title')}</h2>
 		<p class="muted">{t('plan.why')}</p>
 		<p class={draft.side === 'buy' ? 'up' : 'down'}>
-			{optionLabel ? `${draft.side === 'buy' ? '▲' : '▼'} ${optionLabel} × ${draft.qty}` : `${draft.side === 'buy' ? '▲ LONG' : '▼ SHORT'} ${draft.qty} · ${draft.leverage}x`} ·
+			{planHeadline(draft, optionLabel, i18n.locale)} ·
 			{t('rail.plannedRisk')}: {draft.estimate.plannedRisk != null ? fmtMoney(draft.estimate.plannedRisk, i18n.locale) : '—'}
 		</p>
 		<label>

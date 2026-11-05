@@ -73,3 +73,15 @@ export function priceToTick(price: number, tick: number): string {
 	const decimals = Math.max(0, Math.round(-Math.log10(tick)));
 	return (ticks * tick).toFixed(decimals);
 }
+
+/** Plan dialog headline: "▲ LONG 49,9 · 3x", or "▼ C 100 · exp 96 × 20" for an option. */
+export function planHeadline(
+	d: { side: 'buy' | 'sell'; qty: Decimal; leverage: number },
+	optionLabel: string | null,
+	locale: Locale
+): string {
+	const up = d.side === 'buy';
+	const q = num(d.qty);
+	if (optionLabel) return `${up ? '▲' : '▼'} ${optionLabel} × ${fmtNum(q, locale, Number.isInteger(q) ? 0 : 1)}`;
+	return `${up ? '▲ LONG' : '▼ SHORT'} ${fmtQty(d.qty, locale)} · ${d.leverage}x`;
+}

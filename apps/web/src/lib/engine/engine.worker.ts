@@ -64,14 +64,23 @@ async function load(): Promise<Api> {
 		state: w('tl_state', 'number', ['number']),
 		debrief: w('tl_debrief', 'number', ['number']),
 		deviceKey: w('tl_device_key', 'number', ['string']),
-		csvValidate: w('tl_csv_validate', 'number', ['string', 'string']),
-		csvBuild: w('tl_pack_build_csv', 'number', ['string', 'string', 'string']),
+		// The CSV goes in by pointer (withText): a 'string' argument is copied onto the 64 KB stack.
+		csvValidate: w('tl_csv_validate', 'number', ['number', 'string']),
+		csvBuild: w('tl_pack_build_csv', 'number', ['number', 'string', 'string']),
 		blobData: w('tl_blob_data', 'number', []),
 		blobSize: w('tl_blob_size', 'number', []),
 		packValidate: w('tl_pack_validate', 'number', ['number', 'number', 'string', 'number']),
 		createPack: w('tl_run_create_pack', 'number', ['number', 'number', 'string', 'number'])
 	};
 	return api;
+}
+
+// A trap leaves the module's memory in an unknown state: drop it (and the run it held) so the next
+// request loads a fresh instance instead of failing until the page is reloaded.
+function resetEngine(): void {
+	mod = null;
+	api = null;
+	run = 0;
 }
 
 function json(ptr: number): unknown {
@@ -91,8 +100,20 @@ function withBytes<T>(bytes: Uint8Array, fn: (ptr: number, size: number) => T): 
 	}
 }
 
+// A NUL-terminated UTF-8 copy of `text` on the heap, for inputs too large for ccall's stack copy.
+function withText<T>(text: string, fn: (ptr: number) => T): T {
+	const utf8 = new TextEncoder().encode(text);
+	const bytes = new Uint8Array(utf8.length + 1);
+	bytes.set(utf8);
+	return withBytes(bytes, (ptr) => fn(ptr));
+}
+
+function csvValidate(a: Api, csv: string, meta: unknown): unknown {
+	return withText(csv, (ptr) => json(a.csvValidate(ptr, JSON.stringify(meta))));
+}
+
 function csvBuild(a: Api, csv: string, meta: unknown, seedHex: string): CsvBuildResult {
-	const res = json(a.csvBuild(csv, JSON.stringify(meta), seedHex)) as Omit<CsvBuildResult, 'pack'>;
+	const res = withText(csv, (ptr) => json(a.csvBuild(ptr, JSON.stringify(meta), seedHex))) as Omit<CsvBuildResult, 'pack'>;
 	const ptr = a.blobData();
 	const size = a.blobSize();
 	return { ...res, pack: mod!.HEAPU8.slice(ptr, ptr + size) };
@@ -136,7 +157,7 @@ async function handle(req: EngineRequest): Promise<unknown> {
 		case 'deviceKey':
 			return deviceKey(a, req.seedHex);
 		case 'csvValidate':
-			return json(a.csvValidate(req.csv, JSON.stringify(req.meta)));
+			return csvValidate(a, req.csv, req.meta);
 		case 'csvBuild':
 			return csvBuild(a, req.csv, req.meta, req.seedHex);
 		case 'packValidate':
@@ -213,6 +234,7 @@ self.onmessage = async (e: MessageEvent<WorkerEnvelope>) => {
 	try {
 		reply = { id, ok: true, res: await handle(req) };
 	} catch (err) {
+		if (err instanceof WebAssembly.RuntimeError) resetEngine();
 		reply = { id, ok: false, error: err instanceof Error ? err.message : String(err) };
 	}
 	(self as unknown as DedicatedWorkerGlobalScope).postMessage(reply);
