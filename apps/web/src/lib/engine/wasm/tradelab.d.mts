@@ -2,6 +2,10 @@
 export interface TradelabModule {
 	cwrap(name: string, ret: 'number' | 'string' | null, args: ('number' | 'string')[]): (...a: unknown[]) => number;
 	UTF8ToString(ptr: number): string;
+	/** Current view of the WASM heap (replaced when memory grows: read it after each call). */
+	HEAPU8: Uint8Array;
+	_malloc(size: number): number;
+	_free(ptr: number): void;
 }
 declare const createTradelab: () => Promise<TradelabModule>;
 export default createTradelab;

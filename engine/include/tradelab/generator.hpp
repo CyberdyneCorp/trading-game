@@ -107,6 +107,8 @@ struct MissionInfo {
 };
 
 std::vector<MissionInfo> mission_catalog();
+// Masked market name shown to the player: random per run (from the seed), stable within it.
+std::string market_alias(std::uint64_t seed);
 // Builds a validated built-in synthetic mission; returns false for an unknown id.
 bool build_mission(const std::string& id, std::uint64_t seed, Scenario& out);
 

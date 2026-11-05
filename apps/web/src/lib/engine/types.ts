@@ -256,6 +256,10 @@ export interface GameState {
 	mission: string;
 	alias: string;
 	status: RunStatus;
+	/** 'synthetic' for built-in missions; the pack mode ('historical', ...) for pack runs. */
+	marketMode: string;
+	/** Imported packs are known scenarios (spec scenario-packs "Reveal metadata"). */
+	knownScenario: boolean;
 	step: number;
 	lastDecisionStep: number;
 	warmupBars: number;
@@ -394,6 +398,74 @@ export interface DebriefData {
 	/** Each piece of advice with its outcome 5 bars after the next open. */
 	advice: { step: number; stance: AdviceStance; confidenceBp: number; outcome: 'right' | 'wrong' | 'wait' | 'open' }[];
 	adviceHitBp: number | null;
+	/** Pack runs only: what the masked market really was (never sent before the debrief). */
+	knownScenario?: boolean;
+	reveal?: PackReveal;
+}
+
+export interface PackReveal {
+	asset: string;
+	pair: string;
+	venue: string;
+	periodFrom: string;
+	periodTo: string;
+	source: string;
+	transformation: string;
+	gaps: number;
+}
+
+/** Engine CSV report (tl_csv_validate). Codes are stable; see engine/src/csv_import.cpp. */
+export interface CsvReport {
+	ok: boolean;
+	rows: number;
+	errors: { line: number; code: string }[];
+	errorCount: number;
+	gaps: { line: number; from: number; to: number; missing: number }[];
+	gapCount: number;
+	hasFunding: boolean;
+	firstTime: number;
+	lastTime: number;
+	/** Set instead of the rest when the metadata itself is unusable. */
+	metaError?: string;
+}
+
+/** What the player declares about a CSV (spec scenario-packs "Private CSV import"). */
+export interface CsvMeta {
+	asset: string;
+	pair: string;
+	venue: string;
+	volumeUnit: 'base' | 'quote';
+	intervalSeconds: number;
+	timestampUnit: 's' | 'ms';
+	leverageCap: number;
+}
+
+/** Pack summary from tl_pack_validate: identity and rules, never prices or the reveal. */
+export interface PackSummary {
+	scenarioId: string;
+	mode: string;
+	private: boolean;
+	knownScenario: boolean;
+	digest: string;
+	signingKeyId: string;
+	timeframe: string;
+	totalBars: number;
+	warmupBars: number;
+	leverageCap: number;
+	allowShort: boolean;
+	gaps: number;
+}
+
+export interface PackCheck {
+	ok: boolean;
+	reason: string;
+	detail: string;
+	pack?: PackSummary;
+}
+
+export interface TrustedKey {
+	id: string;
+	key: string;
 }
 
 export const ORDER_TYPE_CODE: Record<OrderTypeName, number> = {

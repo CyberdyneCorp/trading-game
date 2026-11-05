@@ -4,6 +4,7 @@
 #include <string>
 
 #include "accounting.hpp"
+#include "c_api_run.hpp"
 #include "json_out.hpp"
 #include "tradelab/advisor.hpp"
 #include "tradelab/engine.hpp"
@@ -17,12 +18,6 @@
 
 using tradelab::detail::JsonOut;
 
-struct tl_run {  // NOLINT(readability-identifier-naming): C ABI type
-  tradelab::Scenario scenario;
-  tradelab::RunState state;
-  std::uint64_t next_seq = 1;
-  std::string buffer;
-};
 
 namespace tradelab {
 namespace {
@@ -370,6 +365,7 @@ const char* state_json(tl_run& r) {
   JsonOut j;
   j.begin_obj();
   j.field("mission", sc.id).field("alias", sc.alias).field("status", run_status_name(st.status));
+  j.field("marketMode", r.from_pack ? r.pack.mode : std::string("synthetic")).field("knownScenario", r.from_pack);
   j.field("step", st.step).field("lastDecisionStep", last_decision_step(sc));
   j.field("warmupBars", sc.mission.warmup_bars).field("totalBars", static_cast<std::uint32_t>(sc.bars.size()));
   j.field("initialBalance", sc.mission.initial_balance).field("leverage", st.leverage);
@@ -455,6 +451,15 @@ Command next_command(tl_run& r, CommandType type, std::uint32_t client_id) {
   return c;
 }
 
+// Debrief only (spec scenario-packs "Reveal metadata"): what the masked market really was.
+void write_pack_reveal(JsonOut& j, const PackInfo& p) {
+  const PackReveal& r = p.reveal;
+  j.field("knownScenario", true).field("marketMode", p.mode).field("packDigest", p.digest);
+  j.key("reveal").begin_obj().field("asset", r.asset).field("pair", r.pair).field("venue", r.venue);
+  j.field("periodFrom", r.period_from).field("periodTo", r.period_to).field("source", r.source);
+  j.field("transformation", r.transformation).field("gaps", p.gaps).end_obj();
+}
+
 // Buy-and-hold benchmark: 1x long from the first eligible open to the final close, taker fees both ways.
 Money buy_and_hold(const Scenario& sc) {
   const Price entry = sc.bars[sc.mission.warmup_bars + 1].open;
@@ -469,6 +474,20 @@ Money buy_and_hold(const Scenario& sc) {
 }
 
 }  // namespace
+
+namespace detail {
+
+bool apply_checkpoint(tl_run& run, const char* checkpoint_hex) {
+  std::vector<std::uint8_t> bytes;
+  if (checkpoint_hex == nullptr || !from_hex(checkpoint_hex, &bytes)) return false;
+  auto st = load_checkpoint(bytes, run.scenario.id);
+  if (!st.ok()) return false;
+  run.state = st.value();
+  run.next_seq = run.state.last_command_seq + 1;
+  return true;
+}
+
+}  // namespace detail
 }  // namespace tradelab
 
 using namespace tradelab;
@@ -476,7 +495,7 @@ using namespace tradelab;
 extern "C" {
 
 const char* tl_version(void) {
-  static const std::string version = std::string("{\"engine\":\"0.1.0\",\"executionPolicy\":") +
+  static const std::string version = std::string("{\"engine\":\"") + kEngineVersion + "\",\"executionPolicy\":" +
                                       std::to_string(kExecutionPolicyVersion) + "}";
   return version.c_str();
 }
@@ -598,18 +617,10 @@ const char* tl_checkpoint(tl_run* run) {
 }
 
 tl_run* tl_run_restore(const char* mission_id, uint32_t seed, const char* checkpoint_hex) {
-  std::vector<std::uint8_t> bytes;
-  if (checkpoint_hex == nullptr || !from_hex(checkpoint_hex, &bytes)) return nullptr;
   tl_run* run = tl_run_create(mission_id, seed);
-  if (run == nullptr) return nullptr;
-  auto st = load_checkpoint(bytes, run->scenario.id);
-  if (!st.ok()) {
-    delete run;
-    return nullptr;
-  }
-  run->state = st.value();
-  run->next_seq = run->state.last_command_seq + 1;
-  return run;
+  if (run == nullptr || detail::apply_checkpoint(*run, checkpoint_hex)) return run;
+  delete run;
+  return nullptr;
 }
 
 const char* tl_cancel_order(tl_run* run, uint32_t client_id, uint32_t order_id) {
@@ -647,7 +658,8 @@ const char* tl_debrief(tl_run* run) {
   j.field("status", run_status_name(run->state.status));
   j.field("finalEquity", account_view(sc, run->state).equity);
   j.field("buyAndHoldPnl", buy_and_hold(sc)).field("flatPnl", Money{});
-  j.field("syntheticMarket", true).field("seed", run->state.seed);
+  j.field("syntheticMarket", !run->from_pack).field("seed", run->state.seed);
+  if (run->from_pack) write_pack_reveal(j, run->pack);
   j.field("startPrice", sc.bars[sc.mission.warmup_bars].close).field("endPrice", sc.bars.back().close);
   write_score(j, score_run(sc, run->state));
   j.end_obj();

@@ -49,6 +49,7 @@ As built: a small typed catalog in `src/lib/game/i18n.svelte.ts` (locales `pt-BR
 - **Chart:** custom Canvas2D renderer as designed (D3); the 5,000-bar budget is not yet measured. The screen-reader table holds the last 20 closed bars.
 - **CI browsers:** Playwright runs Chromium only; WebKit and axe checks are still open (tasks 1.1).
 - **Engine protocol:** TypeScript types are hand-written against the C-ABI JSON, not generated from an IDL.
+- **Packs:** stored by digest in an IndexedDB `packs` store (not OPFS yet), verified by the engine in the worker (Monocypher Ed25519 and the zstd decoder compiled into the WASM module) instead of WebCrypto Ed25519, so every client shares one verifier. Only private packs exist so far: CSV imports signed by a per-device key whose seed lives in the `meta` store. The pinned publisher key list (`PINNED_PUBLISHER_KEYS`) is empty until there is a publisher key; quota display, eviction detection, downloads and Range resumption are still open.
 
 ## Risks
 - Canvas text rendering of pixel fonts across DPRs → bitmap atlas at integer scales.

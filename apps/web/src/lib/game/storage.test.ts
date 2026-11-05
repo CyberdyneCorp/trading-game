@@ -74,6 +74,30 @@ describe('RunStore (IndexedDB)', () => {
 		expect(await store.progress()).toEqual({ tutorialsSeen: ['m02-funding-squeeze'], advisorPoints: 3, settledRuns: [] });
 	});
 
+	it('stores packs by digest, lists them oldest first and deletes them', async () => {
+		const pack = (digest: string, addedAt: number) => ({
+			digest, scenarioId: `csv-${digest}`, label: digest, bytes: new Uint8Array([1, 2, 3]), private: true,
+			totalBars: 120, warmupBars: 30, leverageCap: 5, gaps: 0, addedAt
+		});
+		await store.savePack(pack('b', 2));
+		await store.savePack(pack('a', 1));
+		expect((await store.packs()).map((p) => p.digest)).toEqual(['a', 'b']);
+		expect((await store.pack('b'))?.bytes).toEqual(new Uint8Array([1, 2, 3]));
+		await store.deletePack('a');
+		expect(await store.pack('a')).toBeNull();
+		await store.createRun({ ...record('p'), missionId: 'csv-b', packDigest: 'b' });
+		expect((await store.activeRun())?.record.packDigest).toBe('b');
+	});
+
+	it('creates the device seed once and keeps it', async () => {
+		let calls = 0;
+		const random = () => (calls++, new Uint8Array(32).fill(0xab));
+		const first = await store.deviceSeed(random);
+		expect(first).toBe('ab'.repeat(32));
+		expect(await store.deviceSeed(() => new Uint8Array(32))).toBe(first);
+		expect(calls).toBe(1);
+	});
+
 	it('migrates the legacy localStorage save and removes it', async () => {
 		const mem = new Map<string, string>();
 		const storage = {

@@ -15,7 +15,7 @@ export function bars(closes: number[]): BarTuple[] {
 
 export function game(events: EngineEvent[], extra: Partial<GameState> = {}): GameState {
 	return {
-		mission: 'm01-false-breakout', alias: 'K1A', status: 'finished', step: 10, lastDecisionStep: 9, warmupBars: 0,
+		mission: 'm01-false-breakout', alias: 'K1A', status: 'finished', marketMode: 'synthetic', knownScenario: false, step: 10, lastDecisionStep: 9, warmupBars: 0,
 		totalBars: 11, initialBalance: '10000', leverage: 1,
 		contract: {} as GameState['contract'], bars: [], account: {} as GameState['account'],
 		position: { qty: '0', entry: '0', margin: '0' }, orders: [], events,

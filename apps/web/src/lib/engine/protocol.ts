@@ -1,11 +1,29 @@
 // Typed request/response protocol between the UI thread and the engine worker.
 // Responses carry only current-step state: the worker never sends future bars.
 
-import type { CommandResult, DebriefData, GameState, MissionInfo, OrderSideName, OrderTypeName, RunOptionsView } from './types';
+import type {
+	CommandResult,
+	CsvMeta,
+	CsvReport,
+	DebriefData,
+	GameState,
+	MissionInfo,
+	OrderSideName,
+	OrderTypeName,
+	PackCheck,
+	RunOptionsView,
+	TrustedKey
+} from './types';
 
 export type EngineRequest =
 	| { kind: 'init' }
 	| { kind: 'start'; missionId: string; seed: number; options?: RunOptionsView }
+	// Packs and CSV import: bytes cross the worker boundary, prices only as tl_state reveals them.
+	| { kind: 'deviceKey'; seedHex: string }
+	| { kind: 'csvValidate'; csv: string; meta: CsvMeta }
+	| { kind: 'csvBuild'; csv: string; meta: CsvMeta; seedHex: string }
+	| { kind: 'packValidate'; pack: Uint8Array; keys: TrustedKey[] }
+	| { kind: 'startPack'; pack: Uint8Array; keys: TrustedKey[]; seed: number }
 	| {
 			kind: 'order';
 			clientId: number;
@@ -53,13 +71,30 @@ export interface CommandResponse {
 	state: GameState;
 }
 
-export type EngineResponse<K extends EngineRequest['kind']> = K extends 'init'
-	? { version: { engine: string; executionPolicy: number }; missions: MissionInfo[] }
-	: K extends 'start' | 'advance'
-		? GameState
-		: K extends 'debrief'
-			? DebriefData
-			: CommandResponse;
+/** tl_pack_build_csv result plus the pack bytes (empty when not ok). */
+export interface CsvBuildResult {
+	ok: boolean;
+	reason: string;
+	report: CsvReport;
+	scenarioId: string;
+	digest: string;
+	size: number;
+	pack: Uint8Array;
+}
+
+interface ResponseMap {
+	init: { version: { engine: string; executionPolicy: number }; missions: MissionInfo[] };
+	deviceKey: TrustedKey;
+	csvValidate: CsvReport;
+	csvBuild: CsvBuildResult;
+	packValidate: PackCheck;
+	start: GameState;
+	startPack: GameState;
+	advance: GameState;
+	debrief: DebriefData;
+}
+
+export type EngineResponse<K extends EngineRequest['kind']> = K extends keyof ResponseMap ? ResponseMap[K] : CommandResponse;
 
 export interface WorkerEnvelope {
 	id: number;

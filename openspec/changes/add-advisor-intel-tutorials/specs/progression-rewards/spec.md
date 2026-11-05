@@ -12,11 +12,15 @@ The engine SHALL report the advisor points earned in a run: 1 for each closed tr
 - **THEN** that trade SHALL earn no points
 
 ### Requirement: Local point balance
-The client SHALL keep an advisor point balance per device, starting at 3 and capped at 10. A run's advice allowance SHALL be the balance at start. When a run ends, the balance SHALL become balance − advice used + points earned, applied exactly once per run even after reloads or replays.
+The client SHALL keep an advisor point balance per device, starting at 3 and capped at 10. A run's advice allowance SHALL be the balance at start. When a run ends, the balance SHALL become balance − advice used + points earned, applied exactly once per run even after reloads or replays. Practice runs on known scenarios (imported or loaded packs) SHALL start without advice and SHALL NOT change the balance.
 
 #### Scenario: Settlement is idempotent
 - **WHEN** a finished run's debrief is opened, the page is reloaded and the debrief is opened again
 - **THEN** the balance SHALL have changed only once
+
+#### Scenario: Practice on an imported market
+- **WHEN** a run on an imported CSV pack finishes with a disciplined winning trade
+- **THEN** no advisor was offered during the run and the balance SHALL be unchanged
 
 ### Requirement: Intel perks unlocked by completed missions
 Perks SHALL unlock by the number of distinct missions finished on the device: Economic calendar at 1, Fast wire I at 2, Fast wire II at 4. Perks SHALL be modeled on legal products and SHALL NOT be described as insider information. Each unlocked perk SHALL be a toggle on the briefing, on by default, and the chosen perks SHALL be part of the run's start options and record.

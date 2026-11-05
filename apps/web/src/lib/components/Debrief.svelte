@@ -106,9 +106,25 @@
 
 		<section class="panel">
 			<h2 class="panel-title">{t('debrief.reveal')}</h2>
-			<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
-			<h3>{t('debrief.scenario')}</h3>
-			<p class="reveal">{missionText(s.mission, L).reveal}</p>
+			{#if d.reveal}
+				<p data-testid="pack-reveal">
+					{t('debrief.revealPack', {
+						alias: d.alias,
+						pair: d.reveal.pair || '—',
+						asset: d.reveal.asset || '—',
+						venue: d.reveal.venue || '—',
+						from: d.reveal.periodFrom,
+						to: d.reveal.periodTo,
+						source: d.reveal.source
+					})}
+				</p>
+				<p class="muted small">{t('debrief.revealTransform', { text: d.reveal.transformation })}</p>
+				{#if d.reveal.gaps > 0}<p class="muted small">{t('debrief.revealGaps', { n: d.reveal.gaps })}</p>{/if}
+			{:else}
+				<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
+				<h3>{t('debrief.scenario')}</h3>
+				<p class="reveal">{missionText(s.mission, L).reveal}</p>
+			{/if}
 			<p class="muted small">{fmtPrice(d.startPrice, L)} → {fmtPrice(d.endPrice, L)}</p>
 		</section>
 	</div>
@@ -185,36 +201,38 @@
 		</p>
 	</section>
 
-	<section class="panel" data-testid="debrief-advisor">
-		<h2 class="panel-title">{t('debrief.advisor')}</h2>
-		{#if d.advice.length === 0}
-			<p class="muted">{t('debrief.adviceNone')}</p>
-		{:else}
-			<table class="trades">
-				<thead>
-					<tr>
-						<th>{t('debrief.adviceStep')}</th><th>{t('debrief.adviceStance')}</th>
-						<th class="num">{t('debrief.adviceConfidence')}</th><th>{t('debrief.adviceOutcome')}</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each d.advice as row, i (i)}
+	{#if !s.knownScenario}
+		<section class="panel" data-testid="debrief-advisor">
+			<h2 class="panel-title">{t('debrief.advisor')}</h2>
+			{#if d.advice.length === 0}
+				<p class="muted">{t('debrief.adviceNone')}</p>
+			{:else}
+				<table class="trades">
+					<thead>
 						<tr>
-							<td>{row.step}</td>
-							<td class={row.stance === 'long' ? 'up' : row.stance === 'short' ? 'down' : 'attention'}>{t(`adv.stance.${row.stance}`)}</td>
-							<td class="num">{pctFromBp(row.confidenceBp)}%</td>
-							<td class={row.outcome === 'right' ? 'up' : row.outcome === 'wrong' ? 'down' : 'muted'}>{t(`debrief.outcome.${row.outcome}`)}</td>
+							<th>{t('debrief.adviceStep')}</th><th>{t('debrief.adviceStance')}</th>
+							<th class="num">{t('debrief.adviceConfidence')}</th><th>{t('debrief.adviceOutcome')}</th>
 						</tr>
-					{/each}
-				</tbody>
-			</table>
-			{#if d.adviceHitBp != null}
-				<p class="muted">{t('debrief.adviceHit', { pct: pctFromBp(d.adviceHitBp), n: judged })}</p>
+					</thead>
+					<tbody>
+						{#each d.advice as row, i (i)}
+							<tr>
+								<td>{row.step}</td>
+								<td class={row.stance === 'long' ? 'up' : row.stance === 'short' ? 'down' : 'attention'}>{t(`adv.stance.${row.stance}`)}</td>
+								<td class="num">{pctFromBp(row.confidenceBp)}%</td>
+								<td class={row.outcome === 'right' ? 'up' : row.outcome === 'wrong' ? 'down' : 'muted'}>{t(`debrief.outcome.${row.outcome}`)}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+				{#if d.adviceHitBp != null}
+					<p class="muted">{t('debrief.adviceHit', { pct: pctFromBp(d.adviceHitBp), n: judged })}</p>
+				{/if}
 			{/if}
-		{/if}
-		<p data-testid="debrief-points">{t('debrief.points', points)}</p>
-		<p class="muted small">{t('debrief.pointsHow')}</p>
-	</section>
+			<p data-testid="debrief-points">{t('debrief.points', points)}</p>
+			<p class="muted small">{t('debrief.pointsHow')}</p>
+		</section>
+	{/if}
 
 	<section class="panel chart-panel">
 		<Chart game={s} />

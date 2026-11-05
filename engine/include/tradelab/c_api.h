@@ -67,6 +67,33 @@ const char* tl_state(tl_run* run);
 /* Available once the run is finished or bankrupt; otherwise {"error":"run_active"}. */
 const char* tl_debrief(tl_run* run);
 
+/* ---- Scenario packs and private CSV import (spec scenario-packs). ----
+ * Packs are byte buffers (pointer + size). trusted_keys_json is [{"id":"...","key":"<64 hex>"}]:
+ * the client's pinned publisher keys plus its own device key. Reason codes are listed in
+ * engine/src/pack.cpp and engine/src/csv_import.cpp. Run-less calls return a static buffer
+ * valid until the next run-less call. */
+
+/* Validates a CSV against its metadata {"asset","pair","venue","volumeUnit":"base"|"quote",
+ * "intervalSeconds","timestampUnit":"s"|"ms"}: {"ok":bool,"rows":n,"errors":[{"line","code"}],
+ * "errorCount","gaps":[{"line","from","to","missing"}],"gapCount","hasFunding","firstTime","lastTime"}
+ * or {"ok":false,"metaError":"<field>"}. */
+const char* tl_csv_validate(const char* csv, const char* meta_json);
+/* Builds a private, masked pack from a CSV (metadata may add "leverageCap" 1..20 and "warmupBars"),
+ * signed with the device key derived from a 32-byte seed (64 hex). Returns {"ok","reason","report",
+ * "scenarioId","digest","size"}; the pack bytes are then read with tl_blob_data/tl_blob_size. */
+const char* tl_pack_build_csv(const char* csv, const char* meta_json, const char* device_seed_hex);
+const uint8_t* tl_blob_data(void);
+uint32_t tl_blob_size(void);
+/* {"id":"device-<16 hex>","publicKey":"<64 hex>"} for a device seed, or {"error":"invalid_seed"}. */
+const char* tl_device_key(const char* device_seed_hex);
+/* Verifies a pack for install (publish = 0) or publishing (publish = 1, adds LIC01 checks):
+ * {"ok":bool,"reason","detail","pack":{summary without prices or reveal}}. */
+const char* tl_pack_validate(const uint8_t* data, uint32_t size, const char* trusted_keys_json, int32_t publish);
+/* Starts a run on a verified pack; NULL when the pack fails validation. */
+tl_run* tl_run_create_pack(const uint8_t* data, uint32_t size, const char* trusted_keys_json, uint32_t seed);
+tl_run* tl_run_restore_pack(const uint8_t* data, uint32_t size, const char* trusted_keys_json, uint32_t seed,
+                            const char* checkpoint_hex);
+
 #ifdef __cplusplus
 }
 #endif

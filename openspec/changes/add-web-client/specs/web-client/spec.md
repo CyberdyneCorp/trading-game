@@ -27,6 +27,21 @@ The mission menu SHALL mark a mission "Completed" when at least one run of it on
 - **WHEN** the player finishes a mission and returns to the menu, or reloads the page later
 - **THEN** that mission's card SHALL show the Completed mark and no other card SHALL
 
+### Requirement: CSV import wizard
+The menu SHALL offer a CSV import wizard that reads the file on the device, asks for the metadata the file cannot carry (asset, pair, venue, bar interval, timestamp unit, volume unit, leverage cap), shows the engine's validation report (errors by line in plain language, gaps with their size, rows, period and whether funding is present) and, only for a valid file, creates a practice mission from a private pack. The wizard SHALL NOT correct data or units on its own; it MAY pre-select the unit and interval guessed from the first rows. Imported markets SHALL be listed and labeled as known scenarios, and during a run the UI SHALL show neither the real asset nor unmasked prices; the reveal SHALL appear only in the debrief. A run on an imported pack SHALL resume after a reload like any other run.
+
+#### Scenario: Wrong timestamp unit in the wizard (DATA01-web)
+- **WHEN** the player declares seconds for a file whose timestamps are in milliseconds and validates
+- **THEN** the wizard SHALL show an error naming the line and the unit problem, and SHALL NOT offer to create the mission
+
+#### Scenario: Practice run on an imported market
+- **WHEN** the player creates a mission from a valid CSV and plays it to the end
+- **THEN** the briefing and top bar SHALL mark it as a known scenario with masked prices, and the debrief SHALL reveal the pair and the period
+
+#### Scenario: Pack from an unknown signer
+- **WHEN** the player loads a `.tlpack` file not signed by this device or a pinned publisher
+- **THEN** it SHALL NOT be installed and the menu SHALL say why
+
 
 The web client SHALL be an installable Progressive Web App. A service worker SHALL precache the versioned app shell, fonts, i18n catalogs and WASM engine, so that after one online visit the app starts with no network connection. Offline, the client SHALL satisfy the `offline-sync` full-offline-play requirement for packs already downloaded, and SHALL show catalog, download and sync as unavailable rather than failing.
 

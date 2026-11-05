@@ -209,6 +209,10 @@ void add_chain(Scenario& out, const OptionChainDef& def, std::uint32_t warmup) {
 
 }  // namespace
 
+std::string market_alias(std::uint64_t seed) {
+  return "K" + std::to_string(1 + seed % 9) + static_cast<char>('A' + (seed / 9) % 26);
+}
+
 std::vector<MissionInfo> mission_catalog() {
   std::vector<MissionInfo> out;
   for (const MissionDef& m : all_missions()) out.push_back(m.info);
@@ -221,7 +225,7 @@ bool build_mission(const std::string& id, std::uint64_t seed, Scenario& out) {
   if (it == defs.end()) return false;
   out = Scenario{};
   out.id = id;
-  out.alias = "K" + std::to_string(1 + seed % 9) + static_cast<char>('A' + (seed / 9) % 26);
+  out.alias = market_alias(seed);
   out.contract = default_contract();
   out.contract.funding_interval = it->funding_interval;
   out.costs = default_costs();

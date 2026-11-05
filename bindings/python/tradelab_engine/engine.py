@@ -61,6 +61,14 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_advance": (c_char_p, [c_void_p, i32]),
         "tl_state": (c_char_p, [c_void_p]),
         "tl_debrief": (c_char_p, [c_void_p]),
+        "tl_csv_validate": (c_char_p, [c_char_p, c_char_p]),
+        "tl_pack_build_csv": (c_char_p, [c_char_p, c_char_p, c_char_p]),
+        "tl_blob_data": (ctypes.POINTER(ctypes.c_uint8), []),
+        "tl_blob_size": (u32, []),
+        "tl_device_key": (c_char_p, [c_char_p]),
+        "tl_pack_validate": (c_char_p, [c_char_p, u32, c_char_p, i32]),
+        "tl_run_create_pack": (c_void_p, [c_char_p, u32, c_char_p, u32]),
+        "tl_run_restore_pack": (c_void_p, [c_char_p, u32, c_char_p, u32, c_char_p]),
     }
     for name, (restype, argtypes) in signatures.items():
         fn = getattr(lib, name)
@@ -85,6 +93,32 @@ def missions() -> list[dict[str, Any]]:
     return _json(load_library().tl_missions())
 
 
+# ---- scenario packs and CSV import (spec scenario-packs) ----
+
+TrustedKeys = list[dict[str, str]]  # [{"id": ..., "key": "<64 hex>"}]
+
+
+def csv_validate(csv: str, meta: dict[str, Any]) -> dict[str, Any]:
+    """Engine CSV report (same rules and codes as every client's import wizard)."""
+    return _json(load_library().tl_csv_validate(csv.encode(), json.dumps(meta).encode()))
+
+
+def device_key(seed_hex: str) -> dict[str, str]:
+    """{"id", "publicKey"} of the Ed25519 key derived from a 32-byte seed (64 hex)."""
+    return _json(load_library().tl_device_key(seed_hex.encode()))
+
+
+def build_csv_pack(csv: str, meta: dict[str, Any], seed_hex: str) -> tuple[dict[str, Any], bytes]:
+    """Builds a private, masked pack signed with the seed's key; returns (result, pack bytes)."""
+    lib = load_library()
+    result = _json(lib.tl_pack_build_csv(csv.encode(), json.dumps(meta).encode(), seed_hex.encode()))
+    data = ctypes.string_at(lib.tl_blob_data(), lib.tl_blob_size()) if result["ok"] else b""
+    return result, data
+
+
+def pack_validate(pack: bytes, trusted: TrustedKeys, *, publish: bool = False) -> dict[str, Any]:
+    """Verifies a pack for install or publishing (LIC01): {"ok", "reason", "detail", "pack"}."""
+    return _json(load_library().tl_pack_validate(pack, len(pack), json.dumps(trusted).encode(), int(publish)))
 @dataclass(frozen=True)
 class RunOptions:
     """Start options (execution policy v11). The defaults are a run without advisor or perks."""
@@ -114,6 +148,22 @@ class Run:
         self._h = ctypes.c_void_p(handle)
         self.mission_id = mission_id
         self.seed = seed
+
+    @classmethod
+    def from_pack(cls, pack: bytes, trusted: TrustedKeys, seed: int) -> Run:
+        """A run on a verified scenario pack; EngineError (with the reason) when it fails validation."""
+        handle = load_library().tl_run_create_pack(pack, len(pack), json.dumps(trusted).encode(), seed)
+        if not handle:
+            raise EngineError(pack_validate(pack, trusted)["reason"] or "pack rejected")
+        return cls("pack", seed, _handle=handle)
+
+    @classmethod
+    def restore_pack(cls, pack: bytes, trusted: TrustedKeys, seed: int, checkpoint_hex: str) -> Run:
+        handle = load_library().tl_run_restore_pack(pack, len(pack), json.dumps(trusted).encode(), seed,
+                                                    checkpoint_hex.encode())
+        if not handle:
+            raise EngineError("pack rejected, or checkpoint damaged or for another scenario")
+        return cls("pack", seed, _handle=handle)
 
     @classmethod
     def restore(cls, mission_id: str, seed: int, checkpoint_hex: str) -> Run:

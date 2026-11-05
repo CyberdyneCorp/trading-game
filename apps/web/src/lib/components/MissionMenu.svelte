@@ -4,9 +4,37 @@
 	import { missionText } from '#lib/game/missions.ts';
 	import { settings } from '#lib/game/settings.svelte.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
-	import { i18n, t, type Locale } from '#lib/game/i18n.svelte.ts';
+	import { i18n, packReasonText, t, type Locale } from '#lib/game/i18n.svelte.ts';
+	import { PACK_MAX_BYTES } from '#lib/game/packs.ts';
+	import type { StoredPack } from '#lib/game/storage.ts';
 
 	let { session }: { session: GameSession } = $props();
+	let packMessage = $state<{ ok: boolean; text: string } | null>(null);
+
+	async function onPackFile(e: Event & { currentTarget: HTMLInputElement }) {
+		const input = e.currentTarget;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file) return;
+		if (file.size > PACK_MAX_BYTES) {
+			packMessage = { ok: false, text: t('pack.refused', { reason: packReasonText('too_large') }) };
+			return;
+		}
+		const label = file.name.replace(/\.tlpack$/, '');
+		const check = await session.installPack(new Uint8Array(await file.arrayBuffer()), label);
+		packMessage = check.ok
+			? { ok: true, text: t('pack.installed', { label }) }
+			: { ok: false, text: t('pack.refused', { reason: packReasonText(check.reason) }) };
+	}
+
+	function exportPack(p: StoredPack) {
+		const url = URL.createObjectURL(new Blob([p.bytes as BlobPart], { type: 'application/octet-stream' }));
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${p.scenarioId}.tlpack`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
 
 	function setLocale(l: Locale) {
 		i18n.locale = l;
@@ -34,6 +62,10 @@
 	{/if}
 	{#if pwa.iosHint}
 		<p class="panel banner muted">{t('pwa.iosHint')}</p>
+	{/if}
+
+	{#if session.menuAlert}
+		<p class="panel banner down" role="alert" data-testid="menu-alert">⚠ {session.menuAlert}</p>
 	{/if}
 
 	{#if session.saved}
@@ -64,6 +96,38 @@
 			</article>
 		{/each}
 	</div>
+
+	<h2>{t('menu.practice')}</h2>
+	<section class="panel practice" data-testid="practice">
+		<p class="muted small">{t('menu.practiceNote')}</p>
+		{#if session.packs.length === 0}<p class="muted">{t('menu.noPacks')}</p>{/if}
+		<ul class="packs">
+			{#each session.packs as p (p.digest)}
+				<li data-testid="pack-row">
+					<span class="pack-name">{p.label}</span>
+					<span class="tag attention">{t('menu.known')}</span>
+					<span class="tag muted">{p.totalBars - p.warmupBars} {t('menu.bars')}</span>
+					<span class="tag info">{t('menu.leverageCap')} {p.leverageCap}x</span>
+					{#if p.gaps > 0}<span class="tag muted">{t('menu.gaps', { n: p.gaps })}</span>{/if}
+					<span class="pack-actions">
+						<button onclick={() => exportPack(p)}>{t('menu.exportPack')}</button>
+						<button onclick={() => session.removePack(p.digest)} disabled={session.busy}>{t('menu.deletePack')}</button>
+						<button class="primary" onclick={() => session.startPack(p.digest)} disabled={session.busy} data-testid="pack-start">
+							▶ {t('menu.startPack')}
+						</button>
+					</span>
+				</li>
+			{/each}
+		</ul>
+		<div class="pack-buttons">
+			<button onclick={() => session.openImport()} data-testid="import-csv">{t('menu.importCsv')}</button>
+			<label class="file-button">
+				{t('menu.loadPack')}
+				<input type="file" accept=".tlpack,application/octet-stream" onchange={onPackFile} data-testid="pack-file" />
+			</label>
+		</div>
+		{#if packMessage}<p class={packMessage.ok ? 'up' : 'down'} role="status" data-testid="pack-message">{packMessage.text}</p>{/if}
+	</section>
 
 	<section class="panel settings">
 		<h2 class="panel-title">{t('menu.settings')}</h2>
@@ -146,6 +210,42 @@
 		align-items: center;
 		gap: 1rem;
 		margin: 1rem 0;
+	}
+	.packs {
+		list-style: none;
+		padding: 0;
+		margin: 0.5rem 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+	.packs li {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.pack-name {
+		font-weight: bold;
+	}
+	.pack-actions {
+		margin-left: auto;
+		display: flex;
+		gap: 0.3rem;
+	}
+	.pack-buttons {
+		display: flex;
+		gap: 0.6rem;
+		align-items: center;
+	}
+	.file-button {
+		cursor: pointer;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		padding: 0.3rem 0.6rem;
+	}
+	.file-button input {
+		display: none;
 	}
 	.settings {
 		margin-top: 1.2rem;

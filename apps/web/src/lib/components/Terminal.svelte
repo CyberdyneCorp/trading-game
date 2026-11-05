@@ -282,7 +282,9 @@
 				{/if}
 			</div>
 			<div class="stack">
-				<AdvisorPanel {session} onApply={onApplyAdvice} />
+				{#if !session.state.knownScenario}
+					<AdvisorPanel {session} onApply={onApplyAdvice} />
+				{/if}
 				<NewsPanel news={session.state.news} />
 				<EventFeed events={session.state.events} names={session.names} />
 			</div>
