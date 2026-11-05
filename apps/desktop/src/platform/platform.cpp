@@ -4,8 +4,15 @@
 #include <cstdlib>
 #include <string_view>
 
+#include <dlfcn.h>
+#include <limits.h>
+#include <stdlib.h>
+
+#include <filesystem>
+
 #if defined(__APPLE__)
 #include <CoreFoundation/CoreFoundation.h>
+#include <mach-o/dyld.h>
 #else
 #include <spawn.h>
 #include <sys/stat.h>
@@ -106,6 +113,53 @@ void show_error_alert(const std::string& title, const std::string& body) {
   std::fprintf(stderr, "%s\n\n%s\n", title.c_str(), body.c_str());
   std::fflush(stderr);
   if (env("TRADELAB_NO_DIALOG") == nullptr) native_alert(title, body);
+}
+
+std::string executable_path() {
+#if defined(__APPLE__)
+  char raw[PATH_MAX] = {};
+  std::uint32_t size = sizeof raw;
+  if (_NSGetExecutablePath(raw, &size) != 0) return {};
+  const char* path = raw;
+#else
+  const char* path = "/proc/self/exe";
+#endif
+  char resolved[PATH_MAX] = {};
+  return realpath(path, resolved) != nullptr ? std::string(resolved) : std::string();
+}
+
+std::string preload_bundled_vulkan() {
+#if defined(__APPLE__)
+  namespace fs = std::filesystem;
+  const fs::path exe = executable_path();
+  if (exe.empty() || exe.parent_path().filename() != "MacOS") return {};  // not Contents/MacOS/<exe>
+  const fs::path lib = exe.parent_path().parent_path() / "Frameworks" / "libMoltenVK.dylib";
+  std::error_code ec;
+  if (!fs::exists(lib, ec)) return {};
+  // Kept loaded for the life of the process (Raven's handle is the same image).
+  return dlopen(lib.c_str(), RTLD_NOW | RTLD_GLOBAL) != nullptr ? lib.string() : std::string();
+#else
+  return {};
+#endif
+}
+
+std::string loaded_vulkan_library() {
+#if defined(__APPLE__)
+  const char* names[] = {"libvulkan.1.dylib", "libvulkan.dylib", "libMoltenVK.dylib"};
+#else
+  const char* names[] = {"libvulkan.so.1", "libvulkan.so"};
+#endif
+  for (const char* name : names) {
+    void* handle = dlopen(name, RTLD_NOW | RTLD_NOLOAD);
+    if (handle == nullptr) continue;
+    Dl_info info{};
+    void* symbol = dlsym(handle, "vkGetInstanceProcAddr");
+    const bool found = symbol != nullptr && dladdr(symbol, &info) != 0 && info.dli_fname != nullptr;
+    std::string out = found ? info.dli_fname : "";
+    dlclose(handle);  // RTLD_NOLOAD took a reference
+    if (!out.empty()) return out;
+  }
+  return {};
 }
 
 }  // namespace tradelab::desktop::platform

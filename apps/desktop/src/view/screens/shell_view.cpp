@@ -165,6 +165,7 @@ Rid ShellView::find(std::string_view name) const { return ui::find(scope_, name)
 void ShellView::bind() {
   AppViewModel& vm = vm_;
   ui::bind_action(names::kActResume, [&vm] { vm.resume(); });
+  ui::bind_action(names::kActUpdateInstall, [&vm] { vm.install_update(); });
   ui::bind_action(names::kActOpenCurriculum, [&vm] { vm.open_curriculum(); });
   ui::bind_action(names::kActOpenJournal, [&vm] { vm.open_journal(); });
   ui::bind_action(names::kActOpenSettings, [&vm] { vm.open_settings(); });

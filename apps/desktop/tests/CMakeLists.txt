@@ -37,11 +37,24 @@ target_sources(tradelab_desktop_unit_tests PRIVATE
   storage/test_crash_recovery.cpp
   storage/test_scripted_pack.cpp
   packs/test_packs.cpp
-  packs/test_download.cpp)
+  packs/test_download.cpp
+  update/test_updater.cpp)
 add_dependencies(tradelab_desktop_unit_tests tradelab_desktop_crash_child)
 target_compile_definitions(tradelab_desktop_unit_tests PRIVATE
   TRADELAB_CRASH_CHILD="$<TARGET_FILE:tradelab_desktop_crash_child>"
   TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog")
+
+# ---- Goldens (task 1.6): the engine's shared fixtures replayed through the desktop build. ----
+# Its own binary so a universal macOS build can run it on each slice (arch -arm64 / -x86_64).
+add_executable(tradelab_desktop_golden_tests main.cpp golden/test_golden.cpp)
+target_include_directories(tradelab_desktop_golden_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
+target_include_directories(tradelab_desktop_golden_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(tradelab_desktop_golden_tests PRIVATE tradelab_desktop_model)
+target_compile_definitions(tradelab_desktop_golden_tests PRIVATE
+  TRADELAB_GOLDEN_DIR="${DESKTOP_DIR}/../../engine/tests/golden"
+  TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog")
+add_test(NAME desktop_golden COMMAND tradelab_desktop_golden_tests)
+set_tests_properties(desktop_golden PROPERTIES LABELS golden)
 
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
 add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp

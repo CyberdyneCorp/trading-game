@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=TradeLab
+GenericName=Trading simulator
+GenericName[pt_BR]=Simulador de trading
+Comment=Learn trading in a retro terminal with simulated markets
+Comment[pt_BR]=Aprenda trading num terminal retrô com mercados simulados
+Exec=tradelab
+Icon=tradelab
+Terminal=false
+Categories=Education;Simulation;
+Keywords=trading;finance;education;

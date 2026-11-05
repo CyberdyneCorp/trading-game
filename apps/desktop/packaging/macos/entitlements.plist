@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Hardened runtime entitlements for the Developer ID build (package_macos.sh with CODESIGN_IDENTITY).
+     None: no JIT, no unsigned executable memory, and MoltenVK is signed with the app's own identity, so
+     library validation stays on. Network access needs no entitlement outside the App Sandbox. -->
+<plist version="1.0">
+<dict/>
+</plist>

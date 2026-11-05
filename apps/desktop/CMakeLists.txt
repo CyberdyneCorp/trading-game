@@ -103,7 +103,10 @@ target_sources(tradelab_desktop_model PRIVATE
   src/model/packs/download.cpp
   src/model/packs/files.cpp
   src/model/packs/http_curl.cpp
-  src/model/packs/pack_library.cpp)
+  src/model/packs/pack_library.cpp
+  src/model/update/manifest.cpp
+  src/model/update/updater.cpp
+  src/model/update/update_service.cpp)
 # libcurl is opened at run time (dlopen), never linked.
 target_link_libraries(tradelab_desktop_model PRIVATE tradelab_sqlite ${CMAKE_DL_LIBS})
 
@@ -129,6 +132,7 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/screens/journal.cpp
   src/viewmodel/screens/lesson.cpp
   src/viewmodel/screens/settings.cpp
+  src/viewmodel/updates.cpp
   ${TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES})
 target_link_libraries(tradelab_desktop_viewmodel PUBLIC tradelab_desktop_model)
 target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
@@ -152,6 +156,17 @@ add_library(tradelab_desktop_view STATIC
   ${TRADELAB_DESKTOP_GAME_VIEW_SOURCES})
 target_link_libraries(tradelab_desktop_view PUBLIC tradelab_desktop_viewmodel tradelab_desktop_platform raven::raven)
 target_compile_options(tradelab_desktop_view PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
+
+# Updates (src/model/update): the release public key (64 hex) is set by the release build only; without it
+# the app never checks. The key's custody and the signing of manifests are human tasks (tasks.md 1.21).
+set(TRADELAB_UPDATE_PUBLIC_KEY "" CACHE STRING "Ed25519 public key (hex) that signs desktop update manifests")
+set(TRADELAB_UPDATE_MANIFEST_URL
+  "https://github.com/CyberdyneCorp/trading-game/releases/latest/download/desktop-manifest.json"
+  CACHE STRING "Signed desktop update manifest")
+target_compile_definitions(tradelab_desktop_view PRIVATE
+  TRADELAB_UPDATE_PUBLIC_KEY="${TRADELAB_UPDATE_PUBLIC_KEY}"
+  TRADELAB_UPDATE_MANIFEST_URL="${TRADELAB_UPDATE_MANIFEST_URL}"
+  TRADELAB_DESKTOP_VERSION="${PROJECT_VERSION}")
 
 add_executable(tradelab_desktop src/main.cpp)
 target_link_libraries(tradelab_desktop PRIVATE tradelab_desktop_view)

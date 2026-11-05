@@ -1479,6 +1479,12 @@ desktop.curriculum.colStatus,Situação,Status
 desktop.curriculum.colContent,Conteúdo,Content
 desktop.curriculum.colUnlocks,Libera,Unlocks
 desktop.chart.debrief,"Gráfico da partida, da primeira decisão ao fim","Chart of the run, from the first decision to the end"
+desktop.update.version,Versão {version}.,Version {version}.
+desktop.update.install,Baixar e instalar ao reabrir,Download and install on restart
+desktop.update.downloading,Baixando a versão {version}…,Downloading version {version}…
+desktop.update.scheduled,A versão {version} será instalada quando o TradeLab for reaberto.,Version {version} will be installed when TradeLab is reopened.
+desktop.update.failed,A atualização {version} foi recusada ({reason}); esta versão continua instalada.,Update {version} was refused ({reason}); this version stays installed.
+desktop.update.applyFailed,Não foi possível instalar a versão {version} ({reason}); esta versão continua.,Version {version} could not be installed ({reason}); this version goes on.
 desktop.alreadyRunning.title,O TradeLab já está aberto,TradeLab is already open
 desktop.alreadyRunning.body,Outra janela do TradeLab está usando os dados salvos deste usuário. Use essa janela ou feche-a antes de abrir o TradeLab de novo.,"Another TradeLab window is using this user's saved data. Use that window, or close it before opening TradeLab again."
 desktop.storageUnavailable,Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.,The saved data could not be opened ({detail}): this session will not be saved.

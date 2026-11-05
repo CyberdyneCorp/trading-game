@@ -17,6 +17,12 @@
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
     },
     {
+      "name": "macos-universal",
+      "inherits": "macos-release",
+      "displayName": "macOS universal (arm64 + x86_64): shipped only when the goldens pass on both slices",
+      "cacheVariables": { "CMAKE_OSX_ARCHITECTURES": "arm64;x86_64" }
+    },
+    {
       "name": "linux-release",
       "inherits": "base",
       "displayName": "Linux (X11 + Wayland, Vulkan)",
@@ -32,6 +38,7 @@
   ],
   "buildPresets": [
     { "name": "macos-release", "configurePreset": "macos-release" },
+    { "name": "macos-universal", "configurePreset": "macos-universal" },
     { "name": "linux-release", "configurePreset": "linux-release" },
     { "name": "linux-headless", "configurePreset": "linux-headless" }
   ],
@@ -39,6 +46,12 @@
     {
       "name": "macos-release",
       "configurePreset": "macos-release",
+      "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "windowed|novulkan" } }
+    },
+    {
+      "name": "macos-universal",
+      "configurePreset": "macos-universal",
       "output": { "outputOnFailure": true },
       "filter": { "exclude": { "label": "windowed|novulkan" } }
     },

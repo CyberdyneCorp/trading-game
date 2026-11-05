@@ -87,6 +87,30 @@
     "pt-BR": "Gráfico da partida, da primeira decisão ao fim",
     "en": "Chart of the run, from the first decision to the end"
   },
+  "desktop.update.version": {
+    "pt-BR": "Versão {version}.",
+    "en": "Version {version}."
+  },
+  "desktop.update.install": {
+    "pt-BR": "Baixar e instalar ao reabrir",
+    "en": "Download and install on restart"
+  },
+  "desktop.update.downloading": {
+    "pt-BR": "Baixando a versão {version}…",
+    "en": "Downloading version {version}…"
+  },
+  "desktop.update.scheduled": {
+    "pt-BR": "A versão {version} será instalada quando o TradeLab for reaberto.",
+    "en": "Version {version} will be installed when TradeLab is reopened."
+  },
+  "desktop.update.failed": {
+    "pt-BR": "A atualização {version} foi recusada ({reason}); esta versão continua instalada.",
+    "en": "Update {version} was refused ({reason}); this version stays installed."
+  },
+  "desktop.update.applyFailed": {
+    "pt-BR": "Não foi possível instalar a versão {version} ({reason}); esta versão continua.",
+    "en": "Version {version} could not be installed ({reason}); this version goes on."
+  },
   "desktop.alreadyRunning.title": {
     "pt-BR": "O TradeLab já está aberto",
     "en": "TradeLab is already open"

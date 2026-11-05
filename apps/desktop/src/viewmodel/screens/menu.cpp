@@ -15,6 +15,31 @@ namespace {
 constexpr std::string_view kPlay = "\xE2\x96\xB6 ";  // "▶ "
 constexpr std::string_view kCheck = "\xE2\x9C\x93";  // ✓
 
+// The update offer (menu only): shown from "available" on; the button only while it can be clicked.
+void update_line(const AppViewModel& vm, ScreenModel& m) {
+  using Status = update::UpdateState::Status;
+  const update::UpdateState& u = vm.update_state();
+  const bool shown = u.status == Status::Available || u.status == Status::Downloading ||
+                     u.status == Status::Scheduled || u.status == Status::Failed;
+  m.show(names::kMenuUpdateRow, shown);
+  m.show(names::kMenuUpdateInstall, u.status == Status::Available);
+  if (!shown) return;
+  const Params version{{"version", u.version}};
+  std::string text;
+  switch (u.status) {
+    case Status::Available: {
+      const std::string& notes = vm.locale() == Locale::En ? u.notes_en : u.notes_pt;
+      text = vm.tr("pwa.update") + " " + vm.tr("desktop.update.version", version) + (notes.empty() ? "" : " " + notes);
+      break;
+    }
+    case Status::Downloading: text = vm.tr("desktop.update.downloading", version); break;
+    case Status::Scheduled: text = vm.tr("desktop.update.scheduled", version); break;
+    default: text = vm.tr("desktop.update.failed", {{"version", u.version}, {"reason", u.reason}}); break;
+  }
+  m.text(names::kMenuUpdateText, text);
+  m.text(names::kMenuUpdateInstall, vm.tr("desktop.update.install"));
+}
+
 void resume_line(const AppViewModel& vm, ScreenModel& m) {
   m.show(names::kMenuResumeRow, vm.resumable());
   if (!vm.resumable()) return;
@@ -121,6 +146,7 @@ ScreenModel menu(const AppViewModel& vm) {
   ScreenModel m;
   for (auto& b : vm.bindings()) m.text(b.widget, std::move(b.text));
   resume_line(vm, m);
+  update_line(vm, m);
   m.text(names::kMenuCurriculum, "\xE2\x96\xA6 " + vm.tr("curriculum.open"));  // ▦
   m.text(names::kMenuJournal, "\xE2\x9C\x8E " + vm.tr("journal.open"));        // ✎
   m.text(names::kMenuSettings, "\xE2\x9A\x99 " + vm.tr("menu.settings"));      // ⚙

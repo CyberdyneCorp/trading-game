@@ -13,6 +13,7 @@
 #include "model/engine_host.hpp"
 #include "model/i18n.hpp"
 #include "model/snapshot.hpp"
+#include "model/update/update_service.hpp"
 #include "viewmodel/chart_geometry.hpp"
 #include "viewmodel/game/game_viewmodel.hpp"
 #include "viewmodel/screen_model.hpp"
@@ -140,6 +141,12 @@ class AppViewModel {
   bool capture_key(const std::string& key);
   void reset_keys();
 
+  // ---- Updates (viewmodel/updates.cpp): offered in the menu only, installed only on the click ----
+  void attach_updates(update::UpdateCommands* commands) { updates_ = commands; }
+  void on_update(const update::UpdateState& state);  // UI thread
+  void install_update();
+  [[nodiscard]] const update::UpdateState& update_state() const { return update_; }
+
  private:
   void touch() { ++revision_; }
   bool send(const std::function<void()>& command);
@@ -180,6 +187,8 @@ class AppViewModel {
   std::shared_ptr<const Snapshot> snap_;
   std::unique_ptr<game::GameViewModel> game_;
   ShellState shell_;
+  update::UpdateCommands* updates_ = nullptr;
+  update::UpdateState update_;
 };
 
 }  // namespace tradelab::desktop

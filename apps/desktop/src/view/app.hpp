@@ -4,10 +4,13 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "model/engine_host.hpp"
 #include "model/game_prefs.hpp"
 #include "model/i18n.hpp"
+#include "model/update/update_service.hpp"
 #include "view/app_view.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 
@@ -24,6 +27,17 @@ class App {
   bool build(int width = 1280, int height = 800);
   // Runs Raven frames until the window closes; returns the exit code.
   int run();
+  // Packaged-build smoke test (--smoke-test): `frames` frames, then whether the menu shows with every
+  // named widget and action in place.
+  // Starts the update check of an installed release build (main decides when): the offer reaches the
+  // menu; nothing is installed without the player's click.
+  void enable_updates(const std::filesystem::path& staging, const update::Target& target);
+
+  struct SmokeResult {
+    bool menu = false;
+    std::vector<std::string> missing;
+  };
+  SmokeResult smoke(int frames);
 
   AppViewModel& vm() { return *vm_; }
   AppView& view() { return *view_; }
@@ -34,6 +48,7 @@ class App {
   std::unique_ptr<EngineHost> engine_;
   std::unique_ptr<AppViewModel> vm_;
   std::unique_ptr<AppView> view_;
+  std::unique_ptr<update::UpdateService> updates_;
 };
 
 }  // namespace tradelab::desktop
