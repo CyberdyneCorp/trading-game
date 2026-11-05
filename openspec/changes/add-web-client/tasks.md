@@ -6,7 +6,7 @@
 - [x] 1.3 Unsupported-browser message (no WebAssembly, no Ed25519 WebCrypto) — `browserSupport.ts` probes both before the engine loads; the page lists what is missing in PT-BR/en (`browserSupport.test.ts`, `e2e/browser-support.spec.ts`)
 
 ## 2. Engine integration
-- [ ] 2.1 Worker + typed protocol from IDL; leak test (no future data on main thread) — worker (`src/lib/engine/engine.worker.ts`) and typed protocol (`protocol.ts`, `types.ts`, hand-written) done; leak test done (`e2e/storage.spec.ts`: every worker message and every IndexedDB row mid-run is checked against the bars revealed later; the C-ABI test asserts the state JSON carries exactly the bars up to the current step); pending: generating the protocol types from an IDL
+- [x] 2.1 Worker + typed protocol from IDL; leak test (no future data on main thread) — worker (`src/lib/engine/engine.worker.ts`) and typed protocol (`protocol.ts`; `types.ts` and the command payloads generated from the engine IDL, `engine/idl/tradelab.idl`); leak test `e2e/storage.spec.ts` (every worker message and every IndexedDB row mid-run is checked against the bars revealed later); the engine C-ABI test asserts the state JSON carries exactly the bars up to the current step
 - [x] 2.2 IndexedDB persistence (runs, commands, checkpoints, packs); reload test — runs + per-action commits (commit-before-engine, legacy migration); checkpoints every 20 actions (`checkpoints` store, latest per run, written by the engine build that made them), resume restores the latest and replays only the tail, falling back to a full replay when it is refused (`e2e/storage.spec.ts`); pack index by digest (bytes in OPFS, see 5.2)
 
 ## 3. Phase 1 vertical slice
@@ -17,7 +17,7 @@
 - [ ] 3.5 BFF sign-in against staging; session-expired path
 
 ## 4. Phase 2 MVP
-- [x] 4.1 Limit, trailing, bracket/OCO in ticket — market/limit/stop entries with attached stop + target (engine-side OCO); trailing stop offered when protecting an open position
+- [x] 4.1 Limit, trailing, bracket/OCO in ticket — market/limit/stop entries with attached stop + target (engine-side OCO); trailing stop offered when protecting an open position, by price distance or by percent of the best close (engine policy v16; `TrailField.svelte`, `e2e/engine-rules.spec.ts`)
 - [ ] 4.1a Ticket sizing by notional and by % of equity (today: by risk % with a stop, or by quantity)
 - [x] 4.2 Option chain, option ticket with payoff diagram and Greeks
 - [x] 4.3 Indicators UI with warm-up state
@@ -27,7 +27,7 @@
 - [x] 4.3b Bollinger overlay and candle pattern cheat sheet (P)
 - [x] 4.3a Indicator panes (RSI/MACD/ADX selector, VWAP overlay) and stop/target tools (ATR/swing/% presets, R targets, mark on chart, chart preview, unprotected-position warning)
 - [ ] 4.4 Journal, lessons runner, curriculum map, progress, catalog + download — done: journal screen (`Journal.svelte`, `journal.ts`: every run's plans, newest first, filter by mission), curriculum map with local progress (`CurriculumMap.svelte`: stage statuses, assessments, unlocks, stages passed, missions completed, campaign runs), campaign in the menu, progress record v2 with migration (`migrateProgress`); plan theses also shown in the debrief timeline; the menu marks missions played to the end as Completed (`e2e/campaign.spec.ts`); pending: lessons runner, cross-device progress (sync), catalog + download
-- [x] 4.5 CSV import wizard — `CsvImport.svelte` + `csvImport.svelte.ts`: file, declared metadata (unit and interval guessed), engine report (errors by line, gaps), private practice pack; practice runs listed as known scenarios, reveal only in the debrief, resume by replay on the stored pack; `.tlpack` load/export (`e2e/packs.spec.ts`)
+- [x] 4.5 CSV import wizard — `CsvImport.svelte` + `csvImport.svelte.ts`: file, declared metadata (unit and interval guessed), engine report (errors by line, gaps), private practice pack; practice runs listed as known scenarios, reveal only in the debrief, resume by replay on the stored pack; `.tlpack` load/export (`e2e/packs.spec.ts`); gaps joined or filled with bars without trading, shown on the chart (engine policy v17, `e2e/engine-rules-v17.spec.ts`)
 - [ ] 4.6 All required states; colorblind palette; i18n PT-BR + en-US — colorblind palette and PT-BR/en catalogs done; states done: loading, engine error, indicator warming up, accepted vs filled, capacity-limited/partial fills flagged in the feed, liquidation warning, liquidated, margin call, option expired/settled, game over, offline, storage not durable; plain-language rejection/cancel reasons for every engine reason code (PT-BR/en, `reasonText`); incompatible or refused pack (reason shown when loading a `.tlpack`, `packReasonText`); pending: numbers inside rejection messages, no data, download interrupted, session expired, sync pending, device conflict
 - [ ] 4.7 E2E: full mission, UX01, rejection reasons, liquidation flow — full mission, EDU02, reload/resume, options, calibration, stop/target, patterns and auto-advance E2E done; UX01, rejection reasons and liquidation flow pending
 - [ ] 4.8 Accessible chart: table of all closed bars, text summary, per-candle keyboard focus — today a screen-reader table of the last 20 closed bars, formatted in the player's locale (`candleCells`)

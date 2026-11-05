@@ -9,6 +9,16 @@ Defines the linear perpetual futures contract the player trades long and short: 
 ### Requirement: Contract model
 Each scenario SHALL define one linear, quote-margined perpetual contract with contract multiplier, tick size, lot size, minimum quantity, maximum leverage, maintenance-margin tiers, maker/taker fees and funding interval (in steps). Profit and loss SHALL be linear in price: `pnl = side × quantity × multiplier × (exitPrice − entryPrice)` where `side` is +1 for long and −1 for short.
 
+Maintenance-margin tiers (execution policy 16) SHALL be keyed by the position's notional at its average entry: the base tier (the contract's maintenance rate and maximum leverage) applies below the first floor, and each further tier has a strictly higher floor, a rate no lower and a leverage cap no higher than the one before, with cap × rate below 1. An order whose resulting position would sit in a tier whose leverage cap is below the run leverage SHALL be rejected with reason `leverage_above_tier`, checked again at fill (a resting order that would cross into such a tier is cancelled with that reason); changing leverage with a position open SHALL be rejected with the same reason above its tier's cap. A contract without tiers SHALL keep one rate for every notional.
+
+#### Scenario: A larger position keeps more maintenance margin
+- **WHEN** the tiers are 0.5% below 50,000 notional and 1% (at most 10×) from 50,000, and a 10× long of 600 at 100 (60,000) is opened
+- **THEN** its liquidation price SHALL use 1%, (60,000 − 6,000) / (600 × 0.99) ≈ 90.91, where 400 at 100 would use 0.5%
+
+#### Scenario: Leverage above the tier
+- **WHEN** the same contract and a 20× long of 600 at 100 is submitted
+- **THEN** it SHALL be rejected with reason `leverage_above_tier`
+
 #### Scenario: Symmetric long and short (FUT01)
 - **WHEN** a long and a short of equal quantity are opened at 100 and closed at 110 with zero costs
 - **THEN** the long SHALL realize +10 × quantity × multiplier and the short SHALL realize −10 × quantity × multiplier
@@ -35,7 +45,7 @@ The engine SHALL expose wallet balance, unrealized P&L (marked at the last close
 - **THEN** initial balance + Σ realized P&L − Σ fees + Σ funding received − Σ funding paid + Σ option cash flows SHALL equal the final wallet balance exactly
 
 ### Requirement: Liquidation price
-The engine SHALL compute and expose, for every open position, the liquidation price at which position margin plus unrealized P&L equals maintenance margin, using the tier for the position's notional. The value SHALL be recomputed after every fill, margin change and funding payment and SHALL be shown at every decision point.
+The engine SHALL compute and expose, for every open position, the liquidation price at which position margin plus unrealized P&L equals maintenance margin, using the tier for the position's notional at its average entry (so the price stays a closed form recomputed after each fill, margin change and funding payment), and the debrief's safe-leverage advice SHALL use the same tier. The value SHALL be recomputed after every fill, margin change and funding payment and SHALL be shown at every decision point.
 
 #### Scenario: Liquidation price exposed
 - **WHEN** a 10× long is opened
@@ -47,6 +57,14 @@ When the scenario includes mark-price bars, unrealized P&L, margin checks and li
 #### Scenario: Wick on last price only
 - **WHEN** the last-price low touches a long's liquidation price but the mark-price low stays above it
 - **THEN** the position SHALL NOT be liquidated
+
+#### Scenario: Mark price drives funding and the account mark
+- **WHEN** a scenario has mark-price bars and a long crosses a funding boundary
+- **THEN** funding SHALL be computed on the mark close, unrealized P&L and equity SHALL use the mark close, and fills SHALL keep the traded price
+
+#### Scenario: No mark series
+- **WHEN** a scenario has no mark-price bars (every built-in mission and pack today)
+- **THEN** the contract in the state SHALL report `markFromLastPrice: true` and margin, liquidation and funding SHALL use the last-price bars
 
 ### Requirement: Liquidation
 In OHLC mode a long SHALL be liquidated when the bar's low (of the mark price when available, else last price) reaches its liquidation price and a short when the bar's high reaches it, evaluated before any favorable exit in that bar. The position SHALL be closed at the liquidation price, or at the open if the bar gapped beyond it. The player's loss SHALL be capped at the position's isolated margin: the entire isolated margin SHALL be forfeited, and any shortfall SHALL be absorbed by a simulated insurance fund, never debited from the player. All reduce-only orders for the market SHALL be cancelled. A `liquidated` event SHALL record trigger, fill price, margin lost and the `ambiguousIntrabar` flag when applicable.

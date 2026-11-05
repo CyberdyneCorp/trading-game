@@ -139,8 +139,11 @@ TEST_CASE("pack: limits, decompression bombs and unexpected files") {
   CHECK(reason_of(make_pack(kBaseManifest, {{"bars.bin", bomb, zeros.size()}})) == "decompression_limit");  // above the cap
 
   const auto raw = encode_bars(flat_bars(100));
+  // mission.json and i18n.json stay reserved; options.bin needs the option parameters in the manifest.
+  const std::vector<PackFile> with_mission = {{"bars.bin", detail::zstd_store(raw), raw.size()}, {"mission.json", {'{', '}'}, 2}};
+  CHECK(reason_of(make_pack(kBaseManifest, with_mission)) == "unsupported_feature");
   const std::vector<PackFile> with_options = {{"bars.bin", detail::zstd_store(raw), raw.size()}, {"options.bin", {1}, 1}};
-  CHECK(reason_of(make_pack(kBaseManifest, with_options)) == "unsupported_feature");
+  CHECK(reason_of(make_pack(kBaseManifest, with_options)) == "missing_field");
   CHECK(reason_of(make_pack(replaced(kBaseManifest, "\"bars\":100", "\"bars\":99"))) == "malformed_data");
 }
 
@@ -270,7 +273,7 @@ TEST_CASE("Golden: scripted run on an imported CSV pack (cross-platform, mirrore
   tl_close_position(run, 4);
   const std::string state = tl_advance(run, 1000);
   tl_run_destroy(run);
-  CHECK(json_text(state, "digest") == "0980f8b127e05a58d4e3aae3145db0d7664fb0be853654fc90b9862d0055a834");
+  CHECK(json_text(state, "digest") == "b7bcd9961c3dd9b19a70c44108ad6816e9909589541ca64b05f8c6c5f6b1099c");
   CHECK(json_text(state, "eventsDigest") == "e3e42dedf85efb5b7fa7b55835e1998d82b3c552100f3c017214b6b585d382da");
 }
 

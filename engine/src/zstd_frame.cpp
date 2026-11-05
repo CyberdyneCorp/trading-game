@@ -24,6 +24,12 @@ ZstdStatus zstd_decompress(std::span<const std::uint8_t> in, std::size_t declare
   return n == declared_size ? ZstdStatus::Ok : ZstdStatus::Malformed;
 }
 
+std::optional<std::uint64_t> zstd_content_size(std::span<const std::uint8_t> in) {
+  const unsigned long long size = ZSTD_getFrameContentSize(in.data(), in.size());
+  if (size == ZSTD_CONTENTSIZE_ERROR || size == ZSTD_CONTENTSIZE_UNKNOWN) return std::nullopt;
+  return size;
+}
+
 std::vector<std::uint8_t> zstd_store(std::span<const std::uint8_t> in) {
   constexpr std::size_t kMaxBlock = std::size_t{128} << 10U;
   std::vector<std::uint8_t> out = {0x28, 0xB5, 0x2F, 0xFD};  // magic, little-endian

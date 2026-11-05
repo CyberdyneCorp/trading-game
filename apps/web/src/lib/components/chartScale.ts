@@ -91,21 +91,30 @@ export type DrawnCandle = { at: number; o: number; h: number; l: number; c: numb
  * Candles to draw for bars `[o, h, l, c, v]` at `slotW` pixels per bar. Narrower than a pixel,
  * consecutive bars that would share a column are merged (first open, highest high, lowest low,
  * last close, largest volume), so a 5,000-bar chart draws about one candle per pixel column.
+ * Bars flagged in `skip` (continuity bars without trading) are left out; a column of only those
+ * draws no candle.
  */
-export function drawnCandles(bars: readonly (readonly number[])[], slotW: number): DrawnCandle[] {
+export function drawnCandles(bars: readonly (readonly number[])[], slotW: number, skip: readonly boolean[] = []): DrawnCandle[] {
 	const n = slotW >= 1 ? 1 : Math.ceil(1 / slotW);
 	const out: DrawnCandle[] = [];
 	for (let i = 0; i < bars.length; i += n) {
-		const group = bars.slice(i, i + n);
-		let h = -Infinity;
-		let l = Infinity;
-		let v = 0;
-		for (const b of group) {
-			h = Math.max(h, b[1]);
-			l = Math.min(l, b[2]);
-			v = Math.max(v, b[4]);
-		}
-		out.push({ at: i + (group.length - 1) / 2, o: group[0][0], h, l, c: group[group.length - 1][3], v });
+		const kept: number[] = [];
+		for (let j = i; j < Math.min(i + n, bars.length); j++) if (!skip[j]) kept.push(j);
+		if (kept.length > 0) out.push(mergeBars(bars, kept));
 	}
 	return out;
+}
+
+function mergeBars(bars: readonly (readonly number[])[], kept: readonly number[]): DrawnCandle {
+	let h = -Infinity;
+	let l = Infinity;
+	let v = 0;
+	for (const j of kept) {
+		h = Math.max(h, bars[j][1]);
+		l = Math.min(l, bars[j][2]);
+		v = Math.max(v, bars[j][4]);
+	}
+	const firstKept = kept[0];
+	const lastKept = kept[kept.length - 1];
+	return { at: (firstKept + lastKept) / 2, o: bars[firstKept][0], h, l, c: bars[lastKept][3], v };
 }

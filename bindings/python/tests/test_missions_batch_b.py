@@ -31,7 +31,7 @@ def test_m09_golden_matches_native_cpp():
         run.place_order(5, 0, 0, "30", None, False)
         state = run.advance(1000)
     assert _digests(state) == (
-        "879aea90be67bf4755b6eed7a822d78d78e2e943cad48a0474fb39ef5eb129ab",
+        "1392b2ad137a4d857a12a57ad1b154d8e7d6f6c061b3dec388a8e52c049b0e08",
         "6afafb44fd90acf3ba94b9a18ffb072d0757af70047b7103f75adcd0a617ea83",
     )
 
@@ -46,7 +46,7 @@ def test_m10_golden_matches_native_cpp():
         run.close_position(5)
         state = run.advance(1000)
     assert _digests(state) == (
-        "df27e859168062e16953133a9322d1f01958fffd9d6cba9a217d481869c35c67",
+        "c72b368e8a95c70f3544ac0834af7cb60f641ff7b259747f56db903bbd078ffc",
         "ae540e1bed50c0d2e6995cc7d63fe6b8d04d772c11c34fd198d65688b87f3251",
     )
 
@@ -61,7 +61,7 @@ def test_m11_golden_matches_native_cpp():
         run.place_order(4, 0, 1, "60", None, False, "112", "90")
         state = run.advance(1000)
     assert _digests(state) == (
-        "9ed49106b9812a758a5f2e0f8e292fbb569733c980dfed7377e409211cfcf074",
+        "c3df3be7347ec2f5f9b94c3c4d7d6d5e982aeb9c9600b25ea36b2004a3bf2fe5",
         "839e5f90afee251e6cc920fb1b83a13faa1789a97071fabd9f6b538870a1babb",
     )
 
@@ -78,7 +78,7 @@ def test_m12_golden_matches_native_cpp():
         run.place_order(6, 0, 1, "50", None, False, "115")
         state = run.advance(1000)
     assert _digests(state) == (
-        "0308160dece972e8883958e8ea45fbc168432068e336115b9212a984c3f9651c",
+        "6cf7a03b9800436de835ffcba145e3dd4c02071f6bceab57adc11fc47fd56465",
         "70f0eb16beb797db73246a800de61e636a5f4593dd699e5a6f64bd4c55fac459",
     )
 

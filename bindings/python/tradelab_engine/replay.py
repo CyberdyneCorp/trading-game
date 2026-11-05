@@ -6,10 +6,12 @@ the web client does, so a replay reproduces the client's run bit for bit):
   {"k":"lev","lev":3}
   {"k":"order","type":"market|limit|stop_market|take_profit|trailing_stop","side":"buy|sell","qty":"1.0",
    "price":null,"ro":false,"stop":null,"tp":null,"trail":null}
+   (policy v16: a trailing_stop with "trailRate":"0.02" trails 2% of the best close instead of "trail")
   {"k":"opt","series":5,"side":"buy","type":"market|limit","qty":"1.0","premium":null}
   {"k":"margin","amount":"100.00"}
   {"k":"plan","side":"buy","skipped":false,"option":false,"lose":false,"inv":"95.50","target":null,"conf":60,"risk":"100.00"}
   {"k":"ans","pBp":6000,"skipped":false}
+  {"k":"lesson","q":0,"choice":1,"value":null,"skipped":false}   (scoring v11: a lesson question answered)
   {"k":"cancel","id":3}
   {"k":"move","id":3,"price":"95.50"}   (policy v13: a working stop/take-profit moved in place)
   {"k":"close"}
@@ -46,6 +48,8 @@ def _order(run: Run, cid: int, a: Mapping[str, Any]) -> Any:
     type_ = _ORDER_TYPES.get(a.get("type", ""))
     if type_ is None:
         raise InvalidAction(f"bad order type in {a!r}")
+    if type_ == _ORDER_TYPES["trailing_stop"] and a.get("trailRate"):
+        return run.place_trailing_rate(cid, _side(a), str(a["qty"]), bool(a.get("ro", False)), str(a["trailRate"]))
     return run.place_order(cid, type_, _side(a), str(a["qty"]), a.get("price"), bool(a.get("ro", False)),
                            a.get("stop"), a.get("tp"), a.get("trail"))
 
@@ -69,6 +73,8 @@ _HANDLERS: dict[str, Callable[[Run, int, Mapping[str, Any]], Any]] = {
     "margin": lambda run, cid, a: run.adjust_margin(cid, str(a["amount"])),
     "plan": _plan,
     "ans": lambda run, cid, a: run.answer_question(cid, int(a.get("pBp", 0)), bool(a.get("skipped"))),
+    "lesson": lambda run, cid, a: run.answer_lesson(cid, int(a["q"]), int(a.get("choice", 0)), a.get("value"),
+                                                    bool(a.get("skipped"))),
     "cancel": lambda run, cid, a: run.cancel(cid, int(a["id"])),
     "move": lambda run, cid, a: run.move_order(cid, int(a["id"]), str(a["price"])),
     "close": lambda run, cid, a: run.close_position(cid),

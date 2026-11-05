@@ -103,6 +103,16 @@ describe('drawnCandles', () => {
 		]);
 	});
 
+	it('leaves out bars without trading (continuity bars), alone or inside a merged column', () => {
+		const skip = [false, true, true, true, false];
+		expect(drawnCandles(bars, 4, skip).map((k) => k.at)).toEqual([0, 4]);
+		// 0.5 px per bar: [0, 1] keeps bar 0, [2, 3] is only continuity bars (no candle), [4] stays.
+		expect(drawnCandles(bars, 0.5, skip)).toEqual([
+			{ at: 0, o: 10, h: 12, l: 9, c: 11, v: 5 },
+			{ at: 4, o: 8, h: 9, l: 6, c: 7, v: 1 }
+		]);
+	});
+
 	it('draws 5,000 bars on a 1,368 px plot as one candle per column at most', () => {
 		const many = Array.from({ length: 5000 }, (_, i) => [i, i + 2, i - 1, i + 1, i % 7]);
 		const out = drawnCandles(many, 1368 / 5012);

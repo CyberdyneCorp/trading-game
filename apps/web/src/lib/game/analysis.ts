@@ -3,6 +3,7 @@
 
 import type { EngineFinding, LessonCode } from '#lib/engine/types.ts';
 import { fmtPrice } from './format.ts';
+import { bpPct } from './objectives.ts';
 import type { Locale } from './i18n.svelte';
 
 export interface PlanEntry {
@@ -45,7 +46,11 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		iv_rise:
 			'A alta da volatilidade implícita (vega) custou {amount} cr nas opções vendidas — pelo menos metade da perda. Quem vende opção fica vendido em volatilidade: medo e notícia sobem a IV e encarecem a recompra, mesmo sem o preço chegar ao strike.',
 		wrote_options:
-			'Você vendeu opções a descoberto: o risco não fica limitado por um stop nem pelo prêmio, só pela margem. Por isso não há crédito de processo bom, mesmo com plano — dimensione pelo pior movimento.'
+			'Você vendeu opções a descoberto: o risco não fica limitado por um stop nem pelo prêmio, só pela margem. Por isso não há crédito de processo bom, mesmo com plano — dimensione pelo pior movimento.',
+		leverage_vs_stop:
+			'Na entrada da barra {step}, a {count}x, a liquidação ({requested}) ficava a menos de duas distâncias do stop ({price}) da entrada: um gap do tamanho do stop além dele já liquidaria a posição. Com alavancagem menor o stop teria folga.',
+		liq_buffer: 'A liquidação chegou a {pct} do preço, mais perto que a distância de aviso desta missão. Deixe margem para o ruído e para os gaps.',
+		drawdown_budget: 'O drawdown máximo ({amount} cr) passou do orçamento de drawdown da missão ({pct} do capital). Dimensione cada ideia pelo orçamento que sobra.'
 	},
 	en: {
 		waited: 'You did not trade. Without a clear hypothesis, waiting is a valid decision — no penalty for low turnover.',
@@ -73,7 +78,11 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		iv_rise:
 			'Rising implied volatility (vega) cost {amount} cr on the written options — at least half of the loss. An option writer is short volatility: fear and news lift IV and make the buy-back dearer, even before the price reaches the strike.',
 		wrote_options:
-			'You wrote options uncovered: the risk is limited by neither a stop nor the premium, only by margin. That is why there is no good-process credit, even with a plan — size for the worst move.'
+			'You wrote options uncovered: the risk is limited by neither a stop nor the premium, only by margin. That is why there is no good-process credit, even with a plan — size for the worst move.',
+		leverage_vs_stop:
+			'At the entry on bar {step}, at {count}x, liquidation ({requested}) sat less than twice the stop’s distance ({price}) from the entry: a gap one stop-distance beyond the stop would already liquidate it. Lower leverage gives the stop room.',
+		liq_buffer: 'Liquidation came within {pct} of the price, closer than this mission’s warning distance. Leave room for noise and gaps.',
+		drawdown_budget: 'The maximum drawdown ({amount} cr) went past the mission’s drawdown budget ({pct} of capital). Size each idea from the budget that is left.'
 	}
 };
 
@@ -141,7 +150,8 @@ export function describeFinding(f: EngineFinding, locale: Locale): string {
 		price: fmtPrice(f.price, locale),
 		requested: fmtPrice(f.requested, locale),
 		amount: fmtPrice(f.amount, locale),
-		risk: Math.round(Number(f.amount)).toLocaleString(locale)
+		risk: Math.round(Number(f.amount)).toLocaleString(locale),
+		pct: bpPct(f.count, locale)
 	};
 	const special = f.count > 0 ? safeLeverageText[locale][f.code] : undefined;
 	const template = special ?? (f.count === 1 ? singularText[locale][f.code] : undefined) ?? findingText[locale][f.code];

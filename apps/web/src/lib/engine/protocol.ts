@@ -2,17 +2,28 @@
 // Responses carry only current-step state: the worker never sends future bars.
 
 import type {
+	AdjustMarginCommand,
+	AnswerLessonCommand,
+	AnswerQuestionCommand,
+	CancelOrderCommand,
+	ClientIdCommand,
 	CommandResult,
 	CsvMeta,
+	CsvValidation,
 	CsvReport,
 	DebriefData,
+	EngineVersion,
 	GameState,
+	LessonInfo,
 	MissionInfo,
 	MissionReveal,
-	OrderSideName,
-	OrderTypeName,
+	MoveOrderCommand,
 	PackCheck,
+	PlaceOptionOrderCommand,
+	PlaceOrderCommand,
+	RecordPlanCommand,
 	RunOptionsView,
+	SetLeverageCommand,
 	TrustedKey
 } from './types';
 
@@ -27,46 +38,20 @@ export type EngineRequest =
 	| { kind: 'csvBuild'; csv: string; meta: CsvMeta; seedHex: string }
 	| { kind: 'packValidate'; pack: Uint8Array; keys: TrustedKey[] }
 	| { kind: 'startPack'; pack: Uint8Array; keys: TrustedKey[]; seed: number }
-	| {
-			kind: 'order';
-			clientId: number;
-			type: OrderTypeName;
-			side: OrderSideName;
-			qty: string;
-			price: string | null;
-			reduceOnly: boolean;
-			attachStop: string | null;
-			attachTp: string | null;
-			trailDistance: string | null;
-	  }
-	| {
-			kind: 'option';
-			clientId: number;
-			series: number;
-			side: OrderSideName;
-			type: 'market' | 'limit';
-			qty: string;
-			premium: string | null;
-	  }
-	| { kind: 'margin'; clientId: number; amount: string }
-	| {
-			kind: 'plan';
-			clientId: number;
-			side: OrderSideName;
-			skipped: boolean;
-			option: boolean;
-			loseScenario: boolean;
-			invalidation: string | null;
-			target: string | null;
-			confidence: number;
-			plannedRisk: string | null;
-	  }
-	| { kind: 'answer'; clientId: number; pBp: number; skipped: boolean }
-	| { kind: 'cancel'; clientId: number; orderId: number }
-	| { kind: 'move'; clientId: number; orderId: number; price: string }
-	| { kind: 'leverage'; clientId: number; leverage: number }
-	| { kind: 'close'; clientId: number }
-	| { kind: 'advice'; clientId: number }
+	// A mission's lesson questions without the key (tl_lesson, run-less).
+	| { kind: 'lesson'; missionId: string }
+	// Player commands: payload shapes generated from engine/idl (one C ABI call each).
+	| ({ kind: 'order' } & PlaceOrderCommand)
+	| ({ kind: 'option' } & PlaceOptionOrderCommand)
+	| ({ kind: 'margin' } & AdjustMarginCommand)
+	| ({ kind: 'plan' } & RecordPlanCommand)
+	| ({ kind: 'answer' } & AnswerQuestionCommand)
+	| ({ kind: 'lessonAnswer' } & AnswerLessonCommand)
+	| ({ kind: 'cancel' } & CancelOrderCommand)
+	| ({ kind: 'move' } & MoveOrderCommand)
+	| ({ kind: 'leverage' } & SetLeverageCommand)
+	| ({ kind: 'close' } & ClientIdCommand)
+	| ({ kind: 'advice' } & ClientIdCommand)
 	| { kind: 'advance'; steps: number }
 	| { kind: 'debrief' }
 	// The current run's seeded reveal (G4); refused while the run is active (design D6).
@@ -91,11 +76,6 @@ export interface CsvBuildResult {
 	pack: Uint8Array;
 }
 
-export interface EngineVersion {
-	engine: string;
-	executionPolicy: number;
-}
-
 interface ResponseMap {
 	init: { version: EngineVersion; missions: MissionInfo[] };
 	useEngine: EngineVersion;
@@ -103,13 +83,15 @@ interface ResponseMap {
 	/** Null when the engine refuses the checkpoint (another format, scenario or a damaged one). */
 	restore: GameState | null;
 	deviceKey: TrustedKey;
-	csvValidate: CsvReport;
+	csvValidate: CsvValidation;
 	csvBuild: CsvBuildResult;
 	packValidate: PackCheck;
 	start: GameState;
 	startPack: GameState;
 	advance: GameState;
 	debrief: DebriefData;
+	/** Null for a mission without lesson questions. */
+	lesson: LessonInfo | null;
 	/** Null for runs on imported packs (their reveal is in the debrief). */
 	reveal: MissionReveal | null;
 }

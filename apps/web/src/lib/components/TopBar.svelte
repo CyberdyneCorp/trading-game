@@ -3,7 +3,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import { campaignMissions } from '#lib/game/curriculum.ts';
-	import { intervalLabel } from '#lib/game/packs.ts';
+	import { branchTurn, intervalLabel } from '#lib/game/packs.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { AUTO_SPEEDS, type AutoPlay } from '#lib/game/autoplay.svelte.ts';
@@ -17,6 +17,7 @@
 	const s = $derived(session.state);
 	const playable = $derived(s ? s.lastDecisionStep - s.warmupBars + 1 : 0);
 	const turn = $derived(s ? s.step - s.warmupBars + 1 : 0);
+	const branch = $derived(s ? branchTurn(s) : null);
 </script>
 
 {#if s}
@@ -29,6 +30,12 @@
 				<span class="tag attention" title={t('brief.modePack', { seed: session.seed })}>{t('top.known')}</span>
 			{:else}
 				<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
+			{/if}
+			{#if session.runAssisted}
+				<span class="tag attention" title={t('assist.banner')} data-testid="assisted-tag">{t('assist.tag')}</span>
+			{/if}
+			{#if branch !== null}
+				<span class="tag attention" title={t('top.branchNote', { bar: branch })} data-testid="branch-tag">{t('top.branch')}</span>
 			{/if}
 			{#if session.runCampaign}
 				<span class="tag info" data-testid="campaign-tag">{t('campaign.tag', { n: session.runCampaign.index + 1, total: campaignMissions().length })}</span>

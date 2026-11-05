@@ -7,7 +7,7 @@ Defines how a mission attempt is graded so that the score rewards risk disciplin
 ## ADDED Requirements
 
 ### Requirement: Score dimensions
-The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 7) from the command log with integer arithmetic only.
+The mission score SHALL be a weighted combination of risk (default 35%), plan coherence (25%), understanding (25%) and probabilistic calibration (15%), with weights declared per scoring version. Dimensions that do not apply SHALL be excluded and the remaining weights renormalized; no points SHALL be granted automatically for a non-applicable dimension. Scores SHALL be computed by the engine (`engine/src/scoring.cpp`, scoring version 11) from the command log with integer arithmetic only.
 
 Entries are exposure-increasing fills of the perpetual and of each option series (buying or writing to open). Plan coherence SHALL be non-applicable when the attempt has no entries. Otherwise, in scoring versions 1 and 2, it SHALL be `70 × min(plans, entries) / entries + 30 × plans with an invalidation level / plans`, where skipped plans do not count as plans, and 0 when no plan was recorded.
 
@@ -52,6 +52,8 @@ The risk dimension SHALL evaluate adherence to planned risk, leverage relative t
 
 Scoring version 3 SHALL start at 100 and subtract: 40 if any liquidation or option margin call (forced buy-back of written options) occurred; 20 per perpetual entry without a reduce-only stop or trailing stop placed around it (at most 40; option entries are not counted: a bought option's premium is its maximum loss, and written options are policed by margin calls); 20 if any trade that actually happened was entered with a planned risk above 2% of initial capital (the risk of the plan, or of the ticket estimate when sent without a plan, recorded for one of its entry orders; the plan of an order that was rejected and never filled does not count); 15 if any order was accepted with a stop beyond the liquidation price; 15 if the maximum drawdown exceeded 20% of initial capital; floored at 0.
 
+Scoring version 11 SHALL judge the drawdown against the mission's declared drawdown budget (`MissionRules.drawdown_budget_bp`, 20% unless declared; m07 declares 10%) and SHALL additionally subtract: 10 if any perpetual trade's liquidation price, at the highest leverage the position carried, lay closer to its entry than twice its stop's distance (leverage too high for the stop distance: a gap one stop-distance beyond the stop would liquidate it; finding `leverage_vs_stop` unless the stop was already beyond liquidation); 10 if the closest liquidation distance measured at a close fell below the mission's liquidation-warning distance (finding `liq_buffer`). A breached drawdown budget SHALL be named by the finding `drawdown_budget`. The first two point to the Futures II lesson, the budget to Risk.
+
 #### Scenario: Rejected order is not an entry
 - **WHEN** an oversized order is rejected and the player retries with a size within 2% risk
 - **THEN** the risk dimension and the findings SHALL NOT report an oversized entry
@@ -59,6 +61,14 @@ Scoring version 3 SHALL start at 100 and subtract: 40 if any liquidation or opti
 #### Scenario: Margin call scored like a liquidation
 - **WHEN** written options are bought back by a margin call
 - **THEN** the risk dimension SHALL lose 40 points and the debrief SHALL explain the margin call (bar, buy-back premium, loss) and recommend the risk-sizing lesson
+
+#### Scenario: Leverage too high for the stop
+- **WHEN** two attempts open the same long with the same stop 4% below the entry, one at 5x and one at 12x (liquidation about 7.4% below)
+- **THEN** the 12x attempt SHALL lose 10 risk points with the `leverage_vs_stop` finding and the 5x attempt SHALL NOT
+
+#### Scenario: Drawdown against the mission's budget
+- **WHEN** a run's maximum drawdown is 12% of its initial capital
+- **THEN** it SHALL lose 15 risk points in a mission with a 10% budget and none in a mission with the default 20%
 
 #### Scenario: Leverage never rewarded
 - **WHEN** two attempts have identical decisions except one used 10× and the other 3× with the same planned risk
@@ -93,9 +103,19 @@ Calibration SHALL use Brier scores over binary questions that resolve within the
 ### Requirement: No subjective LLM grading
 Free-text justifications SHALL NOT be scored by an LLM. Understanding SHALL be scored from structured answers and rubrics authored and reviewed by humans.
 
+Lesson questions SHALL be multiple choice or numeric (with an absolute tolerance), declared per mission with their answer key and points in reviewed data files (`engine/rubrics/lessons.json`) that carry a `reviewed` flag and the reviewer's name; question texts SHALL live in the client catalogs by question id. An answer SHALL be an engine command (`AnswerLesson`), recorded once per question while the run is active; skips SHALL be recorded. Understanding (scoring version 11) SHALL be the points of the right answers over the points of every question of the mission's rubric (skipped or unanswered questions earn 0), and SHALL apply only when the rubric is reviewed and the player answered or skipped at least one question. The debrief SHALL show each question, the player's answer and the key, also for an unreviewed rubric, which SHALL be labeled as not scored. Free-text answers reviewed by a person are a later step and SHALL NOT be scored automatically.
+
 #### Scenario: Free text ignored
 - **WHEN** a player writes a journal entry
 - **THEN** it SHALL NOT change any score dimension
+
+#### Scenario: Unreviewed rubric does not score
+- **WHEN** the player answers a mission's lesson questions and the mission's rubric is not reviewed yet
+- **THEN** the debrief SHALL show the answers and the key, and understanding SHALL stay non-applicable
+
+#### Scenario: Reviewed rubric scores the answers
+- **WHEN** a reviewed rubric has a 3-point numeric question answered within tolerance and a 1-point question skipped
+- **THEN** understanding SHALL be 75
 
 ### Requirement: Server-authoritative scores
 Scores used for progression and sync SHALL be recomputed by the server from the scenario, engine version and command log; client-reported scores and balances SHALL be ignored.

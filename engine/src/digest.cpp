@@ -24,6 +24,7 @@ void write_order(Writer& w, const Order& o) {
   w.u32(o.oco_group);
   w.fixed(o.trail_distance);
   w.u32(o.series);
+  w.fixed(o.trail_rate);  // policy v16
 }
 
 void write_event(Writer& w, const Event& e) {
@@ -133,6 +134,18 @@ Digest state_digest(const RunState& st) {
   w.u64(st.rng.state());
   w.u64(st.rng.inc());
   write_advisor(w, st);
+  // Lesson answers (task 4.5) are appended only when present, so every run without them hashes as
+  // before. Decision records are not hashed: advance derives them from the state at each step.
+  if (!st.lesson_answers.empty()) {
+    w.u32(static_cast<std::uint32_t>(st.lesson_answers.size()));
+    for (const LessonAnswer& a : st.lesson_answers) {
+      w.u32(a.step);
+      w.u32(a.question);
+      w.u32(a.choice);
+      w.fixed(a.value);
+      w.boolean(a.skipped);
+    }
+  }
   return w.digest();
 }
 

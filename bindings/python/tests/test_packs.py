@@ -70,6 +70,37 @@ def test_build_validate_and_play_a_pack():
     assert debrief["reveal"]["pair"] == "BTC/USDT"
 
 
+def gapped_csv() -> str:
+    """Two blocks of 60 hourly rows with two missing hours between them."""
+    first = make_csv(60)
+    second = make_csv(60, start=1_700_000_000 + 62 * 3600).split("\n", 1)[1]
+    return first + second
+
+
+def test_gap_fill_with_continuity_bars_policy_v17():
+    csv = gapped_csv()
+    joined, pack = build_csv_pack(csv, META, SEED)
+    assert joined["ok"], joined
+    assert pack_validate(pack, trusted())["pack"]["gapPolicy"] == ""
+
+    result, pack = build_csv_pack(csv, {**META, "gapFill": "skip"}, SEED)
+    assert result["ok"], result
+    summary = pack_validate(pack, trusted())["pack"]
+    assert summary["gapPolicy"] == "skip"
+    assert summary["totalBars"] == 122
+    with Run.from_pack(pack, trusted(), 3) as run:
+        state = run.advance(1000)
+        assert state["contract"]["gapPolicy"] == "skip"
+        assert state["contract"]["markFromLastPrice"] is True
+        flags = [bar[6] for bar in state["bars"]]
+        assert flags[60:62] == [True, True] and flags.count(True) == 2
+        assert state["bars"][60][4] == "0.00000000"  # no volume: nothing traded
+        assert state["indicators"]["sma20"][60] is None  # skipped by the gap policy
+
+    refused, _ = build_csv_pack(csv, {**META, "gapFill": "fill"}, SEED)
+    assert not refused["ok"]
+
+
 def test_tampered_pack_is_refused_dat02():
     _, pack = build_csv_pack(make_csv(), META, SEED)
     with tarfile.open(fileobj=io.BytesIO(pack)) as tar:
@@ -135,7 +166,7 @@ def test_cross_binding_golden_pack_run_matches_native_cpp():
         run.advance(30)
         run.close_position(4)
         state = run.advance(1000)
-    assert state["digest"] == "0980f8b127e05a58d4e3aae3145db0d7664fb0be853654fc90b9862d0055a834"
+    assert state["digest"] == "b7bcd9961c3dd9b19a70c44108ad6816e9909589541ca64b05f8c6c5f6b1099c"
     assert state["eventsDigest"] == "e3e42dedf85efb5b7fa7b55835e1998d82b3c552100f3c017214b6b585d382da"
 
 

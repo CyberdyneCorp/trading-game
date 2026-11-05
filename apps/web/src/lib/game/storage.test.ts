@@ -87,6 +87,12 @@ describe('RunStore (IndexedDB)', () => {
 		expect((await store.finishedMissions()).sort()).toEqual(['m01-false-breakout', 'm03-volatility-shock']);
 	});
 
+	it('an assisted attempt (rewind or another market) is not a completed mission', async () => {
+		await store.createRun({ ...record('x'), missionId: 'm07-trend-trailing', status: 'finished', assisted: { from: 'a', kind: 'rewind', step: 70 } });
+		await store.createRun({ ...record('y'), missionId: 'm08-regime-switch', status: 'finished', assisted: { from: 'b', kind: 'seed' } });
+		expect(await store.finishedMissions()).toEqual([]);
+	});
+
 	it('regression: a finished practice run on an imported CSV pack is not a completed mission', async () => {
 		await store.createRun({ ...record('p'), missionId: 'csv-abc123', status: 'finished', packDigest: 'd1' });
 		expect(await store.finishedMissions()).toEqual([]);

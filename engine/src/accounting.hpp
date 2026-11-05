@@ -25,9 +25,19 @@ Money notional(const Scenario& sc, Qty contracts, Price px, Rounding mode);
 Money fee_for(Money notional, Rate rate);  // rounds against the player
 Money initial_margin(Money notional, std::int32_t leverage);
 Money unrealized_pnl(const Scenario& sc, const Position& p, Price mark);
-// Price at which isolated margin + unrealized P&L equals maintenance margin.
+// Margin tier of a position of notional `n` (policy v16); below the first floor, the contract's base
+// rate and max leverage.
+MarginTier margin_tier(const ContractSpec& c, Money n);
+// Notional at average entry of the position after `inc` contracts on `side` fill at `px`
+// (inc = the exposure-increasing part; on a flip it is the new side's size).
+Money notional_after(const Scenario& sc, const Position& p, OrderSide side, Qty inc, Price px);
+// Price at which isolated margin + unrealized P&L equals maintenance margin, at the rate of the tier
+// of the position's notional at its average entry.
 // Returns false when the position cannot be liquidated (e.g. fully collateralized long).
 bool liquidation_price(const Scenario& sc, const Position& p, Price* out);
+// Trailing-stop trigger from a close: the fixed distance, or the rate of the close (policy v16), away
+// from it on the exit side, rounded outward onto the tick grid and kept at least one tick.
+Price trail_trigger(const Scenario& sc, OrderSide side, Price close, Price distance, Rate rate);
 
 void push_event(RunState& st, Event ev);
 
@@ -58,7 +68,9 @@ void apply_funding(const Scenario& sc, RunState& st, std::uint32_t bar);
 void emit_order_update(RunState& st, const Order& o, Reason reason);
 // Margin reserved by active orders that would increase exposure (order ids start at 1; 0 excludes none).
 Money order_margin_excluding(const Scenario& sc, const RunState& st, std::uint32_t exclude_id);
-// True if filling q of `o` at px leaves enough available balance for the increasing part.
-bool margin_allows_fill(const Scenario& sc, const RunState& st, const Order& o, Qty q, Price px);
+// Why filling q of `o` at px is refused, or None: the increasing part needs more than the available
+// balance (InsufficientMargin), or the position it leads to sits in a tier whose leverage cap is below
+// the run's leverage (LeverageAboveTier, policy v16).
+Reason fill_refusal(const Scenario& sc, const RunState& st, const Order& o, Qty q, Price px);
 
 }  // namespace tradelab::detail

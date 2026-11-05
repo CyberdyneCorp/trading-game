@@ -6,23 +6,25 @@ import { EventNames } from './eventNames.ts';
 import { currentEnginePath, engineBuildLabel } from '#lib/engine/build.ts';
 import { EngineClient } from '#lib/engine/client.ts';
 import type { CsvBuildResult, EngineRequest } from '#lib/engine/protocol.ts';
-import {
-	DEFAULT_RUN_OPTIONS,
-	type CommandResult,
-	type CsvMeta,
-	type CsvReport,
-	type DebriefData,
-	type GameState,
-	type MissionInfo,
-	type MissionReveal,
-	type OrderSideName,
-	type OrderTypeName,
-	type OrderView,
-	type PackCheck,
-	type RunOptionsView,
-	type TrustedKey
+import { DEFAULT_RUN_OPTIONS } from '#lib/engine/defaults.ts';
+import type {
+	CommandResult,
+	CsvMeta,
+	CsvValidation,
+	DebriefData,
+	GameState,
+	LessonInfo,
+	MissionInfo,
+	MissionReveal,
+	OrderSideName,
+	OrderTypeName,
+	OrderView,
+	PackCheck,
+	RunOptionsView,
+	TrustedKey
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
+import { assistAllowed, rewindPrefix, type AssistedLink } from './assisted.ts';
 import { stepsUntilNextQuestion } from './calibration.ts';
 import {
 	abandonCampaign,
@@ -58,6 +60,7 @@ type Action =
 			stop?: string | null;
 			tp?: string | null;
 			trail?: string | null;
+			trailRate?: string | null;
 	  }
 	| { k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null }
 	| { k: 'margin'; amount: string }
@@ -73,6 +76,7 @@ type Action =
 			risk: string | null;
 	  }
 	| { k: 'ans'; pBp: number; skipped: boolean }
+	| { k: 'lesson'; q: number; choice: number; value: string | null; skipped: boolean }
 	| { k: 'cancel'; id: number }
 	| { k: 'move'; id: number; price: string }
 	| { k: 'close' }
@@ -105,11 +109,13 @@ interface AbandonedRun {
 	equity: string;
 }
 
-/** Optional order extras: bracket exits (engine-side OCO) and trailing distance. */
+/** Optional order extras: bracket exits (engine-side OCO) and trailing distance or rate (policy v16). */
 export interface OrderExtras {
 	stop?: string | null;
 	takeProfit?: string | null;
 	trail?: string | null;
+	/** Trailing stop distance as a rate of the best close: "0.02" = 2%. */
+	trailRate?: string | null;
 }
 
 export interface Notice {
@@ -165,8 +171,16 @@ export class GameSession {
 	options = $state<RunOptionsView>({ ...DEFAULT_RUN_OPTIONS });
 	/** The campaign mission the current run plays; null in free play and practice. */
 	runCampaign = $state<CampaignLink | null>(null);
+	/** Digest of the pack this run plays; null for a built-in mission. */
+	runPack = $state<string | null>(null);
 	/** Intel perks enabled for the current run (briefing toggles; empty outside free play). */
 	perkChoice = $state<PerkId[]>([]);
+	/** The mission's lesson questions (engine rubric, no answer key); null without any. */
+	lessonInfo = $state<LessonInfo | null>(null);
+	/** Lesson questions (rubric indices) already answered or skipped in this run. */
+	lessonsAnswered = $state<number[]>([]);
+	/** Assisted practice (rewind or another market): never counts for progress, points or the campaign. */
+	runAssisted = $state<AssistedLink | null>(null);
 	/** Run headers for the journal screen (loaded when it opens). */
 	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
 
@@ -253,6 +267,12 @@ export class GameSession {
 	}
 
 	/** Free play: any mission with its own rules (no campaign capital, no curriculum gate), with every unlocked perk on. */
+	/** "Play again" from the debrief: the same pack on a new seed, or the mission on a new market. */
+	async playAgain(): Promise<void> {
+		if (this.runPack) await this.startPack(this.runPack);
+		else await this.startMission(this.missionId);
+	}
+
 	async startMission(missionId: string, seed = this.randomSeed()): Promise<void> {
 		await this.exclusive(async () => {
 			await this.settleAbandoned();
@@ -288,11 +308,14 @@ export class GameSession {
 	 * with the new options and its record follows; the market is the same with or without them.
 	 */
 	async setPerk(id: PerkId, on: boolean): Promise<void> {
-		if (!this.perksAllowed || !this.perksUnlocked.includes(id) || this.log.length > 0) return;
+		if (!this.perksAllowed || !this.perksUnlocked.includes(id) || this.log.some((a) => a.k !== 'lesson')) return;
 		await this.exclusive(async () => {
 			this.perkChoice = on ? [...new Set([...this.perkChoice, id])] : this.perkChoice.filter((p) => p !== id);
 			this.options = { ...this.options, ...perkOptions(this.perkChoice) };
 			this.state = await this.eng().request({ kind: 'start', missionId: this.missionId, seed: this.seed, options: { ...this.options } });
+			// Lesson answers given on the briefing replay onto the restarted run with their client ids.
+			this.clientId = 1;
+			for (const a of this.log) await this.exec(a, false);
 			await this.store?.updateRun(this.runId, { options: { ...this.options }, digest: this.state.digest }).catch(() => (this.durable = false));
 		});
 	}
@@ -387,16 +410,88 @@ export class GameSession {
 		seed: number,
 		options: RunOptionsView,
 		campaign: CampaignLink | null,
-		perks: PerkId[] = []
+		perks: PerkId[] = [],
+		assisted: AssistedLink | null = null
 	): Promise<void> {
 		await this.useCurrentEngine();
 		this.resetRun(missionId, seed);
 		this.options = options;
 		this.perkChoice = perks;
 		this.runCampaign = campaign;
+		this.runAssisted = assisted;
 		this.state = await this.eng().request({ kind: 'start', missionId, seed, options: { ...options } });
-		await this.createRunRecord(missionId, seed, { campaign: campaign ?? undefined });
+		this.lessonInfo = await this.eng().request({ kind: 'lesson', missionId });
+		await this.createRunRecord(missionId, seed, { campaign: campaign ?? undefined, assisted: assisted ?? undefined });
 		this.screen = this.needsTutorial(missionId) ? 'tutorial' : 'briefing';
+	}
+
+	// ---- assisted practice (spec gameplay-loop "Assisted practice", task 4.8) ----
+
+	/** Rewind and another market are offered outside a campaign mission in progress. */
+	get assistAllowed(): boolean {
+		return !!this.state && assistAllowed(!!this.runCampaign, this.state.status);
+	}
+
+	/**
+	 * Rewinds to the decision at `toStep` as a new attempt flagged assisted: the run is rebuilt from its
+	 * own actions before that step (same market and start options, without the advisor), and the
+	 * original attempt keeps its record, actions and score.
+	 */
+	async rewind(toStep: number): Promise<void> {
+		const s = this.state;
+		if (!s || !this.assistAllowed || toStep < s.warmupBars || toStep >= s.step) return;
+		const prefix = rewindPrefix(this.log, s.warmupBars, toStep);
+		const journal = this.journal.filter((p) => p.step < toStep);
+		await this.exclusive(async () => {
+			await this.settleAbandoned();
+			const from = this.runId;
+			const packDigest = s.knownScenario ? await this.packOfRun(from) : undefined;
+			const options = { ...this.options, adviceAllowance: 0 };
+			await this.startAssisted(this.missionId, this.seed, options, { from, kind: 'rewind', step: toStep }, packDigest);
+			for (const a of prefix) await this.exec(a, true);
+			this.lessonsAnswered = prefix.flatMap((a) => (a.k === 'lesson' ? [a.q] : []));
+			this.journal = journal;
+			this.persist();
+			this.screen = 'terminal';
+		});
+	}
+
+	/** The same mission on another market (a new seed), as an assisted attempt. */
+	async practiceNewSeed(seed = this.randomSeed()): Promise<void> {
+		const s = this.state;
+		if (!s || !this.assistAllowed || s.knownScenario) return;
+		await this.exclusive(async () => {
+			await this.settleAbandoned();
+			const options = { ...DEFAULT_RUN_OPTIONS, ...perkOptions(this.perkChoice) };
+			await this.launch(this.missionId, seed, options, null, this.perkChoice, { from: this.runId, kind: 'seed' });
+		});
+	}
+
+	private async startAssisted(missionId: string, seed: number, options: RunOptionsView, link: AssistedLink, packDigest?: string): Promise<void> {
+		const perks = this.perkChoice;
+		this.resetRun(missionId, seed);
+		this.options = options;
+		this.perkChoice = perks;
+		this.runAssisted = link;
+		await this.useCurrentEngine(); // a new attempt, so this version's engine (as for any new run)
+		const state = await this.startEngine(missionId, seed, packDigest);
+		if (!state) throw new Error('pack missing');
+		this.state = state;
+		this.lessonInfo = packDigest ? null : await this.eng().request({ kind: 'lesson', missionId });
+		await this.createRunRecord(missionId, seed, { packDigest, assisted: link });
+	}
+
+	// A pack run starts from its stored pack file; null when the pack is gone or was evicted.
+	private async startEngine(missionId: string, seed: number, packDigest?: string): Promise<GameState | null> {
+		if (!packDigest) return this.eng().request({ kind: 'start', missionId, seed, options: { ...this.options } });
+		const pack = await this.packBytes(packDigest);
+		if (!pack) return null;
+		return this.eng().request({ kind: 'startPack', pack, keys: await this.trusted(), seed });
+	}
+
+	private async packOfRun(runId: string): Promise<string | undefined> {
+		const runs = (await this.store?.runs().catch(() => null)) ?? [];
+		return runs.find((r) => r.runId === runId)?.packDigest;
 	}
 
 	// ---- curriculum map and journal screens (web-client task 4.4) ----
@@ -420,8 +515,10 @@ export class GameSession {
 			await this.settleAbandoned();
 			await this.useCurrentEngine();
 			this.resetRun(pack.scenarioId, seed);
+			this.runPack = digest;
 			this.options = { ...DEFAULT_RUN_OPTIONS }; // pack runs start without advisor or perks
 			this.state = await this.eng().request({ kind: 'startPack', pack: bytes, keys: await this.trusted(), seed });
+			this.lessonInfo = null;
 			await this.createRunRecord(pack.scenarioId, seed, { packDigest: digest });
 			this.screen = 'briefing';
 		});
@@ -430,7 +527,7 @@ export class GameSession {
 	private async createRunRecord(
 		missionId: string,
 		seed: number,
-		link: { packDigest?: string; campaign?: CampaignLink } = {}
+		link: { packDigest?: string; campaign?: CampaignLink; assisted?: AssistedLink } = {}
 	): Promise<void> {
 		this.runId = newRunId();
 		await this.store
@@ -450,7 +547,8 @@ export class GameSession {
 				equity: this.state?.account.equity,
 				engine: this.loadedEngine,
 				...(link.packDigest ? { packDigest: link.packDigest } : {}),
-				...(link.campaign ? { campaign: { ...link.campaign } } : {})
+				...(link.campaign ? { campaign: { ...link.campaign } } : {}),
+				...(link.assisted ? { assisted: { ...link.assisted } } : {})
 			})
 			.catch(() => (this.durable = false));
 		void this.requestPersistence();
@@ -476,7 +574,7 @@ export class GameSession {
 		return trustedKeys((await this.deviceIdentity()).key);
 	}
 
-	async validateCsv(csv: string, meta: CsvMeta): Promise<CsvReport> {
+	async validateCsv(csv: string, meta: CsvMeta): Promise<CsvValidation> {
 		return this.eng().request({ kind: 'csvValidate', csv, meta: { ...meta } });
 	}
 
@@ -569,6 +667,10 @@ export class GameSession {
 		this.resetRun(r.missionId, r.seed);
 		this.runId = r.runId;
 		this.runCampaign = r.campaign ?? null;
+		this.runAssisted = r.assisted ?? null;
+		this.lessonInfo = r.packDigest ? null : await this.eng().request({ kind: 'lesson', missionId: r.missionId });
+		this.lessonsAnswered = run.actions.flatMap((a) => (a.k === 'lesson' ? [a.q] : []));
+		this.runPack = r.packDigest ?? null;
 		this.perkChoice = perksUsed(this.options);
 		const restored = await this.restoreOrStart(r, run.actions, pack);
 		for (const a of run.actions.slice(restored)) await this.exec(a, false);
@@ -684,7 +786,8 @@ export class GameSession {
 			ro: reduceOnly,
 			stop: extras.stop ?? null,
 			tp: extras.takeProfit ?? null,
-			trail: extras.trail ?? null
+			trail: extras.trail ?? null,
+			...(extras.trailRate ? { trailRate: extras.trailRate } : {})
 		});
 		if (res?.warning === 'stop_beyond_liquidation') this.stopWarnings += 1;
 		return res;
@@ -735,6 +838,23 @@ export class GameSession {
 		if (!this.pendingQuestion) return;
 		await this.command({ k: 'ans', pBp: p == null ? 0 : Math.round(p * 10000), skipped: p == null });
 		this.flushQueue();
+	}
+
+	/**
+	 * A lesson question (rubric index) answered on the briefing: a choice index, a numeric value as a
+	 * decimal string, or null to skip it. Recorded once by the engine (understanding dimension).
+	 */
+	async answerLesson(question: number, answer: { choice?: number; value?: string } | null): Promise<CommandResult | null> {
+		if (this.lessonsAnswered.includes(question)) return null;
+		const res = await this.command({
+			k: 'lesson',
+			q: question,
+			choice: answer?.choice ?? 0,
+			value: answer?.value ?? null,
+			skipped: answer == null
+		});
+		if (res?.accepted) this.lessonsAnswered = [...this.lessonsAnswered, question];
+		return res;
 	}
 
 	/** Structured plan goes to the engine (scored there); the free text stays in the local journal. */
@@ -814,6 +934,9 @@ export class GameSession {
 		this.stopWarnings = 0;
 		this.queued = 0;
 		this.runCampaign = null;
+		this.runAssisted = null;
+		this.lessonsAnswered = [];
+		this.runPack = null;
 		this.perkChoice = [];
 		this.names.reset();
 	}
@@ -859,6 +982,7 @@ export class GameSession {
 	// In memory too: the menu must not wait for the fire-and-forget header write in persist().
 	// A practice run on an imported pack is not a mission, so it never counts as completed.
 	private markCompleted(): void {
+		if (this.runAssisted) return; // assisted practice never counts as completing a mission
 		if (this.state?.status === 'finished' && !this.state.knownScenario && !this.completed.includes(this.missionId)) {
 			this.completed = [...this.completed, this.missionId];
 		}
@@ -876,7 +1000,8 @@ export class GameSession {
 	private settleEnded(): void {
 		const s = this.state;
 		const d = this.debrief;
-		if (!s || !d || s.status === 'active' || s.knownScenario) return;
+		// Assisted practice settles nothing: no points, no campaign leg (it starts without the advisor).
+		if (!s || !d || s.status === 'active' || s.knownScenario || this.runAssisted) return;
 		let next = settleRun(this.progress, this.runId, s.advisor.advice.length, d.advisorPointsEarned);
 		if (this.runCampaign) {
 			const result: LegResult = s.status === 'bankrupt' ? 'bankrupt' : 'finished';
@@ -904,12 +1029,12 @@ export class GameSession {
 		const stored = await this.store?.activeRun().catch(() => null);
 		if (stored) {
 			const r = stored.record;
-			if (r.status !== 'active' || r.packDigest) return null;
+			if (r.status !== 'active' || r.packDigest || r.assisted) return null;
 			const equity = r.equity ?? r.options?.startingBalance ?? '0';
 			return { runId: r.runId, missionId: r.missionId, used: adviceUsed(stored.actions), campaign: r.campaign ?? null, equity };
 		}
 		const s = this.state;
-		if (!s || s.status !== 'active' || s.knownScenario || !this.runId) return null;
+		if (!s || s.status !== 'active' || s.knownScenario || !this.runId || this.runAssisted) return null;
 		return { runId: this.runId, missionId: this.missionId, used: s.advisor.advice.length, campaign: this.runCampaign, equity: s.account.equity };
 	}
 
@@ -950,7 +1075,8 @@ function commandRequest(a: CommandAction, clientId: number): Extract<EngineReque
 				reduceOnly: a.ro,
 				attachStop: a.stop ?? null,
 				attachTp: a.tp ?? null,
-				trailDistance: a.trail ?? null
+				trailDistance: a.trail ?? null,
+				trailRate: a.trailRate ?? null
 			};
 		case 'opt':
 			return { kind: 'option', clientId, series: a.series, side: a.side, type: a.type, qty: a.qty, premium: a.premium };
@@ -969,6 +1095,8 @@ function commandRequest(a: CommandAction, clientId: number): Extract<EngineReque
 			};
 		case 'ans':
 			return { kind: 'answer', clientId, pBp: a.pBp, skipped: a.skipped };
+		case 'lesson':
+			return { kind: 'lessonAnswer', clientId, question: a.q, choice: a.choice, value: a.value, skipped: a.skipped };
 		case 'margin':
 			return { kind: 'margin', clientId, amount: a.amount };
 		case 'cancel':

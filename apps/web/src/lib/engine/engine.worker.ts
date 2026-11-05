@@ -5,7 +5,8 @@
 import type { TradelabModule } from './wasm/tradelab.mjs';
 import type { CsvBuildResult, EngineRequest, WorkerEnvelope, WorkerReply } from './protocol';
 import { revealAllowed } from './reveal';
-import { DEFAULT_RUN_OPTIONS, ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
+import { DEFAULT_RUN_OPTIONS } from './defaults';
+import { ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
 
 type Fn = (...a: unknown[]) => number;
 
@@ -15,12 +16,15 @@ interface Api {
 	create: Fn;
 	destroy: Fn;
 	place: Fn;
+	trailRate: Fn;
 	option: Fn;
 	cancel: Fn;
 	move: Fn;
 	margin: Fn;
 	plan: Fn;
 	answer: Fn;
+	lessonAnswer: Fn;
+	lesson: Fn;
 	leverage: Fn;
 	close: Fn;
 	advice: Fn;
@@ -63,6 +67,7 @@ async function load(): Promise<Api> {
 		place: w('tl_place_order_ex', 'number', [
 			'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string', 'string', 'string'
 		]),
+		trailRate: w('tl_place_trailing_rate', 'number', ['number', 'number', 'number', 'string', 'number', 'string']),
 		option: w('tl_place_option_order', 'number', ['number', 'number', 'number', 'number', 'number', 'string', 'string']),
 		cancel: w('tl_cancel_order', 'number', ['number', 'number', 'number']),
 		move: w('tl_move_order', 'number', ['number', 'number', 'number', 'string']),
@@ -71,6 +76,8 @@ async function load(): Promise<Api> {
 			'number', 'number', 'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string'
 		]),
 		answer: w('tl_answer_question', 'number', ['number', 'number', 'number', 'number']),
+		lessonAnswer: w('tl_answer_lesson', 'number', ['number', 'number', 'number', 'number', 'string', 'number']),
+		lesson: w('tl_lesson', 'number', ['string']),
 		leverage: w('tl_set_leverage', 'number', ['number', 'number', 'number']),
 		close: w('tl_close_position', 'number', ['number', 'number']),
 		advice: w('tl_request_advice', 'number', ['number', 'number']),
@@ -192,6 +199,23 @@ function reveal(a: Api): unknown {
 	return current ? json(a.reveal(current.missionId, current.seed)) : null;
 }
 
+// The mission's lesson questions (no answer key crosses: the engine keeps it until the debrief).
+function lessonInfo(a: Api, missionId: string): unknown {
+	const info = json(a.lesson(missionId)) as { error?: string };
+	return info.error ? null : info;
+}
+
+type OrderRequest = Extract<EngineRequest, { kind: 'order' }>;
+
+// A trailing stop given as a rate of the close has its own entry point (policy v16).
+function placeOrder(a: Api, req: OrderRequest): number {
+	const side = SIDE_CODE[req.side];
+	const ro = req.reduceOnly ? 1 : 0;
+	if (req.type === 'trailing_stop' && req.trailRate) return a.trailRate(requireRun(), req.clientId, side, req.qty, ro, req.trailRate);
+	const t = ORDER_TYPE_CODE[req.type];
+	return a.place(requireRun(), req.clientId, t, side, req.qty, req.price ?? '', ro, req.attachStop ?? '', req.attachTp ?? '', req.trailDistance ?? '');
+}
+
 function withState(a: Api, resultPtr: number) {
 	const result = json(resultPtr);
 	return { result, state: json(a.state(requireRun())) };
@@ -204,21 +228,6 @@ function start(a: Api, req: Extract<EngineRequest, { kind: 'start' }>): GameStat
 	if (!run) throw new Error(`unknown mission ${req.missionId} or invalid start options`);
 	current = { missionId: req.missionId, seed: req.seed >>> 0 };
 	return json(a.state(run)) as GameState;
-}
-
-function placeOrder(a: Api, req: Extract<EngineRequest, { kind: 'order' }>): number {
-	return a.place(
-		requireRun(),
-		req.clientId,
-		ORDER_TYPE_CODE[req.type],
-		SIDE_CODE[req.side],
-		req.qty,
-		req.price ?? '',
-		req.reduceOnly ? 1 : 0,
-		req.attachStop ?? '',
-		req.attachTp ?? '',
-		req.trailDistance ?? ''
-	);
 }
 
 function placeOption(a: Api, req: Extract<EngineRequest, { kind: 'option' }>): number {
@@ -266,6 +275,13 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			return withState(a, recordPlan(a, req));
 		case 'answer':
 			return withState(a, a.answer(requireRun(), req.clientId, req.pBp, req.skipped ? 1 : 0));
+		case 'lesson':
+			return lessonInfo(a, req.missionId);
+		case 'lessonAnswer':
+			return withState(
+				a,
+				a.lessonAnswer(requireRun(), req.clientId, req.question, req.choice, req.value ?? '', req.skipped ? 1 : 0)
+			);
 		case 'margin':
 			return withState(a, a.margin(requireRun(), req.clientId, req.amount));
 		case 'cancel':

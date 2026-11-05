@@ -97,7 +97,32 @@ test('evicted pack: shown as not on the device offline, and its unfinished run d
 	await context.setOffline(false);
 });
 
-test('old-engine resume: an unfinished run resumes offline on the engine build it started with; the build is collected after the run', async ({ page, context }) => {
+test('regression: rewinding a run on an OPFS pack starts the assisted attempt from the pack file', async ({ page }) => {
+	await page.goto('/?seed=11');
+	await page.getByTestId('import-csv').click();
+	await page.getByTestId('csv-file').setInputFiles({ name: 'btc-1h.csv', mimeType: 'text/csv', buffer: Buffer.from(csvText()) });
+	await page.getByTestId('csv-pair').fill('BTC/USDT');
+	await page.getByTestId('csv-validate').click();
+	await page.getByTestId('csv-create').click();
+	await page.getByTestId('pack-start').click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	for (let i = 0; i < 4; i++) await step(page);
+	const before = await turn(page);
+
+	const assist = page.getByTestId('assist-panel');
+	await assist.locator('summary').click();
+	await assist.getByTestId('assist-turn').fill('2');
+	await assist.getByTestId('assist-rewind').click();
+	await expect(page.getByTestId('assisted-tag')).toBeVisible();
+	expect(await turn(page)).toBeLessThan(before);
+	expect(requestKinds(await workerLog(page)).filter((k) => k === 'startPack')).toHaveLength(2);
+	const runs = (await dumpDb(page)).runs as { packDigest?: string; assisted?: unknown }[];
+	const digest = (await dumpDb(page)).packs[0] as { digest: string };
+	expect(runs.find((r) => r.assisted)?.packDigest).toBe(digest.digest);
+	await step(page);
+});
+
+test('old-engine resume:an unfinished run resumes offline on the engine build it started with; the build is collected after the run', async ({ page, context }) => {
 	await page.goto('/?seed=4242');
 	await waitForServiceWorker(page);
 	await startFirstMission(page);
@@ -156,4 +181,50 @@ test('a run whose engine build is gone resumes on the current engine and says so
 	await expect(page.getByText(/O motor desta partida \(build GONE\) não está mais neste dispositivo/)).toBeVisible();
 	expect(await turn(page)).toBe(before);
 	await step(page);
+});
+
+// A checkpoint is in the engine's checkpoint format (kCheckpointFormat), which belongs to the build
+// that wrote it: a pinned build restores its own, and a run moved to another build replays its log.
+test('a pinned build resumes from its own checkpoint; a run whose build is gone replays instead of restoring it', async ({ page }) => {
+	await page.goto('/?seed=4242');
+	await waitForServiceWorker(page);
+	await startFirstMission(page);
+	for (let i = 0; i < 21; i++) await step(page);
+	await expect.poll(async () => ((await dumpDb(page)).checkpoints ?? []).length).toBe(1);
+	const db = await dumpDb(page);
+	const run = db.runs[0] as { runId: string; engine: string; digest: string };
+	expect((db.checkpoints[0] as { engine: string }).engine).toBe(run.engine);
+	await page.evaluate(
+		async ({ cacheName, current, old }) => {
+			const bytes = await (await fetch(current)).arrayBuffer();
+			await (await caches.open(cacheName)).put(old, new Response(bytes, { headers: { 'Content-Type': 'text/javascript' } }));
+		},
+		{ cacheName: ENGINE_CACHE, current: run.engine, old: OLD_ENGINE }
+	);
+	await patchRow(page, 'runs', run.runId, { engine: OLD_ENGINE });
+	await patchRow(page, 'checkpoints', run.runId, { engine: OLD_ENGINE });
+	const before = await turn(page);
+
+	await page.reload();
+	await page.getByRole('button', { name: /Continuar partida/ }).click();
+	await expect(page.getByText(/build OLDBUILD/)).toBeVisible();
+	expect(await turn(page)).toBe(before);
+	let log = await workerLog(page);
+	expect(requestKinds(log)).toContain('restore');
+	expect(requestKinds(log)).not.toContain('start');
+	expect(lastState(log)!.digest).toBe(run.digest);
+
+	// The pinned build is gone: the run resumes on the current build from its first bar.
+	const gone = '/_app/immutable/assets/tradelab.GONE.mjs';
+	await page.evaluate(async ({ cacheName, old }) => (await caches.open(cacheName)).delete(old), { cacheName: ENGINE_CACHE, old: OLD_ENGINE });
+	await patchRow(page, 'runs', run.runId, { engine: gone });
+	await patchRow(page, 'checkpoints', run.runId, { engine: gone });
+	await page.reload();
+	await page.getByRole('button', { name: /Continuar partida/ }).click();
+	await expect(page.getByText(/O motor desta partida \(build GONE\) não está mais neste dispositivo/)).toBeVisible();
+	expect(await turn(page)).toBe(before);
+	log = await workerLog(page);
+	expect(requestKinds(log)).toContain('start');
+	expect(requestKinds(log)).not.toContain('restore');
+	expect(lastState(log)!.digest).toBe(run.digest);
 });

@@ -3,7 +3,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { CsvImportWizard } from '#lib/game/csvImport.svelte.ts';
 	import { csvIssueText, t, tCount } from '#lib/game/i18n.svelte.ts';
-	import { INTERVALS, isoUtc } from '#lib/game/packs.ts';
+	import { GAP_FILLS, INTERVALS, isoUtc } from '#lib/game/packs.ts';
 
 	let { session }: { session: GameSession } = $props();
 	// One wizard per visit of the import screen (the component is recreated each time).
@@ -80,6 +80,15 @@
 					<ul class="issues">
 						{#each r.gaps as g, i (i)}<li>{tCount('csv.gapLine', g.missing, { line: g.line })}</li>{/each}
 					</ul>
+					{#if r.ok}
+						<label class="gap-fill">
+							{t('csv.gapFill')}
+							<select bind:value={w.meta.gapFill} data-testid="csv-gap-fill">
+								{#each GAP_FILLS as g (g.value)}<option value={g.value}>{t(g.label)}</option>{/each}
+							</select>
+						</label>
+						<p class="muted small">{t('csv.gapFillHint')}</p>
+					{/if}
 				{/if}
 			</section>
 		{/if}

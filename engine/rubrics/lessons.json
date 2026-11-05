@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "rubrics": [
+    {
+      "mission": "m01-false-breakout",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "breakout-plan", "kind": "choice", "choices": 3, "answer": 1, "points": 1},
+        {"id": "risk-two-percent", "kind": "numeric", "answer": "200", "tolerance": "0", "points": 1}
+      ]
+    },
+    {
+      "mission": "m02-funding-squeeze",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "funding-paid", "kind": "numeric", "answer": "12", "tolerance": "0", "points": 1},
+        {"id": "crowded-funding", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m03-volatility-shock",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "liquidation-price", "kind": "numeric", "answer": "90.45", "tolerance": "0.5", "points": 1},
+        {"id": "leverage-for-stop", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m04-options-buyer",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "call-breakeven", "kind": "numeric", "answer": "107.5", "tolerance": "0", "points": 1},
+        {"id": "buyer-max-loss", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m05-options-writer",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "put-writer-risk", "kind": "choice", "choices": 3, "answer": 1, "points": 1},
+        {"id": "theta-side", "kind": "choice", "choices": 3, "answer": 0, "points": 1}
+      ]
+    },
+    {
+      "mission": "m06-thin-book",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "market-order-cost", "kind": "numeric", "answer": "0.3", "tolerance": "0", "points": 1},
+        {"id": "unfilled-limit", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m07-trend-trailing",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "size-from-stop", "kind": "numeric", "answer": "50", "tolerance": "0", "points": 1},
+        {"id": "tight-trail", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m08-regime-switch",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "rsi-in-trend", "kind": "choice", "choices": 3, "answer": 1, "points": 1},
+        {"id": "filter-lag", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m09-event-straddle",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "straddle-upper-breakeven", "kind": "numeric", "answer": "106", "tolerance": "0", "points": 1},
+        {"id": "late-straddle", "kind": "choice", "choices": 3, "answer": 0, "points": 1}
+      ]
+    },
+    {
+      "mission": "m10-hedged-book",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "protective-put-loss", "kind": "numeric", "answer": "7", "tolerance": "0", "points": 1},
+        {"id": "collar-trade", "kind": "choice", "choices": 3, "answer": 0, "points": 1}
+      ]
+    },
+    {
+      "mission": "m11-news-calendar",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "in-line-release", "kind": "choice", "choices": 3, "answer": 1, "points": 1},
+        {"id": "stop-through-release", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m12-capstone",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "one-sample", "kind": "choice", "choices": 3, "answer": 1, "points": 1},
+        {"id": "expectancy", "kind": "numeric", "answer": "0.2", "tolerance": "0", "points": 1}
+      ]
+    }
+  ]
+}
