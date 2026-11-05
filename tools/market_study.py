@@ -36,6 +36,12 @@ class Tally:
     def row(self, name):
         return f"| {name} | {self.n:,} | {100 * self.hits / self.n:.1f}% | {100 * statistics.fmean(self.moves):+.2f}% |"
 
+    def cell(self):
+        """Right, then average move; a neutral headline (no surprise, neutral tone) has no direction to follow."""
+        if self.n == 0:
+            return "—"
+        return f"{100 * self.hits / self.n:.0f}%, {100 * statistics.fmean(self.moves):+.2f}%"
+
 
 def sign(x):
     return (x > 0) - (x < 0)
@@ -200,13 +206,13 @@ def main():
     print(f"\n| Advisor, every {ADVICE_EVERY} bars | Long/short reads | Right | Mean stated confidence | Wait |\n|---|---|---|---|---|")
     for name, t in sorted(advisor.items(), key=lambda kv: kv[0] == "all missions"):
         print(t.row(name))
-    print(f"\n| News (mission, headline, surprise) | Gap at the next open | Follow it from the next open, {NEWS_HORIZON} bars | Average move |\n|---|---|---|---|")
-    for (mission, kind, surprise), v in news_table.items():
-        t = v["follow"]
-        print(f"| {mission} {kind}, surprise {surprise:+d} | {100 * statistics.fmean(v['gap']):+.2f}% | {100 * t.hits / t.n:.0f}% | {100 * statistics.fmean(t.moves):+.2f}% |")
+    print(f"\n| News (mission, headline, surprise) | Gap at the next open | Follow it from the next open, {NEWS_HORIZON} bars: right, average move |\n|---|---|---|")
+    # Drawn outcomes (m09-m12) give one row per surprise drawn; the sample count follows the kind.
+    for (mission, kind, surprise), v in sorted(news_table.items()):
+        print(f"| {mission} {kind}, surprise {surprise:+d} ({len(v['gap'])}) | {100 * statistics.fmean(v['gap']):+.2f}% | {v['follow'].cell()} |")
     print(f"\n| News, followed for {NEWS_HORIZON} bars after release | Public (next open) | Fast wire I (1 bar early) | Fast wire II (2 bars early) |\n|---|---|---|---|")
-    for (mission, kind, surprise), v in news_table.items():
-        cells = [f"{100 * t.hits / t.n:.0f}%, {100 * statistics.fmean(t.moves):+.2f}%" for t in (v["follow"], v["wire1"], v["wire2"])]
+    for (mission, kind, surprise), v in sorted(news_table.items()):
+        cells = [t.cell() for t in (v["follow"], v["wire1"], v["wire2"])]
         print(f"| {mission} {kind}, surprise {surprise:+d} | " + " | ".join(cells) + " |")
     print("\n| Mission | Excess kurtosis | Autocorr. of returns | Autocorr. of abs returns | Biggest drop: most common bar (share of seeds) |\n|---|---|---|---|---|")
     for mission, r in returns.items():
