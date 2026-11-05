@@ -3,6 +3,8 @@
 	import type { OrderSideName, OrderTypeName } from '#lib/engine/types.ts';
 	import type { TicketEstimate } from '#lib/game/sizing.ts';
 
+	export type TicketOrderType = 'market' | 'limit' | 'stop_market';
+
 	export interface OrderDraft {
 		side: OrderSideName;
 		type: OrderTypeName;
@@ -51,6 +53,7 @@
 		sizeBy = $bindable('risk'),
 		qtyInput = $bindable('10'),
 		leverage = $bindable(1),
+		orderType = $bindable('market'),
 		onSubmit,
 		onPick
 	}: {
@@ -65,6 +68,8 @@
 		qtyInput?: string;
 		/** Leverage field; bindable so applying the advisor's size can raise it to fit the margin. */
 		leverage?: number;
+		/** Order type; bindable so applying the advisor's read (sized for a market entry) can reset it. */
+		orderType?: TicketOrderType;
 		onSubmit: (d: OrderDraft) => void;
 		onPick?: (set: (price: number) => void) => void;
 	} = $props();
@@ -83,7 +88,6 @@
 	});
 	const bars = $derived(s.bars.map((b) => b.slice(0, 5).map(Number) as BarTuple));
 
-	let type = $state<'market' | 'limit' | 'stop_market'>('market');
 	let riskPct = $state(1);
 	let priceInput = $state('');
 
@@ -108,7 +112,7 @@
 		tpInput = '';
 	});
 
-	const entry = $derived(type === 'market' ? estimatedMarketEntry(side, mark, k) : parseDecimal(priceInput) || mark);
+	const entry = $derived(orderType === 'market' ? estimatedMarketEntry(side, mark, k) : parseDecimal(priceInput) || mark);
 	const stop = $derived(stopInput ? parseDecimal(stopInput) : null);
 	const qty = $derived.by(() => {
 		if (sizeBy === 'risk' && stop != null) return qtyForRisk(num(s.account.equity), riskPct, entry, stop, k, lot);
@@ -129,7 +133,7 @@
 	const tp = $derived(tpInput ? parseDecimal(tpInput) : null);
 	const stopWrongSide = $derived(stop != null && !stopOnLosingSide(side, entry, stop));
 	const tpWrongSide = $derived(tp != null && !targetOnWinningSide(side, entry, tp));
-	const needsPrice = $derived(type !== 'market');
+	const needsPrice = $derived(orderType !== 'market');
 	const canSubmit = $derived(
 		!session.busy &&
 			qty > 0 &&
@@ -144,7 +148,7 @@
 		if (!canSubmit) return;
 		onSubmit({
 			side,
-			type,
+			type: orderType,
 			qty: qtyStr,
 			price: needsPrice ? priceToTick(parseDecimal(priceInput), tick) : null,
 			leverage: lev,
@@ -239,7 +243,7 @@
 	<div class="grid">
 		<label>
 			{t('ticket.type')}
-			<select bind:value={type}>
+			<select bind:value={orderType}>
 				<option value="market">{t('ticket.market')}</option>
 				<option value="limit">{t('ticket.limit')}</option>
 				<option value="stop_market">{t('ticket.stop')}</option>
@@ -251,7 +255,7 @@
 		</label>
 		{#if needsPrice}
 			<label class="full">
-				{type === 'limit' ? t('ticket.price') : t('ticket.trigger')}
+				{orderType === 'limit' ? t('ticket.price') : t('ticket.trigger')}
 				<input inputmode="decimal" bind:value={priceInput} placeholder={fmtPrice(s.account.mark, L)} />
 			</label>
 		{/if}

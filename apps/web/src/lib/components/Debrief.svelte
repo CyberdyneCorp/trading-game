@@ -4,7 +4,7 @@
 	import { pctFromBp } from '#lib/game/advisor.ts';
 	import { fmtLeverageBp, fmtLiqDistance, greekRows, revealTexts, stopAdvice } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
-	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import { perksUsed } from '#lib/game/perks.ts';
 	import CampaignOutcome from './CampaignOutcome.svelte';
@@ -127,7 +127,7 @@
 			{#if d.reveal}
 				<p data-testid="pack-reveal">{reveal?.line}</p>
 				<p class="muted small">{t('debrief.revealTransform', { text: reveal?.transform ?? '' })}</p>
-				{#if d.reveal.gaps > 0}<p class="muted small">{t('debrief.revealGaps', { n: d.reveal.gaps })}</p>{/if}
+				{#if d.reveal.gaps > 0}<p class="muted small">{tCount('debrief.revealGaps', d.reveal.gaps)}</p>{/if}
 			{:else}
 				<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
 				<h3>{t('debrief.scenario')}</h3>
@@ -207,7 +207,7 @@
 		<h3>{t('debrief.calibrationTitle')}</h3>
 		<p class="muted">
 			{cal.score != null
-				? t('debrief.calibrationLine', { n: cal.resolved, brier: fmtNum(cal.brier ?? 0, L, 3) })
+				? tCount('debrief.calibrationLine', cal.resolved, { brier: fmtNum(cal.brier ?? 0, L, 3) })
 				: t('debrief.calibrationNa')}
 		</p>
 	</section>

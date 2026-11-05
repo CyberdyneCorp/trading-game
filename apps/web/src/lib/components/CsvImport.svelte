@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { CsvImportWizard } from '#lib/game/csvImport.svelte.ts';
-	import { csvIssueText, t } from '#lib/game/i18n.svelte.ts';
+	import { csvIssueText, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { INTERVALS, isoUtc } from '#lib/game/packs.ts';
 
 	let { session }: { session: GameSession } = $props();
@@ -67,7 +67,7 @@
 						{r.hasFunding ? t('csv.withFunding') : t('csv.noFunding')}
 					</p>
 				{:else}
-					<p class="down">✖ {t('csv.errors', { n: r.errorCount })}</p>
+					<p class="down">✖ {tCount('csv.errors', r.errorCount)}</p>
 					<ul class="issues">
 						{#each r.errors as e, i (i)}
 							<li data-testid="csv-error">{#if e.line}<span class="muted">{t('csv.line', { line: e.line })}:</span>{/if} {csvIssueText(e.code)}</li>
@@ -76,9 +76,9 @@
 					</ul>
 				{/if}
 				{#if r.gapCount > 0}
-					<p class="attention">⚠ {t('csv.gaps', { n: r.gapCount })}</p>
+					<p class="attention">⚠ {tCount('csv.gaps', r.gapCount)}</p>
 					<ul class="issues">
-						{#each r.gaps as g, i (i)}<li>{t('csv.gapLine', { line: g.line, missing: g.missing })}</li>{/each}
+						{#each r.gaps as g, i (i)}<li>{tCount('csv.gapLine', g.missing, { line: g.line })}</li>{/each}
 					</ul>
 				{/if}
 			</section>

@@ -52,6 +52,24 @@ describe('spreadLabels', () => {
 		expect(sorted[1] - sorted[0]).toBeGreaterThanOrEqual(LABEL_H);
 		expect(sorted[2] - sorted[1]).toBeGreaterThanOrEqual(LABEL_H);
 	});
+
+	it('regression: a stack overflowing the bottom does not push a distant top tag off the pane', () => {
+		// Before: m01 seed 101, the LIQ and LIQ? tags pinned at the bottom slid every tag up by the
+		// overflow, so the TP tag near the top was cut and its label drawn off-canvas.
+		const ys = spreadLabels([12, 200, 396.5, 396.5], 0, 400);
+		expect(ys[0]).toBe(12); // TP stays at its line
+		expect(ys[1]).toBe(200);
+		expect(ys[3]).toBe(400 - LABEL_H / 2);
+		expect(ys[3] - ys[2]).toBeGreaterThanOrEqual(LABEL_H);
+		expect(Math.min(...spreadLabels([4.5, 395, 396, 397], 0, 400))).toBeGreaterThanOrEqual(LABEL_H / 2);
+	});
+
+	it('shares the pane evenly when the tags cannot all fit, never leaving it', () => {
+		const ys = spreadLabels([5, 6, 7, 8], 0, 40);
+		expect(Math.min(...ys)).toBe(LABEL_H / 2);
+		expect(Math.max(...ys)).toBe(40 - LABEL_H / 2);
+		expect([...ys].sort((a, b) => a - b)).toEqual(ys); // order kept
+	});
 });
 
 describe('hitsTag', () => {

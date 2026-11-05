@@ -25,3 +25,22 @@ describe('finding numbers follow the locale', () => {
 		expect(describeFinding(big, 'pt-BR')).toContain('~4.574 cr');
 	});
 });
+
+describe('count findings are pluralized', () => {
+	it('regression: one entry without a stop reads "1 entrada sem stop", not "1 entrada(s)"', () => {
+		const noStop: EngineFinding = { ...oversized, code: 'no_stop', count: 1 };
+		const capacity: EngineFinding = { ...oversized, code: 'capacity', count: 1 };
+		expect(describeFinding(noStop, 'pt-BR')).toMatch(/^1 entrada sem stop/);
+		expect(describeFinding(noStop, 'en')).toMatch(/^1 entry without/);
+		expect(describeFinding(capacity, 'pt-BR')).toMatch(/^1 execução foi limitada/);
+		expect(describeFinding({ ...noStop, count: 2 }, 'pt-BR')).toMatch(/^2 entradas sem stop/);
+		expect(describeFinding({ ...capacity, count: 3 }, 'en')).toMatch(/^3 fills were limited/);
+		for (const code of ['no_stop', 'ambiguous', 'capacity'] as const) {
+			for (const count of [1, 2]) {
+				for (const locale of ['pt-BR', 'en'] as const) {
+					expect(describeFinding({ ...oversized, code, count }, locale)).not.toMatch(/\((s|ões|ies)\)/);
+				}
+			}
+		}
+	});
+});

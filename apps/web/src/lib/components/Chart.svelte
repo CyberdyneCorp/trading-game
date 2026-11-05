@@ -435,7 +435,7 @@
 		const name = l.drag ? `⇕ ${l.label}` : l.label;
 		const label = pin === 'above' ? `${name} ▲` : pin === 'below' ? `${name} ▼` : name;
 		const w = ctx.measureText(label).width;
-		ctx.fillText(label, plotW - w - 4, tag - 4);
+		ctx.fillText(label, plotW - w - 4, Math.max(tag - 4, 11)); // above its tag, but never off the top
 		ctx.fillRect(plotW, tag - 8, AXIS_W, 16);
 		ctx.fillStyle = cssVar('--bg');
 		ctx.fillText(fmtNum(l.price, i18n.locale), plotW + 6, tag + 4);
