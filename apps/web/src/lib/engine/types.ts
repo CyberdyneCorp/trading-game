@@ -670,6 +670,8 @@ export interface PackReveal {
 	source: string;
 	transformation: string;
 	gaps: number;
+	/** 'skip' / 'carryForward' when the gaps were filled with continuity bars, '' when the bars were joined. */
+	gapPolicy: PackGapPolicy;
 }
 
 export interface DebriefData {

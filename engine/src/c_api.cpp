@@ -463,7 +463,7 @@ void write_pack_reveal(JsonOut& j, const PackInfo& p) {
   j.field("knownScenario", true).field("marketMode", p.mode).field("packDigest", p.digest);
   j.key("reveal").begin_obj().field("asset", r.asset).field("pair", r.pair).field("venue", r.venue);
   j.field("periodFrom", r.period_from).field("periodTo", r.period_to).field("source", r.source);
-  j.field("transformation", r.transformation).field("gaps", p.gaps).end_obj();
+  j.field("transformation", r.transformation).field("gaps", p.gaps).field("gapPolicy", p.gap_policy).end_obj();
 }
 
 }  // namespace

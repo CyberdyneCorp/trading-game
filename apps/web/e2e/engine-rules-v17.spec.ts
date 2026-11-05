@@ -99,3 +99,33 @@ test('built-in missions mark positions at the last price and say so in the brief
 	await page.getByRole('button', { name: 'Pular tutorial' }).click();
 	await expect(page.getByTestId('brief-mark')).toContainText('último preço');
 });
+
+async function playToEnd(page: Page) {
+	for (let i = 0; i < 80 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) {
+		await answerIfAsked(page);
+		await page.keyboard.press('Shift+Space');
+		await page.waitForTimeout(40);
+	}
+	await expect(page.getByText(/Missão concluída|GAME OVER/)).toBeVisible();
+}
+
+test('regression: the debrief says filled gaps were filled, not kept as jumps', async ({ page }) => {
+	await importGappyPack(page, 'skip');
+	await page.getByTestId('pack-start').click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await playToEnd(page);
+	await expect(page.getByTestId('reveal-gaps')).toHaveText('1 lacuna nos dados foi preenchida com barras sem negociação.');
+});
+
+test('a joined gap is still reported as kept as a jump', async ({ page }) => {
+	await page.goto('/?seed=11');
+	await page.getByTestId('import-csv').click();
+	await page.getByTestId('csv-file').setInputFiles({ name: 'gappy.csv', mimeType: 'text/csv', buffer: Buffer.from(csvText(120, 40)) });
+	await page.getByTestId('csv-pair').fill('BTC/USDT');
+	await page.getByTestId('csv-validate').click();
+	await page.getByTestId('csv-create').click(); // default: join the bars across the gap
+	await page.getByTestId('pack-start').click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await playToEnd(page);
+	await expect(page.getByTestId('reveal-gaps')).toHaveText('1 lacuna nos dados foi mantida como salto.');
+});

@@ -4,7 +4,9 @@
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 #include "pack_fixtures.hpp"
 #include "scenario_builder.hpp"
@@ -345,4 +347,31 @@ TEST_CASE("C ABI: built-in missions mark from the last price; bars carry the con
   CHECK(s.find("\"settling\":true") == std::string::npos);
   CHECK(s.find(",true,false]") != std::string::npos);  // [o, h, l, c, v, synthetic, continuity]
   tl_run_destroy(run);
+}
+
+// Regression: the debrief reveal said a filled gap "was kept as a jump"; it now carries the gap policy.
+TEST_CASE("C ABI: a pack debrief reveal says whether its gaps were filled with continuity bars") {
+  const std::string seed_hex(64, 'b');
+  const std::string key = tl_device_key(seed_hex.c_str());
+  const std::string pub = key.substr(key.find("publicKey\":\"") + 12, 64);
+  const std::string id = key.substr(key.find("\"id\":\"") + 6, 23);
+  const std::string keys = "[{\"id\":\"" + id + "\",\"key\":\"" + pub + "\"}]";
+  const std::string second = make_csv(100, 1'700'000'000 + 102 * 3600);  // two missing hours
+  const std::string csv = make_csv(100) + second.substr(second.find('\n') + 1);
+  const std::string meta =
+      R"({"asset":"BTC","pair":"BTC/USDT","venue":"test","volumeUnit":"base","intervalSeconds":3600,"timestampUnit":"s","leverageCap":3)";
+  const auto reveal_of = [&](const std::string& fill) {
+    const std::string built = tl_pack_build_csv(csv.c_str(), (meta + fill + "}").c_str(), seed_hex.c_str());
+    REQUIRE_MESSAGE(built.find("\"ok\":true") != std::string::npos, built);
+    const std::vector<std::uint8_t> pack(tl_blob_data(), tl_blob_data() + tl_blob_size());
+    tl_run* run = tl_run_create_pack(pack.data(), static_cast<std::uint32_t>(pack.size()), keys.c_str(), 5);
+    REQUIRE(run != nullptr);
+    tl_advance(run, 1000);
+    const std::string d = tl_debrief(run);
+    tl_run_destroy(run);
+    return d.substr(d.find("\"reveal\""));
+  };
+  CHECK(reveal_of(R"(,"gapFill":"skip")").find(R"("gaps":1,"gapPolicy":"skip")") != std::string::npos);
+  CHECK(reveal_of(R"(,"gapFill":"carryForward")").find(R"("gaps":1,"gapPolicy":"carryForward")") != std::string::npos);
+  CHECK(reveal_of("").find(R"("gaps":1,"gapPolicy":"")") != std::string::npos);
 }

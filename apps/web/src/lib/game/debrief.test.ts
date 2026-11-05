@@ -120,7 +120,7 @@ describe('describeFindings', () => {
 describe('revealTexts', () => {
 	const csv: PackReveal = {
 		asset: 'BTC', pair: 'BTC/USDT', venue: '', periodFrom: '2023-11-14T22:00:00Z', periodTo: '2023-11-19T21:00:00Z',
-		source: 'csv-import', transformation: 'prices x 100 / open of bar 60, half-even to 0.01; volume x the inverse', gaps: 0
+		source: 'csv-import', transformation: 'prices x 100 / open of bar 60, half-even to 0.01; volume x the inverse', gaps: 0, gapPolicy: ''
 	};
 	it('regression: a CSV pack reveal is in the player language, without the raw source code or an empty venue', () => {
 		const r = revealTexts(csv, 'Mercado K');
