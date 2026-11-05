@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { GameState } from '#lib/engine/types.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseDecimal, signMark } from '#lib/game/format.ts';
-	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import { positionGreeks, seriesLabel } from '#lib/game/optionsMath.ts';
 
@@ -117,7 +117,7 @@
 		<dl class="kv">
 			<dt>{t('rail.nextFunding')}</dt>
 			<dd class={funding > 0 ? 'down' : funding < 0 ? 'up' : ''}>{fmtPct(funding, L, 4, true)}</dd>
-			<dt></dt><dd class="muted">{t('rail.fundingIn', { n: fundingIn })}</dd>
+			<dt></dt><dd class="muted">{tCount('rail.fundingIn', fundingIn)}</dd>
 			<dt></dt>
 			<dd class="muted">{funding !== 0 ? t('rail.fundingWho', { who: funding > 0 ? t('rail.longs') : t('rail.shorts') }) : ''}</dd>
 		</dl>

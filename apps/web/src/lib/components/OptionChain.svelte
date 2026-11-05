@@ -2,7 +2,7 @@
 	// Chain at the current decision step only (spec terminal-ui "Option chain"). Prices are model-made.
 	import type { GameState, OptionQuoteView } from '#lib/engine/types.ts';
 	import { fmtNum, fmtPct, fmtPrice } from '#lib/game/format.ts';
-	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 
 	let {
 		game,
@@ -33,7 +33,7 @@
 		<p class="muted">—</p>
 	{/if}
 	{#each expiries as exp (exp)}
-		<p class="muted small">{t('opt.expiry', { step: exp, n: exp - game.step })}</p>
+		<p class="muted small">{tCount('opt.expiry', exp - game.step, { step: exp })}</p>
 		<table>
 			<thead>
 				<tr>

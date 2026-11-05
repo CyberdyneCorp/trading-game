@@ -78,6 +78,7 @@ const pt = {
 	'rail.liqDistance': 'Distância até liquidação',
 	'rail.nextFunding': 'Funding previsto',
 	'rail.fundingIn': 'em {n} barras',
+	'rail.fundingInOne': 'em 1 barra',
 	'rail.fundingWho': '{who} pagam',
 	'rail.longs': 'longs',
 	'rail.shorts': 'shorts',
@@ -340,6 +341,7 @@ const pt = {
 	'opt.puts': 'PUTS',
 	'opt.strike': 'Strike',
 	'opt.expiry': 'Vencimento na barra {step} ({n} barras)',
+	'opt.expiryOne': 'Vencimento na barra {step} (1 barra)',
 	'opt.bid': 'Bid',
 	'opt.ask': 'Ask',
 	'opt.iv': 'IV',
@@ -413,6 +415,11 @@ const pt = {
 	'packReason.unsupported_feature': 'recurso ainda não suportado',
 	'packReason.malformed_data': 'dados corrompidos',
 	'packReason.invalid_scenario': 'regras ou barras inválidas',
+	'packReason.csv_invalid': 'o arquivo não passou na validação do motor',
+	'packReason.invalid_rules': 'regras do mercado inválidas',
+	'packReason.masking_failed': 'não foi possível mascarar os preços',
+	'packReason.invalid_meta': 'dados declarados inválidos',
+	'packReason.invalid_seed': 'chave deste dispositivo inválida',
 	'csv.title': 'Importar mercado (CSV)',
 	'csv.intro': 'Arquivo CSV com cabeçalho: timestamp (UTC, em segundos, milissegundos ou data ISO), open, high, low, close, volume e, opcional, funding. Ponto como separador decimal.',
 	'csv.privacy': 'O arquivo é lido e validado neste dispositivo; nada é enviado. O mercado vira um pacote privado, assinado por este dispositivo.',
@@ -447,6 +454,11 @@ const pt = {
 	'csv.working': 'Processando…',
 	'csv.failed': 'Não foi possível criar a missão: {reason}',
 	'csv.meta': 'Dado declarado inválido: {field}',
+	'csvMeta.leverageCap': 'Alavancagem máxima: use um número inteiro de 1 a 20.',
+	'csvMeta.intervalSeconds': 'Intervalo das barras: de 1 minuto a 7 dias.',
+	'csvMeta.warmupBars': 'Barras de aquecimento: de 0 a 10.000.',
+	'csvMeta.volumeUnit': 'Escolha em que moeda está o volume.',
+	'csvMeta.timestampUnit': 'Escolha a unidade dos timestamps (segundos ou milissegundos).',
 	'csvIssue.file_too_large': 'arquivo grande demais (máx. 4 MB)',
 	'csvIssue.invalid_interval': 'intervalo inválido',
 	'csvIssue.empty_file': 'arquivo vazio',
@@ -470,6 +482,11 @@ const pt = {
 	'top.known': 'CONHECIDO',
 	'debrief.revealPack': 'O mercado {alias} era {pair} ({asset}) em {venue}, de {from} a {to} ({source}).',
 	'debrief.revealTransform': 'Transformação: {text}.',
+	'debrief.revealPackNoVenue': 'O mercado {alias} era {pair} ({asset}), de {from} a {to} ({source}).',
+	'debrief.sourceCsv': 'CSV importado neste dispositivo',
+	'debrief.transformCsv': 'preços × 100 / abertura da barra {bar}, arredondados a 0,01 (meio-par); volume × o inverso',
+	'debrief.marketSpan': 'Mercado do início ao fim do cenário: {from} → {to}',
+	'debrief.endedEarly': 'A partida acabou na barra {step}: o mercado e “comprar e segurar” são medidos até o fim do cenário (barra {end}).',
 	'debrief.revealGaps': '{n} lacuna(s) nos dados foram mantidas como saltos.',
 	'adv.title': 'Assessor',
 	'adv.ask': 'Pedir leitura (1 ponto)',
@@ -592,6 +609,7 @@ const en: Record<MessageKey, string> = {
 	'rail.liqDistance': 'Distance to liquidation',
 	'rail.nextFunding': 'Predicted funding',
 	'rail.fundingIn': 'in {n} bars',
+	'rail.fundingInOne': 'in 1 bar',
 	'rail.fundingWho': '{who} pay',
 	'rail.longs': 'longs',
 	'rail.shorts': 'shorts',
@@ -853,6 +871,7 @@ const en: Record<MessageKey, string> = {
 	'opt.puts': 'PUTS',
 	'opt.strike': 'Strike',
 	'opt.expiry': 'Expiry at bar {step} ({n} bars)',
+	'opt.expiryOne': 'Expiry at bar {step} (1 bar)',
 	'opt.bid': 'Bid',
 	'opt.ask': 'Ask',
 	'opt.iv': 'IV',
@@ -926,6 +945,11 @@ const en: Record<MessageKey, string> = {
 	'packReason.unsupported_feature': 'feature not supported yet',
 	'packReason.malformed_data': 'corrupt data',
 	'packReason.invalid_scenario': 'invalid rules or bars',
+	'packReason.csv_invalid': 'the file did not pass the engine validation',
+	'packReason.invalid_rules': 'invalid market rules',
+	'packReason.masking_failed': 'the prices could not be masked',
+	'packReason.invalid_meta': 'invalid declared values',
+	'packReason.invalid_seed': 'invalid device key',
 	'csv.title': 'Import a market (CSV)',
 	'csv.intro': 'CSV file with a header: timestamp (UTC, in seconds, milliseconds or an ISO date), open, high, low, close, volume and, optionally, funding. Dot as the decimal separator.',
 	'csv.privacy': 'The file is read and validated on this device; nothing is uploaded. The market becomes a private pack signed by this device.',
@@ -960,6 +984,11 @@ const en: Record<MessageKey, string> = {
 	'csv.working': 'Working…',
 	'csv.failed': 'Could not create the mission: {reason}',
 	'csv.meta': 'Invalid declared value: {field}',
+	'csvMeta.leverageCap': 'Maximum leverage: use a whole number from 1 to 20.',
+	'csvMeta.intervalSeconds': 'Bar interval: from 1 minute to 7 days.',
+	'csvMeta.warmupBars': 'Warm-up bars: from 0 to 10,000.',
+	'csvMeta.volumeUnit': 'Choose the currency the volume is in.',
+	'csvMeta.timestampUnit': 'Choose the timestamp unit (seconds or milliseconds).',
 	'csvIssue.file_too_large': 'file too large (max 4 MB)',
 	'csvIssue.invalid_interval': 'invalid interval',
 	'csvIssue.empty_file': 'empty file',
@@ -983,6 +1012,11 @@ const en: Record<MessageKey, string> = {
 	'top.known': 'KNOWN',
 	'debrief.revealPack': 'Market {alias} was {pair} ({asset}) on {venue}, from {from} to {to} ({source}).',
 	'debrief.revealTransform': 'Transformation: {text}.',
+	'debrief.revealPackNoVenue': 'Market {alias} was {pair} ({asset}), from {from} to {to} ({source}).',
+	'debrief.sourceCsv': 'CSV imported on this device',
+	'debrief.transformCsv': 'prices × 100 / open of bar {bar}, rounded half-even to 0.01; volume × the inverse',
+	'debrief.marketSpan': 'Market from the start to the end of the scenario: {from} → {to}',
+	'debrief.endedEarly': 'The run ended at bar {step}: the market and “buy and hold” are measured to the end of the scenario (bar {end}).',
 	'debrief.revealGaps': '{n} gap(s) in the data were kept as jumps.',
 	'adv.title': 'Advisor',
 	'adv.ask': 'Ask for a read (1 point)',
@@ -1049,6 +1083,18 @@ export function csvIssueText(code: string): string {
 	const i = code.indexOf(':');
 	const key = `csvIssue.${i < 0 ? code : code.slice(0, i)}`;
 	return key in pt ? t(key as MessageKey, { arg: i < 0 ? '' : code.slice(i + 1) }) : code;
+}
+
+/** `key` with `{n}`, or its `…One` singular form when n is 1 ("em 1 barra", not "em 1 barras"). */
+export function tCount(key: MessageKey, n: number, params: Record<string, string | number> = {}): string {
+	const one = `${key}One`;
+	return t(n === 1 && one in pt ? (one as MessageKey) : key, { ...params, n });
+}
+
+/** Guidance for a declared CSV field the engine refused (falls back to naming the field). */
+export function csvMetaText(field: string): string {
+	const key = `csvMeta.${field}`;
+	return key in pt ? t(key as MessageKey) : t('csv.meta', { field });
 }
 
 /** Text for an engine pack refusal reason (falls back to the code itself). */

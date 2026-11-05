@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtNum, parseDecimal, priceToTick, qtyToLot, signMark } from './format.ts';
+import { fmtNum, parseDecimal, planHeadline, priceToTick, qtyToLot, signMark } from './format.ts';
 
 describe('format', () => {
 	it('floors quantities to the lot and emits engine decimal strings', () => {
@@ -32,5 +32,17 @@ describe('format', () => {
 	});
 	it('never relies on color alone', () => {
 		expect([signMark(1), signMark(-1), signMark(0)]).toEqual(['▲', '▼', '•']);
+	});
+});
+
+describe('planHeadline', () => {
+	it('regression: the plan dialog quantity uses the locale (49,9 in PT-BR, not 49.9)', () => {
+		expect(planHeadline({ side: 'buy', qty: '49.9', leverage: 3 }, null, 'pt-BR')).toBe('▲ LONG 49,9 · 3x');
+		expect(planHeadline({ side: 'sell', qty: '1500', leverage: 1 }, null, 'pt-BR')).toBe('▼ SHORT 1.500,0 · 1x');
+		expect(planHeadline({ side: 'buy', qty: '49.9', leverage: 3 }, null, 'en')).toBe('▲ LONG 49.9 · 3x');
+	});
+
+	it('shows whole option contracts without decimals', () => {
+		expect(planHeadline({ side: 'sell', qty: '20', leverage: 1 }, 'P 100 · exp 96', 'pt-BR')).toBe('▼ P 100 · exp 96 × 20');
 	});
 });

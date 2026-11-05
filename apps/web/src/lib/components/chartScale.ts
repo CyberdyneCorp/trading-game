@@ -64,3 +64,8 @@ export function spreadLabels(ys: number[], top: number, bottom: number): number[
 	}
 	return out;
 }
+
+/** Whether an axis grid label at `y` would overlap one of the level tags centred at `tagYs`. */
+export function hitsTag(y: number, tagYs: number[]): boolean {
+	return tagYs.some((t) => Math.abs(t - y) < LABEL_H);
+}

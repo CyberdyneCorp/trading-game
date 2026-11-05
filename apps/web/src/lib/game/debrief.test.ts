@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { EngineFinding, EngineTrade } from '#lib/engine/types.ts';
-import { describeFinding, describeLesson } from './analysis.ts';
-import { fmtLeverageBp, fmtLiqDistance, greekRows, stopAdvice } from './debrief.ts';
+import type { EngineFinding, EngineTrade, PackReveal } from '#lib/engine/types.ts';
+import { describeFinding, describeFindings, describeLesson } from './analysis.ts';
+import { fmtLeverageBp, fmtLiqDistance, greekRows, revealTexts, stopAdvice } from './debrief.ts';
+import { i18n } from './i18n.svelte.ts';
 
 const perp: EngineTrade = {
 	n: 1,
@@ -86,5 +87,40 @@ describe('theta and IV findings point to the Options lesson', () => {
 	it('names the Options lesson', () => {
 		expect(describeLesson('options', 'pt-BR')).toMatch(/^Opções II/);
 		expect(describeLesson('options', 'en')).toMatch(/^Options II/);
+	});
+});
+
+describe('describeFindings', () => {
+	const liq: EngineFinding = { code: 'liquidated', tone: 'bad', step: 86, count: 9, price: '95.10', requested: '0', amount: '500' };
+	const beyond: EngineFinding = { code: 'stop_beyond_liq', tone: 'bad', step: 61, count: 9, price: '89.63', requested: '95.10', amount: '0' };
+	it('regression: the safe leverage is said once when the stop finding already names it (m03 seed 303)', () => {
+		const texts = describeFindings([liq, beyond], 'pt-BR');
+		expect(texts.filter((x) => x.includes('até 9x'))).toHaveLength(1);
+		expect(texts[0]).toBe('Liquidação na barra 86 a 95,10: a margem isolada inteira (500,00) foi perdida.');
+		expect(texts[1]).toContain('O stop em 89,63');
+	});
+	it('keeps the advice on the liquidation line when no stop finding carries it', () => {
+		expect(describeFindings([liq], 'en')[0]).toContain('up to 9x leverage');
+	});
+});
+
+describe('revealTexts', () => {
+	const csv: PackReveal = {
+		asset: 'BTC', pair: 'BTC/USDT', venue: '', periodFrom: '2023-11-14T22:00:00Z', periodTo: '2023-11-19T21:00:00Z',
+		source: 'csv-import', transformation: 'prices x 100 / open of bar 60, half-even to 0.01; volume x the inverse', gaps: 0
+	};
+	it('regression: a CSV pack reveal is in the player language, without the raw source code or an empty venue', () => {
+		const r = revealTexts(csv, 'Mercado K');
+		expect(r.transform).toBe('preços × 100 / abertura da barra 60, arredondados a 0,01 (meio-par); volume × o inverso');
+		expect(r.line).toBe('O mercado Mercado K era BTC/USDT (BTC), de 2023-11-14T22:00:00Z a 2023-11-19T21:00:00Z (CSV importado neste dispositivo).');
+		expect(r.line).not.toContain('em —');
+		i18n.locale = 'en';
+		expect(revealTexts({ ...csv, venue: 'Binance' }, 'K').line).toContain('on Binance');
+		i18n.locale = 'pt-BR';
+	});
+	it('shows a publisher transformation note as written', () => {
+		const r = revealTexts({ ...csv, source: 'publisher', transformation: 'rebased to 100' }, 'K');
+		expect(r.transform).toBe('rebased to 100');
+		expect(r.line).toContain('(publisher)');
 	});
 });

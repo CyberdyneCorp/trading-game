@@ -47,7 +47,26 @@ describe('CsvImportWizard', () => {
 		i18n.locale = 'en';
 		await w.validate();
 		expect(w.step).toBe('meta');
-		expect(w.error).toBe('Invalid declared value: intervalSeconds');
+		expect(w.error).toBe('Bar interval: from 1 minute to 7 days.');
+		i18n.locale = 'pt-BR';
+	});
+
+	it('regression: a refused leverage names the field in words and gives the allowed range', async () => {
+		const { session } = fakeSession({ ...OK, ok: false, metaError: 'leverageCap' });
+		const w = new CsvImportWizard(session);
+		await w.chooseFile(file(CSV));
+		await w.validate();
+		expect(w.error).toBe('Alavancagem máxima: use um número inteiro de 1 a 20.');
+		expect(w.error).not.toContain('leverageCap');
+	});
+
+	it('regression: a build refused as csv_invalid is translated, not shown as the raw code', async () => {
+		const { session } = fakeSession(OK, { ok: false, reason: 'csv_invalid' });
+		const w = new CsvImportWizard(session);
+		await w.chooseFile(file(CSV));
+		await w.validate();
+		await w.create();
+		expect(w.error).toBe('Não foi possível criar a missão: o arquivo não passou na validação do motor');
 	});
 
 	it('explains a refused pack and keeps the wizard open', async () => {
