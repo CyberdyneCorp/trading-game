@@ -92,6 +92,10 @@ test('regression: adding to a position estimates the liquidation of the merged p
 	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
 	await advance(page);
 	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	// Regression: the PT-BR distance line overflowed the liquidation box of the rail.
+	const dist = page.getByTestId('rail-liq-distance');
+	await expect(dist).toContainText(/Distância até liquidação: \d+,\d{2}%/);
+	expect(await dist.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 
 	const parse = (s: string | null) => Number((s ?? '').replace(/\./g, '').replace(',', '.'));
 	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
