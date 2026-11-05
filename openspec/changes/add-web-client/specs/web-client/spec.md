@@ -84,7 +84,7 @@ A new app version SHALL be installed by the service worker in the background and
 - **THEN** it SHALL resume on engine 1.2 and produce the same digest
 
 ### Requirement: Journal and curriculum screens
-The client SHALL offer, from the menu, a journal screen listing the plans the player recorded (thesis, invalidation, target, confidence, planned risk, option loss scenario), grouped by run with the mission, mode (campaign, free play, practice), date and status, newest first and filterable by mission; and a curriculum map showing every stage in order with its status, assessment missions and unlocks, plus progress (stages passed, missions completed, campaign runs). Journal text SHALL stay on the device. Progress SHALL be kept in a versioned local record that the client migrates from older versions without losing tutorials seen or advisor points.
+The client SHALL offer, from the menu, a journal screen listing the plans the player recorded (thesis, invalidation, target, confidence, planned risk, option loss scenario), grouped by run with the mission, mode (campaign, free play, practice), date and status (in progress, finished, bankrupt, or left when another run replaced it before its end), newest first and filterable by mission; and a curriculum map showing every stage in order with its status, assessment missions and unlocks, plus progress (stages passed, missions completed, campaign runs). Journal text SHALL stay on the device. Progress SHALL be kept in a versioned local record that the client migrates from older versions without losing tutorials seen or advisor points.
 
 #### Scenario: Plan in the journal
 - **WHEN** the player records a plan with a thesis and later opens the journal

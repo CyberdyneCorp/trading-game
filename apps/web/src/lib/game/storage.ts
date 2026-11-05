@@ -18,7 +18,8 @@ export interface RunRecord<J = unknown, Q = unknown> {
 	questions: Q[];
 	stopWarnings: number;
 	digest: string;
-	status: 'active' | 'finished' | 'bankrupt';
+	/** 'left': replaced by another run (or its campaign ended) before the end; it cannot be resumed. */
+	status: 'active' | 'finished' | 'bankrupt' | 'left';
 	actions: number; // number of committed actions
 	/**
 	 * Start options (advice allowance, perks; campaign capital and leverage cap since policy v12);
@@ -111,6 +112,15 @@ function req<T>(r: IDBRequest<T>): Promise<T> {
 	});
 }
 
+// Within `tx` (runs + meta, readwrite): the active run, if still unfinished, becomes 'left'.
+async function leaveActive(tx: IDBTransaction): Promise<void> {
+	const meta = (await req(tx.objectStore('meta').get('active'))) as { runId: string } | undefined;
+	if (!meta) return;
+	const runs = tx.objectStore('runs');
+	const rec = (await req(runs.get(meta.runId))) as RunRecord | undefined;
+	if (rec?.status === 'active') runs.put({ ...rec, status: 'left' });
+}
+
 function done(tx: IDBTransaction): Promise<void> {
 	return new Promise((resolve, reject) => {
 		tx.oncomplete = () => resolve();
@@ -142,10 +152,19 @@ export function newRunId(): string {
 export class RunStore<A, J, Q> {
 	constructor(private db: IDBDatabase) {}
 
+	/** Stores a new run and makes it the active one; the run it replaces, if unfinished, is left. */
 	async createRun(record: RunRecord<J, Q>): Promise<void> {
 		const tx = this.db.transaction(['runs', 'meta'], 'readwrite');
+		await leaveActive(tx);
 		tx.objectStore('runs').put(record);
 		tx.objectStore('meta').put({ key: 'active', runId: record.runId });
+		await done(tx);
+	}
+
+	/** Marks the active run as left (no longer resumable); finished runs are kept as they are. */
+	async leaveActiveRun(): Promise<void> {
+		const tx = this.db.transaction(['runs', 'meta'], 'readwrite');
+		await leaveActive(tx);
 		await done(tx);
 	}
 
@@ -233,11 +252,16 @@ export class RunStore<A, J, Q> {
 		return hex;
 	}
 
-	/** Every run header (no action logs), newest first: the journal screen reads them. */
+	/**
+	 * Every run header (no action logs), newest first: the journal screen reads them. An 'active' run
+	 * that is not the resumable one was replaced before runs were marked left: it reads as left.
+	 */
 	async runs(): Promise<RunRecord<J, Q>[]> {
-		const tx = this.db.transaction('runs', 'readonly');
+		const tx = this.db.transaction(['runs', 'meta'], 'readonly');
+		const meta = (await req(tx.objectStore('meta').get('active'))) as { runId: string } | undefined;
 		const all = (await req(tx.objectStore('runs').getAll())) as RunRecord<J, Q>[];
-		return all.sort((a, b) => b.createdAt - a.createdAt);
+		const stale = (r: RunRecord<J, Q>) => r.status === 'active' && r.runId !== meta?.runId;
+		return all.map((r) => (stale(r) ? { ...r, status: 'left' as const } : r)).sort((a, b) => b.createdAt - a.createdAt);
 	}
 
 	/** Missions with at least one run played to the end (bankrupt runs do not count). */

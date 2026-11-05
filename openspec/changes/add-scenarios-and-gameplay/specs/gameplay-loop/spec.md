@@ -44,12 +44,20 @@ Clients SHALL warn at decision points when a position's liquidation price is wit
 ### Requirement: Game over on bankruptcy
 When the engine reports `account_bankrupt`, the client SHALL end the mission with a game-over screen that leads directly to the debrief. In Campaign, virtual capital SHALL carry over between the missions of a campaign run, and bankruptcy SHALL end the whole campaign run; a new campaign run SHALL start from the campaign's initial capital. Game over SHALL NOT remove completed lessons, unlocked stages, cosmetics or purchases.
 
-A campaign run SHALL play the curriculum's assessment missions in stage order. Each mission's starting capital SHALL be the engine's final equity of the mission before, given to the engine as a run start option, so the engine remains the only source of balances and a replay reproduces the run. A run that ends with no capital left SHALL end the campaign run like a bankruptcy. Leaving a campaign mission for another run SHALL carry the equity it had when it was left, and the campaign run SHALL stay on that mission, so leaving never restores lost capital.
+A campaign run SHALL play the curriculum's assessment missions in stage order. Each mission's starting capital SHALL be the engine's final equity of the mission before, given to the engine as a run start option, so the engine remains the only source of balances and a replay reproduces the run. A run that ends (or is left) with less than the campaign minimum, 1% of the campaign's initial capital, SHALL end the campaign run like a bankruptcy and SHALL NOT pass its stages: the engine ends a run only when the minimum order is unaffordable at that mission's own leverage cap, and the next mission may cap leverage lower. The debrief SHALL say why the campaign run ends. Leaving a campaign mission for another run SHALL carry the equity it had when it was left, and the campaign run SHALL stay on that mission, so leaving never restores lost capital. Ending a campaign run by choice SHALL ask for confirmation, and its mission in progress SHALL end with it (no longer resumable as a campaign mission).
 
 #### Scenario: Bankrupt mid-campaign
 - **WHEN** the player goes bankrupt in mission 4 of a campaign run
 - **THEN** the campaign run SHALL end with a game-over screen and debrief
 - **AND** a new campaign run SHALL be offered with initial capital and all previously unlocked stages intact
+
+#### Scenario: Liquidated below the campaign minimum
+- **WHEN** a campaign mission ends with 0.61 of capital after a liquidation at 20x, and the engine still finishes the run because the minimum order is affordable at that mission's cap
+- **THEN** the campaign run SHALL end as bankrupt, the mission's stage SHALL NOT be passed and no next mission SHALL be offered
+
+#### Scenario: Ending a campaign run with a mission in progress
+- **WHEN** the player ends the campaign run from the menu while its mission is resumable
+- **THEN** the menu SHALL ask for confirmation first, and after it the mission SHALL no longer be offered for resume
 
 #### Scenario: Capital carried
 - **WHEN** the player finishes the first campaign mission with an equity of 9,420.50

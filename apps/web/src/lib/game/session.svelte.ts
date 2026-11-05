@@ -261,9 +261,21 @@ export class GameSession {
 		});
 	}
 
-	/** Ends the active campaign run; passed stages and every other progress stay. */
-	endCampaign(): void {
-		this.saveProgress(abandonCampaign(this.progress));
+	/**
+	 * Ends the active campaign run; passed stages and every other progress stay. Its mission in
+	 * progress is left with it (advice charged, no longer resumable) instead of resuming as a
+	 * campaign mission of a campaign that is over.
+	 */
+	async endCampaign(): Promise<void> {
+		await this.exclusive(async () => {
+			const c = this.progress.campaign;
+			if (c && this.saved?.campaign?.id === c.id) {
+				await this.settleAbandoned();
+				await this.store?.leaveActiveRun().catch(() => (this.durable = false));
+				this.saved = null;
+			}
+			this.saveProgress(abandonCampaign(this.progress));
+		});
 	}
 
 	private async launch(missionId: string, seed: number, options: RunOptionsView, campaign: CampaignLink | null): Promise<void> {

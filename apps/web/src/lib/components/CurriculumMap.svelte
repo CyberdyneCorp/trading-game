@@ -30,7 +30,7 @@
 		<p data-testid="curriculum-summary">{t('curriculum.summary', { passed: summary.passed, total: summary.withContent })}</p>
 		<p>{t('curriculum.completed', { n: session.completed.length, total: session.missions.length })}</p>
 		<p>
-			{t('campaign.played', { n: session.progress.campaignHistory.length })}{#if best} · {t('campaign.best', { capital: fmtMoney(best, L) })}{/if}
+			{t('campaign.played', { n: session.progress.campaignHistory.length })}{#if best}{' · '}{t('campaign.best', { capital: fmtMoney(best, L) })}{/if}
 		</p>
 	</section>
 
