@@ -119,7 +119,7 @@ std::optional<BranchRequest> parse_branch(const char* json, std::string* bad) {
   if (!step || *step < 0 || *step > 1'000'000) *bad = "branchStep";
   else if (!seed || *seed < 0 || *seed > 0xFFFF'FFFFLL) *bad = "branchSeed";
   else if (b.mission.empty()) *bad = "branchMission";
-  if (!bad->empty()) return std::nullopt;
+  if (!bad->empty() || !step || !seed) return std::nullopt;
   b.step = static_cast<std::uint32_t>(*step);
   b.seed = static_cast<std::uint64_t>(*seed);
   return b;
