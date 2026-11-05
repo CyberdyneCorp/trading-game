@@ -4,6 +4,7 @@
 
 #include "accounting.hpp"
 #include "tradelab/advisor.hpp"
+#include "tradelab/lessons.hpp"
 #include "options_exec.hpp"
 
 namespace tradelab {
@@ -245,6 +246,27 @@ CommandResult answer_question(const Scenario& sc, RunState& st, const Command& c
   return CommandResult{true, Reason::None, 0, Reason::None};
 }
 
+// Task 4.5: a structured answer to one of the mission's lesson questions, once per question. It is a
+// score input only (the understanding dimension): no time passes and nothing else changes.
+CommandResult answer_lesson(const Scenario& sc, RunState& st, const Command& c) {
+  const Rubric* rubric = rubric_for(sc.id);
+  if (rubric == nullptr || c.question >= rubric->questions.size()) return reject(Reason::UnknownQuestion);
+  const bool answered = std::any_of(st.lesson_answers.begin(), st.lesson_answers.end(),
+                                    [&c](const LessonAnswer& a) { return a.question == c.question; });
+  if (answered) return reject(Reason::AlreadyAnswered);
+  const LessonQuestion& q = rubric->questions[c.question];
+  const bool valid = q.numeric ? c.value.raw >= 0 : c.choice < q.choices;
+  if (!c.skipped && !valid) return reject(Reason::InvalidAnswer);
+  LessonAnswer a;
+  a.step = st.step;
+  a.question = c.question;
+  a.skipped = c.skipped;
+  if (!c.skipped && q.numeric) a.value = c.value;
+  if (!c.skipped && !q.numeric) a.choice = c.choice;
+  st.lesson_answers.push_back(a);
+  return CommandResult{true, Reason::None, 0, Reason::None};
+}
+
 // Spec advisor "Advice is a rationed, logged command": no time passes, nothing else changes.
 CommandResult request_advice(const Scenario& sc, RunState& st) {
   st.advice.push_back(advise(sc, st));
@@ -264,6 +286,7 @@ CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
     case CommandType::AnswerQuestion: return answer_question(sc, st, c);
     case CommandType::RequestAdvice: return request_advice(sc, st);
     case CommandType::MoveOrder: return move_order(sc, st, c);
+    case CommandType::AnswerLesson: return answer_lesson(sc, st, c);
   }
   return reject(Reason::UnsupportedOrderType);
 }

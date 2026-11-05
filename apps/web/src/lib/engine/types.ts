@@ -56,7 +56,10 @@ export type ReasonCode =
 	| 'no_advice_left'
 	| 'order_moved'
 	| 'leverage_above_tier'
-	| 'series_settling';
+	| 'series_settling'
+	| 'unknown_question'
+	| 'already_answered'
+	| 'invalid_answer';
 
 export type EventTypeName =
 	| 'order'
@@ -140,11 +143,56 @@ export type FindingCode =
 	| 'iv_crush'
 	| 'good_process_win'
 	| 'iv_rise'
-	| 'wrote_options';
+	| 'wrote_options'
+	| 'leverage_vs_stop'
+	| 'liq_buffer'
+	| 'drawdown_budget';
 
 export type FindingTone = 'good' | 'warn' | 'bad' | 'info';
 
 export type LessonCode = 'futures2' | 'risk' | 'futures3' | 'orders' | 'structure' | 'evaluation' | 'options';
+
+/**
+ * What a mission asks of the player (task 4.1): the client renders each code as text in the player's
+ * language; the objective's `valueBp` is its number where it has one (a share in basis points).
+ */
+export type ObjectiveCode =
+	| 'plan_every_entry'
+	| 'risk_per_idea'
+	| 'no_liquidation_wait_ok'
+	| 'liq_distance'
+	| 'leverage_from_stop'
+	| 'liquidation_loses_margin'
+	| 'bankruptcy_game_over'
+	| 'option_lose_scenario'
+	| 'premium_vs_breakeven'
+	| 'watch_iv_event'
+	| 'writer_worst_case'
+	| 'maintenance_buffer'
+	| 'theta_for_seller'
+	| 'limit_orders_at_zones'
+	| 'unfilled_limit_ok'
+	| 'risk_from_stop'
+	| 'trail_not_tighter_than_atr'
+	| 'drawdown_budget'
+	| 'regime_in_plan'
+	| 'one_tool_per_regime'
+	| 'straddle_breakevens'
+	| 'straddle_lose_scenario'
+	| 'premium_budget'
+	| 'structure_max_loss'
+	| 'written_margin_buffer'
+	| 'funding_vs_theta'
+	| 'decide_before_release'
+	| 'no_chasing_headline'
+	| 'risk_with_gap'
+	| 'finish_mission'
+	| 'plan_and_stop_every_entry'
+	| 'no_liquidation_no_margin_call'
+	| 'read_campaign_report';
+
+/** What the player did at a decision point (task 4.2, spec gameplay-loop "Waiting is a decision"). */
+export type DecisionKind = 'wait' | 'hold' | 'act';
 
 /** How a round trip ended (scoring v10: from the order type; a stop in profit is a stop). */
 export type ExitReason =
@@ -416,6 +464,38 @@ export interface AdvisorState {
 	advice: AdviceView[];
 }
 
+/** A mission objective (task 4.1). */
+export interface MissionObjective {
+	code: ObjectiveCode;
+	valueBp: number;
+}
+
+/**
+ * Instrument permissions: long always, short = allowShort, options buying when a chain is listed,
+ * options writing when the option spec allows it.
+ */
+export interface MissionPermissions {
+	long: boolean;
+	short: boolean;
+	optionsBuy: boolean;
+	optionsWrite: boolean;
+}
+
+/** The mission's rules as the run plays them (task 4.1): what the briefing lists and the ticket enforces. */
+export interface MissionRulesView {
+	initialBalance: Decimal;
+	leverageCap: number;
+	warmupBars: number;
+	permissions: MissionPermissions;
+	objectives: MissionObjective[];
+	/** Warn at decision points when liquidation is closer than this to the last close (basis points). */
+	liqWarningBp: number;
+	/** Max drawdown the mission allows, basis points of the run's initial capital (risk score). */
+	drawdownBudgetBp: number;
+	/** The ticket asks for explicit confirmation of a stop beyond the liquidation price. */
+	confirmStopBeyondLiq: boolean;
+}
+
 export interface GameState {
 	mission: string;
 	alias: string;
@@ -433,6 +513,7 @@ export interface GameState {
 	initialBalance: Decimal;
 	leverage: number;
 	contract: Contract;
+	missionRules: MissionRulesView;
 	bars: BarTuple[];
 	account: Account;
 	position: Position;
@@ -502,6 +583,18 @@ export interface RecordPlanCommand {
 export interface AnswerQuestionCommand {
 	clientId: number;
 	pBp: number;
+	skipped: boolean;
+}
+
+/**
+ * tl_answer_lesson: a lesson question of the mission's rubric (scoring v11); `choice` for multiple
+ * choice, `value` (decimal string) for a numeric question.
+ */
+export interface AnswerLessonCommand {
+	clientId: number;
+	question: number;
+	choice: number;
+	value: string | null;
 	skipped: boolean;
 }
 
@@ -674,6 +767,52 @@ export interface PackReveal {
 	gapPolicy: PackGapPolicy;
 }
 
+/** What the player did at one decision step (engine decision record, task 4.2). */
+export interface DecisionView {
+	step: number;
+	kind: DecisionKind;
+}
+
+export type LessonKind = 'choice' | 'numeric';
+
+/** A lesson question without its key (texts are in the client catalogs by id). */
+export interface LessonQuestionInfo {
+	id: string;
+	kind: LessonKind;
+	/** Multiple choice: number of options; 0 for a numeric question. */
+	choices: number;
+	points: number;
+}
+
+/** tl_lesson: a mission's lesson questions without the answer key (task 4.5). */
+export interface LessonInfo {
+	mission: string;
+	reviewed: boolean;
+	questions: LessonQuestionInfo[];
+}
+
+/** Debrief: one lesson question with the player's answer and the key. */
+export interface LessonResultView {
+	id: string;
+	kind: LessonKind;
+	points: number;
+	maxPoints: number;
+	answered: boolean;
+	skipped: boolean;
+	correct: boolean;
+	/** Choice index or decimal string; null when skipped or unanswered. */
+	given: number | Decimal | null;
+	answer: number | Decimal;
+}
+
+/** Debrief: the lesson questions of the mission's rubric (scoring v11). */
+export interface LessonResults {
+	reviewed: boolean;
+	points: number;
+	total: number;
+	questions: LessonResultView[];
+}
+
 export interface DebriefData {
 	mission: string;
 	alias: string;
@@ -711,6 +850,12 @@ export interface DebriefData {
 	reveal?: PackReveal;
 	/** Built-in missions (scoring v9): signals by revealed regime over this run's decision window. */
 	regimes?: RegimeSignals[];
+	/** Scoring v11: the mission's rules as the run played them. */
+	missionRules: MissionRulesView;
+	/** Scoring v11: what the player did at each decision step the run advanced through. */
+	decisions: DecisionView[];
+	/** Scoring v11: the lesson questions; null for a mission without a rubric. */
+	lessons: LessonResults | null;
 }
 
 /** One release as it played: the drawn outcome (G2) and what the market did with it. */

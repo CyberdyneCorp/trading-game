@@ -58,6 +58,8 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_adjust_margin": (c_char_p, [c_void_p, u32, c_char_p]),
         "tl_record_plan": (c_char_p, [c_void_p, u32, i32, i32, i32, i32, c_char_p, c_char_p, i32, c_char_p]),
         "tl_answer_question": (c_char_p, [c_void_p, u32, i32, i32]),
+        "tl_answer_lesson": (c_char_p, [c_void_p, u32, u32, u32, c_char_p, i32]),
+        "tl_lesson": (c_char_p, [c_char_p]),
         "tl_checkpoint": (c_char_p, [c_void_p]),
         "tl_run_restore": (c_void_p, [c_char_p, u32, c_char_p]),
         "tl_advance": (c_char_p, [c_void_p, i32]),
@@ -105,6 +107,11 @@ def mission_reveal(mission_id: str, seed: int) -> dict[str, Any]:
     """G4 seeded reveal of a built-in mission: regime spans as played and event outcomes, or
     {"error": "unknown_mission"}. It describes a run's future: only for finished runs (design D6)."""
     return _json(load_library().tl_mission_reveal(mission_id.encode(), seed))
+
+
+def lesson(mission_id: str) -> dict[str, Any]:
+    """The mission's lesson questions without the answer key (task 4.5), or {"error": "no_lesson"}."""
+    return _json(load_library().tl_lesson(mission_id.encode()))
 
 
 # ---- scenario packs and CSV import (spec scenario-packs) ----
@@ -283,6 +290,9 @@ class Run:
 
     def answer_question(self, cid: int, p_bp: int, skipped: bool) -> Any:
         return _json(self._lib.tl_answer_question(self._h, cid, p_bp, int(skipped)))
+
+    def answer_lesson(self, cid: int, question: int, choice: int, value: str | None, skipped: bool) -> Any:
+        return _json(self._lib.tl_answer_lesson(self._h, cid, question, choice, _s(value), int(skipped)))
 
     def request_advice(self, cid: int) -> Any:
         return _json(self._lib.tl_request_advice(self._h, cid))

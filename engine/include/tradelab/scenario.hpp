@@ -63,11 +63,30 @@ struct CostModel {
   Rate capacity_fraction;  // share of bar volume the player can trade per step
 };
 
+// What a mission asks of the player (task 4.1); ObjectiveCode is declared in the IDL (idl_types.hpp).
+struct Objective {
+  ObjectiveCode code = ObjectiveCode::PlanEveryEntry;
+  std::uint32_t value_bp = 0;
+};
+
+// The objectives of a mission that declares none (imported packs): plan, 2% risk, no liquidation.
+inline std::vector<Objective> common_objectives() {
+  return {{ObjectiveCode::PlanEveryEntry, 0}, {ObjectiveCode::RiskPerIdea, 200}, {ObjectiveCode::NoLiquidationWaitOk, 0}};
+}
+
 struct MissionRules {
   Money initial_balance;
   std::int32_t leverage_cap = 1;
   std::uint32_t warmup_bars = 0;  // bars visible before the first decision point
   bool allow_short = true;
+  // Mission schema (task 4.1). Never inputs to execution: the client renders them, and the score's risk
+  // dimension reads the two budgets (scoring v11). Instrument permissions are the contract's and the
+  // option spec's own: long always, short `allow_short`, options buying when a chain is listed,
+  // options writing `options.allow_short`.
+  std::vector<Objective> objectives = common_objectives();
+  std::uint32_t liq_warning_bp = 300;       // warn at decision points when liquidation is closer than this to the last close
+  std::uint32_t drawdown_budget_bp = 2000;  // max drawdown the mission allows, share of the run's initial capital
+  bool confirm_stop_beyond_liq = true;      // the ticket asks for explicit confirmation of a stop beyond liquidation
   GapPolicy gap_policy = GapPolicy::Skip;  // continuity bars in indicators (policy v17)
 };
 

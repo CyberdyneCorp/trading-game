@@ -31,6 +31,9 @@
 			{:else}
 				<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
 			{/if}
+			{#if session.runAssisted}
+				<span class="tag attention" title={t('assist.banner')} data-testid="assisted-tag">{t('assist.tag')}</span>
+			{/if}
 			{#if branch !== null}
 				<span class="tag attention" title={t('top.branchNote', { bar: branch })} data-testid="branch-tag">{t('top.branch')}</span>
 			{/if}

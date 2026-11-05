@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EngineFinding, EngineTrade, NewsView, PackReveal, RegimeSpan } from '#lib/engine/types.ts';
 import { describeFinding, describeFindings, describeLesson } from './analysis.ts';
-import { entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from './debrief.ts';
+import { decisionCounts, entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from './debrief.ts';
 import { headline } from './news.ts';
 import { i18n } from './i18n.svelte.ts';
 
@@ -170,5 +170,39 @@ describe('debrief rows (playtest regressions)', () => {
 		const n: NewsView = { step: 80, kind: 'liquidity_outflow', tone: -1, credibility: 90, expectation: 0, actual: -2, early: false };
 		const rows = newsTimeline([n, { ...n, step: 95, early: true }], 'pt-BR');
 		expect(rows).toEqual([{ step: 80, key: 'n80-liquidity_outflow', text: `📰 ${headline(n, 'pt-BR')}`, tone: 'down' }]);
+	});
+});
+
+describe('decision records', () => {
+	it('counts acted, held and waited decisions', () => {
+		expect(
+			decisionCounts([
+				{ step: 60, kind: 'wait' },
+				{ step: 61, kind: 'act' },
+				{ step: 62, kind: 'hold' },
+				{ step: 63, kind: 'hold' }
+			])
+		).toEqual({ act: 1, hold: 2, wait: 1 });
+		expect(decisionCounts([])).toEqual({ act: 0, hold: 0, wait: 0 });
+	});
+});
+
+describe('scoring v11 risk findings', () => {
+	const base: EngineFinding = { code: 'liq_buffer', tone: 'warn', step: 0, count: 230, price: '0', requested: '0', amount: '0' };
+	it('says how close liquidation came, in the locale', () => {
+		expect(describeFinding(base, 'pt-BR')).toContain('2,3%');
+		expect(describeFinding(base, 'en')).toContain('2.3%');
+	});
+	it('names the drawdown budget and the drawdown', () => {
+		const f: EngineFinding = { ...base, code: 'drawdown_budget', count: 1000, amount: '1200' };
+		expect(describeFinding(f, 'pt-BR')).toContain('10%');
+		expect(describeFinding(f, 'pt-BR')).toContain('1.200,00');
+	});
+	it('names the leverage, the stop and the liquidation price of a stop too close to liquidation', () => {
+		const f: EngineFinding = { ...base, code: 'leverage_vs_stop', step: 61, count: 12, price: '96', requested: '92.6' };
+		const text = describeFinding(f, 'pt-BR');
+		expect(text).toContain('12x');
+		expect(text).toContain('92,60');
+		expect(text).toContain('96,00');
 	});
 });

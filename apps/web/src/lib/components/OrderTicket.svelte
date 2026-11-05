@@ -145,6 +145,15 @@
 	const stopWrongSide = $derived(stop != null && !stopOnLosingSide(side, entry, stop));
 	const tpWrongSide = $derived(tp != null && !targetOnWinningSide(side, entry, tp));
 	const needsPrice = $derived(orderType !== 'market');
+	// A stop beyond liquidation needs an explicit confirmation when the mission asks for one (engine
+	// MissionRules, task 4.1); the confirmation belongs to the exact order it was given for.
+	let beyondConfirmed = $state(false);
+	const beyondKey = $derived(`${side}|${qty}|${lev}|${stopInput}|${orderType}|${priceInput}`);
+	$effect(() => {
+		void beyondKey;
+		beyondConfirmed = false;
+	});
+	const needsBeyondConfirm = $derived(est.stopBeyondLiquidation && s.missionRules.confirmStopBeyondLiq);
 	const canSubmit = $derived(
 		!session.busy &&
 			qty > 0 &&
@@ -153,6 +162,7 @@
 			!aboveTier &&
 			!stopWrongSide &&
 			!tpWrongSide &&
+			(!needsBeyondConfirm || beyondConfirmed) &&
 			(!needsPrice || parseDecimal(priceInput) > 0)
 	);
 
@@ -220,6 +230,16 @@
 	const protStopWarn = $derived(
 		protStopN != null && !stopOnLosingSide(posSide, mark, protStopN) ? t('level.protStopSide', { price: fmtPrice(s.account.mark, L) }) : null
 	);
+	// A protective stop for the open position beyond its liquidation price also asks for confirmation.
+	const liqNow = $derived(s.account.liquidationPrice ? num(s.account.liquidationPrice) : null);
+	const protBeyond = $derived(
+		protStopN != null && liqNow != null && (posQty > 0 ? protStopN <= liqNow : protStopN >= liqNow) && s.missionRules.confirmStopBeyondLiq
+	);
+	let protConfirmed = $state(false);
+	$effect(() => {
+		void protStop;
+		protConfirmed = false;
+	});
 	const protTpWarn = $derived(
 		protTpN != null && !targetOnWinningSide(posSide, mark, protTpN) ? t('level.protTpSide', { price: fmtPrice(s.account.mark, L) }) : null
 	);
@@ -359,7 +379,17 @@
 			⚠ {t('ticket.aboveTier', { notional: fmtMoney(notionalAfter, L), max: tier.maxLeverage, mmr: fmtPct(tier.mmr, L, 1) })}
 		</p>
 	{/if}
-	{#if est.stopBeyondLiquidation}<p class="warnbox" role="alert">⚠ {t('ticket.stopBeyondLiq')}</p>{/if}
+	{#if est.stopBeyondLiquidation}
+		<div class="warnbox" role="alert" data-testid="ticket-beyond-liq">
+			⚠ {t('ticket.stopBeyondLiq')}
+			{#if needsBeyondConfirm}
+				<label class="confirm">
+					<input type="checkbox" bind:checked={beyondConfirmed} data-testid="ticket-confirm-beyond" />
+					{t('ticket.confirmBeyond')}
+				</label>
+			{/if}
+		</div>
+	{/if}
 	{#if stop == null && qty > 0}<p class="small attention">{t('ticket.noStop')}</p>{/if}
 	<p class="small muted">{t('ticket.attachNote')}</p>
 
@@ -397,7 +427,16 @@
 			</div>
 		</div>
 		<div class="row">
-			<button onclick={protect} disabled={session.busy || !!protStopWarn || !!protTpWarn || (!protStop && !protTp && !trailSet)}>
+			{#if protBeyond}
+				<div class="warnbox" role="alert" data-testid="protect-beyond-liq">
+					⚠ {t('ticket.stopBeyondLiq')}
+					<label class="confirm"><input type="checkbox" bind:checked={protConfirmed} data-testid="protect-confirm-beyond" /> {t('ticket.confirmBeyond')}</label>
+				</div>
+			{/if}
+			<button
+				onclick={protect}
+				disabled={session.busy || !!protStopWarn || !!protTpWarn || (protBeyond && !protConfirmed) || (!protStop && !protTp && !trailSet)}
+			>
 				{t('ticket.protectSubmit')}
 			</button>
 			<button class="warn" onclick={() => session.closePosition()} disabled={session.busy}>✕ {t('ticket.close')} <kbd>X</kbd></button>
@@ -446,6 +485,18 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
+	}
+	/* The stop-beyond-liquidation confirmation: checkbox beside its sentence, not on a line of its own. */
+	label.confirm {
+		flex-direction: row;
+		align-items: flex-start;
+		gap: 0.4rem;
+		margin-top: 0.3rem;
+		color: inherit;
+	}
+	label.confirm input {
+		margin: 0.1rem 0 0;
+		flex-shrink: 0;
 	}
 	.est {
 		font-size: 0.85rem;

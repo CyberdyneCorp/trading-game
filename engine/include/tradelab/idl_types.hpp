@@ -108,6 +108,12 @@ enum class Reason : std::uint8_t {
   LeverageAboveTier = 33,
   // The option order would execute inside its series' settlement window (policy v17).
   SeriesSettling = 34,
+  // AnswerLesson: the mission has no such lesson question (scoring v11).
+  UnknownQuestion = 35,
+  // AnswerLesson: each question is answered once.
+  AlreadyAnswered = 36,
+  // AnswerLesson: choice out of range or a negative numeric answer.
+  InvalidAnswer = 37,
 };
 
 constexpr const char* json_name(Reason v) {
@@ -147,6 +153,9 @@ constexpr const char* json_name(Reason v) {
     case Reason::OrderMoved: return "order_moved";
     case Reason::LeverageAboveTier: return "leverage_above_tier";
     case Reason::SeriesSettling: return "series_settling";
+    case Reason::UnknownQuestion: return "unknown_question";
+    case Reason::AlreadyAnswered: return "already_answered";
+    case Reason::InvalidAnswer: return "invalid_answer";
   }
   return "unknown";
 }
@@ -214,6 +223,8 @@ enum class CommandType : std::uint8_t {
   RequestAdvice = 8,
   // order_id + price: moves a working reduce-only stop/take-profit, keeping its OCO link (v13).
   MoveOrder = 9,
+  // question + choice or value: a structured lesson answer (understanding dimension, scoring v11).
+  AnswerLesson = 10,
 };
 
 constexpr const char* json_name(CommandType v) {
@@ -228,6 +239,7 @@ constexpr const char* json_name(CommandType v) {
     case CommandType::AnswerQuestion: return "answer_question";
     case CommandType::RequestAdvice: return "request_advice";
     case CommandType::MoveOrder: return "move_order";
+    case CommandType::AnswerLesson: return "answer_lesson";
   }
   return "unknown";
 }
@@ -394,6 +406,12 @@ enum class FindingCode : std::uint8_t {
   IvRise = 17,
   // Options were written and no margin call followed: risk limited by neither a stop nor a premium.
   WroteOptions = 18,
+  // Scoring v11: liquidation closer to the entry than twice the stop distance (step, leverage, stop, liquidation price).
+  LeverageVsStop = 19,
+  // Scoring v11: the closest liquidation distance at a close fell below the mission's warning distance (count = bp).
+  LiqBuffer = 20,
+  // Scoring v11: max drawdown above the mission's drawdown budget (count = budget bp, amount = drawdown).
+  DrawdownBudget = 21,
 };
 
 constexpr const char* json_name(FindingCode v) {
@@ -417,6 +435,9 @@ constexpr const char* json_name(FindingCode v) {
     case FindingCode::GoodProcessWin: return "good_process_win";
     case FindingCode::IvRise: return "iv_rise";
     case FindingCode::WroteOptions: return "wrote_options";
+    case FindingCode::LeverageVsStop: return "leverage_vs_stop";
+    case FindingCode::LiqBuffer: return "liq_buffer";
+    case FindingCode::DrawdownBudget: return "drawdown_budget";
   }
   return "unknown";
 }
@@ -457,6 +478,113 @@ constexpr const char* json_name(LessonCode v) {
     case LessonCode::Structure: return "structure";
     case LessonCode::Evaluation: return "evaluation";
     case LessonCode::Options: return "options";
+  }
+  return "unknown";
+}
+
+// What a mission asks of the player (task 4.1): the client renders each code as text in the player's
+// language; the objective's `valueBp` is its number where it has one (a share in basis points).
+enum class ObjectiveCode : std::uint8_t {
+  // A hypothesis and an invalidation level before every entry.
+  PlanEveryEntry = 0,
+  // Planned risk of at most valueBp of equity per idea.
+  RiskPerIdea = 1,
+  // Do not get liquidated; waiting is a valid decision.
+  NoLiquidationWaitOk = 2,
+  // Keep the distance to liquidation above valueBp.
+  LiqDistance = 3,
+  // Choose leverage from the stop, not from the cap.
+  LeverageFromStop = 4,
+  LiquidationLosesMargin = 5,
+  BankruptcyGameOver = 6,
+  // Before buying, write the scenario in which the option loses.
+  OptionLoseScenario = 7,
+  PremiumVsBreakeven = 8,
+  WatchIvEvent = 9,
+  // Before writing, compute the margin and the worst case.
+  WriterWorstCase = 10,
+  MaintenanceBuffer = 11,
+  ThetaForSeller = 12,
+  LimitOrdersAtZones = 13,
+  UnfilledLimitOk = 14,
+  // Risk of at most valueBp per idea, quantity set by the stop.
+  RiskFromStop = 15,
+  TrailNotTighterThanAtr = 16,
+  // Finish without a drawdown above valueBp (the mission's drawdown budget).
+  DrawdownBudget = 17,
+  RegimeInPlan = 18,
+  OneToolPerRegime = 19,
+  StraddleBreakevens = 20,
+  StraddleLoseScenario = 21,
+  // Do not pay more than valueBp of equity in premium.
+  PremiumBudget = 22,
+  StructureMaxLoss = 23,
+  WrittenMarginBuffer = 24,
+  FundingVsTheta = 25,
+  DecideBeforeRelease = 26,
+  NoChasingHeadline = 27,
+  // Planned risk of at most valueBp, counting the gap.
+  RiskWithGap = 28,
+  FinishMission = 29,
+  PlanAndStopEveryEntry = 30,
+  NoLiquidationNoMarginCall = 31,
+  ReadCampaignReport = 32,
+};
+
+constexpr const char* json_name(ObjectiveCode v) {
+  switch (v) {
+    case ObjectiveCode::PlanEveryEntry: return "plan_every_entry";
+    case ObjectiveCode::RiskPerIdea: return "risk_per_idea";
+    case ObjectiveCode::NoLiquidationWaitOk: return "no_liquidation_wait_ok";
+    case ObjectiveCode::LiqDistance: return "liq_distance";
+    case ObjectiveCode::LeverageFromStop: return "leverage_from_stop";
+    case ObjectiveCode::LiquidationLosesMargin: return "liquidation_loses_margin";
+    case ObjectiveCode::BankruptcyGameOver: return "bankruptcy_game_over";
+    case ObjectiveCode::OptionLoseScenario: return "option_lose_scenario";
+    case ObjectiveCode::PremiumVsBreakeven: return "premium_vs_breakeven";
+    case ObjectiveCode::WatchIvEvent: return "watch_iv_event";
+    case ObjectiveCode::WriterWorstCase: return "writer_worst_case";
+    case ObjectiveCode::MaintenanceBuffer: return "maintenance_buffer";
+    case ObjectiveCode::ThetaForSeller: return "theta_for_seller";
+    case ObjectiveCode::LimitOrdersAtZones: return "limit_orders_at_zones";
+    case ObjectiveCode::UnfilledLimitOk: return "unfilled_limit_ok";
+    case ObjectiveCode::RiskFromStop: return "risk_from_stop";
+    case ObjectiveCode::TrailNotTighterThanAtr: return "trail_not_tighter_than_atr";
+    case ObjectiveCode::DrawdownBudget: return "drawdown_budget";
+    case ObjectiveCode::RegimeInPlan: return "regime_in_plan";
+    case ObjectiveCode::OneToolPerRegime: return "one_tool_per_regime";
+    case ObjectiveCode::StraddleBreakevens: return "straddle_breakevens";
+    case ObjectiveCode::StraddleLoseScenario: return "straddle_lose_scenario";
+    case ObjectiveCode::PremiumBudget: return "premium_budget";
+    case ObjectiveCode::StructureMaxLoss: return "structure_max_loss";
+    case ObjectiveCode::WrittenMarginBuffer: return "written_margin_buffer";
+    case ObjectiveCode::FundingVsTheta: return "funding_vs_theta";
+    case ObjectiveCode::DecideBeforeRelease: return "decide_before_release";
+    case ObjectiveCode::NoChasingHeadline: return "no_chasing_headline";
+    case ObjectiveCode::RiskWithGap: return "risk_with_gap";
+    case ObjectiveCode::FinishMission: return "finish_mission";
+    case ObjectiveCode::PlanAndStopEveryEntry: return "plan_and_stop_every_entry";
+    case ObjectiveCode::NoLiquidationNoMarginCall: return "no_liquidation_no_margin_call";
+    case ObjectiveCode::ReadCampaignReport: return "read_campaign_report";
+  }
+  return "unknown";
+}
+
+// What the player did at a decision point (task 4.2, spec gameplay-loop "Waiting is a decision").
+enum class DecisionKind : std::uint8_t {
+  // No order placed, cancelled or moved, no leverage or margin change, and no exposure.
+  Wait = 0,
+  // No such command while a position (perpetual or option) stayed open.
+  Hold = 1,
+  // At least one accepted command that placed, cancelled or moved an order, or changed leverage or margin.
+  Act = 2,
+};
+
+constexpr const char* json_name(DecisionKind v) {
+  switch (v) {
+    case DecisionKind::Wait: return "wait";
+    case DecisionKind::Hold: return "hold";
+    case DecisionKind::Act: return "act";
   }
   return "unknown";
 }

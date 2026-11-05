@@ -87,6 +87,12 @@ enum Reason : u8 [ts=ReasonCode] {
   LeverageAboveTier = 33
   /// The option order would execute inside its series' settlement window (policy v17).
   SeriesSettling = 34
+  /// AnswerLesson: the mission has no such lesson question (scoring v11).
+  UnknownQuestion = 35
+  /// AnswerLesson: each question is answered once.
+  AlreadyAnswered = 36
+  /// AnswerLesson: choice out of range or a negative numeric answer.
+  InvalidAnswer = 37
 }
 
 enum EventType : u8 [ts=EventTypeName] {
@@ -127,6 +133,8 @@ enum CommandType : u8 [cpp_only] {
   RequestAdvice = 8
   /// order_id + price: moves a working reduce-only stop/take-profit, keeping its OCO link (v13).
   MoveOrder = 9
+  /// question + choice or value: a structured lesson answer (understanding dimension, scoring v11).
+  AnswerLesson = 10
 }
 
 /// Advisor (spec advisor): what the advice says. Short/Wait/Long = -1/0/+1.
@@ -218,6 +226,12 @@ enum FindingCode : u8 {
   IvRise = 17
   /// Options were written and no margin call followed: risk limited by neither a stop nor a premium.
   WroteOptions = 18
+  /// Scoring v11: liquidation closer to the entry than twice the stop distance (step, leverage, stop, liquidation price).
+  LeverageVsStop = 19
+  /// Scoring v11: the closest liquidation distance at a close fell below the mission's warning distance (count = bp).
+  LiqBuffer = 20
+  /// Scoring v11: max drawdown above the mission's drawdown budget (count = budget bp, amount = drawdown).
+  DrawdownBudget = 21
 }
 
 enum FindingTone : u8 {
@@ -235,6 +249,65 @@ enum LessonCode : u8 {
   Structure = 4
   Evaluation = 5
   Options = 6
+}
+
+/// What a mission asks of the player (task 4.1): the client renders each code as text in the player's
+/// language; the objective's `valueBp` is its number where it has one (a share in basis points).
+enum ObjectiveCode : u8 {
+  /// A hypothesis and an invalidation level before every entry.
+  PlanEveryEntry = 0
+  /// Planned risk of at most valueBp of equity per idea.
+  RiskPerIdea = 1
+  /// Do not get liquidated; waiting is a valid decision.
+  NoLiquidationWaitOk = 2
+  /// Keep the distance to liquidation above valueBp.
+  LiqDistance = 3
+  /// Choose leverage from the stop, not from the cap.
+  LeverageFromStop = 4
+  LiquidationLosesMargin = 5
+  BankruptcyGameOver = 6
+  /// Before buying, write the scenario in which the option loses.
+  OptionLoseScenario = 7
+  PremiumVsBreakeven = 8
+  WatchIvEvent = 9
+  /// Before writing, compute the margin and the worst case.
+  WriterWorstCase = 10
+  MaintenanceBuffer = 11
+  ThetaForSeller = 12
+  LimitOrdersAtZones = 13
+  UnfilledLimitOk = 14
+  /// Risk of at most valueBp per idea, quantity set by the stop.
+  RiskFromStop = 15
+  TrailNotTighterThanAtr = 16
+  /// Finish without a drawdown above valueBp (the mission's drawdown budget).
+  DrawdownBudget = 17
+  RegimeInPlan = 18
+  OneToolPerRegime = 19
+  StraddleBreakevens = 20
+  StraddleLoseScenario = 21
+  /// Do not pay more than valueBp of equity in premium.
+  PremiumBudget = 22
+  StructureMaxLoss = 23
+  WrittenMarginBuffer = 24
+  FundingVsTheta = 25
+  DecideBeforeRelease = 26
+  NoChasingHeadline = 27
+  /// Planned risk of at most valueBp, counting the gap.
+  RiskWithGap = 28
+  FinishMission = 29
+  PlanAndStopEveryEntry = 30
+  NoLiquidationNoMarginCall = 31
+  ReadCampaignReport = 32
+}
+
+/// What the player did at a decision point (task 4.2, spec gameplay-loop "Waiting is a decision").
+enum DecisionKind : u8 {
+  /// No order placed, cancelled or moved, no leverage or margin change, and no exposure.
+  Wait = 0
+  /// No such command while a position (perpetual or option) stayed open.
+  Hold = 1
+  /// At least one accepted command that placed, cancelled or moved an order, or changed leverage or margin.
+  Act = 2
 }
 
 /// How a round trip ended (scoring v10: from the order type; a stop in profit is a stop).
@@ -517,6 +590,36 @@ struct AdvisorState {
   advice: AdviceView[]
 }
 
+/// A mission objective (task 4.1).
+struct MissionObjective {
+  code: ObjectiveCode
+  valueBp: int
+}
+
+/// Instrument permissions: long always, short = allowShort, options buying when a chain is listed,
+/// options writing when the option spec allows it.
+struct MissionPermissions {
+  long: bool
+  short: bool
+  optionsBuy: bool
+  optionsWrite: bool
+}
+
+/// The mission's rules as the run plays them (task 4.1): what the briefing lists and the ticket enforces.
+struct MissionRulesView {
+  initialBalance: Decimal
+  leverageCap: int
+  warmupBars: int
+  permissions: MissionPermissions
+  objectives: MissionObjective[]
+  /// Warn at decision points when liquidation is closer than this to the last close (basis points).
+  liqWarningBp: int
+  /// Max drawdown the mission allows, basis points of the run's initial capital (risk score).
+  drawdownBudgetBp: int
+  /// The ticket asks for explicit confirmation of a stop beyond the liquidation price.
+  confirmStopBeyondLiq: bool
+}
+
 struct GameState {
   mission: string
   alias: string
@@ -534,6 +637,7 @@ struct GameState {
   initialBalance: Decimal
   leverage: int
   contract: Contract
+  missionRules: MissionRulesView
   bars: BarTuple[]
   account: Account
   position: Position
@@ -607,6 +711,16 @@ struct RecordPlanCommand {
 struct AnswerQuestionCommand {
   clientId: int
   pBp: int
+  skipped: bool
+}
+
+/// tl_answer_lesson: a lesson question of the mission's rubric (scoring v11); `choice` for multiple
+/// choice, `value` (decimal string) for a numeric question.
+struct AnswerLessonCommand {
+  clientId: int
+  question: int
+  choice: int
+  value: string | null
   skipped: bool
 }
 
@@ -779,6 +893,52 @@ struct PackReveal {
   gapPolicy: PackGapPolicy
 }
 
+/// What the player did at one decision step (engine decision record, task 4.2).
+struct DecisionView {
+  step: int
+  kind: DecisionKind
+}
+
+union LessonKind = "choice" | "numeric"
+
+/// A lesson question without its key (texts are in the client catalogs by id).
+struct LessonQuestionInfo {
+  id: string
+  kind: LessonKind
+  /// Multiple choice: number of options; 0 for a numeric question.
+  choices: int
+  points: int
+}
+
+/// tl_lesson: a mission's lesson questions without the answer key (task 4.5).
+struct LessonInfo {
+  mission: string
+  reviewed: bool
+  questions: LessonQuestionInfo[]
+}
+
+/// Debrief: one lesson question with the player's answer and the key.
+struct LessonResultView {
+  id: string
+  kind: LessonKind
+  points: int
+  maxPoints: int
+  answered: bool
+  skipped: bool
+  correct: bool
+  /// Choice index or decimal string; null when skipped or unanswered.
+  given: int | Decimal | null
+  answer: int | Decimal
+}
+
+/// Debrief: the lesson questions of the mission's rubric (scoring v11).
+struct LessonResults {
+  reviewed: bool
+  points: int
+  total: int
+  questions: LessonResultView[]
+}
+
 struct DebriefData {
   mission: string
   alias: string
@@ -816,6 +976,12 @@ struct DebriefData {
   reveal?: PackReveal
   /// Built-in missions (scoring v9): signals by revealed regime over this run's decision window.
   regimes?: RegimeSignals[]
+  /// Scoring v11: the mission's rules as the run played them.
+  missionRules: MissionRulesView
+  /// Scoring v11: what the player did at each decision step the run advanced through.
+  decisions: DecisionView[]
+  /// Scoring v11: the lesson questions; null for a mission without a rubric.
+  lessons: LessonResults | null
 }
 
 # --- Seeded reveal (tl_mission_reveal) --------------------------------------------------------

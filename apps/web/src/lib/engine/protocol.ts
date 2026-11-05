@@ -3,6 +3,7 @@
 
 import type {
 	AdjustMarginCommand,
+	AnswerLessonCommand,
 	AnswerQuestionCommand,
 	CancelOrderCommand,
 	ClientIdCommand,
@@ -13,6 +14,7 @@ import type {
 	DebriefData,
 	EngineVersion,
 	GameState,
+	LessonInfo,
 	MissionInfo,
 	MissionReveal,
 	MoveOrderCommand,
@@ -34,12 +36,15 @@ export type EngineRequest =
 	| { kind: 'csvBuild'; csv: string; meta: CsvMeta; seedHex: string }
 	| { kind: 'packValidate'; pack: Uint8Array; keys: TrustedKey[] }
 	| { kind: 'startPack'; pack: Uint8Array; keys: TrustedKey[]; seed: number }
+	// A mission's lesson questions without the key (tl_lesson, run-less).
+	| { kind: 'lesson'; missionId: string }
 	// Player commands: payload shapes generated from engine/idl (one C ABI call each).
 	| ({ kind: 'order' } & PlaceOrderCommand)
 	| ({ kind: 'option' } & PlaceOptionOrderCommand)
 	| ({ kind: 'margin' } & AdjustMarginCommand)
 	| ({ kind: 'plan' } & RecordPlanCommand)
 	| ({ kind: 'answer' } & AnswerQuestionCommand)
+	| ({ kind: 'lessonAnswer' } & AnswerLessonCommand)
 	| ({ kind: 'cancel' } & CancelOrderCommand)
 	| ({ kind: 'move' } & MoveOrderCommand)
 	| ({ kind: 'leverage' } & SetLeverageCommand)
@@ -76,6 +81,8 @@ interface ResponseMap {
 	startPack: GameState;
 	advance: GameState;
 	debrief: DebriefData;
+	/** Null for a mission without lesson questions. */
+	lesson: LessonInfo | null;
 	/** Null for runs on imported packs (their reveal is in the debrief). */
 	reveal: MissionReveal | null;
 }

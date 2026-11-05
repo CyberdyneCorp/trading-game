@@ -53,6 +53,7 @@
 				{missionText(run.missionId, L).title}
 				<span class="tag info">{t(`journal.mode.${run.mode}`)}</span>
 				{#if run.intel}<span class="tag attention" data-testid="journal-intel">{t('journal.intel')}</span>{/if}
+				{#if run.assisted}<span class="tag attention" data-testid="journal-assisted">{t('journal.assisted')}</span>{/if}
 				<span class="muted small">{new Date(run.createdAt).toLocaleString(L)} · seed {run.seed} · {t(`journal.status.${run.status}`)}</span>
 			</h2>
 			<ol class="entries">

@@ -173,6 +173,7 @@ void play_some(tl_run* run, std::uint32_t& id) {
   command(tl_place_order(run, ++id, 1, 0, "0.1", "1", 0));
   command(tl_place_trailing_rate(run, ++id, 1, "0.1", 1, "0.02"));
   command(tl_answer_question(run, ++id, 5000, 0));
+  for (std::uint32_t q = 0; q < 4; ++q) command(tl_answer_lesson(run, ++id, q, 0, q % 2 == 0 ? nullptr : "1", 0));
   command(tl_adjust_margin(run, ++id, "1"));
   command(tl_cancel_order(run, ++id, 999));
   command(tl_move_order(run, ++id, 999, "1"));
@@ -192,6 +193,7 @@ TEST_CASE("IDL conformance: version, missions and errors") {
     CHECK(v.errors.empty());
   }
   conforms(tl_mission_reveal("no-such-mission", 1), "EngineError");
+  conforms(tl_lesson("no-such-mission"), "EngineError");
   tl_run* run = tl_run_create("m01-false-breakout", 1);
   REQUIRE(run != nullptr);
   conforms(tl_debrief(run), "EngineError");
@@ -217,12 +219,17 @@ TEST_CASE("IDL conformance: state, debrief and reveal of every mission") {
     conforms(debrief, "DebriefData");
     debriefs += debrief;
     conforms(tl_mission_reveal(id_text.c_str(), 7), "MissionReveal");
+    const std::string lesson = tl_lesson(id_text.c_str());
+    conforms(lesson, lesson.find("\"error\"") == std::string::npos ? "LessonInfo" : "EngineError");
     tl_run_destroy(run);
   }
   CHECK(debriefs.find("\"kind\":\"call\"") != std::string::npos);  // an option trade row
   CHECK(debriefs.find("\"safeLeverage\":") != std::string::npos);    // a perpetual trade row
   CHECK(debriefs.find("\"greeks\":{") != std::string::npos);
   CHECK(debriefs.find("\"regimes\":[{") != std::string::npos);
+  CHECK(debriefs.find("\"decisions\":[{") != std::string::npos);
+  CHECK(debriefs.find("\"lessons\":{") != std::string::npos);
+  CHECK(debriefs.find("\"given\":\"") != std::string::npos);  // a numeric lesson answer
 }
 
 TEST_CASE("IDL conformance: CSV import, packs and pack runs") {
