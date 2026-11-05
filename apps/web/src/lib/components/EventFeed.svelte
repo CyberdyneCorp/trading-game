@@ -28,6 +28,7 @@
 	}
 
 	function orderLine(e: EngineEvent, L: Locale, names: EventNames): string | null {
+		if (e.reason === 'order_moved') return t('feed.moved', { id: e.orderId, price: fmtPrice(e.requested, L) });
 		if (e.status === 'accepted') {
 			const type = e.orderType ? ORDER_TYPE_LABEL[e.orderType] : 'MKT';
 			const series = e.series ? `${names.seriesName(e.series)} ` : '';

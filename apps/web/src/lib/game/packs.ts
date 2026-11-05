@@ -65,9 +65,14 @@ export function guessMeta(csv: string, base: CsvMeta = DEFAULT_META): CsvMeta {
 	return { ...base, timestampUnit, intervalSeconds: known ? known.seconds : base.intervalSeconds };
 }
 
+/** "15m", "1h", ... for a bar interval in seconds (the top bar and pack names). */
+export function intervalLabel(seconds: number): string {
+	return INTERVALS.find((i) => i.seconds === seconds)?.label ?? `${seconds}s`;
+}
+
 /** The player's name for an imported pack (shown only in the menu, never by the engine). */
 export function defaultLabel(meta: CsvMeta, fileName: string): string {
-	const interval = INTERVALS.find((i) => i.seconds === meta.intervalSeconds)?.label ?? `${meta.intervalSeconds}s`;
+	const interval = intervalLabel(meta.intervalSeconds);
 	const name = meta.pair || meta.asset || fileName.replace(/\.[^.]+$/, '');
 	return `${name} · ${interval}`.slice(0, 60);
 }

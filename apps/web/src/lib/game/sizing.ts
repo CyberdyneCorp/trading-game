@@ -123,3 +123,23 @@ export function fitToMargin(
 	const fits = perUnit > 0 ? Math.floor(available / perUnit / lot + 1e-9) * lot : 0;
 	return { qty: Math.min(qty, fits), leverage: cap };
 }
+
+export interface OpposingEffect {
+	kind: 'reduce' | 'close' | 'reverse';
+	/** Size of the open position (absolute). */
+	open: number;
+	/** What is left after the fill: the reduced position, or the new position on the other side. */
+	after: number;
+}
+
+/**
+ * What an order on the opposite side of the open position does to it (null for a flat account or the
+ * same side): a risk-sized "new" trade can mostly just close the old one, so the ticket says so.
+ */
+export function opposingEffect(position: number, side: Side, qty: number, lot: number): OpposingEffect | null {
+	if (position === 0 || qty <= 0 || position > 0 === (side === 'buy')) return null;
+	const open = Math.abs(position);
+	const diff = Math.round((qty - open) / lot) * lot;
+	if (diff < 0) return { kind: 'reduce', open, after: -diff };
+	return { kind: diff === 0 ? 'close' : 'reverse', open, after: diff };
+}

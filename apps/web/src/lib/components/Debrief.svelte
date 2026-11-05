@@ -22,7 +22,7 @@
 	const findingTexts = $derived(describeFindings(a.findings, L));
 	// Depends on L so the texts follow a language switch.
 	const reveal = $derived(d.reveal && L ? revealTexts(d.reveal, d.alias) : null);
-	// The run can end (game over) before the scenario does; the market line and buy-and-hold do not.
+	// The run can end (game over) before the scenario does; the market line and buy-and-hold stop with it.
 	const endedEarly = $derived(s.step < s.totalBars - 1);
 	function adviceText(tr: EngineTrade): string | null {
 		const adv = stopAdvice(tr, L);
@@ -48,7 +48,7 @@
 	const timeline = $derived(
 		[
 			...s.events
-				.filter((e) => e.type !== 'order' || e.status !== 'accepted')
+				.filter((e) => e.type !== 'order' || e.status !== 'accepted' || e.reason === 'order_moved')
 				.map((e) => ({ step: e.step, key: `e${e.seq}`, text: describeEvent(e, L, session.names)?.text ?? '', tone: describeEvent(e, L, session.names)?.tone ?? '' })),
 			...session.journal.map((p, i) => ({
 				step: p.step,

@@ -1,7 +1,7 @@
 // Dragging stop and target lines on the chart (spec terminal-ui "Stop and target tools").
-// Draft lines (SL?, TP?) edit the ticket; working protective orders (STOP #n, TP #n) are moved by
-// placing the replacement first and cancelling the old order only once it is accepted, so the
-// position is never left unprotected by a rejected move.
+// Draft lines (SL?, TP?) edit the ticket; working protective orders (STOP #n, TP #n) are moved in
+// place by the engine (MoveOrder): same order, same quantity and OCO link, and a rejected move leaves
+// the order where it was.
 
 import type { OrderSideName, OrderTypeName, OrderView } from '#lib/engine/types.ts';
 
@@ -48,12 +48,4 @@ export function exitOnValidSide(side: OrderSideName, type: OrderTypeName, price:
 	const below = price < mark;
 	const isStop = type === 'stop_market';
 	return side === 'sell' ? below === isStop : below !== isStop;
-}
-
-/** Quantity still working on an order, as a decimal string at the order's precision. */
-export function remainingQty(o: Pick<OrderView, 'qty' | 'filled'>): string {
-	const decimals = Math.max(o.qty.split('.')[1]?.length ?? 0, o.filled.split('.')[1]?.length ?? 0);
-	const scale = 10 ** decimals;
-	const left = Math.round(Number(o.qty) * scale) - Math.round(Number(o.filled) * scale);
-	return (left / scale).toFixed(decimals);
 }

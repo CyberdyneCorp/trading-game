@@ -41,6 +41,8 @@ const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int
 const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
                                   const char* qty, const char* premium);
 const char* tl_cancel_order(tl_run* run, uint32_t client_id, uint32_t order_id);
+/* Moves a working reduce-only stop or take-profit to `price` in place (same id, OCO link kept; policy v13). */
+const char* tl_move_order(tl_run* run, uint32_t client_id, uint32_t order_id, const char* price);
 const char* tl_set_leverage(tl_run* run, uint32_t client_id, int32_t leverage);
 const char* tl_close_position(tl_run* run, uint32_t client_id);
 

@@ -22,7 +22,7 @@ def test_cross_binding_golden_matches_native_cpp():
         run.advance(30)
         run.close_position(6)
         state = run.advance(1000)
-    assert state["digest"] == "f9e6d831dd72aebe392d68257c693731da6cf478a4e750ce5903e94e1476bf2d"
+    assert state["digest"] == "77e3aadce955743193752c7f7d80c8491c95397086c910ea44a86838b01c2d16"
     assert state["eventsDigest"] == "ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19"
 
 
@@ -40,7 +40,7 @@ def test_replay_action_log_reproduces_and_scores():
     assert a.digest == b.digest
     assert a.status in {"finished", "bankrupt"}
     assert a.debrief is not None
-    assert a.debrief["score"]["version"] == 7
+    assert a.debrief["score"]["version"] == 8
     assert a.debrief["trades"][0]["n"] == 1
     assert [r["accepted"] for r in a.results if r is not None] == [True, True, True]
 
@@ -79,7 +79,7 @@ def test_cross_binding_golden_with_advice_matches_native_cpp():
         state = run.advance(1000)
     assert state["advisor"]["left"] == 1
     assert len(state["advisor"]["advice"]) == 2
-    assert state["digest"] == "bf0d684d1a7b13fa984744e742be1c5b414d12f186819bb9b7d7d95143dc79c6"
+    assert state["digest"] == "dc989e4b77cf1d3c275b733b6bcc009af12e013d654857a7bd618adc54bce797"
     assert state["eventsDigest"] == "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f"
 
 
@@ -115,3 +115,21 @@ def test_campaign_options_carry_capital_and_gate_leverage():
     assert r.digest == state["digest"]
     with pytest.raises(EngineError):
         Run("m01-false-breakout", 5, RunOptions(starting_balance="0"))
+
+
+def test_replay_move_keeps_the_bracket_stop_in_its_oco_group():
+    """Policy v13: {"k":"move"} moves a working exit in place (same id, OCO group kept)."""
+    log = [
+        {"k": "ans", "pBp": 5000, "skipped": True},
+        {"k": "order", "type": "market", "side": "buy", "qty": "1.0", "price": None, "ro": False,
+         "stop": "80.00", "tp": "150.00", "trail": None},
+        {"k": "adv", "n": 1},
+    ]
+    before = replay("m01-false-breakout", 5, log)
+    stop = next(o for o in before.state["orders"] if o["type"] == "stop_market")
+    moved = replay("m01-false-breakout", 5, [*log, {"k": "move", "id": stop["id"], "price": "81.00"}])
+    assert moved.results[-1]["accepted"]
+    after = next(o for o in moved.state["orders"] if o["id"] == stop["id"])
+    assert after["price"] == "81.00000000"
+    assert after["ocoGroup"] == stop["ocoGroup"] != 0
+    assert len(moved.state["orders"]) == len(before.state["orders"])

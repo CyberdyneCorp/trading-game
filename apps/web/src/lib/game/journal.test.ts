@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlanEntry } from './analysis.ts';
-import { journalMissions, journalRuns, runMode } from './journal.ts';
+import { journalMissions, journalRuns, positionPlannedRisk, runMode } from './journal.ts';
 import type { RunRecord } from './storage.ts';
 
 const plan = (step: number, thesis: string): PlanEntry => ({
@@ -36,5 +36,13 @@ describe('journal', () => {
 	it('filters by mission and offers only missions that have entries', () => {
 		expect(journalRuns(records, 'm01-false-breakout').map((r) => r.runId)).toEqual(['a']);
 		expect(journalMissions(records)).toEqual(['m01-false-breakout', 'm02-funding-squeeze', 'csv-x']);
+	});
+
+	it('regression: the position planned risk comes from the stored journal, so it survives a resume', () => {
+		const option: PlanEntry = { ...plan(80, 'call'), plannedRisk: 30, instrument: 'C 100 · exp 96' };
+		const skipped: PlanEntry = { ...plan(75, ''), plannedRisk: 42.5, skipped: true };
+		expect(positionPlannedRisk([plan(60, 'a'), skipped, option])).toBe(42.5);
+		expect(positionPlannedRisk([option])).toBeNull();
+		expect(positionPlannedRisk([])).toBeNull();
 	});
 });

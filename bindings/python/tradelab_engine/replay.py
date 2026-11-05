@@ -11,6 +11,7 @@ the web client does, so a replay reproduces the client's run bit for bit):
   {"k":"plan","side":"buy","skipped":false,"option":false,"lose":false,"inv":"95.50","target":null,"conf":60,"risk":"100.00"}
   {"k":"ans","pBp":6000,"skipped":false}
   {"k":"cancel","id":3}
+  {"k":"move","id":3,"price":"95.50"}   (policy v13: a working stop/take-profit moved in place)
   {"k":"close"}
   {"k":"advice"}
   {"k":"adv","n":5}
@@ -69,6 +70,7 @@ _HANDLERS: dict[str, Callable[[Run, int, Mapping[str, Any]], Any]] = {
     "plan": _plan,
     "ans": lambda run, cid, a: run.answer_question(cid, int(a.get("pBp", 0)), bool(a.get("skipped"))),
     "cancel": lambda run, cid, a: run.cancel(cid, int(a["id"])),
+    "move": lambda run, cid, a: run.move_order(cid, int(a["id"]), str(a["price"])),
     "close": lambda run, cid, a: run.close_position(cid),
     "advice": lambda run, cid, a: run.request_advice(cid),
 }

@@ -80,48 +80,59 @@ void apply_settlement(std::vector<Holding>& h, const Event& e) {
   std::erase_if(h, [&e](const Holding& x) { return x.series == e.series; });
 }
 
-// One interval of a held position: Greeks of the start quote, the move of the forward and of IV.
-struct Move {
-  OptionQuote start;
-  std::int64_t d_forward = 0;  // Price raw
-  std::int64_t d_iv = 0;       // Vol raw
-  std::int64_t d_steps = 0;
+// Full revaluation per bar and held series (no Taylor expansion, so a gap or a crash lands in delta and
+// gamma with its real size and sign). Each bar is walked in three legs whose mids chain exactly:
+//   gap:   quote step b-1, forward previous close -> open      (price only)
+//   price: quote step b-1, forward open -> close (settlement) (price only)
+//   time:  quote step b-1 -> b at that forward                 (time and IV; intrinsic at expiry)
+// A price leg is the mid change: delta = start delta x dF, gamma = the rest (convexity and the smile).
+// A time leg is vega = average vega x dIV, theta = the rest. The residual is then only the spread paid
+// against the mid at fills and rounding.
+struct Leg {
+  const OptionSeries& series;
+  std::int64_t units;  // signed contract units (Qty raw x multiplier)
 };
 
-void attribute(const Scenario& sc, std::int64_t qty, const Move& m, GreekAttribution& g) {
-  const std::int64_t u = scale(qty, sc.options.multiplier.raw, Qty::kScale);  // signed units
-  const std::int64_t exposure = scale(u, m.d_forward, kPriceScale);           // Money raw
-  const std::int64_t df2 = scale(m.d_forward, m.d_forward, kPriceScale);     // Price^2 in Price raw
-  const std::int64_t gamma_px = scale(df2, m.start.gamma.raw, kRateScale);
-  const std::int64_t vega_px = scale(m.start.vega.raw, m.d_iv, kVolPoint);
-  g.delta = Money::from_raw(g.delta.raw + scale(exposure, m.start.delta.raw, kRateScale));
-  g.gamma = Money::from_raw(g.gamma.raw + scale(u, gamma_px, 2 * kPriceScale));
-  g.theta = Money::from_raw(g.theta.raw + scale(u, static_cast<i128>(m.start.theta.raw) * m.d_steps, kPriceScale));
-  g.vega = Money::from_raw(g.vega.raw + scale(u, vega_px, kPriceScale));
+std::int64_t money(std::int64_t units, std::int64_t px_raw) { return scale(units, px_raw, kPriceScale); }
+void add_to(Money& m, std::int64_t v) { m = Money::from_raw(m.raw + v); }
+
+void price_leg(const Scenario& sc, const Leg& l, std::uint32_t step, Price f0, Price f1, GreekAttribution& g) {
+  const OptionQuote q0 = quote(sc, l.series, step, f0);
+  const OptionQuote q1 = quote(sc, l.series, step, f1);
+  if (!q0.listed || !q1.listed) return;
+  const std::int64_t delta = scale(money(l.units, f1.raw - f0.raw), q0.delta.raw, kRateScale);
+  add_to(g.delta, delta);
+  add_to(g.gamma, money(l.units, q1.mid.raw - q0.mid.raw) - delta);
 }
 
-// Bar b: previous close -> open (same quote step, only the forward moves), then open -> close of b
-// (or -> settlement when the series expires at b). Fills at the open change the holding in between.
+void time_leg(const Scenario& sc, const Leg& l, std::uint32_t b, Price f, GreekAttribution& g) {
+  const OptionQuote q0 = quote(sc, l.series, b - 1, f);
+  const bool expires = l.series.expiry_step == b;
+  const OptionQuote q1 = expires ? OptionQuote{} : quote(sc, l.series, b, f);
+  if (!q0.listed || (!expires && !q1.listed)) return;
+  const std::int64_t end = expires ? intrinsic(l.series, f).raw : q1.mid.raw;
+  const std::int64_t vega = expires ? 0 : money(l.units, scale(q0.vega.raw + q1.vega.raw, q1.iv.raw - q0.iv.raw, 2 * kVolPoint));
+  add_to(g.vega, vega);
+  if (l.units < 0) add_to(g.vega_written, vega);
+  add_to(g.theta, money(l.units, end - q0.mid.raw) - vega);
+}
+
+Leg leg_of(const Scenario& sc, const Holding& x) {
+  return {*find_series(sc, x.series), scale(x.qty, sc.options.multiplier.raw, Qty::kScale)};
+}
+
 void gap_interval(const Scenario& sc, const std::vector<Holding>& h, std::uint32_t b, GreekAttribution& g) {
-  const Price f0 = sc.bars[b - 1].close;
-  const Price f1 = sc.bars[b].open;
-  for (const Holding& x : h) {
-    const OptionQuote q0 = quote(sc, *find_series(sc, x.series), b - 1, f0);
-    if (q0.listed) attribute(sc, x.qty, {q0, f1.raw - f0.raw, 0, 0}, g);
-  }
+  for (const Holding& x : h) price_leg(sc, leg_of(sc, x), b - 1, sc.bars[b - 1].close, sc.bars[b].open, g);
 }
 
+// Fills at the open change the holding before this interval; an expiry at b ends at the settlement price.
 void session_interval(const Scenario& sc, const std::vector<Holding>& h, std::uint32_t b, GreekAttribution& g) {
-  const Price open = sc.bars[b].open;
   for (const Holding& x : h) {
-    const OptionSeries& s = *find_series(sc, x.series);
-    const OptionQuote q0 = quote(sc, s, b - 1, open);
-    if (!q0.listed) continue;
+    const Leg l = leg_of(sc, x);
     bool approx = false;
-    const bool expires = s.expiry_step == b;
-    const Price f1 = expires ? settlement_price(sc, b, &approx) : sc.bars[b].close;
-    const std::int64_t d_iv = expires ? 0 : quote(sc, s, b, f1).iv.raw - q0.iv.raw;
-    attribute(sc, x.qty, {q0, f1.raw - open.raw, d_iv, 1}, g);
+    const Price f1 = l.series.expiry_step == b ? settlement_price(sc, b, &approx) : sc.bars[b].close;
+    price_leg(sc, l, b - 1, sc.bars[b].open, f1, g);
+    time_leg(sc, l, b, f1, g);
   }
 }
 
@@ -252,6 +263,19 @@ std::optional<GreekAttribution> greek_attribution(const Scenario& sc, const RunS
   g.total = option_total(sc, st);
   g.residual = Money::from_raw(g.total.raw - g.delta.raw - g.gamma.raw - g.theta.raw - g.vega.raw);
   return g;
+}
+
+Money buy_and_hold_pnl(const Scenario& sc, const RunState& st) {
+  if (st.step <= sc.mission.warmup_bars) return Money{};
+  const Price entry = sc.bars[sc.mission.warmup_bars + 1].open;
+  const Price exit = sc.bars[st.step].close;
+  const Money budget = run_initial_balance(sc, st);
+  const Qty raw = detail::unwrap(div<Qty>(budget, Money::from_raw(entry.raw), Rounding::Floor));
+  const Qty qty = detail::unwrap(round_to_step(Qty::from_raw(raw.raw * 999 / 1000), sc.contract.lot_size, Rounding::Floor));
+  const Money pnl = detail::unwrap(mul<Money>(qty, Price::from_raw(exit.raw - entry.raw), Rounding::Floor));
+  const Money fees = Money::from_raw(detail::fee_for(detail::notional(sc, qty, entry, Rounding::Ceil), sc.contract.taker_fee).raw +
+                                     detail::fee_for(detail::notional(sc, qty, exit, Rounding::Ceil), sc.contract.taker_fee).raw);
+  return Money::from_raw(pnl.raw - fees.raw);
 }
 
 void annotate_stop(const Scenario& sc, const RunState& st, TradeRow& t) {
