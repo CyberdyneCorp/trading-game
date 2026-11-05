@@ -361,3 +361,42 @@ TEST_CASE("Regression: the buy-and-hold benchmark stops at the run's last bar (g
   CHECK(buy_and_hold_pnl(sc, d.state()) == M("899.10"));  // to the final close, 109
   CHECK(buy_and_hold_pnl(sc, start_run(sc, 1)).raw == 0);  // nothing played yet
 }
+
+TEST_CASE("Regression: an exit is named by its order type, not by its side of the entry (scoring v10)") {
+  // Before: any exit whose requested price was beyond the entry was a "target", so a trailing stop
+  // or a stop moved into profit read as a take-profit in the debrief.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"},
+                               {"100", "110", "100", "108"},
+                               {"108", "108", "104", "105"},
+                               {"105", "105", "105", "105"}});
+  Driver trail(sc);
+  trail.order(OrderType::Market, OrderSide::Buy, "1");
+  trail.step();
+  REQUIRE(trail.trailing(OrderSide::Sell, "1", "3").accepted);
+  trail.step(2);  // the trail moves to 105 at the close of 108; bar 3 trades down to 104
+  REQUIRE(trail.state().position.flat());
+  const ScoreReport tr = score_run(sc, trail.state());
+  REQUIRE(tr.trades.size() == 1);
+  CHECK(tr.trades[0].pnl.raw > 0);
+  CHECK(tr.trades[0].reason == ExitReason::Trailing);
+
+  Driver stop(sc);
+  stop.order(OrderType::Market, OrderSide::Buy, "1");
+  stop.step(2);
+  REQUIRE(stop.order(OrderType::StopMarket, OrderSide::Sell, "1", "106", true).accepted);  // above the entry
+  stop.step();
+  REQUIRE(stop.state().position.flat());
+  const ScoreReport sr = score_run(sc, stop.state());
+  REQUIRE(sr.trades.size() == 1);
+  CHECK(sr.trades[0].pnl.raw > 0);
+  CHECK(sr.trades[0].reason == ExitReason::Stop);
+
+  Driver target(sc);
+  target.bracket(OrderType::Market, OrderSide::Buy, "1", nullptr, nullptr, "106");
+  target.step(2);
+  REQUIRE(target.state().position.flat());
+  const ScoreReport gr = score_run(sc, target.state());
+  REQUIRE(gr.trades.size() == 1);
+  CHECK(gr.trades[0].reason == ExitReason::Target);
+}

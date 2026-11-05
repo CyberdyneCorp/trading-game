@@ -1,4 +1,9 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+
+/** A price input's value as a number: presets write it with the PT-BR decimal comma. */
+async function inputNumber(input: Locator): Promise<number> {
+	return Number((await input.inputValue()).replace(',', '.'));
+}
 
 async function answerIfAsked(page: Page, pct?: number) {
 	const dialog = page.getByRole('dialog', { name: /Pergunta de calibração/ });
@@ -99,11 +104,11 @@ test('dragging the SL? line on the chart edits the ticket stop (and Esc puts it 
 	await openTerminal(page, 4242);
 	const stopField = page.getByTestId('ticket-stop').locator('input');
 	await page.getByTestId('ticket-stop').getByRole('button', { name: '2×ATR', exact: true }).click();
-	const before = Number(await stopField.inputValue());
+	const before = await inputNumber(stopField);
 	const { x, ys } = await grabbableRows(page);
 	expect(ys).toHaveLength(1); // only SL? is draggable (ENTRY?/LIQ? are not)
 	await dragY(page, x, ys[0], ys[0] + 40);
-	const after = Number(await stopField.inputValue());
+	const after = await inputNumber(stopField);
 	expect(after).toBeLessThan(before);
 
 	await page.mouse.move(x, ys[0] + 40);
@@ -111,7 +116,7 @@ test('dragging the SL? line on the chart edits the ticket stop (and Esc puts it 
 	await page.mouse.move(x, ys[0] + 90, { steps: 4 });
 	await page.keyboard.press('Escape');
 	await page.mouse.up();
-	expect(Number(await stopField.inputValue())).toBe(after);
+	expect(await inputNumber(stopField)).toBe(after);
 });
 
 test('dragging a working STOP line moves the order; the wrong side of the price is refused', async ({ page }) => {
@@ -427,7 +432,7 @@ test('debrief: spread/slippage, turnover, closest liquidation and the leverage t
 	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
 	const stop = page.getByTestId('ticket-stop');
 	await stop.getByRole('button', { name: '2%', exact: true }).click();
-	const near = Number(await stop.locator('input').inputValue()); // 2% under the entry
+	const near = await inputNumber(stop.locator('input')); // 2% under the entry
 	await stop.locator('input').fill(((near / 0.98) * 0.7).toFixed(2)); // 30% under: beyond a 5x liquidation
 	await expect(page.getByText(/O stop está além do preço de liquidação/)).toBeVisible();
 	await page.getByRole('button', { name: /Enviar ordem/ }).click();
@@ -477,11 +482,11 @@ test('stop and target presets: ATR stop, R-multiple target, distance and reward/
 	const stop = page.getByTestId('ticket-stop');
 	const tp = page.getByTestId('ticket-tp');
 	await stop.getByRole('button', { name: '2×ATR' }).click();
-	const stopValue = Number(await stop.locator('input').inputValue());
+	const stopValue = await inputNumber(stop.locator('input'));
 	expect(stopValue).toBeGreaterThan(0);
 	await expect(stop.getByText(/2,0×ATR/)).toBeVisible(); // PT-BR decimal comma
 	await tp.getByRole('button', { name: '2R', exact: true }).click();
-	expect(Number(await tp.locator('input').inputValue())).toBeGreaterThan(stopValue);
+	expect(await inputNumber(tp.locator('input'))).toBeGreaterThan(stopValue);
 	await expect(tp.getByText(/R:R 1:2,0/)).toBeVisible();
 	// A stop on the wrong side is flagged and blocks submission.
 	await stop.locator('input').fill('999');
@@ -503,7 +508,7 @@ test('a stop can be marked on the chart; Esc cancels picking', async ({ page }) 
 	const box = (await canvas.boundingBox())!;
 	await canvas.click({ position: { x: box.width / 3, y: box.height * 0.5 } });
 	await expect(page.getByText(/Clique no gráfico para marcar/)).toHaveCount(0);
-	expect(Number(await stop.locator('input').inputValue())).toBeGreaterThan(0);
+	expect(await inputNumber(stop.locator('input'))).toBeGreaterThan(0);
 	// Space must not advance while a pick is pending, and does again afterwards.
 	const bar = await page.getByText(/Barra \d+ de/).textContent();
 	await stop.getByRole('button', { name: 'Marcar no gráfico', exact: true }).click();
@@ -759,7 +764,7 @@ test('advisor: a read costs a point, fills the ticket without sending, runs out 
 	await expect(ask).toBeDisabled(); // one read per bar
 
 	await page.getByRole('button', { name: /Levar stop e tamanho ao ticket/ }).click();
-	await expect(page.getByTestId('ticket-stop').locator('input')).toHaveValue('103.67');
+	await expect(page.getByTestId('ticket-stop').locator('input')).toHaveValue('103,67');
 	await expect(page.locator('label:has-text("Quantidade") input')).toHaveValue('41.8');
 	await expect(page.getByText(/Nenhuma ordem foi enviada/)).toBeVisible();
 	await expect(page.locator('.orders').getByText('STOP')).toHaveCount(0); // nothing was placed

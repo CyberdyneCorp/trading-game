@@ -22,7 +22,7 @@ def test_cross_binding_golden_matches_native_cpp():
         run.advance(30)
         run.close_position(6)
         state = run.advance(1000)
-    assert state["digest"] == "47717ee74f4985aaff00132ddf635f744c5bcbf6707ab295daa2ff2a22cadf9f"
+    assert state["digest"] == "6ab10bbdfa67d8a4703ef743e236860d9becddefb31202c103aaa20b15849bc0"
     assert state["eventsDigest"] == "ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19"
 
 
@@ -40,7 +40,7 @@ def test_replay_action_log_reproduces_and_scores():
     assert a.digest == b.digest
     assert a.status in {"finished", "bankrupt"}
     assert a.debrief is not None
-    assert a.debrief["score"]["version"] == 9
+    assert a.debrief["score"]["version"] == 10
     assert a.debrief["trades"][0]["n"] == 1
     assert [r["accepted"] for r in a.results if r is not None] == [True, True, True]
 
@@ -79,7 +79,7 @@ def test_cross_binding_golden_with_advice_matches_native_cpp():
         state = run.advance(1000)
     assert state["advisor"]["left"] == 1
     assert len(state["advisor"]["advice"]) == 2
-    assert state["digest"] == "9f95179e529dedbb9d62308206d136d6a922fcdef70e2b4a8bb6d20acd0ac21d"
+    assert state["digest"] == "10ad393347fd13bcb033c8a6bf4816298c1d312668ad888a2c1faa6b2a28a4ce"
     assert state["eventsDigest"] == "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f"
 
 

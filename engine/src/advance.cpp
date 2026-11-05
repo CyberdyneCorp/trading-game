@@ -65,6 +65,13 @@ Qty executable_qty(const BarCtx& c, const Order& o, bool* capacity_limited) {
 
 bool is_stop(const Order& o) { return o.type == OrderType::StopMarket || o.type == OrderType::TrailingStop; }
 
+// A stop that has started to fill was triggered: it is a market order now (policy v15), so its
+// remainder executes at the next opens and no longer rests at the trigger.
+bool triggered_stop(const Order& o) { return is_stop(o) && o.filled.raw > 0; }
+
+// A resting stop still waiting for its trigger.
+bool resting_stop(const Order& o) { return is_stop(o) && o.filled.raw == 0; }
+
 // Adds q to the parent's active child of `type`, or creates it (reduce-only, OCO group = parent id).
 void grow_child(RunState& st, const Order& parent, OrderType type, Price px, Qty q) {
   for (Order& ch : st.orders) {
@@ -162,6 +169,15 @@ void execute_market(BarCtx& c, Order& o) {
   cancel(c.st, o, out_of_capacity ? Reason::InsufficientCapacity : Reason::PositionClosed);
 }
 
+// A triggered stop converts to a market order: a reduce-only remainder cut short by capacity keeps
+// working at the next opens (open_phase, like a reduce-only market order); any other remainder is
+// cancelled like a market order's (IOC).
+bool execute_stop(BarCtx& c, Order& o, const Exec& ex) {
+  const bool filled = execute(c, o, ex);
+  if (filled && o.active() && !o.reduce_only) cancel(c.st, o, Reason::InsufficientCapacity);
+  return filled;
+}
+
 bool liquidation_level(const BarCtx& c, Price* out) { return detail::liquidation_price(c.sc, c.st.position, out); }
 
 // ---- 1. open -------------------------------------------------------------------------------
@@ -177,10 +193,10 @@ void open_gap_orders(BarCtx& c) {
   const Price open = c.bar.open;
   for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
     Order& o = c.st.orders[i];
-    if (!o.active() || o.series != 0 || o.type == OrderType::Market) continue;
+    if (!o.active() || o.series != 0 || o.type == OrderType::Market || triggered_stop(o)) continue;
     const bool buy = o.side == OrderSide::Buy;
     if (is_stop(o)) {
-      if (buy ? open >= o.price : open <= o.price) execute(c, o, {taker_price(c.sc, open, o.side), false, kFlagGapFill});
+      if (buy ? open >= o.price : open <= o.price) execute_stop(c, o, {taker_price(c.sc, open, o.side), false, kFlagGapFill});
     } else if (buy ? open <= o.price : open >= o.price) {
       execute(c, o, {open, true, kFlagGapFill});
     }
@@ -192,7 +208,7 @@ void open_phase(BarCtx& c) {
   open_gap_orders(c);
   for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
     const Order& o = c.st.orders[i];
-    if (o.active() && o.series == 0 && o.type == OrderType::Market) execute_market(c, c.st.orders[i]);
+    if (o.active() && o.series == 0 && (o.type == OrderType::Market || triggered_stop(o))) execute_market(c, c.st.orders[i]);
   }
   // Bracket legs attached by fills at the open are already live there: one the open has gapped
   // through (e.g. a stop computed from the previous close) executes at the open, never at a
@@ -218,7 +234,7 @@ Order* nearest_adverse_stop(BarCtx& c) {
   const bool is_long = c.st.position.is_long();
   Order* best = nullptr;
   for (Order& o : c.st.orders) {
-    if (!o.active() || o.series != 0 || !is_stop(o)) continue;
+    if (!o.active() || o.series != 0 || !resting_stop(o)) continue;
     if (is_long != (o.side == OrderSide::Sell)) continue;
     const bool reached = is_long ? c.bar.low <= o.price : c.bar.high >= o.price;
     if (!reached) continue;
@@ -237,7 +253,7 @@ bool adverse_step(BarCtx& c, bool post_entry) {
   const std::uint8_t amb = (post_entry || favorable_exit_reachable(c)) ? kFlagAmbiguousIntrabar : kFlagNone;
   // Liquidation wins ties and any stop sitting beyond the liquidation price.
   const bool stop_first = stop != nullptr && (!liq_hit || (is_long ? stop->price > liq : stop->price < liq));
-  if (stop_first) return execute(c, *stop, {taker_price(c.sc, stop->price, stop->side), false, amb});
+  if (stop_first) return execute_stop(c, *stop, {taker_price(c.sc, stop->price, stop->side), false, amb});
   if (liq_hit) detail::liquidate(c.sc, c.st, liq, amb);
   return liq_hit;
 }
@@ -273,10 +289,11 @@ void entries(BarCtx& c) {
   for (std::size_t i = 0; i < c.st.orders.size(); ++i) {
     Order& o = c.st.orders[i];
     if (!o.active() || o.series != 0 || o.reduce_only || o.type == OrderType::Market || !entry_reached(c, o)) continue;
-    const bool stop = is_stop(o);
-    const Exec ex = stop ? Exec{taker_price(c.sc, o.price, o.side), false, kFlagAmbiguousIntrabar}
-                         : Exec{o.price, true, kFlagAmbiguousIntrabar};
-    execute(c, o, ex);
+    if (is_stop(o)) {
+      execute_stop(c, o, {taker_price(c.sc, o.price, o.side), false, kFlagAmbiguousIntrabar});
+    } else {
+      execute(c, o, {o.price, true, kFlagAmbiguousIntrabar});
+    }
   }
 }
 
@@ -355,7 +372,7 @@ void update_trailing(BarCtx& c) {
   const Price close = c.bar.close;
   const Price tick = c.sc.contract.tick_size;
   for (Order& o : c.st.orders) {
-    if (!o.active() || o.type != OrderType::TrailingStop) continue;
+    if (!o.active() || o.type != OrderType::TrailingStop || triggered_stop(o)) continue;
     const bool sell = o.side == OrderSide::Sell;
     const Price raw = Price::from_raw(sell ? close.raw - o.trail_distance.raw : close.raw + o.trail_distance.raw);
     const Price cand = detail::unwrap(round_to_step(raw, tick, sell ? Rounding::Floor : Rounding::Ceil));

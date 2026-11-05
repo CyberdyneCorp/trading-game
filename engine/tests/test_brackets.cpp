@@ -249,6 +249,54 @@ TEST_CASE("Regression: an exit larger than the position it closes is cancelled o
   CHECK(last.step == d.state().step);
 }
 
+TEST_CASE("Regression: a stop cut short by capacity executes its remainder at the next opens (policy v15)") {
+  // Before: the remainder rested at the trigger again, so the long stayed open while the next bars
+  // opened above the stop, and it later filled at the trigger price instead of at an open.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"},
+                               {"100", "100", "94", "99"},
+                               {"99", "100", "98", "99"},
+                               {"99", "100", "98", "99"},
+                               {"99", "99", "99", "99"}});
+  Driver d(sc);
+  d.order(OrderType::Market, OrderSide::Buy, "10");
+  d.step();
+  sc.costs.capacity_fraction = R("0.000004");  // 4 contracts per bar from now on
+  const auto stop = d.order(OrderType::StopMarket, OrderSide::Sell, "10", "95", true);
+  REQUIRE(stop.accepted);
+  d.step();  // bar 2 trades through 95: 4 fill near the trigger
+  REQUIRE(d.state().position.qty == Q("6"));
+  CHECK(find_order(d.state(), stop.order_id)->status == OrderStatus::PartiallyFilled);
+  d.step();  // bar 3 never reaches 95, yet the triggered stop is a market order: 4 fill at its open
+  CHECK(d.state().position.qty == Q("2"));
+  const Event* fill = last_of(d.state(), EventType::Fill);
+  REQUIRE(fill != nullptr);
+  CHECK(fill->step == d.state().step);
+  CHECK(fill->order_id == stop.order_id);
+  CHECK(fill->price == P("99"));  // the open (no costs here), not the trigger (95)
+  CHECK(fill->requested == P("95"));  // the debrief still shows the trigger it came from
+  d.step();
+  CHECK(d.state().position.flat());
+  CHECK(find_order(d.state(), stop.order_id)->status == OrderStatus::Filled);
+}
+
+TEST_CASE("A capacity-limited entry stop is IOC once triggered, like a market order") {
+  Scenario sc = make_scenario({{"100", "100", "100", "100"},
+                               {"100", "106", "100", "105"},
+                               {"105", "106", "104", "105"},
+                               {"105", "105", "105", "105"}});
+  sc.costs.capacity_fraction = R("0.000004");
+  Driver d(sc);
+  const auto entry = d.order(OrderType::StopMarket, OrderSide::Buy, "10", "102");
+  REQUIRE(entry.accepted);
+  d.step();
+  CHECK(d.state().position.qty == Q("4"));
+  CHECK(find_order(d.state(), entry.order_id)->status == OrderStatus::Cancelled);
+  CHECK(last_of(d.state(), EventType::OrderUpdate)->reason == Reason::InsufficientCapacity);
+  d.step();
+  CHECK(d.state().position.qty == Q("4"));
+}
+
 TEST_CASE("MoveOrder accepts only working perpetual exits on the tick") {
   Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "100", "100", "100"}});
   Driver d(sc);

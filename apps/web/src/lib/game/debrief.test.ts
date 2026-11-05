@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { EngineFinding, EngineTrade, PackReveal } from '#lib/engine/types.ts';
+import type { EngineFinding, EngineTrade, NewsView, PackReveal, RegimeSpan } from '#lib/engine/types.ts';
 import { describeFinding, describeFindings, describeLesson } from './analysis.ts';
-import { fmtLeverageBp, fmtLiqDistance, greekRows, revealTexts, stopAdvice } from './debrief.ts';
+import { entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from './debrief.ts';
+import { headline } from './news.ts';
 import { i18n } from './i18n.svelte.ts';
 
 const perp: EngineTrade = {
@@ -134,5 +135,30 @@ describe('revealTexts', () => {
 		const r = revealTexts({ ...csv, source: 'publisher', transformation: 'rebased to 100' }, 'K');
 		expect(r.transform).toBe('rebased to 100');
 		expect(r.line).toContain('(publisher)');
+	});
+});
+
+describe('debrief rows (playtest regressions)', () => {
+	const spans: RegimeSpan[] = [
+		{ start: 0, bars: 70, label: 'range', direction: 0 },
+		{ start: 70, bars: 30, label: 'trend', direction: 1 },
+		{ start: 100, bars: 40, label: 'trend', direction: -1 }
+	];
+	it('regression: the entry regime keeps the trend direction of its span (was "Tendência")', () => {
+		expect(entryRegimeName({ ...perp, entryStep: 75, regime: 'trend' }, spans)).toBe('Tendência de alta');
+		expect(entryRegimeName({ ...perp, entryStep: 100, regime: 'trend' }, spans)).toBe('Tendência de baixa');
+		expect(entryRegimeName({ ...perp, entryStep: 61, regime: 'range' }, spans)).toBe('Lateral');
+		expect(entryRegimeName({ ...perp, regime: null }, spans)).toBe('—');
+	});
+	it('regression: what is still open at the end is its own outcome line, so the lines add up to the net', () => {
+		// m06 seed 64: realized 0, fees 9,81, funding -29,10, net +1.292,94: the rest is the open long.
+		const wallet = 10000 - 9.81 - 29.1;
+		expect(openPnl({ wallet: String(wallet), equity: String(wallet + 1331.85) })).toBeCloseTo(1331.85, 8);
+		expect(openPnl({ wallet: '10000', equity: '10000' })).toBe(0);
+	});
+	it('regression: released headlines are in the timeline; a fast-wire item still early is not', () => {
+		const n: NewsView = { step: 80, kind: 'liquidity_outflow', tone: -1, credibility: 90, expectation: 0, actual: -2, early: false };
+		const rows = newsTimeline([n, { ...n, step: 95, early: true }], 'pt-BR');
+		expect(rows).toEqual([{ step: 80, key: 'n80-liquidity_outflow', text: `📰 ${headline(n, 'pt-BR')}`, tone: 'down' }]);
 	});
 });

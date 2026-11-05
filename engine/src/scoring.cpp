@@ -96,9 +96,15 @@ EntryPlans entry_plans(const RunState& st, const OpenTrade& o) {
   return r;
 }
 
-ExitReason exit_reason(const TradeRow& t, const Event& fill) {
+// The order type names the exit (scoring v10): a stop that exits in profit is still a stop, and a
+// trailing stop is told apart from a fixed one. Limits and take-profits are targets.
+ExitReason exit_reason(const RunState& st, const TradeRow& t, const Event& fill) {
   if (fill.series != 0 && fill.order_id == 0) return ExitReason::MarginCall;  // forced buy-back has no order
   if (fill.requested.raw == 0) return ExitReason::Manual;
+  const Order* o = find_order(st, fill.order_id);
+  if (o != nullptr && o->type == OrderType::TrailingStop) return ExitReason::Trailing;
+  if (o != nullptr && o->type == OrderType::StopMarket) return ExitReason::Stop;
+  if (o != nullptr) return ExitReason::Target;
   const bool favorable = t.is_long ? fill.requested > t.entry_avg : fill.requested < t.entry_avg;
   return favorable ? ExitReason::Target : ExitReason::Stop;
 }
@@ -193,7 +199,7 @@ struct Walker {
     const std::int64_t opening_fee = round_div(static_cast<i128>(e.amount.raw) * opening, abs64(q));
     cur->row.fees = Money::from_raw(cur->row.fees.raw + e.amount.raw - opening_fee);
     if (flipped_or_flat) {
-      close(e.step, exit_reason(cur->row, e));
+      close(e.step, exit_reason(st, cur->row, e));
       if (next != 0) {
         cur = open_trade(static_cast<std::uint32_t>(out.size() + 1), e, abs64(next));
         cur->row.fees = Money::from_raw(opening_fee);

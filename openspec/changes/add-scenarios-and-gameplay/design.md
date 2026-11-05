@@ -184,8 +184,8 @@ Every mission is synthetic, starts with 10,000 (campaign: carried capital), has 
 | Capability | G2, G3, G4 | G2, G4 | G1–G4 | G1–G4 |
 
 **m06 Thin book — limit orders, liquidity and structure.**
-- **Story.** A quiet market where few quotes rest in the book. A market maker reduces its quotes, and the range turns thinner and jumpier. Liquidity then returns with a modest positive surprise, and the market leaves the range, more often up than down.
-- **Lesson.** Support and resistance are zones. In a thin book a market order pays spread and slippage (about 0.6% per round trip, a quarter of the range). A limit at the zone pays the maker fee but may not fill. An order larger than the bar's capacity fills in pieces, and a stop-market slips. Liquidity news changes costs, not value.
+- **Story.** A quiet market where few quotes rest in the book. A market maker reduces its quotes: the book gets shallower (each bar takes fewer contracts; spread and slippage stay the same) and the range turns jumpier. Liquidity then returns with a modest positive surprise, and the market leaves the range, more often up than down.
+- **Lesson.** Support and resistance are zones. In a thin book a market order pays spread and slippage (about 0.6% per round trip, a quarter of the range). A limit at the zone pays the maker fee but may not fill. An order larger than the bar's capacity fills in pieces, and a stop-market slips. Liquidity news changes depth (capacity), not value.
 - **Objectives.**
   - Enter and exit with limit orders at the zones, and compare the cost line in the debrief.
   - Keep planned risk ≤ 1% per idea.

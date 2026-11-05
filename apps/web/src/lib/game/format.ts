@@ -75,6 +75,12 @@ export function priceToTick(price: number, tick: number): string {
 	return (ticks * tick).toFixed(decimals);
 }
 
+/** A price on the tick as the player would type it in an input: "99,96" in PT-BR, "99.96" in English. */
+export function priceInputText(price: number, tick: number, locale: Locale): string {
+	const s = priceToTick(price, tick);
+	return locale === 'pt-BR' ? s.replace('.', ',') : s;
+}
+
 /** Plan dialog headline: "▲ LONG 49,9 · 3x", or "▼ C 100 · exp 96 × 20" for an option. */
 export function planHeadline(
 	d: { side: 'buy' | 'sell'; qty: Decimal; leverage: number },

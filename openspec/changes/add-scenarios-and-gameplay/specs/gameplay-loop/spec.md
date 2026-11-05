@@ -71,7 +71,7 @@ Rewinding or changing seed SHALL create a new attempt flagged `assisted`, SHALL 
 - **THEN** the original run and its score SHALL remain available and unchanged
 
 ### Requirement: Debrief
-On completion the debrief SHALL show: market reveal (if permitted) and historical/synthetic label; timeline of plans, news, orders, fills, funding, margin changes, liquidations and expiries; net P&L split into realized trading P&L, fees, spread/slippage, funding, option premium/settlement and, after a bankruptcy, the loss beyond the balance that the simulated fund covered; max drawdown, peak leverage, minimum liquidation distance, turnover; requested vs trigger vs executed price per fill; `ambiguousIntrabar` and capacity approximations; comparison with staying flat and with a 1× long held from the first eligible bar to the run's last bar (the game-over bar when the run ended early, never prices after it); for options, an approximate P&L attribution to delta, gamma, theta and vega, labeled approximate; separation of good process, favorable luck and items needing more samples; a recommended next lesson based on observable errors.
+On completion the debrief SHALL show: market reveal (if permitted) and historical/synthetic label; timeline of plans, news, orders, fills, funding, margin changes, liquidations and expiries; net P&L split into realized trading P&L, the P&L still open at the end (unrealized, options included), fees, spread/slippage, funding, option premium/settlement and, after a bankruptcy, the loss beyond the balance that the simulated fund covered; max drawdown, peak leverage, minimum liquidation distance, turnover; requested vs trigger vs executed price per fill; `ambiguousIntrabar` and capacity approximations; comparison with staying flat and with a 1× long held from the first eligible bar to the run's last bar (the game-over bar when the run ended early, never prices after it); for options, an approximate P&L attribution to delta, gamma, theta and vega, labeled approximate; separation of good process, favorable luck and items needing more samples; a recommended next lesson based on observable errors.
 
 These numbers SHALL be computed by the engine (report-only: they SHALL NOT change the run state, its digests or the score dimensions); clients SHALL only format them, in the player's locale.
 
@@ -90,6 +90,10 @@ These numbers SHALL be computed by the engine (report-only: they SHALL NOT chang
 #### Scenario: A written put hit by a gap
 - **WHEN** the player writes a put and the market gaps down far through the strike before the put is bought back
 - **THEN** delta and gamma SHALL both be losses that explain the loss, and the residual SHALL be no larger than the spread paid at the fills
+
+#### Scenario: Outcome lines add up with a position still open
+- **WHEN** the player holds a long to the end of the mission
+- **THEN** the outcome lines SHALL include the P&L still open at the end, so realized P&L, open P&L, fees and funding add up to the net result, and the timeline SHALL list each released headline at its bar
 
 #### Scenario: Game over compares with the run, not the scenario
 - **WHEN** a run ends bankrupt before the scenario's last bar

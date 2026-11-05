@@ -23,6 +23,10 @@ Entries are exposure-increasing fills of the perpetual and of each option series
 - **WHEN** the player buys 10, sells 20 (closing the long and opening a short of 10) and closes the short, with funding paid in between
 - **THEN** the flip's fee SHALL be split between the two trades in proportion to the quantity closed and opened, each trade's net SHALL be its realized P&L minus its fees plus the funding received (or minus the funding paid) while it was open, and the trades' nets SHALL sum to the mission result
 
+#### Scenario: Exit reason from the closing order
+- **WHEN** a trade is closed by a trailing stop, or by a stop moved beyond the entry, in profit
+- **THEN** its exit reason SHALL be `trailing` or `stop`, never `target`: the reason SHALL follow the type of the order that closed it (stop-market `stop`, trailing stop `trailing`, take-profit or limit `target`, market `manual`) (scoring version 10; before, any exit beyond the entry was `target`)
+
 #### Scenario: An open trade's net includes its unrealized P&L
 - **WHEN** a trade is still open at the end of the mission
 - **THEN** its P&L SHALL include the unrealized P&L at the final mark, valued as in the account equity (the perpetual at the last close, a long option at the bid, a written option at the ask), so a single open trade's net equals the mission result (scoring version 5; before, an open trade showed only its fees and funding)

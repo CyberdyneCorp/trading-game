@@ -23,7 +23,7 @@ namespace tradelab {
 // for written options), wrote_options finding, lucky_win when a trade had no plan, the buy-and-hold
 // benchmark and market span measured to the run's last bar.
 // v9 (report-only, no digest change): signals by revealed regime and each trade's entry regime (G4).
-constexpr std::uint32_t kScoringVersion = 9;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall
+constexpr std::uint32_t kScoringVersion = 10;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall; v8: full-revaluation Greek attribution, side-aware IV finding; v9: signals by regime, entry regime; v10: exit reason from the order type (a stop in profit is a stop, trailing stops named)
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,
@@ -61,7 +61,7 @@ struct Finding {
 
 enum class LessonCode : std::uint8_t { Futures2 = 0, Risk, Futures3, Orders, Structure, Evaluation, Options };
 
-enum class ExitReason : std::uint8_t { Stop = 0, Target, Manual, Liquidation, Open, Expiry, MarginCall };
+enum class ExitReason : std::uint8_t { Stop = 0, Target, Manual, Liquidation, Open, Expiry, MarginCall, Trailing };
 
 // One round trip: a perpetual position (series 0) or an option position in one series, from the
 // fill that opens it to the fill, liquidation or expiry settlement that closes it. Option prices
