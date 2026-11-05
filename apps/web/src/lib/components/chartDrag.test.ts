@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exitOnValidSide, hitTest, isDraggableOrder, remainingQty, sameTarget, type DragZone } from './chartDrag.ts';
+import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragZone } from './chartDrag.ts';
 
 const stop: DragZone = { target: { kind: 'draft', which: 'stop' }, price: 98, lineY: 200, tagY: 200 };
 const tp: DragZone = { target: { kind: 'order', orderId: 9 }, price: 109, lineY: 80, tagY: 96 }; // tag spread off its line
@@ -37,12 +37,6 @@ describe('chart drag', () => {
 		expect(exitOnValidSide('buy', 'stop_market', 99, 100)).toBe(false);
 		expect(exitOnValidSide('buy', 'take_profit', 99, 100)).toBe(true);
 		expect(exitOnValidSide('buy', 'take_profit', 101, 100)).toBe(false);
-	});
-
-	it('the replacement keeps only the quantity still working', () => {
-		expect(remainingQty({ qty: '51.5', filled: '0' })).toBe('51.5');
-		expect(remainingQty({ qty: '51.5', filled: '20.25' })).toBe('31.25');
-		expect(remainingQty({ qty: '0.3', filled: '0.1' })).toBe('0.2');
 	});
 
 	it('compares targets by kind and identity', () => {

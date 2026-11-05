@@ -30,7 +30,7 @@
 - [x] 4.5 CSV import wizard — `CsvImport.svelte` + `csvImport.svelte.ts`: file, declared metadata (unit and interval guessed), engine report (errors by line, gaps), private practice pack; practice runs listed as known scenarios, reveal only in the debrief, resume by replay on the stored pack; `.tlpack` load/export (`e2e/packs.spec.ts`)
 - [ ] 4.6 All required states; colorblind palette; i18n PT-BR + en-US — colorblind palette and PT-BR/en catalogs done; states done: loading, engine error, indicator warming up, accepted vs filled, capacity-limited/partial fills flagged in the feed, liquidation warning, liquidated, margin call, option expired/settled, game over, offline, storage not durable; plain-language rejection/cancel reasons for every engine reason code (PT-BR/en, `reasonText`); incompatible or refused pack (reason shown when loading a `.tlpack`, `packReasonText`); pending: numbers inside rejection messages, no data, download interrupted, session expired, sync pending, device conflict
 - [ ] 4.7 E2E: full mission, UX01, rejection reasons, liquidation flow — full mission, EDU02, reload/resume, options, calibration, stop/target, patterns and auto-advance E2E done; UX01, rejection reasons and liquidation flow pending
-- [ ] 4.8 Accessible chart: table of all closed bars, text summary, per-candle keyboard focus — today a screen-reader table of the last 20 closed bars
+- [ ] 4.8 Accessible chart: table of all closed bars, text summary, per-candle keyboard focus — today a screen-reader table of the last 20 closed bars, formatted in the player's locale (`candleCells`)
 - [ ] 4.9 Remappable shortcuts; option-chain and journal shortcuts
 
 ## 5. Offline PWA

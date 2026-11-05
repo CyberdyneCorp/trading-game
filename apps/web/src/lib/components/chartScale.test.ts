@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { hitsTag, LABEL_H, pinOf, priceRange, spreadLabels } from './chartScale.ts';
+import { fmtNum } from '#lib/game/format.ts';
+import { candleCells, hitsTag, LABEL_H, pinOf, priceRange, spreadLabels } from './chartScale.ts';
+
+describe('candleCells', () => {
+	it('regression: the screen-reader candle table uses the locale, not raw engine decimals', () => {
+		expect(candleCells([1234.5, 1240, 1230.25, 1235, 98765.4321], 'pt-BR')).toEqual(['1.234,50', '1.240,00', '1.230,25', '1.235,00', '98.765']);
+		expect(candleCells([99.1, 99.2, 99, 99.15, 12], 'en')).toEqual(['99.10', '99.20', '99.00', '99.15', '12']);
+	});
+});
+
+describe('fmtNum', () => {
+	it('regression: a value that rounds to zero never shows as "-0,00" (a far put delta in the chain)', () => {
+		expect(fmtNum(-0.0004, 'pt-BR')).toBe('0,00');
+		expect(fmtNum(-0.25, 'pt-BR')).toBe('-0,25');
+	});
+});
 
 describe('priceRange', () => {
 	it('regression: a far liquidation level does not squash the candles', () => {

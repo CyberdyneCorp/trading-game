@@ -60,6 +60,7 @@ export type EngineRequest =
 	  }
 	| { kind: 'answer'; clientId: number; pBp: number; skipped: boolean }
 	| { kind: 'cancel'; clientId: number; orderId: number }
+	| { kind: 'move'; clientId: number; orderId: number; price: string }
 	| { kind: 'leverage'; clientId: number; leverage: number }
 	| { kind: 'close'; clientId: number }
 	| { kind: 'advice'; clientId: number }

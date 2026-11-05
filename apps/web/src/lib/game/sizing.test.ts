@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimate, fitToMargin, liquidationPrice, qtyForRisk, releveredLiquidation, requiredMargin, type Costs } from './sizing.ts';
+import { estimate, fitToMargin, liquidationPrice, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin, type Costs } from './sizing.ts';
 
 const zero: Costs = { multiplier: 1, takerFee: 0, maintenanceMargin: 0.01, halfSpread: 0, slippage: 0 };
 
@@ -60,5 +60,20 @@ describe('fitting an order to the available balance', () => {
 		expect(fit.qty).toBeLessThan(500);
 		expect(requiredMargin(fit.qty, 100, 5, k)).toBeLessThanOrEqual(10_000);
 		expect(requiredMargin(fit.qty + 0.1, 100, 5, k)).toBeGreaterThan(10_000);
+	});
+});
+
+describe('opposingEffect', () => {
+	it('regression: a risk-sized sell against an open long is flagged as reducing, closing or reversing it', () => {
+		// Before: a 52.3 sell against a 60.0 long said nothing, though it mostly closed the long.
+		expect(opposingEffect(60, 'sell', 52.3, 0.1)).toEqual({ kind: 'reduce', open: 60, after: expect.closeTo(7.7, 9) });
+		expect(opposingEffect(60, 'sell', 60, 0.1)).toEqual({ kind: 'close', open: 60, after: 0 });
+		expect(opposingEffect(-10, 'buy', 25.5, 0.1)).toEqual({ kind: 'reverse', open: 10, after: expect.closeTo(15.5, 9) });
+	});
+	it('says nothing for a flat account or an order on the same side', () => {
+		expect(opposingEffect(0, 'sell', 10, 0.1)).toBeNull();
+		expect(opposingEffect(5, 'buy', 10, 0.1)).toBeNull();
+		expect(opposingEffect(-5, 'sell', 10, 0.1)).toBeNull();
+		expect(opposingEffect(5, 'sell', 0, 0.1)).toBeNull();
 	});
 });

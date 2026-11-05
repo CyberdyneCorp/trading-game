@@ -149,6 +149,12 @@ class Driver {
     c.order_id = id;
     return apply_command(sc_, st_, c);
   }
+  CommandResult move(std::uint32_t id, const char* price) {
+    Command c = base(CommandType::MoveOrder);
+    c.order_id = id;
+    c.price = P(price);
+    return apply_command(sc_, st_, c);
+  }
   CommandResult close() { return apply_command(sc_, st_, base(CommandType::ClosePosition)); }
   void step(int n = 1) {
     for (int i = 0; i < n; ++i) advance(sc_, st_);

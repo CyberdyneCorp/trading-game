@@ -61,10 +61,16 @@ A trailing stop-market SHALL track the best close observed since activation by a
 ### Requirement: Brackets, OCO and reduce-only
 Exit orders of a bracket SHALL be reduce-only and SHALL share the filled entry quantity. Partial entry fills SHALL create protection only for the filled quantity. A fill on one exit SHALL reduce its sibling by the same quantity. When the position reaches zero, all other reduce-only orders for that market SHALL be cancelled with reason `position_closed`, after the fill event that closed it; the order whose fill closed the position SHALL end `filled` and SHALL NOT be reported as cancelled. A reduce-only order SHALL never increase or flip a position.
 
+A working perpetual exit (a reduce-only stop-market or take-profit) MAY be moved to a new trigger with the `MoveOrder` command (execution policy v13): the order keeps its id, remaining quantity, bracket parent and OCO group, an order update with reason `order_moved` is emitted, and the same stop-beyond-liquidation warning as on placement applies. Moving an unknown or inactive order SHALL be rejected with `unknown_order`, any other order type with `unsupported_order_type`, and a price off the tick with `invalid_tick`.
+
 #### Scenario: Partial OCO (SIM06)
 - **WHEN** an entry for 10 contracts fills 6, then the stop fills 4
 - **THEN** the take-profit SHALL be reduced to 2 and the position SHALL be 2
 - **AND** no order SHALL be able to flip the position to the opposite side
+
+#### Scenario: A moved bracket stop keeps its OCO link
+- **WHEN** the stop leg of a bracket is moved closer to the market and then fills
+- **THEN** it SHALL fill at its new trigger as the same order, and its take-profit sibling SHALL be cancelled with it
 
 #### Scenario: Closing order is filled, not cancelled
 - **WHEN** a reduce-only stop fills and closes the position while its take-profit sibling is resting

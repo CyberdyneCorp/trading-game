@@ -39,9 +39,13 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		margin_called:
 			'Chamada de margem na barra {step}: as opções vendidas foram recompradas à força a {price}, perda de {amount} cr. Quem vende opção precisa de margem para o pior movimento: venda menos contratos.',
 		theta_decay:
-			'O tempo (theta) custou {amount} cr nas opções — pelo menos metade da perda. Quem compra opção paga pelo tempo: o movimento precisa vir antes do vencimento.',
+			'O tempo (theta) custou {amount} cr nas opções compradas — pelo menos metade da perda. Quem compra opção paga pelo tempo: o movimento precisa vir antes do vencimento.',
 		iv_crush:
-			'A queda da volatilidade implícita (vega) custou {amount} cr nas opções — pelo menos metade da perda. Comprar com IV alta é pagar caro pela mesma aposta.'
+			'A queda da volatilidade implícita (vega) custou {amount} cr nas opções compradas — pelo menos metade da perda. Comprar com IV alta é pagar caro pela mesma aposta.',
+		iv_rise:
+			'A alta da volatilidade implícita (vega) custou {amount} cr nas opções vendidas — pelo menos metade da perda. Quem vende opção fica vendido em volatilidade: medo e notícia sobem a IV e encarecem a recompra, mesmo sem o preço chegar ao strike.',
+		wrote_options:
+			'Você vendeu opções a descoberto: o risco não fica limitado por um stop nem pelo prêmio, só pela margem. Por isso não há crédito de processo bom, mesmo com plano — dimensione pelo pior movimento.'
 	},
 	en: {
 		waited: 'You did not trade. Without a clear hypothesis, waiting is a valid decision — no penalty for low turnover.',
@@ -63,9 +67,13 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		margin_called:
 			'Margin call at bar {step}: the written options were bought back by force at {price}, a loss of {amount} cr. An option writer needs margin for the worst move: write fewer contracts.',
 		theta_decay:
-			'Time decay (theta) cost {amount} cr on the options — at least half of the loss. An option buyer pays for time: the move has to come before expiry.',
+			'Time decay (theta) cost {amount} cr on the bought options — at least half of the loss. An option buyer pays for time: the move has to come before expiry.',
 		iv_crush:
-			'Falling implied volatility (vega) cost {amount} cr on the options — at least half of the loss. Buying when IV is high pays a lot for the same bet.'
+			'Falling implied volatility (vega) cost {amount} cr on the bought options — at least half of the loss. Buying when IV is high pays a lot for the same bet.',
+		iv_rise:
+			'Rising implied volatility (vega) cost {amount} cr on the written options — at least half of the loss. An option writer is short volatility: fear and news lift IV and make the buy-back dearer, even before the price reaches the strike.',
+		wrote_options:
+			'You wrote options uncovered: the risk is limited by neither a stop nor the premium, only by margin. That is why there is no good-process credit, even with a plan — size for the worst move.'
 	}
 };
 

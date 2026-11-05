@@ -9,7 +9,8 @@ function formatter(locale: Locale, digits: number, signed = false): Intl.NumberF
 	return new Intl.NumberFormat(locale, {
 		minimumFractionDigits: digits,
 		maximumFractionDigits: digits,
-		signDisplay: signed ? 'exceptZero' : 'auto'
+		// 'negative' never prints "-0,00" for a value that rounds to zero (e.g. a far put's delta).
+		signDisplay: signed ? 'exceptZero' : 'negative'
 	});
 }
 

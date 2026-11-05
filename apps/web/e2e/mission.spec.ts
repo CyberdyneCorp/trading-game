@@ -131,17 +131,22 @@ test('dragging a working STOP line moves the order; the wrong side of the price 
 	expect(ys).toHaveLength(2); // STOP and TP
 	const stopY = Math.max(...ys);
 	await dragY(page, x, stopY, stopY + 30);
-	await expect(page.getByText(/movida para/)).toBeVisible();
-	await expect(orders.getByText(oldId, { exact: true })).toHaveCount(0);
+	await expect(page.locator('.notice')).toContainText(/movida para/);
+	// Regression: the bracket stop is moved in place, keeping its OCO link (before, a plain stop
+	// replaced it and the TP still said OCO without a sibling).
+	await expect(orders.getByText(oldId, { exact: true })).toBeVisible();
+	await expect(orders.locator('tr')).toHaveCount(2);
+	await expect(stopRow).toContainText('OCO');
+	await expect(orders.locator('tr', { hasText: 'TP' })).toContainText('OCO');
 	const newPrice = Number((await stopRow.locator('td.num').nth(1).textContent())!.replace(/\./g, '').replace(',', '.'));
 	expect(newPrice).toBeLessThan(oldPrice);
+	await expect(page.locator('.feed').getByText(new RegExp(`Ordem ${oldId} movida para`))).toBeVisible();
 
 	// Above the current price a sell stop would trigger at once: refused, the order stays.
 	const again = await grabbableRows(page);
-	const newId = (await stopRow.locator('td').first().textContent())!.trim();
 	await dragY(page, x, Math.max(...again.ys), Math.min(...again.ys) - 10);
 	await expect(page.getByText(/dispararia na próxima abertura/)).toBeVisible();
-	await expect(orders.getByText(newId, { exact: true })).toBeVisible();
+	await expect(orders.getByText(oldId, { exact: true })).toBeVisible();
 });
 
 test('regression: Space advances after toggling an indicator or choosing an oscillator', async ({ page }) => {
@@ -829,11 +834,17 @@ test('regression: an open position puts its liquidation price and margin buttons
 	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
 	await advance(page);
 	await expect(page.getByText(/Execução #1/)).toBeVisible();
-	await page.evaluate(() => scrollTo(0, 0)); // filling the ticket scrolled the page; the rail scrolls on its own
-	const rail = (await page.locator('aside.rail').boundingBox())!;
-	const add = (await page.getByRole('button', { name: '+ margem' }).boundingBox())!;
-	expect(add.y + add.height).toBeLessThanOrEqual(rail.y + rail.height);
-	expect(await page.locator('aside.rail').evaluate((el) => el.scrollTop)).toBe(0);
+	for (const [width, height] of [
+		[1024, 768],
+		[1440, 900]
+	]) {
+		await page.setViewportSize({ width, height });
+		await page.evaluate(() => scrollTo(0, 0)); // filling the ticket scrolled the page; the rail scrolls on its own
+		const rail = (await page.locator('aside.rail').boundingBox())!;
+		const add = (await page.getByRole('button', { name: '+ margem' }).boundingBox())!;
+		expect(add.y + add.height, `${width}x${height}`).toBeLessThanOrEqual(Math.min(rail.y + rail.height, height));
+		expect(await page.locator('aside.rail').evaluate((el) => el.scrollTop)).toBe(0);
+	}
 });
 
 test('regression: leaving a run for a new one charges its advisor reads', async ({ page }) => {
@@ -916,6 +927,83 @@ test('regression: after a margin-call bankruptcy the debrief shows the loss the 
 	for (let i = 0; i < 60 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) await advance(page);
 	await expect(page.getByRole('heading', { name: 'GAME OVER' })).toBeVisible();
 	await expect(page.getByTestId('debrief-written-off')).toHaveText(/^\+[\d.]+,\d\d cr$/);
-	// The market line and buy-and-hold run to the end of the scenario, past the game over: say so.
-	await expect(page.getByTestId('ended-early')).toContainText(/A partida acabou na barra \d+: .*até o fim do cenário/);
+	// Regression: the market line and buy-and-hold stop at the game-over bar (before, they used prices after it).
+	await expect(page.getByTestId('ended-early')).toContainText(/A partida acabou na barra (\d+), antes do fim do cenário .* só até a barra \1\./);
+});
+
+test('regression: asking the advisor keeps the leverage typed in the ticket', async ({ page }) => {
+	// Before: every new state re-synced the field to the account leverage, so the order went out at 1x.
+	await openTerminal(page, 15);
+	const lev = page.locator('label:has-text("Alavancagem") input').first();
+	await lev.fill('3');
+	await page.getByRole('button', { name: /Pedir leitura/ }).click();
+	await expect(page.getByTestId('advisor-points')).toHaveText('Pontos: 2');
+	await expect(lev).toHaveValue('3');
+});
+
+test('regression: the planned risk stays in the position panel after a reload and resume', async ({ page }) => {
+	await openTerminal(page, 7);
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await page.getByTestId('ticket-stop').getByRole('button', { name: '2×ATR', exact: true }).click();
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('dialog').locator('textarea').fill('Compro o suporte');
+	await page.getByRole('button', { name: /Registrar plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	const risk = page.locator('aside.rail dt', { hasText: 'Risco planejado' }).locator('xpath=following-sibling::dd[1]');
+	const before = await risk.innerText();
+	expect(before).toMatch(/^\d+,\d\d cr$/);
+	await page.reload();
+	await page.getByRole('button', { name: /Continuar partida/ }).click();
+	await expect(risk).toHaveText(before);
+});
+
+test('regression: an order against the open position says it reduces, closes or reverses it', async ({ page }) => {
+	await openTerminal(page, 7);
+	const sizeBy = page.locator('label:has-text("Dimensionar por") select');
+	const qty = page.locator('label:has-text("Quantidade") input');
+	await sizeBy.selectOption('qty');
+	await qty.fill('10');
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	const note = page.getByTestId('ticket-opposing');
+	await expect(note).toHaveCount(0); // buying more is a new risk, not an opposing order
+	await page.keyboard.press('s');
+	await qty.fill('4');
+	await expect(note).toContainText('ela só reduz a posição para 6,0');
+	await qty.fill('10');
+	await expect(note).toContainText('fecha a posição inteira');
+	await qty.fill('15');
+	await expect(note).toContainText('abre 5,0 do outro lado');
+	// Sized by risk the quantity ignores the position: the warning says what the order really does.
+	await sizeBy.selectOption('risk');
+	await page.getByTestId('ticket-stop').getByRole('button', { name: '2×ATR', exact: true }).click();
+	await expect(note).toBeVisible();
+});
+
+test('regression: the option ticket refuses a market sell when the bid is 0,00', async ({ page }) => {
+	await page.goto('/?seed=505');
+	await startFromMenu(page, 4);
+	await answerIfAsked(page);
+	const zeroBid = page.locator('.chain button.q', { hasText: /^0,00$/ }).first();
+	for (let i = 0; i < 60 && !(await zeroBid.count()); i++) await advance(page);
+	await zeroBid.click();
+	await expect(page.getByTestId('opt-no-bid')).toContainText('o bid desta opção é 0,00');
+	await expect(page.getByRole('button', { name: /Enviar ordem de opção/ })).toBeDisabled();
+});
+
+test('regression: B, S, X and A work after a mouse click on an indicator checkbox', async ({ page }) => {
+	await openTerminal(page, 8);
+	await page.locator('label.toggle', { hasText: 'EMA50' }).click();
+	await page.keyboard.press('s');
+	await expect(page.getByRole('radio', { name: /Vender \/ Short/ })).toHaveAttribute('aria-checked', 'true');
+	await page.keyboard.press('b');
+	await expect(page.getByRole('radio', { name: /Comprar \/ Long/ })).toHaveAttribute('aria-checked', 'true');
+	await page.locator('label.toggle', { hasText: 'BB20' }).click();
+	await page.keyboard.press('a');
+	await expect(page.getByTestId('auto-toggle')).toHaveAttribute('aria-pressed', 'true');
+	await page.keyboard.press('a');
+	await expect(page.getByTestId('auto-toggle')).toHaveAttribute('aria-pressed', 'false');
 });

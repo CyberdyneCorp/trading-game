@@ -303,3 +303,61 @@ TEST_CASE("An open option trade's net is valued like the account equity") {
   CHECK(r.trades[0].pnl.raw > 0);
   CHECK(std::abs(r.trades[0].net.raw - r.net_pnl.raw) <= 1);  // only rounding differs
 }
+
+TEST_CASE("Regression: a written put hit by a gap crash is a delta and gamma loss, not residual") {
+  // Before: the Greeks of the start quote charged most of a gap to the residual ("spread and others")
+  // and could show the short put's crash as a delta gain. Full revaluation puts the move in delta and
+  // gamma with its sign; the residual is only the spread paid at the fills.
+  Scenario sc = flat(10);
+  sc.bars[4] = {P("70"), P("70"), P("70"), P("70"), Q("1000000"), false};
+  for (std::size_t i = 5; i < sc.bars.size(); ++i) sc.bars[i] = sc.bars[4];
+  add_options(sc, 9, {"100"}, true);
+  Driver d(sc);
+  REQUIRE(d.option(2, OrderSide::Sell, "1").accepted);  // put 100
+  d.step(5);
+  REQUIRE(d.option(2, OrderSide::Buy, "1").accepted);  // bought back after the crash
+  d.step();
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.greeks.has_value());
+  const GreekAttribution& g = *r.greeks;
+  CHECK(g.total.raw < 0);
+  CHECK(g.delta.raw < 0);
+  CHECK(g.gamma.raw < 0);  // a writer is short gamma
+  CHECK(-10 * (g.delta.raw + g.gamma.raw) >= -9 * g.total.raw);  // the move explains the loss
+  CHECK(std::llabs(g.residual.raw) <= std::llabs(r.spread_cost.raw) + 10);
+  CHECK(greek_sum(g) == g.total.raw);
+}
+
+TEST_CASE("Regression: a written option loses to a rising IV: iv_rise, not iv_crush") {
+  // Before: the vega loss of a writer was described as an IV crush and "buying with high IV".
+  Scenario sc = flat(12);
+  add_options(sc, 11, {"100"}, true);
+  for (std::size_t i = 2; i < sc.bars.size(); ++i) sc.options.iv_base[i] = parse_decimal<Vol>("0.9").value();
+  Driver d(sc);
+  REQUIRE(d.option(1, OrderSide::Sell, "1").accepted);
+  d.step(2);
+  REQUIRE(d.option(1, OrderSide::Buy, "1").accepted);
+  d.step();
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.greeks.has_value());
+  CHECK(r.greeks->vega.raw < 0);
+  CHECK(r.greeks->vega_written == r.greeks->vega);
+  CHECK(greek_sum(*r.greeks) == r.greeks->total.raw);
+  const Finding* f = find(r, FindingCode::IvRise);
+  REQUIRE(f != nullptr);
+  CHECK(f->amount.raw == -r.greeks->vega.raw);
+  CHECK(find(r, FindingCode::IvCrush) == nullptr);
+  CHECK(find(r, FindingCode::ThetaDecay) == nullptr);  // a writer earns theta
+  CHECK(r.lesson == LessonCode::Options);
+}
+
+TEST_CASE("Regression: the buy-and-hold benchmark stops at the run's last bar (game over)") {
+  // Before: a run that ended early was compared with prices after it ended.
+  Scenario sc = rising(10, 1);
+  Driver d(sc);
+  d.step(4);
+  CHECK(buy_and_hold_pnl(sc, d.state()) == M("399.60"));  // 99.9 x (104 - 100), no fees
+  d.step(5);
+  CHECK(buy_and_hold_pnl(sc, d.state()) == M("899.10"));  // to the final close, 109
+  CHECK(buy_and_hold_pnl(sc, start_run(sc, 1)).raw == 0);  // nothing played yet
+}

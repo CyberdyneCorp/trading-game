@@ -3,6 +3,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 	import { campaignMissions } from '#lib/game/curriculum.ts';
+	import { intervalLabel } from '#lib/game/packs.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { AUTO_SPEEDS, type AutoPlay } from '#lib/game/autoplay.svelte.ts';
@@ -36,7 +37,7 @@
 			{#if !pwa.online}<span class="tag attention" title={t('pwa.offlineNote')}>{t('pwa.offline')}</span>{/if}
 		</div>
 		<div class="turn num">
-			{t('top.step')} <strong>{Math.max(0, turn)}</strong> {t('top.of')} {playable} · 1h
+			{t('top.step')} <strong>{Math.max(0, turn)}</strong> {t('top.of')} {playable} · {intervalLabel(s.stepSeconds)}
 		</div>
 		<div class="actions">
 			<button class="primary" onclick={() => session.advance(1)} disabled={session.busy || s.status !== 'active'}>

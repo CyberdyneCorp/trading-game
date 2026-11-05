@@ -231,13 +231,13 @@ TEST_CASE("pack C ABI: import, play to the end, debrief reveal, checkpoint resto
 namespace {
 
 // Same text as bindings/python/tests/test_packs.py golden_csv(): prices in integer tenths.
-std::string golden_csv() {
+std::string golden_csv(int step_seconds = 3600) {
   const auto tenths = [](int v) { return std::to_string(v / 10) + "." + std::to_string(v % 10); };
   std::string out = "timestamp,open,high,low,close,volume,funding\n";
   for (int i = 0; i < 150; ++i) {
     const int open = 1000 + (i * 37) % 50;
     const int close = open + (i * 13) % 21 - 10;
-    out += std::to_string(1'700'000'000 + i * 3600) + "," + tenths(open) + "," + tenths(std::max(open, close) + 5) + "," +
+    out += std::to_string(1'700'000'000 + i * step_seconds) + "," + tenths(open) + "," + tenths(std::max(open, close) + 5) + "," +
            tenths(std::min(open, close) - 5) + "," + tenths(close) + "," + std::to_string(1000 + i) + (i % 8 == 0 ? ",0.0001\n" : ",\n");
   }
   return out;
@@ -270,6 +270,23 @@ TEST_CASE("Golden: scripted run on an imported CSV pack (cross-platform, mirrore
   tl_close_position(run, 4);
   const std::string state = tl_advance(run, 1000);
   tl_run_destroy(run);
-  CHECK(json_text(state, "digest") == "8988d618cfe5a872d1015e6cd3e15f67e027cd2ffef3bb9b37607ab5b1fd1e93");
+  CHECK(json_text(state, "digest") == "d366622534db988efed0c5f11e0952037b24d6c6f98838124beb6c795c881b4d");
   CHECK(json_text(state, "eventsDigest") == "e3e42dedf85efb5b7fa7b55835e1998d82b3c552100f3c017214b6b585d382da");
+}
+
+TEST_CASE("Regression: the state names the bar interval (an imported 15-minute market is not '1h')") {
+  const std::string meta =
+      R"({"asset":"X","pair":"X/USD","venue":"v","volumeUnit":"base","intervalSeconds":900,"timestampUnit":"s","leverageCap":5})";
+  const std::string seed_hex(64, '7');
+  REQUIRE(std::string(tl_pack_build_csv(golden_csv(900).c_str(), meta.c_str(), seed_hex.c_str())).find("\"ok\":true") != std::string::npos);
+  const std::vector<std::uint8_t> pack(tl_blob_data(), tl_blob_data() + tl_blob_size());
+  const std::string key = tl_device_key(seed_hex.c_str());
+  const std::string keys = "[{\"id\":\"" + json_text(key, "id") + "\",\"key\":\"" + json_text(key, "publicKey") + "\"}]";
+  tl_run* run = tl_run_create_pack(pack.data(), static_cast<uint32_t>(pack.size()), keys.c_str(), 1);
+  REQUIRE(run != nullptr);
+  CHECK(std::string(tl_state(run)).find("\"stepSeconds\":900,") != std::string::npos);
+  tl_run_destroy(run);
+  tl_run* mission = tl_run_create("m01-false-breakout", 1);
+  CHECK(std::string(tl_state(mission)).find("\"stepSeconds\":3600,") != std::string::npos);
+  tl_run_destroy(mission);
 }

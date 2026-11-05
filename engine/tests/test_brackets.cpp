@@ -183,3 +183,52 @@ TEST_CASE("Regression: a bracket stop already breached by the entry's open fills
   CHECK(fills[1]->price == P("90"));  // stop at the open (gap), not at 97
   CHECK((fills[1]->flags & kFlagGapFill) != 0);
 }
+
+TEST_CASE("Regression: moving a bracket stop keeps it in its OCO group (the target is cancelled when it fills)") {
+  // Before: the client replaced a dragged bracket STOP with a plain stop; the TP kept saying OCO but no
+  // longer had a sibling, and stayed working after the stop closed the position.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"},
+                               {"100", "100", "96", "97"},
+                               {"97", "97", "97", "97"}});
+  Driver d(sc);
+  const auto entry = d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "95", "110");
+  d.step();
+  auto kids = children_of(d.state(), entry.order_id);
+  REQUIRE(kids.size() == 2);
+  const Order* stop = kids[0]->type == OrderType::StopMarket ? kids[0] : kids[1];
+  const std::uint32_t stop_id = stop->id;
+  const std::size_t orders_before = d.state().orders.size();
+  const auto moved = d.move(stop_id, "97");
+  REQUIRE(moved.accepted);
+  CHECK(moved.order_id == stop_id);
+  CHECK(d.state().orders.size() == orders_before);  // moved in place, nothing new
+  stop = children_of(d.state(), entry.order_id)[0]->type == OrderType::StopMarket ? children_of(d.state(), entry.order_id)[0]
+                                                                                  : children_of(d.state(), entry.order_id)[1];
+  CHECK(stop->price == P("97"));
+  CHECK(stop->oco_group == entry.order_id);
+  const Event& ev = d.state().events.back();
+  CHECK(ev.type == EventType::OrderUpdate);
+  CHECK(ev.reason == Reason::OrderMoved);
+  CHECK(ev.requested == P("97"));
+  d.step(2);  // bar 3 trades down to 96: the moved stop fills at 97, the TP is cancelled with it
+  CHECK(d.state().position.flat());
+  for (const Order* k : children_of(d.state(), entry.order_id)) CHECK_FALSE(k->active());
+}
+
+TEST_CASE("MoveOrder accepts only working perpetual exits on the tick") {
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "100", "100", "100"}});
+  Driver d(sc);
+  const auto limit = d.order(OrderType::Limit, OrderSide::Buy, "1", "90");
+  REQUIRE(limit.accepted);
+  CHECK(d.move(limit.order_id, "91").reason == Reason::UnsupportedOrderType);  // an entry is not an exit
+  CHECK(d.move(999, "91").reason == Reason::UnknownOrder);
+  d.order(OrderType::Market, OrderSide::Buy, "1");
+  d.step();
+  const auto stop = d.order(OrderType::StopMarket, OrderSide::Sell, "1", "95", true);
+  REQUIRE(stop.accepted);
+  CHECK(d.move(stop.order_id, "95.005").reason == Reason::InvalidTick);
+  REQUIRE(d.cancel(stop.order_id).accepted);
+  CHECK(d.move(stop.order_id, "96").reason == Reason::UnknownOrder);  // no longer working
+}

@@ -54,7 +54,9 @@
 	// A buy pays the premium, a write posts margin: either must fit in the available balance.
 	const cost = $derived(opensShort ? margin : side === 'buy' ? loss : null);
 	const cantAfford = $derived(cost != null && cost > num(game.account.available));
-	const canSubmit = $derived(!!quote && !busy && qty > 0 && !shortBlocked && !cantAfford && (type === 'market' || parseDecimal(limitInput) > 0));
+	// The engine cancels a market sell with no buyer (bid 0,00): refuse it here, with the reason.
+	const noBid = $derived(!!quote && side === 'sell' && type === 'market' && num(quote.bid) <= 0);
+	const canSubmit = $derived(!!quote && !busy && qty > 0 && !shortBlocked && !cantAfford && !noBid && (type === 'market' || parseDecimal(limitInput) > 0));
 
 	// Payoff diagram geometry (SVG viewBox units).
 	const W = 300;
@@ -130,6 +132,9 @@
 			</dd>
 		</dl>
 		{#if opensShort && !shortBlocked}<p class="warnbox">⚠ {t('opt.unbounded')}</p>{/if}
+		{#if noBid}
+			<p class="warnbox" role="alert" data-testid="opt-no-bid">⚠ {t('opt.noBid')}</p>
+		{/if}
 		{#if cantAfford}
 			<p class="warnbox" role="alert" data-testid="opt-cant-afford">
 				⚠ {t(opensShort ? 'opt.cantAffordMargin' : 'opt.cantAffordPremium', { avail: fmtMoney(game.account.available, L) })}

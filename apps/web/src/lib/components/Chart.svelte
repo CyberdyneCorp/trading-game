@@ -5,7 +5,7 @@
 	import { fmtNum, fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { OSCILLATORS, type Oscillator, type Palette } from './chartPanes.ts';
-	import { candleRange, hitsTag, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
+	import { candleCells, candleRange, hitsTag, pinOf, priceRange, spreadLabels, type Pin } from './chartScale.ts';
 	import { patternName } from '#lib/game/candlePatterns.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
 	import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragTarget, type DragZone } from './chartDrag.ts';
@@ -639,7 +639,7 @@
 		<tbody>
 			{#each tableRows as row (row.i)}
 				<tr>
-					<td>{row.i}</td><td>{row.b[0]}</td><td>{row.b[1]}</td><td>{row.b[2]}</td><td>{row.b[3]}</td><td>{row.b[4]}</td>
+					<td>{row.i}</td>{#each candleCells(row.b, i18n.locale) as cell, j (j)}<td>{cell}</td>{/each}
 				</tr>
 			{/each}
 		</tbody>

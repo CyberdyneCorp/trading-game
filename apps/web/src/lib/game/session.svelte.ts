@@ -67,6 +67,7 @@ type Action =
 	  }
 	| { k: 'ans'; pBp: number; skipped: boolean }
 	| { k: 'cancel'; id: number }
+	| { k: 'move'; id: number; price: string }
 	| { k: 'close' }
 	| { k: 'advice' }
 	| { k: 'adv'; n: number };
@@ -528,15 +529,13 @@ export class GameSession {
 	}
 
 	/**
-	 * Moves a working protective order: the replacement is placed first and the old order is
-	 * cancelled only if it was accepted, so a rejected move leaves the original protection in place.
+	 * Moves a working stop or take-profit in place (engine MoveOrder, policy v13): same order id,
+	 * quantity and OCO link, so a moved bracket leg still cancels its sibling. A rejected move leaves
+	 * the order where it was.
 	 */
-	async moveOrder(o: OrderView, price: string, qty: string): Promise<CommandResult | null> {
-		let res: CommandResult | null = null;
-		await this.sequence(async () => {
-			res = await this.placeOrder(o.type, o.side, qty, price, true);
-			if (res?.accepted) await this.cancel(o.id);
-		});
+	async moveOrder(o: OrderView, price: string): Promise<CommandResult | null> {
+		const res = await this.command({ k: 'move', id: o.id, price });
+		if (res?.warning === 'stop_beyond_liquidation') this.stopWarnings += 1;
 		return res;
 	}
 
@@ -672,8 +671,9 @@ export class GameSession {
 	}
 
 	// In memory too: the menu must not wait for the fire-and-forget header write in persist().
+	// A practice run on an imported pack is not a mission, so it never counts as completed.
 	private markCompleted(): void {
-		if (this.state?.status === 'finished' && !this.completed.includes(this.missionId)) {
+		if (this.state?.status === 'finished' && !this.state.knownScenario && !this.completed.includes(this.missionId)) {
 			this.completed = [...this.completed, this.missionId];
 		}
 	}
@@ -785,6 +785,8 @@ function commandRequest(a: CommandAction, clientId: number): Extract<EngineReque
 			return { kind: 'margin', clientId, amount: a.amount };
 		case 'cancel':
 			return { kind: 'cancel', clientId, orderId: a.id };
+		case 'move':
+			return { kind: 'move', clientId, orderId: a.id, price: a.price };
 		case 'close':
 			return { kind: 'close', clientId };
 		case 'advice':
