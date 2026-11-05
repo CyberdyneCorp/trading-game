@@ -75,3 +75,34 @@ test('margin tiers: the briefing lists them and the ticket refuses a size above 
 	await expect(warn).toHaveCount(0);
 	expect(errors).toEqual([]);
 });
+
+test('regression: adding to a position estimates the liquidation of the merged position at its tier', async ({ page }) => {
+	const errors: string[] = [];
+	page.on('pageerror', (e) => errors.push(String(e)));
+	await startMission(page, 77, 2); // m03: up to 20x
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await answerIfAsked(page);
+	const lev = page.locator('label:has-text("Alavancagem") input').first();
+	await lev.fill('20');
+	await lev.dispatchEvent('change');
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	const qty = page.locator('label:has-text("Quantidade") input').first();
+	await qty.fill('400'); // ~40.700 notional: the 0,5% tier
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #1/)).toBeVisible();
+
+	const parse = (s: string | null) => Number((s ?? '').replace(/\./g, '').replace(',', '.'));
+	await page.locator('label:has-text("Dimensionar por") select').selectOption('qty');
+	await qty.fill('200'); // the merged 600 (~61.000) sits in the 1% tier
+	const estimated = parse(await page.getByTestId('ticket-est-liq').textContent());
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	await expect(page.getByText(/Execução #2/)).toBeVisible();
+	const booked = parse(await page.locator('.liq-price').textContent());
+	// The order alone would have said ~97,19; the engine books the merged position at ~97,75.
+	expect(Math.abs(estimated - booked)).toBeLessThan(0.05);
+	expect(errors).toEqual([]);
+});

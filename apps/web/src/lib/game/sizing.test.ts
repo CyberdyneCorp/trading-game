@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimate, fitToMargin, liquidationPrice, marginTier, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin, type Costs } from './sizing.ts';
+import { estimate, fitToMargin, liquidationAfter, liquidationPrice, marginTier, opposingEffect, qtyForRisk, releveredLiquidation, requiredMargin, type Costs } from './sizing.ts';
 
 const zero: Costs = { multiplier: 1, takerFee: 0, maintenanceMargin: 0.01, halfSpread: 0, slippage: 0 };
 
@@ -109,5 +109,40 @@ describe('maintenance-margin tiers (policy v16)', () => {
 	it('fits a large size to the leverage its tier allows', () => {
 		// 3,000 @ 100 = 300,000 notional: the 2.5% tier caps 10x even though the mission allows 20x.
 		expect(fitToMargin(3_000, 100, 40_000, 15, 20, tiered, 0.1)).toEqual({ qty: 3_000, leverage: 10 });
+	});
+
+	describe('regression: the ticket estimates the liquidation of the position the order leads to (m03 seed 77)', () => {
+		// Long 400 @ 101.90 at 20x (margin 2,038, 0.5% tier); adding 200 (filled @ 101.79) crosses into the 1% tier.
+		const pos = { qty: 400, entry: 101.9, margin: 2_038, leverage: 20 };
+		const add = { side: 'buy' as const, qty: 200, entry: 101.79, leverage: 20, stop: null };
+
+		it('an add averages the entry, adds the margin and uses the tier of the whole position', () => {
+			// The engine booked 97.75 for the merged 600 (margin 3,055.90); the order alone says 97.19.
+			expect(estimate(add, tiered).liquidation).toBeCloseTo(97.19, 2);
+			expect(estimate(add, tiered, pos).liquidation).toBeCloseTo(97.75, 2);
+			const avg = (400 * 101.9 + 200 * 101.79) / 600;
+			expect(liquidationAfter(add, pos, tiered)).toBeCloseTo(liquidationPrice('buy', 600, avg, 2_038 + 1_017.9, tiered)!, 9);
+		});
+
+		it('a reduction keeps the entry and releases margin pro rata; a close has no liquidation', () => {
+			const cut = { ...add, side: 'sell' as const, qty: 100 };
+			expect(liquidationAfter(cut, pos, tiered)).toBeCloseTo(liquidationPrice('buy', 300, 101.9, 2_038 * 0.75, tiered)!, 9);
+			expect(liquidationAfter({ ...cut, qty: 400 }, pos, tiered)).toBeNull();
+			// A stop on a reducing order is not compared with the long's liquidation.
+			expect(estimate({ ...cut, stop: 103 }, tiered, pos).stopBeyondLiquidation).toBe(false);
+		});
+
+		it('a reversal opens only the remainder, and a new leverage re-margins the open part', () => {
+			const flip = { ...add, side: 'sell' as const, qty: 500 };
+			expect(liquidationAfter(flip, pos, tiered)).toBeCloseTo(liquidationPrice('sell', 100, 101.79, (100 * 101.79) / 20, tiered)!, 9);
+			const at10 = { ...add, leverage: 10 };
+			const merged = 400 * 101.9 + 200 * 101.79;
+			expect(liquidationAfter(at10, pos, tiered)).toBeCloseTo(liquidationPrice('buy', 600, merged / 600, merged / 10, tiered)!, 9);
+		});
+
+		it('flat: the same as the order on its own', () => {
+			const flat = { qty: 0, entry: 0, margin: 0, leverage: 20 };
+			expect(estimate(add, tiered, flat).liquidation).toBe(estimate(add, tiered).liquidation);
+		});
 	});
 });
