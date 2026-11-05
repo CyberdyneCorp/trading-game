@@ -6,8 +6,7 @@
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, packReasonText, t, type Locale } from '#lib/game/i18n.svelte.ts';
 	import { PACK_MAX_BYTES, packLooksCut } from '#lib/game/packs.ts';
-	import { fmtBytes } from '#lib/game/format.ts';
-	import type { StoredPack } from '#lib/game/storage.ts';
+	import { formatBytes, type PackEntry } from '#lib/game/packStore.ts';
 	import CampaignPanel from './CampaignPanel.svelte';
 	import ShortcutSettings from './ShortcutSettings.svelte';
 
@@ -32,12 +31,14 @@
 		if (!bytes) return void (packMessage = { ok: false, text: t('pack.unreadable') });
 		const check = await session.installPack(bytes, label);
 		if (check.ok) packMessage = { ok: true, text: t('pack.installed', { label }) };
-		else if (packLooksCut(bytes)) packMessage = { ok: false, text: t('pack.interrupted', { size: fmtBytes(bytes.length, i18n.locale) }) };
+		else if (packLooksCut(bytes)) packMessage = { ok: false, text: t('pack.interrupted', { size: formatBytes(bytes.length, i18n.locale) }) };
 		else packMessage = { ok: false, text: t('pack.refused', { reason: packReasonText(check.reason) }) };
 	}
 
-	function exportPack(p: StoredPack) {
-		const url = URL.createObjectURL(new Blob([p.bytes as BlobPart], { type: 'application/octet-stream' }));
+	async function exportPack(p: PackEntry) {
+		const bytes = await session.packBytes(p.digest);
+		if (!bytes) return;
+		const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/octet-stream' }));
 		const a = document.createElement('a');
 		a.href = url;
 		a.download = `${p.scenarioId}.tlpack`;
@@ -112,7 +113,10 @@
 					<span class="tag muted">{m.totalBars - m.warmupBars} {t('menu.bars')}</span>
 					<span class="tag attention">{t('top.synthetic')}</span>
 				</p>
-				<button class="primary" onclick={() => session.startMission(m.id)} disabled={session.busy}>{t('menu.start')}</button>
+				<!-- Twelve identical "Start mission" buttons: the name says which one (screen readers list buttons out of context). -->
+				<button class="primary" onclick={() => session.startMission(m.id)} disabled={session.busy} aria-label="{t('menu.start')}: {txt.title}">
+					{t('menu.start')}
+				</button>
 			</article>
 		{/each}
 	</div>
@@ -123,19 +127,23 @@
 		{#if session.packs.length === 0}<p class="muted">{t('menu.noPacks')}</p>{/if}
 		<ul class="packs">
 			{#each session.packs as p (p.digest)}
-				<li data-testid="pack-row">
+				<li data-testid="pack-row" class:evicted={p.evicted}>
 					<span class="pack-name">{p.label}</span>
 					<span class="tag attention">{t('menu.known')}</span>
+					{#if p.evicted}<span class="tag down" data-testid="pack-evicted">{t('pack.evictedTag')}</span>{/if}
 					<span class="tag muted">{p.totalBars - p.warmupBars} {t('menu.bars')}</span>
 					<span class="tag info">{t('menu.leverageCap')} {p.leverageCap}x</span>
 					{#if p.gaps > 0}<span class="tag muted">{t('menu.gaps', { n: p.gaps })}</span>{/if}
 					<span class="pack-actions">
-						<button onclick={() => exportPack(p)}>{t('menu.exportPack')}</button>
+						{#if !p.evicted}<button onclick={() => exportPack(p)}>{t('menu.exportPack')}</button>{/if}
 						<button onclick={() => session.removePack(p.digest)} disabled={session.busy}>{t('menu.deletePack')}</button>
-						<button class="primary" onclick={() => session.startPack(p.digest)} disabled={session.busy} data-testid="pack-start">
-							▶ {t('menu.startPack')}
-						</button>
+						{#if !p.evicted}
+							<button class="primary" onclick={() => session.startPack(p.digest)} disabled={session.busy} data-testid="pack-start">
+								▶ {t('menu.startPack')}
+							</button>
+						{/if}
 					</span>
+					{#if p.evicted}<p class="down small evicted-note" role="status">{t('pack.evicted')}</p>{/if}
 				</li>
 			{/each}
 		</ul>
@@ -147,6 +155,11 @@
 			</label>
 		</div>
 		{#if packMessage}<p class={packMessage.ok ? 'up' : 'down'} role="status" data-testid="pack-message">{packMessage.text}</p>{/if}
+		<p class="muted small" data-testid="quota">
+			{session.quota
+				? t('pwa.quota', { used: formatBytes(session.quota.usage, i18n.locale), total: formatBytes(session.quota.quota, i18n.locale) })
+				: t('pwa.quotaUnknown')}
+		</p>
 	</section>
 
 	<section class="panel settings">
@@ -253,6 +266,9 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.4rem;
+	}
+	.evicted-note {
+		flex-basis: 100%;
 	}
 	.pack-name {
 		font-weight: bold;

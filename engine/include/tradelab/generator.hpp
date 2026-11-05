@@ -27,17 +27,15 @@
 namespace tradelab {
 
 // v3: optional Markov regime chain (G1) and segment labels; v4: drawn event outcomes and intensity
-// (G2). Not a digest input: specs that declare neither generate exactly as in v2.
-constexpr std::uint32_t kGeneratorVersion = 4;
+// (G2); v5: event jump, funding, spread and capacity channels. Not a digest input: specs that
+// declare none of these generate exactly as in v2.
+constexpr std::uint32_t kGeneratorVersion = 5;
 
 enum class Anchor : std::uint8_t {
   None,   // no structural pull besides the fair value
   Level,  // the log price at segment start: range with support/resistance
   Trend,  // an EMA of log price: trend with pullbacks to its average
 };
-
-// What a segment is, for the debrief reveal and for tests. It never feeds generation.
-enum class RegimeLabel : std::uint8_t { Unlabeled = 0, Range, Trend, HighVol, LowLiquidity, Crowded, Calm, Shock };
 
 const char* regime_label_name(RegimeLabel label);
 
@@ -93,6 +91,20 @@ struct ScriptedEvent {
   std::array<std::uint32_t, 5> actual_weights{};
   double intensity_min = 1.0;
   double intensity_max = 1.0;
+  // v5 channels, active on the same bars as the reaction (release + 1 .. release + duration); the
+  // defaults leave the market exactly as before.
+  // Jump: each active bar jumps with jump_prob by jump_size x (0.5 + u) in log, along the sampled
+  // reaction (along the surprise when the reaction is none), drawn on Stream::EventJump. Like a
+  // squeeze, an event jump is liquidity, not information: it does not move the fair value.
+  double jump_prob = 0.0;
+  double jump_size = 0.0;
+  // Funding: added to the funding rate published at the close of each bar before an active bar, so
+  // the first shifted rate is published with the headline, never before it.
+  double funding_shift = 0.0;
+  // Spread and capacity: a LiquidityShock over the active bars (Scenario::liquidity); execution
+  // scales the half-spread and slippage by spread_mult and the capacity fraction by capacity_mult.
+  double spread_mult = 1.0;
+  double capacity_mult = 1.0;
 };
 
 // What G2 drew for one event and seed: the actual and the intensity in percent (100 = as declared).

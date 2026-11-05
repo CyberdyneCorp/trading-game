@@ -30,6 +30,11 @@ struct MissionDef {
   // contract; absent = the defaults every other mission trades with.
   std::optional<CostModel> costs;
   std::optional<ContractSpec> contract;
+  // Mission schema (task 4.1): objectives the briefing lists, the liquidation-distance warning and the
+  // drawdown budget the risk score reads. Defaults: the common objectives, 3% and 20%.
+  std::vector<Objective> objectives = common_objectives();
+  std::uint32_t liq_warning_bp = 300;
+  std::uint32_t drawdown_budget_bp = 2000;
 };
 
 ContractSpec default_contract() {
@@ -41,7 +46,12 @@ ContractSpec default_contract() {
   c.max_leverage = 50;
   c.maker_fee = Rate::from_raw(2'000'000);         // 0.02%
   c.taker_fee = Rate::from_raw(5'000'000);         // 0.05%
-  c.maintenance_margin = Rate::from_raw(50'000'000);  // 0.5%
+  c.maintenance_margin = Rate::from_raw(50'000'000);  // 0.5% below 50,000 notional
+  // Policy v16: larger positions keep more maintenance margin and allow less leverage.
+  const auto credits = [](std::int64_t n) { return Money::from_raw(n * Money::kScale); };
+  c.margin_tiers = {{credits(50'000), Rate::from_raw(100'000'000), 20},     // 1%, 20x
+                    {credits(250'000), Rate::from_raw(250'000'000), 10},    // 2.5%, 10x
+                    {credits(1'000'000), Rate::from_raw(500'000'000), 5}};  // 5%, 5x
   return c;
 }
 
@@ -110,6 +120,8 @@ MissionDef funding_squeeze() {
   m.gen.events = {{{100, NewsKind::LiquidityInflow, 1, 70, 1, 1}, 0.3, 0.5, 0.002, 4, 1.2, 1.0},
                   {{112, NewsKind::RateDecision, -1, 100, 0, -1}, 0.15, 0.7, 0.004, 8, 1.6, 1.3}};
   m.info = {"m02-funding-squeeze", total_bars(m.gen), 50, 10, true};
+  m.objectives = {{ObjectiveCode::PlanEveryEntry, 0}, {ObjectiveCode::RiskPerIdea, 200}, {ObjectiveCode::LiqDistance, 1000}};
+  m.liq_warning_bp = 1000;  // objective: keep the distance to liquidation above 10%
   m.funding_interval = 4;
   return m;
 }
@@ -133,6 +145,7 @@ MissionDef volatility_shock() {
   m.gen.lead_jitter_max = 10;
   m.gen.events = {{{79, NewsKind::ExchangeIncident, -1, 90, 0, -2}, 0.05, 0.85, 0.003, 6, 1.8, 1.5, 0.05}};
   m.info = {"m03-volatility-shock", total_bars(m.gen), 60, 20, true};
+  m.objectives = {{ObjectiveCode::LeverageFromStop, 0}, {ObjectiveCode::LiquidationLosesMargin, 0}, {ObjectiveCode::BankruptcyGameOver, 0}};
   return m;
 }
 
@@ -155,6 +168,7 @@ MissionDef options_buyer() {
   m.gen.lead_jitter_max = 6;
   m.gen.events = {{{81, NewsKind::RateDecision, 1, 100, 0, 1}, 0.2, 0.6, 0.004, 8, 1.4, 1.0}};
   m.info = {"m04-options-buyer", total_bars(m.gen), 60, 3, true};
+  m.objectives = {{ObjectiveCode::OptionLoseScenario, 0}, {ObjectiveCode::PremiumVsBreakeven, 0}, {ObjectiveCode::WatchIvEvent, 0}};
   m.options = true;
   m.chain = {0, {36, 76}, 2, 5.0};
   return m;
@@ -178,6 +192,7 @@ MissionDef options_writer() {
   m.gen.lead_jitter_max = 2;
   m.gen.events = {{{99, NewsKind::NetworkOutage, -1, 80, 0, -2}, 0.05, 0.8, 0.003, 5, 1.6, 1.4, 0.06}};
   m.info = {"m05-options-writer", total_bars(m.gen), 60, 3, true};
+  m.objectives = {{ObjectiveCode::WriterWorstCase, 0}, {ObjectiveCode::MaintenanceBuffer, 0}, {ObjectiveCode::ThetaForSeller, 0}};
   m.options = true;
   m.allow_short_options = true;
   m.chain = {0, {48, 88}, 3, 5.0};
@@ -206,6 +221,7 @@ MissionDef thin_book() {
   m.gen.events = {{{79, NewsKind::LiquidityOutflow, -1, 80, 0, 0}, 0.4, 0.5, 0.002, 4, 1.3, 1.1},
                   {{113, NewsKind::LiquidityInflow, 1, 60, 0, 1}, 0.3, 0.6, 0.003, 5, 1.2, 1.0}};
   m.info = {"m06-thin-book", total_bars(m.gen), 60, 2, false};
+  m.objectives = {{ObjectiveCode::LimitOrdersAtZones, 0}, {ObjectiveCode::RiskPerIdea, 100}, {ObjectiveCode::UnfilledLimitOk, 0}};
   CostModel thin;
   thin.half_spread = Rate::from_raw(10'000'000);           // 0.10%
   thin.slippage = Rate::from_raw(20'000'000);              // 0.20%
@@ -232,6 +248,8 @@ MissionDef trend_trailing() {
   // the fair value (up in most seeds, never all).
   m.gen.events = {{{71, NewsKind::InstitutionalAdoption, 1, 75, 0, 1}, 0.25, 0.6, 0.003, 6, 1.3, 1.1, 0.02}};
   m.info = {"m07-trend-trailing", total_bars(m.gen), 60, 5, true};
+  m.objectives = {{ObjectiveCode::RiskFromStop, 100}, {ObjectiveCode::TrailNotTighterThanAtr, 0}, {ObjectiveCode::DrawdownBudget, 1000}};
+  m.drawdown_budget_bp = 1000;  // objective: finish without a drawdown above 10%
   return m;
 }
 
@@ -254,6 +272,7 @@ MissionDef regime_switch() {
   c.at = 0;
   m.gen.chain = c;
   m.info = {"m08-regime-switch", 180, 60, 5, true};
+  m.objectives = {{ObjectiveCode::RegimeInPlan, 0}, {ObjectiveCode::OneToolPerRegime, 0}, {ObjectiveCode::RiskPerIdea, 100}};
   return m;
 }
 
@@ -288,6 +307,7 @@ MissionDef event_straddle() {
                    .intensity_min = 0.6,
                    .intensity_max = 1.4}};
   m.info = {"m09-event-straddle", total_bars(m.gen), 60, 3, true};
+  m.objectives = {{ObjectiveCode::StraddleBreakevens, 0}, {ObjectiveCode::StraddleLoseScenario, 0}, {ObjectiveCode::PremiumBudget, 200}};
   m.options = true;
   m.chain = {0, {25, 70}, 3, 2.5};
   return m;
@@ -320,6 +340,7 @@ MissionDef hedged_book() {
                    .intensity_min = 0.7,
                    .intensity_max = 1.3}};
   m.info = {"m10-hedged-book", total_bars(m.gen), 60, 5, true};
+  m.objectives = {{ObjectiveCode::StructureMaxLoss, 0}, {ObjectiveCode::WrittenMarginBuffer, 0}, {ObjectiveCode::FundingVsTheta, 0}};
   m.funding_interval = 4;
   m.options = true;
   m.allow_short_options = true;
@@ -369,6 +390,7 @@ MissionDef news_calendar() {
        .actual_weights = Weights{0, 0, 350, 500, 150}, .intensity_min = 0.7, .intensity_max = 1.3},
   };
   m.info = {"m11-news-calendar", 200, 60, 5, true};
+  m.objectives = {{ObjectiveCode::DecideBeforeRelease, 0}, {ObjectiveCode::NoChasingHeadline, 0}, {ObjectiveCode::RiskWithGap, 100}};
   return m;
 }
 
@@ -414,6 +436,7 @@ MissionDef capstone() {
        .actual_weights = Weights{250, 150, 600, 0, 0}, .intensity_min = 0.7, .intensity_max = 1.3},
   };
   m.info = {"m12-capstone", 230, 60, 10, true};
+  m.objectives = {{ObjectiveCode::FinishMission, 0}, {ObjectiveCode::PlanAndStopEveryEntry, 0}, {ObjectiveCode::NoLiquidationNoMarginCall, 0}, {ObjectiveCode::ReadCampaignReport, 0}};
   m.options = true;
   m.allow_short_options = true;
   m.chain = {0, {40, 100, 160}, 3, 5.0};
@@ -494,6 +517,9 @@ bool build_mission(const std::string& id, std::uint64_t seed, Scenario& out) {
   out.mission.leverage_cap = it->info.leverage_cap;
   out.mission.warmup_bars = it->info.warmup_bars;
   out.mission.allow_short = it->info.allow_short;
+  out.mission.objectives = it->objectives;
+  out.mission.liq_warning_bp = it->liq_warning_bp;
+  out.mission.drawdown_budget_bp = it->drawdown_budget_bp;
   if (it->options) out.options = default_option_spec(it->allow_short_options);
   generate_market(it->gen, seed, out);
   if (it->options) add_chain(out, it->chain, it->info.warmup_bars);

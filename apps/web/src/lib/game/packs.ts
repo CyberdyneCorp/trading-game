@@ -2,7 +2,7 @@
 // import"; web-client task 4.5). Validation itself lives in the engine (tl_csv_validate), so web,
 // desktop and iPad report identical errors; this file only guesses defaults and formats.
 
-import type { CsvMeta, TrustedKey } from '#lib/engine/types.ts';
+import type { BarTuple, CsvMeta, GapFill, TrustedKey } from '#lib/engine/types.ts';
 
 /**
  * Publisher keys pinned in this build (design D1 rotation list). Empty until the publisher key
@@ -18,6 +18,13 @@ export function trustedKeys(device: TrustedKey | null): TrustedKey[] {
 export const CSV_MAX_BYTES = 4 * 1024 * 1024;
 /** Same limit as the engine (PackLimits::max_pack_bytes). */
 export const PACK_MAX_BYTES = 16 * 1024 * 1024;
+
+/** How the import treats gaps (policy v17), with the label key of each choice in the wizard. */
+export const GAP_FILLS = [
+	{ value: 'none', label: 'csv.gapFill.none' },
+	{ value: 'skip', label: 'csv.gapFill.skip' },
+	{ value: 'carryForward', label: 'csv.gapFill.carryForward' }
+] as const satisfies readonly { value: GapFill; label: string }[];
 
 export const INTERVALS: readonly { seconds: number; label: string }[] = [
 	{ seconds: 60, label: '1m' },
@@ -35,7 +42,8 @@ export const DEFAULT_META: CsvMeta = {
 	volumeUnit: 'base',
 	intervalSeconds: 3600,
 	timestampUnit: 's',
-	leverageCap: 5
+	leverageCap: 5,
+	gapFill: 'none'
 };
 
 const MILLIS_THRESHOLD = 1e11; // same rule as the engine: seconds past year 5000 are milliseconds
@@ -63,6 +71,17 @@ export function guessMeta(csv: string, base: CsvMeta = DEFAULT_META): CsvMeta {
 	const step = (ts[1] - ts[0]) / (timestampUnit === 'ms' ? 1000 : 1);
 	const known = INTERVALS.find((i) => i.seconds === step);
 	return { ...base, timestampUnit, intervalSeconds: known ? known.seconds : base.intervalSeconds };
+}
+
+/**
+ * First visible synthetic bar of a branch pack (spec market-generator "Branch labeling": every bar
+ * after the branch point is flagged synthetic), as a 1-based decision-turn number; null when no
+ * synthetic bar is visible yet or the market is not a branch.
+ */
+export function branchTurn(state: { marketMode: string; warmupBars: number; bars: readonly BarTuple[] }): number | null {
+	if (state.marketMode !== 'branch') return null;
+	const first = state.bars.findIndex((b) => b[5]);
+	return first < 0 ? null : first - state.warmupBars + 1;
 }
 
 /** "15m", "1h", ... for a bar interval in seconds (the top bar and pack names). */

@@ -8,6 +8,8 @@ import {
 	swingStop,
 	targetFromR,
 	targetOnWinningSide,
+	trailRateFromPercent,
+	trailTriggerFromPercent,
 	type BarTuple
 } from './stops.ts';
 
@@ -59,5 +61,29 @@ describe('targets and ratios', () => {
 		expect(stopOnLosingSide('buy', 100, 99)).toBe(true);
 		expect(stopOnLosingSide('sell', 100, 99)).toBe(false);
 		expect(targetOnWinningSide('sell', 100, 99)).toBe(true);
+	});
+});
+
+describe('percentage trailing stop (policy v16)', () => {
+	it('turns a typed percent into the engine rate string', () => {
+		expect(trailRateFromPercent(2)).toBe('0.020000');
+		expect(trailRateFromPercent(2.5)).toBe('0.025000');
+		expect(trailRateFromPercent(0.0125)).toBe('0.000125');
+		expect(trailRateFromPercent(0)).toBeNull();
+		expect(trailRateFromPercent(100)).toBeNull();
+		expect(trailRateFromPercent(Number.NaN)).toBeNull();
+	});
+
+	it('estimates the first trigger on the exit side of the close', () => {
+		expect(trailTriggerFromPercent('sell', 100, 2, 0.01)).toBeCloseTo(98, 9);
+		expect(trailTriggerFromPercent('buy', 100, 2, 0.01)).toBeCloseTo(102, 9);
+		expect(trailTriggerFromPercent('sell', 100, 0, 0.01)).toBeNull();
+	});
+
+	it('regression: rounds outward onto the tick like the engine (showed 94,75, engine set 94,74)', () => {
+		// m07 seed 707: close 97.68, 3% -> 94.7496, the engine floors a sell trail to 94.74.
+		expect(trailTriggerFromPercent('sell', 97.68, 3, 0.01)).toBeCloseTo(94.74, 9);
+		// 100.37 + 1.5% = 101.87555 -> 101.88 (the engine test's value).
+		expect(trailTriggerFromPercent('buy', 100.37, 1.5, 0.01)).toBeCloseTo(101.88, 9);
 	});
 });

@@ -12,7 +12,7 @@
 - [x] 2.4 Canonical serialization primitives (LE writer/reader) + SHA-256 digest
 
 ## 3. Simulation core
-- [ ] 3.1 Scenario model + validation; RunState; Command/Event types; IDL → C++/TS types — done: `scenario.hpp` + `validate()`, `state.hpp`, `engine.hpp`, `types.hpp`; pending: the IDL (`engine/idl/`) and generated TS types (the web client's `apps/web/src/lib/engine/types.ts` is hand-written)
+- [x] 3.1 Scenario model + validation; RunState; Command/Event types; IDL → C++/TS types — `scenario.hpp` + `validate()`, `state.hpp`, `engine.hpp`, `types.hpp`; IDL `engine/idl/tradelab.idl` → `gen.py` writes the C++ enums (`idl_types.hpp`), the C ABI schema (`tests/idl_schema.hpp`, checked by `test_idl_conformance.cpp`) and the web client's `types.ts`; `gen.py --check` in CI (design D10)
 - [x] 3.2 Step loop with phases in spec order (open → option open → intrabar → close); global event sequence numbering
 - [x] 3.3 Command idempotency (client command id) and sequence/step validation
 - [x] 3.4 No-lookahead test: mutate future bars, compare digests at `t` — SIM01 (`tests/test_engine.cpp`), plus indicator, pattern and option-quote (OPT04) variants
@@ -21,11 +21,11 @@
 ## 4. Order execution
 - [x] 4.1 Market, limit, stop-market, take-profit, trailing (close-based)
 - [x] 4.2 Lifecycle states and events; rejection reasons enum (`types.hpp`; `triggered` is defined but not emitted, see spec "Order lifecycle")
-- [ ] 4.3 Costs: fees, spread, slippage, tick/lot; capacity with priority — done: maker/taker fees, half-spread + slippage, tick/lot validation, shared per-bar capacity from bar volume with `capacityFromBarVolume` on limited fills; pending: price-then-sequence priority for capacity (orders are currently served by phase, then placement order)
+- [x] 4.3 Costs: fees, spread, slippage, tick/lot; capacity with priority — maker/taker fees, half-spread + slippage, tick/lot validation, shared per-bar capacity from bar volume with `capacityFromBarVolume` on limited fills; within each phase capacity is served by price (the level reached first), then sequence (policy v16, design D6j, `tests/test_policy_v16.cpp`)
 - [x] 4.4 Bracket/OCO, reduce-only, orphan cancellation (policy v14: an exit larger than the position it closes cancels its remainder on the same bar); `MoveOrder` (policy v13) moves a working stop/take-profit in place, keeping its OCO link (`tests/test_brackets.cpp`, Python replay action `move`)
 - [x] 4.5 Conservative intrabar policy with `ambiguousIntrabar` flags
 - [x] 4.6 Goldens SIM03–SIM07
-- [ ] 4.7 Percentage trailing distance — pending: trailing stops take a fixed price distance only (design D6b)
+- [x] 4.7 Percentage trailing distance (policy v16, design D6j): `trail_rate` command/order field, `tl_place_trailing_rate`, Python `Run.place_trailing_rate` and replay `trailRate`, web protect-position percent option (`TrailField.svelte`)
 
 ## 5. Perpetual futures
 - [x] 5.1 One-way positions, average entry, flips
@@ -33,8 +33,8 @@
 - [x] 5.3 Liquidation price + liquidation (adverse extreme first, gap handling, insurance fund)
 - [x] 5.4 Funding from series or synthetic rule (the generator emits the funding series)
 - [x] 5.5 Property tests: reconciliation (SIM08), non-negative balances; goldens FUT01–FUT04
-- [ ] 5.6 Maintenance-margin tiers by notional — pending: `ContractSpec` has a single `maintenance_margin` rate
-- [ ] 5.7 Mark-price bars for unrealized P&L, margin and liquidation, and the scenario flag `markFromLastPrice` when absent — pending: everything uses last-price closes and no scenario flag is exposed
+- [x] 5.6 Maintenance-margin tiers by notional (policy v16, design D6j): `ContractSpec.margin_tiers` keyed by notional at entry for the liquidation price, `leverage_above_tier` on placement, fill and `SetLeverage`, debrief safe leverage and the web ticket's liquidation estimate and tier warning use the tier; default tiers on built-in missions
+- [x] 5.7 Mark-price bars for unrealized P&L, margin and liquidation, and the scenario flag `markFromLastPrice` when absent (policy v17, design D6k): `Scenario.mark` (one bar per bar) drives gap/intrabar/close liquidation, funding, the account mark and the debrief's open-trade mark; fills use the traded bars; the contract JSON exposes `markFromLastPrice` (true for every built-in mission and pack, which keep the last price) and the briefing says which price marks positions (`tests/test_policy_v17.cpp`). Packs carry no mark series yet (manifest v1)
 
 ## 6. Options
 - [x] 6.1 Series listing, Black-76 pricing, spread, quantization
@@ -42,18 +42,18 @@
 - [x] 6.3 Greeks
 - [x] 6.4 Buy/write, option margin, margin call and buy-back
 - [x] 6.5 Expiry settlement (TWAP of the last `settlement_bars` closes, flagged approximate for one bar); goldens OPT01–OPT04
-- [ ] 6.6 Settlement window in market time: TWAP from sub-bars and rejection with `series_settling` from the start of the window — pending: scenarios have no sub-bars and the reason does not exist
+- [x] 6.6 Settlement window in market time (policy v17, design D6k): `OptionSpec.settlement_minutes` (default 30) replaces `settlement_bars`; TWAP from `Scenario.sub_bars` when they tile the window (exact), else the closes of the bars covering it (approximate unless they tile it); orders that would execute inside the window are rejected, and resting ones cancelled, with `series_settling` (reason 34; ticket warning from the chain's `settling` flag, reason text in PT-BR/en). Built-in missions (hourly bars, 30 minutes) settle and refuse exactly as before
 
 ## 7. Indicators
 - [x] 7.1 SMA, EMA, RSI, ATR, volume with warm-up (values absent until warm-up)
-- [ ] 7.2 Reference-value tests against a published dataset — done: hand-computed small-series values for every indicator (`tests/test_indicators.cpp`); pending: a published reference dataset
+- [x] 7.2 Reference-value tests against a published dataset — hand-computed small-series values (`tests/test_indicators.cpp`) plus TA-Lib's 252-bar regression series with TA-Lib 0.8.3 outputs, vendored with its BSD license (`tests/data/`, regenerated by `tools/indicator_reference.py`): every indicator within the stated tolerances (`tests/test_indicator_reference.cpp`)
 - [x] 7.3 VWAP (24-bar sessions), MACD(12,26,9), ADX(14) with +DI/−DI; indicator version 2; hand-computed tests and no-lookahead checks
 - [x] 7.4 Bollinger(20, 2) with exact integer square root; indicator version 3
 - [x] 7.5 Candle pattern detection (29 patterns, context-aware), pattern version 1, calibration test
-- [ ] 7.6 Continuity bars: scenario gap policy (skip or carry forward) for indicators and zero executable capacity — pending: `Bar` has no continuity marker and no gap policy exists
+- [x] 7.6 Continuity bars (policy v17, design D6k): `Bar.continuity` (flat at the previous close, no volume, validated), `MissionRules.gap_policy` (skip: indicators and patterns run over trading bars only, no value at a continuity bar; carry forward: fed as the flat bar), zero capacity (no matching runs; working orders wait for the next trading bar). CSV imports may fill gaps with them (`gapFill`, manifest `data.gapPolicy`, a sixth `bars.bin` column); the chart shades them, the readout and legend say "no trading" and how indicators treat them
 
 ## 8. Bindings
 - [x] 8.1 C ABI facade (`engine/include/tradelab/c_api.h`, JSON out, decimal strings in)
-- [ ] 8.2 WASM module + generated TS types; size budget check (< 400 KB gz) — done: ES module `tradelab.mjs` (single file, ~66 KB gz) built by `apps/web/scripts/build-engine.sh` and tested under node in CI; pending: generated TS types (see 3.1) and a CI size-budget check
+- [x] 8.2 WASM module + generated TS types; size budget check (< 400 KB gz) — ES module `tradelab.mjs` (single file, ~183 KB gz) built by `apps/web/scripts/build-engine.sh` and tested under node in CI; TS types generated from the IDL (3.1); `apps/web/scripts/check-wasm-size.mjs` fails the web CI job at 400 KB gz
 - [x] 8.3 Python binding `tradelab_engine` (ctypes over the C ABI, `bindings/python/`), loads `libtradelab` (`tradelab_capi`) from `TRADELAB_LIB` or the build tree; the wheel does not bundle the shared library (the API image builds it)
 - [x] 8.4 All goldens green on every target (frozen digests in the engine tests, mirrored by the Python test); golden-update procedure in `engine/README.md`

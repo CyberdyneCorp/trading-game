@@ -5,17 +5,30 @@
 
 	let { session }: { session: GameSession } = $props();
 	let pct = $state(50);
+	let modal: HTMLDivElement | undefined = $state();
+
+	// Modal: Tab cycles inside the dialog instead of reaching the terminal behind it.
+	function keepFocus(e: KeyboardEvent) {
+		if (e.key !== 'Tab' || !modal) return;
+		const items = Array.from(modal.querySelectorAll<HTMLElement>('input, button'));
+		const edge = e.shiftKey ? items[0] : items[items.length - 1];
+		if (document.activeElement !== edge) return;
+		e.preventDefault();
+		(e.shiftKey ? items[items.length - 1] : items[0]).focus();
+	}
 </script>
 
 <div class="modal-backdrop" role="presentation">
-	<div class="modal" role="dialog" aria-modal="true" aria-labelledby="cal-title">
+	<div class="modal" role="dialog" aria-modal="true" aria-labelledby="cal-title" tabindex="-1" bind:this={modal} onkeydown={keepFocus}>
 		<h2 id="cal-title">{t('cal.title')}</h2>
-		<p class="q">
+		<p class="q" id="cal-q">
 			{t('cal.question', { h: session.state?.calibration.horizon ?? 5, price: fmtPrice(session.state?.account.mark, i18n.locale) })}
 		</p>
 		<label>
 			<span class="big">{pct}%</span>
-			<input type="range" min="5" max="95" step="5" bind:value={pct} aria-label="%" />
+			<!-- Focus starts on the slider, so the keyboard does not have to cross the terminal behind. -->
+			<!-- svelte-ignore a11y_autofocus -->
+			<input type="range" min="5" max="95" step="5" bind:value={pct} aria-labelledby="cal-q" aria-valuetext="{pct}%" autofocus />
 		</label>
 		<p class="muted small">{t('cal.why')}</p>
 		<div class="actions">

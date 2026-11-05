@@ -109,6 +109,15 @@ class Driver {
     c.reduce_only = reduce_only;
     return apply_command(sc_, st_, c);
   }
+  CommandResult trailing_rate(OrderSide side, const char* qty, const char* rate, bool reduce_only = true) {
+    Command c = base(CommandType::PlaceOrder);
+    c.order_type = OrderType::TrailingStop;
+    c.side = side;
+    c.qty = Q(qty);
+    c.trail_rate = R(rate);
+    c.reduce_only = reduce_only;
+    return apply_command(sc_, st_, c);
+  }
   CommandResult option(std::uint32_t series, OrderSide side, const char* qty, const char* limit = nullptr) {
     Command c = base(CommandType::PlaceOptionOrder);
     c.series = series;
@@ -136,6 +145,14 @@ class Driver {
   CommandResult answer(std::uint32_t p_bp, bool skipped = false) {
     Command c = base(CommandType::AnswerQuestion);
     c.p_bp = p_bp;
+    c.skipped = skipped;
+    return apply_command(sc_, st_, c);
+  }
+  CommandResult lesson(std::uint32_t question, std::uint32_t choice, const char* value = nullptr, bool skipped = false) {
+    Command c = base(CommandType::AnswerLesson);
+    c.question = question;
+    c.choice = choice;
+    if (value != nullptr) c.value = M(value);
     c.skipped = skipped;
     return apply_command(sc_, st_, c);
   }

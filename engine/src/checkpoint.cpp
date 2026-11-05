@@ -88,6 +88,7 @@ void visit(Ar& a, Order& o) {
   a.u32(o.oco_group);
   a.fx(o.trail_distance);
   a.u32(o.series);
+  a.fx(o.trail_rate);  // checkpoint format 4 (policy v16)
 }
 
 template <typename Ar>
@@ -167,6 +168,21 @@ void visit(Ar& a, AdviceReason& r) {
   a.i32(r.ref);
 }
 
+template <typename Ar>
+void visit(Ar& a, LessonAnswer& x) {
+  a.u32(x.step);
+  a.u32(x.question);
+  a.u32(x.choice);
+  a.fx(x.value);
+  a.flag(x.skipped);
+}
+
+template <typename Ar>
+void visit(Ar& a, DecisionRecord& x) {
+  a.u32(x.step);
+  a.en(x.kind);
+}
+
 template <typename Ar, typename Seq>
 void visit_seq(Ar& a, Seq& items) {
   auto n = static_cast<std::uint32_t>(items.size());
@@ -223,6 +239,8 @@ void visit(Ar& a, RunState& st) {
   visit_seq(a, st.advice);
   a.fx(st.options.starting_balance);
   a.i32(st.options.leverage_cap);
+  visit_seq(a, st.lesson_answers);  // format 5 (scoring v11)
+  visit_seq(a, st.decisions);
 }
 
 

@@ -181,6 +181,10 @@ test('UX01: the bar table ends with the current closed bar, pages back, and cand
 	await page.getByTestId('table-prev').click();
 	await expect(lastRow()).toHaveText(String(first - 1));
 	await expect(page.getByTestId('table-range')).toContainText(`de ${last0 + 2}`);
+	// Regression: reaching the first page must not drop the focus (a disabled button lost it, so Esc
+	// could not return it to the toggle).
+	await expect(page.getByTestId('table-prev')).toHaveAttribute('aria-disabled', 'true');
+	await expect(page.getByTestId('table-prev')).toBeFocused();
 	await page.keyboard.press('Escape');
 	// Esc hides it even though the focus was on one of its buttons: the focus goes back to the toggle.
 	await expect(table).not.toBeInViewport();

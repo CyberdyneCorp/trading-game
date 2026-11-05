@@ -97,3 +97,10 @@ TEST_CASE("tar: deterministic round-trip and hostile headers") {
   CHECK(tar_read(tar_write({{"../evil", {1}}}), 8, &entries) == TarStatus::BadName);
   CHECK(tar_read(tar_write({{"a.bin", {1}}, {"a.bin", {2}}}), 8, &entries) == TarStatus::Duplicate);
 }
+
+TEST_CASE("zstd: the content size a frame declares (the packer writes compressed frames that must declare it)") {
+  CHECK(zstd_content_size(test::hex_bytes(kHelloZst)) == repeat("tradelab pack data ", 64).size());
+  const std::vector<std::uint8_t> data(1000, 7);
+  CHECK(zstd_content_size(zstd_store(data)) == 1000U);
+  CHECK_FALSE(zstd_content_size(std::vector<std::uint8_t>{1, 2, 3, 4, 5, 6}).has_value());
+}

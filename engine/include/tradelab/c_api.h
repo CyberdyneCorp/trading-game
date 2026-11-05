@@ -37,6 +37,10 @@ const char* tl_place_order(tl_run* run, uint32_t client_id, int32_t type, int32_
 const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
                               const char* price, int32_t reduce_only, const char* attach_stop,
                               const char* attach_tp, const char* trail_distance);
+/* Trailing stop whose distance is a rate of the best close (policy v16), a decimal fraction in (0, 1):
+ * "0.02" trails 2% behind it. Rejected with invalid_tick when the rate is missing or out of range. */
+const char* tl_place_trailing_rate(tl_run* run, uint32_t client_id, int32_t side, const char* qty,
+                                   int32_t reduce_only, const char* trail_rate);
 /* Option order on series `series`: type 0 market, 1 limit (premium); executes at the next bar's open. */
 const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
                                   const char* qty, const char* premium);
@@ -55,6 +59,16 @@ const char* tl_record_plan(tl_run* run, uint32_t client_id, int32_t side, int32_
                            int32_t confidence_pct, const char* planned_risk);
 /* Calibration answer for the question due now: probability in basis points (0..10000). */
 const char* tl_answer_question(tl_run* run, uint32_t client_id, int32_t p_bp, int32_t skipped);
+
+/* Lesson question of the mission's rubric (index `question`): `choice` for multiple choice, `value` (a
+ * decimal string) for a numeric one; each question is answered (or skipped) once. Rejected with
+ * unknown_question, already_answered or invalid_answer. Scored as the understanding dimension. */
+const char* tl_answer_lesson(tl_run* run, uint32_t client_id, uint32_t question, uint32_t choice, const char* value,
+                             int32_t skipped);
+/* The mission's lesson questions without the answer key (run-less, static buffer):
+ * {"mission","reviewed","questions":[{"id","kind":"choice|numeric","choices","points"}]};
+ * {"error":"no_lesson"} for a mission without a rubric. Texts live in the client catalogs by id. */
+const char* tl_lesson(const char* mission_id);
 
 /* Advisor read of the visible market at the current step; uses one unit of the allowance.
  * Rejected with no_advice_left (and no state change) when the allowance is used up. */
@@ -88,7 +102,8 @@ const char* tl_mission_reveal(const char* mission_id, uint32_t seed);
  * "errorCount","gaps":[{"line","from","to","missing"}],"gapCount","hasFunding","firstTime","lastTime"}
  * or {"ok":false,"metaError":"<field>"}. */
 const char* tl_csv_validate(const char* csv, const char* meta_json);
-/* Builds a private, masked pack from a CSV (metadata may add "leverageCap" 1..20 and "warmupBars"),
+/* Builds a private, masked pack from a CSV (metadata may add "leverageCap" 1..20, "warmupBars" and
+ * "gapFill": "none" (default), "skip" or "carryForward" to fill gaps with continuity bars, policy v17),
  * signed with the device key derived from a 32-byte seed (64 hex). Returns {"ok","reason","report",
  * "scenarioId","digest","size"}; the pack bytes are then read with tl_blob_data/tl_blob_size. */
 const char* tl_pack_build_csv(const char* csv, const char* meta_json, const char* device_seed_hex);
@@ -103,6 +118,29 @@ const char* tl_pack_validate(const uint8_t* data, uint32_t size, const char* tru
 tl_run* tl_run_create_pack(const uint8_t* data, uint32_t size, const char* trusted_keys_json, uint32_t seed);
 tl_run* tl_run_restore_pack(const uint8_t* data, uint32_t size, const char* trusted_keys_json, uint32_t seed,
                             const char* checkpoint_hex);
+
+/* ---- Pack authoring (tools/packer; native only, not exported to WASM). ----
+ * A pack source is an uncompressed archive of manifest.json and the raw data files, read with
+ * tl_blob_data/tl_blob_size. The packer compresses the .bin files (zstd frames declaring their
+ * content size) and writes the signed pack with tl_pack_write. */
+
+/* A built-in mission generated for a seed as a synthetic pack source:
+ * {"ok","reason","detail","scenarioId","files":[names]}. */
+const char* tl_pack_source_mission(const char* mission_id, uint32_t seed);
+/* A masked CSV window as a publishable (not private) historical pack source. meta_json is the
+ * tl_pack_build_csv metadata, optionally with "branchStep", "branchMission" and "branchSeed" for a
+ * branch pack (bars after branchStep come from that mission and seed, marked synthetic). Returns
+ * {"ok","reason","detail","report","scenarioId","files"}. */
+const char* tl_pack_source_csv(const char* csv, const char* meta_json);
+/* Writes a pack from a manifest and an archive of stored files, signed with the key derived from a
+ * 32-byte seed (64 hex) under the id "<key_prefix>-<16 hex>" (prefix: 1-16 of [a-z]).
+ * {"ok","reason","digest","size","signingKeyId"}; the pack is then in tl_blob_data/tl_blob_size. */
+const char* tl_pack_write(const char* manifest_json, const uint8_t* files_tar, uint32_t size, const char* seed_hex,
+                          const char* key_prefix);
+/* Signs a non-private pack again with another key (same files and manifest); result as tl_pack_write. */
+const char* tl_pack_resign(const uint8_t* pack, uint32_t size, const char* seed_hex, const char* key_prefix);
+/* {"id":"<prefix>-<16 hex>","publicKey":"<64 hex>"} or {"error":"invalid_seed"|"invalid_prefix"}. */
+const char* tl_signing_key(const char* seed_hex, const char* key_prefix);
 
 #ifdef __cplusplus
 }

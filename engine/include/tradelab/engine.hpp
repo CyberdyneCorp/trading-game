@@ -13,25 +13,12 @@ namespace tradelab {
 // Engine release, checked against a pack's engineCompatibility range.
 inline constexpr const char* kEngineVersion = "0.1.0";
 
-constexpr std::uint32_t kExecutionPolicyVersion = 15;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap); v13 MoveOrder (a working exit moved in place, OCO link kept); v14 an exit that closes the position cancels its own remainder on the same bar; v15 a stop cut short by capacity executes its remainder at the next opens (it is a market order once triggered)
+constexpr std::uint32_t kExecutionPolicyVersion = 17;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap); v13 MoveOrder (a working exit moved in place, OCO link kept); v14 an exit that closes the position cancels its own remainder on the same bar; v15 a stop cut short by capacity executes its remainder at the next opens (it is a market order once triggered); v16 capacity served by price then sequence within each phase, percentage trailing stops, maintenance-margin tiers by notional; v17 mark-price bars for margin, liquidation and funding (markFromLastPrice without them), option settlement window in market time (sub-bar TWAP, series_settling), continuity bars (no trading, indicator gap policy)
 
 // Calibration questions (spec mission-scoring "Calibration"): asked every kQuestionEvery steps from
 // the first decision step while the resolving bar exists; resolved kQuestionHorizon bars later.
 constexpr std::uint32_t kQuestionEvery = 15;
 constexpr std::uint32_t kQuestionHorizon = 5;
-
-enum class CommandType : std::uint8_t {
-  PlaceOrder = 0,
-  CancelOrder = 1,
-  SetLeverage = 2,
-  ClosePosition = 3,
-  PlaceOptionOrder = 4,  // order_type Market or Limit; price = premium limit; series required
-  AdjustMargin = 5,      // add (> 0) or remove (< 0) isolated margin on the open perpetual position
-  RecordPlan = 6,        // structured plan for the next exposure-increasing order
-  AnswerQuestion = 7,    // calibration answer for the question due at this step
-  RequestAdvice = 8,     // advisor read of the visible market; uses one unit of the allowance
-  MoveOrder = 9,         // order_id + price: moves a working reduce-only stop/take-profit, keeping its OCO link (v13)
-};
 
 struct Command {
   std::uint64_t seq = 0;            // strictly increasing per run
@@ -47,17 +34,21 @@ struct Command {
   std::int32_t leverage = 1;   // SetLeverage
   Price attach_stop;           // PlaceOrder bracket: protective stop for the filled quantity
   Price attach_tp;             // PlaceOrder bracket: take-profit for the filled quantity
-  Price trail_distance;        // TrailingStop
+  Price trail_distance;        // TrailingStop: fixed distance from the best close
+  Rate trail_rate;             // TrailingStop (policy v16): or a rate of it, e.g. 0.02 = 2% (one of the two)
   std::uint32_t series = 0;    // PlaceOptionOrder
   Money margin_delta;          // AdjustMargin
   PlanRecord plan;             // RecordPlan (step is set by the engine)
   std::uint32_t p_bp = 0;      // AnswerQuestion: probability in basis points
-  bool skipped = false;        // AnswerQuestion skipped
+  bool skipped = false;        // AnswerQuestion / AnswerLesson skipped
+  std::uint32_t question = 0;  // AnswerLesson: index into the mission's rubric
+  std::uint32_t choice = 0;    // AnswerLesson: multiple-choice option
+  Money value;                 // AnswerLesson: numeric answer
 };
 
 // Live account figures at the current decision point (all derived, never stored).
 struct AccountView {
-  Price mark;                 // last close
+  Price mark;                 // mark close (policy v17), the last close without a mark series
   Money unrealized;
   Money equity;               // wallet + unrealized
   Money position_margin;
@@ -81,6 +72,8 @@ Money run_initial_balance(const Scenario& sc, const RunState& st);
 std::int32_t run_leverage_cap(const Scenario& sc, const RunState& st);
 CommandResult apply_command(const Scenario& sc, RunState& st, const Command& cmd);
 void advance(const Scenario& sc, RunState& st);
+// What the player did at the current decision step (recorded by advance in RunState::decisions).
+DecisionKind decision_at(const RunState& st);
 
 AccountView account_view(const Scenario& sc, const RunState& st);
 

@@ -12,6 +12,7 @@
 #include "tradelab/generator.hpp"
 #include "tradelab/candle_patterns.hpp"
 #include "tradelab/indicators.hpp"
+#include "tradelab/lessons.hpp"
 #include "tradelab/options.hpp"
 #include "tradelab/scoring.hpp"
 #include "options_exec.hpp"
@@ -24,40 +25,18 @@ namespace {
 
 constexpr std::uint32_t kMissionStepSeconds = 3600;  // the built-in missions trade hourly bars
 
-const char* reason_name(Reason r) {
-  static constexpr const char* kNames[] = {
-      "none", "insufficient_margin", "leverage_above_cap", "invalid_tick", "invalid_quantity",
-      "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
-      "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
-      "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left", "order_moved"};
-  const auto i = static_cast<std::size_t>(r);
-  return i < std::size(kNames) ? kNames[i] : "unknown";
+// Every maintenance-margin tier, the base one first (floor 0), so clients estimate liquidation with
+// the same tier as the engine (policy v16).
+void write_margin_tiers(JsonOut& j, const ContractSpec& k) {
+  j.key("marginTiers").begin_arr();
+  j.begin_obj().field("notionalFloor", Money{}).field("maintenanceMargin", k.maintenance_margin);
+  j.field("maxLeverage", k.max_leverage).end_obj();
+  for (const MarginTier& t : k.margin_tiers) {
+    j.begin_obj().field("notionalFloor", t.notional_floor).field("maintenanceMargin", t.maintenance_margin);
+    j.field("maxLeverage", t.max_leverage).end_obj();
+  }
+  j.end_arr();
 }
-
-const char* status_name(OrderStatus s) {
-  static constexpr const char* kNames[] = {"accepted", "partially_filled", "filled", "cancelled",
-                                           "rejected", "expired", "triggered"};
-  return kNames[static_cast<std::size_t>(s)];
-}
-
-const char* type_name(OrderType t) {
-  static constexpr const char* kNames[] = {"market", "limit", "stop_market", "take_profit", "trailing_stop"};
-  return kNames[static_cast<std::size_t>(t)];
-}
-
-const char* event_name(EventType t) {
-  static constexpr const char* kNames[] = {"order",    "fill",         "funding",         "liquidation",
-                                           "bankrupt", "run_finished", "leverage_changed", "option_settlement", "margin_call", "margin_adjusted"};
-  return kNames[static_cast<std::size_t>(t)];
-}
-
-const char* run_status_name(RunStatus s) {
-  static constexpr const char* kNames[] = {"active", "finished", "bankrupt"};
-  return kNames[static_cast<std::size_t>(s)];
-}
-
-const char* side_name(OrderSide s) { return s == OrderSide::Buy ? "buy" : "sell"; }
 
 void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
   const ContractSpec& k = sc.contract;
@@ -69,6 +48,29 @@ void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.field("fundingInterval", k.funding_interval).field("allowShort", sc.mission.allow_short);
   j.field("halfSpread", sc.costs.half_spread).field("slippage", sc.costs.slippage);
   j.field("capacityFraction", sc.costs.capacity_fraction);
+  // Policy v17: margin and liquidation read the last price when the scenario has no mark series;
+  // indicators treat continuity bars by the gap policy.
+  j.field("markFromLastPrice", mark_from_last_price(sc));
+  j.field("gapPolicy", json_name(sc.mission.gap_policy));
+  write_margin_tiers(j, k);
+  j.end_obj();
+}
+
+// The mission's rules as the run plays them (task 4.1): what the briefing lists and the ticket enforces.
+// Permissions come from the contract and the option spec, so the client never decides them.
+void write_mission_rules(JsonOut& j, const Scenario& sc, const RunState& st) {
+  const MissionRules& m = sc.mission;
+  const bool options = !sc.options.series.empty();
+  j.key("missionRules").begin_obj();
+  j.field("initialBalance", run_initial_balance(sc, st)).field("leverageCap", run_leverage_cap(sc, st));
+  j.field("warmupBars", m.warmup_bars);
+  j.key("permissions").begin_obj().field("long", true).field("short", m.allow_short);
+  j.field("optionsBuy", options).field("optionsWrite", options && sc.options.allow_short).end_obj();
+  j.key("objectives").begin_arr();
+  for (const Objective& o : m.objectives) j.begin_obj().field("code", json_name(o.code)).field("valueBp", o.value_bp).end_obj();
+  j.end_arr();
+  j.field("liqWarningBp", m.liq_warning_bp).field("drawdownBudgetBp", m.drawdown_budget_bp);
+  j.field("confirmStopBeyondLiq", m.confirm_stop_beyond_liq);
   j.end_obj();
 }
 
@@ -77,7 +79,8 @@ void write_bars(JsonOut& j, const Scenario& sc, std::uint32_t last) {
   j.key("bars").begin_arr();
   for (std::uint32_t i = 0; i <= last; ++i) {
     const Bar& b = sc.bars[i];
-    j.begin_arr().dec(b.open).dec(b.high).dec(b.low).dec(b.close).dec(b.volume).boolean(b.synthetic).end_arr();
+    j.begin_arr().dec(b.open).dec(b.high).dec(b.low).dec(b.close).dec(b.volume).boolean(b.synthetic);
+    j.boolean(b.continuity).end_arr();
   }
   j.end_arr();
 }
@@ -101,10 +104,11 @@ void write_orders(JsonOut& j, const RunState& st) {
   j.key("orders").begin_arr();
   for (const Order& o : st.orders) {
     if (!o.active()) continue;
-    j.begin_obj().field("id", o.id).field("type", type_name(o.type)).field("side", side_name(o.side));
+    j.begin_obj().field("id", o.id).field("type", json_name(o.type)).field("side", json_name(o.side));
     j.field("qty", o.qty).field("filled", o.filled).field("price", o.price);
-    j.field("reduceOnly", o.reduce_only).field("status", status_name(o.status)).field("placedStep", o.placed_step);
+    j.field("reduceOnly", o.reduce_only).field("status", json_name(o.status)).field("placedStep", o.placed_step);
     j.field("parentId", o.parent_id).field("ocoGroup", o.oco_group).field("trailDistance", o.trail_distance);
+    j.field("trailRate", o.trail_rate);
     j.field("bracketStop", o.bracket_stop).field("bracketTp", o.bracket_tp).field("series", o.series);
     j.end_obj();
   }
@@ -121,16 +125,16 @@ const Order* order_by_id(const RunState& st, std::uint32_t id) {
 // orderType names the order an event refers to (null without one): a bracket leg placed and filled
 // or cancelled within one advance never shows up in the live order list.
 void write_event(JsonOut& j, const RunState& st, const Event& e) {
-  j.begin_obj().field("seq", e.seq).field("step", e.step).field("type", event_name(e.type));
+  j.begin_obj().field("seq", e.seq).field("step", e.step).field("type", json_name(e.type));
   j.field("orderId", e.order_id).key("orderType");
   const Order* o = e.order_id != 0 ? order_by_id(st, e.order_id) : nullptr;
-  if (o != nullptr) j.str(type_name(o->type)); else j.null();
-  j.field("status", status_name(e.status)).field("reason", reason_name(e.reason));
-  j.field("side", side_name(e.side)).field("qty", e.qty).field("price", e.price).field("requested", e.requested);
+  if (o != nullptr) j.str(json_name(o->type)); else j.null();
+  j.field("status", json_name(e.status)).field("reason", json_name(e.reason));
+  j.field("side", json_name(e.side)).field("qty", e.qty).field("price", e.price).field("requested", e.requested);
   j.field("amount", e.amount).field("pnl", e.pnl);
   j.field("ambiguous", (e.flags & kFlagAmbiguousIntrabar) != 0).field("gap", (e.flags & kFlagGapFill) != 0);
   j.field("capacityLimited", (e.flags & kFlagCapacityFromBarVolume) != 0).field("series", e.series);
-  j.field("approximate", (e.flags & kFlagMarkFromLastPrice) != 0);
+  j.field("approximate", (e.flags & kFlagApproximate) != 0);
   j.end_obj();
 }
 
@@ -146,12 +150,12 @@ void write_totals(JsonOut& j, const RunState& st) {
   j.end_obj();
 }
 
-void write_quote(JsonOut& j, const OptionSeries& s, const OptionQuote& q) {
-  j.begin_obj().field("id", s.id).field("kind", s.kind == OptionKind::Call ? "call" : "put").field("strike", s.strike);
+void write_quote(JsonOut& j, const OptionSeries& s, const OptionQuote& q, bool settling) {
+  j.begin_obj().field("id", s.id).field("kind", json_name(s.kind)).field("strike", s.strike);
   j.field("listStep", s.list_step).field("expiryStep", s.expiry_step).field("listed", q.listed);
   j.field("bid", q.bid).field("ask", q.ask).field("mid", q.mid).field("iv", q.iv);
   j.field("delta", q.delta).field("gamma", q.gamma).field("theta", q.theta).field("vega", q.vega);
-  j.field("ivFromRealized", q.iv_from_realized).end_obj();
+  j.field("ivFromRealized", q.iv_from_realized).field("settling", settling).end_obj();
 }
 
 // Chain at the current decision step only: listed, unexpired series quoted from the current close.
@@ -161,11 +165,14 @@ void write_options(JsonOut& j, const Scenario& sc, const RunState& st) {
   const detail::OptionBook b = detail::option_book(sc, st, st.step);
   j.key("options").begin_obj().field("enabled", !o.series.empty()).field("allowShort", o.allow_short);
   j.field("multiplier", o.multiplier).field("premiumTick", o.premium_tick).field("lotSize", o.lot_size);
+  j.field("settlementMinutes", o.settlement_minutes);
   j.field("longValue", b.long_value).field("shortValue", b.short_value);
   j.field("initialMargin", b.initial_margin).field("maintenanceMargin", b.maintenance_margin);
   j.key("chain").begin_arr();
   for (const OptionSeries& s : o.series) {
-    if (st.step >= s.list_step && st.step < s.expiry_step) write_quote(j, s, quote(sc, s, st.step, f));
+    if (st.step < s.list_step || st.step >= s.expiry_step) continue;
+    // An order placed now executes at the next open: inside the settlement window it is refused.
+    write_quote(j, s, quote(sc, s, st.step, f), in_settlement_window(sc, s, st.step + 1));
   }
   j.end_arr().key("positions").begin_arr();
   for (const OptionPosition& p : st.option_positions) {
@@ -213,13 +220,6 @@ void write_indicators(JsonOut& j, const Scenario& sc, std::uint32_t step) {
   j.end_obj();
 }
 
-const char* news_kind_name(NewsKind k) {
-  static constexpr const char* kNames[] = {"rate_decision",  "regulation_rumor",       "exchange_incident", "network_outage",
-                                           "liquidity_inflow", "institutional_adoption", "rumor_denied", "liquidity_outflow",
-                                           "macro_data",       "network_upgrade"};
-  return kNames[static_cast<std::size_t>(k)];
-}
-
 // News published by the current step, plus the headlines a fast wire (news_lead) delivers early,
 // flagged `early` until their release step. Bars after the step never cross the ABI.
 void write_news(JsonOut& j, const Scenario& sc, const RunState& st) {
@@ -227,7 +227,7 @@ void write_news(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.key("news").begin_arr();
   for (const NewsItem& n : sc.news) {
     if (n.release_step > visible_until) continue;
-    j.begin_obj().field("step", n.release_step).field("kind", news_kind_name(n.kind)).field("tone", std::int32_t{n.tone});
+    j.begin_obj().field("step", n.release_step).field("kind", json_name(n.kind)).field("tone", std::int32_t{n.tone});
     j.field("credibility", std::uint32_t{n.credibility}).field("expectation", std::int32_t{n.expectation});
     j.field("actual", std::int32_t{n.actual}).field("early", n.release_step > st.step).end_obj();
   }
@@ -241,7 +241,7 @@ void write_upcoming(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.key("upcoming").begin_arr();
   for (const NewsItem& n : sc.news) {
     if (n.announce_lead == 0 || n.release_step <= visible_until || st.step + n.announce_lead < n.release_step) continue;
-    j.begin_obj().field("step", n.release_step).field("kind", news_kind_name(n.kind));
+    j.begin_obj().field("step", n.release_step).field("kind", json_name(n.kind));
     j.field("expectation", std::int32_t{n.expectation}).end_obj();
   }
   j.end_arr();
@@ -264,23 +264,11 @@ void write_calibration_state(JsonOut& j, const Scenario& sc, const RunState& st)
   j.end_obj();
 }
 
-const char* stance_name(AdviceStance s) {
-  if (s == AdviceStance::Long) return "long";
-  return s == AdviceStance::Short ? "short" : "wait";
-}
-
-const char* advice_reason_name(AdviceReasonCode c) {
-  static constexpr const char* kNames[] = {"regime_trend_up", "regime_trend_down", "regime_range", "rsi_extreme",
-                                           "band_fade",       "macd_momentum",     "pattern",      "news_priced",
-                                           "news_early",      "funding_crowded",   "low_vol_squeeze", "event_ahead"};
-  return kNames[static_cast<std::size_t>(c)];
-}
-
 void write_advice(JsonOut& j, const Advice& a) {
-  j.begin_obj().field("step", a.step).field("stance", stance_name(a.stance)).field("confidenceBp", a.confidence_bp);
+  j.begin_obj().field("step", a.step).field("stance", json_name(a.stance)).field("confidenceBp", a.confidence_bp);
   j.field("stop", a.stop).field("size", a.size).key("reasons").begin_arr();
   for (const AdviceReason& r : a.reasons) {
-    j.begin_obj().field("code", advice_reason_name(r.code)).field("vote", std::int32_t{r.vote}).field("ref", r.ref).end_obj();
+    j.begin_obj().field("code", json_name(r.code)).field("vote", std::int32_t{r.vote}).field("ref", r.ref).end_obj();
   }
   j.end_arr().end_obj();
 }
@@ -294,43 +282,14 @@ void write_advisor(JsonOut& j, const RunState& st) {
   j.end_arr().end_obj();
 }
 
-const char* advice_outcome_name(AdviceOutcome o) {
-  static constexpr const char* kNames[] = {"right", "wrong", "wait", "open"};
-  return kNames[static_cast<std::size_t>(o)];
-}
-
 void write_advice_rows(JsonOut& j, const ScoreReport& r) {
   j.field("advisorPointsEarned", r.advisor_points_earned).key("advice").begin_arr();
   for (const AdviceRow& a : r.advice) {
-    j.begin_obj().field("step", a.step).field("stance", stance_name(a.stance)).field("confidenceBp", a.confidence_bp);
-    j.field("outcome", advice_outcome_name(a.outcome)).end_obj();
+    j.begin_obj().field("step", a.step).field("stance", json_name(a.stance)).field("confidenceBp", a.confidence_bp);
+    j.field("outcome", json_name(a.outcome)).end_obj();
   }
   j.end_arr().key("adviceHitBp");
   if (r.advice_hit_bp) j.num(*r.advice_hit_bp); else j.null();
-}
-
-const char* finding_name(FindingCode c) {
-  static constexpr const char* kNames[] = {"waited",          "liquidated", "stop_beyond_liq", "no_stop",   "gap_slippage",
-                                           "funding_cost",    "ambiguous",  "capacity",        "good_process_loss",
-                                           "lucky_win",       "no_plan",    "oversized",       "bankrupt",
-                                           "margin_called",   "theta_decay", "iv_crush",        "good_process_win",
-                                           "iv_rise",         "wrote_options"};
-  return kNames[static_cast<std::size_t>(c)];
-}
-
-const char* tone_name(FindingTone t) {
-  static constexpr const char* kNames[] = {"good", "warn", "bad", "info"};
-  return kNames[static_cast<std::size_t>(t)];
-}
-
-const char* lesson_name(LessonCode l) {
-  static constexpr const char* kNames[] = {"futures2", "risk", "futures3", "orders", "structure", "evaluation", "options"};
-  return kNames[static_cast<std::size_t>(l)];
-}
-
-const char* exit_name(ExitReason e) {
-  static constexpr const char* kNames[] = {"stop", "target", "manual", "liquidation", "open", "expiry", "margin_call", "trailing"};
-  return kNames[static_cast<std::size_t>(e)];
 }
 
 void write_dim(JsonOut& j, std::string_view name, const Dimension& d) {
@@ -350,7 +309,7 @@ void write_trade(JsonOut& j, const TradeRow& t, const std::vector<RegimeSpan>& s
   j.begin_obj().field("n", t.n).field("series", t.series).field("side", t.is_long ? "long" : "short").field("entryStep", t.entry_step).key("exitStep");
   if (t.exit_step) j.num(*t.exit_step); else j.null();
   j.field("qty", t.qty).field("entryAvg", t.entry_avg).field("exitAvg", t.exit_avg).field("pnl", t.pnl);
-  j.field("fees", t.fees).field("funding", t.funding).field("net", t.net).field("bars", t.bars).field("reason", exit_name(t.reason));
+  j.field("fees", t.fees).field("funding", t.funding).field("net", t.net).field("bars", t.bars).field("reason", json_name(t.reason));
   if (t.series != 0) {
     j.field("kind", t.is_call ? "call" : "put").field("strike", t.strike).field("expiryStep", t.expiry_step);
   } else {
@@ -390,6 +349,44 @@ void write_regime_signals(JsonOut& j, const std::vector<RegimeSignals>& rows) {
   j.end_arr();
 }
 
+// Debrief only (task 4.2): what the player did at each decision step the run advanced through.
+void write_decisions(JsonOut& j, const RunState& st) {
+  j.key("decisions").begin_arr();
+  for (const DecisionRecord& d : st.decisions) j.begin_obj().field("step", d.step).field("kind", json_name(d.kind)).end_obj();
+  j.end_arr();
+}
+
+void write_lesson_answer(JsonOut& j, const LessonQuestion& q, const RunState& st, std::uint32_t index) {
+  const auto it = std::find_if(st.lesson_answers.begin(), st.lesson_answers.end(), [index](const LessonAnswer& a) { return a.question == index; });
+  const bool given = it != st.lesson_answers.end() && !it->skipped;
+  j.key("given");
+  if (!given) j.null();
+  else if (q.numeric) j.str(to_decimal_string(it->value));
+  else j.num(it->choice);
+  j.key("answer");
+  if (q.numeric) j.str(to_decimal_string(q.value)); else j.num(q.answer);
+}
+
+// Debrief only (task 4.5): each lesson question of the mission, the player's answer and the key.
+void write_lessons(JsonOut& j, const Scenario& sc, const RunState& st, const ScoreReport& r) {
+  const Rubric* rubric = rubric_for(sc.id);
+  j.key("lessons");
+  if (rubric == nullptr) {
+    j.null();
+    return;
+  }
+  j.begin_obj().field("reviewed", r.lessons_reviewed).field("points", r.lesson_points).field("total", r.lesson_points_total);
+  j.key("questions").begin_arr();
+  for (const LessonResult& res : r.lessons) {
+    const LessonQuestion& q = rubric->questions[res.question];
+    j.begin_obj().field("id", q.id).field("kind", q.numeric ? "numeric" : "choice").field("points", res.points).field("maxPoints", q.points);
+    j.field("answered", res.answered).field("skipped", res.skipped).field("correct", res.correct);
+    write_lesson_answer(j, q, st, res.question);
+    j.end_obj();
+  }
+  j.end_arr().end_obj();
+}
+
 void write_score(JsonOut& j, const ScoreReport& r, const std::vector<RegimeSpan>& spans) {
   j.key("score").begin_obj().field("version", kScoringVersion).key("total");
   if (r.total) j.num(*r.total); else j.null();
@@ -401,10 +398,10 @@ void write_score(JsonOut& j, const ScoreReport& r, const std::vector<RegimeSpan>
   j.end_obj().end_obj();
   j.key("findings").begin_arr();
   for (const Finding& f : r.findings) {
-    j.begin_obj().field("code", finding_name(f.code)).field("tone", tone_name(f.tone)).field("step", f.step);
+    j.begin_obj().field("code", json_name(f.code)).field("tone", json_name(f.tone)).field("step", f.step);
     j.field("count", f.count).field("price", f.price).field("requested", f.requested).field("amount", f.amount).end_obj();
   }
-  j.end_arr().field("lesson", lesson_name(r.lesson)).field("entries", r.entries).field("netPnl", r.net_pnl);
+  j.end_arr().field("lesson", json_name(r.lesson)).field("entries", r.entries).field("netPnl", r.net_pnl);
   j.key("calibration").begin_obj().field("resolved", r.resolved_answers).key("brierBp");
   if (r.brier_bp) j.num(*r.brier_bp); else j.null();
   j.end_obj().key("trades").begin_arr();
@@ -426,7 +423,7 @@ const char* state_json(tl_run& r) {
   const RunState& st = r.state;
   JsonOut j;
   j.begin_obj();
-  j.field("mission", sc.id).field("alias", sc.alias).field("status", run_status_name(st.status));
+  j.field("mission", sc.id).field("alias", sc.alias).field("status", json_name(st.status));
   j.field("marketMode", r.from_pack ? r.pack.mode : std::string("synthetic")).field("knownScenario", r.from_pack);
   // Bar interval: the pack's declared one (an imported CSV can be 15m), else the missions' hourly bars.
   j.field("stepSeconds", r.from_pack ? r.pack.step_seconds : kMissionStepSeconds);
@@ -434,6 +431,7 @@ const char* state_json(tl_run& r) {
   j.field("warmupBars", sc.mission.warmup_bars).field("totalBars", static_cast<std::uint32_t>(sc.bars.size()));
   j.field("initialBalance", run_initial_balance(sc, st)).field("leverage", st.leverage);
   write_contract(j, sc, st);
+  write_mission_rules(j, sc, st);
   write_bars(j, sc, st.step);
   write_account(j, sc, st);
   write_orders(j, st);
@@ -456,9 +454,9 @@ const char* state_json(tl_run& r) {
 
 const char* result_json(tl_run& r, const CommandResult& res) {
   JsonOut j;
-  j.begin_obj().field("accepted", res.accepted).field("reason", reason_name(res.reason));
+  j.begin_obj().field("accepted", res.accepted).field("reason", json_name(res.reason));
   j.field("orderId", res.order_id).key("warning");
-  if (res.warning == Reason::None) j.null(); else j.str(reason_name(res.warning));
+  if (res.warning == Reason::None) j.null(); else j.str(json_name(res.warning));
   j.end_obj();
   r.buffer = j.text();
   return r.buffer.c_str();
@@ -523,7 +521,7 @@ void write_pack_reveal(JsonOut& j, const PackInfo& p) {
   j.field("knownScenario", true).field("marketMode", p.mode).field("packDigest", p.digest);
   j.key("reveal").begin_obj().field("asset", r.asset).field("pair", r.pair).field("venue", r.venue);
   j.field("periodFrom", r.period_from).field("periodTo", r.period_to).field("source", r.source);
-  j.field("transformation", r.transformation).field("gaps", p.gaps).end_obj();
+  j.field("transformation", r.transformation).field("gaps", p.gaps).field("gapPolicy", p.gap_policy).end_obj();
 }
 
 }  // namespace
@@ -563,7 +561,7 @@ const char* tl_mission_reveal(const char* mission_id, uint32_t seed) {
   }
   j.end_arr().key("events").begin_arr();
   for (const EventReveal& e : r.events) {
-    j.begin_obj().field("step", e.release_step).field("kind", news_kind_name(e.kind)).field("actual", std::int32_t{e.actual});
+    j.begin_obj().field("step", e.release_step).field("kind", json_name(e.kind)).field("actual", std::int32_t{e.actual});
     j.field("surprise", std::int32_t{e.surprise}).field("intensityPct", e.intensity_pct).field("reaction", std::int32_t{e.reaction});
     j.field("expectation", std::int32_t{e.expectation}).field("credibility", std::uint32_t{e.credibility});
     j.field("announceLead", e.announce_lead).field("gapBp", e.gap_bp).field("moveBp", e.move_bp).field("impliedBp", e.implied_bp);
@@ -642,6 +640,22 @@ const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int
   return result_json(*run, apply_command(run->scenario, run->state, c));
 }
 
+const char* tl_place_trailing_rate(tl_run* run, uint32_t client_id, int32_t side, const char* qty,
+                                   int32_t reduce_only, const char* trail_rate) {
+  if (side < 0 || side > 1) return error_json(*run, "unsupported_order_type");
+  Command c = next_command(*run, CommandType::PlaceOrder, client_id);
+  c.order_type = OrderType::TrailingStop;
+  c.side = static_cast<OrderSide>(side);
+  const auto q = parse_decimal<Qty>(qty == nullptr ? "" : qty);
+  if (!q.ok()) return error_json(*run, "invalid_quantity");
+  c.qty = q.value();
+  const auto r = parse_decimal<Rate>(trail_rate == nullptr ? "" : trail_rate);
+  if (!r.ok()) return error_json(*run, "invalid_tick");
+  c.trail_rate = r.value();
+  c.reduce_only = reduce_only != 0;
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
 const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
                                   const char* qty, const char* premium) {
   if ((type != 0 && type != 1) || side < 0 || side > 1) return error_json(*run, "unsupported_order_type");
@@ -689,6 +703,38 @@ const char* tl_answer_question(tl_run* run, uint32_t client_id, int32_t p_bp, in
   c.p_bp = static_cast<std::uint32_t>(std::max(0, p_bp));
   c.skipped = skipped != 0;
   return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_answer_lesson(tl_run* run, uint32_t client_id, uint32_t question, uint32_t choice, const char* value,
+                             int32_t skipped) {
+  Command c = next_command(*run, CommandType::AnswerLesson, client_id);
+  c.question = question;
+  c.choice = choice;
+  c.skipped = skipped != 0;
+  if (value != nullptr && *value != '\0') {
+    const auto v = parse_decimal<Money>(value);
+    if (!v.ok()) return error_json(*run, "invalid_answer");
+    c.value = v.value();
+  }
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_lesson(const char* mission_id) {
+  static std::string buffer;
+  const Rubric* rubric = mission_id != nullptr ? rubric_for(mission_id) : nullptr;
+  if (rubric == nullptr) {
+    buffer = "{\"error\":\"no_lesson\"}";
+    return buffer.c_str();
+  }
+  JsonOut j;
+  j.begin_obj().field("mission", rubric->mission).field("reviewed", rubric->reviewed).key("questions").begin_arr();
+  for (const LessonQuestion& q : rubric->questions) {
+    j.begin_obj().field("id", q.id).field("kind", q.numeric ? "numeric" : "choice").field("choices", q.choices);
+    j.field("points", q.points).end_obj();
+  }
+  j.end_arr().end_obj();
+  buffer = j.text();
+  return buffer.c_str();
 }
 
 const char* tl_request_advice(tl_run* run, uint32_t client_id) {
@@ -749,7 +795,7 @@ const char* tl_debrief(tl_run* run) {
   const Scenario& sc = run->scenario;
   JsonOut j;
   j.begin_obj().field("mission", sc.id).field("alias", sc.alias);
-  j.field("status", run_status_name(run->state.status));
+  j.field("status", json_name(run->state.status));
   j.field("finalEquity", account_view(sc, run->state).equity);
   j.field("buyAndHoldPnl", buy_and_hold_pnl(sc, run->state)).field("flatPnl", Money{});
   j.field("syntheticMarket", !run->from_pack).field("seed", run->state.seed);
@@ -757,7 +803,11 @@ const char* tl_debrief(tl_run* run) {
   if (run->from_pack) write_pack_reveal(j, run->pack);
   else if (mission_reveal(sc.id, run->state.seed, reveal)) write_regime_signals(j, signals_by_regime(sc, run->state, reveal.spans));
   j.field("startPrice", sc.bars[sc.mission.warmup_bars].close).field("endPrice", sc.bars[run->state.step].close);
-  write_score(j, score_run(sc, run->state), reveal.spans);
+  const ScoreReport report = score_run(sc, run->state);
+  write_score(j, report, reveal.spans);
+  write_mission_rules(j, sc, run->state);
+  write_decisions(j, run->state);
+  write_lessons(j, sc, run->state, report);
   j.end_obj();
   run->buffer = j.text();
   return run->buffer.c_str();

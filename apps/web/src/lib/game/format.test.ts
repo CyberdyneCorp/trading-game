@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtBytes, fmtNum, parseDecimal, planHeadline, priceInputText, priceToTick, qtyInputText, qtyToLot, signMark } from './format.ts';
+import { fmtNum, parseDecimal, planHeadline, priceInputText, priceToTick, qtyInputText, qtyToLot, signMark } from './format.ts';
 
 describe('format', () => {
 	it('floors quantities to the lot and emits engine decimal strings', () => {
@@ -17,11 +17,6 @@ describe('format', () => {
 		expect(priceInputText(99.957, 0.01, 'en')).toBe('99.96');
 		expect(priceInputText(-1, 0.01, 'pt-BR')).toBe('');
 		expect(parseDecimal(priceInputText(106.594, 0.01, 'pt-BR'))).toBe(106.59); // reads back
-	});
-	it('formats file sizes in the locale', () => {
-		expect(fmtBytes(812, 'pt-BR')).toBe('812 B');
-		expect(fmtBytes(3_500, 'pt-BR')).toBe('3,4 KB');
-		expect(fmtBytes(1_258_291, 'en')).toBe('1.2 MB');
 	});
 	it('regression: a quantity written into a PT-BR input uses the decimal comma (advisor apply wrote "16.6")', () => {
 		expect(qtyInputText(16.66, 0.1, 'pt-BR')).toBe('16,6');

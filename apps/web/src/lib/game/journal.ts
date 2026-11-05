@@ -16,6 +16,8 @@ export interface JournalRun {
 	status: RunRecord['status'];
 	/** Played with an intel perk (its start options): labeled "with intel". */
 	intel: boolean;
+	/** Assisted practice (rewind or another market): labeled, never counted for progress. */
+	assisted: boolean;
 	entries: PlanEntry[];
 }
 
@@ -37,6 +39,7 @@ export function journalRuns(records: readonly RunRecord<PlanEntry, unknown>[], m
 			mode: runMode(r),
 			status: r.status,
 			intel: withIntel(r.options),
+			assisted: !!r.assisted,
 			entries: [...r.journal].sort((x, y) => x.step - y.step)
 		}));
 }

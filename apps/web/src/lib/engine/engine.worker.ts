@@ -2,10 +2,11 @@
 // Hosts the WASM engine off the main thread. Scenario data (including future bars) lives only
 // here; replies contain the state up to the current decision step.
 
-import createTradelab, { type TradelabModule } from './wasm/tradelab.mjs';
+import type { TradelabModule } from './wasm/tradelab.mjs';
 import type { CsvBuildResult, EngineRequest, WorkerEnvelope, WorkerReply } from './protocol';
 import { revealAllowed } from './reveal';
-import { DEFAULT_RUN_OPTIONS, ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
+import { DEFAULT_RUN_OPTIONS } from './defaults';
+import { ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
 
 type Fn = (...a: unknown[]) => number;
 
@@ -15,12 +16,15 @@ interface Api {
 	create: Fn;
 	destroy: Fn;
 	place: Fn;
+	trailRate: Fn;
 	option: Fn;
 	cancel: Fn;
 	move: Fn;
 	margin: Fn;
 	plan: Fn;
 	answer: Fn;
+	lessonAnswer: Fn;
+	lesson: Fn;
 	leverage: Fn;
 	close: Fn;
 	advice: Fn;
@@ -35,17 +39,25 @@ interface Api {
 	blobSize: Fn;
 	packValidate: Fn;
 	createPack: Fn;
+	checkpoint: Fn;
+	restore: Fn;
+	restorePack: Fn;
 }
 
 let mod: TradelabModule | null = null;
 let api: Api | null = null;
+// The engine build in use (an absolute module URL): this version's, or the one an unfinished run
+// started with (engine pinning). Set by 'init' and 'useEngine'.
+let engineUrl = '';
 let run = 0;
 // Mission and seed of the current run, for its reveal after the end (null on an imported pack).
 let current: { missionId: string; seed: number } | null = null;
 
 async function load(): Promise<Api> {
 	if (api) return api;
-	mod = await createTradelab();
+	if (!engineUrl) throw new Error('engine build not set');
+	const factory = ((await import(/* @vite-ignore */ engineUrl)) as { default: () => Promise<TradelabModule> }).default;
+	mod = await factory();
 	const w = mod.cwrap.bind(mod);
 	api = {
 		version: w('tl_version', 'number', []),
@@ -55,6 +67,7 @@ async function load(): Promise<Api> {
 		place: w('tl_place_order_ex', 'number', [
 			'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string', 'string', 'string'
 		]),
+		trailRate: w('tl_place_trailing_rate', 'number', ['number', 'number', 'number', 'string', 'number', 'string']),
 		option: w('tl_place_option_order', 'number', ['number', 'number', 'number', 'number', 'number', 'string', 'string']),
 		cancel: w('tl_cancel_order', 'number', ['number', 'number', 'number']),
 		move: w('tl_move_order', 'number', ['number', 'number', 'number', 'string']),
@@ -63,6 +76,8 @@ async function load(): Promise<Api> {
 			'number', 'number', 'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string'
 		]),
 		answer: w('tl_answer_question', 'number', ['number', 'number', 'number', 'number']),
+		lessonAnswer: w('tl_answer_lesson', 'number', ['number', 'number', 'number', 'number', 'string', 'number']),
+		lesson: w('tl_lesson', 'number', ['string']),
 		leverage: w('tl_set_leverage', 'number', ['number', 'number', 'number']),
 		close: w('tl_close_position', 'number', ['number', 'number']),
 		advice: w('tl_request_advice', 'number', ['number', 'number']),
@@ -77,7 +92,11 @@ async function load(): Promise<Api> {
 		blobData: w('tl_blob_data', 'number', []),
 		blobSize: w('tl_blob_size', 'number', []),
 		packValidate: w('tl_pack_validate', 'number', ['number', 'number', 'string', 'number']),
-		createPack: w('tl_run_create_pack', 'number', ['number', 'number', 'string', 'number'])
+		createPack: w('tl_run_create_pack', 'number', ['number', 'number', 'string', 'number']),
+		checkpoint: w('tl_checkpoint', 'number', ['number']),
+		// Checkpoint hex by pointer (withText), like the CSV: it grows past the stack with long runs.
+		restore: w('tl_run_restore', 'number', ['string', 'number', 'number']),
+		restorePack: w('tl_run_restore_pack', 'number', ['number', 'number', 'string', 'number', 'number'])
 	};
 	return api;
 }
@@ -141,6 +160,33 @@ function startPack(a: Api, pack: Uint8Array, keys: TrustedKey[], seed: number): 
 	return json(a.state(run)) as GameState;
 }
 
+// Switches to another engine build (a new module instance); the run held by the old one is dropped.
+async function useEngine(url: string): Promise<{ engine: string; executionPolicy: number }> {
+	if (url !== engineUrl) {
+		resetEngine();
+		engineUrl = url;
+	}
+	const a = await load();
+	return json(a.version()) as { engine: string; executionPolicy: number };
+}
+
+// Restores a checkpoint (the hex goes through the heap: it grows with the run's event log).
+// Null when the engine refuses it (another format or scenario, damaged): the caller replays instead.
+function restore(a: Api, req: Extract<EngineRequest, { kind: 'restore' }>): GameState | null {
+	if (run) a.destroy(run);
+	run = 0;
+	current = null;
+	const seed = req.seed >>> 0;
+	if (req.pack) {
+		const keys = JSON.stringify(req.keys ?? []);
+		run = withBytes(req.pack, (ptr, size) => withText(req.checkpoint, (hex) => a.restorePack(ptr, size, keys, seed, hex)));
+	} else {
+		run = withText(req.checkpoint, (hex) => a.restore(req.missionId, seed, hex));
+		if (run) current = { missionId: req.missionId, seed };
+	}
+	return run ? (json(a.state(run)) as GameState) : null;
+}
+
 function requireRun(): number {
 	if (!run) throw new Error('no active run');
 	return run;
@@ -153,24 +199,64 @@ function reveal(a: Api): unknown {
 	return current ? json(a.reveal(current.missionId, current.seed)) : null;
 }
 
+// The mission's lesson questions (no answer key crosses: the engine keeps it until the debrief).
+function lessonInfo(a: Api, missionId: string): unknown {
+	const info = json(a.lesson(missionId)) as { error?: string };
+	return info.error ? null : info;
+}
+
+type OrderRequest = Extract<EngineRequest, { kind: 'order' }>;
+
+// A trailing stop given as a rate of the close has its own entry point (policy v16).
+function placeOrder(a: Api, req: OrderRequest): number {
+	const side = SIDE_CODE[req.side];
+	const ro = req.reduceOnly ? 1 : 0;
+	if (req.type === 'trailing_stop' && req.trailRate) return a.trailRate(requireRun(), req.clientId, side, req.qty, ro, req.trailRate);
+	const t = ORDER_TYPE_CODE[req.type];
+	return a.place(requireRun(), req.clientId, t, side, req.qty, req.price ?? '', ro, req.attachStop ?? '', req.attachTp ?? '', req.trailDistance ?? '');
+}
+
 function withState(a: Api, resultPtr: number) {
 	const result = json(resultPtr);
 	return { result, state: json(a.state(requireRun())) };
 }
 
+function start(a: Api, req: Extract<EngineRequest, { kind: 'start' }>): GameState {
+	if (run) a.destroy(run);
+	const o = req.options ?? DEFAULT_RUN_OPTIONS;
+	run = a.create(req.missionId, req.seed >>> 0, o.adviceAllowance, o.newsLead, o.calendar ? 1 : 0, o.startingBalance ?? '', o.leverageCap ?? 0);
+	if (!run) throw new Error(`unknown mission ${req.missionId} or invalid start options`);
+	current = { missionId: req.missionId, seed: req.seed >>> 0 };
+	return json(a.state(run)) as GameState;
+}
+
+function placeOption(a: Api, req: Extract<EngineRequest, { kind: 'option' }>): number {
+	return a.option(requireRun(), req.clientId, req.series, SIDE_CODE[req.side], req.type === 'limit' ? 1 : 0, req.qty, req.premium ?? '');
+}
+
+function recordPlan(a: Api, req: Extract<EngineRequest, { kind: 'plan' }>): number {
+	const flag = (b: boolean) => (b ? 1 : 0);
+	return a.plan(
+		requireRun(),
+		req.clientId,
+		SIDE_CODE[req.side],
+		flag(req.skipped),
+		flag(req.option),
+		flag(req.loseScenario),
+		req.invalidation ?? '',
+		req.target ?? '',
+		req.confidence,
+		req.plannedRisk ?? ''
+	);
+}
+
 async function handle(req: EngineRequest): Promise<unknown> {
+	if (req.kind === 'init') return { version: await useEngine(req.engineUrl), missions: json(api!.missions()) };
+	if (req.kind === 'useEngine') return useEngine(req.engineUrl);
 	const a = await load();
 	switch (req.kind) {
-		case 'init':
-			return { version: json(a.version()), missions: json(a.missions()) };
-		case 'start': {
-			if (run) a.destroy(run);
-			const o = req.options ?? DEFAULT_RUN_OPTIONS;
-			run = a.create(req.missionId, req.seed >>> 0, o.adviceAllowance, o.newsLead, o.calendar ? 1 : 0, o.startingBalance ?? '', o.leverageCap ?? 0);
-			if (!run) throw new Error(`unknown mission ${req.missionId} or invalid start options`);
-			current = { missionId: req.missionId, seed: req.seed >>> 0 };
-			return json(a.state(run));
-		}
+		case 'start':
+			return start(a, req);
 		case 'deviceKey':
 			return deviceKey(a, req.seedHex);
 		case 'csvValidate':
@@ -182,52 +268,20 @@ async function handle(req: EngineRequest): Promise<unknown> {
 		case 'startPack':
 			return startPack(a, req.pack, req.keys, req.seed);
 		case 'order':
-			return withState(
-				a,
-				a.place(
-					requireRun(),
-					req.clientId,
-					ORDER_TYPE_CODE[req.type],
-					SIDE_CODE[req.side],
-					req.qty,
-					req.price ?? '',
-					req.reduceOnly ? 1 : 0,
-					req.attachStop ?? '',
-					req.attachTp ?? '',
-					req.trailDistance ?? ''
-				)
-			);
+			return withState(a, placeOrder(a, req));
 		case 'option':
-			return withState(
-				a,
-				a.option(
-					requireRun(),
-					req.clientId,
-					req.series,
-					SIDE_CODE[req.side],
-					req.type === 'limit' ? 1 : 0,
-					req.qty,
-					req.premium ?? ''
-				)
-			);
+			return withState(a, placeOption(a, req));
 		case 'plan':
-			return withState(
-				a,
-				a.plan(
-					requireRun(),
-					req.clientId,
-					SIDE_CODE[req.side],
-					req.skipped ? 1 : 0,
-					req.option ? 1 : 0,
-					req.loseScenario ? 1 : 0,
-					req.invalidation ?? '',
-					req.target ?? '',
-					req.confidence,
-					req.plannedRisk ?? ''
-				)
-			);
+			return withState(a, recordPlan(a, req));
 		case 'answer':
 			return withState(a, a.answer(requireRun(), req.clientId, req.pBp, req.skipped ? 1 : 0));
+		case 'lesson':
+			return lessonInfo(a, req.missionId);
+		case 'lessonAnswer':
+			return withState(
+				a,
+				a.lessonAnswer(requireRun(), req.clientId, req.question, req.choice, req.value ?? '', req.skipped ? 1 : 0)
+			);
 		case 'margin':
 			return withState(a, a.margin(requireRun(), req.clientId, req.amount));
 		case 'cancel':
@@ -246,6 +300,10 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			return json(a.debrief(requireRun()));
 		case 'reveal':
 			return reveal(a);
+		case 'checkpoint':
+			return json(a.checkpoint(requireRun()));
+		case 'restore':
+			return restore(a, req);
 	}
 }
 

@@ -20,6 +20,8 @@
 	}
 
 	function onKeydown(e: KeyboardEvent) {
+		// Enter on a focused button activates that button (Skip, Previous), not "Next".
+		if (e.key === 'Enter' && e.target instanceof Element && e.target.closest('button')) return;
 		if (e.key === 'ArrowRight' || e.key === 'Enter') {
 			e.preventDefault();
 			next();

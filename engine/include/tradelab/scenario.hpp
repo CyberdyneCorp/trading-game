@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "tradelab/fixed.hpp"
+#include "tradelab/idl_types.hpp"
 #include "tradelab/result.hpp"
 
 namespace tradelab {
@@ -18,6 +19,27 @@ struct Bar {
   Price close;
   Qty volume;
   bool synthetic = false;  // generated (event lab / branch) bar
+  // Synthetic continuity bar (spec indicators "Gaps in data"): the market did not trade. It repeats
+  // the previous close (open = high = low = close, zero volume), has zero executable capacity and is
+  // fed to indicators by the scenario's gap policy (policy v17).
+  bool continuity = false;
+};
+
+// Sub-bar closes ending at the close of bar `bar` (oldest first; the last equals the bar's close),
+// `minutes` apart. Used for TWAP settlement windows finer than a bar (spec options "Expiry and
+// settlement", policy v17).
+struct SubBars {
+  std::uint32_t bar = 0;
+  std::uint32_t minutes = 1;
+  std::vector<Price> closes;
+};
+
+// Maintenance-margin tier (execution-policy v16): a position whose notional at its average entry is at
+// least `notional_floor` keeps `maintenance_margin` and may be held at no more than `max_leverage`.
+struct MarginTier {
+  Money notional_floor;
+  Rate maintenance_margin;
+  std::int32_t max_leverage = 1;
 };
 
 struct ContractSpec {
@@ -28,8 +50,11 @@ struct ContractSpec {
   std::int32_t max_leverage = 1;
   Rate maker_fee;          // fraction of notional
   Rate taker_fee;
-  Rate maintenance_margin;  // single tier (execution-policy v1)
+  Rate maintenance_margin;  // first tier: notional below the first floor (up to max_leverage)
   std::uint32_t funding_interval = 8;  // in steps
+  // Higher tiers by notional (policy v16): floors strictly ascending, rates non-decreasing, leverage
+  // non-increasing; empty = one tier for every notional.
+  std::vector<MarginTier> margin_tiers;
 };
 
 struct CostModel {
@@ -38,14 +63,32 @@ struct CostModel {
   Rate capacity_fraction;  // share of bar volume the player can trade per step
 };
 
+// What a mission asks of the player (task 4.1); ObjectiveCode is declared in the IDL (idl_types.hpp).
+struct Objective {
+  ObjectiveCode code = ObjectiveCode::PlanEveryEntry;
+  std::uint32_t value_bp = 0;
+};
+
+// The objectives of a mission that declares none (imported packs): plan, 2% risk, no liquidation.
+inline std::vector<Objective> common_objectives() {
+  return {{ObjectiveCode::PlanEveryEntry, 0}, {ObjectiveCode::RiskPerIdea, 200}, {ObjectiveCode::NoLiquidationWaitOk, 0}};
+}
+
 struct MissionRules {
   Money initial_balance;
   std::int32_t leverage_cap = 1;
   std::uint32_t warmup_bars = 0;  // bars visible before the first decision point
   bool allow_short = true;
+  // Mission schema (task 4.1). Never inputs to execution: the client renders them, and the score's risk
+  // dimension reads the two budgets (scoring v11). Instrument permissions are the contract's and the
+  // option spec's own: long always, short `allow_short`, options buying when a chain is listed,
+  // options writing `options.allow_short`.
+  std::vector<Objective> objectives = common_objectives();
+  std::uint32_t liq_warning_bp = 300;       // warn at decision points when liquidation is closer than this to the last close
+  std::uint32_t drawdown_budget_bp = 2000;  // max drawdown the mission allows, share of the run's initial capital
+  bool confirm_stop_beyond_liq = true;      // the ticket asks for explicit confirmation of a stop beyond liquidation
+  GapPolicy gap_policy = GapPolicy::Skip;  // continuity bars in indicators (policy v17)
 };
-
-enum class OptionKind : std::uint8_t { Call = 0, Put = 1 };
 
 // European, cash-settled option on the perpetual price (spec: options).
 struct OptionSeries {
@@ -69,26 +112,17 @@ struct OptionSpec {
   Vol smile;
   Vol term_slope;
   std::uint32_t minutes_per_step = 60;
-  std::uint32_t settlement_bars = 1;  // TWAP window in bars; 1 = expiry close (flagged approximate)
+  // Settlement window in market time ending at the expiry close (policy v17): TWAP of sub-bar closes
+  // when the scenario has them for the expiry bar, else the mean of the closes of the bars covering
+  // the window (the expiry close when the window is shorter than a bar), flagged approximate. Orders
+  // in the series that would execute inside the window are rejected with `series_settling`.
+  std::uint32_t settlement_minutes = 30;
   // Short option margin per contract unit (fractions of the underlying price F):
   // IM = max(im_base - OTM/F, im_floor) * F + ask ; MM = mm_base * F + mark
   Rate im_base;
   Rate im_floor;
   Rate mm_base;
   bool allow_short = false;
-};
-
-enum class NewsKind : std::uint8_t {
-  RateDecision = 0,
-  RegulationRumor = 1,
-  ExchangeIncident = 2,
-  NetworkOutage = 3,
-  LiquidityInflow = 4,
-  InstitutionalAdoption = 5,
-  RumorDenied = 6,
-  LiquidityOutflow = 7,  // phase-2 flows (design D8): appended, existing values keep their numbers
-  MacroData = 8,         // phase-2 scheduled releases: a fictional economic print
-  NetworkUpgrade = 9,
 };
 
 // What the player can see about a news item once released (spec: market-generator "Events").
@@ -106,6 +140,17 @@ struct NewsItem {
   std::uint32_t announce_lead = 0;
 };
 
+// Event spread and capacity channels (spec market-generator "Events"; generator v5): from bar
+// `start` for `bars` bars, the half-spread and slippage are scaled by spread_pct / 100 and the
+// capacity fraction by capacity_pct / 100 (100 = the cost model as declared). Execution reads the
+// costs of the bar it fills on (costs_at); the bars themselves never depend on it.
+struct LiquidityShock {
+  std::uint32_t start = 0;
+  std::uint32_t bars = 0;
+  std::uint32_t spread_pct = 100;    // 10..1000
+  std::uint32_t capacity_pct = 100;  // 0..1000
+};
+
 struct Scenario {
   std::string id;
   std::string alias;  // masked market name shown to the player
@@ -113,11 +158,16 @@ struct Scenario {
   CostModel costs;
   MissionRules mission;
   std::vector<Bar> bars;
+  // Mark-price bars (policy v17), one per bar: unrealized P&L, margin, liquidation and funding use
+  // them, fills use `bars`. Empty = the scenario is flagged markFromLastPrice and both use `bars`.
+  std::vector<Bar> mark;
+  std::vector<SubBars> sub_bars;  // finer closes around option expiries; may be empty
   // funding_rate[i]: rate charged at the close of bar i when i is a funding boundary.
   // Published (visible) from the close of bar i-1.
   std::vector<Rate> funding_rate;
   OptionSpec options;  // empty series => perpetual-only scenario
   std::vector<NewsItem> news;
+  std::vector<LiquidityShock> liquidity;  // empty => the cost model on every bar
 };
 
 enum class ScenarioError : std::uint8_t {
@@ -130,10 +180,24 @@ enum class ScenarioError : std::uint8_t {
   FundingLengthMismatch,
   InvalidOptions,
   InvalidNews,
+  InvalidLiquidity,
+  InvalidMark,
+  InvalidContinuity,
+  InvalidSubBars,
 };
 
 ScenarioError validate(const Scenario& s);
 
+// The cost model in force on `bar`: the declared costs with every liquidity shock covering that bar
+// applied (spread and slippage rounded up, capacity rounded down). Equal to s.costs without shocks.
+CostModel costs_at(const Scenario& s, std::uint32_t bar);
+
 constexpr Rate rate_one() { return Rate::from_raw(Rate::kScale); }
+
+// True when the scenario has no mark series and marks positions at the last price.
+inline bool mark_from_last_price(const Scenario& s) { return s.mark.empty(); }
+
+// The bar positions are marked against at index i: the mark bar, or the traded bar without one.
+inline const Bar& mark_bar(const Scenario& s, std::uint32_t i) { return s.mark.empty() ? s.bars[i] : s.mark[i]; }
 
 }  // namespace tradelab

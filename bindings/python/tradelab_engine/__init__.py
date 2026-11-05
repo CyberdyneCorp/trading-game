@@ -12,10 +12,16 @@ from .engine import (
     csv_validate,
     device_key,
     engine_version,
+    lesson,
     load_library,
     mission_reveal,
     missions,
+    pack_resign,
+    pack_source_csv,
+    pack_source_mission,
     pack_validate,
+    pack_write,
+    signing_key,
 )
 from .replay import ACTION_KINDS, InvalidAction, ReplayResult, replay
 
@@ -30,9 +36,15 @@ __all__ = [
     "csv_validate",
     "device_key",
     "engine_version",
+    "lesson",
     "load_library",
     "mission_reveal",
     "missions",
+    "pack_resign",
+    "pack_source_csv",
+    "pack_source_mission",
     "pack_validate",
+    "pack_write",
     "replay",
+    "signing_key",
 ]
