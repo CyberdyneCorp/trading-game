@@ -12,7 +12,11 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/test_format.cpp
   viewmodel/test_chart_geometry.cpp
   viewmodel/test_app_viewmodel.cpp
-  viewmodel/test_vulkan_message.cpp)
+  viewmodel/test_vulkan_message.cpp
+  viewmodel/game/test_game_viewmodel.cpp
+  viewmodel/game/test_rules.cpp
+  viewmodel/game/test_sizing.cpp
+  viewmodel/game/test_ticket_chart.cpp)
 target_include_directories(tradelab_desktop_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_unit_tests PRIVATE tradelab_desktop_viewmodel)

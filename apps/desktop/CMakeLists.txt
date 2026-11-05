@@ -31,11 +31,32 @@ set(TRADELAB_DESKTOP_RESOURCES
 tradelab_embed_resources(${CMAKE_BINARY_DIR}/generated/resources.cpp ${CMAKE_CURRENT_SOURCE_DIR}/resources
   ${TRADELAB_DESKTOP_RESOURCES})
 
+# Trading terminal: viewmodels (src/viewmodel/game) and Raven glue (src/view/game).
+set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
+  src/viewmodel/game/chart_input.cpp
+  src/viewmodel/game/chart_scale.cpp
+  src/viewmodel/game/chart_vm.cpp
+  src/viewmodel/game/dialogs_vm.cpp
+  src/viewmodel/game/game_keys.cpp
+  src/viewmodel/game/game_viewmodel.cpp
+  src/viewmodel/game/options_math.cpp
+  src/viewmodel/game/options_vm.cpp
+  src/viewmodel/game/panels_vm.cpp
+  src/viewmodel/game/progress.cpp
+  src/viewmodel/game/shortcuts.cpp
+  src/viewmodel/game/sizing.cpp
+  src/viewmodel/game/texts.cpp
+  src/viewmodel/game/ticket_vm.cpp)
+set(TRADELAB_DESKTOP_GAME_VIEW_SOURCES)
+
 # ---- Layers (design "Library split enforces the layers"): model and viewmodel never see Raven. ----
 
 add_library(tradelab_desktop_model STATIC
   src/model/engine_host.cpp
   src/model/engine_run.cpp
+  src/model/game_command.cpp
+  src/model/game_prefs.cpp
+  src/model/game_state.cpp
   src/model/i18n.cpp
   src/model/json.cpp
   ${CMAKE_BINARY_DIR}/generated/resources.cpp)
@@ -49,7 +70,8 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/chart_geometry.cpp
   src/viewmodel/format.cpp
   src/viewmodel/screen_texts.cpp
-  src/viewmodel/vulkan_message.cpp)
+  src/viewmodel/vulkan_message.cpp
+  ${TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES})
 target_link_libraries(tradelab_desktop_viewmodel PUBLIC tradelab_desktop_model)
 target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
 

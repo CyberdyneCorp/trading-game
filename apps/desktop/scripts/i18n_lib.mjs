@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gameRows } from './i18n_game.mjs';
 
 export const DESKTOP_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const REPO_DIR = path.resolve(DESKTOP_DIR, '../..');
@@ -16,7 +17,13 @@ export const DEFAULT_PATHS = {
 	webPacks: path.join(REPO_DIR, 'apps/web/src/lib/game/packs.ts'),
 	desktopJson: path.join(DESKTOP_DIR, 'resources/i18n/desktop.json'),
 	csv: path.join(DESKTOP_DIR, 'resources/i18n/strings.csv'),
-	pinnedKeys: path.join(DESKTOP_DIR, 'resources/packs/pinned_keys.json')
+	pinnedKeys: path.join(DESKTOP_DIR, 'resources/packs/pinned_keys.json'),
+	// Terminal texts outside i18n.svelte.ts (i18n_game.mjs).
+	webNews: path.join(REPO_DIR, 'apps/web/src/lib/game/news.ts'),
+	webPatterns: path.join(REPO_DIR, 'apps/web/src/lib/game/candlePatterns.ts'),
+	webObjectives: path.join(REPO_DIR, 'apps/web/src/lib/game/objectives.ts'),
+	webTutorials: path.join(REPO_DIR, 'apps/web/src/lib/game/tutorials.ts'),
+	webLessons: path.join(REPO_DIR, 'apps/web/src/lib/game/lessons.ts')
 };
 
 const LOCALES = ['pt-BR', 'en'];
@@ -39,7 +46,7 @@ export function loadTypeScript() {
  * computed catalog entry is never silently dropped. Top-level `name['key'] = <literal>;` statements
  * (missions.ts adds missions that way) are applied in order. Duplicate keys are reported.
  */
-export function readConsts(ts, file) {
+export function readConsts(ts, file, { calls = {} } = {}) {
 	const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
 	const decls = new Map();
 	const assignments = new Map(); // name -> [[key, initializer node]]
@@ -72,6 +79,19 @@ export function readConsts(ts, file) {
 		if (ts.isArrayLiteralExpression(node)) return node.elements.map(evaluate);
 		if (ts.isIdentifier(node) && decls.has(node.text)) return evaluate(decls.get(node.text));
 		if (ts.isObjectLiteralExpression(node)) return evaluateObject(node);
+		const scalar = evaluateScalar(ts, node);
+		if (scalar !== undefined) return scalar.value;
+		// Reuse of another literal: m01['pt-BR'][0], m01.en[0] (tutorials.ts).
+		if (ts.isElementAccessExpression(node) || ts.isPropertyAccessExpression(node)) {
+			const key = ts.isPropertyAccessExpression(node) ? node.name.text : evaluate(node.argumentExpression);
+			const value = evaluate(node.expression)?.[key];
+			if (value === undefined) throw new Error(`${where(node)}: no such element`);
+			return value;
+		}
+		// A call of a helper the caller declared (lessons.ts `q(pt, en)`), with data-literal arguments.
+		if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && Object.hasOwn(calls, node.expression.text)) {
+			return calls[node.expression.text](node.arguments.map(evaluate));
+		}
 		throw new Error(`${where(node)}: not a data literal (${ts.SyntaxKind[node.kind]})`);
 	};
 	const evaluateObject = (node) => {
@@ -97,6 +117,18 @@ export function readConsts(ts, file) {
 		},
 		duplicates
 	};
+}
+
+/** Numbers (with a leading minus), true, false and null as { value }; undefined for anything else. */
+function evaluateScalar(ts, node) {
+	if (ts.isNumericLiteral(node)) return { value: Number(node.text) };
+	if (ts.isPrefixUnaryExpression(node) && node.operator === ts.SyntaxKind.MinusToken && ts.isNumericLiteral(node.operand)) {
+		return { value: -Number(node.operand.text) };
+	}
+	if (node.kind === ts.SyntaxKind.TrueKeyword) return { value: true };
+	if (node.kind === ts.SyntaxKind.FalseKeyword) return { value: false };
+	if (node.kind === ts.SyntaxKind.NullKeyword) return { value: null };
+	return undefined;
 }
 
 /** `name['key'] = value;` or `name.key = value;` at the top level, else null. */
@@ -144,6 +176,9 @@ export function buildCatalog(ts, paths) {
 			add(`mission.${id}.${field}`, byLocale['pt-BR']?.[field] ?? '', byLocale.en?.[field] ?? '', 'web missions');
 		}
 	}
+	const game = gameRows(ts, paths);
+	problems.push(...game.problems);
+	for (const [key, ptText, enText, origin] of game.rows) add(key, ptText, enText, origin);
 	const desktop = JSON.parse(readFileSync(paths.desktopJson, 'utf8'));
 	for (const [key, byLocale] of Object.entries(desktop)) {
 		if (rows.has(key)) problems.push(`desktop.json: key '${key}' duplicates a web key`);
