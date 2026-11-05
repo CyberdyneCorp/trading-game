@@ -39,7 +39,7 @@ Submit order, close position and advance market SHALL be visually and spatially 
 - **THEN** the UI SHALL show the plain reason and SHALL NOT quote a required amount below the available one
 
 ### Requirement: Order ticket for perpetuals
-The ticket SHALL accept size as quantity, notional (credits), % of equity (exposure: the notional is that share of equity, so 100% is one times the equity whatever the leverage) or risk budget (% of equity lost at the stop), each rounded down to the lot and typed with either decimal mark; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. With a position open, a leverage different from the position's SHALL show that sending re-margins the open position too, with its liquidation price before and after (as a warning when it moves closer). When the initial margin plus fee of the part that adds exposure exceeds the available balance, the ticket SHALL say so and SHALL NOT submit. The liquidation estimate SHALL be that of the position the order leads to — an add averages the entry and adds the order's margin, a reduction releases margin pro rata, a reversal opens only the remainder — and SHALL use the maintenance rate of the contract's margin tier for that position's notional at entry, and when the position the order leads to sits in a tier whose leverage cap is below the chosen leverage, the ticket SHALL name the tier (maintenance rate and leverage cap) and SHALL NOT submit (engine policy v16). With a position open, an order on the opposite side (however it was sized, by risk included) SHALL say whether it reduces the position (and to what), closes it, or closes it and opens the rest on the other side. The leverage field SHALL keep the value the player typed until the account leverage or the cap changes (other commands, such as asking the advisor, SHALL NOT reset it). The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
+The ticket SHALL accept size as quantity, notional (credits), % of equity (exposure: the notional is that share of equity, so 100% is one times the equity whatever the leverage) or risk budget (% of equity lost at the stop), each rounded down to the lot and typed with either decimal mark; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. While a liquidity shock the player can see (in force at this bar, or announced by the headline just released) covers the bar the order executes on, the estimates SHALL use its spread and slippage and the ticket SHALL say a shock is active. With a position open, a leverage different from the position's SHALL show that sending re-margins the open position too, with its liquidation price before and after (as a warning when it moves closer). When the initial margin plus fee of the part that adds exposure exceeds the available balance, the ticket SHALL say so and SHALL NOT submit. The liquidation estimate SHALL be that of the position the order leads to — an add averages the entry and adds the order's margin, a reduction releases margin pro rata, a reversal opens only the remainder — and SHALL use the maintenance rate of the contract's margin tier for that position's notional at entry, and when the position the order leads to sits in a tier whose leverage cap is below the chosen leverage, the ticket SHALL name the tier (maintenance rate and leverage cap) and SHALL NOT submit (engine policy v16). With a position open, an order on the opposite side (however it was sized, by risk included) SHALL say whether it reduces the position (and to what), closes it, or closes it and opens the rest on the other side. The leverage field SHALL keep the value the player typed until the account leverage or the cap changes (other commands, such as asking the advisor, SHALL NOT reset it). The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
 
 #### Scenario: Live recalculation
 - **WHEN** the player changes leverage from 3× to 10×
@@ -57,6 +57,10 @@ The ticket SHALL accept size as quantity, notional (credits), % of equity (expos
 - **WHEN** the player sets 3,000 units at about 100 (300,000 notional) at 20× in a mission whose tiers cap that size at 10×
 - **THEN** the ticket SHALL warn that this size sits in the 2.5% tier with at most 10× and the submit button SHALL be disabled
 
+#### Scenario: A liquidity shock on the next bar
+- **WHEN** a headline that starts a liquidity shock (spread ×3) was just released and the player prepares a market buy
+- **THEN** the estimated entry SHALL include the shocked spread and slippage and the ticket SHALL warn that a liquidity shock is active; before the headline, nothing SHALL hint at it
+
 #### Scenario: Order the balance cannot carry
 - **WHEN** the player types 200 units at about 103 at 1× with 10,000 available
 - **THEN** the ticket SHALL warn that the required margin exceeds the available balance and the submit button SHALL be disabled
@@ -64,7 +68,7 @@ The ticket SHALL accept size as quantity, notional (credits), % of equity (expos
 ### Requirement: Stop and target tools
 Stop-loss and take-profit fields (new orders and protection of an open position) SHALL offer one-click presets — stop at 1× and 2× ATR(14), beyond the 10-bar swing low/high, at 1% and 2%; target at 1R, 2R and 3R of the stop distance — and a "mark on chart" mode where a click on the price pane sets the level (Escape cancels; Space SHALL NOT advance while marking). Each level SHALL show its distance from the entry in price, percent and ATR multiples, and the target SHALL show its reward/risk ratio. A stop on the profit side or a target on the loss side SHALL be flagged and block submission. Draft entry, stop, target and estimated liquidation SHALL be previewed on the chart before submission. The price scale SHALL follow the candles: a level within half the candle range of them widens the scale, a farther level SHALL be pinned to the pane edge with an arrow instead of squashing the candles, and price tags SHALL never overlap; a tag SHALL move only as far as its neighbours need, so a stack crowding one edge of the pane never pushes a distant tag (or its label) off the other. An open position without a reduce-only stop or trailing stop SHALL show an "unprotected" warning. Protecting an open position SHALL offer the trailing stop as a price distance (ATR presets) or as a percent of the best close (presets 1%, 2%, 3%, 5%, comma or dot decimals), showing the first trigger the engine will set; a percent trail SHALL be listed with its percent in the open orders (engine policy v16). Presets SHALL be disabled while their input (e.g. ATR) is warming up. After a fill the new-order stop and target SHALL be cleared, so the next order is not sized to a previous trade's stop.
 
-Stop and target lines SHALL be draggable with the mouse (pointer), by the line or its price tag, and marked as draggable (⇕). Dragging a draft SL?/TP? line SHALL edit the ticket field live, snapped to the tick, and Escape during the drag SHALL restore the previous value. Dropping a working reduce-only STOP or TP line SHALL move that order in place with the engine's MoveOrder command (policy v13): it keeps its id, quantity, bracket parent and OCO link, so a moved bracket leg still cancels its sibling, and a rejected move leaves the order where it was. A drop on the wrong side of the current price (a stop that would trigger, or a target that would fill, at the next open) SHALL be refused with an explanation, leaving the order unchanged. The price scale SHALL stay fixed during a drag. Trailing stops, entry orders and option orders SHALL NOT be draggable.
+Stop and target lines SHALL be draggable with the mouse (pointer), by the line or its price tag, and marked as draggable (⇕). Dragging a draft SL?/TP? line SHALL edit the ticket field live, snapped to the tick, and Escape during the drag SHALL restore the previous value. Dropping a working reduce-only STOP or TP line SHALL move that order in place with the engine's MoveOrder command (policy v13): it keeps its id, quantity, bracket parent and OCO link, so a moved bracket leg still cancels its sibling, and a rejected move leaves the order where it was. A drop on the wrong side of the current price (a stop that would trigger, or a target that would fill, at the next open) SHALL be refused with an explanation, leaving the order unchanged. The price scale SHALL stay fixed during a drag. Trailing stops, entry orders and option orders SHALL NOT be draggable. Dropping a working stop at or past the position's liquidation price SHALL ask for confirmation first when the mission asks for it (as placing such a stop does); cancelling SHALL leave the order where it was.
 
 #### Scenario: Trailing stop by percent
 - **WHEN** a long is open and the player picks the percent trail, types "2,5" and protects
@@ -85,6 +89,10 @@ Stop and target lines SHALL be draggable with the mouse (pointer), by the line o
 #### Scenario: Drag a working stop
 - **WHEN** a long position has STOP #2 and the player drags its line lower and releases
 - **THEN** a new reduce-only stop at the dropped price SHALL replace #2, and #2 SHALL be cancelled
+
+#### Scenario: Drag a stop past liquidation
+- **WHEN** a mission asks to confirm stops beyond liquidation and the player drops a long's working stop below its liquidation price
+- **THEN** a dialog SHALL name the order, the new price and the liquidation price; "keep it where it is" SHALL send nothing and "move anyway" SHALL move the order
 
 #### Scenario: Drag a stop past the price
 - **WHEN** the player drops a long position's stop above the current price
@@ -130,7 +138,11 @@ The terminal SHALL offer an auto-advance mode (button and `A`) that advances one
 - **THEN** no bar SHALL advance until it is answered, after which auto-advance SHALL continue
 
 ### Requirement: Option chain and option ticket
-The option chain SHALL list listed series by expiry and strike with bid, ask, IV and delta, labeled "simulated premiums". The option ticket SHALL show premium, max loss for buys, margin for writes, breakeven, a payoff-at-expiry diagram and Greeks before submission. When the total premium of a buy, or the margin of a write, exceeds the available balance, the ticket SHALL say so and SHALL NOT submit. A market sell of a series whose bid is 0 SHALL be refused with that reason (the engine would cancel it). Greeks and other numbers that round to zero SHALL NOT show a minus sign ("0,00", never "-0,00").
+The option chain SHALL list listed series by expiry and strike with bid, ask, IV and delta, labeled "simulated premiums". The option ticket SHALL show premium, max loss for buys, margin for writes, breakeven, a payoff-at-expiry diagram and Greeks before submission. When the total premium of a buy plus its fee (the engine's option fee, from the state's `feeRate`), or the margin of a write, exceeds the available balance, the ticket SHALL say so and SHALL NOT submit; the ticket SHALL show the estimated fee. A market sell of a series whose bid is 0 SHALL be refused with that reason (the engine would cancel it). Greeks and other numbers that round to zero SHALL NOT show a minus sign ("0,00", never "-0,00").
+
+#### Scenario: Premium fits, premium plus fee does not
+- **WHEN** a buy's total premium is just under the available balance and the fee takes it over
+- **THEN** the ticket SHALL say the premium plus the fee exceeds the balance and the submit button SHALL be disabled
 
 #### Scenario: Payoff preview
 - **WHEN** the player selects a long put
@@ -151,18 +163,22 @@ The chart SHALL have an equivalent accessible table of every closed bar (paged, 
 - **THEN** the last row SHALL be the current closed bar
 
 ### Requirement: Localization and numbers
-All user-facing strings SHALL come from i18n catalogs (PT-BR first, en-US second). Numbers SHALL be formatted from fixed-point values using the declared scale, with locale-aware separators for display only (prices, quantities, indicator values, Greeks, R multiples, chart axis and tags, notices and the order side in the feed); parsing and storage SHALL be locale-independent. A number typed by the player SHALL be read with either decimal mark (`95,56` and `95.56` are the same price), since PT-BR mobile keyboards give a comma for decimal input.
+All user-facing strings SHALL come from i18n catalogs (PT-BR first, en-US second). Numbers SHALL be formatted from fixed-point values using the declared scale, with locale-aware separators for display only (prices, quantities, indicator values, Greeks, R multiples, chart axis and tags, notices and the order side in the feed); parsing and storage SHALL be locale-independent. A number typed by the player SHALL be read with either decimal mark (`95,56` and `95.56` are the same price), since PT-BR mobile keyboards give a comma for decimal input; a credit amount (notional, margin) SHALL also accept the locale's thousands separator (`1.000` in PT-BR is one thousand credits). Counts written in sentences (bars, errors) SHALL use the locale's grouping (`2.000 barras`).
 
 #### Scenario: Decimal comma in a typed level
 - **WHEN** a PT-BR player types the invalidation `95,56` in the plan dialog or the stop `95,26` in the ticket
 - **THEN** the plan SHALL record 95.56 (not an empty or invalid level) and the ticket SHALL size the order with a stop of 95.26
+
+#### Scenario: Thousands separator in a credit amount
+- **WHEN** a PT-BR player sizes by notional and types `1.000`
+- **THEN** the order SHALL be sized for 1,000 credits, not 1
 
 #### Scenario: Locale does not change results
 - **WHEN** the UI language switches from PT-BR to en-US mid-run
 - **THEN** state and digest SHALL be unchanged and only formatting SHALL differ
 
 ### Requirement: Simulation labels
-Synthetic bars, branch segments, model-priced option premiums, capacity approximations and ambiguous intrabar fills SHALL be visibly labeled wherever they are shown.
+Synthetic bars, branch segments, model-priced option premiums, capacity approximations and ambiguous intrabar fills SHALL be visibly labeled wherever they are shown. A synthetic pack SHALL be tagged synthetic (never "known") in the menu, the catalog and the top bar, and briefed from the mission it was generated from (or as a synthetic pack), never by its raw scenario id.
 
 #### Scenario: Branch label
 - **WHEN** the chart shows bars after a branch point

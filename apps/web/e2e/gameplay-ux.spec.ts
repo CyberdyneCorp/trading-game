@@ -94,7 +94,7 @@ test('rejections explain themselves with numbers: margin not available, margin b
 	await expect(notice).toContainText(/a margem ficaria em [\d.]+,\d\d cr, abaixo da margem inicial de [\d.]+,\d\d cr/);
 });
 
-test('an option buy whose premium fits but whose fee does not is refused without contradictory numbers', async ({ page }) => {
+test('an option buy whose premium fits but whose fee does not is refused on the ticket, before sending', async ({ page }) => {
 	await page.goto('/?seed=12');
 	await startFromMenu(page, 3); // m04 calls and puts
 	await answerIfAsked(page);
@@ -105,9 +105,12 @@ test('an option buy whose premium fits but whose fee does not is refused without
 	// The premium alone fits the 10,000 available; the engine also reserves the fee, which does not.
 	const ticket = page.locator('section.oticket');
 	await ticket.locator('label:has-text("Contratos") input').fill(String(Math.floor(10_000 / ask)));
-	await ticket.getByRole('button', { name: /Enviar ordem de opção/ }).click();
-	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
-	await expect(page.locator('.notice')).toHaveText('✖ margem insuficiente');
+	// Regression: the ticket checked the premium alone and let the order reach the engine's refusal;
+	// it now checks premium + fee like the engine and explains it before sending.
+	await expect(ticket.getByTestId('opt-cant-afford')).toContainText('O prêmio total mais a taxa é maior que o saldo disponível');
+	await expect(ticket.getByRole('button', { name: /Enviar ordem de opção/ })).toBeDisabled();
+	await ticket.locator('label:has-text("Contratos") input').fill(String(Math.floor(9_000 / ask)));
+	await expect(ticket.getByTestId('opt-cant-afford')).toHaveCount(0);
 });
 
 test('a lower leverage that would need more margin than available is refused with both amounts', async ({ page }) => {

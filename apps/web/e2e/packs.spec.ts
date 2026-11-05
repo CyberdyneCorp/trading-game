@@ -210,7 +210,7 @@ test('regression: a CSV over 64 KB validates, becomes a pack, and the engine sti
 	await page.getByTestId('import-csv').click();
 	await chooseCsv(page, 'btc-big.csv', big);
 	await page.getByTestId('csv-validate').click();
-	await expect(page.getByTestId('csv-report')).toContainText('2000 barras');
+	await expect(page.getByTestId('csv-report')).toContainText('2.000 barras'); // regression: was "2000 barras"
 	await page.getByTestId('csv-create').click();
 	await expect(page.getByTestId('pack-row')).toHaveCount(1);
 
