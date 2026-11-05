@@ -49,8 +49,13 @@ export function stopAdvice(tr: EngineTrade, locale: Locale): StopAdvice | null {
 // The fixed transformation note the engine writes into a CSV-import pack (engine/src/pack_build.cpp).
 const CSV_TRANSFORM = /^prices x 100 \/ open of bar (\d+), half-even to 0\.01; volume x the inverse$/;
 
-/** Reveal sentence and transformation note of a pack, in the player's language where the text is known. */
-export function revealTexts(r: PackReveal, alias: string): { line: string; transform: string } {
+/**
+ * Reveal sentence and transformation note of a pack, in the player's language where the text is known.
+ * A synthetic pack (generated bars, e.g. `packer generate`) has no real market to reveal; an empty
+ * transform means there is no note to show.
+ */
+export function revealTexts(r: PackReveal, alias: string, marketMode = 'historical'): { line: string; transform: string } {
+	if (marketMode === 'synthetic') return { line: t('debrief.revealPackSynthetic', { alias }), transform: '' };
 	const params = {
 		alias,
 		pair: r.pair || '—',

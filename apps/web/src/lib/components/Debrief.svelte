@@ -25,7 +25,7 @@
 	const greeks = $derived(greekRows(d.greeks));
 	const findingTexts = $derived(describeFindings(a.findings, L));
 	// Depends on L so the texts follow a language switch.
-	const reveal = $derived(d.reveal && L ? revealTexts(d.reveal, d.alias) : null);
+	const reveal = $derived(d.reveal && L ? revealTexts(d.reveal, d.alias, s.marketMode) : null);
 	// The run can end (game over) before the scenario does; the market line and buy-and-hold stop with it.
 	const endedEarly = $derived(s.step < s.totalBars - 1);
 	function adviceText(tr: EngineTrade): string | null {
@@ -142,7 +142,7 @@
 			<h2 class="panel-title">{t('debrief.reveal')}</h2>
 			{#if d.reveal}
 				<p data-testid="pack-reveal">{reveal?.line}</p>
-				<p class="muted small">{t('debrief.revealTransform', { text: reveal?.transform ?? '' })}</p>
+				{#if reveal?.transform}<p class="muted small">{t('debrief.revealTransform', { text: reveal.transform })}</p>{/if}
 				{#if d.reveal.gaps > 0}<p class="muted small">{tCount('debrief.revealGaps', d.reveal.gaps)}</p>{/if}
 			{:else}
 				<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
@@ -283,7 +283,7 @@
 	<div class="actions">
 		<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
 		{#if !session.runCampaign}
-			<button class="primary" onclick={() => session.startMission(s.mission)}>↻ {t('debrief.again')}</button>
+			<button class="primary" onclick={() => session.playAgain()}>↻ {t(session.runPack ? 'debrief.againPack' : 'debrief.again')}</button>
 		{/if}
 	</div>
 </main>
