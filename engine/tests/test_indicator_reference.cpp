@@ -77,7 +77,7 @@ Comparison compare(const Series& got, Column col, std::uint32_t from) {
       continue;
     }
     if (want == nullptr) continue;
-    c.worst_raw = std::max(c.worst_raw, std::llabs(got[i]->raw - P(want).raw));
+    c.worst_raw = std::max(c.worst_raw, static_cast<decltype(c.worst_raw)>(std::llabs(got[i]->raw - P(want).raw)));
     ++c.compared;
   }
   return c;
