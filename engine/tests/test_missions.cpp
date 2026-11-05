@@ -117,7 +117,7 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"77e3aadce955743193752c7f7d80c8491c95397086c910ea44a86838b01c2d16\","
+        "\"digest\":\"47717ee74f4985aaff00132ddf635f744c5bcbf6707ab295daa2ff2a22cadf9f\","
         "\"eventsDigest\":\"ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19\"}");
 }
 
@@ -149,7 +149,7 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"7a4cfc92ecc4087fdec9151220c51b576dd4929c49e5a4eddd7eda89dbda2134\","
+        "\"digest\":\"18eb4b1eba1c7880d266efb39690876efdc170fd85771a06021de696f5480b32\","
         "\"eventsDigest\":\"908ac0b1ffd77daf85c8c88e59123a55cb3ddc5ab1509965ae294ae637c4c8aa\"}");
 }
 
@@ -272,7 +272,7 @@ TEST_CASE("Golden: m06 thin book, limit entry with a bracket and a market exit")
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"d5b0e646f08b7cf586edce5af8f4fc187f697343c446c479ae4affd397f719d5\","
+        "\"digest\":\"c1777cf2365bb7009e9213b9478f6394223c265bfb56f0416f6e115622f95718\","
         "\"eventsDigest\":\"b084466a7e0ab87dacc53c40794afcbc017917decfac736279404e82558f009a\"}");
 }
 
@@ -289,7 +289,7 @@ TEST_CASE("Golden: m07 size and exit, a market entry then a trailing stop") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"bad3d1e12d53fcef5277ae752b349dcb072c01bef6bd13894a9deccd464fc7e4\","
+        "\"digest\":\"d9c825a90ab235770a9089f5e4b2a70b876200983a8442bdd15ff448d2de6c93\","
         "\"eventsDigest\":\"911e8dce2b537d94c11f7c8a8af67a1472f169032d0c6e98d137b4bb95488bd0\"}");
 }
 
@@ -306,7 +306,7 @@ TEST_CASE("Golden: m08 regime switch, a fade and a follow") {
   const std::string d = tl_debrief(run);
   tl_run_destroy(run);
   CHECK(digests_of(s) ==
-        "\"digest\":\"75a589774815c40b9fd7d9cca722a7fe14287701c1d9e618de58622cc5d3b895\","
+        "\"digest\":\"48bbe464ad053dda5993d190ef7bacd593bd8cafc327b90b28fd57179c898c03\","
         "\"eventsDigest\":\"e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb\"}");
   CHECK(s.find("\"regimes\"") == std::string::npos);  // the run state never carries the reveal (design D6)
   CHECK(s.find("\"spans\"") == std::string::npos);

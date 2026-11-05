@@ -366,7 +366,7 @@ test('calibration questions are asked, cannot be skipped over, and count in the 
 		await page.waitForTimeout(40);
 	}
 	expect(asked).toBeGreaterThanOrEqual(5); // 79 playable bars / 15
-	await expect(page.getByText(/pergunta\(s\) resolvida\(s\)/)).toBeVisible();
+	await expect(page.getByText(/\d+ perguntas? resolvidas? · Brier/)).toBeVisible();
 	await expect(page.getByText(/O que era este cenário/)).toBeVisible();
 });
 
@@ -939,6 +939,24 @@ test('regression: asking the advisor keeps the leverage typed in the ticket', as
 	await page.getByRole('button', { name: /Pedir leitura/ }).click();
 	await expect(page.getByTestId('advisor-points')).toHaveText('Pontos: 2');
 	await expect(lev).toHaveValue('3');
+});
+
+test('regression: applying the advisor read keeps the typed leverage and goes back to a market order', async ({ page }) => {
+	// Before: apply fitted the size from the account leverage (1x) and set the field to it, and a ticket
+	// left on Limite kept its stale price, so the planned risk was not the advisor's ~1%.
+	await openTerminal(page, 15);
+	const lev = page.locator('label:has-text("Alavancagem") input').first();
+	const type = page.locator('label:has-text("Tipo") select').first();
+	await lev.fill('3');
+	await type.selectOption('limit');
+	await page.locator('label:has-text("Preço") input').first().fill('90,00');
+	await page.getByRole('button', { name: /Pedir leitura/ }).click();
+	await expect(page.getByTestId('advice').getByText('SHORT')).toBeVisible();
+	await page.getByRole('button', { name: /Levar stop e tamanho ao ticket/ }).click();
+	await expect(page.locator('label:has-text("Quantidade") input')).toHaveValue('41.8');
+	await expect(lev).toHaveValue('3');
+	await expect(type).toHaveValue('market');
+	await expect(page.locator('label:has-text("Preço") input')).toHaveCount(0);
 });
 
 test('regression: the planned risk stays in the position panel after a reload and resume', async ({ page }) => {

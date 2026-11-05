@@ -141,6 +141,8 @@ bool execute(BarCtx& c, Order& o, const Exec& ex) {
   o.status = o.remaining().raw == 0 ? OrderStatus::Filled : OrderStatus::PartiallyFilled;
   detail::emit_order_update(c.st, o, Reason::None);
   reduce_oco_siblings(c.st, o, q);
+  // An exit larger than the position it just closed has nothing left to reduce (policy v14).
+  if (o.reduce_only && o.active() && c.st.position.flat()) cancel(c.st, o, Reason::PositionClosed);
   const Qty inc = exposure_increase(before, c.st.position);
   if (inc.raw > 0) {
     if ((ex.flags & kFlagGapFill) == 0) c.entered_intrabar = true;

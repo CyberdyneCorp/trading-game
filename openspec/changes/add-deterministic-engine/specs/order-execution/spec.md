@@ -59,7 +59,7 @@ A trailing stop-market SHALL track the best close observed since activation by a
 - **THEN** the trail SHALL be updated from the close, not the high
 
 ### Requirement: Brackets, OCO and reduce-only
-Exit orders of a bracket SHALL be reduce-only and SHALL share the filled entry quantity. Partial entry fills SHALL create protection only for the filled quantity. A fill on one exit SHALL reduce its sibling by the same quantity. When the position reaches zero, all other reduce-only orders for that market SHALL be cancelled with reason `position_closed`, after the fill event that closed it; the order whose fill closed the position SHALL end `filled` and SHALL NOT be reported as cancelled. A reduce-only order SHALL never increase or flip a position.
+Exit orders of a bracket SHALL be reduce-only and SHALL share the filled entry quantity. Partial entry fills SHALL create protection only for the filled quantity. A fill on one exit SHALL reduce its sibling by the same quantity. When the position reaches zero, all other reduce-only orders for that market SHALL be cancelled with reason `position_closed`, after the fill event that closed it; the order whose fill closed the position SHALL NOT be reported as cancelled when it filled completely. When its quantity was larger than the position it closed (e.g. a bracket leg left at its size after a partial close), its unfilled remainder SHALL be cancelled with reason `position_closed` on the same bar, right after its own fill update (execution policy v14), so no exit stays working without a position. A reduce-only order SHALL never increase or flip a position.
 
 A working perpetual exit (a reduce-only stop-market or take-profit) MAY be moved to a new trigger with the `MoveOrder` command (execution policy v13): the order keeps its id, remaining quantity, bracket parent and OCO group, an order update with reason `order_moved` is emitted, and the same stop-beyond-liquidation warning as on placement applies. Moving an unknown or inactive order SHALL be rejected with `unknown_order`, any other order type with `unsupported_order_type`, and a price off the tick with `invalid_tick`.
 
@@ -71,6 +71,10 @@ A working perpetual exit (a reduce-only stop-market or take-profit) MAY be moved
 #### Scenario: A moved bracket stop keeps its OCO link
 - **WHEN** the stop leg of a bracket is moved closer to the market and then fills
 - **THEN** it SHALL fill at its new trigger as the same order, and its take-profit sibling SHALL be cancelled with it
+
+#### Scenario: An exit larger than the position is not left working
+- **WHEN** a bracket long of 10 is partly closed by a market sell of 1, and its take-profit for 10 then reaches its price
+- **THEN** the take-profit SHALL fill 9 and close the position, and on that same bar its remainder of 1 SHALL be cancelled (`position_closed`) after its fill update, together with the stop
 
 #### Scenario: Closing order is filled, not cancelled
 - **WHEN** a reduce-only stop fills and closes the position while its take-profit sibling is resting

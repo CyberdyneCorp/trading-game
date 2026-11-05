@@ -22,7 +22,7 @@
 - [x] 4.1 Market, limit, stop-market, take-profit, trailing (close-based)
 - [x] 4.2 Lifecycle states and events; rejection reasons enum (`types.hpp`; `triggered` is defined but not emitted, see spec "Order lifecycle")
 - [ ] 4.3 Costs: fees, spread, slippage, tick/lot; capacity with priority — done: maker/taker fees, half-spread + slippage, tick/lot validation, shared per-bar capacity from bar volume with `capacityFromBarVolume` on limited fills; pending: price-then-sequence priority for capacity (orders are currently served by phase, then placement order)
-- [x] 4.4 Bracket/OCO, reduce-only, orphan cancellation; `MoveOrder` (policy v13) moves a working stop/take-profit in place, keeping its OCO link (`tests/test_brackets.cpp`, Python replay action `move`)
+- [x] 4.4 Bracket/OCO, reduce-only, orphan cancellation (policy v14: an exit larger than the position it closes cancels its remainder on the same bar); `MoveOrder` (policy v13) moves a working stop/take-profit in place, keeping its OCO link (`tests/test_brackets.cpp`, Python replay action `move`)
 - [x] 4.5 Conservative intrabar policy with `ambiguousIntrabar` flags
 - [x] 4.6 Goldens SIM03–SIM07
 - [ ] 4.7 Percentage trailing distance — pending: trailing stops take a fixed price distance only (design D6b)

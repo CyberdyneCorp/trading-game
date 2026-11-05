@@ -24,11 +24,11 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		liquidated:
 			'Liquidação na barra {step} a {price}: a margem isolada inteira ({amount}) foi perdida. Alavancagem menor teria colocado o stop antes da liquidação.',
 		stop_beyond_liq: 'Houve stop posicionado além do preço de liquidação: a liquidação dispara antes do stop.',
-		no_stop: '{count} entrada(s) sem stop de proteção logo em seguida. Sem stop, o risco planejado é indefinido.',
+		no_stop: '{count} entradas sem stop de proteção logo em seguida. Sem stop, o risco planejado é indefinido.',
 		gap_slippage: 'Stop solicitado em {requested} executou em {price} por causa de um gap: stop a mercado não garante preço.',
 		funding_cost: 'Você pagou {amount} cr de funding — mais do que em taxas. Carregar posição lotada custa.',
-		ambiguous: '{count} execução(ões) usaram a aproximação intrabar conservadora (OHLC não revela a ordem máxima/mínima).',
-		capacity: '{count} execução(ões) foram limitadas pela capacidade simulada da barra.',
+		ambiguous: '{count} execuções usaram a aproximação intrabar conservadora (OHLC não revela a ordem máxima/mínima).',
+		capacity: '{count} execuções foram limitadas pela capacidade simulada da barra.',
 		good_process_loss: 'Prejuízo com processo bom: cada trade tinha plano e risco limitado (stop ou prêmio), sem liquidação nem chamada de margem. Isso é gestão de risco funcionando.',
 		good_process_win:
 			'Lucro com processo bom: cada trade tinha plano e risco limitado (stop ou prêmio), sem liquidação nem chamada de margem. Mantenha o processo — um resultado sozinho não prova vantagem.',
@@ -52,11 +52,11 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		liquidated:
 			'Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost. Lower leverage would have put the stop before liquidation.',
 		stop_beyond_liq: 'A stop sat beyond the liquidation price: liquidation fires before the stop.',
-		no_stop: '{count} entry(ies) without a protective stop right after. Without a stop, planned risk is undefined.',
+		no_stop: '{count} entries without a protective stop right after. Without a stop, planned risk is undefined.',
 		gap_slippage: 'Stop requested at {requested} filled at {price} because of a gap: a stop-market does not guarantee a price.',
 		funding_cost: 'You paid {amount} cr in funding — more than in fees. Carrying a crowded position costs.',
-		ambiguous: '{count} fill(s) used the conservative intrabar approximation (OHLC does not reveal whether high or low came first).',
-		capacity: '{count} fill(s) were limited by the simulated bar capacity.',
+		ambiguous: '{count} fills used the conservative intrabar approximation (OHLC does not reveal whether high or low came first).',
+		capacity: '{count} fills were limited by the simulated bar capacity.',
 		good_process_loss: 'A loss with good process: every trade had a plan and limited risk (stop or premium), no liquidation or margin call. That is risk management working.',
 		good_process_win:
 			'A profit with good process: every trade had a plan and limited risk (stop or premium), no liquidation or margin call. Keep the process — one result alone does not prove an edge.',
@@ -90,6 +90,20 @@ const safeLeverageText: Record<Locale, Partial<Record<EngineFinding['code'], str
 			'Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost. The stop sat beyond liquidation: up to {count}x leverage would have kept it in front.',
 		stop_beyond_liq:
 			'The stop at {price} (entry at bar {step}) sat beyond the liquidation price {requested}: liquidation fires first. Up to {count}x leverage would have kept the stop in front.'
+	}
+};
+
+// Count findings with a count of exactly 1.
+const singularText: Record<Locale, Partial<Record<EngineFinding['code'], string>>> = {
+	'pt-BR': {
+		no_stop: '1 entrada sem stop de proteção logo em seguida. Sem stop, o risco planejado é indefinido.',
+		ambiguous: '1 execução usou a aproximação intrabar conservadora (OHLC não revela a ordem máxima/mínima).',
+		capacity: '1 execução foi limitada pela capacidade simulada da barra.'
+	},
+	en: {
+		no_stop: '1 entry without a protective stop right after. Without a stop, planned risk is undefined.',
+		ambiguous: '1 fill used the conservative intrabar approximation (OHLC does not reveal whether high or low came first).',
+		capacity: '1 fill was limited by the simulated bar capacity.'
 	}
 };
 
@@ -129,7 +143,8 @@ export function describeFinding(f: EngineFinding, locale: Locale): string {
 		amount: fmtPrice(f.amount, locale),
 		risk: Math.round(Number(f.amount)).toLocaleString(locale)
 	};
-	const template = (f.count > 0 ? safeLeverageText[locale][f.code] : undefined) ?? findingText[locale][f.code];
+	const special = f.count > 0 ? safeLeverageText[locale][f.code] : undefined;
+	const template = special ?? (f.count === 1 ? singularText[locale][f.code] : undefined) ?? findingText[locale][f.code];
 	return fill(template, params);
 }
 

@@ -512,7 +512,7 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v3 with a Markov regime chain, execution policy v13, scoring v9 with the full debrief and the seeded regime reveal), eight missions with first-start tutorials (batch A of phase 2: m06 thin book, m07 size and exit, m08 regime switch), campaign runs with carried capital, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, legal intel perks (economic calendar, fast wire) unlocked by finished missions, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay with each run's start options, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
+Built: the deterministic engine (perps, options, indicators, patterns, generator v3 with a Markov regime chain, execution policy v14, scoring v9 with the full debrief and the seeded regime reveal), eight missions with first-start tutorials (batch A of phase 2: m06 thin book, m07 size and exit, m08 regime switch), campaign runs with carried capital, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, legal intel perks (economic calendar, fast wire) unlocked by finished missions, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay with each run's start options, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
 
 Next:
 

@@ -80,6 +80,9 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 ### D6h. Plausible implied vol (execution-policy v8)
 - Generator `iv_base` priced the last bar's variance times every multiplier, so m05's jump published IVs above 2000% and margin-call buy-backs paid several times intrinsic value; the term factor `sqrt(T_ref/T)` also grew to 4.9x in an hourly option's last bar. v8 smooths the per-bar variance behind `iv_base` (factor 0.055, ~12-bar half-life), caps `iv_base` at 250%, and floors `T` at 7 days in the term factor. Measured over 30 seeds: calm chain IV 63-72%, peaks 156% (m04) and 290% (m05).
 
+### D6i. Oversized exit remainder (execution-policy v14)
+- A reduce-only exit larger than the position (a bracket leg left at its size after a partial close) used to close the position and stay `partially_filled` for one more bar, since the orphan cancel skips the order being filled; the next bar's `execute` then cancelled it. `execute` now cancels its remainder (`position_closed`) right after its own fill update when the position is flat. Events move one bar earlier in such runs, so the policy version was bumped to 14; every frozen event digest stayed the same and only the state digests (which include the policy number) changed.
+
 ### D7. Digest and checkpoints
 - Canonical little-endian binary serialization of `RunState`; SHA-256 (vendored, constant-time not required). State digest covers the policy version, seed, step, status, leverage, balances, position, orders, option positions, plans, answers, metrics and RNG state; the events digest covers the full event log.
 - Checkpoint = header (magic, checkpoint format 1, execution-policy version, scenario id) + serialized state. Loading fails with `IncompatiblePolicy`, `ScenarioMismatch`, `TruncatedInput` or `NonCanonicalEncoding`. The engine semver is not stored (reported by `tl_version`).

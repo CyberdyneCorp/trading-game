@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { i18n, packReasonText, reasonText, tCount } from './i18n.svelte.ts';
+import { i18n, packReasonText, reasonText, t, tCount } from './i18n.svelte.ts';
 
 // Every reason code the engine can emit (engine/src/c_api.cpp reason_name), except "none".
 const CODES = [
@@ -35,6 +35,20 @@ describe('tCount', () => {
 		expect(tCount('opt.expiry', 1, { step: 96 })).toBe('Expiry at bar 96 (1 bar)');
 		i18n.locale = 'pt-BR';
 	});
+
+	it('regression: debrief and CSV counts are pluralized, never "(s)"', () => {
+		expect(tCount('debrief.calibrationLine', 5, { brier: '0,210' })).toBe('5 perguntas resolvidas · Brier 0,210');
+		expect(tCount('debrief.calibrationLine', 1, { brier: '0,210' })).toBe('1 pergunta resolvida · Brier 0,210');
+		expect(tCount('csv.gapLine', 1, { line: 7 })).toBe('linha 7: 1 barra ausente');
+		expect(tCount('csv.gapLine', 2, { line: 7 })).toBe('linha 7: 2 barras ausentes');
+		i18n.locale = 'en';
+		expect(tCount('debrief.calibrationLine', 5, { brier: '0.210' })).toBe('5 resolved questions · Brier 0.210');
+		expect(tCount('debrief.revealGaps', 1)).toBe('1 gap in the data was kept as a jump.');
+		i18n.locale = 'pt-BR';
+		for (const key of ['debrief.calibrationLine', 'csv.errors', 'csv.gaps', 'csv.gapLine', 'debrief.revealGaps'] as const) {
+			for (const n of [1, 3]) expect(tCount(key, n, { line: 1, brier: '0' })).not.toMatch(/\(s\)|\(ões\)|\(ies\)/);
+		}
+	});
 });
 
 describe('packReasonText', () => {
@@ -42,5 +56,18 @@ describe('packReasonText', () => {
 		for (const code of ['csv_invalid', 'invalid_rules', 'masking_failed', 'invalid_meta', 'invalid_seed']) {
 			expect(packReasonText(code)).not.toMatch(/_/);
 		}
+	});
+});
+
+describe('debrief Greek note', () => {
+	it('regression: describes the full revaluation (scoring v8), not the old Taylor method', () => {
+		// Before: "gregas do início de cada intervalo ... efeitos de ordem maior" after v8 changed the method.
+		expect(t('debrief.greeksNote')).toMatch(/reavaliação completa/);
+		expect(t('debrief.greeksNote')).toMatch(/resíduo é o spread pago/);
+		expect(t('debrief.greeksNote')).not.toMatch(/ordem maior|início de cada intervalo/);
+		i18n.locale = 'en';
+		expect(t('debrief.greeksNote')).toMatch(/full revaluation/);
+		expect(t('debrief.greeksNote')).not.toMatch(/higher-order|start of each interval/);
+		i18n.locale = 'pt-BR';
 	});
 });

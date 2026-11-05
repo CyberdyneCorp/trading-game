@@ -50,25 +50,31 @@ export function pinOf(price: number, lo: number, hi: number): Pin {
 
 /**
  * Vertical tag positions that never overlap: tags keep their order and are pushed apart by at
- * least LABEL_H, staying inside [top, bottom] when there is room.
+ * least LABEL_H, staying inside [top, bottom]. A tag only moves as far as its neighbours need, so a
+ * stack overflowing one edge never drags a distant tag past the other. When even that has no room,
+ * the tags share the pane evenly (closer than LABEL_H) rather than leave it.
  */
 export function spreadLabels(ys: number[], top: number, bottom: number): number[] {
 	const order = ys.map((y, i) => ({ y, i })).sort((p, q) => p.y - q.y);
 	const out = new Array<number>(ys.length);
+	const lo = top + LABEL_H / 2;
+	const hi = bottom - LABEL_H / 2;
+	if (order.length > 1 && (order.length - 1) * LABEL_H > hi - lo) {
+		const step = (hi - lo) / (order.length - 1);
+		order.forEach(({ i }, k) => (out[i] = lo + k * step));
+		return out;
+	}
+	// Down from the top: each tag at its line, below the one above it.
 	let prev = -Infinity;
 	for (const { y, i } of order) {
-		const placed = Math.max(y, prev + LABEL_H, top + LABEL_H / 2);
-		out[i] = placed;
-		prev = placed;
+		out[i] = Math.max(y, prev + LABEL_H, lo);
+		prev = out[i];
 	}
-	// If the stack ran past the bottom, slide it back up (keeping the spacing).
-	const overflow = Math.max(0, ...order.map(({ i }) => out[i] - (bottom - LABEL_H / 2)));
-	if (overflow > 0) {
-		let next = Infinity;
-		for (const { i } of [...order].reverse()) {
-			out[i] = Math.min(out[i] - overflow, next - LABEL_H);
-			next = out[i];
-		}
+	// Up from the bottom: only the tags that ran past it (and the ones they then crowd) slide back.
+	let next = hi + LABEL_H;
+	for (const { i } of [...order].reverse()) {
+		out[i] = Math.min(out[i], next - LABEL_H);
+		next = out[i];
 	}
 	return out;
 }
