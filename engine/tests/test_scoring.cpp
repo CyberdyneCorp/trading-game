@@ -337,3 +337,90 @@ TEST_CASE("A bought option with a plan that wins is good process too") {
   REQUIRE(r.net_pnl.raw > 0);
   CHECK(has(r, FindingCode::GoodProcessWin));
 }
+
+TEST_CASE("Regression: a plan recorded on an entry's fill bar belongs to the next order, not that trade") {
+  // Before: the trade took the last plan recorded up to its entry fill step. Flipping on the bar
+  // the long filled gave the long the short's plan ("violated" against 110) and left the short with
+  // no plan, no R and no advisor points.
+  Scenario sc = flat(8);
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Buy, "95", "50").accepted);
+  REQUIRE(d.order(OrderType::Market, OrderSide::Buy, "10").accepted);  // fills at step 1
+  d.step();
+  REQUIRE(d.plan(OrderSide::Sell, "110", "60").accepted);  // recorded at step 1, the long's fill bar
+  REQUIRE(d.order(OrderType::Market, OrderSide::Sell, "20").accepted);  // flips at step 2
+  d.step(2);
+  d.close();
+  d.step();
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 2);
+  CHECK(r.trades[0].is_long);
+  CHECK(r.trades[0].planned_risk == M("50"));
+  CHECK(r.trades[0].plan_respected == true);
+  CHECK(r.trades[0].stop == P("95"));
+  CHECK_FALSE(r.trades[1].is_long);
+  CHECK(r.trades[1].planned_risk == M("60"));
+  CHECK(r.trades[1].r_bp.has_value());
+  CHECK(r.trades[1].plan_respected == true);
+}
+
+TEST_CASE("Regression: two option legs sent on the same bar each keep their own plan") {
+  // Before: the call took the put's plan (the later one), so its R used the put's small risk.
+  Scenario sc = flat(6);
+  add_options(sc, 5, {"100"});
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Buy, nullptr, "27", false, true).accepted);
+  REQUIRE(d.option(1, OrderSide::Buy, "1").accepted);  // call
+  REQUIRE(d.plan(OrderSide::Buy, nullptr, "5.1", false, true).accepted);
+  REQUIRE(d.option(2, OrderSide::Buy, "1").accepted);  // put
+  d.step(5);
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 2);
+  for (const TradeRow& t : r.trades) CHECK(t.planned_risk == (t.series == 1 ? M("27") : M("5.1")));
+}
+
+TEST_CASE("Regression: an add's plan adds its risk to the trade instead of replacing the first plan") {
+  // Before: adding on the first fill's bar replaced the trade's plan, so R used only the add's risk.
+  Scenario sc = flat(6);
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Buy, "95", "50").accepted);
+  REQUIRE(d.order(OrderType::Market, OrderSide::Buy, "10").accepted);
+  d.step();
+  REQUIRE(d.plan(OrderSide::Buy, "90", "30").accepted);
+  REQUIRE(d.order(OrderType::Market, OrderSide::Buy, "10").accepted);
+  d.step(2);
+  d.close();
+  d.step();
+  const ScoreReport r = score_run(sc, d.state());
+  REQUIRE(r.trades.size() == 1);
+  CHECK(r.trades[0].planned_risk == M("80"));
+  CHECK(r.trades[0].stop == P("95"));  // the opening plan's invalidation
+}
+
+TEST_CASE("Regression: a margin-call shortfall beyond the balance is reported, so the debrief adds up") {
+  // Before: the wallet was floored at 0 and the shortfall vanished: the result was -10,000 while
+  // the option P&L and the trade rows were thousands of credits worse, with no line between them.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"},
+                               {"30", "30", "20", "20"}, {"20", "20", "20", "20"}, {"20", "20", "20", "20"}});
+  add_options(sc, 4, {"100"}, true);
+  Driver d(sc);
+  REQUIRE(d.option(2, OrderSide::Sell, "300").accepted);  // write the 100 put
+  d.step(3);
+  const RunState& st = d.state();
+  REQUIRE(st.insurance_absorbed.raw > 0);
+  const ScoreReport r = score_run(sc, st);
+  std::int64_t nets = 0;
+  for (const TradeRow& t : r.trades) nets += t.net.raw;
+  REQUIRE(nets < r.net_pnl.raw);
+  CHECK(r.written_off.raw > 0);
+  CHECK(nets + r.written_off.raw == r.net_pnl.raw);
+  CHECK(r.written_off == st.insurance_absorbed);
+}
+
+TEST_CASE("No shortfall is reported when the fund covered nothing") {
+  Scenario sc = flat(6);
+  Driver d(sc);
+  d.order(OrderType::Market, OrderSide::Buy, "10");
+  d.step(5);
+  CHECK(score_run(sc, d.state()).written_off.raw == 0);
+}

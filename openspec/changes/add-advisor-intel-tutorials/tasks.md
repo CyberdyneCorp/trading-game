@@ -18,6 +18,7 @@ Delivered in three PRs, in this order: tutorials (client only), advisor and poin
 - [x] 2.6 C API (`tl_run_create_ex`, `tl_request_advice`), WASM worker protocol and Python binding (`RunOptions`, `Run.request_advice`, `replay(..., options)`, action `{"k":"advice"}`): start options, advice command, advice in state and debrief; binding parity tests (Python repeats the m02 advisor golden). The API service still replays with default options (3.3)
 - [x] 2.7 Web: m01 tutorial card introducing the advisor and points (replaces the plan card, which it now includes, to stay at 5 cards); advisor button with points, advice panel (localized reasons, "apply stop/size"), debrief advice table; points settlement once per run; unit and e2e tests
 - [x] 2.8 README ("What can the player predict?" gets the advisor table; how points work); engine docs
+- [x] 2.9 Playtest fixes: a run replaced by a new one is settled then (advice used, nothing earned); applying the advisor's size raises the ticket leverage to fit the margin (or cuts the size at the cap); the advisor panel no longer clips its read in its own scroll box; advisor points follow the plan matched to each entry order (scoring v7); unit, engine and e2e regression tests
 
 ## 3. Intel perks (PR 3, engine + web)
 - [ ] 3.1 Engine: `news_lead` visibility with `early` flag, calendar list in the state view; tests that bars are identical with and without perks

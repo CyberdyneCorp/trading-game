@@ -835,3 +835,85 @@ test('regression: an open position puts its liquidation price and margin buttons
 	expect(add.y + add.height).toBeLessThanOrEqual(rail.y + rail.height);
 	expect(await page.locator('aside.rail').evaluate((el) => el.scrollTop)).toBe(0);
 });
+
+test('regression: leaving a run for a new one charges its advisor reads', async ({ page }) => {
+	// Before: points were settled only at the debrief, so starting over handed every read back.
+	await openTerminal(page, 15);
+	const points = page.getByTestId('advisor-points');
+	await page.getByRole('button', { name: /Pedir leitura/ }).click();
+	await expect(points).toHaveText('Pontos: 2');
+	await page.getByRole('button', { name: 'Menu', exact: true }).click();
+	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await answerIfAsked(page);
+	await expect(points).toHaveText('Pontos: 2');
+	// Also when the left run is only in storage (after a reload it is offered as "Continue").
+	await page.getByRole('button', { name: /Pedir leitura/ }).click();
+	await expect(points).toHaveText('Pontos: 1');
+	await page.reload();
+	await expect(page.getByRole('button', { name: /Continuar partida/ })).toBeVisible();
+	await page.getByRole('button', { name: /Iniciar missão/ }).nth(1).click();
+	await page.getByRole('button', { name: 'Pular tutorial' }).click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await expect(points).toHaveText('Pontos: 1');
+});
+
+test('regression: applying the advisor size raises the leverage to fit the margin; the ticket refuses what it cannot afford', async ({ page }) => {
+	// Before: m03 seed 3 applied 120.4 at 1x (margin 12,306 vs 10,000 available): no warning, Send
+	// enabled, and the engine answered "insufficient margin".
+	await page.goto('/?seed=3');
+	await startFromMenu(page, 2);
+	await answerIfAsked(page);
+	for (let i = 0; i < 7; i++) await advance(page);
+	await page.getByRole('button', { name: /Pedir leitura/ }).click();
+	await expect(page.getByTestId('advice').getByText('LONG')).toBeVisible();
+	await page.getByRole('button', { name: /Levar stop e tamanho ao ticket/ }).click();
+	const lev = page.locator('label:has-text("Alavancagem") input').first();
+	await expect(lev).not.toHaveValue('1');
+	await expect(page.getByTestId('ticket-cant-afford')).toHaveCount(0);
+	const send = page.getByRole('button', { name: /Enviar ordem/ });
+	await expect(send).toBeEnabled();
+	await lev.fill('1');
+	await expect(page.getByTestId('ticket-cant-afford')).toContainText(/saldo disponível/);
+	await expect(send).toBeDisabled();
+});
+
+test('regression: the advisor read, its apply button and disclaimer are not clipped in a scroll box', async ({ page }) => {
+	// Before: the panel was capped at 45% of the column and scrolled on its own, hiding the apply button.
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await openTerminal(page, 15);
+	await page.getByRole('button', { name: /Pedir leitura/ }).click();
+	const panel = page.locator('section.advisor');
+	const apply = page.getByRole('button', { name: /Levar stop e tamanho ao ticket/ });
+	for (const [width, height] of [
+		[1440, 900],
+		[1280, 720],
+		[1024, 768]
+	]) {
+		await page.setViewportSize({ width, height });
+		await apply.scrollIntoViewIfNeeded();
+		await expect(apply).toBeInViewport();
+		expect(await panel.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
+		await apply.click();
+		await expect(page.getByTestId('advisor-points')).toBeInViewport(); // the header did not scroll away
+	}
+});
+
+test('regression: after a margin-call bankruptcy the debrief shows the loss the fund covered', async ({ page }) => {
+	// Before: the result was -10,000 but the option P&L and trade rows were ~2,500 worse, with no line between.
+	await page.goto('/?seed=505');
+	await startFromMenu(page, 4);
+	await answerIfAsked(page);
+	const writePut = async (strike: string, qty: string) => {
+		await page.locator('.chain table').first().locator('tbody tr', { has: page.locator('td.strike', { hasText: strike }) }).locator('td').nth(5).getByRole('button').click();
+		await page.locator('section.oticket label', { hasText: 'Contratos' }).locator('input').fill(qty);
+		await page.getByRole('button', { name: /Enviar ordem de opção/ }).click();
+		await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+		await advance(page);
+	};
+	await writePut('100,00', '5');
+	await writePut('95,00', '880');
+	for (let i = 0; i < 60 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) await advance(page);
+	await expect(page.getByRole('heading', { name: 'GAME OVER' })).toBeVisible();
+	await expect(page.getByTestId('debrief-written-off')).toHaveText(/^\+[\d.]+,\d\d cr$/);
+});

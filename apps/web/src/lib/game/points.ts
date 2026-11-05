@@ -4,6 +4,8 @@
 // the device keeps the balance. It starts at 3, is capped at 10 and is never purchasable. A run's
 // advice allowance is the balance when it starts; when it ends the balance becomes
 // balance - used + earned, applied once per run id (settledRuns), even after reloads or replays.
+// A run left behind by starting another one can no longer be resumed: it is settled then, with the
+// advice it used and nothing earned, so abandoning a run never hands its reads back.
 
 export const START_POINTS = 3;
 export const MAX_POINTS = 10;
@@ -30,4 +32,9 @@ export function settleRun<P extends PointsState>(p: P, runId: string, used: numb
 		advisorPoints: clamp(p.advisorPoints - used + earned),
 		settledRuns: [...p.settledRuns, runId].slice(-KEEP_SETTLED)
 	};
+}
+
+/** Advice reads in a run's action log (each accepted 'advice' action used one point). */
+export function adviceUsed(actions: readonly { k: string }[]): number {
+	return actions.filter((a) => a.k === 'advice').length;
 }

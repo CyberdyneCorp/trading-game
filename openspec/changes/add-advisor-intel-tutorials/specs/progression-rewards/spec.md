@@ -12,11 +12,15 @@ The engine SHALL report the advisor points earned in a run: 1 for each closed tr
 - **THEN** that trade SHALL earn no points
 
 ### Requirement: Local point balance
-The client SHALL keep an advisor point balance per device, starting at 3 and capped at 10. A run's advice allowance SHALL be the balance at start. When a run ends, the balance SHALL become balance − advice used + points earned, applied exactly once per run even after reloads or replays. Practice runs on known scenarios (imported or loaded packs) SHALL start without advice and SHALL NOT change the balance.
+The client SHALL keep an advisor point balance per device, starting at 3 and capped at 10. A run's advice allowance SHALL be the balance at start. When a run ends, the balance SHALL become balance − advice used + points earned, applied exactly once per run even after reloads or replays. A run that can still be resumed and is replaced by starting another run SHALL be settled then, with the advice it used and no points earned. Practice runs on known scenarios (imported or loaded packs) SHALL start without advice and SHALL NOT change the balance.
 
 #### Scenario: Settlement is idempotent
 - **WHEN** a finished run's debrief is opened, the page is reloaded and the debrief is opened again
 - **THEN** the balance SHALL have changed only once
+
+#### Scenario: Abandoning a run does not refund its advice
+- **WHEN** the player uses 2 reads in a run, goes back to the menu and starts a new run (also after a reload)
+- **THEN** the new run SHALL start with the balance minus 2, and finishing it SHALL NOT charge the abandoned run again
 
 #### Scenario: Practice on an imported market
 - **WHEN** a run on an imported CSV pack finishes with a disciplined winning trade

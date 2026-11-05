@@ -11,6 +11,7 @@
 	import { keepsKey } from '#lib/game/hotkeys.ts';
 	import { exitOnValidSide, remainingQty } from './chartDrag.ts';
 	import { fmtQty, num, priceToTick, qtyToLot } from '#lib/game/format.ts';
+	import { costsOf, estimatedMarketEntry, fitToMargin } from '#lib/game/sizing.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
 	import HelpOverlay from './HelpOverlay.svelte';
@@ -72,6 +73,7 @@
 	let ticketTp = $state('');
 	let ticketSizeBy = $state<'qty' | 'risk'>('risk');
 	let ticketQty = $state('10');
+	let ticketLeverage = $state(1);
 
 	// The advisor's stop and size go to the perpetual ticket; nothing is sent until the player submits.
 	function onApplyAdvice(a: AdviceView) {
@@ -79,7 +81,13 @@
 		side = a.stance === 'short' ? 'sell' : 'buy';
 		ticketStop = priceToTick(num(a.stop), num(c.tickSize));
 		ticketSizeBy = 'qty';
-		ticketQty = qtyToLot(num(a.size), num(c.lotSize));
+		// 1% risk at a tight stop can need more than the current leverage: raise it (or cut the size at the cap).
+		const s = session.state!;
+		const k = costsOf(c);
+		const entry = estimatedMarketEntry(side, num(s.account.mark), k);
+		const fit = fitToMargin(num(a.size), entry, num(s.account.available), s.leverage, c.leverageCap, k, num(c.lotSize));
+		ticketQty = qtyToLot(fit.qty, num(c.lotSize));
+		ticketLeverage = fit.leverage;
 		tab = 'perp';
 	}
 
@@ -269,7 +277,7 @@
 				{#if tab === 'options' && optionsOn}
 					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
 				{:else}
-					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} {onSubmit} onPick={(set) => (pick = set)} />
+					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} bind:leverage={ticketLeverage} {onSubmit} onPick={(set) => (pick = set)} />
 				{/if}
 			</div>
 			<div class="stack">
@@ -281,7 +289,7 @@
 					<div class="notice {session.notice.tone}" role="status">{session.notice.text}</div>
 				{/if}
 			</div>
-			<div class="stack">
+			<div class="stack side">
 				{#if !session.state.knownScenario}
 					<AdvisorPanel {session} onApply={onApplyAdvice} />
 				{/if}
@@ -339,6 +347,13 @@
 		flex-direction: column;
 		gap: 0.5rem;
 		min-height: 0;
+	}
+	/* Advisor, news and feed: the feed takes what is left; when that is not enough the column scrolls. */
+	.stack.side {
+		overflow: auto;
+	}
+	.stack.side > :global(.feed) {
+		min-height: 6rem;
 	}
 	.tabs {
 		display: grid;

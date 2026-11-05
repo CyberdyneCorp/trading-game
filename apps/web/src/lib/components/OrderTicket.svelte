@@ -26,7 +26,7 @@
 
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { costsOf, estimate, estimatedMarketEntry, qtyForRisk, releveredLiquidation } from '#lib/game/sizing.ts';
+	import { costsOf, estimate, estimatedMarketEntry, qtyForRisk, releveredLiquidation, requiredMargin } from '#lib/game/sizing.ts';
 	import { fmtMoney, fmtNum, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
@@ -50,6 +50,7 @@
 		tpInput = $bindable(''),
 		sizeBy = $bindable('risk'),
 		qtyInput = $bindable('10'),
+		leverage = $bindable(1),
 		onSubmit,
 		onPick
 	}: {
@@ -62,6 +63,8 @@
 		/** Sizing mode and quantity; bindable so the advisor's suggested size can be applied. */
 		sizeBy?: 'qty' | 'risk';
 		qtyInput?: string;
+		/** Leverage field; bindable so applying the advisor's size can raise it to fit the margin. */
+		leverage?: number;
 		onSubmit: (d: OrderDraft) => void;
 		onPick?: (set: (price: number) => void) => void;
 	} = $props();
@@ -83,7 +86,6 @@
 	let type = $state<'market' | 'limit' | 'stop_market'>('market');
 	let riskPct = $state(1);
 	let priceInput = $state('');
-	let leverage = $state(1);
 
 	$effect(() => {
 		leverage = Math.min(Math.max(1, s.leverage), cap);
@@ -111,12 +113,22 @@
 	const est = $derived(estimate({ side, qty, entry, leverage: lev, stop }, k));
 	const shortBlocked = $derived(!s.contract.allowShort && side === 'sell' && posQty <= 0);
 	const increases = $derived(posQty === 0 || posQty > 0 === (side === 'buy') || qty > Math.abs(posQty));
+	// Same check as the engine on placement: margin + fee for the part that adds exposure vs available.
+	const addedQty = $derived(posQty === 0 || posQty > 0 === (side === 'buy') ? qty : Math.max(0, qty - Math.abs(posQty)));
+	const needMargin = $derived(requiredMargin(addedQty, entry, lev, k));
+	const cantAfford = $derived(addedQty > 0 && needMargin > num(s.account.available));
 	const tp = $derived(tpInput ? parseDecimal(tpInput) : null);
 	const stopWrongSide = $derived(stop != null && !stopOnLosingSide(side, entry, stop));
 	const tpWrongSide = $derived(tp != null && !targetOnWinningSide(side, entry, tp));
 	const needsPrice = $derived(type !== 'market');
 	const canSubmit = $derived(
-		!session.busy && qty > 0 && !shortBlocked && !stopWrongSide && !tpWrongSide && (!needsPrice || parseDecimal(priceInput) > 0)
+		!session.busy &&
+			qty > 0 &&
+			!shortBlocked &&
+			!cantAfford &&
+			!stopWrongSide &&
+			!tpWrongSide &&
+			(!needsPrice || parseDecimal(priceInput) > 0)
 	);
 
 	function submit() {
@@ -295,6 +307,11 @@
 				liqFrom: relever.from != null ? fmtPrice(String(relever.from), L) : '—',
 				liqTo: relever.to != null ? fmtPrice(String(relever.to), L) : '—'
 			})}
+		</p>
+	{/if}
+	{#if cantAfford}
+		<p class="warnbox" role="alert" data-testid="ticket-cant-afford">
+			⚠ {t('ticket.cantAfford', { need: fmtMoney(needMargin, L), avail: fmtMoney(s.account.available, L) })}
 		</p>
 	{/if}
 	{#if est.stopBeyondLiquidation}<p class="warnbox" role="alert">⚠ {t('ticket.stopBeyondLiq')}</p>{/if}

@@ -83,6 +83,9 @@
 				<dt>{t('rail.funding')}</dt><dd>{fmtMoney(s.totals.fundingNet, L, true)}</dd>
 				<dt>{t('debrief.spread')}</dt><dd data-testid="debrief-spread">{fmtMoney(d.spreadSlippage, L)}</dd>
 				{#if s.options.enabled}<dt>{t('opt.realized')}</dt><dd>{fmtMoney(s.totals.optionRealized, L, true)}</dd>{/if}
+				{#if num(d.writtenOff) > 0}
+					<dt>{t('debrief.writtenOff')}</dt><dd class="up" data-testid="debrief-written-off">{fmtMoney(d.writtenOff, L, true)}</dd>
+				{/if}
 				<dt>{t('debrief.maxDrawdown')}</dt><dd>{fmtMoney(s.totals.maxDrawdown, L)}</dd>
 				<dt>{t('debrief.peakExposure')}</dt><dd>{fmtLeverageBp(s.totals.peakLeverageBp, L)}</dd>
 				<dt>{t('debrief.minLiqDistance')}</dt><dd data-testid="debrief-liq-distance">{fmtLiqDistance(s.totals.minLiqDistanceBp, L)}</dd>

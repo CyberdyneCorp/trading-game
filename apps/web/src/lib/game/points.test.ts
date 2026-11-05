@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allowanceFor, MAX_POINTS, settleRun, START_POINTS } from './points.ts';
+import { adviceUsed, allowanceFor, MAX_POINTS, settleRun, START_POINTS } from './points.ts';
 import { EMPTY_PROGRESS } from './storage.ts';
 
 describe('advisor points', () => {
@@ -30,5 +30,15 @@ describe('advisor points', () => {
 
 	it('ignores a missing run id', () => {
 		expect(settleRun(EMPTY_PROGRESS, '', 0, 6)).toBe(EMPTY_PROGRESS);
+	});
+
+	it('regression: a run left for a new one is charged its reads and earns nothing, once', () => {
+		// Before: only a run reaching its debrief was settled, so restarting gave every read back.
+		const log = [{ k: 'advice' }, { k: 'adv' }, { k: 'advice' }, { k: 'plan' }, { k: 'advice' }];
+		expect(adviceUsed(log)).toBe(3);
+		const left = settleRun(EMPTY_PROGRESS, 'run-a', adviceUsed(log), 0);
+		expect(left.advisorPoints).toBe(0);
+		expect(allowanceFor(left)).toBe(0);
+		expect(settleRun(left, 'run-a', 3, 0)).toBe(left);
 	});
 });

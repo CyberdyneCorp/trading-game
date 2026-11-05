@@ -12,7 +12,7 @@
 ## 3. Phase 1 vertical slice
 - [x] 3.1 Briefing → terminal → debrief for one synthetic perp mission
 - [x] 3.2 Canvas chart (candles, volume, entry/stop/TP/liquidation lines) + accessible table
-- [x] 3.3 Perp ticket (market, stop, TP; leverage; live margin/liquidation preview; warnings)
+- [x] 3.3 Perp ticket (market, stop, TP; leverage; live margin/liquidation preview; warnings; refuses an order whose margin and fee exceed the available balance)
 - [x] 3.4 Right rail, fills, plan prompt, wait action, advance controls, keyboard shortcuts
 - [ ] 3.5 BFF sign-in against staging; session-expired path
 

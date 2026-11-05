@@ -34,7 +34,11 @@ Across the built-in missions (5 missions × 60 seeds, advice every 5 bars, outco
 - **THEN** its hit rate SHALL be at most 65%
 
 ### Requirement: Advice in the terminal and the debrief
-The terminal SHALL offer an advisor control that shows the remaining points and is disabled at 0. Advice SHALL be displayed with its stance, confidence, stop, size and localized reasons, and with a reminder that it is a probabilistic read and not an instruction. Applying the suggested stop or size to the ticket SHALL be one action, but SHALL NOT place an order by itself. The debrief SHALL list each piece of advice (step, stance, confidence) with its outcome 5 bars later, and the advisor's hit rate in the run.
+The terminal SHALL offer an advisor control that shows the remaining points and is disabled at 0. Advice SHALL be displayed with its stance, confidence, stop, size and localized reasons, and with a reminder that it is a probabilistic read and not an instruction. Applying the suggested stop or size to the ticket SHALL be one action, but SHALL NOT place an order by itself. When the suggested size needs more margin than is available at the current leverage, applying it SHALL raise the ticket's leverage to the lowest whole value within the mission cap that fits, or, if none does, reduce the size to what fits at the cap. The advisor panel SHALL show its whole read (stance, levels, apply action, reasons and reminder) without a scroll box of its own. The debrief SHALL list each piece of advice (step, stance, confidence) with its outcome 5 bars later, and the advisor's hit rate in the run.
+
+#### Scenario: Suggested size beyond the margin at 1x
+- **WHEN** a read suggests 120.4 units at a price near 102 with 10,000 available and the ticket at 1x
+- **THEN** applying it SHALL set the ticket to 2x with the same size, and the ticket SHALL be sendable
 
 #### Scenario: Advice in the debrief
 - **WHEN** a run with two pieces of advice is finished

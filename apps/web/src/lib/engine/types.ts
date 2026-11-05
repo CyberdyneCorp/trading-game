@@ -391,6 +391,8 @@ export interface DebriefData {
 	trades: EngineTrade[];
 	/** Spread + slippage paid against the reference price; already inside the fill prices. */
 	spreadSlippage: Decimal;
+	/** Option loss beyond the balance that the simulated fund covered (wallet floored at 0); usually 0. */
+	writtenOff: Decimal;
 	/** Null when no option was traded. */
 	greeks: GreekAttribution | null;
 	/** Engine-computed advisor points earned by this run (capped at 6). */
