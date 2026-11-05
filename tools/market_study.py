@@ -44,7 +44,8 @@ def sign(x):
 def play(mission, seed):
     """Runs a mission to the end without trading, asking the advisor every ADVICE_EVERY bars.
 
-    Returns the final state (whose advisor.advice lists every read) and the funding shown per step.
+    Returns the final state (whose advisor.advice lists every read), the funding shown per step and
+    the debrief (whose "regimes" table is the signals by revealed regime, scoring v9).
     """
     run = te.Run(mission, seed, te.RunOptions(advice_allowance=10_000))
     state = run.state()
@@ -56,7 +57,37 @@ def play(mission, seed):
             run.request_advice(cid)
             cid += 1
         state = run.advance(1)
-    return state, funding
+    return state, funding, run.debrief()
+
+
+def buy_and_hold_positive(mission, seed):
+    """1x long from the first decision's market order, held to the end: did it make money?"""
+    with te.Run(mission, seed) as run:
+        state = run.state()
+        run.set_leverage(1, state["contract"]["leverageCap"])
+        qty = math.floor(10_000 / float(state["bars"][-1][3]) * 10) / 10
+        run.place_order(2, 0, 0, f"{qty:.1f}", None, False)
+        state = run.advance(100_000)
+    return float(state["account"]["equity"]) > float(state["initialBalance"])
+
+
+class RegimeTally:
+    """Signals by revealed regime (the debrief table), pooled per mission and regime label."""
+
+    SIGNALS = ("rsiFade", "bollingerFade", "macdFollow", "smaFollow")
+
+    def __init__(self):
+        self.hits = collections.Counter()
+        self.samples = collections.Counter()
+
+    def add(self, row):
+        for k in self.SIGNALS:
+            self.hits[k] += row[k]["hits"]
+            self.samples[k] += row[k]["samples"]
+
+    def row(self, name):
+        cells = [f"{100 * self.hits[k] / self.samples[k]:.0f}% ({self.samples[k]})" if self.samples[k] else "–" for k in self.SIGNALS]
+        return f"| {name} | " + " | ".join(cells) + " |"
 
 
 class AdvisorTally:
@@ -145,9 +176,14 @@ def main():
     returns = collections.defaultdict(list)
     worst_bar = collections.defaultdict(collections.Counter)
     advisor = collections.defaultdict(AdvisorTally)
+    by_regime = collections.defaultdict(RegimeTally)
+    holds = collections.Counter()
     for mission in [m["id"] for m in te.missions()]:
         for seed in range(1, seeds + 1):
-            state, funding = play(mission, seed)
+            state, funding, debrief = play(mission, seed)
+            for row in debrief.get("regimes", []):
+                by_regime[(mission, row["label"])].add(row)
+            holds[mission] += buy_and_hold_positive(mission, seed)
             technical(signals, state, funding)
             news(news_table, mission, state)
             advisor[mission].add(state)
@@ -177,6 +213,12 @@ def main():
         bar, count = worst_bar[mission].most_common(1)[0]
         top3 = sum(c for _, c in worst_bar[mission].most_common(3))
         print(f"| {mission} | {kurtosis(r):.1f} | {autocorr(r):+.2f} | {autocorr([abs(a) for a in r]):+.2f} | {bar} ({100 * count / seeds:.0f}%; top 3 bars {100 * top3 / seeds:.0f}%) |")
+    print("\n| Mission | Buy-and-hold (1x long from the first open) positive |\n|---|---|")
+    for mission, n in holds.items():
+        print(f"| {mission} | {100 * n / seeds:.0f}% |")
+    print("\n| Mission, revealed regime | RSI fade | Bollinger fade | MACD follow | SMA20 follow |\n|---|---|---|---|---|")
+    for (mission, label), t in sorted(by_regime.items()):
+        print(t.row(f"{mission}, {label}"))
 
 
 if __name__ == "__main__":

@@ -15,13 +15,15 @@
 
 #include "tradelab/advisor.hpp"
 #include "tradelab/engine.hpp"
+#include "tradelab/generator.hpp"
 
 namespace tradelab {
 
 // v8: Greek attribution by full revaluation (gaps land in delta/gamma), side-aware IV finding (iv_rise
 // for written options), wrote_options finding, lucky_win when a trade had no plan, the buy-and-hold
 // benchmark and market span measured to the run's last bar.
-constexpr std::uint32_t kScoringVersion = 8;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall
+// v9 (report-only, no digest change): signals by revealed regime and each trade's entry regime (G4).
+constexpr std::uint32_t kScoringVersion = 9;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,
@@ -167,6 +169,28 @@ std::optional<GreekAttribution> greek_attribution(const Scenario& sc, const RunS
 void annotate_stop(const Scenario& sc, const RunState& st, TradeRow& t);
 // Adds an open trade's unrealized P&L at the final mark to its pnl and net (as in the account equity).
 void mark_open_trade(const Scenario& sc, const RunState& st, TradeRow& t);
+// Signals by regime (design D8.1 G4, report-only): for each revealed span of the run, how often four
+// common reads were right. A read at the close of bar i acts from the open of bar i+1 and is right
+// when the close kSignalHorizon bars after i moved its way: RSI(14) fade below 30 / above 70,
+// Bollinger(20, 2) fade outside the bands, MACD(12, 26, 9) histogram follow, SMA(20) side follow.
+constexpr std::uint32_t kSignalHorizon = 5;
+
+struct SignalTally {
+  std::uint32_t hits = 0;
+  std::uint32_t samples = 0;
+};
+
+struct RegimeSignals {
+  RegimeSpan span;
+  SignalTally rsi_fade;
+  SignalTally bollinger_fade;
+  SignalTally macd_follow;
+  SignalTally sma_follow;
+};
+
+// Spans overlapping the run's decision window (first decision step .. last step), each clipped to it.
+std::vector<RegimeSignals> signals_by_regime(const Scenario& sc, const RunState& st, const std::vector<RegimeSpan>& spans);
+
 // Buy-and-hold benchmark: 1x long from the first eligible open to the close of the run's last bar (the
 // scenario's end, or the game-over bar), taker fees both ways; 0 before the first decision.
 Money buy_and_hold_pnl(const Scenario& sc, const RunState& st);

@@ -40,7 +40,7 @@ def test_replay_action_log_reproduces_and_scores():
     assert a.digest == b.digest
     assert a.status in {"finished", "bankrupt"}
     assert a.debrief is not None
-    assert a.debrief["score"]["version"] == 8
+    assert a.debrief["score"]["version"] == 9
     assert a.debrief["trades"][0]["n"] == 1
     assert [r["accepted"] for r in a.results if r is not None] == [True, True, True]
 

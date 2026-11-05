@@ -14,6 +14,7 @@ enum class Stream : std::uint64_t {
   Slippage = 3,  // execution noise
   Sandbox = 4,   // sandbox scenario variants
   Schedule = 5,  // per-seed timing of scripted segments and events
+  Regime = 6,    // Markov regime chain path (generator v3, G1)
 };
 
 class Pcg32 {

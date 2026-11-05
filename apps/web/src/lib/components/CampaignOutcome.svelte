@@ -16,14 +16,15 @@
 	const next = $derived(session.campaignMission);
 	// The engine finished the run, but what is left cannot carry a campaign (spec "Game over on bankruptcy").
 	const broke = $derived(leg != null && session.state?.status === 'finished' && belowCampaignMinimum(leg.endCapital));
-	const stages = $derived(leg?.result === 'finished' ? stagesOf(leg.missionId).map((s) => t(`stage.${s}`)).join(', ') : '');
+	const passed = $derived(leg?.result === 'finished' ? stagesOf(leg.missionId) : []);
+	const stages = $derived(passed.map((s) => t(`stage.${s}`)).join(', '));
 </script>
 
 {#if link && c && leg}
 	<section class="panel campaign" data-testid="campaign-outcome">
 		<h2 class="panel-title">{t('campaign.tag', { n: link.index + 1, total })}</h2>
 		<p>{t('campaign.leg', { start: fmtMoney(leg.startCapital, L), end: fmtMoney(leg.endCapital, L) })}</p>
-		{#if stages}<p class="up">✓ {t('campaign.passed', { stages })}</p>{/if}
+		{#if stages}<p class="up">✓ {t(passed.length > 1 ? 'campaign.passedMany' : 'campaign.passed', { stages })}</p>{/if}
 		{#if c.status === 'active' && next}
 			<p>{t('campaign.carry', { capital: fmtMoney(c.capital, L), mission: missionText(next, L).title })}</p>
 			<button class="primary" onclick={() => session.startCampaignMission()} disabled={session.busy}>▶ {t('campaign.next')}</button>

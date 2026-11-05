@@ -22,10 +22,10 @@ function play(p: CampaignProgress, runId: string, result: LegResult, equity: str
 }
 
 describe('campaign runs', () => {
-	it('starts from the initial capital at the first curriculum mission', () => {
+	it('starts from the initial capital at the first curriculum mission (m06, design D8.4)', () => {
 		const p = startCampaign(EMPTY, 'c1', 1);
 		expect(p.campaign).toMatchObject({ id: 'c1', capital: CAMPAIGN_CAPITAL, index: 0, status: 'active', legs: [] });
-		expect(nextCampaignMission(p.campaign)).toBe('m01-false-breakout');
+		expect(nextCampaignMission(p.campaign)).toBe('m06-thin-book');
 	});
 
 	it('carries the final equity into the next mission and passes the finished mission', () => {
@@ -33,21 +33,21 @@ describe('campaign runs', () => {
 		p = play(p, 'r1', 'finished', '9420.5');
 		expect(p.campaign).toMatchObject({ capital: '9420.5', index: 1, status: 'active' });
 		expect(p.campaign!.legs).toEqual([
-			{ runId: 'r1', missionId: 'm01-false-breakout', startCapital: '10000', endCapital: '9420.5', result: 'finished' }
+			{ runId: 'r1', missionId: 'm06-thin-book', startCapital: '10000', endCapital: '9420.5', result: 'finished' }
 		]);
-		expect(nextCampaignMission(p.campaign)).toBe('m03-volatility-shock');
-		expect(p.assessed).toEqual(['m01-false-breakout']);
+		expect(nextCampaignMission(p.campaign)).toBe('m01-false-breakout');
+		expect(p.assessed).toEqual(['m06-thin-book']);
 	});
 
 	it('settles a run once (a reload or a replayed debrief changes nothing)', () => {
 		const p = play(startCampaign(EMPTY, 'c1', 1), 'r1', 'finished', '9000');
-		const again = settleCampaignRun(p, { id: 'c1', index: 0 }, { runId: 'r1', missionId: 'm01-false-breakout', result: 'finished', equity: '1' });
+		const again = settleCampaignRun(p, { id: 'c1', index: 0 }, { runId: 'r1', missionId: 'm06-thin-book', result: 'finished', equity: '1' });
 		expect(again).toBe(p);
 	});
 
 	it('ignores a run of another campaign run or of another mission index', () => {
 		const p = startCampaign(EMPTY, 'c2', 1);
-		const out = { runId: 'r', missionId: 'm01-false-breakout', result: 'finished' as const, equity: '5' };
+		const out = { runId: 'r', missionId: 'm06-thin-book', result: 'finished' as const, equity: '5' };
 		expect(settleCampaignRun(p, { id: 'c1', index: 0 }, out)).toBe(p);
 		expect(settleCampaignRun(p, { id: 'c2', index: 3 }, out)).toBe(p);
 	});
@@ -62,8 +62,8 @@ describe('campaign runs', () => {
 		expect(p.campaign).toMatchObject({ status: 'bankrupt', index: 3 });
 		expect(nextCampaignMission(p.campaign)).toBeNull();
 		expect(p.campaignHistory.map((c) => c.id)).toEqual(['c1']);
-		const passedBefore = ['futures1', 'futures2', 'futures3'].map((s) => stageStatus(s as never, p.assessed));
-		expect(passedBefore).toEqual(['passed', 'passed', 'passed']);
+		const passedBefore = ['structure', 'orders', 'futures1', 'futures2'].map((s) => stageStatus(s as never, p.assessed));
+		expect(passedBefore).toEqual(['passed', 'passed', 'passed', 'passed']);
 
 		const fresh = startCampaign(p, 'c2', 2);
 		expect(fresh.campaign).toMatchObject({ id: 'c2', capital: CAMPAIGN_CAPITAL, index: 0, status: 'active' });
@@ -82,12 +82,12 @@ describe('campaign runs', () => {
 	});
 
 	it('a finished mission that leaves less than the campaign minimum ends the run as bankrupt, stage not passed', () => {
-		// Liquidated at m03's 20x cap: the engine still finishes the run, but m02 caps leverage at 10x.
+		// Liquidated in m01: the engine still finishes the run, with too little left for the next mission.
 		let p = play(startCampaign(EMPTY, 'c1', 1), 'r1', 'finished', '9000');
 		p = play(p, 'r2', 'finished', '0.61');
 		expect(p.campaign).toMatchObject({ status: 'bankrupt', index: 1, capital: '0.61' });
 		expect(p.campaign!.legs[1].result).toBe('bankrupt');
-		expect(p.assessed).toEqual(['m01-false-breakout']);
+		expect(p.assessed).toEqual(['m06-thin-book']);
 		expect(nextCampaignMission(p.campaign)).toBeNull();
 		expect(belowCampaignMinimum(CAMPAIGN_MIN_CAPITAL)).toBe(false);
 		expect(belowCampaignMinimum('99.99')).toBe(true);
@@ -105,7 +105,7 @@ describe('campaign runs', () => {
 		p = play(p, 'r1', 'left', '8700');
 		expect(p.campaign).toMatchObject({ status: 'active', index: 0, capital: '8700' });
 		expect(p.assessed).toEqual([]);
-		expect(nextCampaignMission(p.campaign)).toBe('m01-false-breakout');
+		expect(nextCampaignMission(p.campaign)).toBe('m06-thin-book');
 	});
 
 	it('completes after the last mission and records the best completed capital', () => {
@@ -113,14 +113,14 @@ describe('campaign runs', () => {
 		order.forEach((_, i) => (p = play(p, `r${i}`, 'finished', String(10000 + i))));
 		expect(p.campaign!.status).toBe('complete');
 		expect(p.assessed).toEqual(order);
-		expect(bestCompletedCapital(p.campaignHistory)).toBe('10004');
+		expect(bestCompletedCapital(p.campaignHistory)).toBe(String(10000 + order.length - 1));
 	});
 
 	it('ending a campaign run by choice keeps it in the history and keeps passed stages', () => {
 		let p = play(startCampaign(EMPTY, 'c1', 1), 'r1', 'finished', '9900');
 		p = abandonCampaign(p);
 		expect(p.campaign!.status).toBe('abandoned');
-		expect(p.assessed).toEqual(['m01-false-breakout']);
+		expect(p.assessed).toEqual(['m06-thin-book']);
 		expect(p.campaignHistory.map((c) => c.status)).toEqual(['abandoned']);
 		expect(abandonCampaign(p)).toBe(p);
 		// Starting a new run while one is active archives the active one as abandoned.

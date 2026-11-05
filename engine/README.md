@@ -32,9 +32,10 @@ There is no separate fixtures directory: the goldens are SHA-256 digests frozen 
 
 - `tests/test_det_math.cpp`, `tests/test_prng.cpp`: kernel outputs and normal variates.
 - `tests/test_options.cpp` (OPT01): a grid of option quotes and Greeks.
-- `tests/test_missions.cpp`: scripted mission runs through the C ABI (state and event-stream digests).
+- `tests/test_missions.cpp`: scripted mission runs through the C ABI (state and event-stream digests): m01 and m05 since phase 1, and one golden per phase-2 mission with default options (m06, m07, m08), plus the SHA-256 of `tl_mission_reveal("m08-regime-switch", 7)`.
+- `tests/test_mission_learnability.cpp` and `tests/test_mission_realism.cpp` are not goldens: they assert bands over 60 seeds of every mission (design D8.3), so a generator or mission change that makes a lesson unlearnable or predictable fails them.
 - `tests/test_advisor.cpp`: a scripted m02 run with start options (advice allowance 3, fast wire 1, calendar) and two advisor requests.
-- `bindings/python/tests/test_engine.py`: repeats the `m01-false-breakout` and the advisor scripted runs through the Python binding and checks the same digests.
+- `bindings/python/tests/test_engine.py`: repeats the `m01-false-breakout` and the advisor scripted runs through the Python binding and checks the same digests; `bindings/python/tests/test_missions_batch_a.py` repeats the m06, m07 and m08 goldens and the reveal digest.
 
 CI runs them on every target (linux-x86_64, macos-arm64, wasm under node, Python). A digest failure means cross-platform results diverged. Do **not** update the digest to make CI green.
 
@@ -42,6 +43,16 @@ The only legitimate update is an intentional change to a kernel, the PRNG, the g
 
 1. bump the execution-policy version (old runs must keep replaying), and
 2. be explained in the PR, regenerating the digest from a native build, confirming WASM matches it, and updating the Python mirror of any changed mission digest.
+
+A new mission is not such a change: it adds its own golden and leaves every existing one byte-identical (design D8.1). Each generator capability acts only when a mission declares it, so the phase-2 missions added no policy version.
+
+## Phase-2 generator capabilities (generator v3, scoring v9)
+
+**G1 Markov regime chain.** `GeneratorSpec.chain` (`RegimeChain`: segment templates, per-mille transition rows with a zero diagonal, initial weights, `min_dwell`/`max_dwell`, `bars`, insertion index `at`) is expanded per seed into ordinary segments by `expanded(spec, seed)` before `scheduled()` applies the per-seed lead, so the rest of the generator is unchanged. The path is drawn on `Stream::Regime` (6) with integer draws (`chain_path`); the last visit is cut so the chain fills exactly `bars`. `Segment.label` (`RegimeLabel`: range, trend, high_vol, low_liquidity, crowded, calm, shock) names a segment for the reveal and tests and never feeds generation. Missions without a chain generate exactly as before (`kGeneratorVersion` 3 is not a digest input). `tests/test_generator.cpp` checks transition and initial frequencies over 2,000 seeds (±3 points), the fixed length, the dwell range, that a spec without a chain expands to itself, and that two chains agreeing up to bar k give identical bars, IV and funding up to k.
+
+**G4 seeded reveal.** `mission_reveal(id, seed)` regenerates a built-in mission and returns its regime spans as played (start, bars, label, drawn direction of random-direction segments) and each event's actual, surprise, intensity (100% until G2) and sampled reaction. C ABI `tl_mission_reveal(mission, seed)` (run-less, static buffer; `{"error":"unknown_mission"}` otherwise), WASM export, Python `mission_reveal`. It describes the run's future, so the web worker answers it only once the run has ended (`apps/web/src/lib/engine/reveal.test.ts`). The debrief of a built-in mission adds the report-only **signals by regime** table (`"regimes"`: per revealed span of the decision window, hits and samples of RSI(14) fade, Bollinger(20, 2) fade, MACD histogram follow and SMA20 follow, read at a close and judged 5 bars after the next open) and each trade's entry regime (`"regime"`). That is scoring v9; it is no score input and changes no digest.
+
+**Mission data.** `MissionDef` may override the cost model and the contract (m06's thin book: half-spread 0.10%, slippage 0.20%, capacity 4% of bar volume, base volume 1,500) and declares its own short permission (m06 is long only, 2× cap). `NewsKind::LiquidityOutflow` = 7 is appended (existing kinds keep their numbers; `validate` refuses kinds above it).
 
 ## Start options and the advisor (policy v11, v12)
 

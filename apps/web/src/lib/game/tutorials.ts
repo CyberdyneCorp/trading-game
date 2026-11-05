@@ -20,7 +20,10 @@ export type TutorialArt =
 	| 'margin'
 	| 'advisor'
 	| 'calendar'
-	| 'wire';
+	| 'wire'
+	| 'book'
+	| 'trail'
+	| 'regime';
 
 export interface TutorialCard {
 	art: TutorialArt;
@@ -275,12 +278,152 @@ const m05: Cards = {
 	]
 };
 
+// The campaign's first mission (design D8.4): it carries the introduction (chart; plan, advisor and
+// points). m01 keeps its own cards for free play.
+const m06: Cards = {
+	'pt-BR': [
+		m01['pt-BR'][0],
+		{
+			art: 'book',
+			title: 'Livro fino',
+			body: 'Aqui há poucas ofertas no livro: o spread é largo e cada ordem a mercado paga spread e slippage. Por barra só dá para negociar 4% do volume; uma ordem maior executa em partes. O debrief mostra quanto spread e slippage você pagou.'
+		},
+		{
+			art: 'ticket',
+			title: 'Mercado, limite e alvo',
+			body: 'Nesta missão só é possível comprar (long), com até 2×. Ordem a mercado executa na abertura da próxima barra e paga o spread; limite espera o seu preço, paga só a taxa de maker e pode não executar. Aceita não significa executada: o feed avisa quando executar.'
+		},
+		{
+			art: 'risk',
+			title: 'O stop vem primeiro',
+			body: 'Defina o stop antes da entrada e dimensione por risco: 1% do patrimônio em jogo por ideia. Um stop vira ordem a mercado quando é atingido, e num livro fino ele executa além do preço do stop.'
+		},
+		m01['pt-BR'][4]
+	],
+	en: [
+		m01.en[0],
+		{
+			art: 'book',
+			title: 'Thin book',
+			body: 'Few quotes rest in the book here: the spread is wide and every market order pays spread and slippage. Each bar you can trade only 4% of its volume; a larger order fills in pieces. The debrief shows how much spread and slippage you paid.'
+		},
+		{
+			art: 'ticket',
+			title: 'Market, limit and target',
+			body: 'In this mission you can only buy (long), at up to 2×. A market order fills at the next bar’s open and pays the spread; a limit waits for your price, pays only the maker fee and may not fill. Accepted is not filled: the feed tells you when it fills.'
+		},
+		{
+			art: 'risk',
+			title: 'The stop comes first',
+			body: 'Set the stop before the entry and size by risk: 1% of equity at stake per idea. A stop becomes a market order when it is hit, and in a thin book it fills beyond the stop price.'
+		},
+		m01.en[4]
+	]
+};
+
+const m07: Cards = {
+	'pt-BR': [
+		{
+			art: 'risk',
+			title: 'Tamanho pelo stop',
+			body: 'Quantidade = risco em dinheiro ÷ distância até o stop. A alavancagem muda só a margem, não o risco: é o stop que decide quanto você perde. Ponha o stop além da estrutura (um fundo ou um topo), não num número redondo.'
+		},
+		{
+			art: 'trail',
+			title: 'Stop móvel',
+			body: 'O stop móvel segue o melhor fechamento a uma distância fixa e nunca recua. Ele é recalculado no fechamento e passa a valer na barra seguinte. Perto demais do preço, recuos normais o atingem: compare a distância com o ATR.'
+		},
+		{
+			art: 'trend',
+			title: 'Tendência e recuos',
+			body: 'As médias (SMA20, EMA50) mostram a direção; o ADX acima de 25 indica tendência. Numa tendência, recuos até a média são comuns e não mudam a direção por si só.'
+		},
+		{
+			art: 'plan',
+			title: 'Múltiplos de R',
+			body: 'R é o risco planejado de um trade: ganhar 2R é ganhar o dobro do que você arriscou. Um alvo fixo costuma acertar mais vezes; um stop móvel acerta menos, mas pode ficar mais tempo no movimento. Escolha a saída antes de entrar e registre no plano.'
+		}
+	],
+	en: [
+		{
+			art: 'risk',
+			title: 'Size from the stop',
+			body: 'Quantity = money at risk ÷ distance to the stop. Leverage changes only the margin, not the risk: the stop decides how much you lose. Put the stop beyond structure (a low or a high), not at a round number.'
+		},
+		{
+			art: 'trail',
+			title: 'Trailing stop',
+			body: 'A trailing stop follows the best close at a fixed distance and never moves back. It is recomputed at the close and takes effect from the next bar. Too close to price, ordinary pullbacks hit it: compare the distance with the ATR.'
+		},
+		{
+			art: 'trend',
+			title: 'Trends and pullbacks',
+			body: 'The averages (SMA20, EMA50) show direction; ADX above 25 signals a trend. In a trend, pullbacks to the average are common and do not change the direction by themselves.'
+		},
+		{
+			art: 'plan',
+			title: 'R multiples',
+			body: 'R is a trade’s planned risk: making 2R means making twice what you risked. A fixed target usually wins more often; a trailing stop wins less often but can stay longer in the move. Choose the exit before entering and record it in the plan.'
+		}
+	]
+};
+
+const m08: Cards = {
+	'pt-BR': [
+		{
+			art: 'trend',
+			title: 'Tendência ou lateral?',
+			body: 'Numa lateral o preço volta para o meio; numa tendência ele se afasta dele. Comprar o fundo e vender o topo funciona numa e perde na outra; seguir o movimento é o contrário.'
+		},
+		{
+			art: 'regime',
+			title: 'Filtro de regime',
+			body: 'ADX acima de 25 e bandas de Bollinger se abrindo sugerem tendência; ADX abaixo de 20 e bandas estreitas, lateral. Os dois são calculados com barras passadas e mudam tarde, depois que o mercado já mudou.'
+		},
+		{
+			art: 'volatility',
+			title: 'Aperto e expansão',
+			body: 'Bandas estreitas mostram volatilidade comprimida, e a expansão costuma vir depois. A direção da expansão não está no indicador.'
+		},
+		{
+			art: 'chart',
+			title: 'Nenhum indicador sozinho',
+			body: 'Antes de cada entrada, escreva no plano em que regime você acha que está e por quê. Use uma ferramenta por regime e compare no debrief quantas vezes cada leitura acertou.'
+		}
+	],
+	en: [
+		{
+			art: 'trend',
+			title: 'Trend or range?',
+			body: 'In a range price returns to the middle; in a trend it moves away from it. Buying the low and selling the high works in one and loses in the other; following the move is the opposite.'
+		},
+		{
+			art: 'regime',
+			title: 'A regime filter',
+			body: 'ADX above 25 and widening Bollinger bands suggest a trend; ADX below 20 and narrow bands, a range. Both are computed from past bars and turn late, after the market has already changed.'
+		},
+		{
+			art: 'volatility',
+			title: 'Squeeze and expansion',
+			body: 'Narrow bands show compressed volatility, and expansion tends to follow. The direction of the expansion is not in the indicator.'
+		},
+		{
+			art: 'chart',
+			title: 'No indicator alone',
+			body: 'Before each entry, write in the plan which regime you think you are in, and why. Use one tool per regime and compare in the debrief how often each read was right.'
+		}
+	]
+};
+
 const TUTORIALS: Record<string, Cards> = {
 	'm01-false-breakout': m01,
 	'm02-funding-squeeze': m02,
 	'm03-volatility-shock': m03,
 	'm04-options-buyer': m04,
-	'm05-options-writer': m05
+	'm05-options-writer': m05,
+	'm06-thin-book': m06,
+	'm07-trend-trailing': m07,
+	'm08-regime-switch': m08
 };
 
 export function tutorialFor(missionId: string, locale: Locale): TutorialCard[] {

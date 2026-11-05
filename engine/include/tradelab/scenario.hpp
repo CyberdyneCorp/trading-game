@@ -86,6 +86,7 @@ enum class NewsKind : std::uint8_t {
   LiquidityInflow = 4,
   InstitutionalAdoption = 5,
   RumorDenied = 6,
+  LiquidityOutflow = 7,  // phase-2 flows (design D8): appended, existing values keep their numbers
 };
 
 // What the player can see about a news item once released (spec: market-generator "Events").

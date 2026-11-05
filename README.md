@@ -66,7 +66,7 @@ mindmap
       29 detected candle patterns
       Pattern cheat sheet
     Learning
-      Five missions
+      Eight missions
       Campaign with carried capital
       Curriculum map and unlocks
       Plan journal
@@ -87,7 +87,7 @@ mindmap
 | Area | Details |
 |---|---|
 | Missions | 5 synthetic missions (table below). Each has a first-start tutorial, a briefing, objectives, a leverage cap and a "what was really going on" reveal in the debrief. Missions played to the end are marked Completed in the menu. Free play starts any of them with its own rules. |
-| Campaign | The missions in curriculum order (m01, m03, m02, m04, m05) with **capital carried** from one mission to the next; bankruptcy ends the campaign run and a new one starts from 10,000. Leverage above 2× stays locked in campaign missions until Futures II is passed (see [Campaign and curriculum](#campaign-and-curriculum)). |
+| Campaign | The missions in curriculum order (m06, m01, m03, m02, m07, m04, m05, m08) with **capital carried** from one mission to the next; bankruptcy ends the campaign run and a new one starts from 10,000. Leverage above 2× stays locked in campaign missions until Futures II is passed (see [Campaign and curriculum](#campaign-and-curriculum)). |
 | Curriculum and progress | A map of the 13 curriculum stages (passed, open, locked, coming soon), what each one assesses and unlocks, missions completed and campaign runs played. Passed stages are never lost. |
 | Journal | Every plan you wrote (thesis, invalidation, target, confidence, planned risk), run by run, filterable by mission. It stays on the device and is never scored. |
 | Perpetual futures | Isolated margin, leverage up to the mission cap, funding every N bars, mark-to-market, liquidation, bankruptcy (game over when you can't afford the minimum order). |
@@ -115,6 +115,11 @@ All synthetic, generated from the run seed, starting capital 10,000 (virtual).
 | `m03-volatility-shock` | Quiet market | Perpetual, up to 20× | Margin, leverage and liquidation price | Volatility compression, then a gap shock |
 | `m04-options-buyer` | Calls and puts | Options (buy) + perpetual up to 3× | Payoff, premium, IV and Greeks | IV run-up and crush around a rate decision; breakout direction not guaranteed |
 | `m05-options-writer` | Selling premium | Options (buy and write) + perpetual up to 3× | Writing options, margin and margin calls | Rich premium in a range, then a jump before the first expiry forces a margin call on oversized writers |
+| `m06-thin-book` | Thin book | Perpetual, **long only**, up to 2×; half-spread 0.10%, slippage 0.20%, 4% of bar volume per bar | Structure and orders: zones, limit vs market, spread, slippage and capacity | A range in a thin book; a market maker pulls quotes (no surprise: costs change, value does not), then liquidity returns and the market leaves the range in a drawn direction, more often up |
+| `m07-trend-trailing` | Size and exit | Perpetual, up to 5× | Risk sizing: size from the stop, trailing stops, R multiples | A credible adoption headline tilts a trend whose direction is drawn per seed (up in about 6 of 10); pullbacks take out tight trails, a 3×ATR trail stays in |
+| `m08-regime-switch` | Signals | Perpetual, up to 5× | Patterns and indicators: mean reversion vs trend following, ADX and band width as late filters | A Markov chain of range, trend and high-volatility regimes drawn per seed; the debrief draws the regime band and how each read did in each regime |
+
+The debrief of every built-in mission also shows the **seeded reveal** (engine `tl_mission_reveal`, asked only after the run ended): a band of the regimes the run went through, a signals-by-regime table (RSI fade, Bollinger fade, MACD follow, SMA20 follow: hits out of samples inside each regime) and, for each trade, the regime it was entered in.
 
 ## Architecture
 
@@ -239,6 +244,7 @@ Each bar's log-return is the sum of:
 | Component | Analysis it rewards | How it works |
 |---|---|---|
 | Segment drift and volatility | Reading the regime | Missions script segments (range, trend, quiet compression, breakout) with their own drift and vol; volatility clusters (GARCH-like) and has jumps. The first segment's length is drawn per seed, so later segments and news land on different bars each run. |
+| Regime chain (m08) | Telling regimes apart | Instead of a script, a Markov chain draws the sequence of regimes per seed: each visit lasts 25–50 bars and the next regime comes from a transition table, with no headline announcing a switch. Each segment carries a label (range, trend, high volatility, thin book...) that only the debrief's reveal uses. |
 | Hidden fair value | Fundamental | A latent value moved by segment drift, by most of each information jump, and by news surprises. Price is pulled toward it slowly (`fair_pull`), so news has lasting effect. |
 | News | Fundamental | Scheduled releases (headline, expected vs actual, credibility). A surprise moves fair value on the next bar, and 80% of that move is priced at once as an opening gap. A short, uncertain transient reaction follows. News before a breakout tilts its direction. |
 | Level anchor | Technical (ranges) | In range segments price reverts to the range center and meets soft walls at the edges — fading extremes works more often than not. |
@@ -256,36 +262,37 @@ There are two ways to measure it.
 
 - **Calibration tests** (`engine/tests/test_generator.cpp`, 200 seeds per check) use clean, single-regime markets to check that each structural term gives a small edge and never a certain one. For example, fading RSI extremes inside a range works 58–72% of the time, buying a trend pullback 57–72%, and a structure-free random walk gives RSI no edge (35–65%).
 - **The missions themselves** mix regimes, so the player first has to tell which one they are in. `tools/market_study.py` plays every mission on 100 seeds without trading and measures each signal from the next bar's open, the earliest price a player can actually get. The tables below are its output. `engine/tests/test_mission_realism.cpp` asserts the bands (60 seeds), so CI fails if a generator change makes the missions predictable again.
+- **Reference players** (`engine/tests/test_mission_learnability.cpp`, 60 seeds) trade scripted rules through the engine, with its fills, costs, stops and trails, and assert what a disciplined player can learn in each mission and that nothing is guaranteed (see [Learnable, never guaranteed](#learnable-never-guaranteed)).
 
-**Technical signals** (5 missions × 100 seeds, outcome 5 bars later; the test requires 42–58% for RSI, Bollinger, MACD and SMA20):
+**Technical signals** (8 missions × 100 seeds, outcome 5 bars later; the test requires 42–58% for RSI, Bollinger, MACD and SMA20):
 
 | Signal | Samples | Goes the predicted way | Average move in its favor |
 |---|---|---|---|
-| MACD cross: follow | 3,077 | 51.9% | +0.25% |
-| Last bar's color, next bar only | 41,984 | 51.4% | +0.04% |
-| MACD histogram: follow its sign | 42,395 | 51.3% | +0.10% |
-| Candle pattern: follow its bias | 6,810 | 50.8% | +0.04% |
-| Close vs SMA20: follow | 42,388 | 49.2% | -0.01% |
-| ADX > 25: follow the stronger DI | 21,479 | 48.8% | -0.05% |
-| Bollinger: fade a close outside the bands | 5,796 | 48.5% | -0.23% |
-| RSI < 30 buy, > 70 sell | 7,049 | 48.4% | -0.17% |
+| MACD histogram: follow its sign | 73,806 | 51.9% | +0.11% |
+| Last bar's color, next bar only | 73,152 | 51.7% | +0.03% |
+| ADX > 25: follow the stronger DI | 37,181 | 51.3% | +0.05% |
+| Close vs SMA20: follow | 73,798 | 50.9% | +0.05% |
+| MACD cross: follow | 5,445 | 50.7% | +0.14% |
+| Candle pattern: follow its bias | 11,637 | 49.9% | -0.00% |
+| Bollinger: fade a close outside the bands | 9,847 | 47.3% | -0.21% |
+| RSI < 30 buy, > 70 sell | 12,547 | 44.2% | -0.28% |
 | Extreme funding (> 0.06%): fade the crowd | 5,584 | 37.7% | -0.40% |
 
 What this means:
 
 - **No indicator is a signal on its own.** Every one of them is within a few points of a coin flip, which is also what studies of real markets find.
-- **Context is the skill.** Fading RSI works inside a range and fails inside a trend. The calibration tests show the edge is there once the regime is right.
+- **Context is the skill.** Fading RSI works inside a range and fails inside a trend. The calibration tests show the edge is there once the regime is right, and the signals-by-regime table below shows it inside the missions. Pooled over missions with long trends (m06–m08), fading extremes loses more often than it wins.
 - **Extreme funding is a warning, not a timing signal.** The crowd paying high funding is usually on the right side of the trend, until the squeeze. Fading it bar by bar loses more often than it wins.
 
-**Candle patterns.** The engine detects 29 candle patterns on closed bars. `engine/tests/test_candle_patterns.cpp` measures them over 300 generated markets (5 missions × 60 seeds), counting a pattern as working when the close 5 bars later moved its way:
+**Candle patterns.** The engine detects 29 candle patterns on closed bars. `engine/tests/test_candle_patterns.cpp` measures them over 480 generated markets (8 missions × 60 seeds), counting a pattern as working when the close 5 bars later moved its way:
 
 | Signal | Samples | Next 5 bars go the predicted way | Test band |
 |---|---|---|---|
-| Any pattern on its own | 5,919 | 50.8% | 45–60% |
-| Pattern plus an extreme RSI (< 30 bullish, > 70 bearish) | 583 | 56.4% | 45–62% |
-| Kickers (gaps, usually caused by news) | 34 | 55.9% | 40–70% |
+| Any pattern on its own | 9,964 | 50.5% | 45–60% |
+| Pattern plus an extreme RSI (< 30 bullish, > 70 bearish) | 1,023 | 51.2% | 45–62% |
+| Kickers (gaps, usually caused by news) | 48 | 62.5% | 40–70% |
 
-Patterns alone are close to a coin flip, as in real markets, and the in-game cheat sheet says so plainly. Kickers are news gaps: the information is already in the gap, so what follows is not much better than a coin flip.
+Patterns alone are close to a coin flip, as in real markets, and the in-game cheat sheet says so plainly. Kickers are news gaps: the information is already in the gap, and on a few dozen samples what follows is no reliable edge.
 
 **The advisor.** The advisor (`engine/src/advisor.cpp`) combines the same reads the way a textbook would: in a trend (ADX > 25) it follows the stronger DI and the MACD histogram; in a range (ADX < 20) it fades an extreme RSI or a close outside the Bollinger bands; a candle pattern from the last 2 bars votes its way, twice as strongly when it reverses the move that led into it in the regime's favor. A credible surprise released in the last 3 bars is "already priced" and pulls the read toward wait, as does ATR at a 30-bar low. Crowded funding is shown as a warning but does not vote, since the crowd is usually right until the squeeze. Long or short needs at least two net votes, and the confidence is 50% + 4 points per net vote, capped at 65%. It only ever reads the visible market (property-tested by changing every later bar, funding and headline). `tools/market_study.py` asks it every 5 bars and `test_mission_realism.cpp` holds it to 45–65% right in every mission, wait at least 20% of the time, and a mean stated confidence within 8 points of its hit rate:
 
@@ -296,7 +303,10 @@ Patterns alone are close to a coin flip, as in real markets, and the in-game che
 | m03-volatility-shock | 474 | 47.7% | 58.5% | 72% |
 | m04-options-buyer | 432 | 60.6% | 58.3% | 71% |
 | m05-options-writer | 485 | 48.0% | 58.3% | 71% |
-| all missions | 2,547 | 51.4% | 58.3% | 70% |
+| m06-thin-book | 573 | 52.4% | 58.3% | 72% |
+| m07-trend-trailing | 628 | 60.2% | 58.3% | 67% |
+| m08-regime-switch | 658 | 51.4% | 58.3% | 71% |
+| all missions | 4,406 | 52.8% | 58.3% | 70% |
 
 The advisor is no oracle. It says "wait" most of the time and, when it commits, it is right about as often as it claims. Following trends fails in m01's false breakout and after m03's shock, and works in m04's breakout. Like every other tool, it is worth something only with a stop and a sensible size.
 
@@ -311,6 +321,9 @@ The advisor is no oracle. It says "wait" most of the time and, when it commits, 
 | m03 exchange incident, surprise -2 | -7.83% | 41% | -1.06% |
 | m04 rate decision, surprise +1 | +2.50% | 65% | +3.29% |
 | m05 network outage, surprise -2 | -7.99% | 62% | +2.11% |
+| m06 market maker pulls quotes, surprise 0 | +0.03% | 44% | -0.32% |
+| m06 liquidity inflow, surprise +1 (credibility 60) | +1.43% | 49% | +0.02% |
+| m07 adoption, surprise +1 (credibility 75) | +1.21% | 65% | +1.20% |
 
 So the edge belongs to whoever was positioned, with a stop, before the news. A trade placed after the headline is late, as in a real market.
 
@@ -325,10 +338,46 @@ So the edge belongs to whoever was positioned, with a stop, before the news. A t
 | m03 exchange incident, surprise -2 | 41%, -1.06% | 70%, +6.75% | 70%, +6.79% |
 | m04 rate decision, surprise +1 | 65%, +3.29% | 73%, +5.80% | 73%, +5.80% |
 | m05 network outage, surprise -2 | 62%, +2.11% | 88%, +10.12% | 88%, +10.12% |
+| m06 market maker pulls quotes, surprise 0 | 44%, -0.32% | 44%, -0.43% | 43%, -0.42% |
+| m06 liquidity inflow, surprise +1 | 49%, +0.02% | 61%, +1.35% | 62%, +1.38% |
+| m07 adoption, surprise +1 | 65%, +1.20% | 76%, +2.40% | 78%, +2.45% |
 
 A fast wire turns a late trade into one placed before the gap, so a credible shock goes from about a coin flip to 70–92% right and +4 to +10% per trade. Most of the edge comes from the first bar (Fast wire I); the second adds little, because the gap is what the early headline buys. That is why perks are opt-in, labeled "with intel" in the debrief and the run record, and kept out of campaign runs. The no-surprise items (m01 rumor, m02 inflow) gain little: there is no gap to get ahead of. m02's inflow row is high because it lands during the uptrend: the trend does the work, not the headline.
 
-**Timing.** Each mission's calm opening phase lasts a different number of bars per seed: m01 70–82, m02 56–70, m03 70–90, m04 64–76 and m05 66–82. Every later segment and headline moves with it, so the story is the same but the bar it turns on is not. The option missions keep their shocks before the first expiry.
+**Timing.** Each mission's calm opening phase lasts a different number of bars per seed: m01 70–82, m02 56–70, m03 70–90, m04 64–76, m05 66–82, m06 74–88 and m07 66–80. Every later segment and headline moves with it, so the story is the same but the bar it turns on is not. The option missions keep their shocks before the first expiry. m08 has no script at all: its regimes and their lengths are drawn per seed, and its first switch after the warm-up lands on no 3 bars in more than 13 of 60 seeds.
+
+**Signals by revealed regime** (the debrief's table, pooled over 100 seeds; hits and samples). The same reads flip from useful to harmful when the regime changes, which is what m08 teaches on the player's own run:
+
+| Mission, regime | RSI fade | Bollinger fade | MACD follow | SMA20 follow |
+|---|---|---|---|---|
+| m01, range | 74% (192) | 63% (431) | 48% (5,089) | 44% (5,089) |
+| m04, trend | 21% (1,194) | 25% (693) | 72% (1,996) | 74% (1,996) |
+| m06, thin book (low liquidity) | 71% (208) | 57% (507) | 48% (3,385) | 45% (3,385) |
+| m06, trend | 27% (724) | 26% (454) | 70% (2,199) | 70% (2,199) |
+| m07, range | 61% (213) | 59% (266) | 46% (3,689) | 44% (3,689) |
+| m07, trend | 27% (1,776) | 30% (826) | 62% (4,389) | 70% (4,389) |
+| m08, range | 60% (270) | 59% (363) | 47% (3,919) | 45% (3,919) |
+| m08, trend | 29% (1,132) | 29% (521) | 64% (3,789) | 69% (3,789) |
+| m08, high volatility | 67% (280) | 65% (482) | 46% (3,763) | 44% (3,762) |
+
+`tools/market_study.py` prints every mission and regime.
+
+### Learnable, never guaranteed
+
+`engine/tests/test_mission_learnability.cpp` plays reference players through the engine over 60 seeds (design D8.3). Every reference strategy loses in at least 15% of seeds, and buy-and-hold (1× long from the first open) is never the obvious answer:
+
+| Mission | Buy-and-hold positive (100 seeds) | What a disciplined player can learn (60 seeds, as measured) |
+|---|---|---|
+| m01 | 35% | |
+| m02 | 43% | |
+| m03 | 0% | |
+| m04 | 70% | |
+| m05 | 17% | |
+| m06 | 56% | A 2×-equity market order is cut by capacity in 91% of thin-book bars. A limit at the 20-bar low fills in full within 5 bars in 99% of the times price trades through it. Fading the lower band at market loses on average (−8.6 per trade, costs 34.1); the same fades with a limit entry and a take-profit cost 7.8 per trade. A stop-market in the thin phase fills on average 0.31% beyond its trigger. |
+| m07 | 61% | The trend goes up in 63% of seeds. A breakout follower after the headline (2×ATR stop, 3×ATR trail, 1% risk) wins in 63% and has a return/drawdown of 1.29 against buy-and-hold's 0.43. A 1×ATR trail exits within 5 bars of entry in 67% and keeps 28% of what the 3×ATR trail keeps. A fixed 2R target wins about as often (63%) but earns half as much when the trend goes the trade's way. |
+| m08 | 42% | Inside range spans RSI fades win 56%, inside trends 31%; EMA(20) pullbacks win 67% inside trends and 48% inside ranges. An ADX filter (fade below 20, follow above 25 with the DI lines) beats fading everywhere by 8 points but not the pullback rule (50% both): ADX(14) turns about as late as a regime lasts. |
+
+The test bands are 45–75% buy-and-hold for m06 and 35–65% for m08, and below 75% everywhere.
 
 ### How close is this to a real market?
 
@@ -339,8 +388,11 @@ A fast wire turns a late trade into one placed before the gap, so a credible sho
 | m03-volatility-shock | 25.0 | +0.06 | +0.34 | 23% |
 | m04-options-buyer | 6.6 | +0.18 | +0.33 | 18% |
 | m05-options-writer | 29.4 | +0.01 | +0.31 | 24% |
+| m06-thin-book | 1.7 | +0.06 | +0.22 | 13% |
+| m07-trend-trailing | 2.2 | +0.05 | +0.23 | 22% |
+| m08-regime-switch | 1.3 | +0.02 | +0.21 | 11% |
 
-- **Fat tails.** Excess kurtosis is well above 0. Real hourly crypto data usually sits around 5–20, and the shock missions are deliberately extreme.
+- **Fat tails.** Excess kurtosis is above 0 everywhere. Real hourly crypto data usually sits around 5–20, and the shock missions are deliberately extreme; the phase-2 missions without shocks (m06–m08) are milder (1.3–2.2).
 - **Volatility clustering.** Absolute returns are autocorrelated at 0.17–0.34, similar to real markets: calm follows calm and storms follow storms.
 - **Little bar-to-bar trend.** Return autocorrelation is about 0, as in real markets, except in m04, whose scripted breakout carries momentum (+0.18).
 
@@ -393,7 +445,7 @@ From the menu: **Campaign** (missions in curriculum order, capital carried), **f
 
 The total is the weighted average of the dimensions that apply to the run (no trades → no plan score). Net P&L is shown but is **not** the score: a disciplined losing trade can score well, a lucky reckless one scores badly. The debrief lists every trade — perpetual and options, with option trades settled at expiry — (R multiple, exit reason, plan respected; each trade's net includes its share of fees and the funding paid while it was open, and a trade still open at the end includes its unrealized P&L, so the trades add up to the result), findings, and a reveal of what the generator was doing.
 
-Next to the score, the debrief shows outcome facts that are **not** score inputs (all computed by the engine, scoring v8):
+Next to the score, the debrief shows outcome facts that are **not** score inputs (all computed by the engine, scoring v9):
 
 - Net P&L split into realized trading P&L, fees, funding, option P&L, and a separate **spread and slippage** line: what taker fills paid against their reference price (the open, or the stop's trigger) and option fills against the quote's mid. It is already inside the fill prices, not an extra charge. After a margin-call bankruptcy, a **written-off** line shows the option loss beyond the balance that the simulated fund covered (the wallet stops at zero), so the lines still add up to the result.
 - Max drawdown, peak exposure, **turnover** (traded notional) and the **closest the mark came to liquidation**.
@@ -401,12 +453,13 @@ Next to the score, the debrief shows outcome facts that are **not** score inputs
 - For a perpetual trade whose stop (stop order, else the plan's invalidation) sat at or beyond its liquidation price (at the highest leverage the position carried, including a re-leverage while it was open): the **highest leverage that would have kept the stop in front** of liquidation, also named in the liquidation and stop-beyond-liquidation findings.
 - When time decay (theta) on bought options, or implied volatility (vega) explains at least half of an option loss, a finding says so and the next lesson is Options II (IV and Greeks). The IV finding follows the side that lost: a falling IV on bought options, or a rising IV on written ones. A written option never gets good-process credit, and a finding says why.
 - The flat and buy-and-hold comparisons and the market span run to the run's last bar: after a game over they stop at the game-over bar.
+- For built-in missions, the **seeded reveal**: the regimes the run went through (a band under the chart), a **signals-by-regime** table (RSI fade, Bollinger fade, MACD follow and SMA20 follow: hits out of samples inside each regime, read at a close and judged 5 bars after the next open) and the regime each trade was entered in. The client asks the engine for it (`tl_mission_reveal`) only once the run has ended.
 
 ### Campaign and curriculum
 
-A campaign run plays the missions in curriculum order: m01 (Futures I), m03 (Futures II), m02 (Futures III), m04 (Options I and II), m05 (Options III). The first starts with 10,000; each later one starts with the final equity of the one before, passed to the engine as a start option (`startingBalance`, policy v12), so the engine stays the only source of balances and the server can replay it. Going bankrupt ends the campaign run (game over, then the debrief, which offers a new campaign run from 10,000). A liquidation that leaves capital does not: the campaign goes on with what is left, as long as it is at least 100 (1% of 10,000). Less than that ends the campaign run like a bankruptcy and passes no stage, since the next mission may cap leverage lower than the one that liquidated (the engine only checks its own mission's cap). Leaving a campaign mission for another run carries the equity it had when it was left, and the campaign stays on that mission; "End campaign" in the menu closes the run by choice (after a confirmation), and its mission in progress ends with it.
+A campaign run plays the missions in curriculum order: m06 (Structure and Orders), m01 (Futures I), m03 (Futures II), m02 (Futures III), m07 (Risk sizing), m04 (Options I and II), m05 (Options III), m08 (Patterns and Indicators). m06 opens the campaign, so its tutorial carries the introduction (reading the chart; plan, advisor and points); m01 keeps its own cards for free play. The first starts with 10,000; each later one starts with the final equity of the one before, passed to the engine as a start option (`startingBalance`, policy v12), so the engine stays the only source of balances and the server can replay it. Going bankrupt ends the campaign run (game over, then the debrief, which offers a new campaign run from 10,000). A liquidation that leaves capital does not: the campaign goes on with what is left, as long as it is at least 100 (1% of 10,000). Less than that ends the campaign run like a bankruptcy and passes no stage, since the next mission may cap leverage lower than the one that liquidated (the engine only checks its own mission's cap). Leaving a campaign mission for another run carries the equity it had when it was left, and the campaign stays on that mission; "End campaign" in the menu closes the run by choice (after a confirmation), and its mission in progress ends with it.
 
-Finishing a mission in a campaign run passes its curriculum stages for good: bankruptcy, liquidation or an ended campaign run never remove them. The curriculum (`apps/web/src/lib/game/curriculum.ts`) is data: 13 stages in dependency order, each with its assessment missions and its unlocks. Stages without missions yet (their lessons are pending) show as coming soon and do not block the next ones. Unlocks are never bought:
+Finishing a mission in a campaign run passes its curriculum stages for good: bankruptcy, liquidation or an ended campaign run never remove them. The curriculum (`apps/web/src/lib/game/curriculum.ts`) is data: 13 stages in dependency order, each with its assessment missions and its unlocks. Stages without missions yet (Foundations, which is an Academy lesson, Evaluation and Events) show as coming soon and do not block the next ones. Unlocks are never bought:
 
 | Unlock | Stage that grants it | In a campaign mission before that |
 |---|---|---|
@@ -415,7 +468,7 @@ Finishing a mission in a campaign run passes its curriculum stages for good: ban
 | Buying options | Options I (m04) | Locked |
 | Writing options | Options III (m05) | Locked |
 
-A stage's own assessment mission always has its unlocks (it is where they are taught), so in the campaign order only the leverage cap ever bites (in m01 until Futures II is passed); a unit test checks that no campaign mission meets a lock the engine cannot enforce. Free play keeps every mission's own rules and does not pass stages.
+A stage's own assessment mission always has its unlocks (it is where they are taught). m06 comes before Futures I and II, so its own rules are long only with a 2× cap; after it, only the leverage cap ever bites (in m01 until Futures II is passed). A unit test checks that no campaign mission meets a lock the engine cannot enforce. Free play keeps every mission's own rules and does not pass stages.
 
 Progress lives in IndexedDB `meta.progress` (version 2): tutorials seen, advisor points, the intel perks already explained, the campaign run, ended campaign runs and the missions assessed. A record from an older build is migrated on load (its tutorials and points are kept).
 
@@ -459,11 +512,11 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v2, execution policy v14, scoring v8 with the full debrief), the five missions with first-start tutorials, campaign runs with carried capital, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, legal intel perks (economic calendar, fast wire) unlocked by finished missions, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay with each run's start options, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
+Built: the deterministic engine (perps, options, indicators, patterns, generator v3 with a Markov regime chain, execution policy v14, scoring v9 with the full debrief and the seeded regime reveal), eight missions with first-start tutorials (batch A of phase 2: m06 thin book, m07 size and exit, m08 regime switch), campaign runs with carried capital, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, legal intel perks (economic calendar, fast wire) unlocked by finished missions, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay with each run's start options, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
 
 Next:
 
-- Missions m06–m12 toward the phase-2 target (12 missions, ≥4 regimes, 3 event families, options chapters), designed in `add-scenarios-and-gameplay` (design D8, tasks 6.A and 6.B), and the lessons runner (concept, demonstration, decision, feedback, transfer) for the curriculum stages that have no mission yet.
+- Missions m09–m12 toward the phase-2 target (12 missions, ≥4 regimes, 3 event families, options chapters), designed in `add-scenarios-and-gameplay` (design D8, tasks 6.B), and the lessons runner (concept, demonstration, decision, feedback, transfer) for the curriculum stages that have no mission yet.
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.
 - Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data).

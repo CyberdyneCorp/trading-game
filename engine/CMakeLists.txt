@@ -92,7 +92,7 @@ if(EMSCRIPTEN)
   target_link_options(tradelab_wasm PRIVATE
     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createTradelab -sSINGLE_FILE=1
     -sENVIRONMENT=web,worker -sALLOW_MEMORY_GROWTH=1 -sFILESYSTEM=0
-    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_missions','_tl_run_create','_tl_run_create_ex','_tl_run_destroy','_tl_request_advice','_tl_place_order','_tl_place_order_ex','_tl_place_option_order','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_move_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_tl_csv_validate','_tl_pack_build_csv','_tl_pack_validate','_tl_run_create_pack','_tl_run_restore_pack','_tl_device_key','_tl_blob_data','_tl_blob_size','_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_missions','_tl_run_create','_tl_run_create_ex','_tl_run_destroy','_tl_request_advice','_tl_place_order','_tl_place_order_ex','_tl_place_option_order','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_move_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_tl_mission_reveal','_tl_csv_validate','_tl_pack_build_csv','_tl_pack_validate','_tl_run_create_pack','_tl_run_restore_pack','_tl_device_key','_tl_blob_data','_tl_blob_size','_malloc','_free']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','HEAPU8']")
 endif()
 
@@ -126,6 +126,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_generator.cpp
     tests/test_candle_patterns.cpp
     tests/test_mission_realism.cpp
+    tests/test_mission_learnability.cpp
     tests/test_options.cpp
     tests/test_prng.cpp
     tests/test_scoring.cpp

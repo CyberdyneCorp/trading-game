@@ -3,7 +3,11 @@ import { expect, test, type Page } from '@playwright/test';
 // Campaign runs, the curriculum map and the journal screen (add-scenarios-and-gameplay 4.7 and 5.4,
 // add-web-client 4.4).
 
-const ALL_MISSIONS = ['m01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer'];
+const ALL_MISSIONS = [
+	'm01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer',
+	'm06-thin-book', 'm07-trend-trailing', 'm08-regime-switch'
+];
+const M06_LEG = { runId: 'r0', missionId: 'm06-thin-book', startCapital: '10000', result: 'finished' };
 
 async function answerIfAsked(page: Page) {
 	const dialog = page.getByRole('dialog', { name: /Pergunta de calibração/ });
@@ -48,17 +52,20 @@ async function seedProgress(page: Page, progress: Record<string, unknown>) {
 
 const briefingCapital = (page: Page) => page.locator('dt:has-text("Capital virtual") + dd');
 
-test('campaign: capital carries into the next mission, leverage is gated until Futures II, map and journal follow', async ({ page }) => {
+test('campaign: starts with m06, capital carries into the next mission, leverage is gated until Futures II, map and journal follow', async ({ page }) => {
 	const errors: string[] = [];
 	page.on('pageerror', (e) => errors.push(String(e)));
 	await page.goto('/?seed=4242');
 	await page.getByTestId('campaign-start').click();
+	// The campaign's first mission carries the introduction: the chart first, the advisor last.
+	await expect(page.getByRole('heading', { name: 'Leia o gráfico' })).toBeVisible();
 	await page.getByRole('button', { name: 'Pular tutorial' }).click();
-	await expect(page.getByText(/Campanha — missão 1 de 5, com o capital inicial da campanha/)).toBeVisible(); // no previous mission
+	await expect(page.getByText(/Campanha — missão 1 de 8, com o capital inicial da campanha/)).toBeVisible(); // no previous mission
+	await expect(page.getByRole('heading', { name: /Missão 06 · Livro fino/ })).toBeVisible();
 	await expect(page.getByTestId('campaign-locked')).toContainText('alavancagem acima de 2x');
-	await expect(page.getByText('1x – 2x')).toBeVisible(); // the engine reports the gated cap
+	await expect(page.getByText('1x – 2x')).toBeVisible(); // m06's own cap, which is also the gated one
 	await page.getByRole('button', { name: /Abrir terminal/ }).click();
-	await expect(page.getByTestId('campaign-tag')).toHaveText('CAMPANHA 1/5');
+	await expect(page.getByTestId('campaign-tag')).toHaveText('CAMPANHA 1/8');
 	await answerIfAsked(page);
 
 	await page.getByTestId('ticket-stop').getByRole('button', { name: '2%', exact: true }).click();
@@ -69,31 +76,32 @@ test('campaign: capital carries into the next mission, leverage is gated until F
 	await playToEnd(page);
 
 	const outcome = page.getByTestId('campaign-outcome');
-	await expect(outcome).toContainText('CAMPANHA 1/5');
-	await expect(outcome).toContainText('Estágio aprovado: Futuros I');
+	await expect(outcome).toContainText('CAMPANHA 1/8');
+	await expect(outcome).toContainText('Estágios aprovados: Estrutura de mercado, Ordens');
 	const leg = await outcome.getByText(/Capital: /).innerText();
 	const carried = leg.split('→')[1].trim();
 	await expect(page.getByRole('button', { name: /Jogar de novo/ })).toHaveCount(0); // campaign runs move on instead
 
 	await outcome.getByRole('button', { name: /Seguir para a próxima missão/ }).click();
 	await page.getByRole('button', { name: 'Pular tutorial' }).click();
-	await expect(page.getByText(/Campanha — missão 2 de 5, com o capital da missão anterior/)).toBeVisible();
-	await expect(page.getByRole('heading', { name: /Missão 03/ })).toBeVisible();
+	await expect(page.getByText(/Campanha — missão 2 de 8, com o capital da missão anterior/)).toBeVisible();
+	await expect(page.getByRole('heading', { name: /Missão 01/ })).toBeVisible();
 	await expect(briefingCapital(page)).toHaveText(carried);
-	await expect(page.getByText('1x – 20x')).toBeVisible(); // Futures II's own mission teaches leverage
-	await expect(page.getByTestId('campaign-locked')).toHaveCount(0);
+	await expect(page.getByText('1x – 2x')).toBeVisible(); // m01 allows 5x, but Futures II is not passed yet
+	await expect(page.getByTestId('campaign-locked')).toContainText('alavancagem acima de 2x');
 
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
-	await expect(page.getByTestId('campaign-progress')).toContainText('Missão 2 de 5');
+	await expect(page.getByTestId('campaign-progress')).toContainText('Missão 2 de 8');
 	await expect(page.getByTestId('campaign-progress')).toContainText(carried);
-	await expect(page.getByTestId('mission-card').first().getByText('✓ Concluída')).toBeVisible(); // Completed mark still works
+	await expect(page.getByTestId('mission-card').nth(5).getByText('✓ Concluída')).toBeVisible(); // Completed mark still works
 
 	await page.getByTestId('open-curriculum').click();
-	await expect(page.locator('[data-stage=futures1]')).toHaveAttribute('data-status', 'passed');
-	await expect(page.locator('[data-stage=futures2]')).toHaveAttribute('data-status', 'open');
+	await expect(page.locator('[data-stage=structure]')).toHaveAttribute('data-status', 'passed');
+	await expect(page.locator('[data-stage=orders]')).toHaveAttribute('data-status', 'passed');
+	await expect(page.locator('[data-stage=futures1]')).toHaveAttribute('data-status', 'open');
 	await expect(page.locator('[data-stage=options3]')).toHaveAttribute('data-status', 'locked');
 	await expect(page.locator('[data-stage=foundations]')).toHaveAttribute('data-status', 'soon');
-	await expect(page.getByTestId('curriculum-summary')).toHaveText('1 de 6 estágios com conteúdo aprovados');
+	await expect(page.getByTestId('curriculum-summary')).toHaveText('2 de 10 estágios com conteúdo aprovados');
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
 
 	await page.getByTestId('open-journal').click();
@@ -106,7 +114,7 @@ test('campaign: capital carries into the next mission, leverage is gated until F
 	// The campaign mission left on its briefing resumes from the menu.
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
 	await page.getByTestId('campaign-continue').click();
-	await expect(page.getByTestId('campaign-tag')).toHaveText('CAMPANHA 2/5');
+	await expect(page.getByTestId('campaign-tag')).toHaveText('CAMPANHA 2/8');
 	expect(errors).toEqual([]);
 });
 
@@ -117,7 +125,7 @@ test('Bankrupt mid-campaign: game over ends the campaign run; a new one starts f
 		tutorialsSeen: ALL_MISSIONS,
 		advisorPoints: 3,
 		settledRuns: [],
-		assessed: ['m01-false-breakout'],
+		assessed: ['m06-thin-book'],
 		campaignHistory: [],
 		campaign: {
 			id: 'camp-e2e',
@@ -125,10 +133,10 @@ test('Bankrupt mid-campaign: game over ends the campaign run; a new one starts f
 			capital: '0.01', // all that is left after a disastrous first mission
 			index: 1,
 			status: 'active',
-			legs: [{ runId: 'r0', missionId: 'm01-false-breakout', startCapital: '10000', endCapital: '0.01', result: 'finished' }]
+			legs: [{ ...M06_LEG, endCapital: '0.01' }]
 		}
 	});
-	await expect(page.getByTestId('campaign-progress')).toContainText('Missão 2 de 5');
+	await expect(page.getByTestId('campaign-progress')).toContainText('Missão 2 de 8');
 	await page.getByTestId('campaign-continue').click();
 	await page.getByRole('button', { name: /Abrir terminal/ }).click();
 	await advance(page);
@@ -137,12 +145,12 @@ test('Bankrupt mid-campaign: game over ends the campaign run; a new one starts f
 	await expect(outcome).toContainText('A campanha termina aqui');
 
 	await outcome.getByRole('button', { name: /Nova campanha/ }).click();
-	await expect(page.getByText(/Campanha — missão 1 de 5/)).toBeVisible();
+	await expect(page.getByText(/Campanha — missão 1 de 8/)).toBeVisible();
 	await expect(briefingCapital(page)).toHaveText('10.000,00 cr');
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
 	await expect(page.getByTestId('campaign')).toContainText('Campanhas encerradas: 1');
 	await page.getByTestId('open-curriculum').click();
-	await expect(page.locator('[data-stage=futures1]')).toHaveAttribute('data-status', 'passed'); // never removed
+	await expect(page.locator('[data-stage=structure]')).toHaveAttribute('data-status', 'passed'); // never removed
 });
 
 test('leaving a campaign mission for free play carries the equity it had; the campaign stays on that mission', async ({ page }) => {
@@ -164,7 +172,7 @@ test('leaving a campaign mission for free play carries the equity it had; the ca
 	await expect(page.getByText(/Laboratório sintético/)).toBeVisible();
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
 	const progress = page.getByTestId('campaign-progress');
-	await expect(progress).toContainText('Missão 1 de 5');
+	await expect(progress).toContainText('Missão 1 de 8');
 	await expect(progress).not.toContainText('10.000,00 cr'); // the fees and the open trade's P&L stay with the campaign
 });
 
@@ -173,7 +181,7 @@ test('a progress record from before campaigns loads: tutorials kept, no campaign
 	await seedProgress(page, { tutorialsSeen: ['m01-false-breakout'], advisorPoints: 6, settledRuns: ['old-run'] });
 	await expect(page.getByTestId('campaign-start')).toHaveText(/Começar campanha/);
 	await page.getByTestId('open-curriculum').click();
-	await expect(page.getByTestId('curriculum-summary')).toHaveText('0 de 6 estágios com conteúdo aprovados');
+	await expect(page.getByTestId('curriculum-summary')).toHaveText('0 de 10 estágios com conteúdo aprovados');
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
 	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
 	await expect(page.getByText(/Laboratório sintético/)).toBeVisible(); // tutorial already seen: straight to the briefing
@@ -192,15 +200,18 @@ test('a liquidation that leaves less than the campaign minimum ends the campaign
 		tutorialsSeen: ALL_MISSIONS,
 		advisorPoints: 3,
 		settledRuns: [],
-		assessed: ['m01-false-breakout'],
+		assessed: ['m06-thin-book', 'm01-false-breakout'],
 		campaignHistory: [],
 		campaign: {
 			id: 'camp-e2e',
 			startedAt: 1,
 			capital: '120',
-			index: 1,
+			index: 2,
 			status: 'active',
-			legs: [{ runId: 'r0', missionId: 'm01-false-breakout', startCapital: '10000', endCapital: '120', result: 'finished' }]
+			legs: [
+				{ ...M06_LEG, endCapital: '9000' },
+				{ runId: 'r1', missionId: 'm01-false-breakout', startCapital: '9000', endCapital: '120', result: 'finished' }
+			]
 		}
 	});
 	await page.getByTestId('campaign-continue').click();
@@ -222,7 +233,7 @@ test('a liquidation that leaves less than the campaign minimum ends the campaign
 	await expect(outcome).not.toContainText('Estágio aprovado');
 	await expect(outcome.getByRole('button', { name: /Seguir para a próxima missão/ })).toHaveCount(0);
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
-	await expect(page.getByTestId('campaign-ended')).toContainText('falência na missão 2');
+	await expect(page.getByTestId('campaign-ended')).toContainText('falência na missão 3');
 	await page.getByTestId('open-curriculum').click();
 	await expect(page.locator('[data-stage=futures2]')).toHaveAttribute('data-status', 'open');
 });
@@ -275,7 +286,7 @@ test('ending the campaign asks first, then leaves its mission in progress: no ca
 	await page.getByTestId('campaign-end').click();
 	await expect(page.getByTestId('campaign-end-confirm')).toContainText('Encerrar a campanha?');
 	await page.getByRole('button', { name: 'Cancelar' }).click(); // nothing ended
-	await expect(page.getByTestId('campaign-progress')).toContainText('Missão 1 de 5');
+	await expect(page.getByTestId('campaign-progress')).toContainText('Missão 1 de 8');
 	await expect(resume).toContainText('CAMPANHA');
 
 	await page.getByTestId('campaign-end').click();

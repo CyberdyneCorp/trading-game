@@ -13,6 +13,7 @@ from .engine import (
     device_key,
     engine_version,
     load_library,
+    mission_reveal,
     missions,
     pack_validate,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "device_key",
     "engine_version",
     "load_library",
+    "mission_reveal",
     "missions",
     "pack_validate",
     "replay",

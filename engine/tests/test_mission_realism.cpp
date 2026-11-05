@@ -1,4 +1,4 @@
-// What the player's tools are worth in the built-in missions (README "What can the player
+// What the player's tools are worth in the built-in missions (all eight) (README "What can the player
 // predict?"). Every signal is read at a bar's close and entered at the next bar's open, the first
 // price a player can get. The bands keep the missions readable but never easy: no indicator far
 // from a coin flip, news priced on arrival rather than drifting in, scripted shocks that do not
@@ -131,6 +131,12 @@ TEST_CASE("Mission realism: news is priced on arrival; following it afterwards i
   // Before: following m01's denial, m03's incident or m05's outage from the next open won 86-98%.
   std::map<std::string, Hits> follow;
   std::map<std::string, double> gap;
+  std::size_t credible_shocks = 0;  // event kinds per mission with a credible size-2 surprise
+  for (const MissionInfo& m : mission_catalog()) {
+    Scenario s;
+    REQUIRE(build_mission(m.id, 1, s));
+    for (const NewsItem& n : s.news) credible_shocks += n.credibility >= 80 && std::abs(n.actual - n.expectation) >= 2 ? 1 : 0;
+  }
   for (const Market& mk : markets()) {
     for (const NewsItem& n : mk.s.news) {
       const std::uint32_t i = n.release_step;
@@ -144,7 +150,8 @@ TEST_CASE("Mission realism: news is priced on arrival; following it afterwards i
     MESSAGE(key << ": follow from the next open " << h.rate());
     CHECK(h.rate() < 0.72);
   }
-  REQUIRE(gap.size() == 3);  // m01 denial, m03 incident, m05 outage
+  REQUIRE(gap.size() == credible_shocks);  // m01 denial, m03 incident, m05 outage so far
+  REQUIRE(credible_shocks >= 3);
   for (const auto& [key, g] : gap) {
     MESSAGE(key << ": average gap at the next open " << g);
     CHECK(g < -0.03);  // most of a credible -2 surprise is in the gap

@@ -142,6 +142,90 @@ texts['m05-options-writer'] = {
 	}
 };
 
+// Phase-2 batch A (design D8.2). m06 opens the campaign (Structure and Orders), m07 assesses Risk
+// sizing, m08 Patterns & Indicators. The reveal also points at the regime band and signals table
+// that the debrief draws from the engine's seeded reveal.
+texts['m06-thin-book'] = {
+	'pt-BR': {
+		title: 'Missão 06 · Livro fino',
+		tagline: 'Um mercado quieto, com poucas ofertas no livro. Cada entrada e cada saída têm um custo.',
+		objectives: [
+			'Entre e saia com ordens limitadas nas zonas e compare a linha de spread e slippage no debrief.',
+			'Risco planejado de até 1% do patrimônio por ideia.',
+			'Uma limitada que não executou é um trade perdido, não um prejuízo.'
+		],
+		topic: 'Estrutura e Ordens · zonas, limite × mercado, spread e capacidade',
+		reveal:
+			'Este cenário foi desenhado como um LIVRO FINO: suporte e resistência eram zonas, e cada ordem a mercado pagava spread e slippage (cerca de 0,6% ida e volta, um quarto do range). A manchete da formadora de mercado reduzindo ofertas não trazia surpresa: mudou o custo, não o valor justo, e o range ficou mais fino e mais nervoso — ordens grandes executaram em partes e stops saíram além do preço. Depois a liquidez voltou com uma surpresa positiva modesta e o mercado saiu do range em uma direção sorteada, mais vezes para cima. Quem comprou com limitada na zona e saiu com alvo pagou uma fração do custo de quem usou ordens a mercado.'
+	},
+	en: {
+		title: 'Mission 06 · Thin book',
+		tagline: 'A quiet market with few quotes resting in the book. Every entry and every exit has a cost.',
+		objectives: [
+			'Enter and exit with limit orders at the zones, and compare the spread and slippage line in the debrief.',
+			'Planned risk of at most 1% of equity per idea.',
+			'An unfilled limit is a missed trade, not a loss.'
+		],
+		topic: 'Structure and Orders · zones, limit vs market, spread and capacity',
+		reveal:
+			'This scenario was designed as a THIN BOOK: support and resistance were zones, and every market order paid spread and slippage (about 0.6% per round trip, a quarter of the range). The market maker pulling quotes carried no surprise: it changed costs, not fair value, and the range turned thinner and jumpier — large orders filled in pieces and stops filled beyond their price. Then liquidity returned with a modest positive surprise and the market left the range in a drawn direction, more often up. Buying with a limit at the zone and exiting at a target cost a fraction of what market orders paid.'
+	}
+};
+
+texts['m07-trend-trailing'] = {
+	'pt-BR': {
+		title: 'Missão 07 · Tamanho e saída',
+		tagline: 'Um mercado lateral, por enquanto. Quanto arriscar e quando sair fica com você.',
+		objectives: [
+			'Risco de até 1% por ideia, com a quantidade calculada pelo stop.',
+			'No lucro, leve o stop à entrada ou use stop móvel, mas nunca mais apertado que o ruído (ATR).',
+			'Termine sem drawdown acima de 10%.'
+		],
+		topic: 'Dimensionamento de risco · stop, stop móvel e múltiplos de R',
+		reveal:
+			'Este cenário foi desenhado como uma TENDÊNCIA com recuos: depois do range, uma manchete crível de adoção subiu o valor justo e a direção da tendência foi sorteada inclinada por ela — para cima em cerca de 6 de cada 10 partidas, nunca em todas. Os recuos até a média tiraram da posição quem usou stop móvel de 1×ATR; um stop móvel de 3×ATR devolveu parte do ganho, mas ficou no movimento. Um alvo fixo de 2R acertou mais ou menos tantas vezes quanto o stop móvel, mas ganhou bem menos quando a tendência veio. No fim, um topo (ou fundo) nervoso e de volta ao range. O tamanho pelo stop, não a alavancagem, decidiu quanto cada erro custou.'
+	},
+	en: {
+		title: 'Mission 07 · Size and exit',
+		tagline: 'A sideways market, for now. How much to risk and when to get out is up to you.',
+		objectives: [
+			'Risk at most 1% per idea, with the quantity set by the stop.',
+			'Once in profit, move the stop to break-even or trail it, but never tighter than the noise (ATR).',
+			'Finish without a drawdown above 10%.'
+		],
+		topic: 'Risk sizing · stops, trailing stops and R multiples',
+		reveal:
+			'This scenario was designed as a TREND with pullbacks: after the range, a credible adoption headline lifted fair value and the trend’s direction was drawn tilted by it — up in about 6 of 10 runs, never in all. Pullbacks to the average took out 1×ATR trailing stops; a 3×ATR trail gave some back but stayed in the move. A fixed 2R target won about as often as the trail but earned much less when the trend came. At the end, a choppy top (or bottom) and back to a range. Sizing from the stop, not leverage, decided what each mistake cost.'
+	}
+};
+
+texts['m08-regime-switch'] = {
+	'pt-BR': {
+		title: 'Missão 08 · Sinais',
+		tagline: 'Um mercado que muda de humor sem avisar. Que ferramenta serve agora?',
+		objectives: [
+			'Antes de cada entrada, escreva no plano em que regime você acha que está e por quê.',
+			'Use uma ferramenta por regime.',
+			'Risco planejado de até 1% do patrimônio.'
+		],
+		topic: 'Padrões e Indicadores · reversão × tendência, ADX e largura das bandas',
+		reveal:
+			'Este cenário foi desenhado como TROCA DE REGIME: o mercado alternou entre lateral, tendência (de direção sorteada a cada vez) e volatilidade alta, num caminho sorteado a cada partida e sem manchete avisando. Vender sobrecompra e comprar sobrevenda (RSI, Bollinger) funcionou na lateral e perdeu na tendência; seguir MACD ou a média funcionou na tendência e sangrou na lateral. ADX e largura das bandas ajudaram a separar os dois, mas mudaram tarde: o mercado já tinha trocado. A faixa e a tabela abaixo mostram os regimes desta partida e como cada leitura se saiu em cada um.'
+	},
+	en: {
+		title: 'Mission 08 · Signals',
+		tagline: 'A market that changes its mood without warning. Which tool fits now?',
+		objectives: [
+			'Before each entry, write in the plan which regime you think you are in, and why.',
+			'Use one tool per regime.',
+			'Planned risk of at most 1% of equity.'
+		],
+		topic: 'Patterns & Indicators · mean reversion vs trend, ADX and band width',
+		reveal:
+			'This scenario was designed as a REGIME SWITCH: the market moved between ranges, trends (direction drawn each time) and high volatility, on a path drawn per run and with no headline warning. Fading RSI or Bollinger extremes worked in ranges and lost in trends; following MACD or the average worked in trends and bled in ranges. ADX and band width helped tell the two apart, but late: the market had already switched. The band and the table below show this run’s regimes and how each read did in each of them.'
+	}
+};
+
 // Practice runs on imported packs (scenario ids "csv-…"): the player already knows the market, so
 // the texts stay generic; the debrief shows the engine's reveal instead of a designed lesson.
 const PRACTICE: Record<Locale, MissionText> = {

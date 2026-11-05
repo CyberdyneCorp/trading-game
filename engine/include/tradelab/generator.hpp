@@ -16,20 +16,29 @@
 // Volume is tied to |return|; funding follows recent drift.
 
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "tradelab/scenario.hpp"
 
 namespace tradelab {
 
-constexpr std::uint32_t kGeneratorVersion = 2;
+// v3: optional Markov regime chain (G1) and segment labels; not a digest input. Missions without a
+// chain generate exactly as in v2.
+constexpr std::uint32_t kGeneratorVersion = 3;
 
 enum class Anchor : std::uint8_t {
   None,   // no structural pull besides the fair value
   Level,  // the log price at segment start: range with support/resistance
   Trend,  // an EMA of log price: trend with pullbacks to its average
 };
+
+// What a segment is, for the debrief reveal and for tests. It never feeds generation.
+enum class RegimeLabel : std::uint8_t { Unlabeled = 0, Range, Trend, HighVol, LowLiquidity, Crowded, Calm, Shock };
+
+const char* regime_label_name(RegimeLabel label);
 
 // Fields are declared in the order missions use designated initializers.
 struct Segment {
@@ -47,6 +56,22 @@ struct Segment {
   double momentum = 0.0;       // AR(1) weight on the previous bar's return
   double vol_decay = 1.0;      // per-bar factor on this segment's volatility (< 1 compresses)
   bool random_direction = false;  // drift/jump sign drawn per seed, tilted by the fair-value gap
+  RegimeLabel label = RegimeLabel::Unlabeled;
+};
+
+// G1 (design D8.1): a Markov chain of regime states, expanded per seed into ordinary segments.
+// The path is drawn on Stream::Regime with integer draws: the first state from `initial`, each
+// visit lasts [min_dwell, max_dwell] bars, the next state comes from the visited state's row. The
+// last visit is cut so the chain fills exactly `bars`. The expanded segments are inserted at index
+// `at` of GeneratorSpec::segments before the per-seed schedule applies.
+struct RegimeChain {
+  std::vector<Segment> states;                          // templates; their `bars` field is ignored
+  std::vector<std::vector<std::uint32_t>> transitions;  // per-mille rows summing to 1000, zero diagonal
+  std::vector<std::uint32_t> initial;                   // per-mille weights over the states
+  std::uint32_t min_dwell = 1;
+  std::uint32_t max_dwell = 1;
+  std::uint32_t bars = 0;
+  std::uint32_t at = 0;
 };
 
 // A scripted event: the headline (NewsItem) plus its seeded reaction model. The reaction direction
@@ -86,10 +111,26 @@ struct GeneratorSpec {
   std::int32_t lead_jitter_max = 0;
   std::vector<ScriptedEvent> events;  // release steps are absolute bar indices
   std::vector<Segment> segments;
+  std::optional<RegimeChain> chain;  // G1; absent = the segments as declared
 };
 
-// Fills scenario.bars and scenario.funding_rate (contract.tick_size must be set).
-void generate_market(const GeneratorSpec& spec, std::uint64_t seed, Scenario& out);
+// One generated segment as it played for a seed: where it starts, how long it lasts, its label and,
+// for a random-direction segment, the direction drawn (+1 up, -1 down; 0 = not random).
+struct RegimeSpan {
+  std::uint32_t start = 0;
+  std::uint32_t bars = 0;
+  RegimeLabel label = RegimeLabel::Unlabeled;
+  std::int8_t direction = 0;
+};
+
+// Fills scenario.bars and scenario.funding_rate (contract.tick_size must be set). When `spans` is
+// given, it receives every segment as played (the reveal; never part of the scenario).
+void generate_market(const GeneratorSpec& spec, std::uint64_t seed, Scenario& out, std::vector<RegimeSpan>* spans = nullptr);
+
+// The spec with its regime chain (if any) expanded into segments for this seed; identity otherwise.
+GeneratorSpec expanded(const GeneratorSpec& spec, std::uint64_t seed);
+// The chain's path for a seed as (state index, bars) visits; exposed for distribution tests.
+std::vector<std::pair<std::uint32_t, std::uint32_t>> chain_path(const RegimeChain& chain, std::uint64_t seed);
 
 // The spec with this seed's schedule applied: first segment lengthened by the drawn lead, events
 // after it shifted, last segment shortened by the same amount. Exposed for tests.
@@ -97,6 +138,25 @@ GeneratorSpec scheduled(const GeneratorSpec& spec, std::uint64_t seed);
 
 // Sampled reaction sign for an event (-1, 0, +1); exposed for distribution tests.
 int sample_reaction(const ScriptedEvent& ev, std::uint64_t seed, std::uint32_t index);
+
+// G4 (design D8.1): what a mission's market was, for the debrief only. Clients ask for it after the
+// run has ended (leak prevention, design D6).
+struct EventReveal {
+  std::uint32_t release_step = 0;
+  NewsKind kind = NewsKind::RateDecision;
+  std::int8_t actual = 0;
+  std::int8_t surprise = 0;
+  std::uint32_t intensity_pct = 100;  // factor on fair impact and reaction drift (100 = as declared)
+  std::int8_t reaction = 0;           // sampled transient reaction: 0 none, +1/-1 up/down
+};
+
+struct MissionReveal {
+  std::vector<RegimeSpan> spans;
+  std::vector<EventReveal> events;
+};
+
+// The regime span containing `step` (nullptr past the end).
+const RegimeSpan* span_at(const std::vector<RegimeSpan>& spans, std::uint32_t step);
 
 struct MissionInfo {
   std::string id;
@@ -111,5 +171,7 @@ std::vector<MissionInfo> mission_catalog();
 std::string market_alias(std::uint64_t seed);
 // Builds a validated built-in synthetic mission; returns false for an unknown id.
 bool build_mission(const std::string& id, std::uint64_t seed, Scenario& out);
+// Regenerates the mission for this seed and returns its reveal; false for an unknown id.
+bool mission_reveal(const std::string& id, std::uint64_t seed, MissionReveal& out);
 
 }  // namespace tradelab

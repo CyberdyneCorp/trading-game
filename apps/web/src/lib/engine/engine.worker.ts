@@ -4,6 +4,7 @@
 
 import createTradelab, { type TradelabModule } from './wasm/tradelab.mjs';
 import type { CsvBuildResult, EngineRequest, WorkerEnvelope, WorkerReply } from './protocol';
+import { revealAllowed } from './reveal';
 import { DEFAULT_RUN_OPTIONS, ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
 
 type Fn = (...a: unknown[]) => number;
@@ -26,6 +27,7 @@ interface Api {
 	advance: Fn;
 	state: Fn;
 	debrief: Fn;
+	reveal: Fn;
 	deviceKey: Fn;
 	csvValidate: Fn;
 	csvBuild: Fn;
@@ -38,6 +40,8 @@ interface Api {
 let mod: TradelabModule | null = null;
 let api: Api | null = null;
 let run = 0;
+// Mission and seed of the current run, for its reveal after the end (null on an imported pack).
+let current: { missionId: string; seed: number } | null = null;
 
 async function load(): Promise<Api> {
 	if (api) return api;
@@ -65,6 +69,7 @@ async function load(): Promise<Api> {
 		advance: w('tl_advance', 'number', ['number', 'number']),
 		state: w('tl_state', 'number', ['number']),
 		debrief: w('tl_debrief', 'number', ['number']),
+		reveal: w('tl_mission_reveal', 'number', ['string', 'number']),
 		deviceKey: w('tl_device_key', 'number', ['string']),
 		// The CSV goes in by pointer (withText): a 'string' argument is copied onto the 64 KB stack.
 		csvValidate: w('tl_csv_validate', 'number', ['number', 'string']),
@@ -83,6 +88,7 @@ function resetEngine(): void {
 	mod = null;
 	api = null;
 	run = 0;
+	current = null;
 }
 
 function json(ptr: number): unknown {
@@ -129,6 +135,7 @@ function deviceKey(a: Api, seedHex: string): TrustedKey {
 
 function startPack(a: Api, pack: Uint8Array, keys: TrustedKey[], seed: number): GameState {
 	if (run) a.destroy(run);
+	current = null;
 	run = withBytes(pack, (ptr, size) => a.createPack(ptr, size, JSON.stringify(keys), seed >>> 0));
 	if (!run) throw new Error('pack failed validation');
 	return json(a.state(run)) as GameState;
@@ -137,6 +144,13 @@ function startPack(a: Api, pack: Uint8Array, keys: TrustedKey[], seed: number): 
 function requireRun(): number {
 	if (!run) throw new Error('no active run');
 	return run;
+}
+
+// The reveal describes the run's future: it crosses the worker boundary only after the run ended.
+function reveal(a: Api): unknown {
+	const status = (json(a.state(requireRun())) as GameState).status;
+	if (!revealAllowed(status)) throw new Error('run_active');
+	return current ? json(a.reveal(current.missionId, current.seed)) : null;
 }
 
 function withState(a: Api, resultPtr: number) {
@@ -154,6 +168,7 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			const o = req.options ?? DEFAULT_RUN_OPTIONS;
 			run = a.create(req.missionId, req.seed >>> 0, o.adviceAllowance, o.newsLead, o.calendar ? 1 : 0, o.startingBalance ?? '', o.leverageCap ?? 0);
 			if (!run) throw new Error(`unknown mission ${req.missionId} or invalid start options`);
+			current = { missionId: req.missionId, seed: req.seed >>> 0 };
 			return json(a.state(run));
 		}
 		case 'deviceKey':
@@ -229,6 +244,8 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			return json(a.advance(requireRun(), req.steps));
 		case 'debrief':
 			return json(a.debrief(requireRun()));
+		case 'reveal':
+			return reveal(a);
 	}
 }
 
