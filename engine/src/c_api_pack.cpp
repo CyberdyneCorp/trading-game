@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "c_api_run.hpp"
+#include "pack_codec.hpp"
 #include "json_in.hpp"
 #include "json_out.hpp"
 #include "tradelab/engine.hpp"
@@ -102,6 +103,53 @@ void write_summary(JsonOut& j, const PackOpen& p) {
   j.field("gaps", p.info.gaps).end_obj();
 }
 
+bool prefix_ok(const char* prefix) {
+  const std::string_view p = prefix == nullptr ? "" : prefix;
+  return !p.empty() && p.size() <= 16 && std::all_of(p.begin(), p.end(), [](char c) { return c >= 'a' && c <= 'z'; });
+}
+
+// Branch fields of a CSV source's metadata; nullopt without "branchStep". `bad` names a bad field.
+std::optional<BranchRequest> parse_branch(const char* json, std::string* bad) {
+  const auto parsed = detail::parse_json(json == nullptr ? "" : json, {4096, 4, 128, 16});
+  if (!parsed.ok || parsed.value.find("branchStep") == nullptr) return std::nullopt;
+  const JsonValue& v = parsed.value;
+  const auto step = int_field(v, "branchStep", 0);
+  const auto seed = int_field(v, "branchSeed", 0);
+  BranchRequest b{0, text_field(v, "branchMission"), 0};
+  if (!step || *step < 0 || *step > 1'000'000) *bad = "branchStep";
+  else if (!seed || *seed < 0 || *seed > 0xFFFF'FFFFLL) *bad = "branchSeed";
+  else if (b.mission.empty()) *bad = "branchMission";
+  if (!bad->empty()) return std::nullopt;
+  b.step = static_cast<std::uint32_t>(*step);
+  b.seed = static_cast<std::uint64_t>(*seed);
+  return b;
+}
+
+const char* emit_source(JsonOut& j, PackSource src) {
+  j.field("ok", src.ok()).field("reason", src.reason).field("detail", src.detail).field("scenarioId", src.scenario_id);
+  j.key("files").begin_arr();
+  for (const PackFile& f : src.files) j.str(f.name);
+  j.end_arr().end_obj();
+  if (src.ok()) g_blob = source_archive(src);
+  return emit(j);
+}
+
+const char* emit_build(PackBuild b) {
+  JsonOut j;
+  j.begin_obj().field("ok", b.ok()).field("reason", b.reason).field("digest", b.digest);
+  j.field("size", static_cast<std::uint32_t>(b.bytes.size()));
+  std::string id;
+  if (b.ok()) {
+    std::vector<detail::TarEntry> entries;
+    (void)detail::tar_read(b.bytes, 8, &entries);
+    const auto parsed = detail::parse_json(std::string(entries.front().data.begin(), entries.front().data.end()));
+    id = text_field(parsed.value, "signingKeyId");
+  }
+  j.field("signingKeyId", id).end_obj();
+  g_blob = std::move(b.bytes);
+  return emit(j);
+}
+
 PackOpen open_from_abi(const std::uint8_t* data, std::uint32_t size, const char* keys_json, PackIntent intent) {
   std::vector<TrustedKey> keys;
   PackOpen out;
@@ -185,6 +233,62 @@ tl_run* tl_run_create_pack(const uint8_t* data, uint32_t size, const char* trust
   run->pack = std::move(p.info);
   run->state = start_run(run->scenario, seed);
   return run;
+}
+
+const char* tl_pack_source_mission(const char* mission_id, uint32_t seed) {
+  g_blob.clear();
+  JsonOut j;
+  j.begin_obj();
+  return emit_source(j, mission_pack_source(mission_id == nullptr ? "" : mission_id, seed));
+}
+
+const char* tl_pack_source_csv(const char* csv, const char* meta_json) {
+  g_blob.clear();
+  CsvMeta meta;
+  ImportRules rules;
+  JsonOut j;
+  j.begin_obj();
+  std::string bad = parse_meta(meta_json, &meta, &rules);
+  const std::optional<BranchRequest> branch = bad.empty() ? parse_branch(meta_json, &bad) : std::nullopt;
+  if (!bad.empty()) return emit(j.field("ok", false).field("reason", "invalid_meta").field("detail", bad).end_obj());
+  PackSource src = csv_pack_source(csv == nullptr ? "" : csv, meta, rules, false, branch);
+  j.key("report").begin_obj();
+  write_report(j, src.report);
+  j.end_obj();
+  return emit_source(j, std::move(src));
+}
+
+const char* tl_pack_write(const char* manifest_json, const uint8_t* files_tar, uint32_t size, const char* seed_hex,
+                          const char* key_prefix) {
+  g_blob.clear();
+  const auto seed = parse_seed(seed_hex);
+  if (!seed || !prefix_ok(key_prefix) || (files_tar == nullptr && size > 0)) {
+    PackBuild b;
+    b.reason = !seed ? "invalid_seed" : (!prefix_ok(key_prefix) ? "invalid_prefix" : "malformed_container");
+    return emit_build(std::move(b));
+  }
+  return emit_build(assemble_pack(manifest_json == nullptr ? "" : manifest_json, {files_tar, size}, *seed, key_prefix));
+}
+
+const char* tl_pack_resign(const uint8_t* pack, uint32_t size, const char* seed_hex, const char* key_prefix) {
+  g_blob.clear();
+  const auto seed = parse_seed(seed_hex);
+  if (!seed || !prefix_ok(key_prefix) || (pack == nullptr && size > 0)) {
+    PackBuild b;
+    b.reason = !seed ? "invalid_seed" : (!prefix_ok(key_prefix) ? "invalid_prefix" : "malformed_container");
+    return emit_build(std::move(b));
+  }
+  return emit_build(resign_pack({pack, size}, *seed, key_prefix));
+}
+
+const char* tl_signing_key(const char* seed_hex, const char* key_prefix) {
+  JsonOut j;
+  j.begin_obj();
+  const auto seed = parse_seed(seed_hex);
+  if (!seed) return emit(j.field("error", "invalid_seed").end_obj());
+  if (!prefix_ok(key_prefix)) return emit(j.field("error", "invalid_prefix").end_obj());
+  const KeyPair k = ed25519_keypair(*seed);
+  return emit(j.field("id", key_id(key_prefix, k.public_key)).field("publicKey", to_hex(k.public_key)).end_obj());
 }
 
 tl_run* tl_run_restore_pack(const uint8_t* data, uint32_t size, const char* trusted_keys_json, uint32_t seed,

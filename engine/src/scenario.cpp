@@ -55,7 +55,32 @@ bool news_valid(const Scenario& s) {
   return true;
 }
 
+bool liquidity_valid(const Scenario& s) {
+  for (const LiquidityShock& l : s.liquidity) {
+    const bool span_ok = l.start >= 1 && l.bars >= 1 && l.start < s.bars.size() && l.bars <= s.bars.size() - l.start;
+    if (!span_ok || l.spread_pct < 10 || l.spread_pct > 1000 || l.capacity_pct > 1000) return false;
+  }
+  return true;
+}
+
+std::int64_t scaled(std::int64_t raw, std::uint32_t pct, bool up) {
+  const std::int64_t num = raw * static_cast<std::int64_t>(pct);  // raw <= 1e10, pct <= 1000: no overflow
+  return up ? (num + 99) / 100 : num / 100;
+}
+
 }  // namespace
+
+CostModel costs_at(const Scenario& s, std::uint32_t bar) {
+  CostModel c = s.costs;
+  for (const LiquidityShock& l : s.liquidity) {
+    if (bar < l.start || bar - l.start >= l.bars) continue;
+    // Capped so overlapping shocks stay finite: a cost never exceeds half the price.
+    c.half_spread = Rate::from_raw(std::min(scaled(c.half_spread.raw, l.spread_pct, true), Rate::kScale / 2));
+    c.slippage = Rate::from_raw(std::min(scaled(c.slippage.raw, l.spread_pct, true), Rate::kScale / 2));
+    c.capacity_fraction = Rate::from_raw(std::min(scaled(c.capacity_fraction.raw, l.capacity_pct, false), Rate::kScale));
+  }
+  return c;
+}
 
 ScenarioError validate(const Scenario& s) {
   if (s.bars.size() < 3) return ScenarioError::TooFewBars;
@@ -67,6 +92,7 @@ ScenarioError validate(const Scenario& s) {
   if (!mission_valid(s)) return ScenarioError::InvalidMission;
   if (!options_valid(s)) return ScenarioError::InvalidOptions;
   if (!news_valid(s)) return ScenarioError::InvalidNews;
+  if (!liquidity_valid(s)) return ScenarioError::InvalidLiquidity;
   return ScenarioError::Ok;
 }
 

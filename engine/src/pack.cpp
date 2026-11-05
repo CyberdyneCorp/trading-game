@@ -5,11 +5,13 @@
 // Reason codes: too_large, malformed_container, too_many_files, bad_file_name, duplicate_file,
 // missing_file, unlisted_file, unknown_file, unsupported_feature, manifest_too_large,
 // manifest_invalid, missing_field, invalid_field, unsupported_schema, untrusted_key,
-// bad_signature, incompatible_engine, too_many_bars, size_mismatch, hash_mismatch,
-// decompression_limit, malformed_data, invalid_scenario, private_pack, license_incomplete.
+// bad_signature, incompatible_engine, too_many_bars, too_many_events, too_many_series,
+// size_mismatch, hash_mismatch, decompression_limit, malformed_data, invalid_scenario,
+// private_pack, license_incomplete.
 
 #include <algorithm>
 #include <array>
+#include <limits>
 #include <optional>
 
 #include "json_in.hpp"
@@ -28,10 +30,26 @@ using detail::TarEntry;
 
 constexpr std::string_view kManifestName = "manifest.json";
 constexpr std::string_view kSignatureName = "manifest.sig";
-constexpr std::array<std::string_view, 3> kDataFiles = {"bars.bin", "funding.bin", "reveal.json"};
-constexpr std::array<std::string_view, 4> kReservedFiles = {"events.bin", "options.bin", "mission.json", "i18n.json"};
+constexpr std::array<std::string_view, 5> kDataFiles = {"bars.bin", "funding.bin", "events.bin", "options.bin", "reveal.json"};
+constexpr std::array<std::string_view, 2> kReservedFiles = {"mission.json", "i18n.json"};
 constexpr std::size_t kColumnHeader = 16;
 constexpr std::uint32_t kBarColumns = 5;
+constexpr std::uint32_t kNewsColumns = 7;       // release_step, kind, tone, credibility, expectation, actual, announce_lead
+constexpr std::uint32_t kLiquidityColumns = 4;  // start, bars, spread_pct, capacity_pct
+constexpr std::uint32_t kSeriesColumns = 5;     // id, kind, strike, list_step, expiry_step
+
+// Inclusive range of each column of a table, so narrowing to the scenario's types never wraps;
+// semantic checks (steps inside the market, kinds, ids) are validate(Scenario)'s.
+struct ColumnRange {
+  std::int64_t lo;
+  std::int64_t hi;
+};
+constexpr std::int64_t kU32 = 0xFFFF'FFFF;
+constexpr std::int64_t kMaxRaw = std::numeric_limits<std::int64_t>::max();
+constexpr std::array<ColumnRange, kNewsColumns> kNewsRanges = {{{0, kU32}, {0, 255}, {-1, 1}, {0, 100}, {-2, 2}, {-2, 2}, {0, kU32}}};
+constexpr std::array<ColumnRange, kLiquidityColumns> kLiquidityRanges = {{{0, kU32}, {0, kU32}, {0, kU32}, {0, kU32}}};
+constexpr std::array<ColumnRange, kSeriesColumns> kSeriesRanges = {{{0, kU32}, {0, 1}, {1, kMaxRaw}, {0, kU32}, {0, kU32}}};
+constexpr std::int64_t kMaxIvRaw = std::int64_t{10} * Vol::kScale;  // 1,000% annualized
 
 bool listed_in(std::string_view name, std::span<const std::string_view> names) {
   return std::find(names.begin(), names.end(), name) != names.end();
@@ -60,15 +78,54 @@ std::vector<std::uint8_t> column_header(std::string_view magic, std::uint32_t ro
   return out;
 }
 
-// Columnar little-endian int64: header (magic, rows, columns, 0) then each column in turn.
+// One columnar little-endian int64 table at `*pos`: header (magic, rows, columns, 0) then each
+// column in turn. Advances *pos past the table.
+bool decode_table(std::span<const std::uint8_t> raw, std::size_t* pos, std::string_view magic, std::uint32_t rows,
+                  std::uint32_t columns, std::vector<std::int64_t>* out) {
+  const std::size_t size = kColumnHeader + std::size_t{8} * rows * columns;
+  if (raw.size() - *pos < size) return false;
+  const auto t = raw.subspan(*pos, size);
+  if (!std::equal(magic.begin(), magic.end(), t.begin())) return false;
+  if (get_le(t, 4, 4) != rows || get_le(t, 8, 4) != columns || get_le(t, 12, 4) != 0) return false;
+  out->resize(std::size_t{rows} * columns);
+  for (std::size_t i = 0; i < out->size(); ++i) (*out)[i] = static_cast<std::int64_t>(get_le(t, kColumnHeader + 8 * i, 8));
+  *pos += size;
+  return true;
+}
+
+// A file holding exactly one table.
 bool decode_columns(std::span<const std::uint8_t> raw, std::string_view magic, std::uint32_t rows, std::uint32_t columns,
                     std::vector<std::int64_t>* out) {
-  const std::size_t expected = kColumnHeader + std::size_t{8} * rows * columns;
-  if (raw.size() != expected || !std::equal(magic.begin(), magic.end(), raw.begin())) return false;
-  if (get_le(raw, 4, 4) != rows || get_le(raw, 8, 4) != columns || get_le(raw, 12, 4) != 0) return false;
-  out->resize(std::size_t{rows} * columns);
-  for (std::size_t i = 0; i < out->size(); ++i) (*out)[i] = static_cast<std::int64_t>(get_le(raw, kColumnHeader + 8 * i, 8));
+  std::size_t pos = 0;
+  return decode_table(raw, &pos, magic, rows, columns, out) && pos == raw.size();
+}
+
+// Every value of each column (n rows) within its range.
+template <std::size_t N>
+bool in_ranges(const std::vector<std::int64_t>& cols, std::size_t n, const std::array<ColumnRange, N>& ranges) {
+  for (std::size_t c = 0; c < N; ++c) {
+    const auto first = cols.begin() + static_cast<std::ptrdiff_t>(c * n);
+    const ColumnRange r = ranges[c];
+    if (!std::all_of(first, first + static_cast<std::ptrdiff_t>(n), [r](std::int64_t v) { return v >= r.lo && v <= r.hi; })) return false;
+  }
   return true;
+}
+
+void put_table(std::vector<std::uint8_t>& out, std::string_view magic, std::uint32_t rows,
+               std::initializer_list<std::vector<std::int64_t>> columns) {
+  const auto header = column_header(magic, rows, static_cast<std::uint32_t>(columns.size()));
+  out.insert(out.end(), header.begin(), header.end());
+  for (const auto& col : columns) {
+    for (const std::int64_t v : col) put_i64(out, v);
+  }
+}
+
+template <typename T, typename F>
+std::vector<std::int64_t> column(std::span<const T> rows, F field) {
+  std::vector<std::int64_t> out;
+  out.reserve(rows.size());
+  for (const T& r : rows) out.push_back(static_cast<std::int64_t>(field(r)));
+  return out;
 }
 
 class Opener {
@@ -214,6 +271,82 @@ class Opener {
     return true;
   }
 
+  bool news_table(std::span<const std::uint8_t> raw, std::size_t* pos) {
+    std::vector<std::int64_t> c;
+    const std::size_t n = m_.events;
+    if (!decode_table(raw, pos, "TLE1", m_.events, kNewsColumns, &c) || !in_ranges(c, n, kNewsRanges)) return false;
+    news_.resize(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      NewsItem& item = news_[i];
+      item.release_step = static_cast<std::uint32_t>(c[i]);
+      item.kind = static_cast<NewsKind>(c[n + i]);
+      item.tone = static_cast<std::int8_t>(c[2 * n + i]);
+      item.credibility = static_cast<std::uint8_t>(c[3 * n + i]);
+      item.expectation = static_cast<std::int8_t>(c[4 * n + i]);
+      item.actual = static_cast<std::int8_t>(c[5 * n + i]);
+      item.announce_lead = static_cast<std::uint32_t>(c[6 * n + i]);
+    }
+    return true;
+  }
+
+  bool liquidity_table(std::span<const std::uint8_t> raw, std::size_t* pos) {
+    std::vector<std::int64_t> c;
+    const std::size_t n = m_.liquidity_shocks;
+    if (!decode_table(raw, pos, "TLQ1", m_.liquidity_shocks, kLiquidityColumns, &c) || !in_ranges(c, n, kLiquidityRanges)) return false;
+    liquidity_.resize(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      liquidity_[i] = {static_cast<std::uint32_t>(c[i]), static_cast<std::uint32_t>(c[n + i]), static_cast<std::uint32_t>(c[2 * n + i]),
+                       static_cast<std::uint32_t>(c[3 * n + i])};
+    }
+    return true;
+  }
+
+  // events.bin: the news table, then the liquidity-shock table.
+  bool events() {
+    if (m_.events > lim_.max_events || m_.liquidity_shocks > lim_.max_events) return fail("too_many_events");
+    if (entry("events.bin") == nullptr) return (m_.events == 0 && m_.liquidity_shocks == 0) || fail("missing_file", "events.bin");
+    std::vector<std::uint8_t> raw;
+    if (!inflate("events.bin", &raw)) return false;
+    std::size_t pos = 0;
+    const bool ok = news_table(raw, &pos) && liquidity_table(raw, &pos) && pos == raw.size();
+    return ok || fail("malformed_data", "events.bin");
+  }
+
+  bool series_table(std::span<const std::uint8_t> raw, std::size_t* pos) {
+    std::vector<std::int64_t> c;
+    const std::size_t n = m_.option_series;
+    if (!decode_table(raw, pos, "TLO1", m_.option_series, kSeriesColumns, &c) || !in_ranges(c, n, kSeriesRanges)) return false;
+    series_.resize(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      series_[i] = {static_cast<std::uint32_t>(c[i]), static_cast<OptionKind>(c[n + i]), Price::from_raw(c[2 * n + i]),
+                    static_cast<std::uint32_t>(c[3 * n + i]), static_cast<std::uint32_t>(c[4 * n + i])};
+    }
+    return true;
+  }
+
+  bool iv_table(std::span<const std::uint8_t> raw, std::size_t* pos) {
+    std::vector<std::int64_t> c;
+    const std::uint32_t rows = m_.iv_kind == "file" ? m_.bars : 0;
+    if (!decode_table(raw, pos, "TLI1", rows, 1, &c)) return false;
+    if (std::any_of(c.begin(), c.end(), [](std::int64_t v) { return v <= 0 || v > kMaxIvRaw; })) return false;
+    iv_.resize(rows);
+    std::transform(c.begin(), c.end(), iv_.begin(), [](std::int64_t v) { return Vol::from_raw(v); });
+    return true;
+  }
+
+  // options.bin: the series table, then the IV table (one row per bar with ivModel "file", else empty).
+  bool options() {
+    if (m_.option_series > lim_.max_option_series) return fail("too_many_series");
+    const bool present = entry("options.bin") != nullptr;
+    if (!m_.has_options) return (!present && m_.iv_kind != "file") || fail("missing_field", "instruments.options");
+    if (!present) return fail("missing_file", "options.bin");
+    std::vector<std::uint8_t> raw;
+    if (!inflate("options.bin", &raw)) return false;
+    std::size_t pos = 0;
+    const bool ok = series_table(raw, &pos) && iv_table(raw, &pos) && pos == raw.size();
+    return ok || fail("malformed_data", "options.bin");
+  }
+
   bool reveal() {
     const TarEntry* e = entry("reveal.json");
     if (e == nullptr) return true;
@@ -228,9 +361,21 @@ class Opener {
     return true;
   }
 
+  // A synthetic pack is generated throughout; in a branch pack every bar after the branch point is
+  // (spec "Branch labeling"); historical bars are not.
+  bool label_bars() {
+    if (m_.mode == "synthetic") {
+      for (Bar& b : bars_) b.synthetic = true;
+    }
+    if (!m_.branch_step) return true;
+    if (*m_.branch_step + 1 >= m_.bars) return fail("invalid_field", "data.branchStep");
+    for (std::size_t i = *m_.branch_step + 1; i < bars_.size(); ++i) bars_[i].synthetic = true;
+    return true;
+  }
+
   bool data() {
     if (m_.bars > lim_.max_bars) return fail("too_many_bars");
-    return bars() && funding() && reveal();
+    return bars() && funding() && events() && options() && reveal() && label_bars();
   }
 
   bool scenario() {
@@ -241,6 +386,13 @@ class Opener {
     sc.mission = m_.mission;
     sc.bars = std::move(bars_);
     sc.funding_rate = std::move(funding_);
+    sc.news = std::move(news_);
+    sc.liquidity = std::move(liquidity_);
+    if (m_.has_options) {
+      sc.options = m_.options;
+      sc.options.series = std::move(series_);
+      sc.options.iv_base = std::move(iv_);
+    }
     const ScenarioError e = validate(sc);
     if (e != ScenarioError::Ok) return fail("invalid_scenario", std::to_string(static_cast<int>(e)));
     PackInfo& info = out_.info;
@@ -274,6 +426,10 @@ class Opener {
   Manifest m_;
   std::vector<Bar> bars_;
   std::vector<Rate> funding_;
+  std::vector<NewsItem> news_;
+  std::vector<LiquidityShock> liquidity_;
+  std::vector<OptionSeries> series_;
+  std::vector<Vol> iv_;
 };
 
 }  // namespace
@@ -291,6 +447,35 @@ std::vector<std::uint8_t> encode_bars(std::span<const Bar> bars) {
 std::vector<std::uint8_t> encode_funding(std::span<const Rate> rates) {
   auto out = column_header("TLF1", static_cast<std::uint32_t>(rates.size()), 1);
   for (const Rate& r : rates) put_i64(out, r.raw);
+  return out;
+}
+
+std::vector<std::uint8_t> encode_events(std::span<const NewsItem> news, std::span<const LiquidityShock> liquidity) {
+  std::vector<std::uint8_t> out;
+  put_table(out, "TLE1", static_cast<std::uint32_t>(news.size()),
+            {column(news, [](const NewsItem& n) { return n.release_step; }),
+             column(news, [](const NewsItem& n) { return static_cast<int>(n.kind); }),
+             column(news, [](const NewsItem& n) { return n.tone; }), column(news, [](const NewsItem& n) { return n.credibility; }),
+             column(news, [](const NewsItem& n) { return n.expectation; }), column(news, [](const NewsItem& n) { return n.actual; }),
+             column(news, [](const NewsItem& n) { return n.announce_lead; })});
+  put_table(out, "TLQ1", static_cast<std::uint32_t>(liquidity.size()),
+            {column(liquidity, [](const LiquidityShock& l) { return l.start; }),
+             column(liquidity, [](const LiquidityShock& l) { return l.bars; }),
+             column(liquidity, [](const LiquidityShock& l) { return l.spread_pct; }),
+             column(liquidity, [](const LiquidityShock& l) { return l.capacity_pct; })});
+  return out;
+}
+
+std::vector<std::uint8_t> encode_options(const OptionSpec& options) {
+  const std::span<const OptionSeries> s = options.series;
+  std::vector<std::uint8_t> out;
+  put_table(out, "TLO1", static_cast<std::uint32_t>(s.size()),
+            {column(s, [](const OptionSeries& x) { return x.id; }),
+             column(s, [](const OptionSeries& x) { return static_cast<int>(x.kind); }),
+             column(s, [](const OptionSeries& x) { return x.strike.raw; }), column(s, [](const OptionSeries& x) { return x.list_step; }),
+             column(s, [](const OptionSeries& x) { return x.expiry_step; })});
+  const std::span<const Vol> iv = options.iv_base;
+  put_table(out, "TLI1", static_cast<std::uint32_t>(iv.size()), {column(iv, [](const Vol& v) { return v.raw; })});
   return out;
 }
 

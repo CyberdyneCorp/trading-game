@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -19,6 +20,9 @@ enum class ZstdStatus : std::uint8_t { Ok, Malformed, TooLarge };
 // guard); a different exact size or a corrupt frame is Malformed.
 ZstdStatus zstd_decompress(std::span<const std::uint8_t> in, std::size_t declared_size, std::size_t hard_cap,
                            std::vector<std::uint8_t>* out);
+
+// The content size a zstd frame declares in its header; nullopt when absent or malformed.
+std::optional<std::uint64_t> zstd_content_size(std::span<const std::uint8_t> in);
 
 // A valid zstd frame holding `in` in raw (stored) blocks with its content size: what the engine
 // writes for private imports, where compression is not worth an encoder in every client.

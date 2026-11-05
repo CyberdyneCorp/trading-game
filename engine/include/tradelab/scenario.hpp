@@ -106,6 +106,17 @@ struct NewsItem {
   std::uint32_t announce_lead = 0;
 };
 
+// Event spread and capacity channels (spec market-generator "Events"; generator v5): from bar
+// `start` for `bars` bars, the half-spread and slippage are scaled by spread_pct / 100 and the
+// capacity fraction by capacity_pct / 100 (100 = the cost model as declared). Execution reads the
+// costs of the bar it fills on (costs_at); the bars themselves never depend on it.
+struct LiquidityShock {
+  std::uint32_t start = 0;
+  std::uint32_t bars = 0;
+  std::uint32_t spread_pct = 100;    // 10..1000
+  std::uint32_t capacity_pct = 100;  // 0..1000
+};
+
 struct Scenario {
   std::string id;
   std::string alias;  // masked market name shown to the player
@@ -118,6 +129,7 @@ struct Scenario {
   std::vector<Rate> funding_rate;
   OptionSpec options;  // empty series => perpetual-only scenario
   std::vector<NewsItem> news;
+  std::vector<LiquidityShock> liquidity;  // empty => the cost model on every bar
 };
 
 enum class ScenarioError : std::uint8_t {
@@ -130,9 +142,14 @@ enum class ScenarioError : std::uint8_t {
   FundingLengthMismatch,
   InvalidOptions,
   InvalidNews,
+  InvalidLiquidity,
 };
 
 ScenarioError validate(const Scenario& s);
+
+// The cost model in force on `bar`: the declared costs with every liquidity shock covering that bar
+// applied (spread and slippage rounded up, capacity rounded down). Equal to s.costs without shocks.
+CostModel costs_at(const Scenario& s, std::uint32_t bar);
 
 constexpr Rate rate_one() { return Rate::from_raw(Rate::kScale); }
 

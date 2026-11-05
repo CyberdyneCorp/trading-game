@@ -39,6 +39,8 @@ struct GenState {
   double event_drift = 0.0;  // transient news reaction for the current bar (not fundamental)
   double iv_var = 0.0;       // smoothed per-bar variance that implied vol prices (0 = not seeded)
   double news_gap = 0.0;     // log gap at this bar's open: the share of fresh news priced on arrival
+  double event_jump = 0.0;   // event jump channel at this bar (log; liquidity, not information)
+  double funding_shift = 0.0;  // event funding channel for the rate published at the last close
 };
 
 constexpr double kTrendEmaBars = 20.0;
@@ -76,7 +78,7 @@ Bar make_bar(const Segment& seg, const GeneratorSpec& spec, GenState& g, Pcg32& 
   const bool jump = rng.next_unit() < seg.jump_prob;
   const double jump_size = jump ? g.direction * seg.jump_mean * (0.5 + rng.next_unit()) : 0.0;
   const double drift = g.direction * seg.drift;
-  const double ret = drift + g.event_drift + structure(seg, spec, g) + sigma * z + jump_size + squeeze(spec, g, rng);
+  const double ret = drift + g.event_drift + structure(seg, spec, g) + sigma * z + jump_size + squeeze(spec, g, rng) + g.event_jump;
   g.variance = 0.85 * g.variance + 0.15 * z * z;
   g.drift_ema = 0.8 * g.drift_ema + 0.2 * ret;
   g.prev_ret = ret;
@@ -137,7 +139,7 @@ void apply_news(const GeneratorSpec& spec, std::uint32_t index, GenState& g) {
 // Crowding as known at the last close: the bias of the segment that bar belonged to, never the
 // next bar's (that would announce a regime change one bar early).
 double funding_raw(const GeneratorSpec& spec, const GenState& g) {
-  const double raw = spec.funding_base + spec.funding_sensitivity * g.drift_ema * 0.01 + g.funding_bias;
+  const double raw = spec.funding_base + spec.funding_sensitivity * g.drift_ema * 0.01 + g.funding_bias + g.funding_shift;
   return std::clamp(raw, -0.003, 0.003);
 }
 
@@ -159,6 +161,45 @@ double reaction_drift(const GeneratorSpec& spec, const std::vector<int>& reactio
     if (reacting(spec.events[e], index)) d += reactions[e] * spec.events[e].drift;
   }
   return d;
+}
+
+// Event jump channel at bar `index`: each active event with a jump probability draws on its own
+// stream (seed, event, bar), so events without the channel draw nothing and change nothing.
+double event_jumps(const GeneratorSpec& spec, const std::vector<int>& reactions, std::uint64_t seed, std::uint32_t index) {
+  double j = 0.0;
+  for (std::size_t e = 0; e < spec.events.size(); ++e) {
+    const ScriptedEvent& ev = spec.events[e];
+    if (ev.jump_prob <= 0.0 || !reacting(ev, index)) continue;
+    Pcg32 rng((seed * 1000003ULL + e) * 1000003ULL + index, Stream::EventJump);
+    const double u = rng.next_unit();
+    const double size = rng.next_unit();
+    if (u >= ev.jump_prob) continue;
+    const int dir = reactions[e] != 0 ? reactions[e] : direction_of(ev.item);
+    j += dir * ev.jump_size * (0.5 + size);
+  }
+  return j;
+}
+
+// Event funding channel for the rate of bar `index` (published at the close of index - 1).
+double funding_shift(const GeneratorSpec& spec, std::uint32_t index) {
+  double f = 0.0;
+  for (const ScriptedEvent& ev : spec.events) {
+    if (reacting(ev, index)) f += ev.funding_shift;
+  }
+  return f;
+}
+
+std::uint32_t pct_of(double mult) { return static_cast<std::uint32_t>(std::floor(std::max(0.0, mult) * 100.0 + 0.5)); }
+
+// Event spread and capacity channels: one liquidity shock per declaring event over its active bars.
+void add_liquidity(const GeneratorSpec& spec, Scenario& out) {
+  out.liquidity.clear();
+  const auto total = static_cast<std::uint32_t>(out.bars.size());
+  for (const ScriptedEvent& ev : spec.events) {
+    const std::uint32_t start = ev.item.release_step + 1;
+    if ((ev.spread_mult == 1.0 && ev.capacity_mult == 1.0) || start >= total || ev.duration == 0) continue;
+    out.liquidity.push_back({start, std::min(ev.duration, total - start), pct_of(ev.spread_mult), pct_of(ev.capacity_mult)});
+  }
 }
 
 // Segment parameters for bar `index` with every active event's volatility effects applied.
@@ -342,6 +383,8 @@ void generate_market(const GeneratorSpec& declared, std::uint64_t seed, Scenario
       if (i == 0) start_segment(base, spec, g, rng, index, spans);
       const Segment seg = with_events(base, spec, index);
       g.event_drift = reaction_drift(spec, reactions, index);
+      g.event_jump = event_jumps(spec, reactions, seed, index);
+      g.funding_shift = funding_shift(spec, index);
       // The rate for bar i is published at the close of bar i-1, so it may only use state up to i-1.
       g.funding = funding_raw(spec, g);
       out.funding_rate.push_back(to_rate(g.funding));
@@ -350,6 +393,7 @@ void generate_market(const GeneratorSpec& declared, std::uint64_t seed, Scenario
       out.options.iv_base.push_back(implied_vol(seg, spec, g));
     }
   }
+  add_liquidity(spec, out);
 }
 
 }  // namespace tradelab
