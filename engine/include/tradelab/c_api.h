@@ -108,6 +108,29 @@ tl_run* tl_run_create_pack(const uint8_t* data, uint32_t size, const char* trust
 tl_run* tl_run_restore_pack(const uint8_t* data, uint32_t size, const char* trusted_keys_json, uint32_t seed,
                             const char* checkpoint_hex);
 
+/* ---- Pack authoring (tools/packer; native only, not exported to WASM). ----
+ * A pack source is an uncompressed archive of manifest.json and the raw data files, read with
+ * tl_blob_data/tl_blob_size. The packer compresses the .bin files (zstd frames declaring their
+ * content size) and writes the signed pack with tl_pack_write. */
+
+/* A built-in mission generated for a seed as a synthetic pack source:
+ * {"ok","reason","detail","scenarioId","files":[names]}. */
+const char* tl_pack_source_mission(const char* mission_id, uint32_t seed);
+/* A masked CSV window as a publishable (not private) historical pack source. meta_json is the
+ * tl_pack_build_csv metadata, optionally with "branchStep", "branchMission" and "branchSeed" for a
+ * branch pack (bars after branchStep come from that mission and seed, marked synthetic). Returns
+ * {"ok","reason","detail","report","scenarioId","files"}. */
+const char* tl_pack_source_csv(const char* csv, const char* meta_json);
+/* Writes a pack from a manifest and an archive of stored files, signed with the key derived from a
+ * 32-byte seed (64 hex) under the id "<key_prefix>-<16 hex>" (prefix: 1-16 of [a-z]).
+ * {"ok","reason","digest","size","signingKeyId"}; the pack is then in tl_blob_data/tl_blob_size. */
+const char* tl_pack_write(const char* manifest_json, const uint8_t* files_tar, uint32_t size, const char* seed_hex,
+                          const char* key_prefix);
+/* Signs a non-private pack again with another key (same files and manifest); result as tl_pack_write. */
+const char* tl_pack_resign(const uint8_t* pack, uint32_t size, const char* seed_hex, const char* key_prefix);
+/* {"id":"<prefix>-<16 hex>","publicKey":"<64 hex>"} or {"error":"invalid_seed"|"invalid_prefix"}. */
+const char* tl_signing_key(const char* seed_hex, const char* key_prefix);
+
 #ifdef __cplusplus
 }
 #endif

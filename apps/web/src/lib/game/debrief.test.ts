@@ -136,6 +136,16 @@ describe('revealTexts', () => {
 		expect(r.transform).toBe('rebased to 100');
 		expect(r.line).toContain('(publisher)');
 	});
+	it('regression: a synthetic pack reveals a generated market, not "era — (—), de a ()" and an empty transformation', () => {
+		const empty: PackReveal = { asset: '', pair: '', venue: '', periodFrom: '', periodTo: '', source: '', transformation: '', gaps: 0 };
+		const r = revealTexts(empty, 'K6A', 'synthetic');
+		expect(r.line).toBe('O mercado K6A foi gerado sinteticamente e distribuído em um pacote. Preços simulados; não representam um ativo real.');
+		expect(r.transform).toBe('');
+		i18n.locale = 'en';
+		expect(revealTexts(empty, 'K6A', 'synthetic').line).toContain('generated synthetically');
+		i18n.locale = 'pt-BR';
+		expect(revealTexts(csv, 'K', 'historical').line).toContain('BTC/USDT');
+	});
 });
 
 describe('debrief rows (playtest regressions)', () => {

@@ -30,23 +30,24 @@ struct BarCtx {
   const Scenario& sc;
   RunState& st;
   const Bar& bar;
+  CostModel costs;  // of this bar: the cost model with any liquidity shock applied
   Qty capacity;
   bool entered_intrabar = false;
 };
 
-Qty bar_capacity(const Scenario& sc, const Bar& bar) {
-  const Qty raw = detail::unwrap(mul<Qty>(bar.volume, sc.costs.capacity_fraction, Rounding::Floor));
+Qty bar_capacity(const Scenario& sc, const Bar& bar, const CostModel& costs) {
+  const Qty raw = detail::unwrap(mul<Qty>(bar.volume, costs.capacity_fraction, Rounding::Floor));
   return detail::unwrap(round_to_step(raw, sc.contract.lot_size, Rounding::Floor));
 }
 
 // Taker execution price: base adjusted by half-spread + slippage against the player, on the tick grid.
-Price taker_price(const Scenario& sc, Price base, OrderSide side) {
-  const Rate cost = Rate::from_raw(sc.costs.half_spread.raw + sc.costs.slippage.raw);
+Price taker_price(const BarCtx& c, Price base, OrderSide side) {
+  const Rate cost = Rate::from_raw(c.costs.half_spread.raw + c.costs.slippage.raw);
   const Price adj = detail::unwrap(mul<Price>(base, cost, side == OrderSide::Buy ? Rounding::Ceil : Rounding::Floor));
   const Price raw = Price::from_raw(side == OrderSide::Buy ? base.raw + adj.raw : base.raw - adj.raw);
   const Rounding mode = side == OrderSide::Buy ? Rounding::Ceil : Rounding::Floor;
-  const Price px = detail::unwrap(round_to_step(raw, sc.contract.tick_size, mode));
-  return std::max(px, sc.contract.tick_size);
+  const Price px = detail::unwrap(round_to_step(raw, c.sc.contract.tick_size, mode));
+  return std::max(px, c.sc.contract.tick_size);
 }
 
 void cancel(RunState& st, Order& o, Reason reason) {
@@ -165,7 +166,7 @@ bool execute(BarCtx& c, Order& o, const Exec& ex) {
 // (e.g. "close position") cut short by capacity keeps working at the next opens instead, so a
 // close never silently leaves part of the position open.
 void execute_market(BarCtx& c, Order& o) {
-  execute(c, o, {taker_price(c.sc, c.bar.open, o.side), false, kFlagNone});
+  execute(c, o, {taker_price(c, c.bar.open, o.side), false, kFlagNone});
   if (!o.active()) return;
   const bool out_of_capacity = c.capacity.raw == 0;
   if (out_of_capacity && o.reduce_only && !c.st.position.flat()) return;
@@ -246,7 +247,7 @@ void open_gap_orders(BarCtx& c, std::uint32_t index) {
   const auto key = [&](const Order& o) { return reach_key(o, from, dir); };
   const auto eligible = [&](const Order& o) { return gapped_through(c, o); };
   priority_pass(c, eligible, key, [&](Order& o) {
-    if (is_stop(o)) execute_stop(c, o, {taker_price(c.sc, c.bar.open, o.side), false, kFlagGapFill});
+    if (is_stop(o)) execute_stop(c, o, {taker_price(c, c.bar.open, o.side), false, kFlagGapFill});
     else execute(c, o, {c.bar.open, true, kFlagGapFill});
   });
 }
@@ -301,7 +302,7 @@ bool adverse_step(BarCtx& c, bool post_entry) {
   const std::uint8_t amb = (post_entry || favorable_exit_reachable(c)) ? kFlagAmbiguousIntrabar : kFlagNone;
   // Liquidation wins ties and any stop sitting beyond the liquidation price.
   const bool stop_first = stop != nullptr && (!liq_hit || (is_long ? stop->price > liq : stop->price < liq));
-  if (stop_first) return execute_stop(c, *stop, {taker_price(c.sc, stop->price, stop->side), false, amb});
+  if (stop_first) return execute_stop(c, *stop, {taker_price(c, stop->price, stop->side), false, amb});
   if (liq_hit) detail::liquidate(c.sc, c.st, liq, amb);
   return liq_hit;
 }
@@ -340,7 +341,7 @@ void entries(BarCtx& c) {
   };
   const auto key = [&](const Order& o) { return reach_key(o, c.bar.open, 0); };
   priority_pass(c, eligible, key, [&](Order& o) {
-    if (is_stop(o)) execute_stop(c, o, {taker_price(c.sc, o.price, o.side), false, kFlagAmbiguousIntrabar});
+    if (is_stop(o)) execute_stop(c, o, {taker_price(c, o.price, o.side), false, kFlagAmbiguousIntrabar});
     else execute(c, o, {o.price, true, kFlagAmbiguousIntrabar});
   });
 }
@@ -463,7 +464,8 @@ void advance(const Scenario& sc, RunState& st) {
   if (st.status != RunStatus::Active) return;
   const std::uint32_t index = st.step + 1;
   st.step = index;  // events of this step are stamped with the bar being processed
-  BarCtx c{sc, st, sc.bars[index], bar_capacity(sc, sc.bars[index])};
+  const CostModel costs = costs_at(sc, index);
+  BarCtx c{sc, st, sc.bars[index], costs, bar_capacity(sc, sc.bars[index], costs)};
   open_phase(c, index);
   detail::option_open_phase(sc, st, index);
   intrabar_phase(c);
