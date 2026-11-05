@@ -30,7 +30,7 @@ const char* reason_name(Reason r) {
       "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
       "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
       "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left", "order_moved", "leverage_above_tier", "series_settling"};
+      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left", "order_moved", "leverage_above_tier"};
   const auto i = static_cast<std::size_t>(r);
   return i < std::size(kNames) ? kNames[i] : "unknown";
 }
@@ -82,10 +82,6 @@ void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.field("fundingInterval", k.funding_interval).field("allowShort", sc.mission.allow_short);
   j.field("halfSpread", sc.costs.half_spread).field("slippage", sc.costs.slippage);
   j.field("capacityFraction", sc.costs.capacity_fraction);
-  // Policy v17: margin and liquidation read the last price when the scenario has no mark series;
-  // indicators treat continuity bars by the gap policy.
-  j.field("markFromLastPrice", mark_from_last_price(sc));
-  j.field("gapPolicy", sc.mission.gap_policy == GapPolicy::Skip ? "skip" : "carryForward");
   write_margin_tiers(j, k);
   j.end_obj();
 }
@@ -95,8 +91,7 @@ void write_bars(JsonOut& j, const Scenario& sc, std::uint32_t last) {
   j.key("bars").begin_arr();
   for (std::uint32_t i = 0; i <= last; ++i) {
     const Bar& b = sc.bars[i];
-    j.begin_arr().dec(b.open).dec(b.high).dec(b.low).dec(b.close).dec(b.volume).boolean(b.synthetic);
-    j.boolean(b.continuity).end_arr();
+    j.begin_arr().dec(b.open).dec(b.high).dec(b.low).dec(b.close).dec(b.volume).boolean(b.synthetic).end_arr();
   }
   j.end_arr();
 }
@@ -150,7 +145,7 @@ void write_event(JsonOut& j, const RunState& st, const Event& e) {
   j.field("amount", e.amount).field("pnl", e.pnl);
   j.field("ambiguous", (e.flags & kFlagAmbiguousIntrabar) != 0).field("gap", (e.flags & kFlagGapFill) != 0);
   j.field("capacityLimited", (e.flags & kFlagCapacityFromBarVolume) != 0).field("series", e.series);
-  j.field("approximate", (e.flags & kFlagApproximate) != 0);
+  j.field("approximate", (e.flags & kFlagMarkFromLastPrice) != 0);
   j.end_obj();
 }
 
@@ -166,12 +161,12 @@ void write_totals(JsonOut& j, const RunState& st) {
   j.end_obj();
 }
 
-void write_quote(JsonOut& j, const OptionSeries& s, const OptionQuote& q, bool settling) {
+void write_quote(JsonOut& j, const OptionSeries& s, const OptionQuote& q) {
   j.begin_obj().field("id", s.id).field("kind", s.kind == OptionKind::Call ? "call" : "put").field("strike", s.strike);
   j.field("listStep", s.list_step).field("expiryStep", s.expiry_step).field("listed", q.listed);
   j.field("bid", q.bid).field("ask", q.ask).field("mid", q.mid).field("iv", q.iv);
   j.field("delta", q.delta).field("gamma", q.gamma).field("theta", q.theta).field("vega", q.vega);
-  j.field("ivFromRealized", q.iv_from_realized).field("settling", settling).end_obj();
+  j.field("ivFromRealized", q.iv_from_realized).end_obj();
 }
 
 // Chain at the current decision step only: listed, unexpired series quoted from the current close.
@@ -181,14 +176,11 @@ void write_options(JsonOut& j, const Scenario& sc, const RunState& st) {
   const detail::OptionBook b = detail::option_book(sc, st, st.step);
   j.key("options").begin_obj().field("enabled", !o.series.empty()).field("allowShort", o.allow_short);
   j.field("multiplier", o.multiplier).field("premiumTick", o.premium_tick).field("lotSize", o.lot_size);
-  j.field("settlementMinutes", o.settlement_minutes);
   j.field("longValue", b.long_value).field("shortValue", b.short_value);
   j.field("initialMargin", b.initial_margin).field("maintenanceMargin", b.maintenance_margin);
   j.key("chain").begin_arr();
   for (const OptionSeries& s : o.series) {
-    if (st.step < s.list_step || st.step >= s.expiry_step) continue;
-    // An order placed now executes at the next open: inside the settlement window it is refused.
-    write_quote(j, s, quote(sc, s, st.step, f), in_settlement_window(sc, s, st.step + 1));
+    if (st.step >= s.list_step && st.step < s.expiry_step) write_quote(j, s, quote(sc, s, st.step, f));
   }
   j.end_arr().key("positions").begin_arr();
   for (const OptionPosition& p : st.option_positions) {

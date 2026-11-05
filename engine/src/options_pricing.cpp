@@ -132,46 +132,13 @@ OptionQuote quote(const Scenario& sc, const OptionSeries& series, std::uint32_t 
   return q;
 }
 
-namespace {
-
-// Half-even mean of the last n prices of `closes` (n >= 1), on the tick grid.
-Price twap(const Scenario& sc, const std::vector<Price>& closes, std::size_t n) {
-  i128 sum = 0;
-  for (std::size_t i = closes.size() - n; i < closes.size(); ++i) sum += closes[i].raw;
-  const auto avg = static_cast<std::int64_t>(div_round(sum, static_cast<std::int64_t>(n), Rounding::HalfEven));
-  return round_to_step(Price::from_raw(avg), sc.contract.tick_size, Rounding::HalfEven).value();
-}
-
-const SubBars* sub_bars_for(const Scenario& sc, std::uint32_t step) {
-  for (const SubBars& x : sc.sub_bars) {
-    if (x.bar == step) return &x;
-  }
-  return nullptr;
-}
-
-}  // namespace
-
 Price settlement_price(const Scenario& sc, std::uint32_t step, bool* approximated) {
-  const std::uint32_t window = sc.options.settlement_minutes;
-  const SubBars* sub = sub_bars_for(sc, step);
-  if (sub != nullptr && window % sub->minutes == 0 && window / sub->minutes <= sub->closes.size()) {
-    *approximated = false;
-    return twap(sc, sub->closes, window / sub->minutes);
-  }
-  const std::uint32_t per_bar = sc.options.minutes_per_step;
-  const std::uint32_t covering = std::min((window + per_bar - 1) / per_bar, step + 1);
-  *approximated = window % per_bar != 0 || covering * per_bar < window;
-  std::vector<Price> closes(covering);
-  for (std::uint32_t i = 0; i < covering; ++i) closes[i] = sc.bars[step + 1 - covering + i].close;
-  return twap(sc, closes, covering);
-}
-
-bool in_settlement_window(const Scenario& sc, const OptionSeries& series, std::uint32_t bar) {
-  // Minutes from the open of bar 0: bar b opens at b * per_bar; the expiry closes at (expiry + 1) * per_bar.
-  const std::uint64_t per_bar = sc.options.minutes_per_step;
-  const std::uint64_t expiry_close = (series.expiry_step + 1ULL) * per_bar;
-  const std::uint64_t window = sc.options.settlement_minutes;
-  return static_cast<std::uint64_t>(bar) * per_bar + window >= expiry_close;
+  const std::uint32_t n = std::max<std::uint32_t>(1, std::min(sc.options.settlement_bars, step + 1));
+  *approximated = n == 1;  // a single close stands in for the venue's 30-minute TWAP
+  i128 sum = 0;
+  for (std::uint32_t i = step + 1 - n; i <= step; ++i) sum += sc.bars[i].close.raw;
+  const auto avg = static_cast<std::int64_t>(div_round(sum, n, Rounding::HalfEven));
+  return round_to_step(Price::from_raw(avg), sc.contract.tick_size, Rounding::HalfEven).value();
 }
 
 }  // namespace tradelab

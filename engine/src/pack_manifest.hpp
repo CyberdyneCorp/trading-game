@@ -49,9 +49,6 @@ struct Manifest {
   MissionRules mission;
   std::uint32_t bars = 0;
   std::uint32_t gaps = 0;
-  // data.gapPolicy (optional, policy v17): "skip" or "carryForward" when gaps are filled with
-  // continuity bars; bars.bin then has a sixth column (1 = continuity bar). Empty = absent.
-  std::string gap_policy;
   std::vector<ManifestFile> files;
   std::string signing_key_id;
   ManifestLicense license;

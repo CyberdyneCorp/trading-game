@@ -18,24 +18,6 @@ struct Bar {
   Price close;
   Qty volume;
   bool synthetic = false;  // generated (event lab / branch) bar
-  // Synthetic continuity bar (spec indicators "Gaps in data"): the market did not trade. It repeats
-  // the previous close (open = high = low = close, zero volume), has zero executable capacity and is
-  // fed to indicators by the scenario's gap policy (policy v17).
-  bool continuity = false;
-};
-
-// How indicators treat continuity bars (policy v17): Skip leaves them out of every input (no value at
-// a continuity bar; VWAP sessions still count real bars); CarryForward feeds them as flat bars at the
-// previous close with zero volume.
-enum class GapPolicy : std::uint8_t { Skip = 0, CarryForward = 1 };
-
-// Sub-bar closes ending at the close of bar `bar` (oldest first; the last equals the bar's close),
-// `minutes` apart. Used for TWAP settlement windows finer than a bar (spec options "Expiry and
-// settlement", policy v17).
-struct SubBars {
-  std::uint32_t bar = 0;
-  std::uint32_t minutes = 1;
-  std::vector<Price> closes;
 };
 
 // Maintenance-margin tier (execution-policy v16): a position whose notional at its average entry is at
@@ -72,7 +54,6 @@ struct MissionRules {
   std::int32_t leverage_cap = 1;
   std::uint32_t warmup_bars = 0;  // bars visible before the first decision point
   bool allow_short = true;
-  GapPolicy gap_policy = GapPolicy::Skip;  // continuity bars in indicators (policy v17)
 };
 
 enum class OptionKind : std::uint8_t { Call = 0, Put = 1 };
@@ -99,11 +80,7 @@ struct OptionSpec {
   Vol smile;
   Vol term_slope;
   std::uint32_t minutes_per_step = 60;
-  // Settlement window in market time ending at the expiry close (policy v17): TWAP of sub-bar closes
-  // when the scenario has them for the expiry bar, else the mean of the closes of the bars covering
-  // the window (the expiry close when the window is shorter than a bar), flagged approximate. Orders
-  // in the series that would execute inside the window are rejected with `series_settling`.
-  std::uint32_t settlement_minutes = 30;
+  std::uint32_t settlement_bars = 1;  // TWAP window in bars; 1 = expiry close (flagged approximate)
   // Short option margin per contract unit (fractions of the underlying price F):
   // IM = max(im_base - OTM/F, im_floor) * F + ask ; MM = mm_base * F + mark
   Rate im_base;
@@ -147,10 +124,6 @@ struct Scenario {
   CostModel costs;
   MissionRules mission;
   std::vector<Bar> bars;
-  // Mark-price bars (policy v17), one per bar: unrealized P&L, margin, liquidation and funding use
-  // them, fills use `bars`. Empty = the scenario is flagged markFromLastPrice and both use `bars`.
-  std::vector<Bar> mark;
-  std::vector<SubBars> sub_bars;  // finer closes around option expiries; may be empty
   // funding_rate[i]: rate charged at the close of bar i when i is a funding boundary.
   // Published (visible) from the close of bar i-1.
   std::vector<Rate> funding_rate;
@@ -168,19 +141,10 @@ enum class ScenarioError : std::uint8_t {
   FundingLengthMismatch,
   InvalidOptions,
   InvalidNews,
-  InvalidMark,
-  InvalidContinuity,
-  InvalidSubBars,
 };
 
 ScenarioError validate(const Scenario& s);
 
 constexpr Rate rate_one() { return Rate::from_raw(Rate::kScale); }
-
-// True when the scenario has no mark series and marks positions at the last price.
-inline bool mark_from_last_price(const Scenario& s) { return s.mark.empty(); }
-
-// The bar positions are marked against at index i: the mark bar, or the traded bar without one.
-inline const Bar& mark_bar(const Scenario& s, std::uint32_t i) { return s.mark.empty() ? s.bars[i] : s.mark[i]; }
 
 }  // namespace tradelab

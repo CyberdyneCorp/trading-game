@@ -118,7 +118,6 @@ CommandResult reject(Reason r) { return CommandResult{false, r, 0, Reason::None}
 Reason validate_option(const Scenario& sc, const RunState& st, const Command& c, const OptionSeries* s) {
   const OptionSpec& o = sc.options;
   if (s == nullptr || st.step < s->list_step || st.step >= s->expiry_step) return Reason::SeriesNotListed;
-  if (in_settlement_window(sc, *s, st.step + 1)) return Reason::SeriesSettling;  // executes at the next open
   if (c.order_type != OrderType::Market && c.order_type != OrderType::Limit) return Reason::UnsupportedOrderType;
   if (c.qty.raw <= 0 || c.qty.raw % o.lot_size.raw != 0) return Reason::InvalidQuantity;
   if (c.order_type == OrderType::Limit && (c.price.raw <= 0 || c.price.raw % o.premium_tick.raw != 0)) {
@@ -141,10 +140,6 @@ Money available_now(const Scenario& sc, const RunState& st, std::uint32_t exclud
 
 void execute_option_order(const Scenario& sc, RunState& st, Order& o, std::uint32_t bar) {
   const OptionSeries* s = find_series(sc, o.series);
-  if (in_settlement_window(sc, *s, bar)) {
-    cancel_order(st, o, Reason::SeriesSettling);
-    return;
-  }
   const Price f = sc.bars[bar].open;
   // IV published at the previous close; time to expiry from this bar.
   OptionQuote q = quote(sc, *s, bar - 1, f);
@@ -194,7 +189,7 @@ void settle_series(const Scenario& sc, RunState& st, const OptionSeries& s, std:
   ev.amount = paid;
   ev.pnl = pnl;
   ev.series = s.id;
-  ev.flags = approx ? kFlagApproximate : kFlagNone;
+  ev.flags = approx ? kFlagMarkFromLastPrice : kFlagNone;
   push_event(st, ev);
   std::erase_if(st.option_positions, [&s](const OptionPosition& x) { return x.series == s.id; });
 }

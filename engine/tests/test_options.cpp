@@ -127,7 +127,7 @@ TEST_CASE("OPT02: ITM put settles at intrinsic value") {
   REQUIRE(settle != nullptr);
   CHECK(settle->requested == P("8"));  // intrinsic 100 - 92
   CHECK(settle->amount == M("8"));
-  CHECK((settle->flags & kFlagApproximate) != 0);  // single-close settlement is flagged approximate
+  CHECK((settle->flags & kFlagMarkFromLastPrice) != 0);  // single-close settlement is flagged approximate
 }
 
 TEST_CASE("Writing options requires permission and margin; series must be listed") {

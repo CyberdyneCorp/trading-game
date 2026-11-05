@@ -22,7 +22,7 @@ def test_cross_binding_golden_matches_native_cpp():
         run.advance(30)
         run.close_position(6)
         state = run.advance(1000)
-    assert state["digest"] == "0296b3e88ee2cc9697a1d904530457a71bde1f58ba1b52136c154e5c2e0907f1"
+    assert state["digest"] == "bc79e4fc53bf3270f51206c25b10221539f6fe0a88c96d975fb7bbc81bdd8cb1"
     assert state["eventsDigest"] == "ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19"
 
 
@@ -79,7 +79,7 @@ def test_cross_binding_golden_with_advice_matches_native_cpp():
         state = run.advance(1000)
     assert state["advisor"]["left"] == 1
     assert len(state["advisor"]["advice"]) == 2
-    assert state["digest"] == "b4b86bfad81a81b303c7833879798fd8d2db50b783f8409a587b0e171d7c5963"
+    assert state["digest"] == "e249f38ada213a269e8dc4743d58f1dfdada962e0a00abd6f24d18f918fa474f"
     assert state["eventsDigest"] == "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f"
 
 

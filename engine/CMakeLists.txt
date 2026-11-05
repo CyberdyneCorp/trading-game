@@ -52,7 +52,6 @@ add_library(tradelab_engine STATIC
   src/fixed.cpp
   src/generator.cpp
   src/indicators.cpp
-  src/gaps.cpp
   src/candle_patterns.cpp
   src/missions.cpp
   src/options_exec.cpp
@@ -115,7 +114,6 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_campaign.cpp
     tests/test_brackets.cpp
     tests/test_policy_v16.cpp
-    tests/test_policy_v17.cpp
     tests/test_csv_import.cpp
     tests/test_ed25519.cpp
     tests/test_json_in.cpp

@@ -92,8 +92,7 @@ const char* tl_mission_reveal(const char* mission_id, uint32_t seed);
  * "errorCount","gaps":[{"line","from","to","missing"}],"gapCount","hasFunding","firstTime","lastTime"}
  * or {"ok":false,"metaError":"<field>"}. */
 const char* tl_csv_validate(const char* csv, const char* meta_json);
-/* Builds a private, masked pack from a CSV (metadata may add "leverageCap" 1..20, "warmupBars" and
- * "gapFill": "none" (default), "skip" or "carryForward" to fill gaps with continuity bars, policy v17),
+/* Builds a private, masked pack from a CSV (metadata may add "leverageCap" 1..20 and "warmupBars"),
  * signed with the device key derived from a 32-byte seed (64 hex). Returns {"ok","reason","report",
  * "scenarioId","digest","size"}; the pack bytes are then read with tl_blob_data/tl_blob_size. */
 const char* tl_pack_build_csv(const char* csv, const char* meta_json, const char* device_seed_hex);

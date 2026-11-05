@@ -20,7 +20,6 @@ using detail::JsonValue;
 constexpr std::uint32_t kMinPlayable = 20;
 constexpr std::uint32_t kFundingPeriodSeconds = 8 * 3600;
 constexpr std::size_t kMaxMetaText = 64;
-constexpr std::size_t kCsvMaxFilledBars = PackLimits{}.max_bars;  // rows plus continuity bars
 
 JsonValue json_str(std::string s) {
   JsonValue v;
@@ -107,7 +106,6 @@ struct CsvPlan {
   std::int32_t leverage_cap = 1;
   ContractSpec contract;
   std::string scenario_id;
-  const char* gap_policy = nullptr;  // data.gapPolicy when gaps were filled with continuity bars
 };
 
 std::string manifest_text(const CsvPlan& p, std::uint32_t bars) {
@@ -131,9 +129,7 @@ std::string manifest_text(const CsvPlan& p, std::uint32_t bars) {
   j.key("marginModel").begin_obj().field("maintenanceMargin", c.maintenance_margin).end_obj();
   j.key("missionRules").begin_obj().field("initialBalance", Money::from_raw(10'000 * Money::kScale));
   j.field("leverageCap", p.leverage_cap).field("warmupBars", p.warmup).field("allowShort", true).end_obj();
-  j.key("data").begin_obj().field("bars", bars).field("gaps", p.report.gap_count);
-  if (p.gap_policy != nullptr) j.field("gapPolicy", p.gap_policy);
-  j.end_obj();
+  j.key("data").begin_obj().field("bars", bars).field("gaps", p.report.gap_count).end_obj();
   j.key("files").begin_arr().end_arr().field("signingKeyId", "");
   j.key("provenance").begin_obj().field("source", "csv-import").field("tool", std::string("tradelab-engine ") + kEngineVersion).end_obj();
   j.key("license").begin_obj().field("name", "private-import").field("attribution", "").field("transformation", true);
@@ -170,24 +166,6 @@ PackBuild failed(PackBuild out, const char* reason) {
 
 std::uint32_t auto_warmup(std::uint32_t rows) { return std::clamp<std::uint32_t>(rows / 4, 20, 60); }
 
-// Bars and funding from the parsed rows. With `fill`, each missing interval becomes a continuity bar
-// (flat at the previous close, no volume, no funding); otherwise the rows are joined as they are.
-void csv_bars(const std::vector<CsvRow>& rows, const CsvMeta& meta, bool fill, std::vector<Bar>* bars,
-              std::vector<Rate>* funding) {
-  const std::int64_t step = meta.interval_seconds;
-  for (std::size_t i = 0; i < rows.size(); ++i) {
-    const CsvRow& r = rows[i];
-    const std::int64_t missing = fill && i > 0 ? (r.time - rows[i - 1].time) / step - 1 : 0;
-    for (std::int64_t k = 0; k < missing && bars->size() <= kCsvMaxFilledBars; ++k) {
-      const Price c = bars->back().close;
-      bars->push_back(Bar{c, c, c, c, Qty{}, false, true});
-      funding->push_back(Rate{});
-    }
-    bars->push_back(Bar{r.open, r.high, r.low, r.close, r.volume, false});
-    funding->push_back(r.funding);
-  }
-}
-
 }  // namespace
 
 std::vector<std::uint8_t> write_pack(std::string_view manifest_json, const std::vector<PackFile>& files, const KeyPair& key,
@@ -210,17 +188,17 @@ PackBuild build_csv_pack(std::string_view csv, const CsvMeta& meta, const Import
   std::vector<CsvRow> rows;
   out.report = import_csv(csv, meta, &rows);
   if (!out.report.ok) return failed(std::move(out), "csv_invalid");
-  std::vector<Bar> raw;
-  std::vector<Rate> funding;
-  const bool fill = rules.fill_gaps.has_value() && out.report.gap_count > 0;
-  csv_bars(rows, meta, fill, &raw, &funding);
-  if (raw.size() > kCsvMaxFilledBars) return failed(std::move(out), "too_many_bars");
-  const auto n = static_cast<std::uint32_t>(raw.size());
+  const auto n = static_cast<std::uint32_t>(rows.size());
   CsvPlan plan{meta, out.report, rules.warmup_bars == 0 ? auto_warmup(n) : rules.warmup_bars, rules.leverage_cap,
                practice_contract(meta.interval_seconds), {}};
-  if (fill) plan.gap_policy = *rules.fill_gaps == GapPolicy::CarryForward ? "carryForward" : "skip";
   if (!meta_ok(meta) || plan.leverage_cap < 1 || plan.leverage_cap > 20 || plan.warmup + kMinPlayable > n) {
     return failed(std::move(out), "invalid_rules");
+  }
+  std::vector<Bar> raw(n);
+  std::vector<Rate> funding(n);
+  for (std::uint32_t i = 0; i < n; ++i) {
+    raw[i] = Bar{rows[i].open, rows[i].high, rows[i].low, rows[i].close, rows[i].volume, false};
+    funding[i] = rows[i].funding;
   }
   std::vector<Bar> masked;
   if (!mask_bars(raw, plan.warmup, plan.contract.tick_size, &masked)) return failed(std::move(out), "masking_failed");

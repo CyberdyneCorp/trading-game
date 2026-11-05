@@ -346,7 +346,7 @@ void emit_order_update(RunState& st, const Order& o, Reason reason) {
 AccountView account_view(const Scenario& sc, const RunState& st) {
   AccountView v;
   const Position& p = st.position;
-  v.mark = mark_bar(sc, st.step).close;  // last close when the scenario has no mark series
+  v.mark = sc.bars[st.step].close;
   v.unrealized = detail::unrealized_pnl(sc, p, v.mark);
   v.equity = Money::from_raw(st.wallet.raw + v.unrealized.raw);
   v.position_margin = p.margin;

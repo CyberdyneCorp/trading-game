@@ -2,8 +2,6 @@
 
 #include <algorithm>
 
-#include "gaps.hpp"
-
 namespace tradelab {
 namespace {
 
@@ -101,7 +99,9 @@ std::int64_t dx(const DirectionalMove& s) {
   return percent(diff, s.plus + s.minus).raw;
 }
 
-Series sma_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
+}  // namespace
+
+Series sma(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
   Series out = empty(last);
   if (period == 0) return out;
   i128 sum = 0;
@@ -113,8 +113,8 @@ Series sma_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
   return out;
 }
 
-Series ema_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
-  Series out = sma_all(sc, last, period);
+Series ema(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
+  Series out = sma(sc, last, period);
   if (period == 0 || last + 1 < period) return out;
   const std::optional<Price> seed = out[period - 1];  // SMA at the first warm bar
   if (!seed) return out;
@@ -127,7 +127,7 @@ Series ema_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
   return out;
 }
 
-Series rsi_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
+Series rsi(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
   Series out = empty(last);
   if (period == 0 || last < period) return out;
   std::int64_t gain = 0;
@@ -149,7 +149,7 @@ Series rsi_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
   return out;
 }
 
-Series atr_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
+Series atr(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
   Series out = empty(last);
   if (period == 0 || last < period) return out;
   i128 sum = 0;
@@ -163,17 +163,14 @@ Series atr_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
   return out;
 }
 
-Series vwap_all(const Scenario& sc, std::uint32_t last, std::uint32_t session) {
+Series vwap(const Scenario& sc, std::uint32_t last, std::uint32_t session) {
   Series out = empty(last);
   if (session == 0) return out;
   i128 num = 0;  // sum((H + L + C) * volume); the /3 is applied once at the end
   i128 den = 0;
-  // Sessions count real bars; under Skip a continuity bar adds nothing and has no value.
-  const bool skip = sc.mission.gap_policy == GapPolicy::Skip;
   for (std::uint32_t i = 0; i <= last; ++i) {
     if (i % session == 0) num = den = 0;
     const Bar& b = sc.bars[i];
-    if (skip && b.continuity) continue;
     const i128 typical3 = static_cast<i128>(b.high.raw) + b.low.raw + b.close.raw;
     num += typical3 * b.volume.raw;
     den += b.volume.raw;
@@ -183,17 +180,17 @@ Series vwap_all(const Scenario& sc, std::uint32_t last, std::uint32_t session) {
   return out;
 }
 
-Macd macd_all(const Scenario& sc, std::uint32_t last, std::uint32_t fast, std::uint32_t slow, std::uint32_t signal) {
+Macd macd(const Scenario& sc, std::uint32_t last, std::uint32_t fast, std::uint32_t slow, std::uint32_t signal) {
   Macd m{empty(last), empty(last), empty(last)};
-  const Series f = ema_all(sc, last, fast);
-  const Series s = ema_all(sc, last, slow);
+  const Series f = ema(sc, last, fast);
+  const Series s = ema(sc, last, slow);
   for (std::uint32_t i = 0; i <= last; ++i) m.line[i] = minus(f[i], s[i]);
   m.signal = ema_of(m.line, signal);
   for (std::uint32_t i = 0; i <= last; ++i) m.histogram[i] = minus(m.line[i], m.signal[i]);
   return m;
 }
 
-Adx adx_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
+Adx adx(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
   Adx a{empty(last), empty(last), empty(last)};
   if (period == 0 || last < period) return a;
   DirectionalMove dm;
@@ -230,8 +227,8 @@ Adx adx_all(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
   return a;
 }
 
-Bollinger bollinger_all(const Scenario& sc, std::uint32_t last, std::uint32_t period, std::uint32_t k) {
-  Bollinger b{sma_all(sc, last, period), empty(last), empty(last)};
+Bollinger bollinger(const Scenario& sc, std::uint32_t last, std::uint32_t period, std::uint32_t k) {
+  Bollinger b{sma(sc, last, period), empty(last), empty(last)};
   if (period == 0) return b;
   i128 sum = 0;
   i128 sum_sq = 0;
@@ -253,65 +250,6 @@ Bollinger bollinger_all(const Scenario& sc, std::uint32_t last, std::uint32_t pe
     b.lower[i] = Price::from_raw(mid->raw - width);
   }
   return b;
-}
-
-// ---- gap policy (policy v17) ---------------------------------------------------------------
-// Under GapPolicy::Skip with continuity bars in range, an indicator runs over the trading bars only
-// and its values go back to their bars; continuity bars have no value. CarryForward feeds the
-// continuity bars as they are (flat at the previous close, zero volume).
-
-Series spread(const Series& in, const std::vector<std::uint32_t>& index, std::uint32_t last) {
-  Series out = empty(last);
-  for (std::size_t k = 0; k < index.size(); ++k) out[index[k]] = in[k];
-  return out;
-}
-
-template <typename F>
-Series over_trading_bars(const Scenario& sc, std::uint32_t last, const F& f) {
-  if (!detail::skips_gaps(sc, last)) return f(sc, last);
-  const detail::TradingBars t = detail::trading_bars(sc, last);
-  return spread(f(t.sc, static_cast<std::uint32_t>(t.index.size() - 1)), t.index, last);
-}
-
-}  // namespace
-
-Series sma(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
-  return over_trading_bars(sc, last, [period](const Scenario& s, std::uint32_t l) { return sma_all(s, l, period); });
-}
-
-Series ema(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
-  return over_trading_bars(sc, last, [period](const Scenario& s, std::uint32_t l) { return ema_all(s, l, period); });
-}
-
-Series rsi(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
-  return over_trading_bars(sc, last, [period](const Scenario& s, std::uint32_t l) { return rsi_all(s, l, period); });
-}
-
-Series atr(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
-  return over_trading_bars(sc, last, [period](const Scenario& s, std::uint32_t l) { return atr_all(s, l, period); });
-}
-
-Series vwap(const Scenario& sc, std::uint32_t last, std::uint32_t session) { return vwap_all(sc, last, session); }
-
-Macd macd(const Scenario& sc, std::uint32_t last, std::uint32_t fast, std::uint32_t slow, std::uint32_t signal) {
-  if (!detail::skips_gaps(sc, last)) return macd_all(sc, last, fast, slow, signal);
-  const detail::TradingBars t = detail::trading_bars(sc, last);
-  const Macd m = macd_all(t.sc, static_cast<std::uint32_t>(t.index.size() - 1), fast, slow, signal);
-  return {spread(m.line, t.index, last), spread(m.signal, t.index, last), spread(m.histogram, t.index, last)};
-}
-
-Adx adx(const Scenario& sc, std::uint32_t last, std::uint32_t period) {
-  if (!detail::skips_gaps(sc, last)) return adx_all(sc, last, period);
-  const detail::TradingBars t = detail::trading_bars(sc, last);
-  const Adx a = adx_all(t.sc, static_cast<std::uint32_t>(t.index.size() - 1), period);
-  return {spread(a.plus_di, t.index, last), spread(a.minus_di, t.index, last), spread(a.adx, t.index, last)};
-}
-
-Bollinger bollinger(const Scenario& sc, std::uint32_t last, std::uint32_t period, std::uint32_t k) {
-  if (!detail::skips_gaps(sc, last)) return bollinger_all(sc, last, period, k);
-  const detail::TradingBars t = detail::trading_bars(sc, last);
-  const Bollinger b = bollinger_all(t.sc, static_cast<std::uint32_t>(t.index.size() - 1), period, k);
-  return {spread(b.middle, t.index, last), spread(b.upper, t.index, last), spread(b.lower, t.index, last)};
 }
 
 }  // namespace tradelab

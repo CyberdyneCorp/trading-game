@@ -31,13 +31,7 @@ export interface Contract {
 	capacityFraction: Decimal;
 	/** Maintenance-margin tiers by notional at entry, the base tier first (floor 0); policy v16. */
 	marginTiers?: MarginTier[];
-	/** Policy v17: true when the scenario has no mark series, so margin and liquidation use the last price. */
-	markFromLastPrice?: boolean;
-	/** Policy v17: how indicators treat continuity bars (no trading). */
-	gapPolicy?: GapPolicy;
 }
-
-export type GapPolicy = 'skip' | 'carryForward';
 
 export interface MarginTier {
 	notionalFloor: Decimal;
@@ -45,8 +39,8 @@ export interface MarginTier {
 	maxLeverage: number;
 }
 
-/** [open, high, low, close, volume, synthetic, continuity]; continuity (policy v17): the market did not trade. */
-export type BarTuple = [Decimal, Decimal, Decimal, Decimal, Decimal, boolean, boolean?];
+/** [open, high, low, close, volume, synthetic] */
+export type BarTuple = [Decimal, Decimal, Decimal, Decimal, Decimal, boolean];
 
 export interface Account {
 	wallet: Decimal;
@@ -155,8 +149,6 @@ export interface OptionQuoteView {
 	theta: Decimal;
 	vega: Decimal;
 	ivFromRealized: boolean;
-	/** Policy v17: an order placed now would execute inside the settlement window (refused, series_settling). */
-	settling?: boolean;
 }
 
 export interface OptionPositionView {
@@ -171,8 +163,6 @@ export interface OptionsView {
 	multiplier: Decimal;
 	premiumTick: Decimal;
 	lotSize: Decimal;
-	/** Settlement window in market time, minutes (policy v17). */
-	settlementMinutes?: number;
 	longValue: Decimal;
 	shortValue: Decimal;
 	initialMargin: Decimal;
@@ -547,11 +537,7 @@ export interface CsvMeta {
 	intervalSeconds: number;
 	timestampUnit: 's' | 'ms';
 	leverageCap: number;
-	/** Policy v17: 'none' joins the bars across a gap; the others fill it with continuity bars. */
-	gapFill?: GapFill;
 }
-
-export type GapFill = 'none' | GapPolicy;
 
 /** Pack summary from tl_pack_validate: identity and rules, never prices or the reveal. */
 export interface PackSummary {
@@ -567,8 +553,6 @@ export interface PackSummary {
 	leverageCap: number;
 	allowShort: boolean;
 	gaps: number;
-	/** 'skip' / 'carryForward' when the import filled its gaps with continuity bars, else ''. */
-	gapPolicy?: GapPolicy | '';
 }
 
 export interface PackCheck {

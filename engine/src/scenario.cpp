@@ -60,7 +60,7 @@ bool options_valid(const Scenario& s) {
   for (std::uint32_t i = 0; i < o.series.size(); ++i) {
     if (!series_valid(s, o.series[i], i)) return false;
   }
-  return o.im_floor.raw > 0 && o.mm_base.raw > 0 && o.settlement_minutes >= 1;
+  return o.im_floor.raw > 0 && o.mm_base.raw > 0 && o.settlement_bars >= 1;
 }
 
 bool news_valid(const Scenario& s) {
@@ -68,37 +68,6 @@ bool news_valid(const Scenario& s) {
     if (n.release_step >= s.bars.size() || n.credibility > 100 || n.kind > NewsKind::NetworkUpgrade) return false;
     if (n.announce_lead > n.release_step) return false;
     if (n.expectation < -2 || n.expectation > 2 || n.actual < -2 || n.actual > 2 || n.tone < -1 || n.tone > 1) return false;
-  }
-  return true;
-}
-
-// A continuity bar repeats the previous close with no volume (nothing traded); bar 0 has no previous.
-bool continuity_valid(const Scenario& s) {
-  for (std::size_t i = 0; i < s.bars.size(); ++i) {
-    const Bar& b = s.bars[i];
-    if (!b.continuity) continue;
-    if (i == 0 || b.volume.raw != 0) return false;
-    const Price c = s.bars[i - 1].close;
-    if (b.open != c || b.high != c || b.low != c || b.close != c) return false;
-  }
-  return true;
-}
-
-bool mark_valid(const Scenario& s) {
-  if (s.mark.empty()) return true;
-  if (s.mark.size() != s.bars.size()) return false;
-  return std::all_of(s.mark.begin(), s.mark.end(), [&s](const Bar& b) { return bar_valid(b, s.contract.tick_size); });
-}
-
-// Sub-bars end at their bar's close, stay on the tick grid and never start before bar 0's open.
-bool sub_bars_valid(const Scenario& s) {
-  const std::uint64_t step = s.options.minutes_per_step;
-  for (const SubBars& x : s.sub_bars) {
-    if (x.bar >= s.bars.size() || x.minutes == 0 || x.closes.empty()) return false;
-    if (x.closes.back() != s.bars[x.bar].close) return false;
-    if (static_cast<std::uint64_t>(x.minutes) * x.closes.size() > (x.bar + 1ULL) * step) return false;
-    const auto bad = [&s](Price p) { return p.raw <= 0 || !on_grid(p.raw, s.contract.tick_size.raw); };
-    if (std::any_of(x.closes.begin(), x.closes.end(), bad)) return false;
   }
   return true;
 }
@@ -115,9 +84,6 @@ ScenarioError validate(const Scenario& s) {
   if (!mission_valid(s)) return ScenarioError::InvalidMission;
   if (!options_valid(s)) return ScenarioError::InvalidOptions;
   if (!news_valid(s)) return ScenarioError::InvalidNews;
-  if (!mark_valid(s)) return ScenarioError::InvalidMark;
-  if (!continuity_valid(s)) return ScenarioError::InvalidContinuity;
-  if (!sub_bars_valid(s)) return ScenarioError::InvalidSubBars;
   return ScenarioError::Ok;
 }
 

@@ -152,9 +152,6 @@ void read_mission(Fields& f, const JsonValue& r, Manifest* m) {
   if (data != nullptr) {
     f.integer(*data, "bars", "data.bars", &m->bars, 3, 1'000'000);
     f.integer(*data, "gaps", "data.gaps", &m->gaps, 0, 1'000'000);
-    if (data->find("gapPolicy") != nullptr) {
-      f.one_of(*data, "gapPolicy", "data.gapPolicy", &m->gap_policy, {"skip", "carryForward"});
-    }
   }
 }
 

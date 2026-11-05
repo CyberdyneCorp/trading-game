@@ -62,7 +62,6 @@ enum class Reason : std::uint8_t {
   NoAdviceLeft = 31,  // RequestAdvice with no allowance left (changes no state)
   OrderMoved = 32,    // OrderUpdate reason: a working exit moved to a new trigger (MoveOrder)
   LeverageAboveTier = 33,  // the position's notional tier caps leverage below the run's (policy v16)
-  SeriesSettling = 34,     // the option order would execute inside its series' settlement window (policy v17)
 };
 
 enum class EventType : std::uint8_t {
@@ -104,7 +103,7 @@ enum EventFlag : std::uint8_t {
   kFlagAmbiguousIntrabar = 1U << 0U,
   kFlagCapacityFromBarVolume = 1U << 1U,
   kFlagGapFill = 1U << 2U,
-  kFlagApproximate = 1U << 3U,  // option settlement approximated from coarse bars
+  kFlagMarkFromLastPrice = 1U << 3U,
 };
 
 constexpr int side_sign(OrderSide s) { return s == OrderSide::Buy ? 1 : -1; }

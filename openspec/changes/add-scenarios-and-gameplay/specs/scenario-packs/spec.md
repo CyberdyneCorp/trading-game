@@ -80,7 +80,7 @@ The packer SHALL refuse to build a historical window whose playable or warm-up r
 - **THEN** the build SHALL fail with reason `source_gap` naming the missing range
 
 ### Requirement: Private CSV import
-The system SHALL import CSV with UTC timestamp, open, high, low, close, volume and optional funding rate, plus user-entered metadata (asset, pair, venue, volume unit, interval). Validation SHALL check temporal order, duplicates, positive prices, non-negative volume, high ≥ max(open, close, low), low ≤ min(open, close, high), timestamp unit, interval coherence and gaps. Gaps SHALL be reported, never filled with invented prices or volume. By default the bars on either side of a gap SHALL be joined; the player MAY instead choose to represent each missing interval as a declared continuity bar (no trading: the previous close, zero volume, no funding, zero capacity) with a gap policy for indicators (skip or carry forward), recorded in the manifest as `data.gapPolicy` with a continuity column in `bars.bin` (engine execution policy v17). Imported packs SHALL be private to the user and labeled as known scenarios.
+The system SHALL import CSV with UTC timestamp, open, high, low, close, volume and optional funding rate, plus user-entered metadata (asset, pair, venue, volume unit, interval). Validation SHALL check temporal order, duplicates, positive prices, non-negative volume, high ≥ max(open, close, low), low ≤ min(open, close, high), timestamp unit, interval coherence and gaps. Gaps SHALL be reported, never filled with invented volume. Imported packs SHALL be private to the user and labeled as known scenarios.
 
 #### Scenario: Timestamp in wrong unit (DATA01)
 - **WHEN** timestamps are in milliseconds but declared as seconds
@@ -89,10 +89,6 @@ The system SHALL import CSV with UTC timestamp, open, high, low, close, volume a
 #### Scenario: Missing bars
 - **WHEN** consecutive rows are further apart than the declared interval by a whole number of intervals
 - **THEN** the report SHALL list the gap (line, from, to, number of missing bars), the import SHALL still be allowed, and no bar SHALL be invented
-
-#### Scenario: Gaps filled with continuity bars
-- **WHEN** a CSV with two missing hours is imported with the gap fill "skip"
-- **THEN** the pack SHALL hold two continuity bars at the previous close with zero volume, its manifest SHALL declare `gapPolicy: skip`, no order SHALL execute in those bars and indicators SHALL leave them out
 
 #### Scenario: Imported pack
 - **WHEN** a valid CSV is imported
