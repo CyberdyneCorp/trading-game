@@ -170,23 +170,28 @@ void AppView::refresh() {
   Rwidget_invalidate(find(names::kGameChart));
 }
 
+void AppView::missing_actions(std::span<const std::string_view> actions, std::vector<std::string>& missing) {
+  for (std::string_view a : actions) {
+    if (!ui::action_bound(a)) missing.push_back("action " + std::string(a));
+  }
+}
+
+// The CRT overlay is not under the screens' Switcher: RetroLook owns it.
+void AppView::missing_widgets(std::span<const std::string_view> widgets, std::vector<std::string>& missing) const {
+  for (std::string_view w : widgets) {
+    if (w != names::kCrtOverlay && find(w) == R_INVALID_ID) missing.push_back("widget " + std::string(w));
+  }
+}
+
 std::vector<std::string> AppView::missing_names() const {
   std::vector<std::string> missing;
-  for (std::string_view w : names::kWidgets) {
-    if (find(w) == R_INVALID_ID) missing.push_back("widget " + std::string(w));
-  }
-  for (std::string_view w : names::kShellWidgets) {
-    if (find(w) == R_INVALID_ID && w != names::kCrtOverlay) missing.push_back("widget " + std::string(w));
-  }
+  missing_widgets(names::kWidgets, missing);
+  missing_widgets(names::kShellWidgets, missing);
   if (shell_->look().overlay() == R_INVALID_ID) missing.push_back("widget " + std::string(names::kCrtOverlay));
-  for (std::string_view a : names::kActions) {
-    if (!ui::action_bound(a)) missing.push_back("action " + std::string(a));
-  }
+  missing_actions(names::kActions, missing);
+  missing_actions(names::kShellActions, missing);
   if (game_view_) {
     for (auto& m : game_view_->missing_names()) missing.push_back(std::move(m));
-  }
-  for (std::string_view a : names::kShellActions) {
-    if (!ui::action_bound(a)) missing.push_back("action " + std::string(a));
   }
   return missing;
 }

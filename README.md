@@ -9,7 +9,7 @@ Educational trading game: learn **perpetual futures** (long/short, leverage, fun
 | `engine/` | Deterministic C++20 simulation core — [`engine/README.md`](engine/README.md) |
 | `bindings/python/` | Python (ctypes) binding over the engine C ABI, used by the API |
 | `apps/web/` | SvelteKit web client (PWA, works offline) — [`apps/web/README.md`](apps/web/README.md) |
-| `apps/desktop/` | C++20 desktop client on Raven for Linux and macOS (foundation: menu, briefing, first terminal and debrief) — [`apps/desktop/README.md`](apps/desktop/README.md) |
+| `apps/desktop/` | C++20 desktop client on Raven for Linux and macOS (every web screen but the catalog and CSV import, the full terminal, SQLite action log, `.app` and AppImage, signed updates) — [`apps/desktop/README.md`](apps/desktop/README.md) |
 | `services/api/` | FastAPI backend: sync, server-side replay, progress — [`services/api/README.md`](services/api/README.md) |
 | `tools/` | Lint helpers (banned-API check for the engine) |
 
@@ -106,6 +106,7 @@ mindmap
 | Sound | Music follows the moment: menu theme, in-game theme, and a tense theme when you are near liquidation or under a margin call. Closing a trade plays a win or loss sting. `M` mutes; music and effects volumes are separate. Audio (`apps/web/static/audio`, MP3 96 kbps) is cached on first play, not at install. |
 | Imported markets | A CSV import wizard turns your own OHLCV file (optional funding) into a practice mission. The engine validates it (order, duplicates, OHLC consistency, timestamp unit, interval) and reports gaps; by default the bars around a gap are joined, or the player fills each gap with bars without trading (no volume, no fills; indicators skip them or carry the last close forward, shown shaded on the chart). It masks prices to a base of 100, and stores the result as a private pack signed by the device. The asset, pair and period are revealed only in the debrief. Signed `.tlpack` files can be exported and loaded; packs from unknown keys are refused. |
 | Offline | Installable PWA; every action is committed to IndexedDB before it reaches the engine, so a reload resumes exactly where you were. |
+| Desktop | Linux (X11/Wayland, AppImage) and macOS (universal `.app` with MoltenVK) on [Raven](https://github.com/oscar-soirey/Raven), linking the engine directly: the web's menu, briefing, terminal, debrief, campaign, curriculum, journal, Academy and settings in PT-BR and en, the retro theme with a CRT effect, every action committed to SQLite before the engine (crash-safe), the same golden digests as every other target, and updates from an Ed25519-signed manifest installed only on the player's click. Guest-only and offline for now; Windows is not supported. |
 
 ### Missions
 
@@ -159,7 +160,14 @@ graph TB
         HTTP --> OIDC["OIDC token verifier"]
     end
 
+    subgraph DESK["apps/desktop - C++20 + Raven"]
+        HOST["EngineHost worker"] --> DVM["View-models"]
+        DVM --> DVIEW["Raven XML views, Vulkan"]
+        HOST --> SQL["SQLite action log"]
+    end
+
     WASM --> WORKER
+    CAPI --> HOST
     PY --> REP
     OIDC --> AUTH["CyberdyneAuth"]
     VM -.->|"sync - planned"| HTTP
@@ -170,8 +178,9 @@ graph TB
 | Engine | C++20, CMake presets | Fixed-point int64 (`Price`, `Qty`, `Money` at 1e-8, `Rate` at 1e-10), own `det::` math kernels, PCG32 RNG, no I/O/clock/threads. Bit-identical on native x86-64/arm64, WASM and Python, locked by golden digests. |
 | C ABI | `engine/include/tradelab/c_api.h` | `tl_run_create`, `tl_place_order`, `tl_advance`, `tl_state` (JSON), `tl_checkpoint`, `tl_debrief`, … — the only surface bindings use. |
 | Web | SvelteKit + Svelte 5 runes, TypeScript strict, MVVM | Engine in a Web Worker; Canvas2D chart; i18n PT-BR first, English second; Vitest + Playwright. |
+| Desktop | C++20, Raven (pinned commit), Vulkan / MoltenVK, SQLite, MVVM | Links the engine's static library; engine on a worker thread; XML views, custom-painted chart, theme + CRT shader; texts generated from the web catalogs; `.app` and AppImage; doctest unit, golden, headless (null platform) and windowed (injected input + frame capture) tests. |
 | API | Python 3.12, FastAPI, SQLAlchemy, hexagonal (ports/adapters) | Idempotent batch sync, replay through the engine, progress, export and erase. Access tokens from CyberdyneAuth verified via discovery + JWKS. |
-| CI | GitHub Actions | `engine` (Linux/macOS native, WASM, lint, clang-tidy, OpenSpec validate), `web` (check, unit, e2e), `api` (pytest on SQLite and PostgreSQL). |
+| CI | GitHub Actions | `engine` (Linux/macOS native, WASM, lint, clang-tidy, OpenSpec validate), `web` (check, unit, e2e), `api` (pytest on SQLite and PostgreSQL), `desktop` (Linux build + tests + windowed under Xvfb + AppImage, macOS universal + Rosetta goldens + `.app`). |
 
 ### How a bar is played
 
@@ -616,7 +625,7 @@ Next:
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.
 - Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data).
-- Desktop client for Linux and macOS (C++20 on [Raven](https://github.com/oscar-soirey/Raven), Vulkan/MoltenVK; plan in `openspec/changes/add-native-clients`): the foundation is in `apps/desktop` (build, MVVM layers, engine worker, mission menu to debrief, generated PT-BR/en catalogs, headless and windowed tests) with local storage (SQLite action log committed before the engine, checkpoints, resume, OFF02 crash test) and packs (CSV import, catalog downloads resumed with HTTP Range, engine verification); the full terminal, look, packaging and updates are next. Then iPad/iPhone (SwiftUI).
+- Desktop client for Linux and macOS (C++20 on [Raven](https://github.com/oscar-soirey/Raven), Vulkan/MoltenVK; plan in `openspec/changes/add-native-clients`): `apps/desktop` has the shell screens, the full terminal, the retro look, the SQLite action log (crash-safe, resumable), packs at the model level, the shared goldens in its build, `TradeLab.app` / AppImage with launch smoke tests and the signed updater. Next: resume of a saved run and the catalog / CSV-import screens, SQLite-backed progress and settings, docking, audio, a Wayland smoke test, a blocking macOS windowed CI run; Developer ID signing, notarization and the update release key need a human with the accounts. Sign-in and sync wait for Cyberdyne Auth. Then iPad/iPhone (SwiftUI).
 
 ## Tests
 
@@ -627,7 +636,7 @@ cd engine && cmake --preset native-debug && cmake --build --preset native-debug 
 # web
 cd apps/web && npm run check && npm test && npm run test:e2e
 
-# desktop (macos-release or linux-release; windowed tests: see apps/desktop/README.md)
+# desktop (macos-release or linux-release; windowed tests and packages: see apps/desktop/README.md)
 cd apps/desktop && cmake --preset macos-release && cmake --build --preset macos-release && ctest --preset macos-release
 
 # api (needs the engine C ABI library: see services/api/README.md)

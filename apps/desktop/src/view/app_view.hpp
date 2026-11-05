@@ -8,7 +8,9 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "view/game/game_view.hpp"
@@ -37,6 +39,8 @@ class AppView {
   [[nodiscard]] ShellView& shell() { return *shell_; }
 
  private:
+  static void missing_actions(std::span<const std::string_view> actions, std::vector<std::string>& missing);
+  void missing_widgets(std::span<const std::string_view> widgets, std::vector<std::string>& missing) const;
   void bind_actions();
   void bind_widgets();
   void apply_bindings();
