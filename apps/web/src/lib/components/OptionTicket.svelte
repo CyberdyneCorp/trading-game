@@ -86,7 +86,7 @@
 		if (!quote || !canSubmit) return;
 		onSubmit({
 			series: quote.id,
-			label: seriesLabel(quote),
+			label: seriesLabel(quote, L),
 			side,
 			type,
 			qty: qtyToLot(qty, lot),
@@ -102,7 +102,7 @@
 	{#if !quote}
 		<p class="muted">{t('opt.none')}</p>
 	{:else}
-		<p class="series">{seriesLabel(quote)} <span class="tag attention">{t('opt.simulated')}</span></p>
+		<p class="series">{seriesLabel(quote, L)} <span class="tag attention">{t('opt.simulated')}</span></p>
 		<div class="sides" role="radiogroup">
 			<button class="buy" class:active={side === 'buy'} role="radio" aria-checked={side === 'buy'} onclick={() => (side = 'buy')}>▲ {t('opt.buy')}</button>
 			<button class="sell" class:active={side === 'sell'} role="radio" aria-checked={side === 'sell'} onclick={() => (side = 'sell')}>▼ {t('opt.sell')}</button>

@@ -62,6 +62,14 @@ Each scripted event SHALL declare release step, lead time, credibility, prior ex
 - **WHEN** a credible (100%) event with surprise −2 and `fair_impact` 0.05 is released under 50 seeds
 - **THEN** the next bar SHALL open on average between 7% and 9% (log) below the release close
 
+#### Scenario: Liquidity channels change costs, not prices
+- **WHEN** an event declares a spread multiplier and a capacity multiplier
+- **THEN** the bars and funding rates SHALL be identical to the same event without them, and orders filled on the event's reaction bars SHALL pay the multiplied half-spread and slippage and be limited to the multiplied capacity
+
+#### Scenario: A funding shock is published with the headline
+- **WHEN** an event declares a funding shift
+- **THEN** the first shifted funding rate SHALL be the one published at the close of the release bar, and no earlier rate SHALL change
+
 #### Scenario: Same event, different reactions
 - **WHEN** the reaction of the same positive-surprise event (`p_none` 0.2, `p_align` 0.6) is sampled under 1,000 seeds
 - **THEN** about 20% SHALL be no reaction, 48% along the surprise and 32% reversed, each within the test tolerance, so good news can still sell off
@@ -105,7 +113,7 @@ Each generator version SHALL ship a calibration report comparing return distribu
 
 #### Scenario: Report required for release
 - **WHEN** a new generator version is proposed for packs
-- **THEN** it SHALL NOT be usable in published packs without its calibration report
+- **THEN** it SHALL NOT be usable in published packs without its calibration report (the packer refuses to build generated bars for publishing when `docs/calibration/generator-v<N>.md` is missing)
 
 ### Requirement: Markov regime chain
 A generator spec MAY declare a regime chain:

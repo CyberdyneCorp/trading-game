@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { csvIssueText, csvMetaText, i18n, packReasonText, t } from './i18n.svelte.ts';
-import { DEFAULT_META, GAP_FILLS, defaultLabel, guessMeta, intervalLabel, isoUtc, PINNED_PUBLISHER_KEYS, trustedKeys } from './packs.ts';
+import { branchTurn, DEFAULT_META, GAP_FILLS, defaultLabel, guessMeta, intervalLabel, isoUtc, PINNED_PUBLISHER_KEYS, trustedKeys } from './packs.ts';
+import type { BarTuple } from '#lib/engine/types.ts';
 
 // Every CSV issue code the engine can emit (engine/src/csv_import.cpp header).
 const CSV_CODES = [
@@ -62,7 +63,28 @@ describe('CSV issue and pack reason texts', () => {
 		expect(csvIssueText('brand_new')).toBe('brand_new');
 		expect(packReasonText('hash_mismatch')).toBe('a data file was changed (hash mismatch)');
 		expect(packReasonText('brand_new')).toBe('brand_new');
+		expect(packReasonText('too_many_events')).toBe('too many events in the pack');
 		i18n.locale = 'pt-BR';
+		expect(packReasonText('too_many_series')).toBe('séries de opções demais no pacote');
+	});
+});
+
+describe('branchTurn (spec market-generator "Branch labeling")', () => {
+	const bar = (synthetic: boolean): BarTuple => ['100', '101', '99', '100', '10', synthetic];
+	const bars = (recorded: number, generated: number) => [
+		...Array.from({ length: recorded }, () => bar(false)),
+		...Array.from({ length: generated }, () => bar(true))
+	];
+
+	it('names the first decision turn on generated bars once one is visible', () => {
+		expect(branchTurn({ marketMode: 'branch', warmupBars: 40, bars: bars(91, 0) })).toBeNull();
+		expect(branchTurn({ marketMode: 'branch', warmupBars: 40, bars: bars(91, 1) })).toBe(52);
+		expect(branchTurn({ marketMode: 'branch', warmupBars: 40, bars: bars(91, 20) })).toBe(52);
+	});
+
+	it('is never shown for historical or built-in markets (built-in bars are all generated)', () => {
+		expect(branchTurn({ marketMode: 'historical', warmupBars: 40, bars: bars(91, 5) })).toBeNull();
+		expect(branchTurn({ marketMode: 'synthetic', warmupBars: 60, bars: bars(0, 80) })).toBeNull();
 	});
 });
 

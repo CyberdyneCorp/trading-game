@@ -121,6 +121,8 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_json_in.cpp
     tests/test_masking.cpp
     tests/test_pack.cpp
+    tests/test_pack_tables.cpp
+    tests/test_event_channels.cpp
     tests/test_zstd.cpp
     tests/test_checkpoint.cpp
     tests/test_engine.cpp

@@ -839,10 +839,35 @@ export interface TrustedKey {
 	key: string;
 }
 
-/** tl_device_key: this device's signing key for its own imports. */
+/** tl_device_key: this device's signing key for its own imports; tl_signing_key: a publisher key. */
 export interface DeviceKey {
 	id: string;
 	publicKey: string;
+}
+
+/**
+ * tl_pack_source_mission / tl_pack_source_csv (tools/packer, native only): the uncompressed source
+ * archive is in tl_blob_data / tl_blob_size.
+ */
+export interface PackSourceResult {
+	ok: boolean;
+	reason: string;
+	/** The offending metadata field, or what failed (e.g. the unknown mission). */
+	detail: string;
+	/** tl_pack_source_csv only, once the metadata parsed. */
+	report?: CsvReport;
+	scenarioId?: string;
+	/** File names in the source archive, manifest.json excluded. */
+	files?: string[];
+}
+
+/** tl_pack_write / tl_pack_resign (tools/packer, native only): the signed pack is in tl_blob_data. */
+export interface PackWriteResult {
+	ok: boolean;
+	reason: string;
+	digest: string;
+	size: number;
+	signingKeyId: string;
 }
 
 /** tl_checkpoint: the run state as hex, restored by tl_run_restore / tl_run_restore_pack. */

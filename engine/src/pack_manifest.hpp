@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -45,13 +46,19 @@ struct Manifest {
   ContractSpec contract;
   CostModel costs;
   std::string funding_source;  // "file" (funding.bin) or "none" (zero rates)
-  std::string iv_kind;         // "realized" or "none" (packs carry no option series yet)
+  std::string iv_kind;         // "realized", "none" or "file" (an IV column in options.bin)
+  bool has_options = false;    // instruments.options present: options.bin carries the series
+  OptionSpec options;          // parameters only; series and IV come from options.bin
   MissionRules mission;
   std::uint32_t bars = 0;
   std::uint32_t gaps = 0;
   // data.gapPolicy (optional, policy v17): "skip" or "carryForward" when gaps are filled with
   // continuity bars; bars.bin then has a sixth column (1 = continuity bar). Empty = absent.
   std::string gap_policy;
+  std::uint32_t events = 0;            // rows of the news table in events.bin
+  std::uint32_t liquidity_shocks = 0;  // rows of the liquidity table in events.bin
+  std::uint32_t option_series = 0;     // rows of the series table in options.bin
+  std::optional<std::uint32_t> branch_step;  // mode "branch": bars after it are synthetic
   std::vector<ManifestFile> files;
   std::string signing_key_id;
   ManifestLicense license;

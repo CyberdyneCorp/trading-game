@@ -284,8 +284,14 @@ inline constexpr const char* kIdlSchema =
     R"idl("type":"string","optional":false},{"name":"pack","type":"PackSummary","optional":true}]},"TrustedKey)idl"
     R"idl(":{"fields":[{"name":"id","type":"string","optional":false},{"name":"key","type":"string","optional")idl"
     R"idl(:false}]},"DeviceKey":{"fields":[{"name":"id","type":"string","optional":false},{"name":"publicKey",)idl"
-    R"idl("type":"string","optional":false}]},"Checkpoint":{"fields":[{"name":"checkpoint","type":"string","op)idl"
-    R"idl(tional":false},{"name":"step","type":"int","optional":false}]},"EngineError":{"fields":[{"name":"err)idl"
-    R"idl(or","type":"string","optional":false}]}})idl";
+    R"idl("type":"string","optional":false}]},"PackSourceResult":{"fields":[{"name":"ok","type":"bool","option)idl"
+    R"idl(al":false},{"name":"reason","type":"string","optional":false},{"name":"detail","type":"string","opti)idl"
+    R"idl(onal":false},{"name":"report","type":"CsvReport","optional":true},{"name":"scenarioId","type":"strin)idl"
+    R"idl(g","optional":true},{"name":"files","type":{"array":"string"},"optional":true}]},"PackWriteResult":{)idl"
+    R"idl("fields":[{"name":"ok","type":"bool","optional":false},{"name":"reason","type":"string","optional":f)idl"
+    R"idl(alse},{"name":"digest","type":"string","optional":false},{"name":"size","type":"int","optional":fals)idl"
+    R"idl(e},{"name":"signingKeyId","type":"string","optional":false}]},"Checkpoint":{"fields":[{"name":"check)idl"
+    R"idl(point","type":"string","optional":false},{"name":"step","type":"int","optional":false}]},"EngineErro)idl"
+    R"idl(r":{"fields":[{"name":"error","type":"string","optional":false}]}})idl";
 
 }  // namespace tradelab::test

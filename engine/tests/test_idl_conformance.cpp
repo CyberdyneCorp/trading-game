@@ -254,6 +254,26 @@ TEST_CASE("IDL conformance: CSV import, packs and pack runs") {
   tl_run_destroy(run);
 }
 
+TEST_CASE("IDL conformance: pack authoring (packer)") {
+  const std::string seed_hex(64, 'c');
+  const std::string meta = R"({"asset":"BTC","pair":"BTC/USDT","venue":"test","volumeUnit":"base","intervalSeconds":3600,"timestampUnit":"s","leverageCap":3})";
+  const std::string csv = tradelab::test::make_csv(160);
+  conforms(tl_pack_source_mission("no-such-mission", 1), "PackSourceResult");
+  conforms(tl_pack_source_csv(csv.c_str(), "{}"), "PackSourceResult");
+  conforms(tl_pack_source_csv(csv.c_str(), meta.c_str()), "PackSourceResult");
+  conforms(tl_pack_source_mission("m01-false-breakout", 7), "PackSourceResult");
+  const std::vector<std::uint8_t> source(tl_blob_data(), tl_blob_data() + tl_blob_size());
+  REQUIRE(!source.empty());
+  conforms(tl_pack_write("{}", nullptr, 0, "zz", "pub"), "PackWriteResult");
+  conforms(tl_signing_key(seed_hex.c_str(), "pub"), "DeviceKey");
+  conforms(tl_signing_key(seed_hex.c_str(), "Bad"), "EngineError");
+
+  tl_pack_build_csv(csv.c_str(), meta.c_str(), seed_hex.c_str());
+  const std::vector<std::uint8_t> pack(tl_blob_data(), tl_blob_data() + tl_blob_size());
+  const std::string resigned = tl_pack_resign(pack.data(), static_cast<std::uint32_t>(pack.size()), seed_hex.c_str(), "pub");
+  conforms(resigned, "PackWriteResult");
+}
+
 TEST_CASE("IDL conformance checker rejects output that drifts from the IDL") {
   tl_run* run = tl_run_create("m01-false-breakout", 1);
   REQUIRE(run != nullptr);

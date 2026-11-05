@@ -39,6 +39,10 @@ Packs SHALL contain data only (no executable code). Validators SHALL enforce lim
 - **WHEN** a pack's decompressed size exceeds the declared limit
 - **THEN** decompression SHALL abort and the pack SHALL be rejected
 
+#### Scenario: Too many events
+- **WHEN** a pack declares more news rows, liquidity shocks or option series than the validator's limits
+- **THEN** it SHALL be rejected with reason `too_many_events` or `too_many_series` before any data file is decompressed
+
 #### Scenario: Hostile bytes
 - **WHEN** a pack, CSV file or manifest is arbitrary or mutated data
 - **THEN** the validator SHALL return a reason code without crashing or reading out of bounds (fuzzed with libFuzzer under ASan and UBSan)

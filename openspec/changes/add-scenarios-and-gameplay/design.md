@@ -7,7 +7,7 @@ Scenarios must travel to browsers, desktops and iPads, work offline, be verifiab
 ## Decisions
 
 ### D1. Pack container
-- `.tlpack` = uncompressed tar of: `manifest.json` (canonical JSON, RFC 8785), `manifest.sig` (Ed25519 over the canonical manifest bytes), and data files: `bars.bin` (columnar little-endian int64, zstd), `funding.bin`, `events.bin`, `options.bin`, `mission.json`, `reveal.json`, `i18n/*.json`.
+- `.tlpack` = uncompressed tar of: `manifest.json` (canonical JSON, RFC 8785), `manifest.sig` (Ed25519 over the canonical manifest bytes), and data files: `bars.bin` (columnar little-endian int64, zstd), `funding.bin`, `events.bin`, `options.bin`, `mission.json`, `reveal.json`, `i18n/*.json` (as built: `mission.json` and `i18n.json` stay reserved; mission texts live in the client catalogs).
 - Hashes in the manifest are SHA-256 of each file's stored bytes; the signature therefore covers all data.
 - Publisher public keys pinned in each client build with a rotation list (`signingKeyId`). Private imports are signed by a per-device key and flagged `private`.
 - ~~Web verifies with WebCrypto Ed25519; native with libsodium/CryptoKit; server with `cryptography`.~~ As built: verification (and signing of private imports) runs in the engine, so every client and the server share one verifier through the C ABI. `cryptography` remains an independent check in the Python tests.
@@ -18,7 +18,8 @@ Scenarios must travel to browsers, desktops and iPads, work offline, be verifiab
 - **Size:** the whole engine WASM module, with both libraries, is about 157 KB gzipped (budget 400 KB).
 - **Canonicalization:** RFC 8785 over a strict JSON subset (integers within 2^53, no fractions or exponents, valid UTF-8, no duplicate keys). Under that subset JCS number formatting is plain digits, so no floating point is involved. Money and rates are decimal strings anyway.
 - **Container:** ustar with flat names (`[a-z0-9._-]`, no prefix, regular files only), deterministic headers (zero mtime/uid/gid). `manifest.json` is stored in canonical form; `manifest.sig` holds the signature (the manifest's "signature" field of the spec lives in that file).
-- **Data:** `bars.bin` and `funding.bin` are columnar little-endian int64 tables with a 16-byte header, compressed as zstd frames. Private imports store them as raw zstd blocks (still valid zstd) so clients need no encoder; the packer will compress published packs. `events.bin`, `options.bin`, `mission.json` and `i18n.json` are reserved until packs carry news and option chains.
+- **Data:** every `.bin` is a zstd frame of one or more columnar little-endian int64 tables, each with a 16-byte header (magic, rows, columns, 0): `bars.bin` (`TLB1`), `funding.bin` (`TLF1`), `events.bin` (news `TLE1`, then liquidity shocks `TLQ1`), `options.bin` (series `TLO1`, then the IV base `TLI1`, one row per bar with `ivModel` `file`). Row counts come from the manifest (`data.bars`, `events`, `liquidityShocks`, `optionSeries`) and are checked against limits before decompression; every column is range-checked before narrowing. Private imports store raw zstd blocks (still valid zstd) so clients need no encoder; `tools/packer build` compresses published packs (zstd level 19 through the `zstandard` package, content size in each frame). `mission.json` and `i18n.json` stay reserved.
+- **Branch packs:** mode `branch` names `data.branchStep`; every later bar is flagged synthetic when the pack opens (spec "Branch labeling"). The packer builds one from a masked window and a built-in mission's market for a seed, rescaled to continue from the recorded close (`splice_branch`).
 - **Limits:** pack 16 MiB, 8 files, manifest 64 KiB, 8 MiB per decompressed file, 20,000 bars; CSV 4 MiB and 20,000 rows. Parsers are fuzzed with libFuzzer (`engine/fuzz`).
 - **Private CSV packs:** practice rules (10,000 capital, chosen leverage cap 1–20, warm-up of a quarter of the rows clamped to 20–60, perpetual only, default costs), funding every 8 hours of bars, `license.name = private-import`, never publishable (`private_pack`).
 
@@ -58,7 +59,7 @@ Decisions:
 
 ### D5. Packer CLI
 - `tools/packer` (Python, using the nanobind engine): `validate`, `import-csv`, `mask`, `generate`, `build`, `sign`, `inspect`. Validation logic shared with the client import wizard through the engine's C ABI so web/desktop/iPad import produce identical errors.
-- As built: `tools/packer/packer.py` uses the existing ctypes binding (not nanobind) and offers `key`, `import-csv` and `validate`; the other commands come with publisher keys and Market4Me (1b.x).
+- As built: `tools/packer/packer.py` uses the existing ctypes binding (not nanobind) and offers `key`, `import-csv`, `validate`, `generate`, `mask` (also branch sources), `build`, `sign` and `inspect`. A pack source is a directory with the manifest and the uncompressed data files; the engine writes sources (`tl_pack_source_mission`, `tl_pack_source_csv`), signs a manifest over stored files (`tl_pack_write`) and re-signs (`tl_pack_resign`); the packer only compresses (the engine stays decoder-only). `build --publish` also requires the generator's calibration report for generated bars. `m4m-pull` waits for 1b.x.
 
 ### D5a. Historical source: Market4Me
 - Source of truth for historical data is Market4Me (`github.com/CyberdyneCorp/Market4Me`), via bulk exports only: `POST /api/v1/exports` (`series` = bars | funding | open_interest | market_state, `instrument` e.g. `BTC-USDT:PERP:binance-usdm`, `tf`, `from`, `to` ≤ 1,100 days, pinned `as_of`) → poll `GET /exports/{id}` → `GET /exports/{id}/file` (Parquet + manifest with checksums). No direct DB or NATS reads.
@@ -152,7 +153,7 @@ The engine changes are kept small. Each capability acts only when a mission decl
 - **Data only, no capability.** `MissionDef` gets an optional cost and contract override, so m06 can declare a thin book (wider spread, more slippage, less capacity). It also gets per-mission `allow_short` and `allow_short_options` flags, which already exist in `MissionRules` and `OptionSpec`.
 
 **Deferred.** These are not needed by m06–m12:
-- event channels for spread, capacity and funding (the rest of task 3.2). m06 uses mission-level costs and segment volume instead;
+- ~~event channels for spread, capacity and funding (the rest of task 3.2). m06 uses mission-level costs and segment volume instead;~~ As built (generator v5): jump, funding, spread and capacity channels exist on `ScriptedEvent` and act only when declared. m06 keeps its mission-level costs and segment volume, because its story (D8.2) thins the book while spread and slippage stay the same; no mission declares a channel, so no golden changed and no policy bump was needed;
 - spread or covered-call margin offsets. Each short leg stays margined on its own, and the long legs count toward equity at bid, which is conservative and is what an isolated-margin venue does. m10 says this in a tutorial card;
 - outcome randomization for m01–m05.
 
@@ -379,7 +380,7 @@ Outcome rates measured at build time go into the README ("What can the player pr
 ## Risks / Trade-offs
 
 - Offline packs contain the future (inspectable). Accepted: signature = integrity, not secrecy. Competitive modes require online progressive delivery (later).
-- Generator realism is limited; calibration report makes the limit explicit.
+- Generator realism is limited; calibration report makes the limit explicit (`docs/calibration/generator-v5.md`: fat tails and clustering are there, but volatility clustering decays within about ten bars, faster than in real markets; no licensed reference series yet).
 - Score weights are unvalidated pedagogy → configurable, versioned, reviewed by a domain expert before MVP.
 - Drawn outcomes (D8, G2) mean that a mission's lesson may not happen on a given seed. For example, m10's rumor changes nothing in 20% of seeds. This is intended, because a hedge that was not needed is part of the lesson. Each reveal says what this seed drew, so the player can tell bad luck from a bad decision.
 - Twelve missions make the realism and learnability tests slower (60 seeds × 12 missions plus the reference players). If CI time becomes a problem, the learnability suite can run on fewer seeds in the default job and on 60 seeds in a nightly job. The bands must not be widened instead.
