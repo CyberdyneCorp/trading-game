@@ -3,9 +3,13 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
+
+#include "model/game_state.hpp"
 
 namespace tradelab::desktop {
 
@@ -25,12 +29,35 @@ struct Bar {
   double volume = 0;
 };
 
-enum class CommandKind : std::uint8_t { Start, Advance, Market };
+enum class CommandKind : std::uint8_t { Start, Advance, Market, Game };
+
+// Terminal commands (CommandKind::Game), one per engine call of the C ABI (model/game_command.hpp).
+enum class GameCommandKind : std::uint8_t {
+  None,
+  Order,
+  TrailingRate,
+  Option,
+  Cancel,
+  Move,
+  Leverage,
+  Close,
+  Margin,
+  Plan,
+  Answer,
+  Lesson,
+  Advice
+};
 
 struct CommandResult {
+  CommandResult() = default;
+  CommandResult(CommandKind k, bool ok, std::string why) : kind(k), accepted(ok), reason(std::move(why)) {}
+
   CommandKind kind = CommandKind::Start;
   bool accepted = true;
   std::string reason;  // engine reason code ("none" when accepted)
+  GameCommandKind game = GameCommandKind::None;
+  int order_id = 0;
+  std::string warning;  // accepted with a warning (e.g. "stop_beyond_liquidation"), else ""
 };
 
 struct Debrief {
@@ -40,6 +67,7 @@ struct Debrief {
   int score_total = -1;  // -1: no score
   std::string lesson;
   int entries = 0;
+  int advisor_points_earned = 0;  // settles the device's advisor balance (web points.ts)
 };
 
 struct Snapshot {
@@ -77,6 +105,8 @@ struct Snapshot {
   int progress_done = 0;  // batch advance: steps done of progress_total
   int progress_total = 0;
   std::optional<Debrief> debrief;
+  // The full terminal state (orders, options, indicators, news, advisor...), shared and immutable.
+  std::shared_ptr<const GameState> game;
 
   [[nodiscard]] bool active() const { return status == "active"; }
 };

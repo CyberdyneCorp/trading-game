@@ -7,12 +7,15 @@
 #include <raven/raven_widget.h>
 
 #include "support/driver.hpp"
+#include "support/game_flows.hpp"
 #include "view/app.hpp"
 #include "viewmodel/widget_names.hpp"
 
 using namespace tradelab::desktop;
 namespace names = tradelab::desktop::names;
 using tradelab::desktop::testing::Driver;
+using tradelab::desktop::testing::Terminal;
+namespace gn = tradelab::desktop::names::game;
 
 namespace {
 
@@ -62,22 +65,24 @@ TEST_CASE("headless: mission 01 from the menu to the debrief with injected input
   REQUIRE(app.vm().screen() == Screen::Game);
   CHECK(d.text(names::kGameTurn) == "Barra 1 de 79");
 
-  // Comma input: "1,5" contracts bought at market.
+  // A calibration question can be due at the first decision step: skipped as a player would.
+  Terminal t(app, d);
+  t.skip_question();
+
+  // Comma input: "1,5" contracts sized by quantity, bought at market after the plan (skipped).
+  d.choose(gn::kSizeBy, 1);
   d.type_into(names::kGameQty, "1,5");
   CHECK(app.vm().qty_text() == "1,5");
   REQUIRE(d.click(names::kGameBuy));
-  REQUIRE(d.idle());
+  t.submit_with_plan();
 
-  // Space advances one bar (focus is on the Buy button, not in a text field); the order fills at the
-  // next bar's open.
-  d.key(R_KEY_SPACE);
-  REQUIRE(d.idle());
+  // Space advances one bar (focus off the text fields); the order fills at the next bar's open.
+  t.advance();
   CHECK(d.text(names::kGameAccount).find("COMPRADO 1,5") != std::string::npos);
   CHECK(d.text(names::kGameTurn) == "Barra 2 de 79");
   int presses = 1;
   while (app.vm().screen() == Screen::Game && presses < 200) {
-    d.key(R_KEY_SPACE);
-    REQUIRE(d.idle());
+    t.advance();
     ++presses;
   }
   CHECK(presses == 79);
@@ -98,6 +103,7 @@ TEST_CASE("headless: Space typed in the quantity field types, it does not advanc
   REQUIRE(d.click(names::kMenuStart));
   REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
   REQUIRE(d.click(names::kBriefGo));
+  Terminal(app, d).skip_question();
   const int step = app.vm().snapshot()->step;
   REQUIRE(d.click(names::kGameQty));
   d.key(R_KEY_SPACE);

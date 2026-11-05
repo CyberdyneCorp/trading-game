@@ -85,7 +85,7 @@ std::string AppViewModel::game_notice() const {
   if (snap_ && snap_->progress_total > 1 && snap_->progress_done < snap_->progress_total) {
     return tr("desktop.progress", {{"done", str(snap_->progress_done)}, {"total", str(snap_->progress_total)}});
   }
-  return notice_;
+  return game_->notice().text.empty() ? notice_ : game_->notice().text;
 }
 
 std::vector<Binding> AppViewModel::game_bindings() const {
@@ -99,9 +99,10 @@ std::vector<Binding> AppViewModel::game_bindings() const {
       {names::kGameTurn, tr("top.step") + " " + str(turn) + " " + tr("top.of") + " " + str(playable)},
       {names::kGameAccount, account_line()},
       {names::kGameQtyLabel, tr("ticket.qty")},
-      {names::kGameBuy, tr("ticket.buy")},
-      {names::kGameSell, tr("ticket.sell")},
-      {names::kGameAdvance, "\xE2\x96\xB6 " + tr("top.advance") + " (Space)"},  // ▶
+      {names::kGameBuy, "\xE2\x96\xB2 " + tr("ticket.buy")},   // ▲
+      {names::kGameSell, "\xE2\x96\xBC " + tr("ticket.sell")},  // ▼
+      {names::kGameAdvance, "\xE2\x96\xB6 " + tr("top.advance") + " [" +
+                                game::key_label(game_->keymap().key(game::Action::Advance)) + "]"},  // ▶
       {names::kGameNotice, game_notice()},
       {names::kGameMenu, tr("top.menu")},
   };

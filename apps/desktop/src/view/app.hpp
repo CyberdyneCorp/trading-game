@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "model/engine_host.hpp"
+#include "model/game_prefs.hpp"
 #include "model/i18n.hpp"
 #include "view/app_view.hpp"
 #include "viewmodel/app_viewmodel.hpp"
@@ -28,6 +29,7 @@ class App {
   EngineHost& engine() { return *engine_; }
 
  private:
+  PrefsFile prefs_{default_prefs_path()};  // terminal key map and progress (model/game_prefs.hpp)
   std::unique_ptr<EngineHost> engine_;
   std::unique_ptr<AppViewModel> vm_;
   std::unique_ptr<AppView> view_;

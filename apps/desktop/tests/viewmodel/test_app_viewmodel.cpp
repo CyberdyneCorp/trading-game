@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "model/engine_host.hpp"
+#include "support/fake_engine.hpp"
 #include "support/ui_queue.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -15,17 +16,7 @@ using tradelab::desktop::testing::UiQueue;
 
 namespace {
 
-// Records commands; the test answers with hand-made snapshots.
-struct FakeEngine final : EngineCommands {
-  std::vector<std::string> log;
-  void start(const std::string& mission, std::uint32_t seed) override {
-    log.push_back("start " + mission + " " + std::to_string(seed));
-  }
-  void advance(int steps) override { log.push_back("advance " + std::to_string(steps)); }
-  void market(Side side, const std::string& qty) override {
-    log.push_back(std::string(side == Side::Buy ? "buy " : "sell ") + qty);
-  }
-};
+using testing::FakeEngine;
 
 std::vector<MissionInfo> two_missions() {
   return {{"m01-false-breakout", 140, 60, 5, true}, {"m06-thin-book", 170, 60, 2, false}};
@@ -51,7 +42,10 @@ std::shared_ptr<const Snapshot> snap(CommandKind kind, bool accepted = true, std
   s->position_entry = "0.00000000";
   s->bars = {Bar{100, 101, 99, 100.5, 10}};
   s->results.push_back(CommandResult{kind, accepted, std::move(reason)});
-  if (s->status != "active") s->debrief = Debrief{"9998.98228227", "-1.01771773", "-85.79694750", 47, "risk", 1};
+  if (s->status != "active") s->debrief = Debrief{"9998.98228227", "-1.01771773", "-85.79694750", 47, "risk", 1, 0};
+  GameState g = testing::base_state();
+  g.status = s->status;
+  s->game = std::make_shared<GameState>(std::move(g));
   return s;
 }
 
@@ -92,7 +86,7 @@ TEST_CASE("app vm: menu lists the missions with web texts in PT-BR") {
 TEST_CASE("app vm: start -> briefing -> terminal -> debrief -> menu") {
   Fixture f;
   f.vm.start_selected();
-  CHECK(f.engine.log == std::vector<std::string>{"start m01-false-breakout 42"});
+  CHECK(f.engine.log == std::vector<std::string>{"start m01-false-breakout 42 opts 3/0/-"});
   CHECK(f.vm.waiting());
   CHECK(f.vm.screen() == Screen::Menu);  // stays until the engine acknowledges
   f.vm.start_selected();                 // a second click while waiting sends nothing
@@ -132,45 +126,54 @@ TEST_CASE("app vm: play again starts the same mission on a new market") {
   REQUIRE(f.vm.screen() == Screen::Debrief);
   CHECK(text_of(f.vm, names::kDebriefTitle) == "GAME OVER");
   f.vm.play_again();
-  CHECK(f.engine.log.back() == "start m01-false-breakout 42");
+  CHECK(f.engine.log.back() == "start m01-false-breakout 42 opts 3/0/-");
   f.vm.on_snapshot(snap(CommandKind::Start));
   CHECK(f.vm.screen() == Screen::Briefing);
 }
 
-TEST_CASE("app vm: comma input - '1,5' in PT-BR sends the engine decimal 1.5") {
+TEST_CASE("app vm: comma input - '1,5' in PT-BR reaches the engine as 1.5 after the plan") {
   Fixture f;
   f.to_game();
+  f.vm.game().ticket.size_by = game::SizeBy::Qty;
   f.vm.set_qty_text("1,5");
   f.vm.buy();
-  CHECK(f.engine.log.back() == "buy 1.5");
-  f.vm.on_snapshot(snap(CommandKind::Market));
-  f.vm.set_qty_text("0.27");  // floored to the 0.1 lot
-  f.vm.sell();
-  CHECK(f.engine.log.back() == "sell 0.2");
+  f.vm.game().submit();
+  REQUIRE(f.vm.game().modal() == game::Modal::Plan);  // an entry asks for its plan first
+  f.vm.game().plan_confirm(true);
+  CHECK(f.engine.log.back() == "plan skipped");
+  f.vm.on_snapshot(testing::snapshot_of(testing::base_state(), testing::game_result(GameCommandKind::Plan)));
+  CHECK(f.engine.log.back() == "order 0 buy 1.5");
+  f.vm.on_snapshot(testing::snapshot_of(testing::base_state(), testing::game_result(GameCommandKind::Order, true, "none", 2)));
+  CHECK(text_of(f.vm, names::kGameNotice) == "#2 \xE2\x9C\x93 compra 1,5");
 }
 
-TEST_CASE("app vm: an invalid quantity is explained and nothing is sent") {
+TEST_CASE("app vm: an invalid quantity cannot be submitted and nothing is sent") {
   Fixture f;
   f.to_game();
   const auto sent = f.engine.log.size();
-  f.vm.set_qty_text("abc");
-  f.vm.buy();
-  CHECK(f.engine.log.size() == sent);
-  CHECK(text_of(f.vm, names::kGameNotice) == "Digite uma quantidade válida (ex.: 1,5).");
-  f.vm.set_qty_text("0,05");  // below one lot
-  f.vm.buy();
-  CHECK(f.engine.log.size() == sent);
+  f.vm.game().ticket.size_by = game::SizeBy::Qty;
+  for (const char* typed : {"abc", "0,05"}) {  // not a number; below one lot
+    f.vm.set_qty_text(typed);
+    CHECK_FALSE(f.vm.game().ticket.view(f.vm.game().texts(), *f.vm.game().state(), false).can_submit);
+    f.vm.game().submit();
+    CHECK(f.engine.log.size() == sent);
+  }
 }
 
 TEST_CASE("app vm: an engine rejection shows its plain-language reason") {
   Fixture f;
   f.to_game();
-  f.vm.buy();
-  f.vm.on_snapshot(snap(CommandKind::Market, false, "insufficient_margin"));
+  f.vm.game().ticket.size_by = game::SizeBy::Qty;
+  f.vm.set_qty_text("1");
+  f.vm.game().submit();
+  f.vm.game().plan_confirm(true);
+  f.vm.on_snapshot(testing::snapshot_of(testing::base_state(), testing::game_result(GameCommandKind::Plan)));
+  f.vm.on_snapshot(testing::snapshot_of(testing::base_state(), testing::game_result(GameCommandKind::Order, false, "insufficient_margin")));
   CHECK(text_of(f.vm, names::kGameNotice) == "\xE2\x9C\x96 margem insuficiente");
-  f.vm.buy();
-  f.vm.on_snapshot(snap(CommandKind::Market, false, "some_new_code"));
-  CHECK(text_of(f.vm, names::kGameNotice) == "\xE2\x9C\x96 some_new_code");  // unknown code shown as is
+  f.vm.game().close_position();
+  f.vm.game().cancel_order(9);
+  f.vm.on_snapshot(testing::snapshot_of(testing::base_state(), testing::game_result(GameCommandKind::Close)));
+  CHECK(f.engine.log.back() == "cancel 9");
 }
 
 TEST_CASE("app vm: Space advances one bar, Shift+Space five; ignored while typing or off the terminal") {
@@ -206,13 +209,22 @@ TEST_CASE("app vm: with the real engine host, a short mission flow through the U
   vm->start_selected();
   REQUIRE(ui.pump_until([&] { return vm->screen() == Screen::Briefing; }));
   vm->open_terminal();
+  vm->game().ticket.size_by = game::SizeBy::Qty;
+  vm->set_qty_text("1");
   vm->buy();
+  vm->game().submit();
+  vm->game().plan_confirm(true);
   REQUIRE(ui.pump_until([&] { return !vm->waiting(); }));
+  if (vm->game().modal() == game::Modal::Calibration) {  // a question can be due at the first decision step
+    vm->game().calibration_answer(true);
+    REQUIRE(ui.pump_until([&] { return !vm->waiting(); }));
+  }
   vm->advance();  // a market order fills at the next bar's open
   REQUIRE(ui.pump_until([&] { return !vm->waiting(); }));
   CHECK(text_of(*vm, names::kGameAccount).find("COMPRADO 1,0") != std::string::npos);
   while (vm->screen() == Screen::Game) {
-    vm->advance(5);
+    if (vm->game().modal() == game::Modal::Calibration) vm->game().calibration_answer(true);
+    else vm->advance(5);
     REQUIRE(ui.pump_until([&] { return !vm->waiting(); }));
   }
   CHECK(vm->screen() == Screen::Debrief);

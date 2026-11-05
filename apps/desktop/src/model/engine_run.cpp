@@ -81,13 +81,24 @@ Debrief debrief_from_json(const json::Value& d) {
   out.score_total = static_cast<int>(d["score"]["total"].as_int(-1));
   out.lesson = d["lesson"].as_string();
   out.entries = to_int(d["entries"]);
+  out.advisor_points_earned = to_int(d["advisorPointsEarned"]);
   return out;
 }
 
 std::unique_ptr<EngineRun> EngineRun::create(const std::string& mission, std::uint32_t seed) {
-  tl_run* run = tl_run_create(mission.c_str(), seed);
+  return create(mission, seed, RunOptions{});
+}
+
+// tl_run_create(m, s) is tl_run_create_ex(m, s, 0, 0, 0, NULL, 0) (c_api.h), so default options start the
+// same run.
+std::unique_ptr<EngineRun> EngineRun::create(const std::string& mission, std::uint32_t seed, const RunOptions& o) {
+  tl_run* run = tl_run_create_ex(mission.c_str(), seed, static_cast<std::uint32_t>(o.advice_allowance),
+                                 static_cast<std::uint32_t>(o.news_lead), o.calendar ? 1 : 0, nullptr, 0);
   if (run == nullptr) return nullptr;
-  return std::unique_ptr<EngineRun>(new EngineRun(run, seed));
+  auto out = std::unique_ptr<EngineRun>(new EngineRun(run, seed));
+  const json::Value lesson = parse_or_null(tl_lesson(mission.c_str()));
+  if (!lesson.has("error")) out->lesson_ = lesson_info_from_json(lesson);
+  return out;
 }
 
 EngineRun::~EngineRun() { tl_run_destroy(run_); }
@@ -113,6 +124,9 @@ Snapshot EngineRun::snapshot() const {
   const json::Value state = parse_or_null(tl_state(run_));
   Snapshot s = snapshot_from_state(state);
   s.seed = seed_;
+  auto game = std::make_shared<GameState>(game_state_from_json(state));
+  game->lesson = lesson_;
+  s.game = std::move(game);
   if (!s.active()) s.debrief = debrief_from_json(parse_or_null(tl_debrief(run_)));
   return s;
 }

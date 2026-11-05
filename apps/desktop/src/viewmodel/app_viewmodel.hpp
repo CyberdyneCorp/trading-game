@@ -14,6 +14,7 @@
 #include "model/i18n.hpp"
 #include "model/snapshot.hpp"
 #include "viewmodel/chart_geometry.hpp"
+#include "viewmodel/game/game_viewmodel.hpp"
 
 namespace tradelab::desktop {
 
@@ -35,7 +36,7 @@ class AppViewModel {
 
   [[nodiscard]] Screen screen() const { return screen_; }
   // Increases with every change the view must show.
-  [[nodiscard]] std::uint64_t revision() const { return revision_; }
+  [[nodiscard]] std::uint64_t revision() const { return revision_ + game_->revision(); }
   [[nodiscard]] Locale locale() const { return catalog_.locale(); }
   void set_locale(Locale locale);
   void toggle_locale();
@@ -53,11 +54,15 @@ class AppViewModel {
   void back_to_menu();
 
   // Terminal
-  [[nodiscard]] const std::string& qty_text() const { return qty_text_; }
+  // The ticket's amount field of its sizing mode (the full terminal is game(): viewmodel/game).
+  [[nodiscard]] const std::string& qty_text() const { return game_->ticket.amount(); }
   void set_qty_text(std::string text);
   void advance(int steps = 1);
-  void buy();
-  void sell();
+  void buy();   // ticket side: buy
+  void sell();  // ticket side: sell
+  [[nodiscard]] game::GameViewModel& game() { return *game_; }
+  [[nodiscard]] const game::GameViewModel& game() const { return *game_; }
+  [[nodiscard]] const Catalog& catalog() const { return catalog_; }
   // Returns true when the key was used. Shortcuts are ignored while the player types in a field.
   bool handle_key(Key key, bool typing);
 
@@ -67,7 +72,7 @@ class AppViewModel {
   // Called on the UI thread with each snapshot from the engine worker.
   void on_snapshot(std::shared_ptr<const Snapshot> snap);
   [[nodiscard]] const Snapshot* snapshot() const { return snap_.get(); }
-  [[nodiscard]] bool waiting() const { return in_flight_ > 0; }
+  [[nodiscard]] bool waiting() const { return in_flight_ > 0 || game_->busy(); }
   [[nodiscard]] const std::string& notice() const { return notice_; }
 
   // Texts of the named widgets of the current screen (see widget_names.hpp).
@@ -77,7 +82,6 @@ class AppViewModel {
  private:
   void touch() { ++revision_; }
   bool send(const std::function<void()>& command);
-  void send_order(Side side);
   void apply_results(const Snapshot& s);
   void apply_result(const CommandResult& r);
   [[nodiscard]] std::string mission_text(const std::string& id, std::string_view field) const;
@@ -101,10 +105,10 @@ class AppViewModel {
   int selected_ = 0;
   int in_flight_ = 0;
   bool start_pending_ = false;
-  std::string qty_text_ = "1";
   std::string notice_;
   std::string run_mission_;
   std::shared_ptr<const Snapshot> snap_;
+  std::unique_ptr<game::GameViewModel> game_;
 };
 
 }  // namespace tradelab::desktop

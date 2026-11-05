@@ -22,13 +22,41 @@ EngineHost::~EngineHost() {
 }
 
 void EngineHost::start(const std::string& mission, std::uint32_t seed) {
-  enqueue(Command{CommandKind::Start, mission, seed, 0, Side::Buy, {}});
+  Command c;
+  c.mission = mission;
+  c.seed = seed;
+  enqueue(std::move(c));
 }
 
-void EngineHost::advance(int steps) { enqueue(Command{CommandKind::Advance, {}, 0, steps, Side::Buy, {}}); }
+void EngineHost::advance(int steps) {
+  Command c;
+  c.kind = CommandKind::Advance;
+  c.steps = steps;
+  enqueue(std::move(c));
+}
 
 void EngineHost::market(Side side, const std::string& qty) {
-  enqueue(Command{CommandKind::Market, {}, 0, 0, side, qty});
+  Command c;
+  c.kind = CommandKind::Market;
+  c.side = side;
+  c.qty = qty;
+  enqueue(std::move(c));
+}
+
+void EngineHost::game(const GameCommand& command) {
+  Command c;
+  c.kind = CommandKind::Game;
+  c.game = command;
+  enqueue(std::move(c));
+}
+
+void EngineHost::start_with(const std::string& mission, std::uint32_t seed, const RunOptions& options) {
+  Command c;
+  c.kind = CommandKind::Start;
+  c.mission = mission;
+  c.seed = seed;
+  c.options = options;
+  enqueue(std::move(c));
 }
 
 void EngineHost::wait_idle() {
@@ -69,11 +97,12 @@ void EngineHost::execute(const Command& c) {
     case CommandKind::Start: run_start(c); break;
     case CommandKind::Advance: run_advance(c.steps); break;
     case CommandKind::Market: run_market(c); break;
+    case CommandKind::Game: run_game(c); break;
   }
 }
 
 void EngineHost::run_start(const Command& c) {
-  run_ = EngineRun::create(c.mission, c.seed);
+  run_ = EngineRun::create(c.mission, c.seed, c.options);
   if (!run_) {
     Snapshot s;
     s.mission = c.mission;
@@ -108,6 +137,23 @@ void EngineHost::run_advance(int steps) {
 void EngineHost::run_market(const Command& c) {
   if (!run_) return;
   CommandResult r = run_->place_market(c.side, c.qty);
+  Snapshot s = run_->snapshot();
+  s.results.push_back(std::move(r));
+  publish(std::move(s));
+}
+
+// A command without a run is still acknowledged, so the viewmodel never waits for it forever.
+void EngineHost::run_game(const Command& c) {
+  if (!run_) {
+    Snapshot s;
+    s.status = "invalid";
+    CommandResult r{CommandKind::Game, false, "invalid_sequence"};
+    r.game = c.game.kind;
+    s.results.push_back(std::move(r));
+    publish(std::move(s));
+    return;
+  }
+  CommandResult r = run_->execute(c.game);
   Snapshot s = run_->snapshot();
   s.results.push_back(std::move(r));
   publish(std::move(s));

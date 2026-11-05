@@ -959,6 +959,437 @@ mission.m12-capstone.title,Missão 12 · Prova final,Mission 12 · Final exam
 mission.m12-capstone.tagline,"Tudo o que você viu até aqui, num só mercado. Uma missão é uma amostra.","Everything you have seen so far, in one market. One mission is one sample."
 mission.m12-capstone.topic,"Avaliação · identificar o regime, dimensionar pelo pior caso, comparar muitas tentativas","Evaluation · identify the regime, size for the worst case, compare many attempts"
 mission.m12-capstone.reveal,"Este cenário foi desenhado como a PROVA FINAL: um caminho sorteado de laterais, tendências, volatilidade alta, livro fino e uma lateral com shorts lotados, onde quem ficava comprado recebia funding — com o risco de o caminho virar tendência de baixa. Uma decisão de juros foi anunciada com consenso; uma falha de rede sem aviso não mudou nada em 6 de cada 10 partidas. Nenhuma regra fixa (comprar e segurar, vender sobrecompra, seguir o MACD, vender straddle, carregar o funding) ganhou na maioria esmagadora das partidas; ler o regime antes, arriscar 1% e ficar fora da divulgação perdeu menos por unidade de drawdown, e ainda perdeu em parte delas. O relatório da campanha mostra seus resultados em todas as missões: com menos de 30 trades, é cedo para concluir.","This scenario was designed as the FINAL EXAM: a drawn path of ranges, trends, high volatility, a thin book and a crowded-short range where longs collected funding — at the risk of the path turning into a downtrend. A rate decision was announced with a consensus; an unannounced network outage changed nothing in 6 of 10 runs. No fixed rule (buy and hold, fade overbought, follow MACD, sell a straddle, carry the funding) won in an overwhelming share of runs; reading the regime first, risking 1% and staying flat through the release lost less per unit of drawdown, and still lost in some of them. The campaign report shows your results across every mission: with fewer than 30 trades it is too early to conclude."
+news.headline.rate_decision.pos,Banco Central de Varena corta juros,Central Bank of Varena cuts rates
+news.headline.rate_decision.neu,Banco Central de Varena mantém juros,Central Bank of Varena holds rates
+news.headline.rate_decision.neg,Banco Central de Varena sobe juros,Central Bank of Varena hikes rates
+news.headline.regulation_rumor.pos,Rumor: regulador de Varena prepara regras mais claras para cripto,Rumor: Varena regulator prepares clearer crypto rules
+news.headline.regulation_rumor.neu,Rumor: regulador de Varena estuda novas regras,Rumor: Varena regulator studies new rules
+news.headline.regulation_rumor.neg,Rumor: regulador de Varena estuda restringir derivativos,Rumor: Varena regulator considers restricting derivatives
+news.headline.exchange_incident.pos,Exchange fictícia KryptoNova normaliza saques,Fictional exchange KryptoNova resumes withdrawals
+news.headline.exchange_incident.neu,Exchange fictícia KryptoNova investiga instabilidade,Fictional exchange KryptoNova investigates instability
+news.headline.exchange_incident.neg,Exchange fictícia KryptoNova suspende saques após incidente,Fictional exchange KryptoNova halts withdrawals after incident
+news.headline.network_outage.pos,Rede de liquidação volta ao normal,Settlement network back to normal
+news.headline.network_outage.neu,Rede de liquidação opera com lentidão,Settlement network running slowly
+news.headline.network_outage.neg,Rede de liquidação sofre interrupção,Settlement network suffers an outage
+news.headline.liquidity_inflow.pos,Fundos fictícios anunciam aportes no mercado,Fictional funds announce inflows
+news.headline.liquidity_inflow.neu,Fluxo de fundos fica estável,Fund flows steady
+news.headline.liquidity_inflow.neg,Fundos fictícios registram resgates,Fictional funds report outflows
+news.headline.institutional_adoption.pos,Rumor: gestora fictícia Arbor teria comprado grande posição,Rumor: fictional manager Arbor reportedly bought a large position
+news.headline.institutional_adoption.neu,Gestora fictícia Arbor avalia o mercado,Fictional manager Arbor reviews the market
+news.headline.institutional_adoption.neg,Rumor: gestora fictícia Arbor teria vendido posição,Rumor: fictional manager Arbor reportedly sold its position
+news.headline.rumor_denied.pos,Gestora fictícia Arbor confirma interesse,Fictional manager Arbor confirms interest
+news.headline.rumor_denied.neu,Gestora fictícia Arbor não comenta rumores,Fictional manager Arbor declines to comment
+news.headline.rumor_denied.neg,Gestora fictícia Arbor nega rumor de compra,Fictional manager Arbor denies buying rumor
+news.headline.liquidity_outflow.pos,Formadora de mercado fictícia Lumen amplia suas ofertas,Fictional market maker Lumen widens its quoting
+news.headline.liquidity_outflow.neu,Formadora de mercado fictícia Lumen revisa suas ofertas,Fictional market maker Lumen reviews its quoting
+news.headline.liquidity_outflow.neg,Formadora de mercado fictícia Lumen reduz suas ofertas no livro,Fictional market maker Lumen pulls quotes from the book
+news.headline.macro_data.pos,Índice de atividade de Varena vem acima do consenso,Varena activity index beats the consensus
+news.headline.macro_data.neu,Índice de atividade de Varena vem em linha com o consenso,Varena activity index comes in line with the consensus
+news.headline.macro_data.neg,Índice de atividade de Varena vem abaixo do consenso,Varena activity index misses the consensus
+news.headline.network_upgrade.pos,Atualização da rede fictícia Ostra entra no ar antes do previsto,Fictional Ostra network upgrade goes live ahead of schedule
+news.headline.network_upgrade.neu,Atualização da rede fictícia Ostra entra no ar como previsto,Fictional Ostra network upgrade goes live as planned
+news.headline.network_upgrade.neg,Atualização da rede fictícia Ostra é adiada,Fictional Ostra network upgrade is delayed
+news.kind.rate_decision,Decisão de juros,Rate decision
+news.kind.regulation_rumor,Rumor regulatório,Regulation rumor
+news.kind.exchange_incident,Incidente em exchange,Exchange incident
+news.kind.network_outage,Falha de rede,Network outage
+news.kind.liquidity_inflow,Fluxo de fundos,Fund flows
+news.kind.institutional_adoption,Adoção institucional,Institutional adoption
+news.kind.rumor_denied,Desmentido,Denial
+news.kind.liquidity_outflow,Formadora de mercado,Market maker
+news.kind.macro_data,Índice de atividade,Activity index
+news.kind.network_upgrade,Atualização da rede,Network upgrade
+news.level.0,muito negativo,very negative
+news.level.1,negativo,negative
+news.level.2,neutro,neutral
+news.level.3,positivo,positive
+news.level.4,muito positivo,very positive
+pattern.hammer.name,Martelo,Hammer
+pattern.hammer.what,"Corpo pequeno no topo, sombra inferior ≥ 2× o corpo, quase sem sombra superior.","Small body at the top, lower shadow ≥ 2× the body, little or no upper shadow."
+pattern.hammer.means,"Vendedores empurraram o preço para baixo, mas compradores recuperaram até o fechamento.",Sellers pushed price down but buyers took it back by the close.
+pattern.hammer.confirm,Próximo candle fechando acima do martelo; melhor ainda num suporte e com volume.,Next candle closing above the hammer; stronger at support and on volume.
+pattern.inverted-hammer.name,Martelo invertido,Inverted hammer
+pattern.inverted-hammer.what,"Corpo pequeno embaixo, sombra superior longa, após queda.","Small body at the bottom, long upper shadow, after a decline."
+pattern.inverted-hammer.means,Compradores testaram preços mais altos; a pressão vendedora pode estar acabando.,Buyers probed higher prices; selling pressure may be fading.
+pattern.inverted-hammer.confirm,Exige confirmação: candle seguinte de alta fechando acima do corpo.,Needs confirmation: a bullish next candle closing above the body.
+pattern.bullish-engulfing.name,Engolfo de alta,Bullish engulfing
+pattern.bullish-engulfing.what,Candle de alta cujo corpo cobre inteiramente o corpo de baixa anterior.,A bullish candle whose body fully covers the previous bearish body.
+pattern.bullish-engulfing.means,Os compradores assumiram o controle de forma decisiva.,Buyers took control decisively.
+pattern.bullish-engulfing.confirm,"Mais forte após queda longa, em suporte e com volume acima da média.","Stronger after a long decline, at support, on above-average volume."
+pattern.piercing-line.name,Linha de perfuração,Piercing line
+pattern.piercing-line.what,Abre abaixo da mínima anterior e fecha acima da metade do corpo de baixa anterior.,Opens below the prior low and closes above the midpoint of the prior bearish body.
+pattern.piercing-line.means,A abertura fraca foi rejeitada com força.,The weak open was rejected forcefully.
+pattern.piercing-line.confirm,Candle seguinte mantendo-se acima da metade do corpo de baixa.,The next candle holding above the bearish body midpoint.
+pattern.bullish-harami.name,Harami de alta,Bullish harami
+pattern.bullish-harami.what,Candle pequeno de alta contido no corpo grande de baixa anterior.,A small bullish candle inside the previous large bearish body.
+pattern.bullish-harami.means,A queda perdeu força; indecisão após pressão vendedora.,The decline lost momentum; indecision after selling pressure.
+pattern.bullish-harami.confirm,Sinal fraco sozinho: espere rompimento da máxima do harami.,Weak on its own: wait for a break above the harami high.
+pattern.tweezer-bottom.name,Fundo duplo em pinça,Tweezer bottom
+pattern.tweezer-bottom.what,"Dois candles com mínimas praticamente iguais, o segundo de alta.","Two candles with almost equal lows, the second bullish."
+pattern.tweezer-bottom.means,O mesmo nível segurou duas vezes: suporte de curto prazo.,The same level held twice: short-term support.
+pattern.tweezer-bottom.confirm,Stop logo abaixo das mínimas iguais; confirme com o candle seguinte.,Stop just below the matching lows; confirm with the next candle.
+pattern.morning-star.name,Estrela da manhã,Morning star
+pattern.morning-star.what,"Baixa forte, candle pequeno abaixo (indecisão), alta forte fechando além da metade do primeiro.","Strong bearish candle, small candle lower (indecision), strong bullish candle closing past the first one’s midpoint."
+pattern.morning-star.means,Transição de vendedores para compradores em três etapas.,A three-step handover from sellers to buyers.
+pattern.morning-star.confirm,"Um dos padrões de reversão mais confiáveis, ainda assim use stop abaixo da estrela.",Among the more reliable reversals; still place a stop below the star.
+pattern.three-white-soldiers.name,Três soldados brancos,Three white soldiers
+pattern.three-white-soldiers.what,"Três candles de alta seguidos, cada um abrindo dentro do corpo anterior e fechando perto da máxima.","Three bullish candles in a row, each opening inside the prior body and closing near its high."
+pattern.three-white-soldiers.means,Compra sustentada; possível início de tendência de alta.,Sustained buying; a possible start of an uptrend.
+pattern.three-white-soldiers.confirm,Cuidado se já estiver esticado (RSI alto): pode vir correção.,Careful when already stretched (high RSI): a pullback may follow.
+pattern.shooting-star.name,Estrela cadente,Shooting star
+pattern.shooting-star.what,"Corpo pequeno embaixo, sombra superior ≥ 2× o corpo, após alta.","Small body at the bottom, upper shadow ≥ 2× the body, after a rally."
+pattern.shooting-star.means,"Compradores levaram o preço para cima, mas vendedores derrubaram até o fechamento.",Buyers lifted price but sellers pushed it back down by the close.
+pattern.shooting-star.confirm,Próximo candle fechando abaixo do corpo; mais forte em resistência.,Next candle closing below the body; stronger at resistance.
+pattern.hanging-man.name,Enforcado,Hanging man
+pattern.hanging-man.what,"Mesmo formato do martelo, mas depois de uma alta.","Same shape as a hammer, but after a rally."
+pattern.hanging-man.means,Apareceu venda forte durante o candle; a alta pode estar cansada.,Heavy selling appeared intrabar; the rally may be tiring.
+pattern.hanging-man.confirm,Só vale com confirmação: candle seguinte fechando abaixo do corpo.,Only with confirmation: the next candle closing below the body.
+pattern.bearish-engulfing.name,Engolfo de baixa,Bearish engulfing
+pattern.bearish-engulfing.what,Candle de baixa cujo corpo cobre inteiramente o corpo de alta anterior.,A bearish candle whose body fully covers the previous bullish body.
+pattern.bearish-engulfing.means,Os vendedores assumiram o controle de forma decisiva.,Sellers took control decisively.
+pattern.bearish-engulfing.confirm,"Mais forte após alta longa, em resistência e com volume.","Stronger after a long rally, at resistance, on volume."
+pattern.dark-cloud-cover.name,Nuvem negra,Dark cloud cover
+pattern.dark-cloud-cover.what,Abre acima da máxima anterior e fecha abaixo da metade do corpo de alta anterior.,Opens above the prior high and closes below the midpoint of the prior bullish body.
+pattern.dark-cloud-cover.means,A abertura forte foi vendida com força.,The strong open was sold forcefully.
+pattern.dark-cloud-cover.confirm,Candle seguinte mantendo-se abaixo da metade do corpo de alta.,The next candle holding below the bullish body midpoint.
+pattern.bearish-harami.name,Harami de baixa,Bearish harami
+pattern.bearish-harami.what,Candle pequeno de baixa contido no corpo grande de alta anterior.,A small bearish candle inside the previous large bullish body.
+pattern.bearish-harami.means,A alta perdeu força; indecisão após pressão compradora.,The rally lost momentum; indecision after buying pressure.
+pattern.bearish-harami.confirm,Sinal fraco sozinho: espere perda da mínima do harami.,Weak on its own: wait for a break below the harami low.
+pattern.tweezer-top.name,Topo em pinça,Tweezer top
+pattern.tweezer-top.what,"Dois candles com máximas praticamente iguais, o segundo de baixa.","Two candles with almost equal highs, the second bearish."
+pattern.tweezer-top.means,O mesmo nível rejeitou o preço duas vezes: resistência de curto prazo.,The same level rejected price twice: short-term resistance.
+pattern.tweezer-top.confirm,Stop logo acima das máximas iguais; confirme com o candle seguinte.,Stop just above the matching highs; confirm with the next candle.
+pattern.evening-star.name,Estrela da tarde,Evening star
+pattern.evening-star.what,"Alta forte, candle pequeno acima (indecisão), baixa forte fechando além da metade do primeiro.","Strong bullish candle, small candle higher (indecision), strong bearish candle closing past the first one’s midpoint."
+pattern.evening-star.means,Transição de compradores para vendedores em três etapas.,A three-step handover from buyers to sellers.
+pattern.evening-star.confirm,Reversão relativamente confiável; stop acima da estrela.,A relatively reliable reversal; stop above the star.
+pattern.three-black-crows.name,Três corvos negros,Three black crows
+pattern.three-black-crows.what,"Três candles de baixa seguidos, cada um abrindo dentro do corpo anterior e fechando perto da mínima.","Three bearish candles in a row, each opening inside the prior body and closing near its low."
+pattern.three-black-crows.means,Venda sustentada; possível início de tendência de baixa.,Sustained selling; a possible start of a downtrend.
+pattern.three-black-crows.confirm,"Se já estiver esticado (RSI baixo), um repique é comum.","When already stretched (low RSI), a bounce is common."
+pattern.doji.name,Doji,Doji
+pattern.doji.what,"Abertura e fechamento praticamente iguais, com sombras dos dois lados.","Open and close almost equal, with shadows on both sides."
+pattern.doji.means,Equilíbrio entre compradores e vendedores: indecisão.,Buyers and sellers in balance: indecision.
+pattern.doji.confirm,Após tendência longa pode anunciar pausa ou reversão; o próximo candle decide.,After a long trend it may signal a pause or reversal; the next candle decides.
+pattern.spinning-top.name,Pião,Spinning top
+pattern.spinning-top.what,"Corpo pequeno no meio, sombras parecidas em cima e embaixo.","Small body in the middle, similar shadows above and below."
+pattern.spinning-top.means,Indecisão; nenhum lado dominou o período.,Indecision; neither side dominated the period.
+pattern.spinning-top.confirm,Sozinho não é sinal de entrada: observe o contexto e o candle seguinte.,Not an entry signal on its own: watch the context and the next candle.
+pattern.bullish-marubozu.name,Marubozu de alta,Bullish marubozu
+pattern.bullish-marubozu.what,"Corpo grande de alta sem sombras: abriu na mínima, fechou na máxima.","Large bullish body with no shadows: opened at the low, closed at the high."
+pattern.bullish-marubozu.means,Compradores no controle o período inteiro; força/continuação.,Buyers in control all period; strength/continuation.
+pattern.bullish-marubozu.confirm,Rompimento com marubozu e volume tende a ter continuidade.,A breakout on a marubozu with volume tends to follow through.
+pattern.bearish-marubozu.name,Marubozu de baixa,Bearish marubozu
+pattern.bearish-marubozu.what,"Corpo grande de baixa sem sombras: abriu na máxima, fechou na mínima.","Large bearish body with no shadows: opened at the high, closed at the low."
+pattern.bearish-marubozu.means,Vendedores no controle o período inteiro; força/continuação.,Sellers in control all period; strength/continuation.
+pattern.bearish-marubozu.confirm,Perda de suporte com marubozu e volume tende a ter continuidade.,A support break on a marubozu with volume tends to follow through.
+pattern.three-inside-up.name,Três de dentro de alta,Three inside up
+pattern.three-inside-up.what,Harami de alta (candle pequeno dentro da baixa grande) seguido de um terceiro candle que fecha acima da abertura do primeiro.,A bullish harami (small candle inside a large bearish one) followed by a third candle closing above the first one’s open.
+pattern.three-inside-up.means,É o harami já confirmado: a queda perdeu força e os compradores retomaram o terreno.,A harami that has already been confirmed: the decline lost steam and buyers took ground back.
+pattern.three-inside-up.confirm,O próprio terceiro candle é a confirmação; stop abaixo da mínima do padrão.,The third candle is the confirmation; stop below the pattern low.
+pattern.three-inside-down.name,Três de dentro de baixa,Three inside down
+pattern.three-inside-down.what,Harami de baixa seguido de um terceiro candle que fecha abaixo da abertura do primeiro.,A bearish harami followed by a third candle closing below the first one’s open.
+pattern.three-inside-down.means,Harami de baixa confirmado: a alta perdeu força e os vendedores assumiram.,A confirmed bearish harami: the rally lost steam and sellers took over.
+pattern.three-inside-down.confirm,O terceiro candle confirma; stop acima da máxima do padrão.,The third candle confirms; stop above the pattern high.
+pattern.three-outside-up.name,Três de fora de alta,Three outside up
+pattern.three-outside-up.what,Engolfo de alta seguido de mais um candle de alta fechando acima do engolfo.,A bullish engulfing followed by another bullish candle closing above it.
+pattern.three-outside-up.means,Engolfo confirmado: os compradores mantiveram o controle no candle seguinte.,A confirmed engulfing: buyers kept control on the next candle.
+pattern.three-outside-up.confirm,Stop abaixo da mínima do engolfo; ganha força em suporte.,Stop below the engulfing low; stronger at support.
+pattern.three-outside-down.name,Três de fora de baixa,Three outside down
+pattern.three-outside-down.what,Engolfo de baixa seguido de mais um candle de baixa fechando abaixo do engolfo.,A bearish engulfing followed by another bearish candle closing below it.
+pattern.three-outside-down.means,Engolfo de baixa confirmado: os vendedores mantiveram o controle.,A confirmed bearish engulfing: sellers kept control.
+pattern.three-outside-down.confirm,Stop acima da máxima do engolfo; ganha força em resistência.,Stop above the engulfing high; stronger at resistance.
+pattern.bullish-kicker.name,Kicker de alta,Bullish kicker
+pattern.bullish-kicker.what,Candle de baixa seguido de um candle de alta forte que abre acima da abertura anterior (com gap).,A bearish candle followed by a strong bullish candle that opens above the previous open (a gap).
+pattern.bullish-kicker.means,"Mudança brusca de sentimento, normalmente por notícia. A notícia já está no gap: o que vem depois é bem menos certo.","An abrupt change in sentiment, usually news-driven. The news is already in the gap: what follows is far less certain."
+pattern.bullish-kicker.confirm,"Em mercados 24/7 gaps são raros, então o padrão aparece pouco; quando aparece, respeite a mínima do candle de alta.","Gaps are rare in 24/7 markets, so it shows up seldom; when it does, respect the bullish candle’s low."
+pattern.bearish-kicker.name,Kicker de baixa,Bearish kicker
+pattern.bearish-kicker.what,Candle de alta seguido de um candle de baixa forte que abre abaixo da abertura anterior (com gap).,A bullish candle followed by a strong bearish candle that opens below the previous open (a gap).
+pattern.bearish-kicker.means,"Mudança brusca de sentimento para baixa, normalmente por notícia. A notícia já está no gap: o que vem depois é bem menos certo.","An abrupt bearish change in sentiment, usually news-driven. The news is already in the gap: what follows is far less certain."
+pattern.bearish-kicker.confirm,"Raro em mercados 24/7; quando aparece, stop acima da máxima do candle de baixa.","Rare in 24/7 markets; when it appears, stop above the bearish candle’s high."
+pattern.bullish-abandoned-baby.name,Bebê abandonado de alta,Bullish abandoned baby
+pattern.bullish-abandoned-baby.what,"Baixa forte, doji isolado por gaps abaixo, e alta forte com gap acima do doji.","A strong bearish candle, a doji isolated by gaps below it, then a strong bullish candle gapping above the doji."
+pattern.bullish-abandoned-baby.means,Versão extrema da estrela da manhã: a venda se esgotou e virou de uma vez.,An extreme morning star: selling exhausted and flipped at once.
+pattern.bullish-abandoned-baby.confirm,Muito raro sem gaps (mercados 24/7). Stop abaixo do doji.,Very rare without gaps (24/7 markets). Stop below the doji.
+pattern.bearish-abandoned-baby.name,Bebê abandonado de baixa,Bearish abandoned baby
+pattern.bearish-abandoned-baby.what,"Alta forte, doji isolado por gaps acima, e baixa forte com gap abaixo do doji.","A strong bullish candle, a doji isolated by gaps above it, then a strong bearish candle gapping below the doji."
+pattern.bearish-abandoned-baby.means,Versão extrema da estrela da tarde: a compra se esgotou e virou de uma vez.,An extreme evening star: buying exhausted and flipped at once.
+pattern.bearish-abandoned-baby.confirm,Muito raro sem gaps. Stop acima do doji.,Very rare without gaps. Stop above the doji.
+pattern.rising-three-methods.name,Três métodos de alta,Rising three methods
+pattern.rising-three-methods.what,"Alta longa, três candles pequenos de correção contidos nela, e nova alta longa fechando acima da primeira.","A long bullish candle, three small pullback candles contained in it, and another long bullish candle closing above the first."
+pattern.rising-three-methods.means,Pausa ordenada dentro da tendência de alta: os vendedores não conseguiram desfazer o primeiro candle.,An orderly pause inside an uptrend: sellers could not undo the first candle.
+pattern.rising-three-methods.confirm,Padrão de continuação: stop abaixo da mínima da correção.,A continuation pattern: stop below the pullback low.
+pattern.falling-three-methods.name,Três métodos de baixa,Falling three methods
+pattern.falling-three-methods.what,"Baixa longa, três candles pequenos de repique contidos nela, e nova baixa longa fechando abaixo da primeira.","A long bearish candle, three small bounce candles contained in it, and another long bearish candle closing below the first."
+pattern.falling-three-methods.means,Pausa ordenada dentro da tendência de baixa: os compradores não conseguiram desfazer o primeiro candle.,An orderly pause inside a downtrend: buyers could not undo the first candle.
+pattern.falling-three-methods.confirm,Padrão de continuação: stop acima da máxima do repique.,A continuation pattern: stop above the bounce high.
+objective.plan_every_entry,Registre uma hipótese e um ponto de invalidação antes de cada entrada.,Record a hypothesis and an invalidation level before every entry.
+objective.risk_per_idea,Use stop: risco planejado de até {pct} do patrimônio por ideia.,Use a stop: planned risk of at most {pct} of equity per idea.
+objective.no_liquidation_wait_ok,Não seja liquidado. Esperar é uma decisão válida.,Do not get liquidated. Waiting is a valid decision.
+objective.liq_distance,Mantenha a distância até a liquidação acima de {pct}.,Keep the distance to liquidation above {pct}.
+objective.leverage_from_stop,"Escolha a alavancagem pelo stop, não pelo máximo permitido.","Choose leverage from your stop, not from the maximum allowed."
+objective.liquidation_loses_margin,Liquidação = perder toda a margem isolada.,Liquidation = losing the whole isolated margin.
+objective.bankruptcy_game_over,"Se o capital acabar, é game over.","If capital runs out, it is game over."
+objective.option_lose_scenario,"Antes de comprar, escreva em que cenário o trade perde (movimento, tempo ou volatilidade).","Before buying, write the scenario in which the trade loses (move, time or volatility)."
+objective.premium_vs_breakeven,Compare o prêmio com o movimento necessário até o ponto de equilíbrio.,Compare the premium with the move needed to reach breakeven.
+objective.watch_iv_event,Observe a volatilidade implícita (IV) antes e depois do evento.,Watch implied volatility (IV) before and after the event.
+objective.writer_worst_case,"Antes de vender, calcule a margem e o pior cenário.","Before selling, compute the margin and the worst case."
+objective.maintenance_buffer,Mantenha folga sobre a margem de manutenção: abaixo dela há recompra forçada.,Keep a buffer above maintenance margin: below it there is a forced buy-back.
+objective.theta_for_seller,Theta trabalha a favor do vendedor — até o mercado se mover.,Theta works for the seller — until the market moves.
+objective.limit_orders_at_zones,Entre e saia com ordens limitadas nas zonas e compare a linha de spread e slippage no debrief.,"Enter and exit with limit orders at the zones, and compare the spread and slippage line in the debrief."
+objective.unfilled_limit_ok,"Uma limitada que não executou é um trade perdido, não um prejuízo.","An unfilled limit is a missed trade, not a loss."
+objective.risk_from_stop,"Risco de até {pct} por ideia, com a quantidade calculada pelo stop.","Risk at most {pct} per idea, with the quantity set by the stop."
+objective.trail_not_tighter_than_atr,"No lucro, leve o stop à entrada ou use stop móvel, mas nunca mais apertado que o ruído (ATR).","Once in profit, move the stop to break-even or trail it, but never tighter than the noise (ATR)."
+objective.drawdown_budget,Termine sem drawdown acima de {pct}.,Finish without a drawdown above {pct}.
+objective.regime_in_plan,"Antes de cada entrada, escreva no plano em que regime você acha que está e por quê.","Before each entry, write in the plan which regime you think you are in, and why."
+objective.one_tool_per_regime,Use uma ferramenta por regime.,Use one tool per regime.
+objective.straddle_breakevens,"Antes de comprar, calcule os dois pontos de equilíbrio do straddle ou do strangle.","Before buying, compute the straddle’s or strangle’s two breakevens."
+objective.straddle_lose_scenario,"Escreva no plano o cenário em que o trade perde (sem surpresa, queda da IV).","Write in the plan the scenario in which the trade loses (no surprise, falling IV)."
+objective.premium_budget,Não pague mais que {pct} do patrimônio em prêmio.,Do not pay more than {pct} of equity in premium.
+objective.structure_max_loss,"Antes de operar, escreva a perda máxima de cada estrutura (put de proteção, collar, spread).","Before trading, write each structure’s maximum loss (protective put, collar, spread)."
+objective.written_margin_buffer,Mantenha folga sobre a margem de manutenção das opções vendidas.,Keep a buffer above the maintenance margin of written options.
+objective.funding_vs_theta,Compare o funding que você paga com o theta que você paga.,Compare the funding you pay with the theta you pay.
+objective.decide_before_release,"Antes de cada divulgação, decida ficar fora, pequeno ou protegido, e registre por quê.","Before each release, decide to be flat, small or hedged, and record why."
+objective.no_chasing_headline,Não opere a manchete depois do gap sem um motivo novo.,Do not trade the headline after the gap without a new reason.
+objective.risk_with_gap,"Risco planejado de até {pct}, contando o gap.","Planned risk of at most {pct}, counting the gap."
+objective.finish_mission,Termine a missão.,Finish the mission.
+objective.plan_and_stop_every_entry,Cada entrada com plano e stop.,Every entry with a plan and a stop.
+objective.no_liquidation_no_margin_call,Nenhuma liquidação e nenhuma chamada de margem.,No liquidation and no margin call.
+objective.read_campaign_report,Leia o relatório da campanha antes de concluir qualquer coisa.,Read the campaign report before concluding anything.
+tutorial.m01-false-breakout.0.title,Leia o gráfico,Read the chart
+tutorial.m01-false-breakout.0.body,"Cada candle é uma hora: abertura, máxima, mínima e fechamento. A área hachurada à direita é o futuro, que ninguém conhece. Espaço avança uma barra; Shift+Espaço avança cinco.","Each candle is one hour: open, high, low and close. The hatched area on the right is the future, which nobody knows. Space advances one bar; Shift+Space advances five."
+tutorial.m01-false-breakout.0.art,chart,chart
+tutorial.m01-false-breakout.1.title,Long ou short,Long or short
+tutorial.m01-false-breakout.1.body,Comprar (long) ganha se o preço subir; vender (short) ganha se cair. Ordem a mercado executa na abertura da próxima barra; limite espera o seu preço. Aceita não significa executada: o feed avisa quando executar.,Buying (long) gains if price rises; selling (short) gains if it falls. A market order fills at the next bar’s open; a limit waits for your price. Accepted is not filled: the feed tells you when it fills.
+tutorial.m01-false-breakout.1.art,ticket,ticket
+tutorial.m01-false-breakout.2.title,O stop vem primeiro,The stop comes first
+tutorial.m01-false-breakout.2.body,"Defina o stop antes da entrada: 1×ATR, 2×ATR, Swing, ou arraste a linha SL? no gráfico. Com ""Dimensionar por risco"", o stop decide a quantidade: 1% do patrimônio em jogo por ideia.","Set the stop before the entry: 1×ATR, 2×ATR, Swing, or drag the SL? line on the chart. With ""Size by risk"", the stop sets the quantity: 1% of equity at stake per idea."
+tutorial.m01-false-breakout.2.art,risk,risk
+tutorial.m01-false-breakout.3.title,Notícias,News
+tutorial.m01-false-breakout.3.body,"Cada manchete mostra o esperado, o anunciado e a credibilidade. Uma surpresa crível é precificada de uma vez, com gap na abertura seguinte. Operar depois da manchete costuma ser tarde.","Each headline shows what was expected, what was announced and its credibility. A credible surprise is priced at once, with a gap at the next open. Trading after the headline is usually late."
+tutorial.m01-false-breakout.3.art,news,news
+tutorial.m01-false-breakout.4.title,"Plano, assessor e pontos","Plan, advisor and points"
+tutorial.m01-false-breakout.4.body,"Antes de cada entrada você registra a hipótese e onde ela estaria errada; não operar também vale. O assessor lê o mercado visível por 1 ponto e acerta só um pouco mais que a metade das vezes. Cada trade fechado com plano e stop rende 1 ponto, mais 1 se lucrar, e terminar a missão rende 2.","Before each entry you record the thesis and where it would be wrong; not trading counts too. The advisor reads the visible market for 1 point and is right only a little more than half the time. Each closed trade with a plan and a stop earns 1 point, 1 more if it made money, and finishing the mission earns 2."
+tutorial.m01-false-breakout.4.art,advisor,advisor
+tutorial.m02-funding-squeeze.0.title,Funding,Funding
+tutorial.m02-funding-squeeze.0.body,"No futuro perpétuo, a cada 4 barras um lado paga o outro pela taxa publicada. Taxa positiva: longs pagam shorts. O painel à direita mostra a próxima taxa e quando ela será cobrada.","On a perpetual future, every 4 bars one side pays the other at the published rate. A positive rate means longs pay shorts. The right panel shows the next rate and when it is charged."
+tutorial.m02-funding-squeeze.0.art,funding,funding
+tutorial.m02-funding-squeeze.1.title,Tendência e recuos,Trends and pullbacks
+tutorial.m02-funding-squeeze.1.body,"As médias (SMA20, EMA50) mostram a direção; o ADX acima de 25 indica tendência. Numa tendência, comprar o recuo até a média costuma ser melhor que perseguir o topo.","The averages (SMA20, EMA50) show direction; ADX above 25 signals a trend. In a trend, buying the pullback to the average usually beats chasing the high."
+tutorial.m02-funding-squeeze.1.art,trend,trend
+tutorial.m02-funding-squeeze.2.title,Distância da liquidação,Distance to liquidation
+tutorial.m02-funding-squeeze.2.body,Aqui a alavancagem vai até 10×. A linha LIQ? mostra onde a posição seria liquidada antes de você enviar a ordem. Mantenha-a a mais de 10% do preço.,Leverage goes up to 10× here. The LIQ? line shows where the position would be liquidated before you send the order. Keep it more than 10% away from price.
+tutorial.m02-funding-squeeze.2.art,leverage,leverage
+tutorial.m02-funding-squeeze.3.title,Posição lotada,Crowded trades
+tutorial.m02-funding-squeeze.3.body,"Funding muito alto significa que um lado está lotado. A multidão pode estar certa por muito tempo, mas um aperto contra ela fica possível. É um alerta, não um sinal de entrada.","Very high funding means one side is crowded. The crowd can be right for a long time, but a squeeze against it becomes possible. It is a warning, not an entry signal."
+tutorial.m02-funding-squeeze.3.art,funding,funding
+tutorial.m03-volatility-shock.0.title,O que a alavancagem muda,What leverage changes
+tutorial.m03-volatility-shock.0.body,"Alavancagem não muda quanto você ganha ou perde por contrato quando o preço anda. Ela muda a margem que você deposita e o quão perto fica a liquidação. A 20×, um movimento de cerca de 5% contra você liquida.","Leverage does not change how much you gain or lose per contract when price moves. It changes the margin you post and how close liquidation is. At 20×, a move of about 5% against you liquidates."
+tutorial.m03-volatility-shock.0.art,leverage,leverage
+tutorial.m03-volatility-shock.1.title,Volatilidade,Volatility
+tutorial.m03-volatility-shock.1.body,"O ATR mede o tamanho típico de uma barra. Mercados quietos não ficam quietos para sempre: bandas de Bollinger apertadas costumam vir antes de um movimento grande, de direção desconhecida.","ATR measures the typical size of a bar. Quiet markets do not stay quiet forever: tight Bollinger bands often come before a large move, in an unknown direction."
+tutorial.m03-volatility-shock.1.art,volatility,volatility
+tutorial.m03-volatility-shock.2.title,Margem isolada,Isolated margin
+tutorial.m03-volatility-shock.2.body,"Cada posição tem a sua margem. ""+ margem"" afasta a liquidação sem mudar o tamanho. O ticket avisa quando o stop está além da liquidação: ele nunca seria executado.","Each position has its own margin. ""+ margin"" pushes liquidation away without changing the size. The ticket warns when the stop is beyond liquidation: it would never fill."
+tutorial.m03-volatility-shock.2.art,margin,margin
+tutorial.m03-volatility-shock.3.title,Stop não é preço garantido,A stop is not a guaranteed price
+tutorial.m03-volatility-shock.3.body,"Um stop vira ordem a mercado quando é atingido. Se o mercado abrir com gap além dele, a execução sai pior que o preço do stop. Dimensione pensando nisso.","A stop becomes a market order when it is hit. If the market opens with a gap beyond it, the fill is worse than the stop price. Size with that in mind."
+tutorial.m03-volatility-shock.3.art,risk,risk
+tutorial.m04-options-buyer.0.title,Calls e puts,Calls and puts
+tutorial.m04-options-buyer.0.body,"Uma call ganha se o preço terminar acima do strike; uma put, se terminar abaixo. Quem compra paga o prêmio, e esse prêmio é a perda máxima.","A call gains if price ends above the strike; a put, if it ends below. The buyer pays the premium, and that premium is the maximum loss."
+tutorial.m04-options-buyer.0.art,payoff,payoff
+tutorial.m04-options-buyer.1.title,A cadeia de opções,The option chain
+tutorial.m04-options-buyer.1.body,"Na aba Opções, cada linha é um strike e cada bloco um vencimento. Compre clicando no ask (o preço de venda). A volatilidade implícita (IV) é o preço do seguro: IV alta, opção cara.","In the Options tab, each row is a strike and each block an expiry. Buy by clicking the ask (the selling price). Implied volatility (IV) is the price of insurance: high IV, expensive option."
+tutorial.m04-options-buyer.1.art,chain,chain
+tutorial.m04-options-buyer.2.title,O tempo corre contra o comprador,Time works against the buyer
+tutorial.m04-options-buyer.2.body,A cada barra a opção perde um pouco de valor (theta). Você precisa do movimento e precisa dele a tempo. Delta diz quanto a opção anda quando o preço anda 1.,"Every bar the option loses a little value (theta). You need the move, and you need it in time. Delta says how much the option moves when price moves by 1."
+tutorial.m04-options-buyer.2.art,decay,decay
+tutorial.m04-options-buyer.3.title,Dimensione pelo prêmio,Size by the premium
+tutorial.m04-options-buyer.3.body,"O risco de uma opção comprada é o prêmio total pago. Mantenha-o dentro de 1–2% do patrimônio por ideia, como faria com um stop.","The risk of a bought option is the total premium paid. Keep it within 1–2% of equity per idea, as you would with a stop."
+tutorial.m04-options-buyer.3.art,risk,risk
+tutorial.m05-options-writer.0.title,Vender prêmio,Selling premium
+tutorial.m05-options-writer.0.body,Quem vende a opção recebe o prêmio na hora. O ganho máximo é esse prêmio; a perda pode ser muitas vezes maior se o preço passar do strike.,The option seller receives the premium up front. The maximum gain is that premium; the loss can be many times larger if price moves past the strike.
+tutorial.m05-options-writer.0.art,payoff,payoff
+tutorial.m05-options-writer.1.title,Margem e chamada de margem,Margin and margin calls
+tutorial.m05-options-writer.1.body,"Opção vendida exige margem, e ela cresce quando a opção anda contra você. Se a margem não cobre, há chamada de margem e recompra forçada, no pior momento.","A sold option needs margin, and it grows when the option moves against you. If the margin does not cover it, there is a margin call and a forced buyback, at the worst moment."
+tutorial.m05-options-writer.1.art,margin,margin
+tutorial.m05-options-writer.2.title,"IV alta, prêmio alto","High IV, high premium"
+tutorial.m05-options-writer.2.body,"IV alta paga mais prêmio porque o mercado espera movimentos maiores. Venda pelo bid (o preço de compra). O prêmio recebido é pagamento por um risco, não lucro garantido.","High IV pays more premium because the market expects bigger moves. Sell at the bid (the buying price). The premium received is payment for a risk, not a guaranteed profit."
+tutorial.m05-options-writer.2.art,chain,chain
+tutorial.m05-options-writer.3.title,Poucos contratos,Few contracts
+tutorial.m05-options-writer.3.body,"Pense no pior movimento plausível, não no prêmio. Venda poucos contratos e saiba antes em que ponto você recompra.","Think about the worst plausible move, not the premium. Sell few contracts and know in advance at which point you buy back."
+tutorial.m05-options-writer.3.art,risk,risk
+tutorial.m06-thin-book.0.title,Leia o gráfico,Read the chart
+tutorial.m06-thin-book.0.body,"Cada candle é uma hora: abertura, máxima, mínima e fechamento. A área hachurada à direita é o futuro, que ninguém conhece. Espaço avança uma barra; Shift+Espaço avança cinco.","Each candle is one hour: open, high, low and close. The hatched area on the right is the future, which nobody knows. Space advances one bar; Shift+Space advances five."
+tutorial.m06-thin-book.0.art,chart,chart
+tutorial.m06-thin-book.1.title,Livro fino,Thin book
+tutorial.m06-thin-book.1.body,Aqui há poucas ofertas no livro: o spread é largo e cada ordem a mercado paga spread e slippage. Por barra só dá para negociar 4% do volume; uma ordem maior executa em partes. O debrief mostra quanto spread e slippage você pagou.,Few quotes rest in the book here: the spread is wide and every market order pays spread and slippage. Each bar you can trade only 4% of its volume; a larger order fills in pieces. The debrief shows how much spread and slippage you paid.
+tutorial.m06-thin-book.1.art,book,book
+tutorial.m06-thin-book.2.title,"Mercado, limite e alvo","Market, limit and target"
+tutorial.m06-thin-book.2.body,"Nesta missão só é possível comprar (long), com até 2×. Ordem a mercado executa na abertura da próxima barra e paga o spread; limite espera o seu preço, paga só a taxa de maker e pode não executar. Aceita não significa executada: o feed avisa quando executar.","In this mission you can only buy (long), at up to 2×. A market order fills at the next bar’s open and pays the spread; a limit waits for your price, pays only the maker fee and may not fill. Accepted is not filled: the feed tells you when it fills."
+tutorial.m06-thin-book.2.art,ticket,ticket
+tutorial.m06-thin-book.3.title,O stop vem primeiro,The stop comes first
+tutorial.m06-thin-book.3.body,"Defina o stop antes da entrada e dimensione por risco: 1% do patrimônio em jogo por ideia. Um stop vira ordem a mercado quando é atingido, e num livro fino ele executa além do preço do stop.","Set the stop before the entry and size by risk: 1% of equity at stake per idea. A stop becomes a market order when it is hit, and in a thin book it fills beyond the stop price."
+tutorial.m06-thin-book.3.art,risk,risk
+tutorial.m06-thin-book.4.title,"Plano, assessor e pontos","Plan, advisor and points"
+tutorial.m06-thin-book.4.body,"Antes de cada entrada você registra a hipótese e onde ela estaria errada; não operar também vale. O assessor lê o mercado visível por 1 ponto e acerta só um pouco mais que a metade das vezes. Cada trade fechado com plano e stop rende 1 ponto, mais 1 se lucrar, e terminar a missão rende 2.","Before each entry you record the thesis and where it would be wrong; not trading counts too. The advisor reads the visible market for 1 point and is right only a little more than half the time. Each closed trade with a plan and a stop earns 1 point, 1 more if it made money, and finishing the mission earns 2."
+tutorial.m06-thin-book.4.art,advisor,advisor
+tutorial.m07-trend-trailing.0.title,Tamanho pelo stop,Size from the stop
+tutorial.m07-trend-trailing.0.body,"Quantidade = risco em dinheiro ÷ distância até o stop. A alavancagem muda só a margem, não o risco: é o stop que decide quanto você perde. Ponha o stop além da estrutura (um fundo ou um topo), não num número redondo.","Quantity = money at risk ÷ distance to the stop. Leverage changes only the margin, not the risk: the stop decides how much you lose. Put the stop beyond structure (a low or a high), not at a round number."
+tutorial.m07-trend-trailing.0.art,risk,risk
+tutorial.m07-trend-trailing.1.title,Stop móvel,Trailing stop
+tutorial.m07-trend-trailing.1.body,"O stop móvel segue o melhor fechamento a uma distância fixa e nunca recua. Ele é recalculado no fechamento e passa a valer na barra seguinte. Perto demais do preço, recuos normais o atingem: compare a distância com o ATR.","A trailing stop follows the best close at a fixed distance and never moves back. It is recomputed at the close and takes effect from the next bar. Too close to price, ordinary pullbacks hit it: compare the distance with the ATR."
+tutorial.m07-trend-trailing.1.art,trail,trail
+tutorial.m07-trend-trailing.2.title,Tendência e recuos,Trends and pullbacks
+tutorial.m07-trend-trailing.2.body,"As médias (SMA20, EMA50) mostram a direção; o ADX acima de 25 indica tendência. Numa tendência, recuos até a média são comuns e não mudam a direção por si só.","The averages (SMA20, EMA50) show direction; ADX above 25 signals a trend. In a trend, pullbacks to the average are common and do not change the direction by themselves."
+tutorial.m07-trend-trailing.2.art,trend,trend
+tutorial.m07-trend-trailing.3.title,Múltiplos de R,R multiples
+tutorial.m07-trend-trailing.3.body,"R é o risco planejado de um trade: ganhar 2R é ganhar o dobro do que você arriscou. Um alvo fixo costuma acertar mais vezes; um stop móvel acerta menos, mas pode ficar mais tempo no movimento. Escolha a saída antes de entrar e registre no plano.",R is a trade’s planned risk: making 2R means making twice what you risked. A fixed target usually wins more often; a trailing stop wins less often but can stay longer in the move. Choose the exit before entering and record it in the plan.
+tutorial.m07-trend-trailing.3.art,plan,plan
+tutorial.m08-regime-switch.0.title,Tendência ou lateral?,Trend or range?
+tutorial.m08-regime-switch.0.body,Numa lateral o preço volta para o meio; numa tendência ele se afasta dele. Comprar o fundo e vender o topo funciona numa e perde na outra; seguir o movimento é o contrário.,In a range price returns to the middle; in a trend it moves away from it. Buying the low and selling the high works in one and loses in the other; following the move is the opposite.
+tutorial.m08-regime-switch.0.art,trend,trend
+tutorial.m08-regime-switch.1.title,Filtro de regime,A regime filter
+tutorial.m08-regime-switch.1.body,"ADX acima de 25 e bandas de Bollinger se abrindo sugerem tendência; ADX abaixo de 20 e bandas estreitas, lateral. Os dois são calculados com barras passadas e mudam tarde, depois que o mercado já mudou.","ADX above 25 and widening Bollinger bands suggest a trend; ADX below 20 and narrow bands, a range. Both are computed from past bars and turn late, after the market has already changed."
+tutorial.m08-regime-switch.1.art,regime,regime
+tutorial.m08-regime-switch.2.title,Aperto e expansão,Squeeze and expansion
+tutorial.m08-regime-switch.2.body,"Bandas estreitas mostram volatilidade comprimida, e a expansão costuma vir depois. A direção da expansão não está no indicador.","Narrow bands show compressed volatility, and expansion tends to follow. The direction of the expansion is not in the indicator."
+tutorial.m08-regime-switch.2.art,volatility,volatility
+tutorial.m08-regime-switch.3.title,Nenhum indicador sozinho,No indicator alone
+tutorial.m08-regime-switch.3.body,"Antes de cada entrada, escreva no plano em que regime você acha que está e por quê. Use uma ferramenta por regime e compare no debrief quantas vezes cada leitura acertou.","Before each entry, write in the plan which regime you think you are in, and why. Use one tool per regime and compare in the debrief how often each read was right."
+tutorial.m08-regime-switch.3.art,chart,chart
+tutorial.m09-event-straddle.0.title,Agenda anunciada,The announced calendar
+tutorial.m09-event-straddle.0.body,"Algumas divulgações são anunciadas com antecedência: o painel de notícias mostra a barra e o consenso, nunca o resultado. O consenso já está no preço; só a surpresa (anunciado − consenso) move o valor justo.","Some releases are announced ahead: the news panel shows their bar and consensus, never the outcome. The consensus is already in the price; only the surprise (announced − consensus) moves fair value."
+tutorial.m09-event-straddle.0.art,calendar,calendar
+tutorial.m09-event-straddle.1.title,Straddle: dois pontos de equilíbrio,Straddle: two breakevens
+tutorial.m09-event-straddle.1.body,"Comprar uma call e uma put do mesmo strike e vencimento ganha com um movimento grande para qualquer lado. Os pontos de equilíbrio ficam no strike mais e menos o prêmio total pago. Entre eles, o trade perde, no máximo o prêmio.","Buying a call and a put of the same strike and expiry gains on a large move either way. The breakevens sit at the strike plus and minus the total premium paid. Between them the trade loses, at most the premium."
+tutorial.m09-event-straddle.1.art,straddle,straddle
+tutorial.m09-event-straddle.2.title,Implícita × realizada,Implied vs realized
+tutorial.m09-event-straddle.2.body,"O prêmio embute o movimento que o mercado espera (a volatilidade implícita, IV). O straddle só paga se o movimento realizado superar esse movimento implícito. Antes de um evento a IV costuma subir, e o prêmio fica caro.","The premium prices the move the market expects (implied volatility, IV). A straddle pays only if the realized move beats that implied move. Before an event IV tends to rise, and the premium gets expensive."
+tutorial.m09-event-straddle.2.art,volatility,volatility
+tutorial.m09-event-straddle.3.title,Theta e a queda da IV,Theta and falling IV
+tutorial.m09-event-straddle.3.body,"Cada barra de espera custa theta ao comprador. Depois de uma divulgação, a incerteza sai do preço e a IV costuma cair, levando parte do prêmio junto. Comprar depois da notícia paga o prêmio e já perdeu o gap.","Every bar of waiting costs the buyer theta. After a release the uncertainty leaves the price and IV tends to fall, taking part of the premium with it. Buying after the news pays the premium and has already missed the gap."
+tutorial.m09-event-straddle.3.art,decay,decay
+tutorial.m09-event-straddle.4.title,Strike e vencimento,Strike and expiry
+tutorial.m09-event-straddle.4.body,"Escolha um vencimento que passe da divulgação, ou a opção vence antes do evento. Strikes perto do preço (ATM) reagem mais ao movimento; os distantes custam menos e pagam só com movimentos maiores. Nesta missão você só compra opções.","Choose an expiry after the release, or the option expires before the event. Strikes near the price (ATM) respond more to the move; distant ones cost less and pay only on bigger moves. In this mission you can only buy options."
+tutorial.m09-event-straddle.4.art,chain,chain
+tutorial.m10-hedged-book.0.title,Put de proteção e collar,Protective put and collar
+tutorial.m10-hedged-book.0.body,"Comprado no perpétuo, uma put compra um piso: abaixo do strike, a put ganha o que a posição perde. O collar vende uma call acima do preço para pagar a put, abrindo mão da alta além dela.","Long the perpetual, a put buys a floor: below the strike, the put gains what the position loses. A collar sells a call above the price to pay for the put, giving up the upside beyond it."
+tutorial.m10-hedged-book.0.art,payoff,payoff
+tutorial.m10-hedged-book.1.title,Cada perna tem sua margem,Each leg has its own margin
+tutorial.m10-hedged-book.1.body,Aqui cada opção vendida tem margem própria: o ganho do perpétuo não libera margem da call vendida. As opções compradas contam no patrimônio pelo bid. Abaixo da margem de manutenção há recompra forçada.,Here each written option is margined on its own: the perpetual’s gain does not free the written call’s margin. Bought options count toward equity at the bid. Below maintenance margin there is a forced buy-back.
+tutorial.m10-hedged-book.1.art,margin,margin
+tutorial.m10-hedged-book.2.title,Carrego: funding × theta,Carry: funding vs theta
+tutorial.m10-hedged-book.2.body,Ficar comprado no perpétuo custa funding quando muitos estão comprados. Uma call comprada custa theta em vez disso. Compare os dois antes de escolher como ficar exposto.,Holding the perpetual long costs funding when many traders are long. A bought call costs theta instead. Compare the two before choosing how to be exposed.
+tutorial.m10-hedged-book.2.art,funding,funding
+tutorial.m10-hedged-book.3.title,O prazo da proteção,The tenor of the hedge
+tutorial.m10-hedged-book.3.body,"Seguro tem prazo: uma put vence numa barra certa, e o risco pode chegar depois dela. Prazos mais longos custam mais e protegem por mais tempo.","Insurance has a tenor: a put expires on a set bar, and the risk can come after it. Longer tenors cost more and protect for longer."
+tutorial.m10-hedged-book.3.art,chain,chain
+tutorial.m10-hedged-book.4.title,Perda máxima de cada estrutura,Each structure’s maximum loss
+tutorial.m10-hedged-book.4.body,"Put de proteção: entrada menos strike, mais o prêmio. Spread comprado: o prêmio líquido. Opção vendida a descoberto: muito mais do que o prêmio recebido.","Protective put: entry minus strike, plus the premium. A bought spread: the net premium. A naked written option: far more than the premium collected."
+tutorial.m10-hedged-book.4.art,risk,risk
+tutorial.m11-news-calendar.0.title,A agenda,The calendar
+tutorial.m11-news-calendar.0.body,"O painel de notícias lista as divulgações anunciadas: o que é, em que barra sai e o consenso. O resultado só aparece na divulgação.","The news panel lists announced releases: what each one is, the bar it comes out and its consensus. The outcome appears only at the release."
+tutorial.m11-news-calendar.0.art,calendar,calendar
+tutorial.m11-news-calendar.1.title,Expectativa × surpresa,Expectation vs surprise
+tutorial.m11-news-calendar.1.body,"O consenso já está no preço: um resultado igual a ele não muda o valor justo. A surpresa, pesada pela credibilidade, muda, e quase toda entra no gap da abertura seguinte. Notícia boa pode cair, se o mercado já esperava mais.","The consensus is already in the price: an outcome equal to it does not change fair value. The surprise, weighted by credibility, does, and almost all of it lands in the next open’s gap. Good news can sell off when the market expected more."
+tutorial.m11-news-calendar.1.art,news,news
+tutorial.m11-news-calendar.2.title,Gaps saltam stops,Gaps jump stops
+tutorial.m11-news-calendar.2.body,"Um stop vira ordem a mercado quando é atingido; num gap, ele executa no preço da abertura, não no seu. Conte o gap no risco de quem atravessa uma divulgação posicionado.","A stop becomes a market order when it is hit; in a gap it fills at the open, not at your price. Count the gap in the risk of holding a position through a release."
+tutorial.m11-news-calendar.2.art,risk,risk
+tutorial.m11-news-calendar.3.title,Decidir antes,Decide before
+tutorial.m11-news-calendar.3.body,"Antes de cada divulgação, escolha: fora, pequeno ou protegido, e registre o motivo no plano. Ficar fora também é uma decisão.","Before each release, choose: flat, small or hedged, and record why in the plan. Staying flat is a decision too."
+tutorial.m11-news-calendar.3.art,plan,plan
+tutorial.m11-news-calendar.4.title,Por que o assessor espera,Why the advisor waits
+tutorial.m11-news-calendar.4.body,"Com uma divulgação anunciada a até 3 barras, o assessor puxa a leitura para esperar. Ele não sabe o resultado, assim como você.","With an announced release up to 3 bars away, the advisor pulls its read toward wait. It does not know the outcome, and neither do you."
+tutorial.m11-news-calendar.4.art,advisor,advisor
+tutorial.m12-capstone.0.title,Expectativa e amostra,Expectancy and sample size
+tutorial.m12-capstone.0.body,"Expectativa é o resultado médio por trade em R: taxa de acerto vezes ganho médio, menos taxa de erro vezes perda média. Com poucos trades ela é quase só sorte. O debrief desta missão traz o relatório de toda a campanha.","Expectancy is the average result per trade in R: win rate times average win, minus loss rate times average loss. With few trades it is mostly luck. This mission’s debrief carries the report of the whole campaign run."
+tutorial.m12-capstone.0.art,report,report
+tutorial.m12-capstone.1.title,Primeiro o regime,The regime first
+tutorial.m12-capstone.1.body,"Antes da ferramenta, identifique o regime: lateral, tendência, volatilidade alta ou livro fino. Cada ferramenta serve a um regime e perde nos outros.","Before the tool, identify the regime: range, trend, high volatility or a thin book. Each tool fits one regime and loses in the others."
+tutorial.m12-capstone.1.art,regime,regime
+tutorial.m12-capstone.2.title,A divulgação,The release
+tutorial.m12-capstone.2.body,Há divulgação anunciada nesta missão: veja a barra e o consenso no painel de notícias. Decida antes dela como quer estar posicionado.,There is an announced release in this mission: see its bar and consensus in the news panel. Decide before it how you want to be positioned.
+tutorial.m12-capstone.2.art,calendar,calendar
+tutorial.m12-capstone.3.title,Receber para carregar,Paid to carry
+tutorial.m12-capstone.3.body,"Quando os shorts estão lotados, quem fica comprado recebe funding a cada intervalo. O ganho é pequeno e certo; a perda, se o preço cair, não é.","When shorts are crowded, longs collect funding every interval. The gain is small and steady; the loss, if price falls, is not."
+tutorial.m12-capstone.3.art,funding,funding
+tutorial.m12-capstone.4.title,Um trade não pode acabar com a campanha,One trade must not end the campaign
+tutorial.m12-capstone.4.body,"Dimensione pelo pior caso, contando gaps e saltos. Sem liquidação e sem chamada de margem: o capital que sobra segue para a próxima campanha.","Size for the worst case, counting gaps and jumps. No liquidation and no margin call: what is left carries on."
+tutorial.m12-capstone.4.art,risk,risk
+lessonq.m01-false-breakout.breakout-plan.prompt,O preço rompe o topo de um range sem notícia nova. O que o plano precisa ter antes de comprar o rompimento?,Price breaks the top of a range with no new headline. What must the plan have before buying the breakout?
+lessonq.m01-false-breakout.breakout-plan.choice0,Nada: rompimento é sinal de compra,Nothing: a breakout is a buy signal
+lessonq.m01-false-breakout.breakout-plan.choice1,Um ponto de invalidação (stop) e o risco calculado,An invalidation level (stop) and the risk computed
+lessonq.m01-false-breakout.breakout-plan.choice2,"A alavancagem máxima, para aproveitar o movimento","Maximum leverage, to make the most of the move"
+lessonq.m01-false-breakout.risk-two-percent.prompt,"Com patrimônio de 10.000, quanto é um risco de 2% por ideia?","With equity of 10,000, how much is a risk of 2% per idea?"
+lessonq.m02-funding-squeeze.funding-paid.prompt,"Um long de 10.000 de nocional paga funding de 0,03% a cada intervalo. Quanto paga em 4 intervalos?","A long with 10,000 of notional pays 0.03% funding each interval. How much does it pay over 4 intervals?"
+lessonq.m02-funding-squeeze.crowded-funding.prompt,Funding positivo e alto significa que:,High positive funding means that:
+lessonq.m02-funding-squeeze.crowded-funding.choice0,O preço vai cair em seguida,Price will fall next
+lessonq.m02-funding-squeeze.crowded-funding.choice1,Os longs pagam aos shorts para ficar posicionados: a multidão está comprada,Longs pay shorts to stay positioned: the crowd is long
+lessonq.m02-funding-squeeze.crowded-funding.choice2,Ficar long não custa nada,Staying long costs nothing
+lessonq.m03-volatility-shock.liquidation-price.prompt,"Long a 100 com 10× de alavancagem e margem de manutenção de 0,5%: o preço de liquidação fica perto de quanto?",A long at 100 with 10× leverage and 0.5% maintenance margin: the liquidation price is close to what?
+lessonq.m03-volatility-shock.leverage-for-stop.prompt,"Seu stop está 8% abaixo da entrada (margem de manutenção 0,5%). Qual é a maior alavancagem entre estas que mantém a liquidação abaixo do stop?",Your stop is 8% below the entry (0.5% maintenance margin). Which is the highest of these leverages that keeps liquidation below the stop?
+lessonq.m03-volatility-shock.leverage-for-stop.choice0,20×,20×
+lessonq.m03-volatility-shock.leverage-for-stop.choice1,10×,10×
+lessonq.m03-volatility-shock.leverage-for-stop.choice2,5×,5×
+lessonq.m04-options-buyer.call-breakeven.prompt,"Call de strike 105 comprada por 2,50. Qual é o ponto de equilíbrio no vencimento?",A 105-strike call bought for 2.50. What is the breakeven at expiry?
+lessonq.m04-options-buyer.buyer-max-loss.prompt,Qual é a perda máxima de quem compra uma opção?,What is the maximum loss of an option buyer?
+lessonq.m04-options-buyer.buyer-max-loss.choice0,Ilimitada,Unlimited
+lessonq.m04-options-buyer.buyer-max-loss.choice1,O prêmio pago (mais taxas),The premium paid (plus fees)
+lessonq.m04-options-buyer.buyer-max-loss.choice2,A margem de manutenção,The maintenance margin
+lessonq.m05-options-writer.put-writer-risk.prompt,Quem vende uma put descoberta perde mais quando:,A naked put writer loses most when:
+lessonq.m05-options-writer.put-writer-risk.choice0,O preço sobe muito,Price rises a lot
+lessonq.m05-options-writer.put-writer-risk.choice1,O preço cai muito abaixo do strike,Price falls far below the strike
+lessonq.m05-options-writer.put-writer-risk.choice2,A volatilidade implícita cai,Implied volatility falls
+lessonq.m05-options-writer.theta-side.prompt,Com o mercado parado e o tempo passando:,With the market still and time passing:
+lessonq.m05-options-writer.theta-side.choice0,O vendedor da opção ganha (theta),The option writer gains (theta)
+lessonq.m05-options-writer.theta-side.choice1,O comprador da opção ganha,The option buyer gains
+lessonq.m05-options-writer.theta-side.choice2,O prêmio não muda,The premium does not change
+lessonq.m06-thin-book.market-order-cost.prompt,"Meio spread de 0,10% e slippage de 0,20%: quanto custa, em %, só a entrada de uma ordem a mercado?","Half-spread 0.10% and slippage 0.20%: how much does the entry alone of a market order cost, in %?"
+lessonq.m06-thin-book.market-order-cost.unit,%,%
+lessonq.m06-thin-book.unfilled-limit.prompt,Sua limitada na zona não executou e o preço foi embora. Isso foi:,Your limit at the zone did not fill and price moved away. That was:
+lessonq.m06-thin-book.unfilled-limit.choice0,Um prejuízo igual ao movimento perdido,A loss equal to the move you missed
+lessonq.m06-thin-book.unfilled-limit.choice1,"Um trade perdido, não um prejuízo","A missed trade, not a loss"
+lessonq.m06-thin-book.unfilled-limit.choice2,Um erro: deveria ter usado ordem a mercado,A mistake: you should have used a market order
+lessonq.m07-trend-trailing.size-from-stop.prompt,"Patrimônio 10.000, risco de 1%, stop 2,00 abaixo da entrada. Quantos contratos (de 1 unidade)?","Equity 10,000, 1% risk, stop 2.00 below the entry. How many contracts (of 1 unit)?"
+lessonq.m07-trend-trailing.size-from-stop.unit,contratos,contracts
+lessonq.m07-trend-trailing.tight-trail.prompt,"Numa tendência com recuos de 1 a 3 ATR, um stop móvel de 1×ATR costuma:","In a trend with pullbacks of 1 to 3 ATR, a 1×ATR trailing stop usually:"
+lessonq.m07-trend-trailing.tight-trail.choice0,Ficar no movimento até o fim,Stays in the move until the end
+lessonq.m07-trend-trailing.tight-trail.choice1,Ser tirado por um recuo comum,Gets taken out by an ordinary pullback
+lessonq.m07-trend-trailing.tight-trail.choice2,Nunca executar,Never fills
+lessonq.m08-regime-switch.rsi-in-trend.prompt,O RSI está acima de 70 numa tendência forte de alta. Vender por sobrecompra:,RSI is above 70 in a strong uptrend. Selling the overbought reading:
+lessonq.m08-regime-switch.rsi-in-trend.choice0,Costuma funcionar em tendência,Usually works in a trend
+lessonq.m08-regime-switch.rsi-in-trend.choice1,Costuma perder em tendência e funciona melhor na lateral,Usually loses in a trend and works better in a range
+lessonq.m08-regime-switch.rsi-in-trend.choice2,É sempre seguro com stop,Is always safe with a stop
+lessonq.m08-regime-switch.filter-lag.prompt,"Quando o regime muda, ADX e largura das bandas:","When the regime changes, ADX and band width:"
+lessonq.m08-regime-switch.filter-lag.choice0,Avisam antes da mudança,Warn before the change
+lessonq.m08-regime-switch.filter-lag.choice1,Confirmam com atraso,Confirm it late
+lessonq.m08-regime-switch.filter-lag.choice2,Não mudam,Do not change
+lessonq.m09-event-straddle.straddle-upper-breakeven.prompt,"Straddle de strike 100 comprado por 6,00 no total. Qual é o ponto de equilíbrio de cima no vencimento?",A 100-strike straddle bought for 6.00 in total. What is the upper breakeven at expiry?
+lessonq.m09-event-straddle.late-straddle.prompt,Comprar o straddle logo depois da divulgação:,Buying the straddle right after the release:
+lessonq.m09-event-straddle.late-straddle.choice0,Paga a queda da IV e perde o gap,Pays for the IV crush and misses the gap
+lessonq.m09-event-straddle.late-straddle.choice1,É mais barato e ainda pega o gap,Is cheaper and still catches the gap
+lessonq.m09-event-straddle.late-straddle.choice2,Não tem theta,Has no theta
+lessonq.m10-hedged-book.protective-put-loss.prompt,"Long de 1 unidade a 100 com put de strike 95 comprada por 2. Perda máxima por unidade até o vencimento, sem custos?","Long 1 unit at 100 with a 95-strike put bought for 2. Maximum loss per unit to expiry, without costs?"
+lessonq.m10-hedged-book.collar-trade.prompt,Um collar (put comprada e call vendida) troca:,A collar (a bought put and a written call) trades:
+lessonq.m10-hedged-book.collar-trade.choice0,Proteção na queda por ganho limitado na alta,Downside protection for a capped upside
+lessonq.m10-hedged-book.collar-trade.choice1,Ganho ilimitado por risco ilimitado,Unlimited gain for unlimited risk
+lessonq.m10-hedged-book.collar-trade.choice2,Funding por theta,Funding for theta
+lessonq.m11-news-calendar.in-line-release.prompt,Uma divulgação sai igual ao consenso. O que costuma acontecer?,A release comes out in line with the consensus. What usually happens?
+lessonq.m11-news-calendar.in-line-release.choice0,Um gap grande,A large gap
+lessonq.m11-news-calendar.in-line-release.choice1,Pouco movimento: já estava no preço,Little movement: it was already priced
+lessonq.m11-news-calendar.in-line-release.choice2,O preço sempre sobe,Price always rises
+lessonq.m11-news-calendar.stop-through-release.prompt,Um stop de 1×ATR mantido durante uma divulgação com surpresa:,A 1×ATR stop held through a release with a surprise:
+lessonq.m11-news-calendar.stop-through-release.choice0,Executa exatamente no preço do stop,Fills exactly at its price
+lessonq.m11-news-calendar.stop-through-release.choice1,"Pode executar bem além do preço, no gap","Can fill far beyond its price, in the gap"
+lessonq.m11-news-calendar.stop-through-release.choice2,É cancelado pela bolsa,Is cancelled by the exchange
+lessonq.m12-capstone.one-sample.prompt,Uma missão lucrativa prova que a estratégia tem vantagem?,Does one profitable mission prove the strategy has an edge?
+lessonq.m12-capstone.one-sample.choice0,Sim,Yes
+lessonq.m12-capstone.one-sample.choice1,Não: uma missão é uma amostra; é preciso comparar muitas tentativas,No: one mission is one sample; many attempts must be compared
+lessonq.m12-capstone.one-sample.choice2,Só se o lucro for alto,Only if the profit is large
+lessonq.m12-capstone.expectancy.prompt,"10 trades: 4 ganharam 2R cada e 6 perderam 1R cada. Qual é a expectativa, em R por trade?","10 trades: 4 won 2R each and 6 lost 1R each. What is the expectancy, in R per trade?"
 desktop.vulkanMissing.title,TradeLab: driver Vulkan não encontrado,TradeLab: no Vulkan driver found
 desktop.vulkanMissing.body,O TradeLab precisa de um driver Vulkan para desenhar a janela e nenhum foi encontrado.,TradeLab needs a Vulkan driver to draw its window and none was found.
 desktop.vulkanMissing.linux,Instale `libvulkan1` e o driver Vulkan da sua placa de vídeo (por exemplo `mesa-vulkan-drivers`) e abra o TradeLab de novo.,Install `libvulkan1` and your graphics card's Vulkan driver (for example `mesa-vulkan-drivers`) and open TradeLab again.
@@ -968,3 +1399,4 @@ desktop.language,English,Português (Brasil)
 desktop.waiting,Calculando…,Working…
 desktop.progress,Avançando {done} de {total},Advancing {done} of {total}
 desktop.qtyInvalid,"Digite uma quantidade válida (ex.: 1,5).",Type a valid quantity (e.g. 1.5).
+desktop.perksFixed,As informações extras valem desde o início da partida: mude antes da primeira ação.,Intel applies from the start of a run: change it before your first action.

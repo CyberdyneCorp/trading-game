@@ -13,6 +13,7 @@
 #include <string>
 
 #include "support/driver.hpp"
+#include "support/game_flows.hpp"
 #include "support/png.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -92,20 +93,22 @@ TEST_CASE("windowed: mission 01 to the debrief on the Vulkan renderer, with capt
   CHECK(capture(window, "02-briefing").saved);
 
   REQUIRE(d.click(names::kBriefGo));
+  testing::Terminal t(app, d);
+  t.skip_question();
+  d.choose(names::game::kSizeBy, 1);  // quantity
   d.type_into(names::kGameQty, "2,5");
   REQUIRE(d.click(names::kGameBuy));
-  REQUIRE(d.idle());
-  for (int i = 0; i < 25; ++i) {
-    d.key(R_KEY_SPACE);
-    REQUIRE(d.idle());
-  }
+  t.submit_with_plan();
+  for (int i = 0; i < 25; ++i) t.advance();
   const Capture game = capture(window, "03-terminal");
   REQUIRE(game.saved);
   CHECK(game.down_pixels > 50);  // red candles drawn by the chart painter
   CHECK(d.text(names::kGameAccount).find("COMPRADO 2,5") != std::string::npos);
 
   while (app.vm().screen() == Screen::Game) {
-    d.key(R_KEY_SPACE, R_MOD_SHIFT);  // Shift+Space: five bars
+    t.skip_question();
+    d.focus(names::kGameAdvance);
+    d.key(R_KEY_SPACE, R_MOD_SHIFT);  // Shift+Space: five bars (never past a calibration question)
     REQUIRE(d.idle());
   }
   REQUIRE(app.vm().screen() == Screen::Debrief);

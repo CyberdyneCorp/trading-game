@@ -2,7 +2,7 @@
 
 C++20 client on [Raven](https://github.com/oscar-soirey/Raven) (C11 GUI library, Apache-2.0) that links the engine (`tradelab::engine`) directly. The web client (`apps/web`) is the reference for every screen, behaviour and text. Plan and requirements: `openspec/changes/add-native-clients` (`desktop-client` spec, design "Desktop", tasks section 1).
 
-**Status: foundation.** Mission menu (12 missions), briefing, a first terminal (candle chart, Space / Shift+Space to advance 1 / 5 bars, market buy/sell with comma input, the account line) and a first debrief, in PT-BR (default) and en. Not yet: the full terminal, storage and resume, packs, audio, theme/CRT, packaging, updates (see the open tasks). Guest-only and offline: sign-in and sync wait for Cyberdyne Auth. Windows is out of scope for this change.
+**Status: foundation + trading terminal.** Mission menu (12 missions), briefing, the full trading terminal of the web game screen and a first debrief, in PT-BR (default) and en. Terminal: chart (candles, volume, SMA20/EMA50/VWAP/BB20, RSI/MACD/ADX with warm-up, no-trading bars, fills and news marks, order/stop/target/liquidation lines with drag to move, zoom, crosshair, hover readout, accessible bar table and per-candle keyboard focus), perpetual ticket (market/limit/stop, leverage, risk %/quantity/notional/% equity sizing, stop/target/trailing incl. percent, margin and liquidation estimate with tiers and liquidity shocks, every web warning, the stop-beyond-liquidation confirmation, comma input), orders, rail, option chain and ticket, advisor with points, intel perks, news and event feed, plan/calibration/lesson/help/journal/tutorial dialogs, auto-advance and the web's remappable shortcuts. Not yet: docking, storage and resume, packs, audio, theme/CRT, the other screens, packaging, updates (see the open tasks). Guest-only and offline: sign-in and sync wait for Cyberdyne Auth. Windows is out of scope for this change.
 
 ## Requirements
 
@@ -45,9 +45,15 @@ Bumping Raven: change `TRADELAB_RAVEN_SHA`, this README and `openspec/changes/ad
 CMakeLists.txt, CMakePresets.json
 cmake/            Dependencies.cmake (pins), FloatFlagsGuard.cmake, EmbedResources.cmake
 src/model/        tradelab_desktop_model: engine adapter (engine_run: C ABI tl_*), EngineHost (worker thread,
-                  command queue, coalesced snapshots), json reader, i18n catalog + {name} formatter, embedded resources
+                  command queue, coalesced snapshots), json reader, i18n catalog + {name} formatter, embedded resources;
+                  game_state (typed tl_state), game_command (every terminal command), game_prefs (prefs file)
 src/viewmodel/    tradelab_desktop_viewmodel: AppViewModel (screen flow, commands, texts per named widget),
                   format (port of the web's format.ts), chart_geometry, vulkan_message, widget_names
+src/viewmodel/game/  the terminal: GameViewModel (command pipeline, dialogs, keys, auto-advance), chart_vm
+                  (display list + pointer/keyboard), ticket_vm, options_vm, panels_vm, dialogs_vm, progress
+                  (points, perks, auto-advance), ports of sizing/stops/optionsMath/shortcuts/chartScale/
+                  chartDrag/chartA11y/rejections, game_widgets (names in views/game.xml)
+src/view/game/    GameView: thin Raven glue for views/game.xml, scene painter, widget helpers
 src/view/         tradelab_desktop_view (the only target linking Raven): App wiring, AppView (XML screens in a
                   Switcher, actions, keyboard hook), chart painter; raven/ adapter (Rtask_post, actions, find, text)
 src/platform/     system language, native error alert
@@ -60,17 +66,21 @@ tests/            unit (model + viewmodel), headless, windowed, cmake rules, scr
 
 `tradelab_desktop_model` and `tradelab_desktop_viewmodel` do not link Raven, so a Raven include there does not compile (checked by a test). Threading: the UI thread (the one that called `Rinit`) owns every widget; `EngineHost` owns the engine on one worker thread; commands go through a FIFO queue and each result comes back as an immutable `Snapshot` posted with `Rtask_post`, coalesced to at most one hand-off per frame (acknowledgements are merged, never lost). The viewmodel sends one command at a time and never blocks.
 
+The terminal sends one engine command at a time: an entry first opens the plan dialog, and the plan and its order (or a leverage change and its order) run as one sequence; advances pressed meanwhile are queued, and an advance never passes a due calibration question. Rejections quote the web's numbers (margin needed vs available).
+
+Until the SQLite store (task 1.9), the shortcut map, tutorials seen, the advisor point balance (settled once per run) and the finished missions that unlock intel perks live in `prefs.json` in the user-data folder (`$TRADELAB_DATA_DIR` when set, else `~/Library/Application Support/TradeLab` on macOS, `$XDG_DATA_HOME/tradelab` or `~/.local/share/tradelab` on Linux); a damaged file reads as defaults.
+
 Views are embedded in the binary (`cmake/EmbedResources.cmake`); widget and action names are shared constants (`src/viewmodel/widget_names.hpp`) checked against the XML by the headless test.
 
 ## Texts (PT-BR first, en second)
 
-Never retyped: `scripts/gen_i18n.mjs` reads `apps/web/src/lib/game/i18n.svelte.ts` (`pt`, `en`), `missions.ts` (mission texts → `mission.<id>.<field>`) and `packs.ts` (pinned publisher keys) with the web's own TypeScript compiler API, adds `resources/i18n/desktop.json`, and writes `resources/i18n/strings.csv` (Raven's locale CSV, `key,pt-BR,en`) and `resources/packs/pinned_keys.json`.
+Never retyped: `scripts/gen_i18n.mjs` reads `apps/web/src/lib/game/i18n.svelte.ts` (`pt`, `en`), `missions.ts` (mission texts → `mission.<id>.<field>`), the terminal texts kept outside i18n (`scripts/i18n_game.mjs`: `news.ts` → `news.*`, `candlePatterns.ts` → `pattern.*`, `objectives.ts` → `objective.*`, `tutorials.ts` → `tutorial.*`, `lessons.ts` → `lessonq.*`) and `packs.ts` (pinned publisher keys) with the web's own TypeScript compiler API, adds `resources/i18n/desktop.json`, and writes `resources/i18n/strings.csv` (Raven's locale CSV, `key,pt-BR,en`) and `resources/packs/pinned_keys.json`.
 
 ```bash
 (cd apps/web && npm ci)                      # the generator uses apps/web/node_modules/typescript
 node apps/desktop/scripts/gen_i18n.mjs       # after any web i18n / missions / packs / desktop.json change
 node apps/desktop/scripts/check_i18n.mjs     # CI: drift, duplicate keys, placeholder mismatch
-node --test apps/desktop/tests/scripts/check_i18n.test.mjs
+node --test apps/desktop/tests/scripts/check_i18n.test.mjs apps/desktop/tests/scripts/i18n_game.test.mjs
 ```
 
 Numbers follow the web's `format.ts` (ported with its test vectors): decimal comma and `.` grouping in PT-BR, never `-0,00`; typed numbers accept either decimal mark (`1,5` = 1.5).
@@ -84,9 +94,9 @@ ctest --test-dir build/macos-release -L windowed --output-on-failure   # needs a
 
 | Label | What |
 |---|---|
-| `unit` | `tradelab_desktop_unit_tests` (doctest): json, i18n, format (web vectors), chart geometry, AppViewModel with a fake engine and with the real EngineHost, EngineHost (50-step batch = 50 single steps by digest, sink only on the UI thread, FIFO under concurrent enqueue, coalescing), Vulkan message |
-| `headless` | `tradelab_desktop_headless_tests`: Raven null platform + null backend; every view loads, every named widget/action exists and is bound, injected clicks/keys/text play mission 01 from the menu to the debrief |
-| `windowed` | `tradelab_desktop_windowed_tests`: the Vulkan renderer driven by `Rwindow_inject_*`; `Rwindow_capture` frames saved as PNG in `$TRADELAB_CAPTURE_DIR` (default `build/<preset>/captures`); m01 to the debrief and a 1024×768 terminal |
+| `unit` | `tradelab_desktop_unit_tests` (doctest): json, i18n, format (web vectors), chart geometry, the terminal viewmodels (`tests/viewmodel/game`: sizing/stops/shortcuts/chart/options vectors from the web tests, ticket, chart, panels, GameViewModel with a fake engine: pipeline, plan, notices, dialogs, keys, drags, protection, options, advisor, points, perks, lessons, auto-advance), AppViewModel with a fake engine and with the real EngineHost, EngineHost (50-step batch = 50 single steps by digest, sink only on the UI thread, FIFO under concurrent enqueue, coalescing), Vulkan message |
+| `headless` | `tradelab_desktop_headless_tests`: Raven null platform + null backend; every view loads, every named widget/action exists and is bound, injected clicks/keys/text play mission 01 from the menu to the debrief; terminal flows (`tests/support/game_flows.hpp`): place + drag the stop + cancel a limit, stop dragged past liquidation (confirmed) then liquidation, option buy; shortcuts, remapping, chart focus and the bar table |
+| `windowed` | `tradelab_desktop_windowed_tests`: the Vulkan renderer driven by `Rwindow_inject_*`; `Rwindow_capture` frames saved as PNG in `$TRADELAB_CAPTURE_DIR` (default `build/<preset>/captures`); m01 to the debrief, a 1024×768 terminal and the terminal flows above |
 | `novulkan` | Linux: the app with no usable Vulkan driver must exit 3 with the message (PT-BR and en) |
 | `cmake` | configure with `-ffast-math` fails naming the flag; a viewmodel file including a Raven header fails to build while the same file builds in the view layer |
 | `script` | `check_raven_pin.py` and its tests |

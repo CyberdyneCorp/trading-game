@@ -8,7 +8,11 @@ namespace tradelab::desktop {
 
 AppViewModel::AppViewModel(Catalog catalog, std::vector<MissionInfo> missions, EngineCommands& engine,
                            SeedSource seeds)
-    : catalog_(std::move(catalog)), missions_(std::move(missions)), engine_(engine), seeds_(std::move(seeds)) {}
+    : catalog_(std::move(catalog)), missions_(std::move(missions)), engine_(engine), seeds_(std::move(seeds)) {
+  std::vector<std::string> ids;
+  for (const auto& m : missions_) ids.push_back(m.id);
+  game_ = std::make_unique<game::GameViewModel>(catalog_, engine_, nullptr, std::move(ids));
+}
 
 void AppViewModel::set_locale(Locale locale) {
   catalog_.set_locale(locale);
@@ -44,7 +48,7 @@ bool AppViewModel::send(const std::function<void()>& command) {
 void AppViewModel::start_selected() {
   if (missions_.empty() || screen_ != Screen::Menu) return;
   const std::string id = missions_[static_cast<std::size_t>(selected_)].id;
-  if (send([&] { engine_.start(id, seeds_()); })) {
+  if (send([&] { engine_.start_with(id, seeds_(), game_->options_for_new_run()); })) {
     start_pending_ = true;
     run_mission_ = id;
     notice_.clear();
@@ -64,42 +68,24 @@ void AppViewModel::back_to_menu() {
 }
 
 void AppViewModel::set_qty_text(std::string text) {
-  if (text == qty_text_) return;
-  qty_text_ = std::move(text);
-  touch();
+  if (text == game_->ticket.amount()) return;
+  game_->ticket.amount() = std::move(text);
+  game_->touch();
 }
 
+// The terminal's commands live in game::GameViewModel; these keep the app-level entry points.
 void AppViewModel::advance(int steps) {
-  if (screen_ != Screen::Game || !snap_ || !snap_->active()) return;
-  send([&] { engine_.advance(steps); });
+  if (screen_ != Screen::Game) return;
+  game_->advance(steps);
 }
 
-void AppViewModel::buy() { send_order(Side::Buy); }
+void AppViewModel::buy() { game_->select_side(game::Side::Buy); }
 
-void AppViewModel::sell() { send_order(Side::Sell); }
-
-void AppViewModel::send_order(Side side) {
-  if (screen_ != Screen::Game || !snap_ || !snap_->active()) return;
-  const std::string qty = fmt::qty_to_lot(fmt::parse_decimal(qty_text_), fmt::num(snap_->lot_size));
-  if (qty == "0") {
-    notice_ = tr("desktop.qtyInvalid");
-    touch();
-    return;
-  }
-  send([&] { engine_.market(side, qty); });
-}
+void AppViewModel::sell() { game_->select_side(game::Side::Sell); }
 
 bool AppViewModel::handle_key(Key key, bool typing) {
-  if (typing || screen_ != Screen::Game) return false;
-  if (key == Key::Space) {
-    advance(1);
-    return true;
-  }
-  if (key == Key::ShiftSpace) {
-    advance(5);
-    return true;
-  }
-  return false;
+  if (screen_ != Screen::Game || key == Key::Other) return false;
+  return game_->handle_key({key == Key::ShiftSpace ? "Shift+Space" : "Space", typing, false, false});
 }
 
 void AppViewModel::play_again() {
@@ -112,6 +98,7 @@ void AppViewModel::on_snapshot(std::shared_ptr<const Snapshot> snap) {
   if (!snap) return;
   snap_ = std::move(snap);
   apply_results(*snap_);
+  game_->on_snapshot(*snap_);
   if (screen_ == Screen::Game && !snap_->active() && snap_->debrief) screen_ = Screen::Debrief;
   touch();
 }
@@ -128,7 +115,6 @@ void AppViewModel::apply_result(const CommandResult& r) {
     if (start_pending_ && r.accepted && screen_ == Screen::Menu) screen_ = Screen::Briefing;
     start_pending_ = false;
   }
-  if (r.kind == CommandKind::Market) notice_ = r.accepted ? std::string() : "\xE2\x9C\x96 " + reason_text(r.reason);  // ✖
 }
 
 std::string AppViewModel::mission_text(const std::string& id, std::string_view field) const {

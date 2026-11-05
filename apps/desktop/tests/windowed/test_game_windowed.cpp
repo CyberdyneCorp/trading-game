@@ -1,0 +1,76 @@
+// The terminal's main flows on the real Vulkan renderer (lavapipe under Xvfb on Linux, MoltenVK on
+// macOS), driven by injected input, with frames saved as PNG in $TRADELAB_CAPTURE_DIR.
+#include <doctest/doctest.h>
+
+#include <raven/raven_resources.h>
+#include <raven/raven_window.h>
+
+#include <cstdlib>
+#include <filesystem>
+
+#include "support/driver.hpp"
+#include "support/game_flows.hpp"
+#include "support/png.hpp"
+
+using namespace tradelab::desktop;
+using tradelab::desktop::testing::Driver;
+using tradelab::desktop::testing::Terminal;
+
+namespace {
+
+struct RavenSession {
+  RavenSession() {
+    std::string detail;
+    REQUIRE_MESSAGE(init_vulkan(detail), "no Vulkan driver: " << detail);
+    Rset_animations_enabled(R_FALSE);
+    Rset_animation_time_step(1.0 / 60.0);
+  }
+  ~RavenSession() { Rshutdown(); }
+};
+
+Terminal::Capture saver(App& app, Driver& d) {
+  return [&app, &d](const std::string& name) {
+    d.frames(3);
+    const char* dir = std::getenv("TRADELAB_CAPTURE_DIR");
+    const std::filesystem::path out = dir != nullptr && *dir != '\0' ? dir : "captures";
+    std::filesystem::create_directories(out);
+    int w = 0;
+    int h = 0;
+    std::uint8_t* rgba = Rwindow_capture(app.view().window(), &w, &h);
+    REQUIRE(rgba != nullptr);
+    CHECK(testing::write_png((out / (name + ".png")).string(), rgba, w, h));
+    Rpixels_free(rgba);
+  };
+}
+
+}  // namespace
+
+TEST_CASE("windowed terminal: place, drag the stop, cancel a limit order") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 1u; });
+  REQUIRE(app.build(1280, 800));
+  Driver d(app);
+  d.frames(4);
+  Terminal t(app, d, saver(app, d));
+  testing::flow_place_move_cancel(app, d, t);
+}
+
+TEST_CASE("windowed terminal: stop past liquidation confirmed, then liquidation") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 5u; });
+  REQUIRE(app.build(1280, 800));
+  Driver d(app);
+  d.frames(4);
+  Terminal t(app, d, saver(app, d));
+  testing::flow_liquidation(app, d, t);
+}
+
+TEST_CASE("windowed terminal: option buy from the chain") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 7u; });
+  REQUIRE(app.build(1280, 800));
+  Driver d(app);
+  d.frames(4);
+  Terminal t(app, d, saver(app, d));
+  testing::flow_option_buy(app, d, t);
+}

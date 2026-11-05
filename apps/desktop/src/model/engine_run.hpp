@@ -10,6 +10,7 @@
 #include <string_view>
 #include <vector>
 
+#include "model/game_command.hpp"
 #include "model/json.hpp"
 #include "model/snapshot.hpp"
 
@@ -30,6 +31,8 @@ class EngineRun {
  public:
   // nullptr for an unknown mission id.
   static std::unique_ptr<EngineRun> create(const std::string& mission, std::uint32_t seed);
+  // With start options (tl_run_create_ex): advisor allowance and intel perks.
+  static std::unique_ptr<EngineRun> create(const std::string& mission, std::uint32_t seed, const RunOptions& options);
   ~EngineRun();
   EngineRun(const EngineRun&) = delete;
   EngineRun& operator=(const EngineRun&) = delete;
@@ -41,12 +44,15 @@ class EngineRun {
   bool advance(int steps);
   // Market order; returns the engine's result {"accepted","reason",...}.
   CommandResult place_market(Side side, const std::string& qty);
+  // A terminal command (model/game_command.cpp); the result carries the engine's order id and warning.
+  CommandResult execute(const GameCommand& c);
   [[nodiscard]] Snapshot snapshot() const;
 
  private:
   EngineRun(tl_run* run, std::uint32_t seed) : run_(run), seed_(seed) {}
   tl_run* run_;
   std::uint32_t seed_;
+  LessonInfo lesson_;
   std::uint32_t next_client_id_ = 1;
 };
 

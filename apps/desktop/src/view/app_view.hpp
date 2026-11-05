@@ -7,8 +7,11 @@
 
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
+
+#include "view/game/game_view.hpp"
 
 #include "viewmodel/app_viewmodel.hpp"
 
@@ -28,6 +31,9 @@ class AppView {
   [[nodiscard]] Rid find(std::string_view name) const;
   // Named widgets and actions of widget_names.hpp that are missing from the views or unbound.
   [[nodiscard]] std::vector<std::string> missing_names() const;
+  // The terminal screen (view/game); keys reach it through the window hook while it shows.
+  [[nodiscard]] view::GameView& game_view() { return *game_view_; }
+  bool on_key(const REvent* e);
 
  private:
   void bind_actions();
@@ -42,6 +48,7 @@ class AppView {
   std::uint64_t shown_revision_ = 0;
   Locale list_locale_ = Locale::PtBR;
   bool list_filled_ = false;
+  std::unique_ptr<view::GameView> game_view_;
 };
 
 // Starts Raven on the null platform and backend (no window system, no GPU): headless tests.

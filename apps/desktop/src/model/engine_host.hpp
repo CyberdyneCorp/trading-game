@@ -28,6 +28,11 @@ class EngineCommands {
   virtual void start(const std::string& mission, std::uint32_t seed) = 0;
   virtual void advance(int steps) = 0;
   virtual void market(Side side, const std::string& qty) = 0;
+  // Terminal commands and start options; the defaults keep simple fakes compiling.
+  virtual void game(const GameCommand& /*command*/) {}
+  virtual void start_with(const std::string& mission, std::uint32_t seed, const RunOptions& /*options*/) {
+    start(mission, seed);
+  }
 };
 
 class EngineHost final : public EngineCommands {
@@ -48,6 +53,8 @@ class EngineHost final : public EngineCommands {
   void start(const std::string& mission, std::uint32_t seed) override;
   void advance(int steps) override;
   void market(Side side, const std::string& qty) override;
+  void game(const GameCommand& command) override;
+  void start_with(const std::string& mission, std::uint32_t seed, const RunOptions& options) override;
 
   // Blocks until every queued command has run (tests and shutdown only; the UI never waits).
   void wait_idle();
@@ -61,6 +68,8 @@ class EngineHost final : public EngineCommands {
     int steps = 0;
     Side side = Side::Buy;
     std::string qty;
+    GameCommand game;
+    RunOptions options;
   };
 
   // Shared with posted tasks so a task that runs after the host is gone does nothing.
@@ -78,6 +87,7 @@ class EngineHost final : public EngineCommands {
   void run_start(const Command& c);
   void run_advance(int steps);
   void run_market(const Command& c);
+  void run_game(const Command& c);
   [[nodiscard]] bool delivery_pending() const;
   void publish(Snapshot s);
   static void deliver(const std::shared_ptr<Mailbox>& box);

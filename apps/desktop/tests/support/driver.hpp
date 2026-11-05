@@ -3,6 +3,7 @@
 #pragma once
 
 #include <raven/raven_core.h>
+#include <raven/raven_layout.h>
 #include <raven/raven_widget.h>
 #include <raven/raven_window.h>
 
@@ -46,6 +47,8 @@ class Driver {
 
   // Left click at the centre of the named widget. False when it has no area (not laid out / hidden).
   bool click(std::string_view name) {
+    Rwidget_scroll_into_view(widget(name));  // as a player scrolls a panel to reach it
+    frames(2);
     float x = 0, y = 0, w = 0, h = 0;
     Rwidget_get_rect(widget(name), &x, &y, &w, &h);
     if (w <= 0 || h <= 0) return false;
@@ -77,6 +80,45 @@ class Driver {
   }
 
   [[nodiscard]] std::string text(std::string_view name) const { return ui::text_of(widget(name)); }
+
+  // Keyboard focus on the named widget, as a Tab would give it (Playwright's focus()).
+  void focus(std::string_view name) {
+    Rwidget_focus(widget(name));
+    frames(1);
+  }
+
+  // Picks item `index` of a combo box from the keyboard (focus, then arrows from the first item).
+  void choose(std::string_view name, int index) {
+    focus(name);
+    for (int i = 0; i < 12; ++i) key(R_KEY_UP);
+    for (int i = 0; i < index; ++i) key(R_KEY_DOWN);
+  }
+
+  // Mouse press at a point in window coordinates, dragged to another, released there.
+  void drag(float x0, float y0, float x1, float y1) {
+    Rwindow_inject_mouse_move(window_, x0, y0);
+    frames(2);
+    Rwindow_inject_mouse_button(window_, R_MOUSE_LEFT, R_TRUE);
+    frames(1);
+    for (int i = 1; i <= 6; ++i) {
+      Rwindow_inject_mouse_move(window_, x0 + (x1 - x0) * static_cast<float>(i) / 6, y0 + (y1 - y0) * static_cast<float>(i) / 6);
+      frames(1);
+    }
+    Rwindow_inject_mouse_button(window_, R_MOUSE_LEFT, R_FALSE);
+    frames(2);
+  }
+
+  // Left click at a point in window coordinates.
+  void click_at(float x, float y) {
+    Rwindow_inject_mouse_move(window_, x, y);
+    frames(1);
+    Rwindow_inject_mouse_button(window_, R_MOUSE_LEFT, R_TRUE);
+    frames(1);
+    Rwindow_inject_mouse_button(window_, R_MOUSE_LEFT, R_FALSE);
+    frames(2);
+  }
+
+  [[nodiscard]] Rid window() const { return window_; }
 
  private:
   App& app_;
