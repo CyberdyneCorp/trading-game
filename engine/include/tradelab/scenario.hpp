@@ -38,11 +38,68 @@ struct CostModel {
   Rate capacity_fraction;  // share of bar volume the player can trade per step
 };
 
+// What a mission asks of the player (task 4.1). The client renders each code as text in the player's
+// language; `value_bp` is the objective's number where it has one (a share in basis points).
+// Numeric values are part of the mission data format: append only.
+enum class ObjectiveCode : std::uint8_t {
+  PlanEveryEntry = 0,         // a hypothesis and an invalidation level before every entry
+  RiskPerIdea = 1,            // planned risk of at most value_bp of equity per idea
+  NoLiquidationWaitOk = 2,    // do not get liquidated; waiting is a valid decision
+  LiqDistance = 3,            // keep the distance to liquidation above value_bp
+  LeverageFromStop = 4,       // choose leverage from the stop, not from the cap
+  LiquidationLosesMargin = 5,
+  BankruptcyGameOver = 6,
+  OptionLoseScenario = 7,     // before buying, write the scenario in which the option loses
+  PremiumVsBreakeven = 8,
+  WatchIvEvent = 9,
+  WriterWorstCase = 10,       // before writing, compute the margin and the worst case
+  MaintenanceBuffer = 11,
+  ThetaForSeller = 12,
+  LimitOrdersAtZones = 13,
+  UnfilledLimitOk = 14,
+  RiskFromStop = 15,          // risk of at most value_bp per idea, quantity set by the stop
+  TrailNotTighterThanAtr = 16,
+  DrawdownBudget = 17,        // finish without a drawdown above value_bp (the mission's drawdown budget)
+  RegimeInPlan = 18,
+  OneToolPerRegime = 19,
+  StraddleBreakevens = 20,
+  StraddleLoseScenario = 21,
+  PremiumBudget = 22,         // do not pay more than value_bp of equity in premium
+  StructureMaxLoss = 23,
+  WrittenMarginBuffer = 24,
+  FundingVsTheta = 25,
+  DecideBeforeRelease = 26,
+  NoChasingHeadline = 27,
+  RiskWithGap = 28,           // planned risk of at most value_bp, counting the gap
+  FinishMission = 29,
+  PlanAndStopEveryEntry = 30,
+  NoLiquidationNoMarginCall = 31,
+  ReadCampaignReport = 32,
+};
+
+struct Objective {
+  ObjectiveCode code = ObjectiveCode::PlanEveryEntry;
+  std::uint32_t value_bp = 0;
+};
+
+// The objectives of a mission that declares none (imported packs): plan, 2% risk, no liquidation.
+inline std::vector<Objective> common_objectives() {
+  return {{ObjectiveCode::PlanEveryEntry, 0}, {ObjectiveCode::RiskPerIdea, 200}, {ObjectiveCode::NoLiquidationWaitOk, 0}};
+}
+
 struct MissionRules {
   Money initial_balance;
   std::int32_t leverage_cap = 1;
   std::uint32_t warmup_bars = 0;  // bars visible before the first decision point
   bool allow_short = true;
+  // Mission schema (task 4.1). Never inputs to execution: the client renders them, and the score's risk
+  // dimension reads the two budgets (scoring v11). Instrument permissions are the contract's and the
+  // option spec's own: long always, short `allow_short`, options buying when a chain is listed,
+  // options writing `options.allow_short`.
+  std::vector<Objective> objectives = common_objectives();
+  std::uint32_t liq_warning_bp = 300;       // warn at decision points when liquidation is closer than this to the last close
+  std::uint32_t drawdown_budget_bp = 2000;  // max drawdown the mission allows, share of the run's initial capital
+  bool confirm_stop_beyond_liq = true;      // the ticket asks for explicit confirmation of a stop beyond liquidation
 };
 
 enum class OptionKind : std::uint8_t { Call = 0, Put = 1 };

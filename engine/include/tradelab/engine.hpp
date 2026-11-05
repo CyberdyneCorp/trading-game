@@ -31,6 +31,7 @@ enum class CommandType : std::uint8_t {
   AnswerQuestion = 7,    // calibration answer for the question due at this step
   RequestAdvice = 8,     // advisor read of the visible market; uses one unit of the allowance
   MoveOrder = 9,         // order_id + price: moves a working reduce-only stop/take-profit, keeping its OCO link (v13)
+  AnswerLesson = 10,     // question + choice or value: a structured lesson answer (understanding dimension, scoring v11)
 };
 
 struct Command {
@@ -52,7 +53,10 @@ struct Command {
   Money margin_delta;          // AdjustMargin
   PlanRecord plan;             // RecordPlan (step is set by the engine)
   std::uint32_t p_bp = 0;      // AnswerQuestion: probability in basis points
-  bool skipped = false;        // AnswerQuestion skipped
+  bool skipped = false;        // AnswerQuestion / AnswerLesson skipped
+  std::uint32_t question = 0;  // AnswerLesson: index into the mission's rubric
+  std::uint32_t choice = 0;    // AnswerLesson: multiple-choice option
+  Money value;                 // AnswerLesson: numeric answer
 };
 
 // Live account figures at the current decision point (all derived, never stored).
@@ -81,6 +85,8 @@ Money run_initial_balance(const Scenario& sc, const RunState& st);
 std::int32_t run_leverage_cap(const Scenario& sc, const RunState& st);
 CommandResult apply_command(const Scenario& sc, RunState& st, const Command& cmd);
 void advance(const Scenario& sc, RunState& st);
+// What the player did at the current decision step (recorded by advance in RunState::decisions).
+DecisionKind decision_at(const RunState& st);
 
 AccountView account_view(const Scenario& sc, const RunState& st);
 

@@ -12,6 +12,7 @@
 #include "tradelab/generator.hpp"
 #include "tradelab/candle_patterns.hpp"
 #include "tradelab/indicators.hpp"
+#include "tradelab/lessons.hpp"
 #include "tradelab/options.hpp"
 #include "tradelab/scoring.hpp"
 #include "options_exec.hpp"
@@ -30,7 +31,8 @@ const char* reason_name(Reason r) {
       "unsupported_order_type", "reduce_only_would_increase", "run_bankrupt", "run_finished",
       "insufficient_capacity", "liquidation", "position_closed", "user_cancelled", "unknown_order",
       "invalid_sequence", "wrong_decision_step", "numeric_overflow", "invalid_leverage", "position_open",
-      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left", "order_moved"};
+      "stop_beyond_liquidation", "short_not_allowed", "expired", "invalid_bracket", "oco_sibling_filled", "series_not_listed", "short_options_not_allowed", "no_bid", "margin_call", "margin_below_initial", "no_question_due", "invalid_plan", "no_advice_left", "order_moved",
+      "unknown_question", "already_answered", "invalid_answer"};
   const auto i = static_cast<std::size_t>(r);
   return i < std::size(kNames) ? kNames[i] : "unknown";
 }
@@ -69,6 +71,37 @@ void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.field("fundingInterval", k.funding_interval).field("allowShort", sc.mission.allow_short);
   j.field("halfSpread", sc.costs.half_spread).field("slippage", sc.costs.slippage);
   j.field("capacityFraction", sc.costs.capacity_fraction);
+  j.end_obj();
+}
+
+const char* objective_name(ObjectiveCode c) {
+  static constexpr const char* kNames[] = {
+      "plan_every_entry", "risk_per_idea", "no_liquidation_wait_ok", "liq_distance", "leverage_from_stop",
+      "liquidation_loses_margin", "bankruptcy_game_over", "option_lose_scenario", "premium_vs_breakeven", "watch_iv_event",
+      "writer_worst_case", "maintenance_buffer", "theta_for_seller", "limit_orders_at_zones", "unfilled_limit_ok",
+      "risk_from_stop", "trail_not_tighter_than_atr", "drawdown_budget", "regime_in_plan", "one_tool_per_regime",
+      "straddle_breakevens", "straddle_lose_scenario", "premium_budget", "structure_max_loss", "written_margin_buffer",
+      "funding_vs_theta", "decide_before_release", "no_chasing_headline", "risk_with_gap", "finish_mission",
+      "plan_and_stop_every_entry", "no_liquidation_no_margin_call", "read_campaign_report"};
+  const auto i = static_cast<std::size_t>(c);
+  return i < std::size(kNames) ? kNames[i] : "unknown";
+}
+
+// The mission's rules as the run plays them (task 4.1): what the briefing lists and the ticket enforces.
+// Permissions come from the contract and the option spec, so the client never decides them.
+void write_mission_rules(JsonOut& j, const Scenario& sc, const RunState& st) {
+  const MissionRules& m = sc.mission;
+  const bool options = !sc.options.series.empty();
+  j.key("missionRules").begin_obj();
+  j.field("initialBalance", run_initial_balance(sc, st)).field("leverageCap", run_leverage_cap(sc, st));
+  j.field("warmupBars", m.warmup_bars);
+  j.key("permissions").begin_obj().field("long", true).field("short", m.allow_short);
+  j.field("optionsBuy", options).field("optionsWrite", options && sc.options.allow_short).end_obj();
+  j.key("objectives").begin_arr();
+  for (const Objective& o : m.objectives) j.begin_obj().field("code", objective_name(o.code)).field("valueBp", o.value_bp).end_obj();
+  j.end_arr();
+  j.field("liqWarningBp", m.liq_warning_bp).field("drawdownBudgetBp", m.drawdown_budget_bp);
+  j.field("confirmStopBeyondLiq", m.confirm_stop_beyond_liq);
   j.end_obj();
 }
 
@@ -314,7 +347,7 @@ const char* finding_name(FindingCode c) {
                                            "funding_cost",    "ambiguous",  "capacity",        "good_process_loss",
                                            "lucky_win",       "no_plan",    "oversized",       "bankrupt",
                                            "margin_called",   "theta_decay", "iv_crush",        "good_process_win",
-                                           "iv_rise",         "wrote_options"};
+                                           "iv_rise",         "wrote_options", "leverage_vs_stop", "liq_buffer", "drawdown_budget"};
   return kNames[static_cast<std::size_t>(c)];
 }
 
@@ -390,6 +423,49 @@ void write_regime_signals(JsonOut& j, const std::vector<RegimeSignals>& rows) {
   j.end_arr();
 }
 
+const char* decision_name(DecisionKind k) {
+  static constexpr const char* kNames[] = {"wait", "hold", "act"};
+  return kNames[static_cast<std::size_t>(k)];
+}
+
+// Debrief only (task 4.2): what the player did at each decision step the run advanced through.
+void write_decisions(JsonOut& j, const RunState& st) {
+  j.key("decisions").begin_arr();
+  for (const DecisionRecord& d : st.decisions) j.begin_obj().field("step", d.step).field("kind", decision_name(d.kind)).end_obj();
+  j.end_arr();
+}
+
+void write_lesson_answer(JsonOut& j, const LessonQuestion& q, const RunState& st, std::uint32_t index) {
+  const auto it = std::find_if(st.lesson_answers.begin(), st.lesson_answers.end(), [index](const LessonAnswer& a) { return a.question == index; });
+  const bool given = it != st.lesson_answers.end() && !it->skipped;
+  j.key("given");
+  if (!given) j.null();
+  else if (q.numeric) j.str(to_decimal_string(it->value));
+  else j.num(it->choice);
+  j.key("answer");
+  if (q.numeric) j.str(to_decimal_string(q.value)); else j.num(q.answer);
+}
+
+// Debrief only (task 4.5): each lesson question of the mission, the player's answer and the key.
+void write_lessons(JsonOut& j, const Scenario& sc, const RunState& st, const ScoreReport& r) {
+  const Rubric* rubric = rubric_for(sc.id);
+  j.key("lessons");
+  if (rubric == nullptr) {
+    j.null();
+    return;
+  }
+  j.begin_obj().field("reviewed", r.lessons_reviewed).field("points", r.lesson_points).field("total", r.lesson_points_total);
+  j.key("questions").begin_arr();
+  for (const LessonResult& res : r.lessons) {
+    const LessonQuestion& q = rubric->questions[res.question];
+    j.begin_obj().field("id", q.id).field("kind", q.numeric ? "numeric" : "choice").field("points", res.points).field("maxPoints", q.points);
+    j.field("answered", res.answered).field("skipped", res.skipped).field("correct", res.correct);
+    write_lesson_answer(j, q, st, res.question);
+    j.end_obj();
+  }
+  j.end_arr().end_obj();
+}
+
 void write_score(JsonOut& j, const ScoreReport& r, const std::vector<RegimeSpan>& spans) {
   j.key("score").begin_obj().field("version", kScoringVersion).key("total");
   if (r.total) j.num(*r.total); else j.null();
@@ -434,6 +510,7 @@ const char* state_json(tl_run& r) {
   j.field("warmupBars", sc.mission.warmup_bars).field("totalBars", static_cast<std::uint32_t>(sc.bars.size()));
   j.field("initialBalance", run_initial_balance(sc, st)).field("leverage", st.leverage);
   write_contract(j, sc, st);
+  write_mission_rules(j, sc, st);
   write_bars(j, sc, st.step);
   write_account(j, sc, st);
   write_orders(j, st);
@@ -691,6 +768,38 @@ const char* tl_answer_question(tl_run* run, uint32_t client_id, int32_t p_bp, in
   return result_json(*run, apply_command(run->scenario, run->state, c));
 }
 
+const char* tl_answer_lesson(tl_run* run, uint32_t client_id, uint32_t question, uint32_t choice, const char* value,
+                             int32_t skipped) {
+  Command c = next_command(*run, CommandType::AnswerLesson, client_id);
+  c.question = question;
+  c.choice = choice;
+  c.skipped = skipped != 0;
+  if (value != nullptr && *value != '\0') {
+    const auto v = parse_decimal<Money>(value);
+    if (!v.ok()) return error_json(*run, "invalid_answer");
+    c.value = v.value();
+  }
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_lesson(const char* mission_id) {
+  static std::string buffer;
+  const Rubric* rubric = mission_id != nullptr ? rubric_for(mission_id) : nullptr;
+  if (rubric == nullptr) {
+    buffer = "{\"error\":\"no_lesson\"}";
+    return buffer.c_str();
+  }
+  JsonOut j;
+  j.begin_obj().field("mission", rubric->mission).field("reviewed", rubric->reviewed).key("questions").begin_arr();
+  for (const LessonQuestion& q : rubric->questions) {
+    j.begin_obj().field("id", q.id).field("kind", q.numeric ? "numeric" : "choice").field("choices", q.choices);
+    j.field("points", q.points).end_obj();
+  }
+  j.end_arr().end_obj();
+  buffer = j.text();
+  return buffer.c_str();
+}
+
 const char* tl_request_advice(tl_run* run, uint32_t client_id) {
   return result_json(*run, apply_command(run->scenario, run->state, next_command(*run, CommandType::RequestAdvice, client_id)));
 }
@@ -757,7 +866,11 @@ const char* tl_debrief(tl_run* run) {
   if (run->from_pack) write_pack_reveal(j, run->pack);
   else if (mission_reveal(sc.id, run->state.seed, reveal)) write_regime_signals(j, signals_by_regime(sc, run->state, reveal.spans));
   j.field("startPrice", sc.bars[sc.mission.warmup_bars].close).field("endPrice", sc.bars[run->state.step].close);
-  write_score(j, score_run(sc, run->state), reveal.spans);
+  const ScoreReport report = score_run(sc, run->state);
+  write_score(j, report, reveal.spans);
+  write_mission_rules(j, sc, run->state);
+  write_decisions(j, run->state);
+  write_lessons(j, sc, run->state, report);
   j.end_obj();
   run->buffer = j.text();
   return run->buffer.c_str();

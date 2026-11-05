@@ -4,8 +4,8 @@
 // Clients display this report; the server recomputes it from the same commands (never trusts a
 // client-reported score). Integer arithmetic only.
 //
-// Dimensions (scoring version 7): risk 35, plan coherence 25, understanding 25 (not measured yet),
-// calibration 15. A dimension without data is not applicable and the rest are renormalized.
+// Dimensions (scoring version 11): risk 35, plan coherence 25, understanding 25 (structured lesson
+// answers against a reviewed rubric), calibration 15. A dimension without data is not applicable and the rest are renormalized.
 // Report-only debrief facts (spread/slippage cost, option P&L by Greek, the leverage that would have
 // kept a stop in front of liquidation) never feed the score.
 
@@ -16,6 +16,7 @@
 #include "tradelab/advisor.hpp"
 #include "tradelab/engine.hpp"
 #include "tradelab/generator.hpp"
+#include "tradelab/lessons.hpp"
 
 namespace tradelab {
 
@@ -23,7 +24,10 @@ namespace tradelab {
 // for written options), wrote_options finding, lucky_win when a trade had no plan, the buy-and-hold
 // benchmark and market span measured to the run's last bar.
 // v9 (report-only, no digest change): signals by revealed regime and each trade's entry regime (G4).
-constexpr std::uint32_t kScoringVersion = 10;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall; v8: full-revaluation Greek attribution, side-aware IV finding; v9: signals by regime, entry regime; v10: exit reason from the order type (a stop in profit is a stop, trailing stops named)
+// v11: understanding from structured lesson answers against reviewed rubrics; risk adds leverage vs
+// stop distance, the liquidation distance kept against the mission's warning distance, and drawdown
+// against the mission's budget; per-decision records (act, hold, wait) in the debrief.
+constexpr std::uint32_t kScoringVersion = 11;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall; v8: full-revaluation Greek attribution, side-aware IV finding; v9: signals by regime, entry regime; v10: exit reason from the order type (a stop in profit is a stop, trailing stops named); v11: see above
 
 enum class FindingCode : std::uint8_t {
   Waited = 0,
@@ -45,6 +49,9 @@ enum class FindingCode : std::uint8_t {
   GoodProcessWin,  // a profit where every trade had a plan and limited risk (the counterpart of GoodProcessLoss)
   IvRise,        // rising implied volatility (vega) on written options explains at least half of an option loss
   WroteOptions,  // options were written and no margin call followed: risk limited by neither a stop nor a premium
+  LeverageVsStop,  // v11: liquidation closer to the entry than twice the stop distance (step, leverage, stop, liquidation price)
+  LiqBuffer,       // v11: the closest liquidation distance at a close fell below the mission's warning distance (count = bp)
+  DrawdownBudget,  // v11: max drawdown above the mission's drawdown budget (count = budget bp, amount = drawdown)
 };
 
 enum class FindingTone : std::uint8_t { Good = 0, Warn, Bad, Info };
@@ -129,6 +136,15 @@ struct AdviceRow {
 // Advisor points (spec progression-rewards "Advisor points earned by process", design D3).
 constexpr std::uint32_t kAdvisorPointsCap = 6;
 
+// One lesson question in the debrief (task 4.5): its index in the mission's rubric and how it went.
+struct LessonResult {
+  std::uint32_t question = 0;
+  bool answered = false;
+  bool skipped = false;
+  bool correct = false;
+  std::uint32_t points = 0;  // earned
+};
+
 struct Dimension {
   std::uint32_t weight = 0;
   std::optional<std::int32_t> score;  // 0..100; nullopt = not applicable
@@ -153,10 +169,18 @@ struct ScoreReport {
   std::uint32_t advisor_points_earned = 0;
   std::vector<AdviceRow> advice;
   std::optional<std::int64_t> advice_hit_bp;  // right / (right + wrong), basis points
+  // Lesson questions (only for a mission with a rubric). Scored only when the rubric is reviewed and the
+  // player answered or skipped at least one question; otherwise the understanding dimension is not applicable.
+  std::vector<LessonResult> lessons;
+  bool lessons_reviewed = false;
+  std::uint32_t lesson_points = 0;
+  std::uint32_t lesson_points_total = 0;
 };
 
 std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st);
 ScoreReport score_run(const Scenario& sc, const RunState& st);
+// The same with an explicit lesson rubric (nullptr: none); score_run uses the mission's own (rubric_for).
+ScoreReport score_run(const Scenario& sc, const RunState& st, const Rubric* rubric);
 
 // +1 per closed perpetual trade with a plan (planned risk > 0) and a protective stop working while
 // it was open, +1 more if its net P&L is positive, +2 if the run finished; capped at 6.

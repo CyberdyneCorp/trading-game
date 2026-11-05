@@ -414,8 +414,38 @@ RunState start_run(const Scenario& sc, std::uint64_t seed, const RunOptions& opt
   return st;
 }
 
+namespace {
+
+// A command of the player at this decision step: an order placed (bracket children are the engine's),
+// cancelled or moved, or a leverage or margin change. Plans, calibration answers, lesson answers and
+// advice requests are not trades.
+bool player_acted(const RunState& st) {
+  const std::uint32_t s = st.step;
+  const bool placed = std::any_of(st.orders.begin(), st.orders.end(), [s](const Order& o) { return o.placed_step == s && o.parent_id == 0; });
+  return placed || std::any_of(st.events.begin(), st.events.end(), [s](const Event& e) {
+           if (e.step != s) return false;
+           const bool user_update = e.type == EventType::OrderUpdate && (e.reason == Reason::UserCancelled || e.reason == Reason::OrderMoved);
+           return user_update || e.type == EventType::LeverageChanged || e.type == EventType::MarginAdjusted;
+         });
+}
+
+bool exposed(const RunState& st) {
+  return !st.position.flat() ||
+         std::any_of(st.option_positions.begin(), st.option_positions.end(), [](const OptionPosition& p) { return p.qty.raw != 0; });
+}
+
+}  // namespace
+
+// Task 4.2 (spec gameplay-loop "Waiting is a decision"): every advance records what the player did at
+// the decision step it leaves, so a wait is an explicit record, not the absence of one.
+DecisionKind decision_at(const RunState& st) {
+  if (player_acted(st)) return DecisionKind::Act;
+  return exposed(st) ? DecisionKind::Hold : DecisionKind::Wait;
+}
+
 void advance(const Scenario& sc, RunState& st) {
   if (st.status != RunStatus::Active) return;
+  st.decisions.push_back({st.step, decision_at(st)});
   const std::uint32_t index = st.step + 1;
   st.step = index;  // events of this step are stamped with the bar being processed
   BarCtx c{sc, st, sc.bars[index], bar_capacity(sc, sc.bars[index])};

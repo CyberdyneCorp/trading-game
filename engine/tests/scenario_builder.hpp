@@ -139,6 +139,14 @@ class Driver {
     c.skipped = skipped;
     return apply_command(sc_, st_, c);
   }
+  CommandResult lesson(std::uint32_t question, std::uint32_t choice, const char* value = nullptr, bool skipped = false) {
+    Command c = base(CommandType::AnswerLesson);
+    c.question = question;
+    c.choice = choice;
+    if (value != nullptr) c.value = M(value);
+    c.skipped = skipped;
+    return apply_command(sc_, st_, c);
+  }
   CommandResult leverage(int lev) {
     Command c = base(CommandType::SetLeverage);
     c.leverage = lev;

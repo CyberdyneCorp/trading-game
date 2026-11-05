@@ -56,6 +56,16 @@ const char* tl_record_plan(tl_run* run, uint32_t client_id, int32_t side, int32_
 /* Calibration answer for the question due now: probability in basis points (0..10000). */
 const char* tl_answer_question(tl_run* run, uint32_t client_id, int32_t p_bp, int32_t skipped);
 
+/* Lesson question of the mission's rubric (index `question`): `choice` for multiple choice, `value` (a
+ * decimal string) for a numeric one; each question is answered (or skipped) once. Rejected with
+ * unknown_question, already_answered or invalid_answer. Scored as the understanding dimension. */
+const char* tl_answer_lesson(tl_run* run, uint32_t client_id, uint32_t question, uint32_t choice, const char* value,
+                             int32_t skipped);
+/* The mission's lesson questions without the answer key (run-less, static buffer):
+ * {"mission","reviewed","questions":[{"id","kind":"choice|numeric","choices","points"}]};
+ * {"error":"no_lesson"} for a mission without a rubric. Texts live in the client catalogs by id. */
+const char* tl_lesson(const char* mission_id);
+
 /* Advisor read of the visible market at the current step; uses one unit of the allowance.
  * Rejected with no_advice_left (and no state change) when the allowance is used up. */
 const char* tl_request_advice(tl_run* run, uint32_t client_id);

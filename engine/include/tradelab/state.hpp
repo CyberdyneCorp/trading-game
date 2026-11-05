@@ -104,6 +104,30 @@ struct CalibrationAnswer {
   bool skipped = false;
 };
 
+// What the player did at a decision point, recorded by `advance` for the step it leaves (task 4.2,
+// spec gameplay-loop "Waiting is a decision"). A pure function of the commands and the state at that
+// step, so it is kept outside the state digest (like the command log) and in the checkpoint.
+enum class DecisionKind : std::uint8_t {
+  Wait = 0,  // no order placed, cancelled or moved, no leverage or margin change, and no exposure
+  Hold = 1,  // no such command while a position (perpetual or option) stayed open
+  Act = 2,   // at least one accepted command that placed, cancelled or moved an order, or changed leverage or margin
+};
+
+struct DecisionRecord {
+  std::uint32_t step = 0;
+  DecisionKind kind = DecisionKind::Wait;
+};
+
+// Answer to a lesson question (task 4.5): `question` indexes the mission's rubric (lessons.hpp);
+// `choice` for multiple choice, `value` for a numeric answer. Skipped answers are kept and score 0.
+struct LessonAnswer {
+  std::uint32_t step = 0;
+  std::uint32_t question = 0;
+  std::uint32_t choice = 0;
+  Money value;
+  bool skipped = false;
+};
+
 struct CommandResult {
   bool accepted = false;
   Reason reason = Reason::None;
@@ -177,6 +201,9 @@ struct RunState {
   RunOptions options;
   std::uint32_t advice_left = 0;  // starts at options.advice_allowance
   std::vector<Advice> advice;     // every accepted RequestAdvice, in order
+
+  std::vector<LessonAnswer> lesson_answers;  // in the state digest only when present (a run without answers hashes as before)
+  std::vector<DecisionRecord> decisions;     // one per advanced decision step; not a digest input (derived)
 };
 
 }  // namespace tradelab

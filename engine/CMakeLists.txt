@@ -60,11 +60,21 @@ add_library(tradelab_engine STATIC
   src/scenario.cpp
   src/scoring.cpp
   src/debrief.cpp
+  src/lessons.cpp
   src/sha256.cpp
   src/serialize.cpp
 )
 add_library(tradelab::engine ALIAS tradelab_engine)
 target_include_directories(tradelab_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# Lesson rubrics (task 4.5): reviewed data files, embedded as a string literal that src/lessons.cpp
+# parses once. Editing the JSON re-runs the configure step; the generated file only changes with it.
+set(TRADELAB_LESSONS ${CMAKE_CURRENT_SOURCE_DIR}/rubrics/lessons.json)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TRADELAB_LESSONS})
+file(READ ${TRADELAB_LESSONS} TRADELAB_LESSONS_JSON)
+file(CONFIGURE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/generated/lessons_data.inc
+     CONTENT "R\"tllessons(${TRADELAB_LESSONS_JSON})tllessons\"\n" @ONLY)
+target_include_directories(tradelab_engine PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_link_libraries(tradelab_engine PRIVATE tradelab_vendor)
 set_target_properties(tradelab_engine PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -92,7 +102,7 @@ if(EMSCRIPTEN)
   target_link_options(tradelab_wasm PRIVATE
     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createTradelab -sSINGLE_FILE=1
     -sENVIRONMENT=web,worker -sALLOW_MEMORY_GROWTH=1 -sFILESYSTEM=0
-    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_missions','_tl_run_create','_tl_run_create_ex','_tl_run_destroy','_tl_request_advice','_tl_place_order','_tl_place_order_ex','_tl_place_option_order','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_move_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_tl_mission_reveal','_tl_csv_validate','_tl_pack_build_csv','_tl_pack_validate','_tl_run_create_pack','_tl_run_restore_pack','_tl_device_key','_tl_blob_data','_tl_blob_size','_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_missions','_tl_run_create','_tl_run_create_ex','_tl_run_destroy','_tl_request_advice','_tl_place_order','_tl_place_order_ex','_tl_place_option_order','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_answer_lesson','_tl_lesson','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_move_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_tl_mission_reveal','_tl_csv_validate','_tl_pack_build_csv','_tl_pack_validate','_tl_run_create_pack','_tl_run_restore_pack','_tl_device_key','_tl_blob_data','_tl_blob_size','_malloc','_free']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','HEAPU8']")
 endif()
 
@@ -132,6 +142,8 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_options.cpp
     tests/test_prng.cpp
     tests/test_scoring.cpp
+    tests/test_lessons.cpp
+    tests/test_decisions.cpp
     tests/test_debrief.cpp
     tests/test_sha256.cpp
     tests/test_serialize.cpp

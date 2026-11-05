@@ -26,7 +26,10 @@ bool contract_valid(const ContractSpec& c) {
 bool mission_valid(const Scenario& s) {
   const MissionRules& m = s.mission;
   if (m.initial_balance.raw <= 0 || m.leverage_cap < 1) return false;
-  return m.warmup_bars + 2 <= s.bars.size();
+  if (m.liq_warning_bp > 10'000 || m.drawdown_budget_bp == 0 || m.drawdown_budget_bp > 10'000) return false;
+  const bool codes_ok = std::all_of(m.objectives.begin(), m.objectives.end(),
+                                    [](const Objective& o) { return o.code <= ObjectiveCode::ReadCampaignReport && o.value_bp <= 10'000; });
+  return codes_ok && m.warmup_bars + 2 <= s.bars.size();
 }
 
 bool series_valid(const Scenario& s, const OptionSeries& x, std::uint32_t index) {
