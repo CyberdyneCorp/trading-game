@@ -17,7 +17,7 @@ CyberdyneAuth (inspected 2026-11-02, OpenAPI v0.1.0, issuer `https://auth.backen
 | client_id (proposed) | type | grants | redirect | notes |
 |---|---|---|---|---|
 | `cyb_tradelab` | confidential | authorization_code, refresh_token, client_credentials | `https://tradelab.coolify.cyberdynecorp.ai/api/auth/callback`, `https://tradelab-dev.coolify.cyberdynecorp.ai/api/auth/callback` | Web BFF in `services/api`; product key for entitlements; owns role catalog (`roles:manage`, `roles:read`) |
-| `cyb_tradelab_desktop` | public | authorization_code, refresh_token | `http://127.0.0.1/callback` (any port) | Dear ImGui client, system browser |
+| `cyb_tradelab_desktop` | public | authorization_code, refresh_token | `http://127.0.0.1/callback` (any port) | desktop client (Raven), system browser |
 | `cyb_tradelab_ios` | public | authorization_code, refresh_token | `ai.cyberdyne.tradelab:/oauth/callback` | `ASWebAuthenticationSession` |
 | `cyb_tradelab_android` | public | (later) | App Link | Phase 5 |
 | `cyb_tradelab_packer` | confidential | client_credentials | — | Authoring-time service client for Market4Me exports (audience `market4me-api`, Market4Me role `analyst`); never shipped in any client |

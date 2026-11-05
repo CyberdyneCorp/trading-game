@@ -615,7 +615,7 @@ Next:
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.
 - Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data).
-- Desktop client (C++20, Dear ImGui + SDL3), then iPad/iPhone (SwiftUI).
+- Desktop client for Linux and macOS (C++20 on [Raven](https://github.com/oscar-soirey/Raven), Vulkan/MoltenVK; plan in `openspec/changes/add-native-clients`), then iPad/iPhone (SwiftUI).
 
 ## Tests
 

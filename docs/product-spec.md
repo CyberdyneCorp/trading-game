@@ -12,7 +12,7 @@ Working name: **Cyberdyne TradeLab**. Commercial name, monetization and final id
 |---|---|---|---|
 | Instruments | Spot long only; short/leverage/options out of MVP | **No spot.** Linear perpetual futures (long/short, isolated margin, funding, liquidation) + European cash-settled options (long and short), model-priced | Product goal is to teach derivatives; spot adds a third accounting model without teaching value |
 | Shared engine | Rust → WASM + Swift/Kotlin bindings | **C++20** → WASM (Emscripten), Swift C++ interop, a C ABI + Python ctypes binding (server), JNI (later) | Desktop client is C++20 anyway: one systems language, the desktop links the engine directly |
-| Clients | Web → Android → iOS | **Web (SvelteKit) → Desktop (C++20, Dear ImGui + SDL3) → iPad/iPhone (SwiftUI) → Android (later)** | User priority |
+| Clients | Web → Android → iOS | **Web (SvelteKit) → Desktop (C++20 + Raven, Linux and macOS) → iPad/iPhone (SwiftUI) → Android (later)** | User priority |
 | Backend | Unspecified stack | Python + FastAPI (hexagonal), PostgreSQL, object storage, on Coolify; replays runs with the same engine via the python binding | Same engine on the server = authoritative re-simulation |
 | Auth | "Inspect CyberdyneAuth first" | Concrete: OIDC auth-code + PKCE (S256 mandatory), web via BFF with HttpOnly cookies, native apps as public clients, client roles + entitlements from token claims | Contract inspected (see `openspec/changes/add-cyberdyne-identity-and-backend/design.md`) |
 | Determinism | "Same digest on all platforms" | Made explicit: int64 fixed-point, own PRNG, own `exp/log/normcdf` kernels, `-ffp-contract=off`, no `-ffast-math`, golden vectors run on every binding in CI | Options pricing needs transcendental math, which `libm` does not make bit-identical across WASM/ARM/x86 |
@@ -44,7 +44,7 @@ Target audience: adults, beginner to intermediate. A school edition requires sep
 
 ## 2. Creative reference and differentiation
 
-[Insider Trading (Steam)](https://store.steampowered.com/app/3166810/Insider_Trading/) is a roguelike deckbuilder, not a trading simulator. We borrow its atmosphere, tension of sequential decisions and run-based progression — never its art, brand, text or layouts. Raven's UI demo ([video](https://www.youtube.com/watch?v=woRba5SXxKg)) is a reference for the desktop look (dense, crisp, GPU-rendered panels).
+[Insider Trading (Steam)](https://store.steampowered.com/app/3166810/Insider_Trading/) is a roguelike deckbuilder, not a trading simulator. We borrow its atmosphere, tension of sequential decisions and run-based progression — never its art, brand, text or layouts. The desktop client is built on [Raven](https://github.com/oscar-soirey/Raven) (pinned commit; see `openspec/changes/add-native-clients/design.md`), whose UI demo ([video](https://www.youtube.com/watch?v=woRba5SXxKg)) is also the reference for the desktop look (dense, crisp, GPU-rendered panels).
 
 Differences:
 
@@ -186,7 +186,7 @@ See `openspec/changes/add-cyberdyne-identity-and-backend/`. Summary: CyberdyneAu
 | 0 Contracts & spikes | Engine skeleton, determinism harness (native + WASM + python), golden vectors, pack format, CyberdyneAuth client registration in staging, chart library pick | Same digest for a 500-bar perp+options fixture on 3 targets |
 | 1 Web vertical slice | One synthetic mission, perp long/short with market/stop/TP, liquidation, funding, debrief, local save, staging login | One mission end-to-end, reproducible, no lookahead |
 | 2 Web MVP | 12 missions, ≥4 regimes, 3 event families, options buy+write, limit/trailing/OCO, indicators, journal, progression, catalog, sync, installable offline PWA | Execution, usability, content and security tests green |
-| 3 Desktop | C++20 + Dear ImGui + SDL3 client, offline packs, sync | Same fixtures/digests as web; full mission offline |
+| 3 Desktop | C++20 + Raven client (Linux, macOS), offline packs; sync once Cyberdyne Auth exists | Same fixtures/digests as web; full mission offline |
 | 4 iPad/iPhone | SwiftUI, Swift C++ interop, offline packs, sync | Same digests; airplane-mode mission |
 | 5 Expansion | Stop-limit, multi-timeframe, editorial admin, online comparable challenges, Android | Per change |
 
@@ -231,7 +231,7 @@ This experience is not financial advice, strategy validation for real markets or
 ## 21. References
 
 - Insider Trading — https://store.steampowered.com/app/3166810/Insider_Trading/
-- Raven GUI (desktop look) — https://www.youtube.com/watch?v=woRba5SXxKg
+- Raven GUI (desktop library and look) — https://github.com/oscar-soirey/Raven · https://www.youtube.com/watch?v=woRba5SXxKg
 - v0.1 videos — https://www.youtube.com/watch?v=4EnGV6ffGTU · https://www.youtube.com/watch?v=ZqJZPI_fXww
 - Binance public data — https://github.com/binance/binance-public-data (see TERMS_AND_CONDITIONS.md)
 - Kraken OHLCVT — https://support.kraken.com/ca/articles/360047124832
