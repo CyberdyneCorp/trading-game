@@ -1,7 +1,7 @@
 // Pre-trade estimates shown on the order ticket (spec terminal-ui "Order ticket for perpetuals").
 // Estimates only: the engine is authoritative for acceptance, fills, margin and liquidation.
 
-import type { Contract } from '#lib/engine/types.ts';
+import type { Contract, LiquidityView } from '#lib/engine/types.ts';
 
 export type Side = 'buy' | 'sell';
 
@@ -39,14 +39,40 @@ export interface Costs {
 	tiers?: Tier[];
 }
 
-export function costsOf(c: Contract): Costs {
+/**
+ * The costs an order placed now pays: the contract's, or those of the liquidity shock in force on the
+ * next bar (`GameState.liquidity`), so estimates never understate a shocked fill.
+ */
+export function costsOf(c: Contract, liquidity?: LiquidityView | null): Costs {
 	return {
 		multiplier: Number(c.multiplier),
 		takerFee: Number(c.takerFee),
 		maintenanceMargin: Number(c.maintenanceMargin),
-		halfSpread: Number(c.halfSpread),
-		slippage: Number(c.slippage),
+		halfSpread: Number(liquidity?.halfSpread ?? c.halfSpread),
+		slippage: Number(liquidity?.slippage ?? c.slippage),
 		tiers: (c.marginTiers ?? []).map((t) => ({ floor: Number(t.notionalFloor), mmr: Number(t.maintenanceMargin), maxLeverage: t.maxLeverage }))
+	};
+}
+
+/**
+ * The higher margin tiers as the run can use them: a tier's leverage cap never shows above the
+ * mission's own cap (a 20x tier in a 5x mission is 5x).
+ */
+export function briefTiers(c: Pick<Contract, 'marginTiers' | 'leverageCap'>): { floor: number; mmr: number; maxLeverage: number }[] {
+	return (c.marginTiers ?? []).slice(1).map((t) => ({
+		floor: Number(t.notionalFloor),
+		mmr: Number(t.maintenanceMargin),
+		maxLeverage: Math.min(t.maxLeverage, c.leverageCap)
+	}));
+}
+
+/** How a liquidity shock scales the contract's spread + slippage and its capacity (1 = as declared). */
+export function shockFactors(c: Contract, liquidity: LiquidityView): { cost: number; capacity: number } {
+	const base = Number(c.halfSpread) + Number(c.slippage);
+	const cap = Number(c.capacityFraction);
+	return {
+		cost: base > 0 ? (Number(liquidity.halfSpread) + Number(liquidity.slippage)) / base : 1,
+		capacity: cap > 0 ? Number(liquidity.capacityFraction) / cap : 1
 	};
 }
 

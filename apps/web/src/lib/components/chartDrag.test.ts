@@ -1,8 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragZone } from './chartDrag.ts';
+import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, stopMovedBeyondLiquidation, type DragZone } from './chartDrag.ts';
 
 const stop: DragZone = { target: { kind: 'draft', which: 'stop' }, price: 98, lineY: 200, tagY: 200 };
 const tp: DragZone = { target: { kind: 'order', orderId: 9 }, price: 109, lineY: 80, tagY: 96 }; // tag spread off its line
+
+describe('moving a stop past liquidation', () => {
+	// Playtest: dragging a working stop beyond liquidation went through without the confirmation that
+	// placing such a stop asks for.
+	it('regression: flags a stop moved to or past the liquidation price, on the position’s side', () => {
+		expect(stopMovedBeyondLiquidation('sell', 'stop_market', 89, 90)).toBe(true); // long, liq 90
+		expect(stopMovedBeyondLiquidation('sell', 'stop_market', 90, 90)).toBe(true);
+		expect(stopMovedBeyondLiquidation('sell', 'stop_market', 91, 90)).toBe(false);
+		expect(stopMovedBeyondLiquidation('buy', 'stop_market', 111, 110)).toBe(true); // short, liq 110
+		expect(stopMovedBeyondLiquidation('buy', 'stop_market', 109, 110)).toBe(false);
+		expect(stopMovedBeyondLiquidation('sell', 'take_profit', 80, 90)).toBe(false);
+		expect(stopMovedBeyondLiquidation('sell', 'stop_market', 80, null)).toBe(false);
+	});
+});
 
 describe('chart drag', () => {
 	it('grabs a line within a few pixels anywhere in the plot, and its price tag in the axis', () => {

@@ -26,7 +26,7 @@
 	const a = $derived({ netPnl: Number(d.netPnl), dims: d.score.dims, total: d.score.total, findings: d.findings, lesson: d.lesson });
 	const trades = $derived(d.trades);
 	const greeks = $derived(greekRows(d.greeks));
-	const findingTexts = $derived(describeFindings(a.findings, L));
+	const findingTexts = $derived(describeFindings(a.findings, L, s.missionRules));
 	// Depends on L so the texts follow a language switch.
 	const reveal = $derived(d.reveal && L ? revealTexts(d.reveal, d.alias, s.marketMode, session.runPackOrigin) : null);
 	// The run can end (game over) before the scenario does; the market line and buy-and-hold stop with it.

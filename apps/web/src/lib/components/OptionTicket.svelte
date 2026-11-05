@@ -15,7 +15,7 @@
 	import type { GameState, OptionQuoteView } from '#lib/engine/types.ts';
 	import { fmtMoney, fmtNum, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
-	import { breakeven, legFromQuote, maxLoss, payoffCurve, seriesLabel, writeMargin } from '#lib/game/optionsMath.ts';
+	import { breakeven, legFromQuote, maxLoss, optionBuyCost, optionFee, payoffCurve, seriesLabel, writeMargin } from '#lib/game/optionsMath.ts';
 
 	let {
 		game,
@@ -51,8 +51,11 @@
 	const units = $derived(qty * mult * (side === 'buy' ? 1 : -1));
 	const loss = $derived(legAtPx ? maxLoss(legAtPx) : null);
 	const margin = $derived(quote && opensShort ? writeMargin(quote, f, qty, mult) : null);
-	// A buy pays the premium, a write posts margin: either must fit in the available balance.
-	const cost = $derived(opensShort ? margin : side === 'buy' ? loss : null);
+	const feeRate = $derived(num(game.options.feeRate ?? '0'));
+	const fee = $derived(legAtPx ? optionFee(legAtPx, f, feeRate) : 0);
+	// A buy pays the premium plus the fee, a write posts margin: either must fit in the available balance
+	// (the engine's check on placement).
+	const cost = $derived(opensShort ? margin : side === 'buy' && legAtPx ? optionBuyCost(legAtPx, f, feeRate) : null);
 	const cantAfford = $derived(cost != null && cost > num(game.account.available));
 	// The engine cancels a market sell with no buyer (bid 0,00): refuse it here, with the reason.
 	const noBid = $derived(!!quote && side === 'sell' && type === 'market' && num(quote.bid) <= 0);
@@ -125,6 +128,7 @@
 			<dt>{t('opt.premium')}</dt><dd>{fmtPrice(String(premium), L)} × {fmtQty(String(qty), L)} × {mult}</dd>
 			<dt>{t('opt.breakeven')}</dt><dd>{legAtPx ? fmtPrice(String(breakeven(legAtPx)), L) : '—'}</dd>
 			{#if loss != null}<dt>{t('opt.maxLoss')}</dt><dd class="down">{fmtMoney(loss, L)}</dd>{/if}
+			<dt>{t('ticket.estFee')}</dt><dd>{fmtMoney(fee, L)}</dd>
 			{#if margin != null}<dt>{t('opt.margin')}</dt><dd>{fmtMoney(margin, L)}</dd>{/if}
 			<dt>{t('opt.greeks')}</dt>
 			<dd class="greeks">

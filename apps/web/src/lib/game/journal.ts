@@ -18,6 +18,8 @@ export interface JournalRun {
 	intel: boolean;
 	/** Assisted practice (rewind or another market): labeled, never counted for progress. */
 	assisted: boolean;
+	/** The pack a practice run played (null for a mission), to name it by where it came from. */
+	packDigest: string | null;
 	entries: PlanEntry[];
 }
 
@@ -40,6 +42,7 @@ export function journalRuns(records: readonly RunRecord<PlanEntry, unknown>[], m
 			status: r.status,
 			intel: withIntel(r.options),
 			assisted: !!r.assisted,
+			packDigest: r.packDigest ?? null,
 			entries: [...r.journal].sort((x, y) => x.step - y.step)
 		}));
 }

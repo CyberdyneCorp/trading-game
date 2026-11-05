@@ -31,6 +31,8 @@ export interface CatalogEntry {
 	leverageCap: number;
 	title: LocalText;
 	summary: LocalText;
+	/** The pack's market mode ('synthetic', 'historical', 'branch'), for its tag; optional in schema 1. */
+	mode?: string;
 }
 
 export interface Catalog {
@@ -62,7 +64,8 @@ function entry(v: unknown, base: string): CatalogEntry | null {
 		return null;
 	}
 	const { id, digest, size, scenarioId, keyId, intervalSeconds, bars, leverageCap } = v;
-	return { id, url, digest, size, scenarioId, keyId, intervalSeconds, bars, leverageCap, title, summary: localText(v.summary) ?? {} };
+	const mode = typeof v.mode === 'string' && /^[a-z]{1,20}$/.test(v.mode) ? { mode: v.mode } : {};
+	return { id, url, digest, size, scenarioId, keyId, intervalSeconds, bars, leverageCap, title, summary: localText(v.summary) ?? {}, ...mode };
 }
 
 /**

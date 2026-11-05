@@ -89,6 +89,8 @@ test('a packer-built synthetic pack plays with its calendar and options; the deb
 	await useDeviceSeed(page);
 	await page.getByTestId('pack-file').setInputFiles(SYNTHETIC);
 	await expect(page.getByTestId('pack-message')).toContainText('Pacote instalado: synthetic-m09');
+	// Regression: the menu row and the top bar tagged a generated pack CONHECIDO.
+	await expect(page.getByTestId('pack-tag')).toHaveText('SINTÉTICO');
 	await page.getByTestId('pack-start').click();
 	// Regression: a generated pack was announced as an imported, masked real market.
 	await expect(page.getByText(/Pacote sintético — preços gerados, não um ativo real/)).toBeVisible();
@@ -97,6 +99,7 @@ test('a packer-built synthetic pack plays with its calendar and options; the deb
 	await answerIfAsked(page);
 	await expect(page.getByTestId('news-upcoming')).toContainText(/Decisão de juros na barra 75 · consenso: neutro/); // events.bin
 	await expect(page.locator('.chain table')).toHaveCount(2); // options.bin: two expiries
+	await expect(page.getByTestId('market-tag')).toHaveText('SINTÉTICO');
 	await expect(page.locator('.chain table').first().locator('tbody tr').nth(3)).toContainText('97,50');
 
 	await quote(page, 0, 3, 3).click();
@@ -119,6 +122,6 @@ test('a packer-built synthetic pack plays with its calendar and options; the deb
 	// Regression: "play again" asked the engine for mission "m09-event-straddle-s7" and left a blank page.
 	await page.getByRole('button', { name: /Jogar de novo \(mesmo pacote\)/ }).click();
 	await expect(page.getByText(/Pacote sintético — preços gerados/)).toBeVisible();
-	await expect(page.getByText('m09-event-straddle-s7').first()).toBeVisible();
+	await expect(page.getByText('Treino · Véspera (pacote sintético)').first()).toBeVisible();
 	expect(errors).toEqual([]);
 });

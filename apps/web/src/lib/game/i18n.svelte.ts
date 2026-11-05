@@ -32,6 +32,7 @@ const pt = {
 	'brief.leverage': 'Alavancagem permitida',
 	'brief.costs': 'Custos',
 	'brief.costsValue': 'Taker {taker} · Maker {maker} · Spread+slippage {slip} · Funding a cada {funding} barras',
+	'brief.costsShock': 'Este mercado tem choques de liquidez: depois de certas manchetes, spread e slippage aumentam e a capacidade cai por algumas barras. A boleta avisa e estima com esses custos.',
 	'brief.mmr': 'Margem de manutenção',
 	'brief.tiers': 'Faixas por tamanho',
 	'brief.mark': 'Preço de marcação',
@@ -155,6 +156,10 @@ const pt = {
 	'chart.dragStopSide': 'Stop do outro lado do preço atual dispararia na próxima abertura: arraste para o lado da perda.',
 	'chart.dragTpSide': 'Alvo do outro lado do preço atual executaria na próxima abertura: arraste para o lado do lucro.',
 	'chart.moved': 'Ordem #{id} movida para {price}',
+	'chart.moveBeyondTitle': 'Stop além da liquidação',
+	'chart.moveBeyond': 'Mover a ordem #{id} para {price} a deixa além da liquidação ({liq}): a liquidação acontece antes deste stop. Mover mesmo assim?',
+	'chart.moveBeyondYes': 'Mover mesmo assim',
+	'chart.moveBeyondNo': 'Manter onde está',
 	'feed.moved': 'Ordem #{id} movida para {price}',
 	'chart.osc': 'Painel inferior',
 	'chart.oscNone': 'Volume',
@@ -169,8 +174,8 @@ const pt = {
 	'ticket.trigger': 'Gatilho',
 	'ticket.sizeBy': 'Dimensionar por',
 	'ticket.sizeQty': 'Quantidade',
-	'ticket.sizeRisk': 'Risco (% patrimônio)',
-	'ticket.riskPct': 'Risco %',
+	'ticket.sizeRisk': 'Risco',
+	'ticket.riskPct': 'Risco (% patrimônio)',
 	'ticket.leverage': 'Alavancagem',
 	'ticket.stopLoss': 'Stop loss',
 	'ticket.takeProfit': 'Take profit',
@@ -186,6 +191,7 @@ const pt = {
 	'orders.child': 'filha de #{id}',
 	'orders.trailPct': 'trailing a esta porcentagem do melhor fechamento',
 	'ticket.estEntry': 'Entrada estimada',
+	'ticket.shock': 'Choque de liquidez na próxima barra: spread + slippage ×{cost}, capacidade {capacity} do normal. As estimativas já usam esses custos.',
 	'ticket.estMargin': 'Margem inicial',
 	'ticket.estFee': 'Taxa estimada',
 	'ticket.estLiq': 'Liquidação estimada',
@@ -422,7 +428,7 @@ const pt = {
 	'opt.noBid': 'Sem comprador: o bid desta opção é 0,00, então uma venda a mercado seria cancelada. Escolha um strike com bid ou use uma ordem limitada.',
 	'opt.settling': 'Janela de liquidação: esta série liquida pela média (TWAP) dos últimos {min} minutos até o vencimento, e uma ordem enviada agora executaria dentro dela. O motor recusa novas ordens nesta série.',
 	'ticket.cantAfford': 'A margem exigida ({need}, com a taxa) é maior que o saldo disponível ({avail}). Aumente a alavancagem ou reduza a quantidade.',
-	'opt.cantAffordPremium': 'O prêmio total é maior que o saldo disponível ({avail}). Reduza os contratos.',
+	'opt.cantAffordPremium': 'O prêmio total mais a taxa é maior que o saldo disponível ({avail}). Reduza os contratos.',
 	'opt.cantAffordMargin': 'A margem exigida é maior que o saldo disponível ({avail}). Reduza os contratos.',
 	'opt.breakeven': 'Ponto de equilíbrio',
 	'opt.payoff': 'Resultado no vencimento',
@@ -520,6 +526,7 @@ const pt = {
 	'csv.cancel': 'Cancelar',
 	'csv.create': 'Criar missão de treino',
 	'csv.rows': '{n} barras',
+	'csv.rowsOne': '{n} barra',
 	'csv.period': 'De {from} a {to}',
 	'csv.withFunding': 'com taxa de funding',
 	'csv.noFunding': 'sem funding (taxa zero)',
@@ -836,10 +843,10 @@ const pt = {
 	'catalog.failed.http': 'O servidor recusou o download. Tente de novo mais tarde.',
 	'catalog.failed.size_mismatch': 'O arquivo recebido não bate com o catálogo; o próximo download começa do zero.',
 	'catalog.failed.hash_mismatch': 'O arquivo recebido está corrompido (SHA-256 diferente do catálogo); o próximo download começa do zero.',
-	'ticket.sizeNotional': 'Nocional (cr)',
-	'ticket.sizeEquity': 'Exposição (% patrimônio)',
+	'ticket.sizeNotional': 'Nocional',
+	'ticket.sizeEquity': 'Exposição',
 	'ticket.notional': 'Nocional (cr)',
-	'ticket.equityPct': 'Exposição %',
+	'ticket.equityPct': 'Exposição (% patrimônio)',
 	'ticket.estNotional': 'Nocional',
 	'pack.unreadable': 'Download interrompido: não foi possível ler o arquivo. Baixe de novo e carregue outra vez.',
 	'pack.interrupted': 'Download interrompido: o arquivo está incompleto ({size}). Baixe de novo e carregue outra vez.',
@@ -946,6 +953,7 @@ const en: Record<MessageKey, string> = {
 	'brief.leverage': 'Allowed leverage',
 	'brief.costs': 'Costs',
 	'brief.costsValue': 'Taker {taker} · Maker {maker} · Spread+slippage {slip} · Funding every {funding} bars',
+	'brief.costsShock': 'This market has liquidity shocks: after some headlines, spread and slippage widen and capacity drops for a few bars. The ticket warns and estimates with those costs.',
 	'brief.mmr': 'Maintenance margin',
 	'brief.tiers': 'Tiers by size',
 	'brief.mark': 'Mark price',
@@ -1068,6 +1076,10 @@ const en: Record<MessageKey, string> = {
 	'chart.dragStopSide': 'A stop on the other side of the current price would trigger at the next open: drag it to the losing side.',
 	'chart.dragTpSide': 'A target on the other side of the current price would fill at the next open: drag it to the winning side.',
 	'chart.moved': 'Order #{id} moved to {price}',
+	'chart.moveBeyondTitle': 'Stop beyond liquidation',
+	'chart.moveBeyond': 'Moving order #{id} to {price} puts it beyond liquidation ({liq}): liquidation happens before this stop. Move it anyway?',
+	'chart.moveBeyondYes': 'Move anyway',
+	'chart.moveBeyondNo': 'Keep it where it is',
 	'feed.moved': 'Order #{id} moved to {price}',
 	'chart.osc': 'Lower pane',
 	'chart.oscNone': 'Volume',
@@ -1082,8 +1094,8 @@ const en: Record<MessageKey, string> = {
 	'ticket.trigger': 'Trigger',
 	'ticket.sizeBy': 'Size by',
 	'ticket.sizeQty': 'Quantity',
-	'ticket.sizeRisk': 'Risk (% of equity)',
-	'ticket.riskPct': 'Risk %',
+	'ticket.sizeRisk': 'Risk',
+	'ticket.riskPct': 'Risk (% of equity)',
 	'ticket.leverage': 'Leverage',
 	'ticket.stopLoss': 'Stop loss',
 	'ticket.takeProfit': 'Take profit',
@@ -1099,6 +1111,7 @@ const en: Record<MessageKey, string> = {
 	'orders.child': 'child of #{id}',
 	'orders.trailPct': 'trailing at this percent of the best close',
 	'ticket.estEntry': 'Estimated entry',
+	'ticket.shock': 'Liquidity shock on the next bar: spread + slippage ×{cost}, capacity {capacity} of normal. The estimates already use these costs.',
 	'ticket.estMargin': 'Initial margin',
 	'ticket.estFee': 'Estimated fee',
 	'ticket.estLiq': 'Estimated liquidation',
@@ -1334,7 +1347,7 @@ const en: Record<MessageKey, string> = {
 	'opt.noBid': 'No buyer: this option\'s bid is 0.00, so a market sell would be cancelled. Pick a strike with a bid or use a limit order.',
 	'opt.settling': 'Settlement window: this series settles at the average (TWAP) of the last {min} minutes before expiry, and an order sent now would execute inside it. The engine refuses new orders in this series.',
 	'ticket.cantAfford': 'The required margin ({need}, fee included) is more than the available balance ({avail}). Raise the leverage or reduce the quantity.',
-	'opt.cantAffordPremium': 'The total premium is more than the available balance ({avail}). Reduce the contracts.',
+	'opt.cantAffordPremium': 'The total premium plus the fee is more than the available balance ({avail}). Reduce the contracts.',
 	'opt.cantAffordMargin': 'The required margin is more than the available balance ({avail}). Reduce the contracts.',
 	'opt.breakeven': 'Breakeven',
 	'opt.payoff': 'P&L at expiry',
@@ -1432,6 +1445,7 @@ const en: Record<MessageKey, string> = {
 	'csv.cancel': 'Cancel',
 	'csv.create': 'Create practice mission',
 	'csv.rows': '{n} bars',
+	'csv.rowsOne': '{n} bar',
 	'csv.period': 'From {from} to {to}',
 	'csv.withFunding': 'with funding rates',
 	'csv.noFunding': 'no funding (zero rate)',
@@ -1748,10 +1762,10 @@ const en: Record<MessageKey, string> = {
 	'catalog.failed.http': 'The server refused the download. Try again later.',
 	'catalog.failed.size_mismatch': 'The received file does not match the catalog; the next download starts over.',
 	'catalog.failed.hash_mismatch': 'The received file is corrupted (SHA-256 differs from the catalog); the next download starts over.',
-	'ticket.sizeNotional': 'Notional (cr)',
-	'ticket.sizeEquity': 'Exposure (% of equity)',
+	'ticket.sizeNotional': 'Notional',
+	'ticket.sizeEquity': 'Exposure',
 	'ticket.notional': 'Notional (cr)',
-	'ticket.equityPct': 'Exposure %',
+	'ticket.equityPct': 'Exposure (% of equity)',
 	'ticket.estNotional': 'Notional',
 	'pack.unreadable': 'Download interrupted: the file could not be read. Download it again and load it once more.',
 	'pack.interrupted': 'Download interrupted: the file is incomplete ({size}). Download it again and load it once more.',
@@ -1849,10 +1863,13 @@ export function csvIssueText(code: string): string {
 	return key in pt ? t(key as MessageKey, { arg: i < 0 ? '' : code.slice(i + 1) }) : code;
 }
 
-/** `key` with `{n}`, or its `…One` singular form when n is 1 ("em 1 barra", not "em 1 barras"). */
+/**
+ * `key` with `{n}` written in the locale ("2.000 barras" in PT-BR), or its `…One` singular form when n
+ * is 1 ("em 1 barra", not "em 1 barras").
+ */
 export function tCount(key: MessageKey, n: number, params: Record<string, string | number> = {}): string {
 	const one = `${key}One`;
-	return t(n === 1 && one in pt ? (one as MessageKey) : key, { ...params, n });
+	return t(n === 1 && one in pt ? (one as MessageKey) : key, { ...params, n: new Intl.NumberFormat(i18n.locale).format(n) });
 }
 
 /** Guidance for a declared CSV field the engine refused (falls back to naming the field). */

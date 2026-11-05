@@ -27,6 +27,14 @@ describe('parseCatalog', () => {
 		expect(c.entries[0].summary).toEqual({ en: 'S' });
 	});
 
+	// Playtest: the synthetic sample packs were tagged CONHECIDO (known) in the catalog.
+	it('regression: reads the optional market mode the catalog tags an entry with', () => {
+		const c = parseCatalog({ schemaVersion: 1, packs: [row({ mode: 'synthetic' }), row({ id: 'p2', digest: D2, mode: 'NOPE!' })] }, BASE)!;
+		expect(c.entries[0].mode).toBe('synthetic');
+		expect(c.entries[1].mode).toBeUndefined();
+		expect(parseCatalog({ schemaVersion: 1, packs: [row()] }, BASE)!.entries[0].mode).toBeUndefined();
+	});
+
 	it('refuses a wrong schema version or shape as a whole', () => {
 		expect(parseCatalog({ schemaVersion: 2, packs: [row()] }, BASE)).toBeNull();
 		expect(parseCatalog({ schemaVersion: 1 }, BASE)).toBeNull();

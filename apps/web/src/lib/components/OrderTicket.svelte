@@ -30,8 +30,8 @@
 
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { costsOf, estimate, estimatedMarketEntry, marginTier, opposingEffect, releveredLiquidation, requiredMargin, sizedQty, type SizeBy } from '#lib/game/sizing.ts';
-	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
+	import { costsOf, estimate, estimatedMarketEntry, marginTier, opposingEffect, releveredLiquidation, requiredMargin, shockFactors, sizedQty, type SizeBy } from '#lib/game/sizing.ts';
+	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseAmount, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
 		distanceOf,
@@ -82,7 +82,9 @@
 
 	const s = $derived(session.state!);
 	const L = $derived(i18n.locale);
-	const k = $derived(costsOf(s.contract));
+	const k = $derived(costsOf(s.contract, s.liquidity));
+	// A liquidity shock in force on the bar orders placed now fill on: the estimates above already use its costs.
+	const shock = $derived(s.liquidity ? shockFactors(s.contract, s.liquidity) : null);
 	const tick = $derived(num(s.contract.tickSize));
 	const lot = $derived(num(s.contract.lotSize));
 	const mark = $derived(num(s.account.mark));
@@ -98,11 +100,12 @@
 	let riskInput = $state('1');
 	let notionalInput = $state('1000');
 	let equityInput = $state('10');
-	const AMOUNT: Record<SizeBy, () => string> = {
-		qty: () => qtyInput,
-		notional: () => notionalInput,
-		equity: () => equityInput,
-		risk: () => riskInput
+	// Typed sizing amounts; the notional is in credits, so "1.000" in PT-BR is one thousand.
+	const AMOUNT: Record<SizeBy, () => number> = {
+		qty: () => parseDecimal(qtyInput),
+		notional: () => parseAmount(notionalInput, L),
+		equity: () => parseDecimal(equityInput),
+		risk: () => parseDecimal(riskInput)
 	};
 	let priceInput = $state('');
 
@@ -130,7 +133,7 @@
 	const entry = $derived(orderType === 'market' ? estimatedMarketEntry(side, mark, k) : parseDecimal(priceInput) || mark);
 	const stop = $derived(stopInput ? parseDecimal(stopInput) : null);
 	const qty = $derived(
-		sizedQty(sizeBy, { equity: num(s.account.equity), entry, stop, qty: parseDecimal(qtyInput) || 0, amount: parseDecimal(AMOUNT[sizeBy]()) || 0 }, k, lot)
+		sizedQty(sizeBy, { equity: num(s.account.equity), entry, stop, qty: parseDecimal(qtyInput) || 0, amount: AMOUNT[sizeBy]() || 0 }, k, lot)
 	);
 	const qtyStr = $derived(qtyToLot(qty, lot));
 	// The field can hold anything typed; orders and estimates use the value clamped to the mission cap.
@@ -370,6 +373,11 @@
 	{#if sizeBy === 'risk' && stop == null}
 		<p class="small attention">↳ {t('ticket.riskNeedsStop')}</p>
 	{/if}
+	{#if shock}
+		<p class="warnbox" role="status" data-testid="ticket-shock">
+			⚠ {t('ticket.shock', { cost: fmtNum(shock.cost, L, 1), capacity: fmtPct(shock.capacity, L, 0) })}
+		</p>
+	{/if}
 
 	<dl class="kv est">
 		<dt>{t('ticket.qty')}</dt><dd data-testid="ticket-est-qty">{fmtQty(qtyStr, L)}</dd>
@@ -495,6 +503,10 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0.35rem 0.5rem;
+	}
+	/* A caption that wraps (e.g. "Exposição (% patrimônio)" at 1024px) keeps its field level with the neighbour's. */
+	.grid > label {
+		justify-content: flex-end;
 	}
 	.grid .full,
 	.levels .full {

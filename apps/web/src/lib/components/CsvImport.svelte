@@ -63,7 +63,7 @@
 				{#if r.ok}
 					<p class="up">✔ {t('csv.valid')}</p>
 					<p>
-						{t('csv.rows', { n: r.rows })} · {t('csv.period', { from: isoUtc(r.firstTime), to: isoUtc(r.lastTime) })} ·
+						{tCount('csv.rows', r.rows)} · {t('csv.period', { from: isoUtc(r.firstTime), to: isoUtc(r.lastTime) })} ·
 						{r.hasFunding ? t('csv.withFunding') : t('csv.noFunding')}
 					</p>
 				{:else}
@@ -72,7 +72,7 @@
 						{#each r.errors as e, i (i)}
 							<li data-testid="csv-error">{#if e.line}<span class="muted">{t('csv.line', { line: e.line })}:</span>{/if} {csvIssueText(e.code)}</li>
 						{/each}
-						{#if r.errorCount > r.errors.length}<li class="muted">{t('csv.more', { n: r.errorCount - r.errors.length })}</li>{/if}
+						{#if r.errorCount > r.errors.length}<li class="muted">{tCount('csv.more', r.errorCount - r.errors.length)}</li>{/if}
 					</ul>
 				{/if}
 				{#if r.gapCount > 0}

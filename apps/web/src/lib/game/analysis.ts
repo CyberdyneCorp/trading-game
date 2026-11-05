@@ -49,7 +49,7 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 			'Você vendeu opções a descoberto: o risco não fica limitado por um stop nem pelo prêmio, só pela margem. Por isso não há crédito de processo bom, mesmo com plano — dimensione pelo pior movimento.',
 		leverage_vs_stop:
 			'Na entrada da barra {step}, a {count}x, a liquidação ({requested}) ficava a menos de duas distâncias do stop ({price}) da entrada: um gap do tamanho do stop além dele já liquidaria a posição. Com alavancagem menor o stop teria folga.',
-		liq_buffer: 'A liquidação chegou a {pct} do preço, mais perto que a distância de aviso desta missão. Deixe margem para o ruído e para os gaps.',
+		liq_buffer: 'A liquidação chegou a {pct} do preço, mais perto que a distância de aviso desta missão{warn}. Deixe margem para o ruído e para os gaps.',
 		drawdown_budget: 'O drawdown máximo ({amount} cr) passou do orçamento de drawdown da missão ({pct} do capital). Dimensione cada ideia pelo orçamento que sobra.'
 	},
 	en: {
@@ -81,7 +81,7 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 			'You wrote options uncovered: the risk is limited by neither a stop nor the premium, only by margin. That is why there is no good-process credit, even with a plan — size for the worst move.',
 		leverage_vs_stop:
 			'At the entry on bar {step}, at {count}x, liquidation ({requested}) sat less than twice the stop’s distance ({price}) from the entry: a gap one stop-distance beyond the stop would already liquidate it. Lower leverage gives the stop room.',
-		liq_buffer: 'Liquidation came within {pct} of the price, closer than this mission’s warning distance. Leave room for noise and gaps.',
+		liq_buffer: 'Liquidation came within {pct} of the price, closer than this mission’s warning distance{warn}. Leave room for noise and gaps.',
 		drawdown_budget: 'The maximum drawdown ({amount} cr) went past the mission’s drawdown budget ({pct} of capital). Size each idea from the budget that is left.'
 	}
 };
@@ -143,7 +143,12 @@ const lessonText: Record<Locale, Record<LessonCode, string>> = {
 	}
 };
 
-export function describeFinding(f: EngineFinding, locale: Locale): string {
+/** What the mission declares that a finding refers to (engine MissionRules): the liquidation warning distance. */
+export interface FindingContext {
+	liqWarningBp: number;
+}
+
+export function describeFinding(f: EngineFinding, locale: Locale, ctx?: FindingContext): string {
 	const params: Record<string, string | number> = {
 		step: f.step,
 		count: f.count,
@@ -151,7 +156,8 @@ export function describeFinding(f: EngineFinding, locale: Locale): string {
 		requested: fmtPrice(f.requested, locale),
 		amount: fmtPrice(f.amount, locale),
 		risk: Math.round(Number(f.amount)).toLocaleString(locale),
-		pct: bpPct(f.count, locale)
+		pct: bpPct(f.count, locale),
+		warn: ctx ? ` (${bpPct(ctx.liqWarningBp, locale)})` : ''
 	};
 	const special = f.count > 0 ? safeLeverageText[locale][f.code] : undefined;
 	const template = special ?? (f.count === 1 ? singularText[locale][f.code] : undefined) ?? findingText[locale][f.code];
@@ -166,12 +172,12 @@ function fill(template: string, params: Record<string, string | number>): string
  * Texts for a whole findings list. The safe-leverage advice is said once: when the stop_beyond_liq
  * finding carries it, the liquidation line only states the loss.
  */
-export function describeFindings(findings: EngineFinding[], locale: Locale): string[] {
+export function describeFindings(findings: EngineFinding[], locale: Locale, ctx?: FindingContext): string[] {
 	const stopNamed = findings.some((f) => f.code === 'stop_beyond_liq' && f.count > 0);
 	return findings.map((f) =>
 		stopNamed && f.code === 'liquidated'
 			? fill(liquidatedOnlyText[locale], { step: f.step, price: fmtPrice(f.price, locale), amount: fmtPrice(f.amount, locale) })
-			: describeFinding(f, locale)
+			: describeFinding(f, locale, ctx)
 	);
 }
 

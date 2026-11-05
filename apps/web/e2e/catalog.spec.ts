@@ -18,6 +18,7 @@ async function openCatalog(page: Page) {
 	await page.getByTestId('open-catalog').click();
 	await expect(page.getByRole('heading', { name: 'Catálogo de pacotes' })).toBeVisible();
 	await expect(page.getByTestId('catalog-entry')).toHaveCount(2);
+	await expect(page.getByTestId('catalog-tag').first()).toHaveText('SINTÉTICO');
 }
 
 const entryA = (page: Page) => page.getByTestId('catalog-entry').filter({ hasText: 'Mercado A · 1h' });
@@ -66,7 +67,8 @@ test('browse the catalog, interrupt a download, resume it after a reload, then p
 	await page.getByRole('button', { name: /Abrir terminal/ }).click();
 	await expect(page.locator('canvas').first()).toBeVisible();
 	await answerIfAsked(page);
-	await expect(page.locator('header.top')).toContainText('CONHECIDO');
+	// Regression: the synthetic sample packs were tagged CONHECIDO in the catalog and the top bar.
+	await expect(page.getByTestId('market-tag')).toHaveText('SINTÉTICO');
 	await expect(page.locator('header.top')).toContainText('Treino · pacote do catálogo');
 	for (let i = 0; i < 3; i++) await page.keyboard.press('Space');
 	await expect(page.locator('.turn')).toContainText('Barra 4');

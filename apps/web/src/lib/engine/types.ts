@@ -251,6 +251,8 @@ export interface Contract {
 	markFromLastPrice?: boolean;
 	/** Policy v17: how indicators treat continuity bars (no trading). */
 	gapPolicy?: GapPolicy;
+	/** True when the market carries liquidity shocks (wider spread and slippage, less capacity on some bars). */
+	liquidityShocks?: boolean;
 }
 
 /** [open, high, low, close, volume, synthetic, continuity]; continuity (policy v17): the market did not trade. */
@@ -369,6 +371,8 @@ export interface OptionsView {
 	multiplier: Decimal;
 	premiumTick: Decimal;
 	lotSize: Decimal;
+	/** Option fee: this fraction of the underlying notional, capped at 12.5% of the premium. */
+	feeRate?: Decimal;
 	/** Settlement window in market time, minutes (policy v17). */
 	settlementMinutes?: number;
 	longValue: Decimal;
@@ -496,6 +500,13 @@ export interface MissionRulesView {
 	confirmStopBeyondLiq: boolean;
 }
 
+/** The cost model with the liquidity shock in force applied (same fields as the contract's). */
+export interface LiquidityView {
+	halfSpread: Decimal;
+	slippage: Decimal;
+	capacityFraction: Decimal;
+}
+
 export interface GameState {
 	mission: string;
 	alias: string;
@@ -523,6 +534,8 @@ export interface GameState {
 	news: NewsView[];
 	/** Economic calendar perk: bars of upcoming scheduled releases (rate decisions), nothing else. */
 	calendar: number[];
+	/** Costs an order placed now executes with while a visible liquidity shock covers the next bar (null otherwise). */
+	liquidity?: LiquidityView | null;
 	/** Announced releases (G3), from their announcement to their release: kind, bar and consensus only. */
 	upcoming: UpcomingView[];
 	calibration: CalibrationState;

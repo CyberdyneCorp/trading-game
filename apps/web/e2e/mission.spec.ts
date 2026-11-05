@@ -154,6 +154,42 @@ test('dragging a working STOP line moves the order; the wrong side of the price 
 	await expect(orders.getByText(oldId, { exact: true })).toBeVisible();
 });
 
+// Playtest: dragging a working stop past liquidation moved it without the confirmation that placing
+// such a stop asks for.
+test('regression: dragging a working stop past liquidation asks for confirmation first', async ({ page }) => {
+	await page.goto('/?seed=41');
+	await startFromMenu(page, 2); // m03: 20x allowed
+	await answerIfAsked(page);
+	const ticket = page.locator('section.ticket');
+	const lev = ticket.locator('label', { hasText: 'Alavancagem' }).locator('input');
+	await lev.fill('20');
+	await lev.blur();
+	await ticket.locator('label', { hasText: 'Dimensionar por' }).locator('select').selectOption('qty');
+	await ticket.locator('label', { hasText: /^Quantidade/ }).locator('input').fill('10');
+	await page.getByTestId('ticket-stop').getByRole('button', { name: '1%', exact: true }).click();
+	await page.getByTestId('ticket-tp').getByRole('button', { name: '2R', exact: true }).click();
+	await page.getByRole('button', { name: /Enviar ordem/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await advance(page);
+	const orders = page.locator('.orders');
+	const price = async (type: string) => Number((await orders.locator('tr', { hasText: type }).locator('td.num').nth(1).textContent())!.replace(/\./g, '').replace(',', '.'));
+	const [stop, tp] = [await price('STOP'), await price('TP')];
+	const rail = (await page.locator('aside.rail').innerText()).split('\n');
+	const liq = Number(rail[rail.findIndex((l) => /Preço de liquidação/.test(l)) + 1].replace(/\./g, '').replace(',', '.'));
+	const { x, ys } = await grabbableRows(page);
+	const [tpY, stopY] = [Math.min(...ys), Math.max(...ys)];
+	const toY = stopY + (stop - (liq - 0.3)) / ((tp - stop) / (stopY - tpY)); // a little past liquidation
+	await dragY(page, x, stopY, toY);
+	const dialog = page.getByTestId('confirm-dialog');
+	await expect(dialog).toContainText('Stop além da liquidação');
+	await dialog.getByRole('button', { name: 'Manter onde está' }).click();
+	expect(await price('STOP')).toBe(stop); // nothing sent
+	await dragY(page, x, stopY, toY);
+	await page.getByTestId('confirm-yes').click();
+	await expect(page.locator('.notice')).toContainText(/movida para/);
+	expect(await price('STOP')).toBeLessThan(liq);
+});
+
 test('regression: Space advances after toggling an indicator or choosing an oscillator', async ({ page }) => {
 	// Before: the focused checkbox/select kept Space, so BB20 flickered and the market never moved.
 	await openTerminal(page, 9);

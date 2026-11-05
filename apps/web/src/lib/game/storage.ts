@@ -88,6 +88,8 @@ export interface StoredPack {
 	addedAt: number;
 	/** Absent on packs stored before the catalog existed: those were all imported on this device. */
 	origin?: PackOrigin;
+	/** The pack's market mode ('historical', 'synthetic', 'branch'); absent on packs stored before it was kept. */
+	mode?: string;
 }
 
 export interface StoredRun<A, J, Q> {

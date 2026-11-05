@@ -119,6 +119,12 @@ Built-in missions have no mark series, sub-bars or continuity bars and the defau
 
 Scoring v11 risk inputs (task 4.6): −15 when the max drawdown exceeds the mission's budget (was a fixed 20%), −10 when a perpetual trade's liquidation price (at the highest leverage it carried) is closer to its entry than twice its stop distance (finding `leverage_vs_stop`), −10 when the closest liquidation distance at a close fell below the mission's warning distance (`liq_buffer`); `drawdown_budget` names a breached budget. Tests: `tests/test_decisions.cpp`, `tests/test_lessons.cpp`, `bindings/python/tests/test_scoring_v11.py`.
 
+Scoring v12 (report-only, no digest change): a perpetual trade closed by its stop keeps its plan (`planRespected`) when the stop's trigger sat at or inside the plan's invalidation (1% tolerance), even if a gap filled it further away; before, the fill price alone could mark it violated. `tests/test_scoring.cpp`.
+
+### Liquidity shocks in the state view
+
+The state JSON names the liquidity shocks the player can see, without changing the market or any digest: `contract.liquidityShocks` is true when the scenario has any, and `"liquidity"` holds the cost model (`halfSpread`, `slippage`, `capacityFraction`, from `costs_at`) of the next bar — the one an order placed now executes on — while a shock covers it and is visible: already in force at the current bar, or starting on the next bar right after a headline released at this one (the generator starts each shock the bar after its headline). Otherwise it is `null`, so a shock is never shown before the player could have seen it. The option view also carries `feeRate` (the option fee is that fraction of the underlying notional, capped at 12.5% of the premium), so clients check premium + fee against the available balance like `required_for`. `tests/test_event_channels.cpp`.
+
 ### Intel perks in the state view
 
 `news_lead` and `calendar` only change what `tl_state` serializes, never the market or the digests (no policy bump): a news item is listed once `release_step <= step + news_lead`, with `"early": true` until its release step, and with `calendar` the top-level `"calendar"` array holds the release step of each rate decision not visible yet (step only; empty without the perk). Bars are still serialized up to `step` only. `tests/test_intel.cpp` checks the early flag (lead 1 and 2), the calendar hand-over to an early headline, and that bars and event digests are identical with and without perks in every mission.

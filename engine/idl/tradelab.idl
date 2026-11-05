@@ -377,6 +377,8 @@ struct Contract {
   markFromLastPrice?: bool
   /// Policy v17: how indicators treat continuity bars (no trading).
   gapPolicy?: GapPolicy
+  /// True when the market carries liquidity shocks (wider spread and slippage, less capacity on some bars).
+  liquidityShocks?: bool
 }
 
 /// [open, high, low, close, volume, synthetic, continuity]; continuity (policy v17): the market did not trade.
@@ -495,6 +497,8 @@ struct OptionsView {
   multiplier: Decimal
   premiumTick: Decimal
   lotSize: Decimal
+  /// Option fee: this fraction of the underlying notional, capped at 12.5% of the premium.
+  feeRate?: Decimal
   /// Settlement window in market time, minutes (policy v17).
   settlementMinutes?: int
   longValue: Decimal
@@ -620,6 +624,13 @@ struct MissionRulesView {
   confirmStopBeyondLiq: bool
 }
 
+/// The cost model with the liquidity shock in force applied (same fields as the contract's).
+struct LiquidityView {
+  halfSpread: Decimal
+  slippage: Decimal
+  capacityFraction: Decimal
+}
+
 struct GameState {
   mission: string
   alias: string
@@ -647,6 +658,8 @@ struct GameState {
   news: NewsView[]
   /// Economic calendar perk: bars of upcoming scheduled releases (rate decisions), nothing else.
   calendar: int[]
+  /// Costs an order placed now executes with while a visible liquidity shock covers the next bar (null otherwise).
+  liquidity?: LiquidityView | null
   /// Announced releases (G3), from their announcement to their release: kind, bar and consensus only.
   upcoming: UpcomingView[]
   calibration: CalibrationState

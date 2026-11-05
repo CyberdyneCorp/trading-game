@@ -35,6 +35,10 @@ Entries are exposure-increasing fills of the perpetual and of each option series
 - **WHEN** the player records a plan and sends an order, and on the bar that order fills records a second plan for a new order (a flip, an add, or a second option leg sent on one bar)
 - **THEN** each trade SHALL use the plan recorded for its own entry order: a plan is matched to the next exposure-increasing order of the same kind (perpetual or option) and side placed in the same decision step, the plans and orders of one step pairing from the last one back (so a retry after a rejected order uses the newer plan); a trade's planned risk SHALL be the sum of the plans of the orders that opened or added to it, and its invalidation (stop and plan verdict) SHALL come from the first of them (scoring version 7; before, the latest plan up to the entry fill bar replaced the trade's own plan)
 
+#### Scenario: A stop at the invalidation filled through a gap keeps the plan
+- **WHEN** a perpetual trade is closed by its stop, triggered at or inside the plan's invalidation (1% tolerance), and a gap or slippage fills it further than 1% beyond the invalidation
+- **THEN** the trade SHALL be listed as respecting its plan: the verdict compares the stop's trigger, which the player chose, with the invalidation, and only a trade that exited beyond the invalidation by any other means (or by a stop placed beyond it) SHALL be listed as violating it (scoring version 12, report-only; before, the gap fill alone made it "violated")
+
 #### Scenario: A shortfall the fund covered is shown
 - **WHEN** a margin-call buy-back or a settlement costs more than the balance and the wallet is floored at zero
 - **THEN** the report SHALL include the written-off amount (the result minus the sum of the trades' nets, reported only when the simulated fund absorbed a shortfall), so the trade rows plus that line add up to the result (scoring version 7)

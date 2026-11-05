@@ -213,6 +213,12 @@ describe('scoring v11 risk findings', () => {
 		expect(describeFinding(base, 'pt-BR')).toContain('2,3%');
 		expect(describeFinding(base, 'en')).toContain('2.3%');
 	});
+	// Playtest: the finding spoke of "this mission's warning distance" without saying what it was.
+	it('regression: names the mission’s liquidation warning distance', () => {
+		expect(describeFinding(base, 'pt-BR', { liqWarningBp: 500 })).toContain('distância de aviso desta missão (5%)');
+		expect(describeFinding(base, 'en', { liqWarningBp: 250 })).toContain('warning distance (2.5%)');
+		expect(describeFindings([base], 'pt-BR', { liqWarningBp: 300 })[0]).toContain('(3%)');
+	});
 	it('names the drawdown budget and the drawdown', () => {
 		const f: EngineFinding = { ...base, code: 'drawdown_budget', count: 1000, amount: '1200' };
 		expect(describeFinding(f, 'pt-BR')).toContain('10%');

@@ -31,7 +31,8 @@
 		if (e.reason === 'order_moved') return t('feed.moved', { id: e.orderId, price: fmtPrice(e.requested, L) });
 		if (e.status === 'accepted') {
 			const type = e.orderType ? ORDER_TYPE_LABEL[e.orderType] : 'MKT';
-			const series = e.series ? `${names.seriesName(e.series, L)} ` : '';
+			const id = e.series || names.seriesOfOrder(e.orderId);
+			const series = id ? `${names.seriesName(id, L)} ` : '';
 			return t('feed.accepted', { id: e.orderId, type: series + type, side: t(`side.${e.side}`), qty: fmtQty(e.qty, L) });
 		}
 		if (e.status === 'cancelled') return t('feed.cancelled', { id: e.orderId, reason: reasonText(e.reason) });
