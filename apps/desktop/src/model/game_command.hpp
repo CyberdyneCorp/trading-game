@@ -47,11 +47,4 @@ struct GameCommand {
   static GameCommand advice();
 };
 
-// Start options of a run (tl_run_create_ex): advisor allowance and intel perks (engine policy v11).
-struct RunOptions {
-  int advice_allowance = 0;
-  int news_lead = 0;
-  bool calendar = false;
-};
-
 }  // namespace tradelab::desktop

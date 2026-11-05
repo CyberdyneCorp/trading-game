@@ -12,10 +12,13 @@ AppViewModel::AppViewModel(Catalog catalog, std::vector<MissionInfo> missions, E
   std::vector<std::string> ids;
   for (const auto& m : missions_) ids.push_back(m.id);
   game_ = std::make_unique<game::GameViewModel>(catalog_, engine_, nullptr, std::move(ids));
+  init_shell();
 }
 
 void AppViewModel::set_locale(Locale locale) {
   catalog_.set_locale(locale);
+  shell_.settings.locale = locale;
+  save_settings();
   touch();
 }
 
@@ -46,11 +49,22 @@ bool AppViewModel::send(const std::function<void()>& command) {
 }
 
 void AppViewModel::start_selected() {
-  if (missions_.empty() || screen_ != Screen::Menu) return;
-  const std::string id = missions_[static_cast<std::size_t>(selected_)].id;
-  if (send([&] { engine_.start_with(id, seeds_(), game_->options_for_new_run()); })) {
+  if (missions_.empty()) return;
+  start_mission(missions_[static_cast<std::size_t>(selected_)].id, {}, std::nullopt);
+}
+
+// Every run carries the intel perks the player has unlocked (GameViewModel); a campaign mission adds
+// its capital and leverage gate.
+void AppViewModel::start_mission(const std::string& id, const RunOptions& options, std::optional<CampaignLink> link) {
+  if (screen_ != Screen::Menu || in_flight_ > 0) return;
+  leave_active_run();
+  RunOptions run = game_->options_for_new_run();
+  run.starting_balance = options.starting_balance;
+  run.leverage_cap = options.leverage_cap;
+  if (send([&] { engine_.start_with(id, seeds_(), run); })) {
     start_pending_ = true;
     run_mission_ = id;
+    shell_.run_campaign = std::move(link);
     notice_.clear();
   }
 }
@@ -89,9 +103,10 @@ bool AppViewModel::handle_key(Key key, bool typing) {
 }
 
 void AppViewModel::play_again() {
-  if (screen_ != Screen::Debrief) return;
+  if (screen_ != Screen::Debrief || shell_.run_campaign) return;
   screen_ = Screen::Menu;
-  start_selected();
+  start_mission(run_mission_.empty() ? missions_.at(static_cast<std::size_t>(selected_)).id : run_mission_, {},
+                std::nullopt);
 }
 
 void AppViewModel::on_snapshot(std::shared_ptr<const Snapshot> snap) {
@@ -100,6 +115,7 @@ void AppViewModel::on_snapshot(std::shared_ptr<const Snapshot> snap) {
   apply_results(*snap_);
   game_->on_snapshot(*snap_);
   if (screen_ == Screen::Game && !snap_->active() && snap_->debrief) screen_ = Screen::Debrief;
+  if (!snap_->active() && snap_->debrief) settle_ended_run();
   touch();
 }
 
@@ -112,7 +128,10 @@ void AppViewModel::apply_results(const Snapshot& s) {
 
 void AppViewModel::apply_result(const CommandResult& r) {
   if (r.kind == CommandKind::Start) {
-    if (start_pending_ && r.accepted && screen_ == Screen::Menu) screen_ = Screen::Briefing;
+    if (start_pending_ && r.accepted && screen_ == Screen::Menu) {
+      screen_ = Screen::Briefing;
+      record_started_run();
+    }
     start_pending_ = false;
   }
 }

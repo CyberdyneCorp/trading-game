@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "model/game_state.hpp"
+#include "model/json.hpp"
 
 namespace tradelab::desktop {
 
@@ -68,6 +69,19 @@ struct Debrief {
   std::string lesson;
   int entries = 0;
   int advisor_points_earned = 0;  // settles the device's advisor balance (web points.ts)
+  json::Value raw;     // the whole tl_debrief document (debrief screen: findings, trades, Greeks...)
+  json::Value reveal;  // tl_mission_reveal of a built-in mission (regimes, releases); null otherwise
+};
+
+// Engine start options of a run (tl_run_create_ex): advisor allowance and intel perks (engine policy
+// v11), and for a campaign mission its capital and the curriculum's leverage gate. Zero / empty = the
+// mission's own; default options start the same run as tl_run_create.
+struct RunOptions {
+  int advice_allowance = 0;
+  int news_lead = 0;
+  bool calendar = false;
+  std::string starting_balance;
+  int leverage_cap = 0;
 };
 
 struct Snapshot {
@@ -107,6 +121,7 @@ struct Snapshot {
   std::optional<Debrief> debrief;
   // The full terminal state (orders, options, indicators, news, advisor...), shared and immutable.
   std::shared_ptr<const GameState> game;
+  json::Value state;  // the whole tl_state document the fields above were read from
 
   [[nodiscard]] bool active() const { return status == "active"; }
 };

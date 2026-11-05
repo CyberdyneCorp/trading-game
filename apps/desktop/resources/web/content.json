@@ -1,0 +1,756 @@
+{
+ "stages": [
+  {
+   "id": "foundations",
+   "requires": [],
+   "missions": [],
+   "lessons": [
+    "foundations-bar"
+   ],
+   "unlocks": []
+  },
+  {
+   "id": "structure",
+   "requires": [
+    "foundations"
+   ],
+   "missions": [
+    "m06-thin-book"
+   ],
+   "lessons": [],
+   "unlocks": []
+  },
+  {
+   "id": "orders",
+   "requires": [
+    "structure"
+   ],
+   "missions": [
+    "m06-thin-book"
+   ],
+   "lessons": [],
+   "unlocks": []
+  },
+  {
+   "id": "futures1",
+   "requires": [
+    "orders"
+   ],
+   "missions": [
+    "m01-false-breakout"
+   ],
+   "lessons": [],
+   "unlocks": [
+    "short"
+   ]
+  },
+  {
+   "id": "futures2",
+   "requires": [
+    "futures1"
+   ],
+   "missions": [
+    "m03-volatility-shock"
+   ],
+   "lessons": [],
+   "unlocks": [
+    "leverage"
+   ]
+  },
+  {
+   "id": "futures3",
+   "requires": [
+    "futures2"
+   ],
+   "missions": [
+    "m02-funding-squeeze"
+   ],
+   "lessons": [],
+   "unlocks": []
+  },
+  {
+   "id": "risk",
+   "requires": [
+    "futures3"
+   ],
+   "missions": [
+    "m07-trend-trailing"
+   ],
+   "lessons": [],
+   "unlocks": []
+  },
+  {
+   "id": "options1",
+   "requires": [
+    "risk"
+   ],
+   "missions": [
+    "m04-options-buyer"
+   ],
+   "lessons": [],
+   "unlocks": [
+    "optionsBuy"
+   ]
+  },
+  {
+   "id": "options2",
+   "requires": [
+    "options1"
+   ],
+   "missions": [
+    "m04-options-buyer",
+    "m09-event-straddle"
+   ],
+   "lessons": [],
+   "unlocks": []
+  },
+  {
+   "id": "options3",
+   "requires": [
+    "options2"
+   ],
+   "missions": [
+    "m05-options-writer",
+    "m10-hedged-book"
+   ],
+   "lessons": [],
+   "unlocks": [
+    "optionsWrite"
+   ]
+  },
+  {
+   "id": "patterns",
+   "requires": [
+    "options3"
+   ],
+   "missions": [
+    "m08-regime-switch"
+   ],
+   "lessons": [],
+   "unlocks": []
+  },
+  {
+   "id": "events",
+   "requires": [
+    "patterns"
+   ],
+   "missions": [
+    "m11-news-calendar"
+   ],
+   "lessons": [],
+   "unlocks": []
+  },
+  {
+   "id": "evaluation",
+   "requires": [
+    "events"
+   ],
+   "missions": [
+    "m12-capstone"
+   ],
+   "lessons": [],
+   "unlocks": []
+  }
+ ],
+ "lockedLeverageCap": 2,
+ "campaignCapital": "10000",
+ "campaignMinCapital": "100",
+ "campaignHistory": 20,
+ "reportMinTrades": 30,
+ "afterReleaseBars": 10,
+ "shortcutActions": [
+  "advance",
+  "advance5",
+  "buy",
+  "sell",
+  "close",
+  "patterns",
+  "auto",
+  "mute",
+  "options",
+  "journal",
+  "help"
+ ],
+ "defaultKeymap": {
+  "advance": "Space",
+  "advance5": "Shift+Space",
+  "buy": "b",
+  "sell": "s",
+  "close": "x",
+  "patterns": "p",
+  "auto": "a",
+  "mute": "m",
+  "options": "o",
+  "journal": "j",
+  "help": "?"
+ },
+ "lessons": [
+  {
+   "id": "foundations-bar",
+   "stage": "foundations",
+   "steps": [
+    {
+     "id": "anatomy",
+     "phase": "concept",
+     "chart": {
+      "market": "X",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 104,
+        "l": 98,
+        "c": 103,
+        "v": 0
+       }
+      ],
+      "anatomy": true
+     }
+    },
+    {
+     "id": "interval",
+     "phase": "concept",
+     "chart": {
+      "market": "X",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 101.2,
+        "l": 99.4,
+        "c": 100.8,
+        "v": 120
+       },
+       {
+        "o": 100.8,
+        "h": 102.6,
+        "l": 100.5,
+        "c": 102.2,
+        "v": 180
+       },
+       {
+        "o": 102.2,
+        "h": 102.9,
+        "l": 100.9,
+        "c": 101.3,
+        "v": 150
+       },
+       {
+        "o": 101.3,
+        "h": 101.6,
+        "l": 98.6,
+        "c": 99.4,
+        "v": 260
+       },
+       {
+        "o": 99.4,
+        "h": 100.9,
+        "l": 99.1,
+        "c": 100.6,
+        "v": 140
+       },
+       {
+        "o": 100.6,
+        "h": 100.8,
+        "l": 97.9,
+        "c": 100.2,
+        "v": 210
+       },
+       {
+        "o": 100.2,
+        "h": 101.8,
+        "l": 100,
+        "c": 101.5,
+        "v": 170
+       },
+       {
+        "o": 101.5,
+        "h": 102.4,
+        "l": 101.1,
+        "c": 102,
+        "v": 130
+       }
+      ]
+     }
+    },
+    {
+     "id": "return",
+     "phase": "demo",
+     "chart": {
+      "market": "X",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 101.2,
+        "l": 99.4,
+        "c": 100.8,
+        "v": 120
+       },
+       {
+        "o": 100.8,
+        "h": 102.6,
+        "l": 100.5,
+        "c": 102.2,
+        "v": 180
+       },
+       {
+        "o": 102.2,
+        "h": 102.9,
+        "l": 100.9,
+        "c": 101.3,
+        "v": 150
+       },
+       {
+        "o": 101.3,
+        "h": 101.6,
+        "l": 98.6,
+        "c": 99.4,
+        "v": 260
+       },
+       {
+        "o": 99.4,
+        "h": 100.9,
+        "l": 99.1,
+        "c": 100.6,
+        "v": 140
+       },
+       {
+        "o": 100.6,
+        "h": 100.8,
+        "l": 97.9,
+        "c": 100.2,
+        "v": 210
+       },
+       {
+        "o": 100.2,
+        "h": 101.8,
+        "l": 100,
+        "c": 101.5,
+        "v": 170
+       },
+       {
+        "o": 101.5,
+        "h": 102.4,
+        "l": 101.1,
+        "c": 102,
+        "v": 130
+       }
+      ],
+      "highlight": 2
+     }
+    },
+    {
+     "id": "wick",
+     "phase": "decision",
+     "chart": {
+      "market": "X",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 101.2,
+        "l": 99.4,
+        "c": 100.8,
+        "v": 120
+       },
+       {
+        "o": 100.8,
+        "h": 102.6,
+        "l": 100.5,
+        "c": 102.2,
+        "v": 180
+       },
+       {
+        "o": 102.2,
+        "h": 102.9,
+        "l": 100.9,
+        "c": 101.3,
+        "v": 150
+       },
+       {
+        "o": 101.3,
+        "h": 101.6,
+        "l": 98.6,
+        "c": 99.4,
+        "v": 260
+       },
+       {
+        "o": 99.4,
+        "h": 100.9,
+        "l": 99.1,
+        "c": 100.6,
+        "v": 140
+       },
+       {
+        "o": 100.6,
+        "h": 100.8,
+        "l": 97.9,
+        "c": 100.2,
+        "v": 210
+       },
+       {
+        "o": 100.2,
+        "h": 101.8,
+        "l": 100,
+        "c": 101.5,
+        "v": 170
+       },
+       {
+        "o": 101.5,
+        "h": 102.4,
+        "l": 101.1,
+        "c": 102,
+        "v": 130
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "bar",
+        "bar": 3
+       },
+       {
+        "kind": "bar",
+        "bar": 4
+       },
+       {
+        "kind": "bar",
+        "bar": 6
+       },
+       {
+        "kind": "bar",
+        "bar": 7
+       }
+      ],
+      "answer": 2
+     }
+    },
+    {
+     "id": "pct",
+     "phase": "decision",
+     "chart": {
+      "market": "X",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 101.2,
+        "l": 99.4,
+        "c": 100.8,
+        "v": 120
+       },
+       {
+        "o": 100.8,
+        "h": 102.6,
+        "l": 100.5,
+        "c": 102.2,
+        "v": 180
+       },
+       {
+        "o": 102.2,
+        "h": 102.9,
+        "l": 100.9,
+        "c": 101.3,
+        "v": 150
+       },
+       {
+        "o": 101.3,
+        "h": 101.6,
+        "l": 98.6,
+        "c": 99.4,
+        "v": 260
+       },
+       {
+        "o": 99.4,
+        "h": 100.9,
+        "l": 99.1,
+        "c": 100.6,
+        "v": 140
+       },
+       {
+        "o": 100.6,
+        "h": 100.8,
+        "l": 97.9,
+        "c": 100.2,
+        "v": 210
+       },
+       {
+        "o": 100.2,
+        "h": 101.8,
+        "l": 100,
+        "c": 101.5,
+        "v": 170
+       },
+       {
+        "o": 101.5,
+        "h": 102.4,
+        "l": 101.1,
+        "c": 102,
+        "v": 130
+       }
+      ],
+      "highlight": 5
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "pct",
+        "value": 1.21
+       },
+       {
+        "kind": "pct",
+        "value": 0.12
+       },
+       {
+        "kind": "pct",
+        "value": -1.21
+       },
+       {
+        "kind": "pct",
+        "value": 12.07
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "known",
+     "phase": "decision",
+     "chart": {
+      "market": "X",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 101.2,
+        "l": 99.4,
+        "c": 100.8,
+        "v": 120
+       },
+       {
+        "o": 100.8,
+        "h": 102.6,
+        "l": 100.5,
+        "c": 102.2,
+        "v": 180
+       },
+       {
+        "o": 102.2,
+        "h": 102.9,
+        "l": 100.9,
+        "c": 101.3,
+        "v": 150
+       },
+       {
+        "o": 101.3,
+        "h": 101.6,
+        "l": 98.6,
+        "c": 99.4,
+        "v": 260
+       },
+       {
+        "o": 99.4,
+        "h": 100.9,
+        "l": 99.1,
+        "c": 100.6,
+        "v": 140
+       },
+       {
+        "o": 100.6,
+        "h": 100.8,
+        "l": 97.9,
+        "c": 100.2,
+        "v": 210
+       },
+       {
+        "o": 100.2,
+        "h": 101.8,
+        "l": 100,
+        "c": 101.5,
+        "v": 170
+       },
+       {
+        "o": 101.5,
+        "h": 102.4,
+        "l": 101.1,
+        "c": 102,
+        "v": 130
+       }
+      ],
+      "known": 6
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "close6"
+       },
+       {
+        "kind": "text",
+        "id": "high7"
+       },
+       {
+        "kind": "text",
+        "id": "dir7"
+       },
+       {
+        "kind": "text",
+        "id": "wickUp"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "range",
+     "phase": "transfer",
+     "chart": {
+      "market": "Y",
+      "interval": "4h",
+      "candles": [
+       {
+        "o": 2410,
+        "h": 2432,
+        "l": 2398,
+        "c": 2425,
+        "v": 35
+       },
+       {
+        "o": 2425,
+        "h": 2441,
+        "l": 2380,
+        "c": 2391,
+        "v": 52
+       },
+       {
+        "o": 2391,
+        "h": 2402,
+        "l": 2350,
+        "c": 2362,
+        "v": 61
+       },
+       {
+        "o": 2362,
+        "h": 2399,
+        "l": 2355,
+        "c": 2394,
+        "v": 44
+       },
+       {
+        "o": 2394,
+        "h": 2418,
+        "l": 2388,
+        "c": 2412,
+        "v": 38
+       },
+       {
+        "o": 2412,
+        "h": 2415,
+        "l": 2371,
+        "c": 2378,
+        "v": 49
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "bar",
+        "bar": 2
+       },
+       {
+        "kind": "bar",
+        "bar": 3
+       },
+       {
+        "kind": "bar",
+        "bar": 4
+       },
+       {
+        "kind": "bar",
+        "bar": 6
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "move",
+     "phase": "transfer",
+     "chart": {
+      "market": "Y",
+      "interval": "4h",
+      "candles": [
+       {
+        "o": 2410,
+        "h": 2432,
+        "l": 2398,
+        "c": 2425,
+        "v": 35
+       },
+       {
+        "o": 2425,
+        "h": 2441,
+        "l": 2380,
+        "c": 2391,
+        "v": 52
+       },
+       {
+        "o": 2391,
+        "h": 2402,
+        "l": 2350,
+        "c": 2362,
+        "v": 61
+       },
+       {
+        "o": 2362,
+        "h": 2399,
+        "l": 2355,
+        "c": 2394,
+        "v": 44
+       },
+       {
+        "o": 2394,
+        "h": 2418,
+        "l": 2388,
+        "c": 2412,
+        "v": 38
+       },
+       {
+        "o": 2412,
+        "h": 2415,
+        "l": 2371,
+        "c": 2378,
+        "v": 49
+       }
+      ],
+      "highlight": 4
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "pct",
+        "value": -1.28
+       },
+       {
+        "kind": "pct",
+        "value": 1.28
+       },
+       {
+        "kind": "pct",
+        "value": -0.31
+       },
+       {
+        "kind": "pct",
+        "value": -12.78
+       }
+      ],
+      "answer": 0
+     }
+    }
+   ]
+  }
+ ]
+}

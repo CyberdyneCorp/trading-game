@@ -1390,6 +1390,73 @@ lessonq.m12-capstone.one-sample.choice0,Sim,Yes
 lessonq.m12-capstone.one-sample.choice1,Não: uma missão é uma amostra; é preciso comparar muitas tentativas,No: one mission is one sample; many attempts must be compared
 lessonq.m12-capstone.one-sample.choice2,Só se o lucro for alto,Only if the profit is large
 lessonq.m12-capstone.expectancy.prompt,"10 trades: 4 ganharam 2R cada e 6 perderam 1R cada. Qual é a expectativa, em R por trade?","10 trades: 4 won 2R each and 6 lost 1R each. What is the expectancy, in R per trade?"
+finding.waited,"Você não operou. Sem hipótese clara, esperar é uma decisão válida — não há penalidade por não girar.","You did not trade. Without a clear hypothesis, waiting is a valid decision — no penalty for low turnover."
+finding.liquidated,Liquidação na barra {step} a {price}: a margem isolada inteira ({amount}) foi perdida. Alavancagem menor teria colocado o stop antes da liquidação.,Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost. Lower leverage would have put the stop before liquidation.
+finding.stop_beyond_liq,Houve stop posicionado além do preço de liquidação: a liquidação dispara antes do stop.,A stop sat beyond the liquidation price: liquidation fires before the stop.
+finding.no_stop,"{count} entradas sem stop de proteção logo em seguida. Sem stop, o risco planejado é indefinido.","{count} entries without a protective stop right after. Without a stop, planned risk is undefined."
+finding.gap_slippage,Stop solicitado em {requested} executou em {price} por causa de um gap: stop a mercado não garante preço.,Stop requested at {requested} filled at {price} because of a gap: a stop-market does not guarantee a price.
+finding.funding_cost,Você pagou {amount} cr de funding — mais do que em taxas. Carregar posição lotada custa.,You paid {amount} cr in funding — more than in fees. Carrying a crowded position costs.
+finding.ambiguous,{count} execuções usaram a aproximação intrabar conservadora (OHLC não revela a ordem máxima/mínima).,{count} fills used the conservative intrabar approximation (OHLC does not reveal whether high or low came first).
+finding.capacity,{count} execuções foram limitadas pela capacidade simulada da barra.,{count} fills were limited by the simulated bar capacity.
+finding.good_process_loss,"Prejuízo com processo bom: cada trade tinha plano e risco limitado (stop ou prêmio), sem liquidação nem chamada de margem. Isso é gestão de risco funcionando.","A loss with good process: every trade had a plan and limited risk (stop or premium), no liquidation or margin call. That is risk management working."
+finding.good_process_win,"Lucro com processo bom: cada trade tinha plano e risco limitado (stop ou prêmio), sem liquidação nem chamada de margem. Mantenha o processo — um resultado sozinho não prova vantagem.","A profit with good process: every trade had a plan and limited risk (stop or premium), no liquidation or margin call. Keep the process — one result alone does not prove an edge."
+finding.lucky_win,Lucro sem processo completo (sem plano ou sem stop). Resultado favorável pode ter sido sorte.,Profit without full process (no plan or no stop). A favorable outcome may have been luck.
+finding.no_plan,"Entradas sem plano registrado: sem hipótese e invalidação, não dá para aprender com o resultado.",Entries without a recorded plan: without hypothesis and invalidation you cannot learn from the outcome.
+finding.oversized,"Uma entrada arriscava ~{risk} cr (> 2% do capital). Dimensione pela perda máxima: o stop no futuro, o prêmio na opção.","One entry risked ~{risk} cr (> 2% of capital). Size from the maximum loss: the stop on a future, the premium on an option."
+finding.bankrupt,Game over: o capital não cobre mais a menor ordem possível.,Game over: capital no longer covers the smallest possible order.
+finding.margin_called,"Chamada de margem na barra {step}: as opções vendidas foram recompradas à força a {price}, perda de {amount} cr. Quem vende opção precisa de margem para o pior movimento: venda menos contratos.","Margin call at bar {step}: the written options were bought back by force at {price}, a loss of {amount} cr. An option writer needs margin for the worst move: write fewer contracts."
+finding.theta_decay,O tempo (theta) custou {amount} cr nas opções compradas — pelo menos metade da perda. Quem compra opção paga pelo tempo: o movimento precisa vir antes do vencimento.,Time decay (theta) cost {amount} cr on the bought options — at least half of the loss. An option buyer pays for time: the move has to come before expiry.
+finding.iv_crush,A queda da volatilidade implícita (vega) custou {amount} cr nas opções compradas — pelo menos metade da perda. Comprar com IV alta é pagar caro pela mesma aposta.,Falling implied volatility (vega) cost {amount} cr on the bought options — at least half of the loss. Buying when IV is high pays a lot for the same bet.
+finding.iv_rise,"A alta da volatilidade implícita (vega) custou {amount} cr nas opções vendidas — pelo menos metade da perda. Quem vende opção fica vendido em volatilidade: medo e notícia sobem a IV e encarecem a recompra, mesmo sem o preço chegar ao strike.","Rising implied volatility (vega) cost {amount} cr on the written options — at least half of the loss. An option writer is short volatility: fear and news lift IV and make the buy-back dearer, even before the price reaches the strike."
+finding.wrote_options,"Você vendeu opções a descoberto: o risco não fica limitado por um stop nem pelo prêmio, só pela margem. Por isso não há crédito de processo bom, mesmo com plano — dimensione pelo pior movimento.","You wrote options uncovered: the risk is limited by neither a stop nor the premium, only by margin. That is why there is no good-process credit, even with a plan — size for the worst move."
+finding.leverage_vs_stop,"Na entrada da barra {step}, a {count}x, a liquidação ({requested}) ficava a menos de duas distâncias do stop ({price}) da entrada: um gap do tamanho do stop além dele já liquidaria a posição. Com alavancagem menor o stop teria folga.","At the entry on bar {step}, at {count}x, liquidation ({requested}) sat less than twice the stop’s distance ({price}) from the entry: a gap one stop-distance beyond the stop would already liquidate it. Lower leverage gives the stop room."
+finding.liq_buffer,"A liquidação chegou a {pct} do preço, mais perto que a distância de aviso desta missão{warn}. Deixe margem para o ruído e para os gaps.","Liquidation came within {pct} of the price, closer than this mission’s warning distance{warn}. Leave room for noise and gaps."
+finding.drawdown_budget,O drawdown máximo ({amount} cr) passou do orçamento de drawdown da missão ({pct} do capital). Dimensione cada ideia pelo orçamento que sobra.,The maximum drawdown ({amount} cr) went past the mission’s drawdown budget ({pct} of capital). Size each idea from the budget that is left.
+finding.liquidated.safe,Liquidação na barra {step} a {price}: a margem isolada inteira ({amount}) foi perdida. O stop estava além da liquidação: com até {count}x de alavancagem ele teria ficado na frente.,Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost. The stop sat beyond liquidation: up to {count}x leverage would have kept it in front.
+finding.stop_beyond_liq.safe,O stop em {price} (entrada na barra {step}) ficou além da liquidação em {requested}: a liquidação dispara antes. Com até {count}x de alavancagem o stop teria ficado na frente.,The stop at {price} (entry at bar {step}) sat beyond the liquidation price {requested}: liquidation fires first. Up to {count}x leverage would have kept the stop in front.
+finding.no_stop.one,"1 entrada sem stop de proteção logo em seguida. Sem stop, o risco planejado é indefinido.","1 entry without a protective stop right after. Without a stop, planned risk is undefined."
+finding.ambiguous.one,1 execução usou a aproximação intrabar conservadora (OHLC não revela a ordem máxima/mínima).,1 fill used the conservative intrabar approximation (OHLC does not reveal whether high or low came first).
+finding.capacity.one,1 execução foi limitada pela capacidade simulada da barra.,1 fill was limited by the simulated bar capacity.
+finding.liquidatedOnly,Liquidação na barra {step} a {price}: a margem isolada inteira ({amount}) foi perdida.,Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost.
+nextLesson.futures2,"Futuros II — margem, alavancagem e preço de liquidação","Futures II — margin, leverage and liquidation price"
+nextLesson.risk,Risco — dimensionar pelo stop e orçamento de risco,Risk — sizing from the stop and a risk budget
+nextLesson.futures3,Futuros III — funding e custo de carregar posição,Futures III — funding and the cost of carry
+nextLesson.orders,Ordens — gatilho não é execução; gaps e slippage,Orders — trigger is not execution; gaps and slippage
+nextLesson.structure,Estrutura — hipótese e ponto de invalidação,Structure — hypothesis and invalidation level
+nextLesson.evaluation,Avaliação — repetir em mercados novos antes de concluir,Evaluation — repeat on new markets before concluding
+nextLesson.options,"Opções II — volatilidade implícita e gregas (theta, vega)","Options II — implied volatility and the Greeks (theta, vega)"
+academyLesson.foundations-bar.title,Ler uma barra,Reading a bar
+academyLesson.foundations-bar.summary,"Abertura, máxima, mínima e fechamento; corpo, pavios e volume; preço contra retorno; o que já se sabe e o que é futuro.","Open, high, low and close; body, wicks and volume; price against return; what is known and what is future."
+academyLesson.foundations-bar.anatomy.title,"Uma barra, quatro preços","One bar, four prices"
+academyLesson.foundations-bar.anatomy.body,"Cada barra resume um intervalo: o preço de abertura, a máxima, a mínima e o fechamento. O corpo vai da abertura ao fechamento; os pavios mostram até onde o preço foi. Fechou acima da abertura: barra de alta (verde). Abaixo: de baixa (vermelha).","Each bar sums up one interval: the open, the high, the low and the close. The body runs from open to close; the wicks show how far price went. Closed above the open: an up bar (green). Below: a down bar (red)."
+academyLesson.foundations-bar.interval.title,Intervalo e volume,Interval and volume
+academyLesson.foundations-bar.interval.body,"Neste gráfico cada barra é 1 hora: o intervalo (timeframe) diz quanto tempo cabe em uma barra. As colunas embaixo são o volume, quanto foi negociado naquela hora. Volume alto mostra participação, não direção.","On this chart each bar is 1 hour: the interval (timeframe) says how much time one bar holds. The columns below are volume, how much traded in that hour. High volume shows participation, not direction."
+academyLesson.foundations-bar.return.title,Preço contra retorno,Price against return
+academyLesson.foundations-bar.return.body,"A barra 2 subiu de 100,80 para 102,20: 1,40 de preço, ou +1,39% de retorno. Os mesmos 1,40 em um mercado a 2.400 seriam só 0,06%. Compare movimentos em retorno (%), não em pontos.","Bar 2 rose from 100.80 to 102.20: 1.40 in price, or a +1.39% return. The same 1.40 in a market at 2,400 would be only 0.06%. Compare moves as returns (%), not points."
+academyLesson.foundations-bar.wick.title,Decisão: leia os pavios,Decision: read the wicks
+academyLesson.foundations-bar.wick.body,Qual barra fechou abaixo da abertura e tem o pavio inferior mais longo?,Which bar closed below its open and has the longest lower wick?
+academyLesson.foundations-bar.wick.right,"Isso. A barra 6 abriu em 100,60, foi até 97,90 e fechou em 100,20: pavio inferior de 2,30. Vendedores empurraram, compradores trouxeram de volta.","Bar 6 opened at 100.60, went down to 97.90 and closed at 100.20: a 2.30 lower wick. Sellers pushed, buyers brought it back."
+academyLesson.foundations-bar.wick.wrong,Ainda não. O pavio inferior vai do menor entre abertura e fechamento até a mínima. Compare as barras de baixa (fechamento abaixo da abertura).,Not yet. The lower wick runs from the lower of open and close down to the low. Compare the down bars (close below open).
+academyLesson.foundations-bar.pct.title,Decisão: calcule o retorno,Decision: work out the return
+academyLesson.foundations-bar.pct.body,"A barra 5 abriu em 99,40 e fechou em 100,60. Qual foi o retorno dela?",Bar 5 opened at 99.40 and closed at 100.60. What was its return?
+academyLesson.foundations-bar.pct.right,"(100,60 − 99,40) / 99,40 = +1,21%.",(100.60 − 99.40) / 99.40 = +1.21%.
+academyLesson.foundations-bar.pct.wrong,"Retorno = (fechamento − abertura) / abertura. Aqui: 1,20 / 99,40.",Return = (close − open) / open. Here: 1.20 / 99.40.
+academyLesson.foundations-bar.known.title,Decisão: o que você já sabe?,Decision: what do you know?
+academyLesson.foundations-bar.known.body,A barra 6 acabou de fechar. A área hachurada é o futuro. O que você sabe agora?,Bar 6 has just closed. The hatched area is the future. What do you know now?
+academyLesson.foundations-bar.known.right,"Exato. Só o que já fechou é informação. A máxima da barra 7 e a direção dela ainda não existem, e um pavio longo não garante nada: padrões falham.","Exactly. Only what has closed is information. Bar 7’s high and direction do not exist yet, and a long wick guarantees nothing: patterns fail."
+academyLesson.foundations-bar.known.wrong,"Nada depois da barra 6 é conhecido. Um pavio longo é uma pista, não uma garantia: padrões falham com frequência.","Nothing after bar 6 is known. A long wick is a clue, not a guarantee: patterns fail often."
+academyLesson.foundations-bar.known.choice.close6,O fechamento da barra 6,Bar 6’s close
+academyLesson.foundations-bar.known.choice.high7,A máxima da barra 7,Bar 7’s high
+academyLesson.foundations-bar.known.choice.dir7,Se a barra 7 vai fechar em alta,Whether bar 7 will close up
+academyLesson.foundations-bar.known.choice.wickUp,Que o pavio longo da barra 6 garante uma alta,That bar 6’s long wick guarantees a rise
+academyLesson.foundations-bar.range.title,Transferência: outro mercado,Transfer: another market
+academyLesson.foundations-bar.range.body,"Mercado Y, barras de 4 horas, preço perto de 2.400. Qual barra teve a maior amplitude (máxima − mínima)?","Market Y, 4-hour bars, price near 2,400. Which bar had the widest range (high − low)?"
+academyLesson.foundations-bar.range.right,"Sim: a barra 2 foi de 2.441 a 2.380, amplitude de 61. As mesmas regras de leitura valem em qualquer mercado e intervalo.","Yes: bar 2 went from 2,441 to 2,380, a range of 61. The same reading rules hold in any market and interval."
+academyLesson.foundations-bar.range.wrong,"Amplitude = máxima − mínima, incluindo os pavios. Meça cada barra.","Range = high − low, wicks included. Measure each bar."
+academyLesson.foundations-bar.move.title,Transferência: retorno em outro nível de preço,Transfer: return at another price level
+academyLesson.foundations-bar.move.body,"Do fechamento da barra 1 (2.425) ao fechamento da barra 4 (2.394), qual foi o retorno?","From the close of bar 1 (2,425) to the close of bar 4 (2,394), what was the return?"
+academyLesson.foundations-bar.move.right,"−31 / 2.425 = −1,28%. No mercado X, 31 pontos seriam cerca de 30%: por isso se compara em retorno.","−31 / 2,425 = −1.28%. In market X, 31 points would be about 30%: that is why moves are compared as returns."
+academyLesson.foundations-bar.move.wrong,Use os fechamentos: (2.394 − 2.425) / 2.425.,"Use the closes: (2,394 − 2,425) / 2,425."
 desktop.vulkanMissing.title,TradeLab: driver Vulkan não encontrado,TradeLab: no Vulkan driver found
 desktop.vulkanMissing.body,O TradeLab precisa de um driver Vulkan para desenhar a janela e nenhum foi encontrado.,TradeLab needs a Vulkan driver to draw its window and none was found.
 desktop.vulkanMissing.linux,Instale `libvulkan1` e o driver Vulkan da sua placa de vídeo (por exemplo `mesa-vulkan-drivers`) e abra o TradeLab de novo.,Install `libvulkan1` and your graphics card's Vulkan driver (for example `mesa-vulkan-drivers`) and open TradeLab again.
@@ -1400,3 +1467,15 @@ desktop.waiting,Calculando…,Working…
 desktop.progress,Avançando {done} de {total},Advancing {done} of {total}
 desktop.qtyInvalid,"Digite uma quantidade válida (ex.: 1,5).",Type a valid quantity (e.g. 1.5).
 desktop.perksFixed,As informações extras valem desde o início da partida: mude antes da primeira ação.,Intel applies from the start of a run: change it before your first action.
+desktop.crt.scanlines,Linhas de varredura,Scanlines
+desktop.crt.bloom,Brilho (bloom),Glow (bloom)
+desktop.crt.noise,Ruído,Noise
+desktop.crt.reducedMotion,O sistema pede movimento reduzido: o efeito CRT fica desligado.,The system asks for reduced motion: the CRT effect stays off.
+desktop.textScale,Tamanho do texto {pct},Text size {pct}
+desktop.keys.colKey,Tecla,Key
+desktop.about.fonts,"Fontes: VT323 (títulos) e IBM Plex Mono (texto e números), ambas sob a SIL Open Font License 1.1.","Fonts: VT323 (titles) and IBM Plex Mono (text and numbers), both under the SIL Open Font License 1.1."
+desktop.curriculum.colStage,Estágio,Stage
+desktop.curriculum.colStatus,Situação,Status
+desktop.curriculum.colContent,Conteúdo,Content
+desktop.curriculum.colUnlocks,Libera,Unlocks
+desktop.chart.debrief,"Gráfico da partida, da primeira decisão ao fim","Chart of the run, from the first decision to the end"

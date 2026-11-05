@@ -28,7 +28,8 @@ class EngineCommands {
   virtual void start(const std::string& mission, std::uint32_t seed) = 0;
   virtual void advance(int steps) = 0;
   virtual void market(Side side, const std::string& qty) = 0;
-  // Terminal commands and start options; the defaults keep simple fakes compiling.
+  // Terminal commands and start options (perks, campaign capital, leverage gate); the defaults keep
+  // simple fakes compiling.
   virtual void game(const GameCommand& /*command*/) {}
   virtual void start_with(const std::string& mission, std::uint32_t seed, const RunOptions& /*options*/) {
     start(mission, seed);

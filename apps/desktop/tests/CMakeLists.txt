@@ -16,7 +16,10 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/game/test_game_viewmodel.cpp
   viewmodel/game/test_rules.cpp
   viewmodel/game/test_sizing.cpp
-  viewmodel/game/test_ticket_chart.cpp)
+  viewmodel/game/test_ticket_chart.cpp
+  viewmodel/test_shell_helpers.cpp
+  viewmodel/test_shell_screens.cpp
+  viewmodel/test_theme.cpp)
 target_include_directories(tradelab_desktop_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_unit_tests PRIVATE tradelab_desktop_viewmodel)
@@ -24,7 +27,8 @@ add_test(NAME desktop_unit COMMAND tradelab_desktop_unit_tests)
 set_tests_properties(desktop_unit PROPERTIES LABELS unit)
 
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
-add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp)
+add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp
+  headless/test_headless_shell.cpp)
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)
@@ -33,7 +37,8 @@ set_tests_properties(desktop_headless PROPERTIES LABELS headless ENVIRONMENT "RA
 
 # ---- Windowed: the real Vulkan renderer driven by injected input; frames saved as PNG. ----
 if(RAVEN_BACKEND_VULKAN)
-  add_executable(tradelab_desktop_windowed_tests main.cpp windowed/test_windowed.cpp windowed/test_game_windowed.cpp support/png.cpp)
+  add_executable(tradelab_desktop_windowed_tests main.cpp windowed/test_windowed.cpp windowed/test_game_windowed.cpp
+    windowed/test_windowed_shell.cpp support/png.cpp)
   target_include_directories(tradelab_desktop_windowed_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
   target_include_directories(tradelab_desktop_windowed_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(tradelab_desktop_windowed_tests PRIVATE tradelab_desktop_view)

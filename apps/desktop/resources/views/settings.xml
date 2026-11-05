@@ -1,0 +1,44 @@
+<!-- Settings (web menu settings + ShortcutSettings.svelte; desktop: CRT effects, text scale). -->
+<ScrollBox Name="settings-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="settings-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="settings-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <HBox Spacing="8">
+                    <Label Name="settings-language" Slot.VAlign="Center"/>
+                    <Button Name="settings-lang-pt" OnClicked="tl.settings.pt"/>
+                    <Button Name="settings-lang-en" OnClicked="tl.settings.en"/>
+                </HBox>
+                <Checkbox Name="settings-crt" Style="Switch"/>
+                <HBox Spacing="16">
+                    <Checkbox Name="settings-crt-scanlines"/>
+                    <Checkbox Name="settings-crt-bloom"/>
+                    <Checkbox Name="settings-crt-noise"/>
+                </HBox>
+                <Label Name="settings-crt-note" Wrap="true" Class="attention"/>
+                <HBox Spacing="8">
+                    <Label Name="settings-text-scale-label" Width="220" Slot.VAlign="Center"/>
+                    <Slider Name="settings-text-scale" Min="1" Max="2" Step="0.25" Value="1" Width="240"/>
+                </HBox>
+                <Checkbox Name="settings-palette" Style="Switch"/>
+            </VBox>
+        </Border>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <Label Name="settings-keys-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Table Name="settings-keys" Height="300"/>
+                <HBox Spacing="8">
+                    <Button Name="settings-key-change" OnClicked="tl.settings.keyChange"/>
+                    <Button Name="settings-key-reset" OnClicked="tl.settings.keyReset"/>
+                </HBox>
+                <Label Name="settings-key-message" Wrap="true" Class="info"/>
+            </VBox>
+        </Border>
+        <Label Name="settings-about" Wrap="true" Class="muted"/>
+    </VBox>
+</Border>
+</ScrollBox>

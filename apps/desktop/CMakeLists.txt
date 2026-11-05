@@ -28,6 +28,12 @@ set(TRADELAB_DESKTOP_WARNINGS -Wall -Wextra -Wpedantic -Wshadow)
 set(TRADELAB_DESKTOP_RESOURCES
   views/menu.xml views/briefing.xml views/game.xml views/debrief.xml
   i18n/strings.csv packs/pinned_keys.json)
+# Shell screens, retro look and the web's screen data (README "Retro look").
+list(APPEND TRADELAB_DESKTOP_RESOURCES
+  views/curriculum.xml views/journal.xml views/lesson.xml views/settings.xml
+  theme/tradelab.theme.xml theme/tradelab-cb.theme.xml
+  fonts/VT323-Regular.ttf fonts/IBMPlexMono-Regular.ttf shaders/crt.spv
+  web/content.json)
 tradelab_embed_resources(${CMAKE_BINARY_DIR}/generated/resources.cpp ${CMAKE_CURRENT_SOURCE_DIR}/resources
   ${TRADELAB_DESKTOP_RESOURCES})
 
@@ -65,6 +71,7 @@ add_library(tradelab_desktop_model STATIC
   src/model/game_state.cpp
   src/model/i18n.cpp
   src/model/json.cpp
+  src/model/content.cpp
   ${CMAKE_BINARY_DIR}/generated/resources.cpp)
 target_include_directories(tradelab_desktop_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 find_package(Threads REQUIRED)
@@ -77,6 +84,22 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/format.cpp
   src/viewmodel/screen_texts.cpp
   src/viewmodel/vulkan_message.cpp
+  src/viewmodel/campaign.cpp
+  src/viewmodel/curriculum.cpp
+  src/viewmodel/journal.cpp
+  src/viewmodel/keymap.cpp
+  src/viewmodel/lesson_runner.cpp
+  src/viewmodel/report_texts.cpp
+  src/viewmodel/shell.cpp
+  src/viewmodel/screens/screen_model.cpp
+  src/viewmodel/screens/menu.cpp
+  src/viewmodel/screens/briefing.cpp
+  src/viewmodel/screens/debrief.cpp
+  src/viewmodel/screens/debrief_tables.cpp
+  src/viewmodel/screens/curriculum.cpp
+  src/viewmodel/screens/journal.cpp
+  src/viewmodel/screens/lesson.cpp
+  src/viewmodel/screens/settings.cpp
   ${TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES})
 target_link_libraries(tradelab_desktop_viewmodel PUBLIC tradelab_desktop_model)
 target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
@@ -94,6 +117,8 @@ add_library(tradelab_desktop_view STATIC
   src/view/app.cpp
   src/view/app_view.cpp
   src/view/chart_painter.cpp
+  src/view/screens/retro_look.cpp
+  src/view/screens/shell_view.cpp
   src/view/raven/raven_ui.cpp
   ${TRADELAB_DESKTOP_GAME_VIEW_SOURCES})
 target_link_libraries(tradelab_desktop_view PUBLIC tradelab_desktop_viewmodel tradelab_desktop_platform raven::raven)

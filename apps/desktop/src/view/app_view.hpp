@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "view/game/game_view.hpp"
-
+#include "view/screens/shell_view.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 
 namespace tradelab::desktop {
@@ -34,20 +34,19 @@ class AppView {
   // The terminal screen (view/game); keys reach it through the window hook while it shows.
   [[nodiscard]] view::GameView& game_view() { return *game_view_; }
   bool on_key(const REvent* e);
+  [[nodiscard]] ShellView& shell() { return *shell_; }
 
  private:
   void bind_actions();
   void bind_widgets();
   void apply_bindings();
-  void fill_mission_list();
 
   AppViewModel& vm_;
   Rid window_ = R_INVALID_ID;
   Rid switcher_ = R_INVALID_ID;
-  std::array<Rid, 4> screens_{R_INVALID_ID, R_INVALID_ID, R_INVALID_ID, R_INVALID_ID};
+  std::array<Rid, 8> screens_{};
+  std::unique_ptr<ShellView> shell_;
   std::uint64_t shown_revision_ = 0;
-  Locale list_locale_ = Locale::PtBR;
-  bool list_filled_ = false;
   std::unique_ptr<view::GameView> game_view_;
 };
 

@@ -70,6 +70,7 @@ Snapshot snapshot_from_state(const json::Value& state) {
   s.bars = bars_from(state["bars"]);
   read_account(s, state["account"], state["position"]);
   s.digest = state["digest"].as_string();
+  s.state = state;
   return s;
 }
 
@@ -82,18 +83,17 @@ Debrief debrief_from_json(const json::Value& d) {
   out.lesson = d["lesson"].as_string();
   out.entries = to_int(d["entries"]);
   out.advisor_points_earned = to_int(d["advisorPointsEarned"]);
+  out.raw = d;
   return out;
-}
-
-std::unique_ptr<EngineRun> EngineRun::create(const std::string& mission, std::uint32_t seed) {
-  return create(mission, seed, RunOptions{});
 }
 
 // tl_run_create(m, s) is tl_run_create_ex(m, s, 0, 0, 0, NULL, 0) (c_api.h), so default options start the
 // same run.
 std::unique_ptr<EngineRun> EngineRun::create(const std::string& mission, std::uint32_t seed, const RunOptions& o) {
+  const char* balance = o.starting_balance.empty() ? nullptr : o.starting_balance.c_str();
   tl_run* run = tl_run_create_ex(mission.c_str(), seed, static_cast<std::uint32_t>(o.advice_allowance),
-                                 static_cast<std::uint32_t>(o.news_lead), o.calendar ? 1 : 0, nullptr, 0);
+                                 static_cast<std::uint32_t>(o.news_lead), o.calendar ? 1 : 0, balance,
+                                 o.leverage_cap);
   if (run == nullptr) return nullptr;
   auto out = std::unique_ptr<EngineRun>(new EngineRun(run, seed));
   const json::Value lesson = parse_or_null(tl_lesson(mission.c_str()));
@@ -127,7 +127,12 @@ Snapshot EngineRun::snapshot() const {
   auto game = std::make_shared<GameState>(game_state_from_json(state));
   game->lesson = lesson_;
   s.game = std::move(game);
-  if (!s.active()) s.debrief = debrief_from_json(parse_or_null(tl_debrief(run_)));
+  if (!s.active()) {
+    s.debrief = debrief_from_json(parse_or_null(tl_debrief(run_)));
+    // The seeded reveal describes the run's future: asked for only once it has ended (design D6).
+    const json::Value reveal = parse_or_null(tl_mission_reveal(s.mission.c_str(), seed_));
+    if (!reveal.has("error")) s.debrief->reveal = reveal;
+  }
   return s;
 }
 

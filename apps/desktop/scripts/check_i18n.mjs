@@ -9,11 +9,14 @@ import { DEFAULT_PATHS, generate, loadTypeScript } from './i18n_lib.mjs';
 
 /** Returns the list of problems (empty when the catalogs are in sync and consistent). */
 export function checkI18n(ts, paths) {
-	const { csv, pinnedKeys, problems } = generate(ts, paths);
+	const { csv, pinnedKeys, content, problems } = generate(ts, paths);
 	const stale = (file, expected) => !existsSync(file) || readFileSync(file, 'utf8') !== expected;
 	if (stale(paths.csv, csv)) problems.push(`${paths.csv} is out of date: run node apps/desktop/scripts/gen_i18n.mjs`);
 	if (stale(paths.pinnedKeys, pinnedKeys)) {
 		problems.push(`${paths.pinnedKeys} is out of date: run node apps/desktop/scripts/gen_i18n.mjs`);
+	}
+	if (content !== null && stale(paths.content, content)) {
+		problems.push(`${paths.content} is out of date: run node apps/desktop/scripts/gen_i18n.mjs`);
 	}
 	return problems;
 }

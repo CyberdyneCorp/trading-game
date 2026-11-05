@@ -24,6 +24,10 @@ std::vector<Binding> AppViewModel::bindings() const {
     case Screen::Briefing: return briefing_bindings();
     case Screen::Game: return game_bindings();
     case Screen::Debrief: return debrief_bindings();
+    case Screen::Curriculum:
+    case Screen::Journal:
+    case Screen::Lesson:
+    case Screen::Settings: break;  // screens::*
   }
   return {};
 }

@@ -1,20 +1,100 @@
-<!-- Debrief, first cut (web: Debrief.svelte): outcome and process score from tl_debrief. -->
+<!-- Debrief (web Debrief.svelte and its panels). Everything is the engine's report, formatted by
+     screens::debrief(); tables are Raven Tables (read row by row by screen readers). -->
+<VBox Spacing="0">
+<ScrollBox Name="debrief-scroll" Slot.Fill="1">
 <Border Background="#0B1010" Padding="16">
     <VBox Spacing="10">
-        <Label Name="debrief-title" TextSize="30" Color="#39FF88"/>
-        <Label Name="debrief-text" Wrap="true" Color="#8FB3A1"/>
-        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="16">
-            <VBox Spacing="8">
-                <Label Name="debrief-outcome" Color="#8FB3A1"/>
-                <Label Name="debrief-pnl" TextSize="24" Color="#E3F5EA"/>
-                <Label Name="debrief-pnl-pct" Color="#8FB3A1"/>
-                <Label Name="debrief-hold" Color="#E3F5EA"/>
-                <Label Name="debrief-score" TextSize="20" Color="#4FD8FF"/>
+        <Label Name="debrief-title" TextSize="50" Class="title" AccessibleRole="Heading"/>
+        <Label Name="debrief-text" Wrap="true" Class="down"/>
+        <Label Name="debrief-mission" Class="muted"/>
+        <Label Name="debrief-tags" Class="attention"/>
+        <Border Name="debrief-campaign-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <VBox Name="debrief-campaign" Spacing="4"/>
+                <HBox Spacing="8">
+                    <Button Name="debrief-campaign-next" Style="Primary" OnClicked="tl.campaign.next"/>
+                    <Button Name="debrief-campaign-new" Style="Primary" OnClicked="tl.campaign.start"/>
+                </HBox>
             </VBox>
         </Border>
-        <HBox Spacing="12">
-            <Button Name="debrief-again" Style="Primary" OnClicked="tl.debrief.again"/>
-            <Button Name="debrief-menu" OnClicked="tl.debrief.menu"/>
+        <Border Name="debrief-report-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <VBox Name="debrief-report" Spacing="4"/>
+                <Table Name="debrief-report-regimes" Height="140"/>
+            </VBox>
+        </Border>
+        <HBox Spacing="10">
+            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12" Slot.Fill="1">
+                <VBox Spacing="4">
+                    <Label Name="debrief-outcome" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                    <Label Name="debrief-pnl" TextSize="37.5"/>
+                    <Label Name="debrief-pnl-pct" Class="muted"/>
+                    <Label Name="debrief-hold" Visibility="Collapsed"/>
+                    <VBox Name="debrief-outcome-lines" Spacing="2"/>
+                </VBox>
+            </Border>
+            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12" Slot.Fill="1">
+                <VBox Spacing="4">
+                    <Label Name="debrief-score" TextSize="25" Class="title"/>
+                    <VBox Name="debrief-dims" Spacing="2"/>
+                    <Label Name="debrief-score-note" Wrap="true" Class="muted"/>
+                </VBox>
+            </Border>
+            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12" Slot.Fill="1">
+                <VBox Spacing="4">
+                    <Label Name="debrief-reveal-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                    <VBox Name="debrief-reveal" Spacing="4"/>
+                </VBox>
+            </Border>
         </HBox>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="4">
+                <Label Name="debrief-findings-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <VBox Name="debrief-findings" Spacing="4"/>
+                <Label Name="debrief-next-lesson" Wrap="true" Class="info"/>
+                <Label Name="debrief-disclaimer" Wrap="true" Class="muted"/>
+            </VBox>
+        </Border>
+        <VBox Name="debrief-lessons" Spacing="2"/>
+        <VBox Name="debrief-decisions" Spacing="2"/>
+        <Border Name="debrief-greeks-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Name="debrief-greeks" Spacing="2"/>
+        </Border>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="debrief-trades-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Table Name="debrief-trades" Height="180"/>
+                <VBox Name="debrief-trade-notes" Spacing="2"/>
+                <Label Name="debrief-calibration" Wrap="true" Class="muted"/>
+            </VBox>
+        </Border>
+        <Border Name="debrief-advisor-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Name="debrief-advisor" Spacing="2"/>
+        </Border>
+        <Border Name="debrief-regimes-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Custom Name="debrief-regime-band" Height="28" AccessibleRole="Image"/>
+                <Table Name="debrief-regimes" Height="160"/>
+                <Label Name="debrief-regimes-note" Wrap="true" Class="muted"/>
+            </VBox>
+        </Border>
+        <Border Name="debrief-releases-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Table Name="debrief-releases" Height="140"/>
+                <Label Name="debrief-releases-note" Wrap="true" Class="muted"/>
+            </VBox>
+        </Border>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Name="debrief-timeline" Spacing="2"/>
+        </Border>
     </VBox>
 </Border>
+</ScrollBox>
+<Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="10">
+    <HBox Spacing="12">
+        <Button Name="debrief-menu" OnClicked="tl.debrief.menu"/>
+        <Spacer Slot.Fill="1"/>
+        <Button Name="debrief-again" Style="Primary" OnClicked="tl.debrief.again"/>
+    </HBox>
+</Border>
+</VBox>

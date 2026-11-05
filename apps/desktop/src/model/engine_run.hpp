@@ -30,9 +30,9 @@ Debrief debrief_from_json(const json::Value& debrief);
 class EngineRun {
  public:
   // nullptr for an unknown mission id.
-  static std::unique_ptr<EngineRun> create(const std::string& mission, std::uint32_t seed);
-  // With start options (tl_run_create_ex): advisor allowance and intel perks.
-  static std::unique_ptr<EngineRun> create(const std::string& mission, std::uint32_t seed, const RunOptions& options);
+  // Start options (tl_run_create_ex): advisor allowance, intel perks, campaign capital and leverage gate.
+  static std::unique_ptr<EngineRun> create(const std::string& mission, std::uint32_t seed,
+                                           const RunOptions& options = {});
   ~EngineRun();
   EngineRun(const EngineRun&) = delete;
   EngineRun& operator=(const EngineRun&) = delete;
