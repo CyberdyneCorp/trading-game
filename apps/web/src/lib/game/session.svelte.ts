@@ -22,13 +22,22 @@ import {
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
 import { stepsUntilNextQuestion } from './calibration.ts';
+import {
+	abandonCampaign,
+	nextCampaignMission,
+	settleCampaignRun,
+	startCampaign,
+	type CampaignLink,
+	type LegResult
+} from './campaign.ts';
+import { campaignPermissions } from './curriculum.ts';
 import { t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
 import { randomSeedBytes, trustedKeys } from './packs.ts';
-import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type StoredPack } from './storage.ts';
+import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type RunRecord, type StoredPack } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
 
-export type Screen = 'loading' | 'menu' | 'import' | 'tutorial' | 'briefing' | 'terminal' | 'debrief';
+export type Screen = 'loading' | 'menu' | 'import' | 'tutorial' | 'briefing' | 'terminal' | 'debrief' | 'curriculum' | 'journal';
 
 type Action =
 	| { k: 'lev'; lev: number }
@@ -69,6 +78,17 @@ export interface RunSummary {
 	missionId: string;
 	seed: number;
 	actions: number;
+	/** The campaign mission this run plays (null in free play and practice). */
+	campaign: CampaignLink | null;
+}
+
+/** A run left behind by starting another one (it never reaches its debrief). */
+interface AbandonedRun {
+	runId: string;
+	missionId: string;
+	used: number;
+	campaign: CampaignLink | null;
+	equity: string;
 }
 
 /** Optional order extras: bracket exits (engine-side OCO) and trailing distance. */
@@ -123,6 +143,10 @@ export class GameSession {
 	private device: { seedHex: string; key: TrustedKey } | null = null;
 	/** Start options of the current run (its advice allowance is the balance at start). */
 	options = $state<RunOptionsView>({ ...DEFAULT_RUN_OPTIONS });
+	/** The campaign mission the current run plays; null in free play and practice. */
+	runCampaign = $state<CampaignLink | null>(null);
+	/** Run headers for the journal screen (loaded when it opens). */
+	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
 
 	private engine: EngineClient | null = null;
 	private log: Action[] = [];
@@ -168,7 +192,7 @@ export class GameSession {
 		const run = await this.store?.activeRun().catch(() => null);
 		this.saved =
 			run && run.record.status === 'active'
-				? { missionId: run.record.missionId, seed: run.record.seed, actions: run.actions.length }
+				? { missionId: run.record.missionId, seed: run.record.seed, actions: run.actions.length, campaign: run.record.campaign ?? null }
 				: null;
 	}
 
@@ -189,15 +213,77 @@ export class GameSession {
 		return this.fixedSeed ?? Math.floor(Math.random() * 1_000_000_000);
 	}
 
+	/** Free play: any mission with its own rules (no campaign capital, no curriculum gate). */
 	async startMission(missionId: string, seed = this.randomSeed()): Promise<void> {
 		await this.exclusive(async () => {
 			await this.settleAbandoned();
-			this.resetRun(missionId, seed);
-			this.options = { ...DEFAULT_RUN_OPTIONS, adviceAllowance: allowanceFor(this.progress) };
-			this.state = await this.eng().request({ kind: 'start', missionId, seed, options: { ...this.options } });
-			await this.createRunRecord(missionId, seed);
-			this.screen = this.needsTutorial(missionId) ? 'tutorial' : 'briefing';
+			await this.launch(missionId, seed, { ...DEFAULT_RUN_OPTIONS, adviceAllowance: allowanceFor(this.progress) }, null);
 		});
+	}
+
+	// ---- campaign runs (spec gameplay-loop "Game over on bankruptcy", spec curriculum) ----
+
+	/** The mission the active campaign run plays next, or null. */
+	get campaignMission(): string | null {
+		return nextCampaignMission(this.progress.campaign);
+	}
+
+	/** Starts a new campaign run from the campaign's initial capital, then its first mission. */
+	async startCampaign(seed = this.randomSeed()): Promise<void> {
+		if (this.busy) return;
+		this.saveProgress(startCampaign(this.progress, `camp-${newRunId()}`, Date.now()));
+		await this.startCampaignMission(seed);
+	}
+
+	/** Resumes the campaign mission in progress, or starts the campaign's next mission. */
+	async continueCampaign(): Promise<void> {
+		const c = this.progress.campaign;
+		const link = this.saved?.campaign;
+		if (c && link && link.id === c.id && link.index === c.index) return this.resume();
+		await this.startCampaignMission();
+	}
+
+	/** The active campaign run's next mission, from the carried capital and with the curriculum's gate. */
+	async startCampaignMission(seed = this.randomSeed()): Promise<void> {
+		await this.exclusive(async () => {
+			await this.settleAbandoned(); // may move the campaign (a left mission carries its equity)
+			const c = this.progress.campaign;
+			const missionId = nextCampaignMission(c);
+			if (!c || !missionId) return;
+			const gate = campaignPermissions(missionId, this.progress.assessed).leverageCap;
+			const options: RunOptionsView = {
+				...DEFAULT_RUN_OPTIONS,
+				adviceAllowance: allowanceFor(this.progress),
+				startingBalance: c.capital,
+				...(gate != null ? { leverageCap: gate } : {})
+			};
+			await this.launch(missionId, seed, options, { id: c.id, index: c.index });
+		});
+	}
+
+	/** Ends the active campaign run; passed stages and every other progress stay. */
+	endCampaign(): void {
+		this.saveProgress(abandonCampaign(this.progress));
+	}
+
+	private async launch(missionId: string, seed: number, options: RunOptionsView, campaign: CampaignLink | null): Promise<void> {
+		this.resetRun(missionId, seed);
+		this.options = options;
+		this.runCampaign = campaign;
+		this.state = await this.eng().request({ kind: 'start', missionId, seed, options: { ...options } });
+		await this.createRunRecord(missionId, seed, { campaign: campaign ?? undefined });
+		this.screen = this.needsTutorial(missionId) ? 'tutorial' : 'briefing';
+	}
+
+	// ---- curriculum map and journal screens (web-client task 4.4) ----
+
+	openCurriculum(): void {
+		this.screen = 'curriculum';
+	}
+
+	async openJournal(): Promise<void> {
+		this.journalRecords = (await this.store?.runs().catch(() => null)) ?? [];
+		this.screen = 'journal';
 	}
 
 	/** Practice run on an installed pack (e.g. an imported CSV); the pack is verified again on start. */
@@ -209,12 +295,16 @@ export class GameSession {
 			this.resetRun(pack.scenarioId, seed);
 			this.options = { ...DEFAULT_RUN_OPTIONS }; // pack runs start without advisor or perks
 			this.state = await this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
-			await this.createRunRecord(pack.scenarioId, seed, digest);
+			await this.createRunRecord(pack.scenarioId, seed, { packDigest: digest });
 			this.screen = 'briefing';
 		});
 	}
 
-	private async createRunRecord(missionId: string, seed: number, packDigest?: string): Promise<void> {
+	private async createRunRecord(
+		missionId: string,
+		seed: number,
+		link: { packDigest?: string; campaign?: CampaignLink } = {}
+	): Promise<void> {
 		this.runId = newRunId();
 		await this.store
 			?.createRun({
@@ -230,7 +320,9 @@ export class GameSession {
 				status: 'active',
 				actions: 0,
 				options: { ...this.options },
-				...(packDigest ? { packDigest } : {})
+				equity: this.state?.account.equity,
+				...(link.packDigest ? { packDigest: link.packDigest } : {}),
+				...(link.campaign ? { campaign: { ...link.campaign } } : {})
 			})
 			.catch(() => (this.durable = false));
 		void this.requestPersistence();
@@ -324,6 +416,7 @@ export class GameSession {
 		}
 		this.resetRun(r.missionId, r.seed);
 		this.runId = r.runId;
+		this.runCampaign = r.campaign ?? null;
 		this.state = state;
 		for (const a of run.actions) await this.exec(a, false);
 		// Keep the replayed history so the next action gets the right sequence number.
@@ -527,6 +620,7 @@ export class GameSession {
 		this.debrief = null;
 		this.stopWarnings = 0;
 		this.queued = 0;
+		this.runCampaign = null;
 		this.names.reset();
 	}
 
@@ -574,35 +668,49 @@ export class GameSession {
 
 	private async loadDebrief(): Promise<void> {
 		this.debrief = await this.eng().request({ kind: 'debrief' });
-		this.settlePoints();
+		this.settleEnded();
 	}
 
 	// Spec progression-rewards "Local point balance": balance - used + earned, once per run id.
 	// Practice on a known scenario (imported pack) starts without advice and earns nothing.
-	private settlePoints(): void {
+	// A campaign mission carries the engine's final equity on (or ends the campaign run when bankrupt).
+	private settleEnded(): void {
 		const s = this.state;
 		const d = this.debrief;
 		if (!s || !d || s.status === 'active' || s.knownScenario) return;
-		this.saveProgress(settleRun(this.progress, this.runId, s.advisor.advice.length, d.advisorPointsEarned));
+		let next = settleRun(this.progress, this.runId, s.advisor.advice.length, d.advisorPointsEarned);
+		if (this.runCampaign) {
+			const result: LegResult = s.status === 'bankrupt' ? 'bankrupt' : 'finished';
+			next = settleCampaignRun(next, this.runCampaign, { runId: this.runId, missionId: this.missionId, result, equity: d.finalEquity });
+		}
+		this.saveProgress(next);
 	}
 
 	// Starting a run replaces the resumable one, which never reaches its debrief: charge the advice it
-	// used now (it earns nothing), or leaving a run would give its reads back for free.
+	// used now (it earns nothing), or leaving a run would give its reads back for free. A left campaign
+	// mission carries the equity it had, and the campaign stays on that mission.
 	private async settleAbandoned(): Promise<void> {
 		const run = await this.abandonedRun();
-		if (run) this.saveProgress(settleRun(this.progress, run.runId, run.used, 0));
+		if (!run) return;
+		let next = settleRun(this.progress, run.runId, run.used, 0);
+		if (run.campaign) {
+			next = settleCampaignRun(next, run.campaign, { runId: run.runId, missionId: run.missionId, result: 'left', equity: run.equity });
+		}
+		this.saveProgress(next);
 	}
 
 	// The stored active run (also after a reload), else the one in memory when nothing is stored.
-	private async abandonedRun(): Promise<{ runId: string; used: number } | null> {
+	private async abandonedRun(): Promise<AbandonedRun | null> {
 		const stored = await this.store?.activeRun().catch(() => null);
 		if (stored) {
 			const r = stored.record;
-			return r.status === 'active' && !r.packDigest ? { runId: r.runId, used: adviceUsed(stored.actions) } : null;
+			if (r.status !== 'active' || r.packDigest) return null;
+			const equity = r.equity ?? r.options?.startingBalance ?? '0';
+			return { runId: r.runId, missionId: r.missionId, used: adviceUsed(stored.actions), campaign: r.campaign ?? null, equity };
 		}
 		const s = this.state;
 		if (!s || s.status !== 'active' || s.knownScenario || !this.runId) return null;
-		return { runId: this.runId, used: s.advisor.advice.length };
+		return { runId: this.runId, missionId: this.missionId, used: s.advisor.advice.length, campaign: this.runCampaign, equity: s.account.equity };
 	}
 
 	private saveProgress(next: Progress): void {
@@ -619,7 +727,8 @@ export class GameSession {
 				journal: $state.snapshot(this.journal),
 				stopWarnings: this.stopWarnings,
 				digest: this.state.digest,
-				status: this.state.status
+				status: this.state.status,
+				equity: this.state.account.equity
 			})
 			.catch(() => (this.durable = false));
 	}

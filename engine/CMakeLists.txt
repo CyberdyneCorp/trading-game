@@ -110,6 +110,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_fixed.cpp
     tests/test_det_math.cpp
     tests/test_advisor.cpp
+    tests/test_campaign.cpp
     tests/test_brackets.cpp
     tests/test_csv_import.cpp
     tests/test_ed25519.cpp

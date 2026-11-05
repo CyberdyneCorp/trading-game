@@ -111,12 +111,15 @@ struct CommandResult {
   Reason warning = Reason::None;  // e.g. StopBeyondLiquidation on an accepted order
 };
 
-// Start options of a run (spec progression-rewards): advice allowance and intel perks. Defaults
-// are a run without advisor or perks, which replays exactly like a run from before policy v11.
+// Start options of a run (spec progression-rewards): advice allowance and intel perks; policy v12
+// adds the campaign's carried capital and the curriculum's leverage gate (spec curriculum). The
+// defaults are a plain run with the mission's own rules, without advisor or perks.
 struct RunOptions {
   std::uint32_t advice_allowance = 0;
   std::uint8_t news_lead = 0;  // fast wire: headlines visible this many bars before release
   bool calendar = false;       // economic calendar: upcoming scheduled releases (step only)
+  Money starting_balance;      // > 0: campaign capital carried in, replaces the mission's initial balance
+  std::int32_t leverage_cap = 0;  // > 0: lowers the mission's leverage cap (curriculum unlocks)
 };
 
 // One reason behind a piece of advice. `vote` is its signed weight (+ long, - short); 0 means it

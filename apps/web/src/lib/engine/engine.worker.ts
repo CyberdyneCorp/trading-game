@@ -45,7 +45,7 @@ async function load(): Promise<Api> {
 	api = {
 		version: w('tl_version', 'number', []),
 		missions: w('tl_missions', 'number', []),
-		create: w('tl_run_create_ex', 'number', ['string', 'number', 'number', 'number', 'number']),
+		create: w('tl_run_create_ex', 'number', ['string', 'number', 'number', 'number', 'number', 'string', 'number']),
 		destroy: w('tl_run_destroy', null, ['number']),
 		place: w('tl_place_order_ex', 'number', [
 			'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string', 'string', 'string'
@@ -129,8 +129,8 @@ async function handle(req: EngineRequest): Promise<unknown> {
 		case 'start': {
 			if (run) a.destroy(run);
 			const o = req.options ?? DEFAULT_RUN_OPTIONS;
-			run = a.create(req.missionId, req.seed >>> 0, o.adviceAllowance, o.newsLead, o.calendar ? 1 : 0);
-			if (!run) throw new Error(`unknown mission ${req.missionId}`);
+			run = a.create(req.missionId, req.seed >>> 0, o.adviceAllowance, o.newsLead, o.calendar ? 1 : 0, o.startingBalance ?? '', o.leverageCap ?? 0);
+			if (!run) throw new Error(`unknown mission ${req.missionId} or invalid start options`);
 			return json(a.state(run));
 		}
 		case 'deviceKey':

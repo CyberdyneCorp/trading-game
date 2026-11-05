@@ -13,7 +13,7 @@ namespace tradelab {
 // Engine release, checked against a pack's engineCompatibility range.
 inline constexpr const char* kEngineVersion = "0.1.0";
 
-constexpr std::uint32_t kExecutionPolicyVersion = 11;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice
+constexpr std::uint32_t kExecutionPolicyVersion = 12;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap)
 
 // Calibration questions (spec mission-scoring "Calibration"): asked every kQuestionEvery steps from
 // the first decision step while the resolving bar exists; resolved kQuestionHorizon bars later.
@@ -74,6 +74,10 @@ struct AccountView {
 };
 
 RunState start_run(const Scenario& sc, std::uint64_t seed, const RunOptions& options = {});
+
+// The run's own rules: the mission's, as changed by the start options (campaign capital, leverage gate).
+Money run_initial_balance(const Scenario& sc, const RunState& st);
+std::int32_t run_leverage_cap(const Scenario& sc, const RunState& st);
 CommandResult apply_command(const Scenario& sc, RunState& st, const Command& cmd);
 void advance(const Scenario& sc, RunState& st);
 

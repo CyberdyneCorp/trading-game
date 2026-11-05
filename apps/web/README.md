@@ -31,23 +31,29 @@ npm run test:e2e   # Playwright: builds, serves on :4173 (override with E2E_PORT
 
 ```
 src/
-  routes/+page.svelte      single page; switches menu / briefing / terminal / debrief
+  routes/+page.svelte      single page; switches menu / briefing / terminal / debrief / curriculum / journal
   service-worker.ts        precache of the versioned build, offline shell, update on request
   lib/engine/              model bridge: engine.worker.ts (WASM host), client.ts, protocol.ts, types.ts, wasm/
   lib/game/                view-models (session, autoplay, settings, pwa, i18n, audio, sound, csvImport — *.svelte.ts rune classes),
                            IndexedDB storage, and pure helpers (sizing, stops, optionsMath, calibration,
-                           analysis, debrief, format, news, hotkeys, tutorials, advisor, points, candle/chart
+                           analysis, debrief, format, news, hotkeys, tutorials, advisor, points, curriculum, campaign, journal, candle/chart
                            pattern catalogs, patternOutcome and packs) with *.test.ts next to them
   lib/components/          views: Terminal, Chart (+ chartPanes.ts), OrderTicket, OptionTicket, OptionChain,
                            RightRail, TopBar, AdvisorPanel, Briefing, Tutorial (+ TutorialArt), Debrief, MissionMenu, dialogs,
-                           PatternSheet (+ PatternAnimation), HelpOverlay, CsvImport; chartDrag.ts (stop/target line drag)
-e2e/                       Playwright: mission.spec.ts (gameplay), packs.spec.ts (CSV import, practice packs),
+                           PatternSheet (+ PatternAnimation), HelpOverlay, CsvImport, CampaignPanel, CampaignOutcome,
+                           CurriculumMap, Journal; chartDrag.ts (stop/target line drag)
+e2e/                       Playwright: mission.spec.ts (gameplay), campaign.spec.ts (campaign, curriculum, journal),
+                           packs.spec.ts (CSV import, practice packs),
                            offline.spec.ts (OFF01-web)
 scripts/                   build-engine.sh (Emscripten), make-icons.py (PWA icons)
 static/                    manifest.webmanifest, icons
 ```
 
-Game rules, fills, scoring and the debrief come from the engine; the client formats engine decimal strings for display and never computes authoritative state (ticket previews in `sizing.ts`/`optionsMath.ts` mirror engine formulas for display only). Runs persist as an append-only action log in IndexedDB (`tradelab` DB: `runs`, `actions`, `meta`, `packs`); resume replays the log through the deterministic engine. A run record also keeps its start options (advice allowance), and `meta.progress` keeps the tutorials seen and the advisor point balance (`points.ts`: start 3, cap 10, settled once per run id; a resumable run is settled, earning nothing, when another run is started).
+Game rules, fills, scoring and the debrief come from the engine; the client formats engine decimal strings for display and never computes authoritative state (ticket previews in `sizing.ts`/`optionsMath.ts` mirror engine formulas for display only). Runs persist as an append-only action log in IndexedDB (`tradelab` DB: `runs`, `actions`, `meta`, `packs`); resume replays the log through the deterministic engine. A run record also keeps its start options (advice allowance; campaign capital and leverage cap), its campaign link and its last equity, and `meta.progress` (version 2, `migrateProgress` reads older shapes) keeps the tutorials seen, the advisor point balance (`points.ts`: start 3, cap 10, settled once per run id; a resumable run is settled, earning nothing, when another run is started), the campaign run, ended campaign runs and the missions assessed in a campaign (`campaign.ts`, `curriculum.ts`; a campaign mission is settled once per run id from the engine's final equity, and a left one from its last equity).
+
+## Campaign, curriculum map and journal
+
+The menu offers the campaign (missions in `campaignMissions()` order, capital carried through the engine's `startingBalance` start option, bankruptcy ends the campaign run), free play (any mission, its own rules), the curriculum map (`CurriculumMap.svelte`: stage statuses from `curriculum.ts`, progress summary) and the journal (`Journal.svelte`: every run's plan entries from the `runs` store, newest first, filterable by mission). The curriculum's unlock rules are data in `curriculum.ts`; in a campaign mission a locked "leverage above 2×" becomes the engine's `leverageCap` start option, and the briefing lists what stays locked and which stage unlocks it.
 
 ## Imported markets (CSV and packs)
 

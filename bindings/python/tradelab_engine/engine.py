@@ -45,7 +45,7 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_version": (c_char_p, []),
         "tl_missions": (c_char_p, []),
         "tl_run_create": (c_void_p, [c_char_p, u32]),
-        "tl_run_create_ex": (c_void_p, [c_char_p, u32, u32, u32, i32]),
+        "tl_run_create_ex": (c_void_p, [c_char_p, u32, u32, u32, i32, c_char_p, i32]),
         "tl_request_advice": (c_char_p, [c_void_p, u32]),
         "tl_run_destroy": (None, [c_void_p]),
         "tl_place_order_ex": (c_char_p, [c_void_p, u32, i32, i32, c_char_p, c_char_p, i32, c_char_p, c_char_p, c_char_p]),
@@ -121,17 +121,23 @@ def pack_validate(pack: bytes, trusted: TrustedKeys, *, publish: bool = False) -
     return _json(load_library().tl_pack_validate(pack, len(pack), json.dumps(trusted).encode(), int(publish)))
 @dataclass(frozen=True)
 class RunOptions:
-    """Start options (execution policy v11). The defaults are a run without advisor or perks."""
+    """Start options (execution policy v11; v12 adds the campaign fields). The defaults are a plain
+    run with the mission's own rules, without advisor or perks."""
 
     advice_allowance: int = 0
     news_lead: int = 0  # fast wire: headlines this many bars early (0..255)
     calendar: bool = False
+    starting_balance: str | None = None  # campaign capital carried in (decimal > 0); None = the mission's
+    leverage_cap: int = 0  # > 0 lowers the mission's leverage cap (curriculum unlocks)
 
     @classmethod
     def from_json(cls, data: Mapping[str, Any] | None) -> RunOptions:
-        """Reads the client's run-record shape {"adviceAllowance", "newsLead", "calendar"}."""
+        """Reads the client's run-record shape {"adviceAllowance", "newsLead", "calendar",
+        "startingBalance", "leverageCap"}."""
         data = data or {}
-        return cls(int(data.get("adviceAllowance", 0)), int(data.get("newsLead", 0)), bool(data.get("calendar", False)))
+        balance = data.get("startingBalance")
+        return cls(int(data.get("adviceAllowance", 0)), int(data.get("newsLead", 0)), bool(data.get("calendar", False)),
+                   str(balance) if balance else None, int(data.get("leverageCap", 0)))
 
 
 class Run:
@@ -142,7 +148,8 @@ class Run:
         self._lib = load_library()
         o = options or RunOptions()
         handle = _handle if _handle is not None else self._lib.tl_run_create_ex(
-            mission_id.encode(), seed, o.advice_allowance, o.news_lead, int(o.calendar))
+            mission_id.encode(), seed, o.advice_allowance, o.news_lead, int(o.calendar),
+            o.starting_balance.encode() if o.starting_balance else None, o.leverage_cap)
         if not handle:
             raise EngineError(f"unknown mission {mission_id!r} or invalid start options")
         self._h = ctypes.c_void_p(handle)

@@ -284,7 +284,7 @@ void count_fills(const RunState& st, Facts& f) {
 // the ticket's estimate), from the plan matched to each entry order (order_plan): the plan of an
 // order that was rejected and never filled is not a trade.
 void trade_facts(const Scenario& sc, const RunState& st, Facts& f) {
-  const std::int64_t limit = sc.mission.initial_balance.raw / 50;  // 2% of initial capital
+  const std::int64_t limit = run_initial_balance(sc, st).raw / 50;  // 2% of the run's initial capital
   for (const TradeRow& t : build_trades(sc, st)) {
     if (!f.oversized && t.declared_risk.raw > limit) f.oversized = std::make_pair(t.entry_step, t.declared_risk);
     f.all_planned = f.all_planned && t.planned_risk.raw > 0;
@@ -312,7 +312,7 @@ std::int32_t risk_score(const Scenario& sc, const RunState& st, const Facts& f) 
   s -= static_cast<std::int32_t>(std::min<std::uint32_t>(40, f.unprotected * 20));
   if (f.oversized) s -= 20;
   if (f.stop_warnings > 0) s -= 15;
-  if (st.metrics.max_drawdown.raw * 5 > sc.mission.initial_balance.raw) s -= 15;  // > 20%
+  if (st.metrics.max_drawdown.raw * 5 > run_initial_balance(sc, st).raw) s -= 15;  // > 20%
   return std::max(0, s);
 }
 
@@ -587,7 +587,7 @@ ScoreReport score_run(const Scenario& sc, const RunState& st) {
   ScoreReport r;
   const Facts f = collect(sc, st);
   r.entries = f.entries;
-  r.net_pnl = Money::from_raw(account_view(sc, st).equity.raw - sc.mission.initial_balance.raw);
+  r.net_pnl = Money::from_raw(account_view(sc, st).equity.raw - run_initial_balance(sc, st).raw);
   r.risk.score = risk_score(sc, st, f);
   r.plan.score = plan_score(f);
   calibration(sc, st, r);

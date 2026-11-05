@@ -44,10 +44,16 @@ Clients SHALL warn at decision points when a position's liquidation price is wit
 ### Requirement: Game over on bankruptcy
 When the engine reports `account_bankrupt`, the client SHALL end the mission with a game-over screen that leads directly to the debrief. In Campaign, virtual capital SHALL carry over between the missions of a campaign run, and bankruptcy SHALL end the whole campaign run; a new campaign run SHALL start from the campaign's initial capital. Game over SHALL NOT remove completed lessons, unlocked stages, cosmetics or purchases.
 
+A campaign run SHALL play the curriculum's assessment missions in stage order. Each mission's starting capital SHALL be the engine's final equity of the mission before, given to the engine as a run start option, so the engine remains the only source of balances and a replay reproduces the run. A run that ends with no capital left SHALL end the campaign run like a bankruptcy. Leaving a campaign mission for another run SHALL carry the equity it had when it was left, and the campaign run SHALL stay on that mission, so leaving never restores lost capital.
+
 #### Scenario: Bankrupt mid-campaign
 - **WHEN** the player goes bankrupt in mission 4 of a campaign run
 - **THEN** the campaign run SHALL end with a game-over screen and debrief
 - **AND** a new campaign run SHALL be offered with initial capital and all previously unlocked stages intact
+
+#### Scenario: Capital carried
+- **WHEN** the player finishes the first campaign mission with an equity of 9,420.50
+- **THEN** the second campaign mission SHALL start with 9,420.50 of capital, shown in its briefing and used by the engine for margin, the score's risk limits and the buy-and-hold comparison
 
 ### Requirement: Assisted practice
 Rewinding or changing seed SHALL create a new attempt flagged `assisted`, SHALL preserve the original attempt unchanged and SHALL exclude assisted attempts from non-assisted progress metrics.

@@ -73,6 +73,12 @@ Decisions:
 ### D6. Leak prevention
 - Clients receive data through the engine adapter, which exposes only bars ≤ current step. Reveal and future bars are never copied into UI state, logs, analytics or accessibility trees. A lint/test checks the web worker message schema has no field carrying future data.
 
+### D7. Campaign runs and the curriculum (as built)
+- **Capital through the engine.** Policy v12 adds two start options: `starting_balance` (replaces the mission's initial balance) and `leverage_cap` (lowers the mission's cap). They are stored in the run state, the state digest and checkpoints (format 3), so a campaign mission replays like any run; event digests of default runs are unchanged. The score's net P&L and its 2%/20% limits and the buy-and-hold benchmark use the run's own initial balance.
+- **Campaign state on the device.** `meta.progress` version 2 holds the campaign run (id, capital for the next mission, mission index, status, one leg per settled run), ended campaign runs and the missions assessed in a campaign. A campaign mission is settled once per run id from the debrief's `finalEquity`; a run left behind is settled from the last equity stored in its run header. Server-verified campaign progress comes with sync (offline-sync "union of achievements").
+- **Curriculum as data.** `apps/web/src/lib/game/curriculum.ts` lists the 13 stages with prerequisites, assessment missions and unlocks; the campaign order is the stages' missions in order (m01, m03, m02, m04, m05). Of the four unlocks only the leverage cap needs an engine option with today's content: shorting is m01's own stage, and options are only listed in their own assessment missions. A unit test fails if a campaign mission would meet a lock the engine cannot enforce, which is when per-run short and option permissions must become start options too.
+- **Assessment = finishing the mission in a campaign run.** Lesson questions (understanding dimension) are not scored yet, so finishing is the assessment for now; free play keeps the Completed mark but does not pass stages.
+
 ## Risks / Trade-offs
 
 - Offline packs contain the future (inspectable). Accepted: signature = integrity, not secrecy. Competitive modes require online progressive delivery (later).

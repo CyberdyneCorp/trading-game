@@ -312,7 +312,7 @@ void update_metrics(BarCtx& c) {
 }
 
 bool can_afford_min_order(const Scenario& sc, const RunState& st) {
-  const std::int32_t cap = std::min(sc.mission.leverage_cap, sc.contract.max_leverage);
+  const std::int32_t cap = run_leverage_cap(sc, st);
   const Money n = detail::notional(sc, sc.contract.min_qty, sc.bars[st.step].close, Rounding::Ceil);
   const Money need = Money::from_raw(detail::initial_margin(n, cap).raw + detail::fee_for(n, sc.contract.taker_fee).raw);
   return account_view(sc, st).available >= need;
@@ -372,6 +372,15 @@ void close_phase(BarCtx& c, std::uint32_t index) {
 
 }  // namespace
 
+Money run_initial_balance(const Scenario& sc, const RunState& st) {
+  return st.options.starting_balance.raw > 0 ? st.options.starting_balance : sc.mission.initial_balance;
+}
+
+std::int32_t run_leverage_cap(const Scenario& sc, const RunState& st) {
+  const std::int32_t cap = std::min(sc.mission.leverage_cap, sc.contract.max_leverage);
+  return st.options.leverage_cap > 0 ? std::min(cap, st.options.leverage_cap) : cap;
+}
+
 std::uint32_t last_decision_step(const Scenario& sc) { return static_cast<std::uint32_t>(sc.bars.size() - 2); }
 
 RunState start_run(const Scenario& sc, std::uint64_t seed, const RunOptions& options) {
@@ -380,7 +389,7 @@ RunState start_run(const Scenario& sc, std::uint64_t seed, const RunOptions& opt
   st.options = options;
   st.advice_left = options.advice_allowance;
   st.step = sc.mission.warmup_bars;
-  st.wallet = sc.mission.initial_balance;
+  st.wallet = run_initial_balance(sc, st);
   st.metrics.peak_equity = st.wallet;
   st.rng = Pcg32(seed, Stream::Slippage);
   return st;

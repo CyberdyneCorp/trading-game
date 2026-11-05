@@ -1,7 +1,8 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
-import { openDb, RunStore, type RunRecord } from './storage.ts';
+import { settleCampaignRun, startCampaign } from './campaign.ts';
+import { EMPTY_PROGRESS, migrateProgress, openDb, RunStore, type RunRecord } from './storage.ts';
 
 type Action = { k: string; n?: number };
 
@@ -61,8 +62,8 @@ describe('RunStore (IndexedDB)', () => {
 	});
 
 	it('keeps player progress (tutorials seen, advisor points) and starts empty with 3 points', async () => {
-		expect(await store.progress()).toEqual({ tutorialsSeen: [], advisorPoints: 3, settledRuns: [] });
-		await store.saveProgress({ tutorialsSeen: ['m01-false-breakout'], advisorPoints: 5, settledRuns: ['r1'] });
+		expect(await store.progress()).toEqual(EMPTY_PROGRESS);
+		await store.saveProgress({ ...EMPTY_PROGRESS, tutorialsSeen: ['m01-false-breakout'], advisorPoints: 5, settledRuns: ['r1'] });
 		const p = await store.progress();
 		expect(p.tutorialsSeen).toEqual(['m01-false-breakout']);
 		expect(p.advisorPoints).toBe(5);
@@ -71,7 +72,44 @@ describe('RunStore (IndexedDB)', () => {
 
 	it('reads a progress record saved before advisor points with the starting balance', async () => {
 		await store.saveProgress({ tutorialsSeen: ['m02-funding-squeeze'] } as never);
-		expect(await store.progress()).toEqual({ tutorialsSeen: ['m02-funding-squeeze'], advisorPoints: 3, settledRuns: [] });
+		expect(await store.progress()).toEqual({ ...EMPTY_PROGRESS, tutorialsSeen: ['m02-funding-squeeze'] });
+	});
+
+	it('migrates a version-1 progress record: points and tutorials kept, no campaign, nothing assessed', async () => {
+		await store.saveProgress({ tutorialsSeen: ['m01-false-breakout'], advisorPoints: 7, settledRuns: ['r9'] } as never);
+		expect(await store.progress()).toEqual({
+			version: 2,
+			tutorialsSeen: ['m01-false-breakout'],
+			advisorPoints: 7,
+			settledRuns: ['r9'],
+			campaign: null,
+			campaignHistory: [],
+			assessed: []
+		});
+	});
+
+	it('keeps the campaign run, its history and the assessed missions across a save', async () => {
+		const p = startCampaign(EMPTY_PROGRESS, 'c1', 5);
+		const done = settleCampaignRun(p, { id: 'c1', index: 0 }, { runId: 'r1', missionId: 'm01-false-breakout', result: 'finished', equity: '9500' });
+		await store.saveProgress(done);
+		const back = await store.progress();
+		expect(back.campaign?.capital).toBe('9500');
+		expect(back.campaign?.index).toBe(1);
+		expect(back.assessed).toEqual(['m01-false-breakout']);
+	});
+
+	it('drops damaged progress fields instead of failing', () => {
+		const p = migrateProgress({ tutorialsSeen: 'x', advisorPoints: '4', campaign: { id: 3 }, campaignHistory: [null, 1], assessed: [1, 'm01-false-breakout'] });
+		expect(p).toEqual({ ...EMPTY_PROGRESS, assessed: ['m01-false-breakout'] });
+	});
+
+	it('lists every run header newest first for the journal', async () => {
+		await store.createRun({ ...record('old'), createdAt: 1, journal: ['a'] });
+		await store.createRun({ ...record('new'), createdAt: 9, campaign: { id: 'c', index: 0 }, equity: '10000' });
+		const runs = await store.runs();
+		expect(runs.map((r) => r.runId)).toEqual(['new', 'old']);
+		expect(runs[0].campaign).toEqual({ id: 'c', index: 0 });
+		expect(runs[1].journal).toEqual(['a']);
 	});
 
 	it('stores packs by digest, lists them oldest first and deletes them', async () => {

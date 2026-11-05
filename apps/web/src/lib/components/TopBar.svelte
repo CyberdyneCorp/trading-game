@@ -2,6 +2,7 @@
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
+	import { campaignMissions } from '#lib/game/curriculum.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { AUTO_SPEEDS, type AutoPlay } from '#lib/game/autoplay.svelte.ts';
@@ -27,6 +28,9 @@
 				<span class="tag attention" title={t('brief.modePack', { seed: session.seed })}>{t('top.known')}</span>
 			{:else}
 				<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
+			{/if}
+			{#if session.runCampaign}
+				<span class="tag info" data-testid="campaign-tag">{t('campaign.tag', { n: session.runCampaign.index + 1, total: campaignMissions().length })}</span>
 			{/if}
 			<span class="muted mission" title={missionText(s.mission, i18n.locale).title}>{missionText(s.mission, i18n.locale).title}</span>
 			{#if !pwa.online}<span class="tag attention" title={t('pwa.offlineNote')}>{t('pwa.offline')}</span>{/if}
