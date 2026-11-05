@@ -36,6 +36,7 @@ bool scale_volume(Qty v, Factor f, Qty* out) {
 
 bool scale_bar(const Bar& b, Factor f, Price tick, Bar* m) {
   m->synthetic = b.synthetic;
+  m->continuity = b.continuity;
   return scale_price(b.open, f, tick, &m->open) && scale_price(b.high, f, tick, &m->high) && scale_price(b.low, f, tick, &m->low) &&
          scale_price(b.close, f, tick, &m->close) && scale_volume(b.volume, f, &m->volume);
 }

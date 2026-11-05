@@ -47,6 +47,9 @@
 			<dt>{t('brief.leverage')}</dt><dd>1x – {c.leverageCap}x</dd>
 			<dt>{t('brief.mmr')}</dt><dd>{fmtPct(num(c.maintenanceMargin), L)}</dd>
 			{#if tiers.length}<dt>{t('brief.tiers')}</dt><dd data-testid="brief-tiers">{tiers.join(' · ')}</dd>{/if}
+			{#if c.markFromLastPrice != null}
+				<dt>{t('brief.mark')}</dt><dd data-testid="brief-mark">{t(c.markFromLastPrice ? 'brief.markLast' : 'brief.markSeries')}</dd>
+			{/if}
 			<dt>{t('brief.costs')}</dt>
 			<dd>
 				{t('brief.costsValue', {

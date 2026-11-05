@@ -10,6 +10,10 @@
 //   4. close: funding at boundaries, liquidation at the close, trailing triggers ratchet from the
 //      close (effective next bar), metrics, finish/bankruptcy
 //
+// Liquidation and funding read the mark bar (policy v17; the traded bar when the scenario has no mark
+// series); fills always use the traded bar. A continuity bar (no trading) has zero capacity: phases 1-3
+// do not run, so working orders wait for the next trading bar, and only the close phase runs.
+//
 // Within a phase, orders competing for the bar's capacity are served by price, then sequence (policy
 // v16, `priority_pass`). Bracket entries spawn reduce-only stop/take-profit children for each filled
 // quantity; exits in one OCO group reduce each other. Children are appended while matching
@@ -30,12 +34,14 @@ struct BarCtx {
   const Scenario& sc;
   RunState& st;
   const Bar& bar;
+  const Bar& mark;  // mark-price bar (the traded bar when the scenario has no mark series)
   CostModel costs;  // of this bar: the cost model with any liquidity shock applied
   Qty capacity;
   bool entered_intrabar = false;
 };
 
 Qty bar_capacity(const Scenario& sc, const Bar& bar, const CostModel& costs) {
+  if (bar.continuity) return Qty{};  // nothing traded
   const Qty raw = detail::unwrap(mul<Qty>(bar.volume, costs.capacity_fraction, Rounding::Floor));
   return detail::unwrap(round_to_step(raw, sc.contract.lot_size, Rounding::Floor));
 }
@@ -227,8 +233,8 @@ bool liquidation_level(const BarCtx& c, Price* out) { return detail::liquidation
 void open_gap_liquidation(BarCtx& c) {
   Price liq;
   if (!liquidation_level(c, &liq)) return;
-  const bool hit = c.st.position.is_long() ? c.bar.open <= liq : c.bar.open >= liq;
-  if (hit) detail::liquidate(c.sc, c.st, c.bar.open, kFlagGapFill);
+  const bool hit = c.st.position.is_long() ? c.mark.open <= liq : c.mark.open >= liq;
+  if (hit) detail::liquidate(c.sc, c.st, c.mark.open, kFlagGapFill);
 }
 
 // True if the open has gapped through a resting perpetual stop or limit.
@@ -297,7 +303,7 @@ bool adverse_step(BarCtx& c, bool post_entry) {
   const bool is_long = c.st.position.is_long();
   Price liq;
   const bool has_liq = liquidation_level(c, &liq);
-  const bool liq_hit = has_liq && (is_long ? c.bar.low <= liq : c.bar.high >= liq);
+  const bool liq_hit = has_liq && (is_long ? c.mark.low <= liq : c.mark.high >= liq);
   Order* stop = nearest_adverse_stop(c);
   const std::uint8_t amb = (post_entry || favorable_exit_reachable(c)) ? kFlagAmbiguousIntrabar : kFlagNone;
   // Liquidation wins ties and any stop sitting beyond the liquidation price.
@@ -358,8 +364,8 @@ void intrabar_phase(BarCtx& c) {
 void close_liquidation(BarCtx& c) {
   Price liq;
   if (!liquidation_level(c, &liq)) return;
-  const bool hit = c.st.position.is_long() ? c.bar.close <= liq : c.bar.close >= liq;
-  if (hit || c.st.position.margin.raw <= 0) detail::liquidate(c.sc, c.st, c.bar.close, kFlagNone);
+  const bool hit = c.st.position.is_long() ? c.mark.close <= liq : c.mark.close >= liq;
+  if (hit || c.st.position.margin.raw <= 0) detail::liquidate(c.sc, c.st, c.mark.close, kFlagNone);
 }
 
 void update_metrics(BarCtx& c) {
@@ -464,11 +470,14 @@ void advance(const Scenario& sc, RunState& st) {
   if (st.status != RunStatus::Active) return;
   const std::uint32_t index = st.step + 1;
   st.step = index;  // events of this step are stamped with the bar being processed
+  const Bar& bar = sc.bars[index];
   const CostModel costs = costs_at(sc, index);
-  BarCtx c{sc, st, sc.bars[index], costs, bar_capacity(sc, sc.bars[index], costs)};
-  open_phase(c, index);
-  detail::option_open_phase(sc, st, index);
-  intrabar_phase(c);
+  BarCtx c{sc, st, bar, mark_bar(sc, index), costs, bar_capacity(sc, bar, costs)};
+  if (!bar.continuity) {
+    open_phase(c, index);
+    detail::option_open_phase(sc, st, index);
+    intrabar_phase(c);
+  }
   close_phase(c, index);
 }
 

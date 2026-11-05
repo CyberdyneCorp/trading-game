@@ -1,5 +1,7 @@
 #include "tradelab/candle_patterns.hpp"
 
+#include "gaps.hpp"
+
 #include <algorithm>
 #include <array>
 
@@ -241,14 +243,29 @@ Ctx context_at(const Scenario& sc, std::uint32_t i) {
 
 }  // namespace
 
-std::vector<PatternHit> detect_patterns(const Scenario& sc, std::uint32_t last) {
+namespace {
+
+std::vector<PatternHit> detect_all(const Scenario& sc, std::uint32_t last) {
   std::vector<PatternHit> hits;
   for (std::uint32_t i = kFirstBar; i <= last && i < sc.bars.size(); ++i) {
+    if (sc.bars[i].continuity) continue;  // no candle: the market did not trade
     const Ctx x = context_at(sc, i);
     for (const Detector& d : kDetectors) {
       if (d.fn(x)) hits.push_back({i, d.id, d.bars, d.bias});
     }
   }
+  return hits;
+}
+
+}  // namespace
+
+// Under GapPolicy::Skip, patterns read the trading bars only (policy v17) and are reported at the
+// real bar that completes them; no pattern ever completes at a continuity bar.
+std::vector<PatternHit> detect_patterns(const Scenario& sc, std::uint32_t last) {
+  if (!detail::skips_gaps(sc, last)) return detect_all(sc, last);
+  const detail::TradingBars t = detail::trading_bars(sc, last);
+  std::vector<PatternHit> hits = detect_all(t.sc, static_cast<std::uint32_t>(t.index.size() - 1));
+  for (PatternHit& h : hits) h.step = t.index[h.step];
   return hits;
 }
 
