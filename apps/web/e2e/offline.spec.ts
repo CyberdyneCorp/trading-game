@@ -47,3 +47,17 @@ test('OFF01-web: after one online visit the game starts and plays a full mission
 	await expect(page.getByText(/Execução #1/).first()).toBeVisible();
 	await context.setOffline(false);
 });
+
+// Playtest: the build manifest lists static files without a leading slash, so the precache filter
+// let catalog/catalog.json and every sample .tlpack into the install cache.
+test('regression: the service worker precaches no catalog manifest or pack', async ({ page }) => {
+	await page.goto('/?seed=5');
+	await waitForServiceWorker(page);
+	const cached = await page.evaluate(async () => {
+		const urls: string[] = [];
+		for (const k of await caches.keys()) for (const r of await (await caches.open(k)).keys()) urls.push(r.url);
+		return urls;
+	});
+	expect(cached.some((u) => u.includes('/_app/'))).toBe(true); // the shell is precached
+	expect(cached.filter((u) => new URL(u).pathname.startsWith('/catalog'))).toEqual([]);
+});

@@ -3,6 +3,7 @@ import type { EngineFinding, EngineTrade, NewsView, PackReveal, RegimeSpan } fro
 import { describeFinding, describeFindings, describeLesson } from './analysis.ts';
 import { entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from './debrief.ts';
 import { headline } from './news.ts';
+import { missionText } from './missions.ts';
 import { i18n } from './i18n.svelte.ts';
 
 const perp: EngineTrade = {
@@ -130,6 +131,16 @@ describe('revealTexts', () => {
 		i18n.locale = 'en';
 		expect(revealTexts({ ...csv, venue: 'Binance' }, 'K').line).toContain('on Binance');
 		i18n.locale = 'pt-BR';
+	});
+	// Playtest: a pack downloaded from the catalog was revealed as "CSV imported on this device" and
+	// briefed as "a real market you imported".
+	it('regression: a catalog pack is revealed and briefed as downloaded from the catalog, not imported', () => {
+		expect(revealTexts(csv, 'K', 'catalog').line).toContain('(pacote baixado do catálogo)');
+		expect(revealTexts(csv, 'K', 'import').line).toContain('(CSV importado neste dispositivo)');
+		expect(missionText('csv-1', 'pt-BR', 'catalog').title).toBe('Treino · pacote do catálogo');
+		expect(missionText('csv-1', 'en', 'catalog').tagline).not.toMatch(/imported|real market/);
+		expect(missionText('csv-1', 'en', 'catalog').objectives).toEqual(missionText('csv-1', 'en').objectives);
+		expect(missionText('csv-1', 'pt-BR').tagline).toContain('você importou');
 	});
 	it('shows a publisher transformation note as written', () => {
 		const r = revealTexts({ ...csv, source: 'publisher', transformation: 'rebased to 100' }, 'K');

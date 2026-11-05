@@ -11,11 +11,12 @@
 	const s = $derived(session.state!);
 	const L = $derived(i18n.locale);
 	const c = $derived(s.contract);
-	const txt = $derived(missionText(s.mission, L));
+	const txt = $derived(missionText(s.mission, L, session.runPackOrigin));
 	const link = $derived(session.runCampaign);
 	const modeText = $derived.by(() => {
 		if (link) return t(link.index === 0 ? 'brief.modeCampaignFirst' : 'brief.modeCampaign', { n: link.index + 1, total: campaignMissions().length, seed: session.seed });
-		return s.knownScenario ? t('brief.modePack', { seed: session.seed }) : t('brief.modeSynthetic', { seed: session.seed });
+		if (!s.knownScenario) return t('brief.modeSynthetic', { seed: session.seed });
+		return t(session.runPackOrigin === 'catalog' ? 'brief.modeCatalog' : 'brief.modePack', { seed: session.seed });
 	});
 	// What the curriculum keeps locked in this campaign mission (option unlocks only where options
 	// trade), and the stage that unlocks it.

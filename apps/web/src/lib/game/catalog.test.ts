@@ -94,6 +94,17 @@ describe('published sample catalog (static/catalog)', () => {
 		}
 	});
 
+	// Playtest: the summary said "2.400 barras" next to the "2340 barras" tag (the warm-up bars are
+	// not playable). Any bar count a summary states must be the playable count the tag shows.
+	it('states no bar count in a summary that differs from the playable bars', () => {
+		for (const e of catalog.entries) {
+			for (const text of Object.values(e.summary)) {
+				const counts = [...text.matchAll(/([\d.,]+)\s+(?:barras|bars|[a-z-]+\s+bars)/g)].map((m) => Number(m[1].replace(/[.,]/g, '')));
+				for (const n of counts) expect(n).toBe(e.bars);
+			}
+		}
+	});
+
 	it('has a pack larger than one download chunk, so resuming is exercised', () => {
 		expect(catalog.entries.some((e) => e.size > 64 * 1024)).toBe(true);
 	});

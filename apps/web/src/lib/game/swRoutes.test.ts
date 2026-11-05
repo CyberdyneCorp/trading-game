@@ -34,6 +34,15 @@ describe('catalog', () => {
 		expect(isCatalog('/catalog/catalog.json')).toBe(true);
 		expect(isCatalog('/catalog/packs/x.tlpack')).toBe(true);
 		expect(isCatalog('/icons/icon-192.png')).toBe(false);
+		expect(isCatalog('/catalogue.json')).toBe(false);
+	});
+
+	// Playtest: the build manifest lists assets without a leading slash ("catalog/catalog.json"), so
+	// the precache filter let the manifest and every sample pack into the install cache.
+	it('regression: recognizes the build manifest asset paths, which have no leading slash', () => {
+		expect(isCatalog('catalog/catalog.json')).toBe(true);
+		expect(isCatalog('catalog/packs/x.tlpack')).toBe(true);
+		expect(isCatalog('icons/icon-192.png')).toBe(false);
 	});
 });
 

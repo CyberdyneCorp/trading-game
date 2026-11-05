@@ -38,7 +38,7 @@ import { t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
 import { distinctFinished, newPerks, perkOptions, perksUsed, unlockedPerks, type PerkId } from './perks.ts';
 import { randomSeedBytes, trustedKeys } from './packs.ts';
-import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type RunRecord, type StoredPack } from './storage.ts';
+import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type PackOrigin, type Progress, type RunRecord, type StoredPack } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
 
 export type Screen =
@@ -167,6 +167,8 @@ export class GameSession implements CatalogHost {
 	perkChoice = $state<PerkId[]>([]);
 	/** Run headers for the journal screen (loaded when it opens). */
 	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
+	/** Installed pack the current run plays (null for a mission). */
+	runPackDigest = $state<string | null>(null);
 	/** The Academy lesson open on the 'lesson' screen. */
 	lessonId = $state('');
 	/** Pack catalog and downloads (catalog screen). */
@@ -368,10 +370,14 @@ export class GameSession implements CatalogHost {
 		this.screen = 'lesson';
 	}
 
-	/** Records a completed lesson in local progress (passes its stage) and returns to the map. */
-	finishLesson(id: string): void {
+	/**
+	 * Records a completed lesson in local progress (passes its stage) and returns to the map once the
+	 * write is committed, so a reload right after the map shows the stage passed cannot lose it.
+	 */
+	async finishLesson(id: string): Promise<void> {
 		if (!this.progress.lessonsDone.includes(id)) {
-			this.saveProgress({ ...this.progress, lessonsDone: [...this.progress.lessonsDone, id] });
+			this.progress = { ...this.progress, lessonsDone: [...this.progress.lessonsDone, id] };
+			await this.store?.saveProgress($state.snapshot(this.progress)).catch(() => (this.durable = false));
 		}
 		this.screen = 'curriculum';
 	}
@@ -407,6 +413,7 @@ export class GameSession implements CatalogHost {
 		await this.exclusive(async () => {
 			await this.settleAbandoned();
 			this.resetRun(pack.scenarioId, seed);
+			this.runPackDigest = digest;
 			this.options = { ...DEFAULT_RUN_OPTIONS }; // pack runs start without advisor or perks
 			this.state = await this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
 			await this.createRunRecord(pack.scenarioId, seed, { packDigest: digest });
@@ -475,7 +482,19 @@ export class GameSession implements CatalogHost {
 	}
 
 	/** Verify-then-install: only bytes the engine accepted are stored (by digest). */
-	async installPack(bytes: Uint8Array, label: string): Promise<PackCheck> {
+	/** Where the current run's pack came from (null for a mission run). */
+	get runPackOrigin(): PackOrigin | null {
+		if (!this.runPackDigest) return null;
+		return this.packs.find((p) => p.digest === this.runPackDigest)?.origin ?? 'import';
+	}
+
+	/** "Play again" from the debrief: a new seed on the same mission, or on the same installed pack. */
+	async playAgain(missionId: string): Promise<void> {
+		if (this.runPackDigest) return this.startPack(this.runPackDigest);
+		return this.startMission(missionId);
+	}
+
+	async installPack(bytes: Uint8Array, label: string, origin: PackOrigin = 'import'): Promise<PackCheck> {
 		const check = await this.eng().request({ kind: 'packValidate', pack: bytes, keys: await this.trusted() });
 		if (!check.ok || !check.pack) return check;
 		const s = check.pack;
@@ -489,7 +508,8 @@ export class GameSession implements CatalogHost {
 			warmupBars: s.warmupBars,
 			leverageCap: s.leverageCap,
 			gaps: s.gaps,
-			addedAt: Date.now()
+			addedAt: Date.now(),
+			origin
 		};
 		await this.store?.savePack(stored).catch(() => (this.durable = false));
 		this.packs = [...this.packs.filter((p) => p.digest !== stored.digest), stored];
@@ -529,6 +549,7 @@ export class GameSession implements CatalogHost {
 			return;
 		}
 		this.resetRun(r.missionId, r.seed);
+		this.runPackDigest = r.packDigest ?? null;
 		this.runId = r.runId;
 		this.runCampaign = r.campaign ?? null;
 		this.perkChoice = perksUsed(this.options);
@@ -738,6 +759,7 @@ export class GameSession implements CatalogHost {
 		this.stopWarnings = 0;
 		this.queued = 0;
 		this.runCampaign = null;
+		this.runPackDigest = null;
 		this.perkChoice = [];
 		this.names.reset();
 	}

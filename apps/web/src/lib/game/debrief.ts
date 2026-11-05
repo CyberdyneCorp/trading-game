@@ -5,6 +5,7 @@ import type { Account, EngineTrade, GreekAttribution, NewsView, PackReveal, Regi
 import { fmtPct, fmtPrice, num } from './format.ts';
 import { t, type Locale } from './i18n.svelte.ts';
 import { headline } from './news.ts';
+import type { PackOrigin } from './storage.ts';
 
 export type GreekKey = 'delta' | 'gamma' | 'theta' | 'vega' | 'residual';
 
@@ -50,7 +51,7 @@ export function stopAdvice(tr: EngineTrade, locale: Locale): StopAdvice | null {
 const CSV_TRANSFORM = /^prices x 100 \/ open of bar (\d+), half-even to 0\.01; volume x the inverse$/;
 
 /** Reveal sentence and transformation note of a pack, in the player's language where the text is known. */
-export function revealTexts(r: PackReveal, alias: string): { line: string; transform: string } {
+export function revealTexts(r: PackReveal, alias: string, origin: PackOrigin | null = null): { line: string; transform: string } {
 	const params = {
 		alias,
 		pair: r.pair || '—',
@@ -58,7 +59,7 @@ export function revealTexts(r: PackReveal, alias: string): { line: string; trans
 		venue: r.venue,
 		from: r.periodFrom,
 		to: r.periodTo,
-		source: r.source === 'csv-import' ? t('debrief.sourceCsv') : r.source
+		source: r.source === 'csv-import' ? t(origin === 'catalog' ? 'debrief.sourceCatalog' : 'debrief.sourceCsv') : r.source
 	};
 	const bar = CSV_TRANSFORM.exec(r.transformation)?.[1];
 	return {

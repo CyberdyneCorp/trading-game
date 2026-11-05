@@ -39,6 +39,9 @@ export interface RunRecord<J = unknown, Q = unknown> {
  * An installed pack, stored by digest after the engine verified it (spec web-client "Persistent
  * offline storage"; IndexedDB stands in for OPFS). `label` is the player's own name for it.
  */
+/** Where an installed pack came from: a CSV imported on this device, or the pack catalog. */
+export type PackOrigin = 'import' | 'catalog';
+
 export interface StoredPack {
 	digest: string;
 	scenarioId: string;
@@ -50,6 +53,8 @@ export interface StoredPack {
 	leverageCap: number;
 	gaps: number;
 	addedAt: number;
+	/** Absent on packs stored before the catalog existed: those were all imported on this device. */
+	origin?: PackOrigin;
 }
 
 export interface StoredRun<A, J, Q> {

@@ -30,7 +30,7 @@ export interface CatalogStore extends PartialStore {
 export interface CatalogHost {
 	readonly installedDigests: ReadonlySet<string>;
 	readonly catalogStore: CatalogStore | null;
-	installPack(bytes: Uint8Array, label: string): Promise<PackCheck>;
+	installPack(bytes: Uint8Array, label: string, origin: 'catalog'): Promise<PackCheck>;
 	online(): boolean;
 }
 
@@ -143,7 +143,7 @@ export class CatalogModel {
 
 	private async install(e: CatalogEntry, bytes: Uint8Array, label: string): Promise<void> {
 		this.set(e, { phase: 'verifying', received: e.size, size: e.size });
-		const check = await this.host.installPack(bytes, label);
+		const check = await this.host.installPack(bytes, label, 'catalog');
 		await this.host.catalogStore?.clearPartial(e.digest).catch(() => undefined);
 		if (check.ok) {
 			const rest = { ...this.downloads };

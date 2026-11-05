@@ -28,7 +28,8 @@ test('browse the catalog, interrupt a download, resume it after a reload, then p
 	await page.goto('/?seed=5');
 	await openCatalog(page);
 	const a = entryA(page);
-	await expect(a).toContainText('2340 barras');
+	await expect(a).toContainText('2.340 barras'); // playtest: the count is grouped in PT-BR
+	await expect(a).not.toContainText('2.400 barras'); // and the summary never disagrees with it
 	await expect(a).toContainText('Alavancagem máx. 5x');
 	await expect(a).toContainText(/99,5 KB|100 KB/);
 
@@ -57,15 +58,20 @@ test('browse the catalog, interrupt a download, resume it after a reload, then p
 
 	// Installed packs are practice markets: listed in the menu too, and playable.
 	await entryA(page).getByTestId('catalog-play').click();
-	await expect(page.getByText(/Mercado importado \(cenário conhecido\)/)).toBeVisible();
+	// Playtest: a downloaded pack was briefed as "a market you imported".
+	await expect(page.getByText(/Pacote do catálogo \(cenário conhecido\)/)).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Treino · pacote do catálogo' })).toBeVisible();
+	await expect(page.locator('main')).not.toContainText('você importou');
 	await page.getByRole('button', { name: /Abrir terminal/ }).click();
 	await expect(page.locator('canvas').first()).toBeVisible();
 	await answerIfAsked(page);
 	await expect(page.locator('header.top')).toContainText('CONHECIDO');
+	await expect(page.locator('header.top')).toContainText('Treino · pacote do catálogo');
 	for (let i = 0; i < 3; i++) await page.keyboard.press('Space');
 	await expect(page.locator('.turn')).toContainText('Barra 4');
 	await page.getByRole('button', { name: /Menu/ }).first().click();
 	await expect(page.getByTestId('pack-row')).toContainText('Mercado A · 1h');
+	await expect(page.getByTestId('pack-row')).toContainText('2.340 barras');
 	expect(errors).toEqual([]);
 });
 
@@ -159,7 +165,8 @@ test('Academy: the Foundations lesson runs from the curriculum map and passes it
 	await expect(foundations.getByTestId('stage-lesson')).toContainText('concluída');
 	await expect(page.getByTestId('curriculum-summary')).toHaveText('1 de 13 estágios com conteúdo aprovados');
 
-	// Progress is local and survives a reload.
+	// Progress is local and survives a reload, even one right after the map shows the stage passed
+	// (playtest: the write was not awaited and a quick reload lost it).
 	await page.reload();
 	await page.getByTestId('open-curriculum').click();
 	await expect(page.locator('[data-stage=foundations]')).toHaveAttribute('data-status', 'passed');

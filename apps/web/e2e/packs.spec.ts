@@ -106,6 +106,28 @@ test('an imported CSV becomes a practice mission: masked prices, no reveal until
 	expect(errors).toEqual([]);
 });
 
+// Playtest: "Play again" on a pack debrief started the pack's scenario id as a mission; the engine
+// refused it ("unknown mission csv-…") and the screen went blank.
+test('regression: Play again after a practice run starts the same pack on a new seed', async ({ page }) => {
+	const errors: string[] = [];
+	page.on('pageerror', (e) => errors.push(String(e)));
+	await importPack(page);
+	await page.getByTestId('pack-start').click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await answerIfAsked(page);
+	for (let i = 0; i < 40 && !(await page.getByText(/Missão concluída|GAME OVER/).count()); i++) {
+		await answerIfAsked(page);
+		await page.keyboard.press('Shift+Space');
+		await page.waitForTimeout(60);
+	}
+	await expect(page.getByText(/Missão concluída/)).toBeVisible();
+	await page.getByTestId('debrief-again').click();
+	await expect(page.getByText(/Mercado importado \(cenário conhecido\)/)).toBeVisible();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await expect(page.locator('header.top')).toContainText('CONHECIDO');
+	expect(errors).toEqual([]);
+});
+
 test('regression: a finished practice run does not change the advisor point balance', async ({ page }) => {
 	await importPack(page);
 	await page.getByTestId('pack-start').click();

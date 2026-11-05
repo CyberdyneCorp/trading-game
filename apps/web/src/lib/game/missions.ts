@@ -3,6 +3,7 @@
 // What the scenario was designed to teach is revealed only in the debrief (`reveal`).
 
 import type { Locale } from './i18n.svelte';
+import type { PackOrigin } from './storage.ts';
 
 export interface MissionText {
 	title: string;
@@ -363,11 +364,26 @@ const PRACTICE: Record<Locale, MissionText> = {
 	}
 };
 
+// A pack downloaded from the catalog is not one the player imported (playtest: the briefing called
+// it "a real market you imported").
+const PRACTICE_CATALOG: Record<Locale, Pick<MissionText, 'title' | 'tagline'>> = {
+	'pt-BR': {
+		title: 'Treino · pacote do catálogo',
+		tagline:
+			'Um mercado do catálogo de pacotes, mascarado (preço base 100 na primeira barra jogável). É um cenário conhecido: pratique o processo.'
+	},
+	en: {
+		title: 'Practice · catalog pack',
+		tagline: 'A market from the pack catalog, masked (price base 100 at the first playable bar). It is a known scenario: practice your process.'
+	}
+};
+
 export function isPracticeScenario(id: string): boolean {
 	return id.startsWith('csv-');
 }
 
-export function missionText(id: string, locale: Locale): MissionText {
-	if (isPracticeScenario(id)) return PRACTICE[locale];
+/** Texts of a mission; for a practice pack run, `origin` says whether it was imported or downloaded. */
+export function missionText(id: string, locale: Locale, origin: PackOrigin | null = null): MissionText {
+	if (isPracticeScenario(id)) return origin === 'catalog' ? { ...PRACTICE[locale], ...PRACTICE_CATALOG[locale] } : PRACTICE[locale];
 	return texts[id]?.[locale] ?? { title: id, tagline: '', objectives: [], topic: '', reveal: '' };
 }

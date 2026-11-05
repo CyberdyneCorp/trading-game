@@ -6,6 +6,7 @@
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, packReasonText, t, type Locale } from '#lib/game/i18n.svelte.ts';
 	import { PACK_MAX_BYTES } from '#lib/game/packs.ts';
+	import { fmtNum } from '#lib/game/format.ts';
 	import type { StoredPack } from '#lib/game/storage.ts';
 	import CampaignPanel from './CampaignPanel.svelte';
 
@@ -102,7 +103,7 @@
 				<p class="muted small">{txt.topic}</p>
 				<p class="small">
 					<span class="tag info">{t('menu.leverageCap')} {m.leverageCap}x</span>
-					<span class="tag muted">{m.totalBars - m.warmupBars} {t('menu.bars')}</span>
+					<span class="tag muted">{fmtNum(m.totalBars - m.warmupBars, i18n.locale, 0)} {t('menu.bars')}</span>
 					<span class="tag attention">{t('top.synthetic')}</span>
 				</p>
 				<button class="primary" onclick={() => session.startMission(m.id)} disabled={session.busy}>{t('menu.start')}</button>
@@ -119,7 +120,7 @@
 				<li data-testid="pack-row">
 					<span class="pack-name">{p.label}</span>
 					<span class="tag attention">{t('menu.known')}</span>
-					<span class="tag muted">{p.totalBars - p.warmupBars} {t('menu.bars')}</span>
+					<span class="tag muted">{fmtNum(p.totalBars - p.warmupBars, i18n.locale, 0)} {t('menu.bars')}</span>
 					<span class="tag info">{t('menu.leverageCap')} {p.leverageCap}x</span>
 					{#if p.gaps > 0}<span class="tag muted">{t('menu.gaps', { n: p.gaps })}</span>{/if}
 					<span class="pack-actions">

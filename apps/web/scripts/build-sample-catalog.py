@@ -54,16 +54,16 @@ SAMPLES = [
         "sample-a-1h", 101, 2400, 3600, 41_250.0, 0.0, 0.006, 5,
         {"pt-BR": "Mercado A · 1h", "en": "Market A · 1h"},
         {
-            "pt-BR": "Mercado sintético mascarado com 2.400 barras de 1 hora. Pratique plano, stop e tamanho antes de cada entrada.",
-            "en": "Masked synthetic market with 2,400 one-hour bars. Practice the plan, the stop and the size before every entry.",
+            "pt-BR": "Mercado sintético mascarado, em barras de 1 hora. Pratique plano, stop e tamanho antes de cada entrada.",
+            "en": "Masked synthetic market in one-hour bars. Practice the plan, the stop and the size before every entry.",
         },
     ),
     Sample(
         "sample-b-4h", 202, 600, 14400, 1_830.0, 0.0008, 0.012, 3,
         {"pt-BR": "Mercado B · 4h", "en": "Market B · 4h"},
         {
-            "pt-BR": "Mercado sintético mascarado com 600 barras de 4 horas e alavancagem até 3×.",
-            "en": "Masked synthetic market with 600 four-hour bars and leverage up to 3×.",
+            "pt-BR": "Mercado sintético mascarado, em barras de 4 horas, com alavancagem até 3×.",
+            "en": "Masked synthetic market in four-hour bars, with leverage up to 3×.",
         },
     ),
 ]

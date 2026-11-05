@@ -14,8 +14,11 @@ export const AUDIO_CACHE = 'tradelab-audio-v1';
 
 export const isAudio = (path: string) => /\/audio\/[^/]+$/.test(path);
 
-/** Static pack catalog (manifest and .tlpack files): never precached, never cached. */
-export const isCatalog = (path: string) => path === '/catalog' || path.startsWith('/catalog/');
+/**
+ * Static pack catalog (manifest and .tlpack files): never precached, never cached. Takes a URL
+ * pathname ("/catalog/…") or a build manifest asset path, which has no leading slash ("catalog/…").
+ */
+export const isCatalog = (path: string) => /^\/?catalog(\/|$)/.test(path);
 
 export function swRoute(method: string, mode: RequestMode, url: URL, origin: string): SwRoute {
 	if (method !== 'GET' || url.origin !== origin) return 'network';

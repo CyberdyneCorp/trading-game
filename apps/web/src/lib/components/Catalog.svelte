@@ -4,6 +4,7 @@
 	// downloads disabled; installed packs remain playable.
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { fmtBytes, localized, type CatalogEntry } from '#lib/game/catalog.ts';
+	import { fmtNum } from '#lib/game/format.ts';
 	import type { DownloadView } from '#lib/game/catalog.svelte.ts';
 	import { intervalLabel } from '#lib/game/packs.ts';
 	import { i18n, packReasonText, t, type MessageKey } from '#lib/game/i18n.svelte.ts';
@@ -73,7 +74,7 @@
 				{#if localized(e.summary, L)}<p>{localized(e.summary, L)}</p>{/if}
 				<p class="small">
 					<span class="tag muted">{intervalLabel(e.intervalSeconds)}</span>
-					<span class="tag muted">{e.bars} {t('menu.bars')}</span>
+					<span class="tag muted">{fmtNum(e.bars, L, 0)} {t('menu.bars')}</span>
 					<span class="tag info">{t('menu.leverageCap')} {e.leverageCap}x</span>
 					<span class="tag muted">{size(e.size)}</span>
 				</p>

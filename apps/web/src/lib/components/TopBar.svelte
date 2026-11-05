@@ -17,6 +17,7 @@
 	const s = $derived(session.state);
 	const playable = $derived(s ? s.lastDecisionStep - s.warmupBars + 1 : 0);
 	const turn = $derived(s ? s.step - s.warmupBars + 1 : 0);
+	const missionTitle = $derived(s ? missionText(s.mission, i18n.locale, session.runPackOrigin).title : '');
 </script>
 
 {#if s}
@@ -33,7 +34,7 @@
 			{#if session.runCampaign}
 				<span class="tag info" data-testid="campaign-tag">{t('campaign.tag', { n: session.runCampaign.index + 1, total: campaignMissions().length })}</span>
 			{/if}
-			<span class="muted mission" title={missionText(s.mission, i18n.locale).title}>{missionText(s.mission, i18n.locale).title}</span>
+			<span class="muted mission" title={missionTitle}>{missionTitle}</span>
 			{#if !pwa.online}<span class="tag attention" title={t('pwa.offlineNote')}>{t('pwa.offline')}</span>{/if}
 		</div>
 		<div class="turn num">
