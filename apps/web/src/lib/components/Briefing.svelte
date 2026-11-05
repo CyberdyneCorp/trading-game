@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { missionText } from '#lib/game/missions.ts';
+	import { missionText, packModeKey } from '#lib/game/missions.ts';
 	import { campaignMissions, campaignPermissions, LOCKED_LEVERAGE_CAP, unlockStage } from '#lib/game/curriculum.ts';
 	import { tutorialFor } from '#lib/game/tutorials.ts';
 	import PerkPanel from './PerkPanel.svelte';
@@ -13,7 +13,7 @@
 	const s = $derived(session.state!);
 	const L = $derived(i18n.locale);
 	const c = $derived(s.contract);
-	const txt = $derived(missionText(s.mission, L));
+	const txt = $derived(missionText(s.mission, L, session.runPackOrigin));
 	// Engine MissionRules (task 4.1): objectives, instrument permissions and the mission's risk limits.
 	const rules = $derived(s.missionRules);
 	const PERMS = ['long', 'short', 'optionsBuy', 'optionsWrite'] as const;
@@ -29,7 +29,7 @@
 	const modeText = $derived.by(() => {
 		if (link) return t(link.index === 0 ? 'brief.modeCampaignFirst' : 'brief.modeCampaign', { n: link.index + 1, total: campaignMissions().length, seed: session.seed });
 		if (!s.knownScenario) return t('brief.modeSynthetic', { seed: session.seed });
-		return t(s.marketMode === 'synthetic' ? 'brief.modePackSynthetic' : 'brief.modePack', { seed: session.seed });
+		return t(packModeKey(s.marketMode, session.runPackOrigin), { seed: session.seed });
 	});
 	// What the curriculum keeps locked in this campaign mission (option unlocks only where options
 	// trade), and the stage that unlocks it.

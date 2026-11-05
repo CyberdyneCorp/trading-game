@@ -5,10 +5,20 @@
 import type { BarTuple, CsvMeta, GapFill, TrustedKey } from '#lib/engine/types.ts';
 
 /**
- * Publisher keys pinned in this build (design D1 rotation list). Empty until the publisher key
- * ceremony: until then only packs signed by this device (private CSV imports) install.
+ * Development catalog key: the publisher key that signs the sample packs of the static catalog
+ * (`static/catalog`, built through the packer by scripts/build-sample-catalog.py; its seed is kept
+ * outside the repository). It is replaced by the production publisher key at the key ceremony (design D1).
  */
-export const PINNED_PUBLISHER_KEYS: readonly TrustedKey[] = [];
+export const DEV_CATALOG_KEY: TrustedKey = {
+	id: 'publisher-4eec1d54ffe7656f',
+	key: '8fcdf973bd8ca7d2efa1920ee1751d45da5170a54f79027ff8f4b16a149daa37'
+};
+
+/**
+ * Publisher keys pinned in this build (design D1 rotation list). A pack installs only when it is
+ * signed by one of these or by this device (its own CSV imports).
+ */
+export const PINNED_PUBLISHER_KEYS: readonly TrustedKey[] = [DEV_CATALOG_KEY];
 
 export function trustedKeys(device: TrustedKey | null): TrustedKey[] {
 	return device ? [...PINNED_PUBLISHER_KEYS, device] : [...PINNED_PUBLISHER_KEYS];
@@ -98,6 +108,34 @@ export function defaultLabel(meta: CsvMeta, fileName: string): string {
 
 export function isoUtc(seconds: number): string {
 	return new Date(seconds * 1000).toISOString().replace('.000Z', 'Z');
+}
+
+const TAR_BLOCK = 512;
+
+/** Size of the tar entry whose header starts at `at`, or null when it is not a ustar header. */
+function tarEntrySize(bytes: Uint8Array, at: number): number | null {
+	const magic = String.fromCharCode(...bytes.subarray(at + 257, at + 262));
+	if (magic !== 'ustar') return null;
+	const field = String.fromCharCode(...bytes.subarray(at + 124, at + 136)).replace(/[\0 ]+$/, '').trim();
+	return /^[0-7]+$/.test(field) ? parseInt(field, 8) : null;
+}
+
+/**
+ * Whether a `.tlpack` file is a pack cut short, as an interrupted download leaves it: its tar headers
+ * are valid but an entry's data, or the end-of-archive marker, is missing. A file that is not a pack
+ * at all is not "cut" (the engine's refusal reason is shown for it instead).
+ */
+export function packLooksCut(bytes: Uint8Array): boolean {
+	let pos = 0;
+	let headers = 0;
+	while (pos + TAR_BLOCK <= bytes.length) {
+		if (bytes.subarray(pos, pos + TAR_BLOCK).every((b) => b === 0)) return false; // end marker: complete
+		const size = tarEntrySize(bytes, pos);
+		if (size == null) return false;
+		headers += 1;
+		pos += TAR_BLOCK + Math.ceil(size / TAR_BLOCK) * TAR_BLOCK;
+	}
+	return headers > 0;
 }
 
 /** 32 random bytes for the device signing seed (stored once per device). */

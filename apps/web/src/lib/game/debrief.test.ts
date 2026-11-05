@@ -3,6 +3,7 @@ import type { EngineFinding, EngineTrade, NewsView, PackReveal, RegimeSpan } fro
 import { describeFinding, describeFindings, describeLesson } from './analysis.ts';
 import { decisionCounts, entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from './debrief.ts';
 import { headline } from './news.ts';
+import { missionText, packModeKey } from './missions.ts';
 import { i18n } from './i18n.svelte.ts';
 
 const perp: EngineTrade = {
@@ -130,6 +131,25 @@ describe('revealTexts', () => {
 		i18n.locale = 'en';
 		expect(revealTexts({ ...csv, venue: 'Binance' }, 'K').line).toContain('on Binance');
 		i18n.locale = 'pt-BR';
+	});
+	// Playtest: a pack downloaded from the catalog was revealed as "CSV imported on this device" and
+	// briefed as "a real market you imported".
+	it('regression: a catalog pack is revealed and briefed as downloaded from the catalog, not imported', () => {
+		expect(revealTexts(csv, 'K', 'historical', 'catalog').line).toContain('(pacote baixado do catálogo)');
+		expect(revealTexts(csv, 'K', 'historical', 'import').line).toContain('(CSV importado neste dispositivo)');
+		expect(missionText('csv-1', 'pt-BR', 'catalog').title).toBe('Treino · pacote do catálogo');
+		expect(missionText('csv-1', 'en', 'catalog').tagline).not.toMatch(/imported|real market/);
+		expect(missionText('csv-1', 'en', 'catalog').topic).toEqual(missionText('csv-1', 'en').topic);
+		expect(missionText('csv-1', 'pt-BR').tagline).toContain('você importou');
+	});
+	// Integration of the catalog with synthetic packs: the publisher-signed sample packs are synthetic,
+	// so the briefing must say both that the market is generated and that it came from the catalog.
+	it('briefs a pack by market mode and origin', () => {
+		expect(packModeKey('synthetic', 'catalog')).toBe('brief.modeCatalogSynthetic');
+		expect(packModeKey('synthetic', 'import')).toBe('brief.modePackSynthetic');
+		expect(packModeKey('synthetic', null)).toBe('brief.modePackSynthetic');
+		expect(packModeKey('historical', 'catalog')).toBe('brief.modeCatalog');
+		expect(packModeKey('historical', 'import')).toBe('brief.modePack');
 	});
 	it('shows a publisher transformation note as written', () => {
 		const r = revealTexts({ ...csv, source: 'publisher', transformation: 'rebased to 100' }, 'K');

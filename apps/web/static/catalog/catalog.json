@@ -1,0 +1,43 @@
+{
+ "schemaVersion": 1,
+ "packs": [
+  {
+   "id": "sample-a-1h",
+   "file": "packs/ec9140b18db6c1997d9ebefa494be5d040fc91052236045d2a6336d2263602ee.tlpack",
+   "digest": "ec9140b18db6c1997d9ebefa494be5d040fc91052236045d2a6336d2263602ee",
+   "size": 77312,
+   "scenarioId": "csv-210b52dbdf3f",
+   "keyId": "publisher-4eec1d54ffe7656f",
+   "intervalSeconds": 3600,
+   "bars": 4740,
+   "leverageCap": 5,
+   "title": {
+    "pt-BR": "Mercado A · 1h",
+    "en": "Market A · 1h"
+   },
+   "summary": {
+    "pt-BR": "Mercado sintético mascarado, em barras de 1 hora. Pratique plano, stop e tamanho antes de cada entrada.",
+    "en": "Masked synthetic market in one-hour bars. Practice the plan, the stop and the size before every entry."
+   }
+  },
+  {
+   "id": "sample-b-4h",
+   "file": "packs/6f2e9386a37662dca4b7a2e6f0eb7173b199367cb695d28890280d576403005c.tlpack",
+   "digest": "6f2e9386a37662dca4b7a2e6f0eb7173b199367cb695d28890280d576403005c",
+   "size": 15872,
+   "scenarioId": "csv-3c64ab440950",
+   "keyId": "publisher-4eec1d54ffe7656f",
+   "intervalSeconds": 14400,
+   "bars": 540,
+   "leverageCap": 3,
+   "title": {
+    "pt-BR": "Mercado B · 4h",
+    "en": "Market B · 4h"
+   },
+   "summary": {
+    "pt-BR": "Mercado sintético mascarado, em barras de 4 horas, com alavancagem até 3×.",
+    "en": "Masked synthetic market in four-hour bars, with leverage up to 3×."
+   }
+  }
+ ]
+}

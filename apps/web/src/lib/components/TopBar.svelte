@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { keymap } from '#lib/game/keymap.svelte.ts';
+	import { keyLabel } from '#lib/game/shortcuts.ts';
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
@@ -17,6 +19,7 @@
 	const s = $derived(session.state);
 	const playable = $derived(s ? s.lastDecisionStep - s.warmupBars + 1 : 0);
 	const turn = $derived(s ? s.step - s.warmupBars + 1 : 0);
+	const missionTitle = $derived(s ? missionText(s.mission, i18n.locale, session.runPackOrigin).title : '');
 	const branch = $derived(s ? branchTurn(s) : null);
 </script>
 
@@ -40,7 +43,7 @@
 			{#if session.runCampaign}
 				<span class="tag info" data-testid="campaign-tag">{t('campaign.tag', { n: session.runCampaign.index + 1, total: campaignMissions().length })}</span>
 			{/if}
-			<span class="muted mission" title={missionText(s.mission, i18n.locale).title}>{missionText(s.mission, i18n.locale).title}</span>
+			<span class="muted mission" title={missionTitle}>{missionTitle}</span>
 			{#if !pwa.online}<span class="tag attention" title={t('pwa.offlineNote')}>{t('pwa.offline')}</span>{/if}
 		</div>
 		<div class="turn num">
@@ -48,7 +51,7 @@
 		</div>
 		<div class="actions">
 			<button class="primary" onclick={() => session.advance(1)} disabled={session.busy || s.status !== 'active'}>
-				▶ {t('top.advance')} <kbd>Space</kbd>
+				▶ {t('top.advance')} <kbd>{keyLabel(keymap.map.advance)}</kbd>
 			</button>
 			<div class="auto" role="group" aria-label={t('auto.title')}>
 				<button
@@ -58,7 +61,7 @@
 					aria-pressed={auto.running}
 					data-testid="auto-toggle"
 				>
-					{auto.running ? '⏸' : '⏵'} {t(auto.running ? 'auto.pause' : 'auto.play')} <kbd>A</kbd>
+					{auto.running ? '⏸' : '⏵'} {t(auto.running ? 'auto.pause' : 'auto.play')} <kbd>{keyLabel(keymap.map.auto)}</kbd>
 				</button>
 				<select
 					aria-label={t('auto.speed')}
@@ -72,7 +75,7 @@
 					{t('auto.pauseOnEvents')}
 				</label>
 			</div>
-			<button onclick={onPatterns} title="P">{t('patterns.open')} <kbd>P</kbd></button>
+			<button onclick={onPatterns} title={keyLabel(keymap.map.patterns)}>{t('patterns.open')} <kbd>{keyLabel(keymap.map.patterns)}</kbd></button>
 			<button
 				onclick={() => sound.toggleMute()}
 				aria-label={sound.muted ? t('sound.unmute') : t('sound.mute')}

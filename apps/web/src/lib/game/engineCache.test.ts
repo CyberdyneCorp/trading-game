@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { enginePinned, enginesToKeep, gcEngines, pinEngine, type EngineCaches } from './engineCache.ts';
+import { BACKGROUND_CACHE } from './download.ts';
 import { ENGINE_CACHE, keepCache } from './swRoutes.ts';
 import { engineBuildLabel } from '#lib/engine/build.ts';
 
@@ -73,6 +74,8 @@ describe('engine pinning', () => {
 		expect(keepCache(ENGINE_CACHE, 'tradelab-2')).toBe(true);
 		expect(keepCache('tradelab-2', 'tradelab-2')).toBe(true);
 		expect(keepCache('tradelab-1', 'tradelab-2')).toBe(false);
+		// A catalog download finished by Background Fetch waits in its cache until the page installs it.
+		expect(keepCache(BACKGROUND_CACHE, 'tradelab-2')).toBe(true);
 	});
 
 	it('labels a build by its content hash', () => {

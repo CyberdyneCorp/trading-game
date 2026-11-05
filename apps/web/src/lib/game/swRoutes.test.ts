@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rangeResponse, swRoute } from './swRoutes.ts';
+import { isCatalog, rangeResponse, swRoute } from './swRoutes.ts';
 
 const origin = 'https://tradelab.example';
 const url = (path: string, base = origin) => new URL(path, base);
@@ -20,6 +20,29 @@ describe('swRoute', () => {
 	it('leaves non-GET and cross-origin requests to the network', () => {
 		expect(swRoute('POST', 'cors', url('/api/v1/sync/batches'), origin)).toBe('network');
 		expect(swRoute('GET', 'cors', url('/x.js', 'https://cdn.example'), origin)).toBe('network');
+	});
+});
+
+describe('catalog', () => {
+	it('never caches the catalog manifest or packs (a Range response cannot be cached, the manifest must be fresh)', () => {
+		expect(swRoute('GET', 'cors', url('/catalog/catalog.json'), origin)).toBe('network');
+		expect(swRoute('GET', 'cors', url('/catalog/packs/abc.tlpack'), origin)).toBe('network');
+		expect(swRoute('GET', 'no-cors', url('/catalogue.png'), origin)).toBe('cache');
+	});
+
+	it('keeps the catalog out of the install precache', () => {
+		expect(isCatalog('/catalog/catalog.json')).toBe(true);
+		expect(isCatalog('/catalog/packs/x.tlpack')).toBe(true);
+		expect(isCatalog('/icons/icon-192.png')).toBe(false);
+		expect(isCatalog('/catalogue.json')).toBe(false);
+	});
+
+	// Playtest: the build manifest lists assets without a leading slash ("catalog/catalog.json"), so
+	// the precache filter let the manifest and every sample pack into the install cache.
+	it('regression: recognizes the build manifest asset paths, which have no leading slash', () => {
+		expect(isCatalog('catalog/catalog.json')).toBe(true);
+		expect(isCatalog('catalog/packs/x.tlpack')).toBe(true);
+		expect(isCatalog('icons/icon-192.png')).toBe(false);
 	});
 });
 

@@ -7,11 +7,13 @@
 	import { fmtMoney } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
+	import { lessonText } from '#lib/game/academy.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const L = $derived(i18n.locale);
 	const assessed = $derived(session.progress.assessed);
-	const summary = $derived(curriculumSummary(assessed));
+	const lessonsDone = $derived(session.progress.lessonsDone);
+	const summary = $derived(curriculumSummary(assessed, lessonsDone));
 	const best = $derived(bestCompletedCapital(session.progress.campaignHistory));
 	const unlockText = (u: Unlock) => t(`unlock.${u}`, { cap: LOCKED_LEVERAGE_CAP });
 	const missionsText = (ids: string[]) =>
@@ -36,7 +38,7 @@
 
 	<ol class="stages">
 		{#each STAGES as st, i (st.id)}
-			{@const status = stageStatus(st.id, assessed)}
+			{@const status = stageStatus(st.id, assessed, lessonsDone)}
 			<li class="panel stage {status}" data-testid="stage" data-stage={st.id} data-status={status}>
 				<div class="head">
 					<span class="idx">{i + 1}</span>
@@ -45,9 +47,20 @@
 				</div>
 				{#if st.missions.length}
 					<p>{t('curriculum.assessment', { missions: missionsText(st.missions) })}</p>
+				{:else if st.lessons.length}
+					<p class="muted small">{t('curriculum.lessonNote')}</p>
 				{:else}
 					<p class="muted small">{t('curriculum.soonNote')}</p>
 				{/if}
+				{#each st.lessons as id (id)}
+					{@const done = lessonsDone.includes(id)}
+					<p class="lesson-row" data-testid="stage-lesson" data-lesson={id}>
+						<span>{t('curriculum.lesson', { title: lessonText(id, L).title })}{#if done}{' '}<span class="up">✓ {t('curriculum.lessonDone')}</span>{/if}</span>
+						<button class:primary={!done} onclick={() => session.openLesson(id)} data-testid="lesson-start">
+							{done ? t('curriculum.lessonRepeat') : t('curriculum.lessonStart')}
+						</button>
+					</p>
+				{/each}
 				{#if st.unlocks.length}
 					<p class="info">{t('curriculum.unlocks', { what: st.unlocks.map(unlockText).join(', ') })}</p>
 				{/if}
@@ -116,5 +129,11 @@
 	}
 	.small {
 		font-size: 0.8rem;
+	}
+	.lesson-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.6rem;
 	}
 </style>

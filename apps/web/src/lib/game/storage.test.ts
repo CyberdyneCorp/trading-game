@@ -120,10 +120,17 @@ describe('RunStore (IndexedDB)', () => {
 			advisorPoints: 7,
 			settledRuns: ['r9'],
 			perksIntroduced: [],
+			lessonsDone: [],
 			campaign: null,
 			campaignHistory: [],
 			assessed: []
 		});
+	});
+
+	it('keeps completed lessons across a save (a later key of version 2; absent = none)', async () => {
+		await store.saveProgress({ ...EMPTY_PROGRESS, lessonsDone: ['foundations-bar'] });
+		expect((await store.progress()).lessonsDone).toEqual(['foundations-bar']);
+		expect(migrateProgress({ lessonsDone: ['a', 3] }).lessonsDone).toEqual(['a']);
 	});
 
 	it('keeps the campaign run, its history and the assessed missions across a save', async () => {
@@ -163,6 +170,25 @@ describe('RunStore (IndexedDB)', () => {
 		expect(await store.pack('a')).toBeNull();
 		await store.createRun({ ...record('p'), missionId: 'csv-b', packDigest: 'b' });
 		expect((await store.activeRun())?.record.packDigest).toBe('b');
+	});
+
+	it('stores partial downloads chunk by chunk, in order, per digest, and clears them', async () => {
+		await store.savePartialChunk('d1', 1, new Uint8Array([3, 4]));
+		await store.savePartialChunk('d1', 0, new Uint8Array([1, 2]));
+		for (let i = 0; i < 11; i++) await store.savePartialChunk('d2', i, new Uint8Array([i]));
+		expect(await store.partialChunks('d1')).toEqual([new Uint8Array([1, 2]), new Uint8Array([3, 4])]);
+		expect((await store.partialChunks('d2')).map((c) => c[0])).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]); // 10 after 9
+		expect(await store.partialSizes()).toEqual(new Map([['d1', 4], ['d2', 11]]));
+		await store.clearPartial('d1');
+		expect(await store.partialChunks('d1')).toEqual([]);
+		expect(await store.partialSizes()).toEqual(new Map([['d2', 11]]));
+		expect((await store.progress()).version).toBe(2); // meta rows of other kinds are untouched
+	});
+
+	it('keeps the last catalog manifest read online', async () => {
+		expect(await store.cachedCatalog()).toBeNull();
+		await store.saveCatalog('https://x/catalog.json', { schemaVersion: 1, packs: [] });
+		expect(await store.cachedCatalog()).toEqual({ url: 'https://x/catalog.json', json: { schemaVersion: 1, packs: [] } });
 	});
 
 	it('creates the device seed once and keeps it', async () => {

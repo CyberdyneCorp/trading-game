@@ -5,6 +5,7 @@ import type { Account, DecisionView, EngineTrade, GreekAttribution, NewsView, Pa
 import { fmtPct, fmtPrice, num } from './format.ts';
 import { t, type Locale } from './i18n.svelte.ts';
 import { headline } from './news.ts';
+import type { PackOrigin } from './storage.ts';
 
 export type GreekKey = 'delta' | 'gamma' | 'theta' | 'vega' | 'residual';
 
@@ -52,9 +53,15 @@ const CSV_TRANSFORM = /^prices x 100 \/ open of bar (\d+), half-even to 0\.01; v
 /**
  * Reveal sentence and transformation note of a pack, in the player's language where the text is known.
  * A synthetic pack (generated bars, e.g. `packer generate`) has no real market to reveal; an empty
- * transform means there is no note to show.
+ * transform means there is no note to show. `origin` says whether a CSV-import pack was imported on
+ * this device or downloaded from the catalog.
  */
-export function revealTexts(r: PackReveal, alias: string, marketMode = 'historical'): { line: string; transform: string } {
+export function revealTexts(
+	r: PackReveal,
+	alias: string,
+	marketMode = 'historical',
+	origin: PackOrigin | null = null
+): { line: string; transform: string } {
 	if (marketMode === 'synthetic') return { line: t('debrief.revealPackSynthetic', { alias }), transform: '' };
 	const params = {
 		alias,
@@ -63,7 +70,7 @@ export function revealTexts(r: PackReveal, alias: string, marketMode = 'historic
 		venue: r.venue,
 		from: r.periodFrom,
 		to: r.periodTo,
-		source: r.source === 'csv-import' ? t('debrief.sourceCsv') : r.source
+		source: r.source === 'csv-import' ? t(origin === 'catalog' ? 'debrief.sourceCatalog' : 'debrief.sourceCsv') : r.source
 	};
 	const bar = CSV_TRANSFORM.exec(r.transformation)?.[1];
 	return {

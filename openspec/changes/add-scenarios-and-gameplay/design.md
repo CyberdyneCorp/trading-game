@@ -359,7 +359,7 @@ Outcome rates measured at build time go into the README ("What can the player pr
 
 | Stage | Assessment missions | Unlocks |
 |---|---|---|
-| Foundations | none: Academy lesson (web-client 4.4); coming soon until then, and it does not block | — |
+| Foundations | none: Academy lesson "Reading a bar" (web-client 4.4); passed when the lesson is completed, and it never blocks | — |
 | Structure | m06 | — |
 | Orders | m06 | — |
 | Futures I | m01 | short |
@@ -376,7 +376,7 @@ Outcome rates measured at build time go into the README ("What can the player pr
 - **Campaign order:** m06, m01, m03, m02, m07, m04, m09, m05, m10, m08, m11, m12.
 - **Locks stay enforceable by the engine.** m06 comes before Futures I, so its own rules disallow shorting (`allow_short = false`), and its 2× cap already meets the locked leverage cap. m09 comes before Options III, so its option spec disallows writing. Every later mission meets no lock. The existing unit test (no campaign mission meets a lock the engine cannot enforce) therefore keeps passing without new start options.
 - **Advisor intro.** The advisor and points intro, which the advisor spec requires in "the first mission", moves into m06's tutorial, because m06 now opens the campaign. m01 keeps its card for free play.
-- **Batch A as built.** Before batch B, the campaign was m06, m01, m03, m02, m07, m04, m05, m08 (the stage order was still Patterns & Indicators, Evaluation, Events). Batch B (6.B7) made the swap and the twelve-mission order above; twelve of the 13 stages have content and only Foundations is coming soon.
+- **Batch A as built.** Before batch B, the campaign was m06, m01, m03, m02, m07, m04, m05, m08 (the stage order was still Patterns & Indicators, Evaluation, Events). Batch B (6.B7) made the swap and the twelve-mission order above; twelve of the 13 stages have content and only Foundations is coming soon. Since web-client 4.4 Foundations is taught by its Academy lesson: it shows open until the lesson is completed, then passed, and it still never blocks Structure, because the campaign does not gate on lessons.
 
 ### D9. Mission rules, decision records, lesson questions and assisted practice (scoring v11)
 - **Mission schema as engine data (4.1).** `MissionRules` gains `objectives` (an `ObjectiveCode` and an optional `value_bp`), `liq_warning_bp`, `drawdown_budget_bp` and `confirm_stop_beyond_liq`. Permissions are not duplicated: long always, short from `allow_short`, options buying when a chain is listed, writing from the option spec. The client keeps only text per code. The warning distance is a percentage; an ATR-based distance was not needed by any mission. The stop-beyond-liquidation confirmation is a client gate the mission switches on; the engine still accepts the order with its warning, so no execution rule changed and no policy bump was needed.

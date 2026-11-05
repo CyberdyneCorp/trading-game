@@ -5,9 +5,11 @@
 	import { settings } from '#lib/game/settings.svelte.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, packReasonText, t, type Locale } from '#lib/game/i18n.svelte.ts';
-	import { PACK_MAX_BYTES } from '#lib/game/packs.ts';
+	import { PACK_MAX_BYTES, packLooksCut } from '#lib/game/packs.ts';
+	import { fmtNum } from '#lib/game/format.ts';
 	import { formatBytes, type PackEntry } from '#lib/game/packStore.ts';
 	import CampaignPanel from './CampaignPanel.svelte';
+	import ShortcutSettings from './ShortcutSettings.svelte';
 
 	let { session }: { session: GameSession } = $props();
 	let packMessage = $state<{ ok: boolean; text: string } | null>(null);
@@ -22,10 +24,16 @@
 			return;
 		}
 		const label = file.name.replace(/\.tlpack$/, '');
-		const check = await session.installPack(new Uint8Array(await file.arrayBuffer()), label);
-		packMessage = check.ok
-			? { ok: true, text: t('pack.installed', { label }) }
-			: { ok: false, text: t('pack.refused', { reason: packReasonText(check.reason) }) };
+		const bytes = await file.arrayBuffer().then(
+			(b) => new Uint8Array(b),
+			() => null
+		);
+		// A file that cannot be read, or a pack cut short, is an interrupted download: get it again.
+		if (!bytes) return void (packMessage = { ok: false, text: t('pack.unreadable') });
+		const check = await session.installPack(bytes, label);
+		if (check.ok) packMessage = { ok: true, text: t('pack.installed', { label }) };
+		else if (packLooksCut(bytes)) packMessage = { ok: false, text: t('pack.interrupted', { size: formatBytes(bytes.length, i18n.locale) }) };
+		else packMessage = { ok: false, text: t('pack.refused', { reason: packReasonText(check.reason) }) };
 	}
 
 	async function exportPack(p: PackEntry) {
@@ -84,6 +92,7 @@
 	<nav class="screens">
 		<button onclick={() => session.openCurriculum()} data-testid="open-curriculum">▦ {t('curriculum.open')}</button>
 		<button onclick={() => session.openJournal()} data-testid="open-journal">✎ {t('journal.open')}</button>
+		<button onclick={() => session.openCatalog()} data-testid="open-catalog">⇩ {t('catalog.open')}</button>
 	</nav>
 
 	<CampaignPanel {session} />
@@ -103,7 +112,7 @@
 				<p class="muted small">{txt.topic}</p>
 				<p class="small">
 					<span class="tag info">{t('menu.leverageCap')} {m.leverageCap}x</span>
-					<span class="tag muted">{m.totalBars - m.warmupBars} {t('menu.bars')}</span>
+					<span class="tag muted">{fmtNum(m.totalBars - m.warmupBars, i18n.locale, 0)} {t('menu.bars')}</span>
 					<span class="tag attention">{t('top.synthetic')}</span>
 				</p>
 				<!-- Twelve identical "Start mission" buttons: the name says which one (screen readers list buttons out of context). -->
@@ -124,7 +133,7 @@
 					<span class="pack-name">{p.label}</span>
 					<span class="tag attention">{t('menu.known')}</span>
 					{#if p.evicted}<span class="tag down" data-testid="pack-evicted">{t('pack.evictedTag')}</span>{/if}
-					<span class="tag muted">{p.totalBars - p.warmupBars} {t('menu.bars')}</span>
+					<span class="tag muted">{fmtNum(p.totalBars - p.warmupBars, i18n.locale, 0)} {t('menu.bars')}</span>
 					<span class="tag info">{t('menu.leverageCap')} {p.leverageCap}x</span>
 					{#if p.gaps > 0}<span class="tag muted">{t('menu.gaps', { n: p.gaps })}</span>{/if}
 					<span class="pack-actions">
@@ -179,6 +188,10 @@
 			<button class:primary={i18n.locale === 'pt-BR'} onclick={() => setLocale('pt-BR')}>PT-BR</button>
 			<button class:primary={i18n.locale === 'en'} onclick={() => setLocale('en')}>EN</button>
 		</span>
+		<details class="shortcuts">
+			<summary data-testid="open-shortcuts">{t('keys.title')}</summary>
+			<ShortcutSettings />
+		</details>
 	</section>
 
 	<p class="muted small disclaimer">{t('app.disclaimer')}</p>
@@ -295,6 +308,13 @@
 	}
 	.settings input[type='checkbox'] {
 		width: auto;
+	}
+	.shortcuts {
+		flex-basis: 100%;
+	}
+	.shortcuts summary {
+		cursor: pointer;
+		margin-bottom: 0.4rem;
 	}
 	.small {
 		font-size: 0.8rem;

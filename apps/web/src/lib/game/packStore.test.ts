@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
-import { formatBytes, MemoryPackIndex, PackLibrary, quotaShortfall, storageQuota, type BlobDir } from './packStore.ts';
+import { formatBytes, MemoryPackIndex, PackLibrary, playableDigests, quotaShortfall, storageQuota, type BlobDir, type PackEntry } from './packStore.ts';
 import { openDb, RunStore, type StoredPack } from './storage.ts';
 
 /** An in-memory OPFS directory; `evict` drops a file like the browser would. */
@@ -103,6 +103,14 @@ describe('PackLibrary', () => {
 		const lib = new PackLibrary(new MemoryPackIndex(), null);
 		await lib.install(meta('mm'), BYTES);
 		expect(await lib.bytes('mm')).toEqual(BYTES);
+	});
+});
+
+describe('playableDigests', () => {
+	// Catalog integration: an evicted catalog pack was listed as INSTALLED, with no way to download it again.
+	it('regression: leaves evicted packs out, so the catalog offers their download again', () => {
+		const row = (digest: string, evicted: boolean) => ({ digest, evicted }) as PackEntry;
+		expect([...playableDigests([row('a', false), row('b', true)])]).toEqual(['a']);
 	});
 });
 

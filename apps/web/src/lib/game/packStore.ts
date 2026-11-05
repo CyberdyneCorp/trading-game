@@ -45,6 +45,14 @@ export class MemoryPackIndex implements PackIndex {
 
 const fileName = (digest: string) => `${digest}.tlpack`;
 
+/**
+ * Digests of the packs whose bytes are on this device. An evicted pack is left out, so the catalog
+ * offers its download again (installing it rewrites the file) instead of showing it as installed.
+ */
+export function playableDigests(packs: readonly PackEntry[]): Set<string> {
+	return new Set(packs.filter((p) => !p.evicted).map((p) => p.digest));
+}
+
 function entry(p: StoredPack, evicted: boolean): PackEntry {
 	const { bytes: _bytes, ...meta } = p;
 	return { ...meta, evicted };

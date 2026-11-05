@@ -35,6 +35,7 @@ import {
 	type LegResult
 } from './campaign.ts';
 import { legReport } from './campaignReport.ts';
+import { CatalogModel, type CatalogHost, type CatalogStore } from './catalog.svelte.ts';
 import { campaignPermissions } from './curriculum.ts';
 import { i18n, t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
@@ -42,11 +43,22 @@ import { distinctFinished, newPerks, perkOptions, perksUsed, unlockedPerks, type
 import { randomSeedBytes, trustedKeys } from './packs.ts';
 import { missingCapabilities, type MissingCapability } from './browserSupport.ts';
 import { enginesToKeep, gcEngines, pinEngine } from './engineCache.ts';
-import { formatBytes, MemoryPackIndex, opfsPackDir, PackLibrary, quotaShortfall, storageQuota, type PackEntry, type Quota } from './packStore.ts';
-import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type RunRecord } from './storage.ts';
+import { formatBytes, MemoryPackIndex, opfsPackDir, PackLibrary, playableDigests, quotaShortfall, storageQuota, type PackEntry, type Quota } from './packStore.ts';
+import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type PackOrigin, type Progress, type RunRecord } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
 
-export type Screen = 'loading' | 'menu' | 'import' | 'tutorial' | 'briefing' | 'terminal' | 'debrief' | 'curriculum' | 'journal';
+export type Screen =
+	| 'loading'
+	| 'menu'
+	| 'import'
+	| 'tutorial'
+	| 'briefing'
+	| 'terminal'
+	| 'debrief'
+	| 'curriculum'
+	| 'journal'
+	| 'lesson'
+	| 'catalog';
 
 type Action =
 	| { k: 'lev'; lev: number }
@@ -123,7 +135,7 @@ export interface Notice {
 	text: string;
 }
 
-export class GameSession {
+export class GameSession implements CatalogHost {
 	screen = $state<Screen>('loading');
 	error = $state<string | null>(null);
 	missions = $state<MissionInfo[]>([]);
@@ -185,6 +197,10 @@ export class GameSession {
 	runAssisted = $state<AssistedLink | null>(null);
 	/** Run headers for the journal screen (loaded when it opens). */
 	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
+	/** The Academy lesson open on the 'lesson' screen. */
+	lessonId = $state('');
+	/** Pack catalog and downloads (catalog screen). */
+	readonly catalog: CatalogModel = new CatalogModel(this);
 
 	private engine: EngineClient | null = null;
 	/** This version's engine build (path) and the build loaded in the worker (differs while a pinned run plays). */
@@ -474,10 +490,12 @@ export class GameSession {
 		this.resetRun(missionId, seed);
 		this.options = options;
 		this.perkChoice = perks;
-		this.runAssisted = link;
 		await this.useCurrentEngine(); // a new attempt, so this version's engine (as for any new run)
 		const state = await this.startEngine(missionId, seed, packDigest);
 		if (!state) throw new Error('pack missing');
+		// Flagged together with its first state: set before the (OPFS) pack read, the assisted tag showed
+		// over the attempt being rewound.
+		this.runAssisted = link;
 		this.state = state;
 		this.lessonInfo = packDigest ? null : await this.eng().request({ kind: 'lesson', missionId });
 		await this.createRunRecord(missionId, seed, { packDigest, assisted: link });
@@ -500,6 +518,44 @@ export class GameSession {
 
 	openCurriculum(): void {
 		this.screen = 'curriculum';
+	}
+
+	// ---- Academy lessons (curriculum stages without a mission; web-client task 4.4) ----
+
+	openLesson(id: string): void {
+		this.lessonId = id;
+		this.screen = 'lesson';
+	}
+
+	/**
+	 * Records a completed lesson in local progress (passes its stage) and returns to the map once the
+	 * write is committed, so a reload right after the map shows the stage passed cannot lose it.
+	 */
+	async finishLesson(id: string): Promise<void> {
+		if (!this.progress.lessonsDone.includes(id)) {
+			this.progress = { ...this.progress, lessonsDone: [...this.progress.lessonsDone, id] };
+			await this.store?.saveProgress($state.snapshot(this.progress)).catch(() => (this.durable = false));
+		}
+		this.screen = 'curriculum';
+	}
+
+	// ---- pack catalog (web-client tasks 4.4, 5.3, 5.5) ----
+
+	async openCatalog(): Promise<void> {
+		this.screen = 'catalog';
+		await this.catalog.load();
+	}
+
+	get installedDigests(): ReadonlySet<string> {
+		return playableDigests(this.packs);
+	}
+
+	get catalogStore(): CatalogStore | null {
+		return this.store;
+	}
+
+	online(): boolean {
+		return typeof navigator === 'undefined' || navigator.onLine;
 	}
 
 	async openJournal(): Promise<void> {
@@ -589,11 +645,17 @@ export class GameSession {
 		return check.ok ? res : { ...res, ok: false, reason: check.reason };
 	}
 
+	/** Where the current run's pack came from (null for a mission run). */
+	get runPackOrigin(): PackOrigin | null {
+		if (!this.runPack) return null;
+		return this.packs.find((p) => p.digest === this.runPack)?.origin ?? 'import';
+	}
+
 	/**
 	 * Verify-then-install: only bytes the engine accepted are stored (by digest), and only when they
 	 * fit in the storage quota (spec web-client "Quota exceeded": the space missing is reported).
 	 */
-	async installPack(bytes: Uint8Array, label: string): Promise<PackCheck> {
+	async installPack(bytes: Uint8Array, label: string, origin: PackOrigin = 'import'): Promise<PackCheck> {
 		this.quota = await storageQuota();
 		const short = quotaShortfall(this.quota, bytes.length);
 		if (short > 0) return { ok: false, reason: `quota:${formatBytes(short, i18n.locale)}`, detail: '' };
@@ -609,7 +671,8 @@ export class GameSession {
 			warmupBars: s.warmupBars,
 			leverageCap: s.leverageCap,
 			gaps: s.gaps,
-			addedAt: Date.now()
+			addedAt: Date.now(),
+			origin
 		};
 		const entry = await this.library.install(meta, bytes).catch(() => null);
 		if (!entry) {
