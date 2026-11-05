@@ -1,5 +1,6 @@
 import pytest
 
+import golden
 from tradelab_engine import EngineError, InvalidAction, Run, RunOptions, engine_version, missions, replay
 
 
@@ -7,23 +8,6 @@ def test_version_and_catalog():
     assert engine_version()["executionPolicy"] >= 4
     ids = {m["id"] for m in missions()}
     assert {"m01-false-breakout", "m04-options-buyer"} <= ids
-
-
-def test_cross_binding_golden_matches_native_cpp():
-    """Same calls as the C++ test 'Golden: scripted mission run' => identical digests."""
-    with Run("m01-false-breakout", 2026) as run:
-        run.set_leverage(1, 5)
-        run.place_order(2, 0, 0, "120", None, False)
-        run.advance(3)
-        run.place_order(3, 2, 1, "120", "99", True)
-        run.place_order(4, 3, 1, "60", "104", True)
-        run.advance(20)
-        run.place_order(5, 0, 1, "200", None, False)
-        run.advance(30)
-        run.close_position(6)
-        state = run.advance(1000)
-    assert state["digest"] == "0296b3e88ee2cc9697a1d904530457a71bde1f58ba1b52136c154e5c2e0907f1"
-    assert state["eventsDigest"] == "ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19"
 
 
 def test_replay_action_log_reproduces_and_scores():
@@ -67,20 +51,11 @@ def test_invalid_actions_are_rejected_before_the_engine():
         Run("unknown", 1)
 
 
-def test_cross_binding_golden_with_advice_matches_native_cpp():
-    """Same calls as the C++ test 'Golden: scripted run with start options and advice'."""
-    with Run("m02-funding-squeeze", 2026, RunOptions(advice_allowance=3, news_lead=1, calendar=True)) as run:
-        assert run.request_advice(1)["accepted"]
-        run.set_leverage(2, 3)
-        run.record_plan(3, 0, False, False, True, "95", "115", 60, "100")
-        run.place_order(4, 0, 0, "50", None, False, "95", "115")
-        run.advance(25)
-        run.request_advice(5)
-        state = run.advance(1000)
-    assert state["advisor"]["left"] == 1
-    assert len(state["advisor"]["advice"]) == 2
-    assert state["digest"] == "b4b86bfad81a81b303c7833879798fd8d2db50b783f8409a587b0e171d7c5963"
-    assert state["eventsDigest"] == "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f"
+def test_golden_with_advice_keeps_the_allowance_and_both_pieces_of_advice():
+    """Shared fixture m02-advisor-options (digests checked in test_golden.py, like the C++ goldens)."""
+    result = golden.replay_run(golden.load("m02-advisor-options"))
+    assert result.state["advisor"]["left"] == 1
+    assert len(result.state["advisor"]["advice"]) == 2
 
 
 def test_replay_with_advice_and_options():

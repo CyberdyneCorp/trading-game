@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "fixtures": [
+    "m01-false-breakout",
+    "m02-advisor-options",
+    "m05-options-writer",
+    "m06-thin-book",
+    "m07-trend-trailing",
+    "m08-regime-switch",
+    "m09-event-straddle",
+    "m10-hedged-book",
+    "m11-news-calendar",
+    "m12-capstone",
+    "csv-pack",
+    "reveal-m08",
+    "reveal-m11"
+  ]
+}

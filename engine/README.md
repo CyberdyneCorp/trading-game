@@ -28,23 +28,44 @@ Results must be bit-identical on native x86-64/arm64, WASM, Python and Swift. En
 
 ## Golden digests
 
-There is no separate fixtures directory: the goldens are SHA-256 digests frozen inside the tests.
+Two kinds of goldens freeze the engine's output:
 
-- `tests/test_det_math.cpp`, `tests/test_prng.cpp`: kernel outputs and normal variates.
-- `tests/test_options.cpp` (OPT01): a grid of option quotes and Greeks.
-- `tests/test_missions.cpp`: scripted mission runs through the C ABI (state and event-stream digests): m01 and m05 since phase 1, and one golden per phase-2 mission with default options (m06–m12), plus the SHA-256 of `tl_mission_reveal("m08-regime-switch", 7)` and of `tl_mission_reveal("m11-news-calendar", 7)`.
-- `tests/test_mission_learnability.cpp` (m01–m08 and the buy-and-hold bound), `tests/test_mission_learnability_b.cpp` (m09–m12; both share the reference players in `tests/learnability.hpp`) and `tests/test_mission_realism.cpp` are not goldens: they assert bands over 60 seeds of every mission (design D8.3), so a generator or mission change that makes a lesson unlearnable or predictable fails them.
-- `tests/test_advisor.cpp`: a scripted m02 run with start options (advice allowance 3, fast wire 1, calendar) and two advisor requests.
-- `bindings/python/tests/test_engine.py`: repeats the `m01-false-breakout` and the advisor scripted runs through the Python binding and checks the same digests; `bindings/python/tests/test_missions_batch_a.py` repeats the m06, m07 and m08 goldens and the reveal digest; `test_missions_batch_b.py` the m09–m12 goldens, the m11 reveal digest and the `upcoming` list.
+- **Unit vectors**, inline in the tests that own them: `tests/test_det_math.cpp` and `tests/test_prng.cpp` (kernel outputs and normal variates), `tests/test_options.cpp` (OPT01: a grid of option quotes and Greeks), `tests/test_sha256.cpp` and `tests/test_ed25519.cpp` (standard vectors).
+- **Scripted runs and reveals**, as shared, language-neutral fixtures in `tests/golden/` (below), replayed by `tests/test_golden.cpp` (native and WASM), `bindings/python/tests/test_golden.py`, and the desktop and iOS clients (add-native-clients tasks 1.6 and 2.1).
+
+`tests/test_mission_learnability.cpp` (m01–m08 and the buy-and-hold bound), `tests/test_mission_learnability_b.cpp` (m09–m12; both share the reference players in `tests/learnability.hpp`) and `tests/test_mission_realism.cpp` are not goldens: they assert bands over 60 seeds of every mission (design D8.3), so a generator or mission change that makes a lesson unlearnable or predictable fails them.
 
 CI runs them on every target (linux-x86_64, macos-arm64, wasm under node, Python). A digest failure means cross-platform results diverged. Do **not** update the digest to make CI green.
 
 The only legitimate update is an intentional change to a kernel, the PRNG, the generator or execution rules. That change must:
 
 1. bump the execution-policy version (old runs must keep replaying), and
-2. be explained in the PR, regenerating the digest from a native build, confirming WASM matches it, and updating the Python mirror of any changed mission digest.
+2. be explained in the PR, regenerating the digests from a native build (`python3 tools/regen_golden.py --write` for the fixtures) and confirming WASM matches them.
 
 A new mission is not such a change: it adds its own golden and leaves every existing one byte-identical (design D8.1). Each generator capability acts only when a mission declares it, so the phase-2 missions added no policy version.
+
+History of the scripted goldens: m01 and m05 since phase 1; policy v2 (order fields) and v3 (instrument field) changed both digests; m01 gained news events (content); v4 added plans and calibration answers to the state digest; v7 changed m05 (jump before the first expiry); v9 (funding from the last closed bar) changed the state digests through the version; v10 (news priced on arrival) regenerated every mission market; v11 appended start options and advice to the state digest (event digests unchanged, so a default run executes exactly as before) and added the m02 advisor golden; phase 2 added one golden per new mission (m06–m12), the CSV pack golden and the m08/m11 reveal digests.
+
+### Shared fixtures (`tests/golden/`)
+
+`index.json` lists every fixture by name (`{"format": 1, "fixtures": [...]}`); CMake fails at configure time when it does not list exactly the `*.json` files in the folder, and `test_golden.py` checks the same. Each fixture is one JSON file, `<name>.json`:
+
+| Field | Meaning |
+|---|---|
+| `format` | Fixture format version, currently `1`. A reader refuses other values. |
+| `kind` | `"run"` (a scripted run) or `"reveal"` (a seeded mission reveal). |
+| `name`, `description` | The file name without `.json`; what the script exercises. |
+| `mission` | Built-in mission id (`tl_missions`). A `run` has either `mission` or `csvPack`. |
+| `csvPack` | A private market: `csv` (the file's lines, joined with `\n` plus a final `\n`), `meta` (the import metadata object of `tl_pack_build_csv`) and `deviceSeed` (64 hex). Build the pack with `tl_pack_build_csv(csv, meta, deviceSeed)`, trust only `tl_device_key(deviceSeed)` and start it with `tl_run_create_pack`. |
+| `seed` | Run seed (`uint32`). |
+| `options` | Optional start options in the client's run-record shape (`adviceAllowance`, `newsLead`, `calendar`, `startingBalance`, `leverageCap`; absent = `tl_run_create_ex` defaults: 0, 0, off, `NULL`, 0). |
+| `actions` | The action log in the web client's format (documented in `bindings/python/tradelab_engine/replay.py`). Client ids are 1, 2, … for every action except `adv`; `{"k":"adv","n":N}` is `tl_advance(run, N)`. JSON `null` is a `NULL` argument. |
+| `expected` | `run`: `digest` and `eventsDigest` (the state's last two fields after the last action, read with `tl_state`), `status` (`finished`, `bankrupt` or `active`) and `rejected` (`[{"action": index in actions, "reason": code}]`, every rejected command; the others were accepted). `reveal`: `sha256`, the SHA-256 of the exact bytes `tl_mission_reveal(mission, seed)` returns. |
+| `versions` | `tl_version()` of the engine that produced `expected`. A replay asserts `executionPolicy` equals the engine's; `engine` is informational. |
+
+A client replays a `run` fixture through the same C ABI the engine tests use (`tests/golden.cpp` is the reference implementation) and compares `expected` field by field. The files are embedded in the test binaries at configure time (`generated/golden_fixtures.inc`), so the WASM tests need no file system.
+
+Regeneration: `python3 tools/regen_golden.py` replays every fixture through the Python binding (`libtradelab` from `engine/build/native-release`, or `TRADELAB_LIB`) and exits 1 when an `expected` or `versions` block, or the file layout, differs (CI runs it in the Python job); `--write` rewrites them. It never touches the inputs (market, seed, options, actions, description). To add a fixture, write those inputs to `tests/golden/<name>.json` (with `"format": 1` and `"kind"`), add the name to `index.json`, run `--write`, and check that every earlier fixture is unchanged.
 
 ## Interface definition (IDL)
 

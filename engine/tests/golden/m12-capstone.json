@@ -1,0 +1,26 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m12-capstone",
+  "description": "A long with a stop, a written straddle, a close and a short with a stop.",
+  "mission": "m12-capstone",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 4},
+    {"k": "order", "type": "market", "side": "buy", "qty": "80", "price": null, "ro": false, "stop": "95", "tp": null, "trail": null},
+    {"k": "opt", "series": 7, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "opt", "series": 8, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 45},
+    {"k": "close"},
+    {"k": "adv", "n": 30},
+    {"k": "order", "type": "market", "side": "sell", "qty": "50", "price": null, "ro": false, "stop": "115", "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "6cf7a03b9800436de835ffcba145e3dd4c02071f6bceab57adc11fc47fd56465",
+    "eventsDigest": "70f0eb16beb797db73246a800de61e636a5f4593dd699e5a6f64bd4c55fac459",
+    "status": "finished",
+    "rejected": [{"action": 7, "reason": "invalid_bracket"}]
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m05-options-writer",
+  "description": "Phase-1 option-writing golden: written calls, written puts with a limit, half bought back.",
+  "mission": "m05-options-writer",
+  "seed": 77,
+  "actions": [
+    {"k": "opt", "series": 7, "side": "sell", "type": "market", "qty": "20", "premium": null},
+    {"k": "opt", "series": 8, "side": "sell", "type": "limit", "qty": "10", "premium": "0.50"},
+    {"k": "adv", "n": 30},
+    {"k": "opt", "series": 7, "side": "buy", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "ac68db66659602d035e03c9950285400df3b2e5f450c1103b4cecfb927050bd7",
+    "eventsDigest": "908ac0b1ffd77daf85c8c88e59123a55cb3ddc5ab1509965ae294ae637c4c8aa",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}
