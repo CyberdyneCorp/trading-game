@@ -113,6 +113,7 @@ describe('RunStore (IndexedDB)', () => {
 			tutorialsSeen: ['m01-false-breakout'],
 			advisorPoints: 7,
 			settledRuns: ['r9'],
+			perksIntroduced: [],
 			campaign: null,
 			campaignHistory: [],
 			assessed: []

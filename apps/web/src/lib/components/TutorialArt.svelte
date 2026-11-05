@@ -113,6 +113,25 @@
 		<text x="150" y="16" class="small attention" text-anchor="end">θ</text>
 		<text x="12" y="98" class="small muted">{t('tut.art.today')}</text>
 		<text x="150" y="98" class="small muted" text-anchor="end">{t('tut.art.expiry')}</text>
+	{:else if art === 'calendar'}
+		<rect class="box" x="30" y="10" width="100" height="80" />
+		<line class="muted-line" x1="30" x2="130" y1="26" y2="26" />
+		{#each [0, 1, 2, 3] as r (r)}
+			{#each [0, 1, 2, 3, 4] as c (c)}
+				<rect class={r === 2 && c === 3 ? 'cell mark' : 'cell'} x={36 + c * 19} y={31 + r * 14} width="15" height="10" />
+			{/each}
+		{/each}
+		<text x="99" y="72" class="small attention" text-anchor="middle">%</text>
+		<text x="140" y="70" class="small muted">?</text>
+	{:else if art === 'wire'}
+		{@render candles(RANGE.slice(0, 4), 16, 14)}
+		<rect class="future" x="74" y="6" width="80" height="88" />
+		<rect class="box info-stroke" x="84" y="16" width="62" height="22" />
+		<line class="muted-line" x1="90" x2="138" y1="24" y2="24" />
+		<line class="muted-line" x1="90" x2="128" y1="31" y2="31" />
+		<line class="arrow" x1="84" x2="66" y1="27" y2="27" />
+		<path class="arrow-head" d="M60,27 L67,23 L67,31 Z" />
+		<text x="114" y="60" class="small info" text-anchor="middle">−1</text>
 	{/if}
 </svg>
 
@@ -233,5 +252,16 @@
 	}
 	.row.atm {
 		stroke: var(--accent);
+	}
+	.cell {
+		fill: none;
+		stroke: var(--line);
+	}
+	.cell.mark {
+		stroke: var(--attention);
+		stroke-width: 1.5;
+	}
+	.info-stroke {
+		stroke: var(--info);
 	}
 </style>

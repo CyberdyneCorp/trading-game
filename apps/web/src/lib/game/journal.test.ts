@@ -33,6 +33,17 @@ describe('journal', () => {
 		expect(runMode({})).toBe('free');
 	});
 
+	it('labels runs played with an intel perk (start options) "with intel"', () => {
+		const intel = [
+			rec('w', 'm01-false-breakout', 5, [plan(70, 'x')], { options: { adviceAllowance: 3, newsLead: 1, calendar: false } }),
+			rec('k', 'm02-funding-squeeze', 6, [plan(70, 'y')], { options: { adviceAllowance: 3, newsLead: 0, calendar: true } }),
+			rec('p', 'm01-false-breakout', 7, [plan(70, 'z')], { options: { adviceAllowance: 3, newsLead: 0, calendar: false } })
+		];
+		expect(journalRuns([...records, ...intel]).map((r) => [r.runId, r.intel])).toEqual([
+			['p', false], ['k', true], ['w', true], ['d', false], ['b', false], ['a', false]
+		]);
+	});
+
 	it('filters by mission and offers only missions that have entries', () => {
 		expect(journalRuns(records, 'm01-false-breakout').map((r) => r.runId)).toEqual(['a']);
 		expect(journalMissions(records)).toEqual(['m01-false-breakout', 'm02-funding-squeeze', 'csv-x']);

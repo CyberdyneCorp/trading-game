@@ -35,6 +35,7 @@ class RunRow(Base):
     digest_mismatch: Mapped[bool] = mapped_column(Boolean, default=False)
     score_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
     report: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    options: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
 
 class ActionRow(Base):
@@ -54,7 +55,7 @@ class IdempotencyRow(Base):
 
 _FIELDS = (
     "run_id", "owner", "mission_id", "seed", "execution_policy", "device_id", "created_at", "actions", "status",
-    "server_digest", "client_digest", "digest_mismatch", "score_total", "report",
+    "server_digest", "client_digest", "digest_mismatch", "score_total", "report", "options",
 )
 
 

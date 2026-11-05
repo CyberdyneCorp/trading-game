@@ -2,6 +2,7 @@
 // stays on this device and is never scored (spec mission-scoring "No subjective LLM grading").
 
 import type { PlanEntry } from './analysis.ts';
+import { withIntel } from './perks.ts';
 import type { RunRecord } from './storage.ts';
 
 export type RunMode = 'campaign' | 'free' | 'practice';
@@ -13,6 +14,8 @@ export interface JournalRun {
 	createdAt: number;
 	mode: RunMode;
 	status: RunRecord['status'];
+	/** Played with an intel perk (its start options): labeled "with intel". */
+	intel: boolean;
 	entries: PlanEntry[];
 }
 
@@ -33,6 +36,7 @@ export function journalRuns(records: readonly RunRecord<PlanEntry, unknown>[], m
 			createdAt: r.createdAt,
 			mode: runMode(r),
 			status: r.status,
+			intel: withIntel(r.options),
 			entries: [...r.journal].sort((x, y) => x.step - y.step)
 		}));
 }

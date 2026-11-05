@@ -43,8 +43,8 @@ Auth = `Authorization: Bearer <CyberdyneAuth access token>` (`type=access`, `aud
 |---|---|---|---|
 | GET | `/api/v1/health` | – | `{status, executionPolicy}` |
 | GET | `/api/v1/missions` | – | engine's built-in mission catalog |
-| POST | `/api/v1/sync/batches` | Bearer + `Idempotency-Key` | `{deviceId, runs:[{runId, missionId, seed, executionPolicy, actions:[{seq, action}], clientDigest?, clientActionCount?}]}`; ≤ 50 runs (413), ≤ 20,000 actions per run; gap-free action prefixes; server replay and scoring; digest check. Returns one `{runId, acceptedThrough, status, serverDigest, digestMatch, scoreTotal, error}` per run; per-run `error`: `conflict`, `not_found`, `invalid_log`, `unsupported_policy` |
-| GET | `/api/v1/runs`, `/api/v1/runs/{id}` | Bearer | newest first; detail adds the debrief `report`; other players' runs return 404 |
+| POST | `/api/v1/sync/batches` | Bearer + `Idempotency-Key` | `{deviceId, runs:[{runId, missionId, seed, executionPolicy, actions:[{seq, action}], clientDigest?, clientActionCount?, options?}]}`; `options` is the run record's start options `{adviceAllowance 0–10, newsLead 0–2, calendar, startingBalance?, leverageCap?}` (absent = defaults; out of range → 422), fixed by the first sync (a different value later → `conflict`) and used to start the replay; ≤ 50 runs (413), ≤ 20,000 actions per run; gap-free action prefixes; server replay and scoring; digest check. Returns one `{runId, acceptedThrough, status, serverDigest, digestMatch, scoreTotal, error}` per run; per-run `error`: `conflict`, `not_found`, `invalid_log`, `unsupported_policy` |
+| GET | `/api/v1/runs`, `/api/v1/runs/{id}` | Bearer | newest first, each with its start `options` and `withIntel` (fast wire or calendar used: the score is labeled, not compared with plain runs); detail adds the debrief `report`; other players' runs return 404 |
 | GET | `/api/v1/progress` | Bearer | per mission: runs, completed, best server score, its net P&L |
 | GET | `/api/v1/me/export` | Bearer | runs with action logs and reports |
 | DELETE | `/api/v1/me/data` | Bearer + `Idempotency-Key` | erases the caller's runs, actions and idempotency records; returns `{deletedRuns}` |
@@ -53,4 +53,4 @@ Auth = `Authorization: Bearer <CyberdyneAuth access token>` (`type=access`, `aud
 
 ## Not yet implemented
 
-Web BFF login (session cookie/CSRF), roles/permissions resolver, the CyberdyneAuth `user_deleted` webhook, Alembic migrations, rate limits, replaying older execution-policy versions, scenario catalog and pack delivery, CSV import validation, deployment.
+Web BFF login (session cookie/CSRF), roles/permissions resolver, the CyberdyneAuth `user_deleted` webhook, Alembic migrations (a database created before the `runs.options` column needs it added by hand until then), rate limits, replaying older execution-policy versions, scenario catalog and pack delivery, CSV import validation, deployment.
