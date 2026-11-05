@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { csvIssueText, i18n, packReasonText } from './i18n.svelte.ts';
-import { DEFAULT_META, defaultLabel, guessMeta, intervalLabel, isoUtc, PINNED_PUBLISHER_KEYS, trustedKeys } from './packs.ts';
+import { csvIssueText, csvMetaText, i18n, packReasonText, t } from './i18n.svelte.ts';
+import { DEFAULT_META, GAP_FILLS, defaultLabel, guessMeta, intervalLabel, isoUtc, PINNED_PUBLISHER_KEYS, trustedKeys } from './packs.ts';
 
 // Every CSV issue code the engine can emit (engine/src/csv_import.cpp header).
 const CSV_CODES = [
@@ -62,6 +62,24 @@ describe('CSV issue and pack reason texts', () => {
 		expect(csvIssueText('brand_new')).toBe('brand_new');
 		expect(packReasonText('hash_mismatch')).toBe('a data file was changed (hash mismatch)');
 		expect(packReasonText('brand_new')).toBe('brand_new');
+		i18n.locale = 'pt-BR';
+	});
+});
+
+describe('gap fill (engine policy v17)', () => {
+	it('defaults to joining the bars, as imports did before, and keeps the choice when guessing units', () => {
+		expect(DEFAULT_META.gapFill).toBe('none');
+		expect(guessMeta('timestamp,open\n1700000000,1\n1700003600,1\n', { ...DEFAULT_META, gapFill: 'skip' }).gapFill).toBe('skip');
+	});
+
+	it('offers the three engine values, each labeled in both locales, and explains a refused value', () => {
+		expect(GAP_FILLS.map((g) => g.value)).toEqual(['none', 'skip', 'carryForward']);
+		for (const locale of ['pt-BR', 'en'] as const) {
+			i18n.locale = locale;
+			for (const g of GAP_FILLS) expect(t(g.label)).not.toBe(g.label);
+			expect(csvMetaText('gapFill')).not.toMatch(/gapFill/);
+			expect(packReasonText('too_many_bars')).not.toMatch(/_/);
+		}
 		i18n.locale = 'pt-BR';
 	});
 });

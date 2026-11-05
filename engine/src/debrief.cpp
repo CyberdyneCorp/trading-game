@@ -231,7 +231,7 @@ Money option_unrealized(const Scenario& sc, const RunState& st, std::uint32_t se
 
 void mark_open_trade(const Scenario& sc, const RunState& st, TradeRow& t) {
   if (t.reason != ExitReason::Open) return;
-  const Money u = t.series == 0 ? detail::unrealized_pnl(sc, st.position, sc.bars[st.step].close) : option_unrealized(sc, st, t.series);
+  const Money u = t.series == 0 ? detail::unrealized_pnl(sc, st.position, mark_bar(sc, st.step).close) : option_unrealized(sc, st, t.series);
   t.pnl = Money::from_raw(t.pnl.raw + u.raw);
   t.net = Money::from_raw(t.net.raw + u.raw);
 }

@@ -56,7 +56,9 @@
 	const cantAfford = $derived(cost != null && cost > num(game.account.available));
 	// The engine cancels a market sell with no buyer (bid 0,00): refuse it here, with the reason.
 	const noBid = $derived(!!quote && side === 'sell' && type === 'market' && num(quote.bid) <= 0);
-	const canSubmit = $derived(!!quote && !busy && qty > 0 && !shortBlocked && !cantAfford && !noBid && (type === 'market' || parseDecimal(limitInput) > 0));
+	// Inside the settlement window the engine refuses the order (series_settling, policy v17).
+	const settling = $derived(!!quote?.settling);
+	const canSubmit = $derived(!!quote && !busy && qty > 0 && !shortBlocked && !cantAfford && !noBid && !settling && (type === 'market' || parseDecimal(limitInput) > 0));
 
 	// Payoff diagram geometry (SVG viewBox units).
 	const W = 300;
@@ -134,6 +136,9 @@
 		{#if opensShort && !shortBlocked}<p class="warnbox">⚠ {t('opt.unbounded')}</p>{/if}
 		{#if noBid}
 			<p class="warnbox" role="alert" data-testid="opt-no-bid">⚠ {t('opt.noBid')}</p>
+		{/if}
+		{#if settling}
+			<p class="warnbox" role="alert" data-testid="opt-settling">⚠ {t('opt.settling', { min: game.options.settlementMinutes ?? 30 })}</p>
 		{/if}
 		{#if cantAfford}
 			<p class="warnbox" role="alert" data-testid="opt-cant-afford">

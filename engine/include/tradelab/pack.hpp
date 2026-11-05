@@ -111,6 +111,7 @@ struct PackInfo {
   std::string signing_key_id;
   std::string digest;  // SHA-256 of the whole pack (cache key)
   std::uint32_t gaps = 0;
+  std::string gap_policy;  // "skip" / "carryForward" when gaps were filled with continuity bars, else empty
   PackReveal reveal;
 };
 
@@ -131,7 +132,11 @@ PackOpen open_pack(std::span<const std::uint8_t> bytes, std::span<const TrustedK
 // Mission rules for a private practice pack built from a CSV import.
 struct ImportRules {
   std::int32_t leverage_cap = 5;
-  std::uint32_t warmup_bars = 0;  // 0 = automatic (a quarter of the rows, 20..60)
+  std::uint32_t warmup_bars = 0;  // 0 = automatic (a quarter of the bars, 20..60)
+  // Policy v17: fill each gap with continuity bars (flat at the previous close, no volume, no
+  // funding, zero capacity) and record the indicators' gap policy. Empty = the bars on either side
+  // of a gap are joined, as before.
+  std::optional<GapPolicy> fill_gaps;
 };
 
 struct PackBuild {
@@ -160,7 +165,8 @@ std::vector<std::uint8_t> write_pack(std::string_view manifest_json, const std::
 // 64 lowercase hex digits -> 32 bytes (keys and seeds crossing the C ABI).
 std::optional<std::array<std::uint8_t, 32>> parse_hex32(std::string_view hex);
 
-// Columnar encodings of bars.bin / funding.bin (before zstd).
+// Columnar encodings of bars.bin / funding.bin (before zstd). bars.bin gets a sixth column (the
+// continuity flag) when any bar is a continuity bar.
 std::vector<std::uint8_t> encode_bars(std::span<const Bar> bars);
 std::vector<std::uint8_t> encode_funding(std::span<const Rate> rates);
 

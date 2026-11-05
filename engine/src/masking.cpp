@@ -38,6 +38,7 @@ bool mask_bars(std::span<const Bar> in, std::uint32_t reference, Price tick, std
   for (const Bar& b : in) {
     Bar m;
     m.synthetic = b.synthetic;
+    m.continuity = b.continuity;
     const bool ok = scale_price(b.open, ref, tick, &m.open) && scale_price(b.high, ref, tick, &m.high) &&
                     scale_price(b.low, ref, tick, &m.low) && scale_price(b.close, ref, tick, &m.close) &&
                     scale_volume(b.volume, ref, &m.volume);

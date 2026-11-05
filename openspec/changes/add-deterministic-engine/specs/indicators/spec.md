@@ -40,11 +40,15 @@ An indicator SHALL emit no value until it has received at least its declared war
 - **THEN** its value SHALL be absent (`null`) and its first value SHALL appear after 5 more bars
 
 ### Requirement: Gaps in data
-When the scenario marks a bar as a synthetic continuity bar (no trading), indicators SHALL apply the scenario's declared gap policy (skip or carry forward), and such bars SHALL provide zero executable capacity.
+When the scenario marks a bar as a synthetic continuity bar (no trading: it repeats the previous close with zero volume), indicators SHALL apply the scenario's declared gap policy (skip or carry forward), and such bars SHALL provide zero executable capacity. Under skip, indicators and candle patterns SHALL be computed over the trading bars only and SHALL have no value at a continuity bar; under carry forward, the continuity bar SHALL be an input at the carried close with zero volume. No candle pattern SHALL complete at a continuity bar. Orders working when a continuity bar occurs SHALL neither execute nor trigger in it and SHALL stay working until the next trading bar.
 
 #### Scenario: Continuity bar
 - **WHEN** a continuity bar occurs during an open market order
-- **THEN** no fill SHALL occur in that bar and indicators SHALL follow the declared gap policy
+- **THEN** no fill SHALL occur in that bar, the order SHALL execute at the next trading bar's open, and indicators SHALL follow the declared gap policy
+
+#### Scenario: Skip versus carry forward
+- **WHEN** closes 100, 102, 104, a continuity bar at 104, then 110, and SMA(3)
+- **THEN** under skip SMA(3) SHALL be absent at the continuity bar and (102 + 104 + 110) / 3 at the next bar; under carry forward it SHALL be (102 + 104 + 104) / 3 at the continuity bar and (104 + 104 + 110) / 3 at the next
 
 ### Requirement: Closed-bar only
 Indicator values exposed at decision step `t` SHALL be computed from closed bars up to and including `t` only.

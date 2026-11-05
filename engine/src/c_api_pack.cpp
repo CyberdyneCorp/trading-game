@@ -40,6 +40,25 @@ std::optional<std::int64_t> int_field(const JsonValue& v, std::string_view key, 
   return f->integer;
 }
 
+// "gapFill": "none" or absent (bars across a gap are joined), "skip" or "carryForward" (policy v17:
+// each gap becomes continuity bars and the indicators follow that gap policy).
+bool parse_gap_fill(const std::string& fill, ImportRules* rules) {
+  if (fill == "skip") rules->fill_gaps = GapPolicy::Skip;
+  else if (fill == "carryForward") rules->fill_gaps = GapPolicy::CarryForward;
+  return fill.empty() || fill == "none" || rules->fill_gaps.has_value();
+}
+
+// The import rules part of the metadata: the offending field, or an empty string.
+std::string parse_rules(const JsonValue& v, ImportRules* rules) {
+  const auto lev = int_field(v, "leverageCap", 5);
+  const auto warmup = int_field(v, "warmupBars", 0);
+  if (!lev || *lev < 1 || *lev > 20) return "leverageCap";
+  if (!warmup || *warmup < 0 || *warmup > 10'000) return "warmupBars";
+  rules->leverage_cap = static_cast<std::int32_t>(*lev);
+  rules->warmup_bars = static_cast<std::uint32_t>(*warmup);
+  return parse_gap_fill(text_field(v, "gapFill"), rules) ? std::string() : std::string("gapFill");
+}
+
 // Returns the offending field, or an empty string when the metadata is usable.
 std::string parse_meta(const char* json, CsvMeta* meta, ImportRules* rules) {
   const auto parsed = detail::parse_json(json == nullptr ? "" : json, {4096, 4, 128, 16});
@@ -57,13 +76,7 @@ std::string parse_meta(const char* json, CsvMeta* meta, ImportRules* rules) {
   const auto interval = int_field(v, "intervalSeconds", 0);
   if (!interval || *interval < 60 || *interval > std::int64_t{7} * 86'400) return "intervalSeconds";
   meta->interval_seconds = static_cast<std::uint32_t>(*interval);
-  const auto lev = int_field(v, "leverageCap", 5);
-  const auto warmup = int_field(v, "warmupBars", 0);
-  if (!lev || *lev < 1 || *lev > 20) return "leverageCap";
-  if (!warmup || *warmup < 0 || *warmup > 10'000) return "warmupBars";
-  rules->leverage_cap = static_cast<std::int32_t>(*lev);
-  rules->warmup_bars = static_cast<std::uint32_t>(*warmup);
-  return {};
+  return parse_rules(v, rules);
 }
 
 bool parse_trusted(const char* json, std::vector<TrustedKey>* out) {
@@ -99,7 +112,7 @@ void write_summary(JsonOut& j, const PackOpen& p) {
   j.field("signingKeyId", p.info.signing_key_id).field("timeframe", p.info.timeframe);
   j.field("totalBars", static_cast<std::uint32_t>(sc.bars.size())).field("warmupBars", sc.mission.warmup_bars);
   j.field("leverageCap", std::min(sc.mission.leverage_cap, sc.contract.max_leverage)).field("allowShort", sc.mission.allow_short);
-  j.field("gaps", p.info.gaps).end_obj();
+  j.field("gaps", p.info.gaps).field("gapPolicy", p.info.gap_policy).end_obj();
 }
 
 PackOpen open_from_abi(const std::uint8_t* data, std::uint32_t size, const char* keys_json, PackIntent intent) {

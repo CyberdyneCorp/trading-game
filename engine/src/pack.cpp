@@ -193,12 +193,17 @@ class Opener {
     std::vector<std::uint8_t> raw;
     std::vector<std::int64_t> cols;
     if (!inflate("bars.bin", &raw)) return false;
-    if (!decode_columns(raw, "TLB1", m_.bars, kBarColumns, &cols)) return fail("malformed_data", "bars.bin");
+    // A declared gap policy adds the continuity column (0 or 1 per bar).
+    const bool gaps_filled = !m_.gap_policy.empty();
+    const std::uint32_t columns = gaps_filled ? kBarColumns + 1 : kBarColumns;
+    if (!decode_columns(raw, "TLB1", m_.bars, columns, &cols)) return fail("malformed_data", "bars.bin");
     const std::size_t n = m_.bars;
     bars_.resize(n);
     for (std::size_t i = 0; i < n; ++i) {
+      const std::int64_t flag = gaps_filled ? cols[5 * n + i] : 0;
+      if (flag != 0 && flag != 1) return fail("malformed_data", "bars.bin");
       bars_[i] = Bar{Price::from_raw(cols[i]), Price::from_raw(cols[n + i]), Price::from_raw(cols[2 * n + i]),
-                     Price::from_raw(cols[3 * n + i]), Qty::from_raw(cols[4 * n + i]), false};
+                     Price::from_raw(cols[3 * n + i]), Qty::from_raw(cols[4 * n + i]), false, flag == 1};
     }
     return true;
   }
@@ -239,6 +244,7 @@ class Opener {
     sc.contract = m_.contract;
     sc.costs = m_.costs;
     sc.mission = m_.mission;
+    sc.mission.gap_policy = m_.gap_policy == "carryForward" ? GapPolicy::CarryForward : GapPolicy::Skip;
     sc.bars = std::move(bars_);
     sc.funding_rate = std::move(funding_);
     const ScenarioError e = validate(sc);
@@ -250,6 +256,7 @@ class Opener {
     info.timeframe = m_.timeframe;
     info.step_seconds = m_.step_seconds;
     info.gaps = m_.gaps;
+    info.gap_policy = m_.gap_policy;
     return true;
   }
 
@@ -279,12 +286,16 @@ class Opener {
 }  // namespace
 
 std::vector<std::uint8_t> encode_bars(std::span<const Bar> bars) {
-  auto out = column_header("TLB1", static_cast<std::uint32_t>(bars.size()), kBarColumns);
+  const bool gaps_filled = std::any_of(bars.begin(), bars.end(), [](const Bar& b) { return b.continuity; });
+  auto out = column_header("TLB1", static_cast<std::uint32_t>(bars.size()), gaps_filled ? kBarColumns + 1 : kBarColumns);
   for (const Bar& b : bars) put_i64(out, b.open.raw);
   for (const Bar& b : bars) put_i64(out, b.high.raw);
   for (const Bar& b : bars) put_i64(out, b.low.raw);
   for (const Bar& b : bars) put_i64(out, b.close.raw);
   for (const Bar& b : bars) put_i64(out, b.volume.raw);
+  if (gaps_filled) {
+    for (const Bar& b : bars) put_i64(out, b.continuity ? 1 : 0);
+  }
   return out;
 }
 

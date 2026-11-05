@@ -36,7 +36,15 @@ OptionQuote quote(const Scenario& sc, const OptionSeries& series, std::uint32_t 
 // Intrinsic value per unit at settlement price s.
 Price intrinsic(const OptionSeries& series, Price s);
 
-// Settlement price for an expiry at `step`: TWAP of the last `settlement_bars` closes.
+// Settlement price for an expiry at `step` (policy v17): TWAP over the last `settlement_minutes` of
+// market time ending at the expiry close, from the scenario's sub-bars for that bar when they cover
+// the window on their grid (exact), else the mean of the closes of the bars covering it (the expiry
+// close when the window is shorter than a bar). `approximated` is set unless the closes used tile the
+// window exactly.
 Price settlement_price(const Scenario& sc, std::uint32_t step, bool* approximated);
+
+// True when an option order on `series` executing at the open of `bar` would fall inside the series'
+// settlement window: from (expiry close - settlement_minutes) onward (reason `series_settling`).
+bool in_settlement_window(const Scenario& sc, const OptionSeries& series, std::uint32_t bar);
 
 }  // namespace tradelab

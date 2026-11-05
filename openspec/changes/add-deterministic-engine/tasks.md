@@ -34,7 +34,7 @@
 - [x] 5.4 Funding from series or synthetic rule (the generator emits the funding series)
 - [x] 5.5 Property tests: reconciliation (SIM08), non-negative balances; goldens FUT01–FUT04
 - [x] 5.6 Maintenance-margin tiers by notional (policy v16, design D6j): `ContractSpec.margin_tiers` keyed by notional at entry for the liquidation price, `leverage_above_tier` on placement, fill and `SetLeverage`, debrief safe leverage and the web ticket's liquidation estimate and tier warning use the tier; default tiers on built-in missions
-- [ ] 5.7 Mark-price bars for unrealized P&L, margin and liquidation, and the scenario flag `markFromLastPrice` when absent — pending: everything uses last-price closes and no scenario flag is exposed
+- [x] 5.7 Mark-price bars for unrealized P&L, margin and liquidation, and the scenario flag `markFromLastPrice` when absent (policy v17, design D6k): `Scenario.mark` (one bar per bar) drives gap/intrabar/close liquidation, funding, the account mark and the debrief's open-trade mark; fills use the traded bars; the contract JSON exposes `markFromLastPrice` (true for every built-in mission and pack, which keep the last price) and the briefing says which price marks positions (`tests/test_policy_v17.cpp`). Packs carry no mark series yet (manifest v1)
 
 ## 6. Options
 - [x] 6.1 Series listing, Black-76 pricing, spread, quantization
@@ -42,7 +42,7 @@
 - [x] 6.3 Greeks
 - [x] 6.4 Buy/write, option margin, margin call and buy-back
 - [x] 6.5 Expiry settlement (TWAP of the last `settlement_bars` closes, flagged approximate for one bar); goldens OPT01–OPT04
-- [ ] 6.6 Settlement window in market time: TWAP from sub-bars and rejection with `series_settling` from the start of the window — pending: scenarios have no sub-bars and the reason does not exist
+- [x] 6.6 Settlement window in market time (policy v17, design D6k): `OptionSpec.settlement_minutes` (default 30) replaces `settlement_bars`; TWAP from `Scenario.sub_bars` when they tile the window (exact), else the closes of the bars covering it (approximate unless they tile it); orders that would execute inside the window are rejected, and resting ones cancelled, with `series_settling` (reason 34; ticket warning from the chain's `settling` flag, reason text in PT-BR/en). Built-in missions (hourly bars, 30 minutes) settle and refuse exactly as before
 
 ## 7. Indicators
 - [x] 7.1 SMA, EMA, RSI, ATR, volume with warm-up (values absent until warm-up)
@@ -50,7 +50,7 @@
 - [x] 7.3 VWAP (24-bar sessions), MACD(12,26,9), ADX(14) with +DI/−DI; indicator version 2; hand-computed tests and no-lookahead checks
 - [x] 7.4 Bollinger(20, 2) with exact integer square root; indicator version 3
 - [x] 7.5 Candle pattern detection (29 patterns, context-aware), pattern version 1, calibration test
-- [ ] 7.6 Continuity bars: scenario gap policy (skip or carry forward) for indicators and zero executable capacity — pending: `Bar` has no continuity marker and no gap policy exists
+- [x] 7.6 Continuity bars (policy v17, design D6k): `Bar.continuity` (flat at the previous close, no volume, validated), `MissionRules.gap_policy` (skip: indicators and patterns run over trading bars only, no value at a continuity bar; carry forward: fed as the flat bar), zero capacity (no matching runs; working orders wait for the next trading bar). CSV imports may fill gaps with them (`gapFill`, manifest `data.gapPolicy`, a sixth `bars.bin` column); the chart shades them, the readout and legend say "no trading" and how indicators treat them
 
 ## 8. Bindings
 - [x] 8.1 C ABI facade (`engine/include/tradelab/c_api.h`, JSON out, decimal strings in)
