@@ -7,10 +7,18 @@
 // stages for good (`assessed`): ending a campaign run never removes them.
 // Leaving a campaign mission for another run carries the equity it had when it was left, and the
 // campaign stays on that mission, so leaving never restores lost capital.
+// A mission that leaves less than CAMPAIGN_MIN_CAPITAL counts as a bankruptcy: the engine only ends a
+// run when the minimum order is unaffordable at that mission's own leverage cap, and the next mission
+// may cap leverage lower (a liquidation at 20x can leave crumbs that no 2x-10x mission can trade).
 
 import { campaignMissions } from './curriculum.ts';
 
 export const CAMPAIGN_CAPITAL = '10000';
+/**
+ * Least capital a campaign mission must leave to carry on (1% of CAMPAIGN_CAPITAL). The cheapest
+ * order in any campaign mission (0.1 contract near 100 cr, at a 2x cap: about 5 cr) costs far less.
+ */
+export const CAMPAIGN_MIN_CAPITAL = '100';
 /** Ended campaign runs kept for the progress screen. */
 const KEEP_HISTORY = 20;
 
@@ -94,16 +102,26 @@ export function settleCampaignRun<P extends CampaignProgress>(p: P, link: Campai
 	const c = p.campaign;
 	if (!c || c.status !== 'active' || c.id !== link.id || c.index !== link.index) return p;
 	if (c.legs.some((l) => l.runId === out.runId) || campaignMissions()[c.index] !== out.missionId) return p;
-	const leg: CampaignLeg = { runId: out.runId, missionId: out.missionId, startCapital: c.capital, endCapital: out.equity, result: out.result };
-	const next: CampaignRun = { ...c, capital: out.equity, legs: [...c.legs, leg], ...advance(c, out) };
-	const assessed = out.result === 'finished' && !p.assessed.includes(out.missionId) ? [...p.assessed, out.missionId] : p.assessed;
+	const result = legResult(out);
+	const leg: CampaignLeg = { runId: out.runId, missionId: out.missionId, startCapital: c.capital, endCapital: out.equity, result };
+	const next: CampaignRun = { ...c, capital: out.equity, legs: [...c.legs, leg], ...advance(c, result) };
+	const assessed = result === 'finished' && !p.assessed.includes(out.missionId) ? [...p.assessed, out.missionId] : p.assessed;
 	return { ...p, campaign: next, assessed, campaignHistory: archive(p.campaignHistory, next) };
 }
 
-// Bankruptcy (or nothing left to trade with) ends the run; a finished mission moves on; leaving stays.
-function advance(c: CampaignRun, out: RunOutcome): Pick<CampaignRun, 'index' | 'status'> {
-	if (out.result === 'bankrupt' || !(Number(out.equity) > 0)) return { index: c.index, status: 'bankrupt' };
-	if (out.result === 'left') return { index: c.index, status: 'active' };
+/** Less than the campaign minimum left (finished or left) is a bankruptcy: the campaign cannot go on. */
+export function belowCampaignMinimum(equity: string): boolean {
+	return !(Number(equity) >= Number(CAMPAIGN_MIN_CAPITAL));
+}
+
+function legResult(out: RunOutcome): LegResult {
+	return belowCampaignMinimum(out.equity) ? 'bankrupt' : out.result;
+}
+
+// Bankruptcy ends the run; a finished mission moves on; leaving stays.
+function advance(c: CampaignRun, result: LegResult): Pick<CampaignRun, 'index' | 'status'> {
+	if (result === 'bankrupt') return { index: c.index, status: 'bankrupt' };
+	if (result === 'left') return { index: c.index, status: 'active' };
 	const index = c.index + 1;
 	return { index, status: index >= campaignMissions().length ? 'complete' : 'active' };
 }

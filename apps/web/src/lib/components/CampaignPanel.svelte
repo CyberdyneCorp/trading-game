@@ -14,6 +14,13 @@
 	const next = $derived(session.campaignMission);
 	const history = $derived(session.progress.campaignHistory);
 	const best = $derived(bestCompletedCapital(history));
+	// Ending a campaign run throws its carried capital away: it takes a second, explicit click.
+	let confirming = $state(false);
+
+	async function end(): Promise<void> {
+		confirming = false;
+		await session.endCampaign();
+	}
 
 	function mark(i: number): string {
 		if (!c) return '·';
@@ -43,12 +50,20 @@
 		<p data-testid="campaign-progress">
 			{t('campaign.progress', { n: c.index + 1, total: missions.length, mission: missionText(next, L).title, capital: fmtMoney(c.capital, L) })}
 		</p>
-		<div class="buttons">
-			<button class="primary" onclick={() => session.continueCampaign()} disabled={session.busy} data-testid="campaign-continue">
-				▶ {t('campaign.continue')}
-			</button>
-			<button onclick={() => session.endCampaign()} disabled={session.busy}>{t('campaign.end')}</button>
-		</div>
+		{#if confirming}
+			<p class="down" data-testid="campaign-end-confirm">{t('campaign.endConfirm', { capital: fmtMoney(c.capital, L) })}</p>
+			<div class="buttons">
+				<button onclick={end} disabled={session.busy} data-testid="campaign-end-yes">{t('campaign.endYes')}</button>
+				<button onclick={() => (confirming = false)}>{t('campaign.endNo')}</button>
+			</div>
+		{:else}
+			<div class="buttons">
+				<button class="primary" onclick={() => session.continueCampaign()} disabled={session.busy} data-testid="campaign-continue">
+					▶ {t('campaign.continue')}
+				</button>
+				<button onclick={() => (confirming = true)} disabled={session.busy} data-testid="campaign-end">{t('campaign.end')}</button>
+			</div>
+		{/if}
 	{:else}
 		{#if c}<p data-testid="campaign-ended">{endedText()}</p>{/if}
 		<div class="buttons">
@@ -59,7 +74,7 @@
 	{/if}
 	{#if history.length}
 		<p class="muted small">
-			{t('campaign.played', { n: history.length })}{#if best} · {t('campaign.best', { capital: fmtMoney(best, L) })}{/if}
+			{t('campaign.played', { n: history.length })}{#if best}{' · '}{t('campaign.best', { capital: fmtMoney(best, L) })}{/if}
 		</p>
 	{/if}
 </section>

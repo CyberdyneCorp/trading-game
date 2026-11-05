@@ -42,6 +42,32 @@ describe('RunStore (IndexedDB)', () => {
 		const run = await store.activeRun();
 		expect(run?.record.runId).toBe('new');
 		expect(run?.actions).toEqual([]);
+		// The replaced run is no longer in progress (the journal showed it 'in progress' forever).
+		const status = Object.fromEntries((await store.runs()).map((r) => [r.runId, r.status]));
+		expect(status).toEqual({ old: 'left', new: 'active' });
+	});
+
+	it('a finished run stays finished when a new run replaces it', async () => {
+		await store.createRun(record('done'));
+		await store.updateRun('done', { status: 'finished' });
+		await store.createRun({ ...record('next'), createdAt: 2 });
+		expect((await store.runs()).find((r) => r.runId === 'done')?.status).toBe('finished');
+	});
+
+	it('leaves the active run on request (an ended campaign): it is no longer resumable', async () => {
+		await store.createRun(record('camp'));
+		await store.leaveActiveRun();
+		expect((await store.activeRun())?.record.status).toBe('left');
+	});
+
+	it('reads a run replaced before runs were marked left as left', async () => {
+		const tx = (store as unknown as { db: IDBDatabase }).db.transaction('runs', 'readwrite');
+		tx.objectStore('runs').put({ ...record('legacy'), createdAt: 0 });
+		await new Promise((r) => (tx.oncomplete = r));
+		await store.createRun(record('current'));
+		const legacy = (await store.runs()).find((r) => r.runId === 'legacy');
+		expect(legacy?.status).toBe('left');
+		expect((await store.runs()).find((r) => r.runId === 'current')?.status).toBe('active');
 	});
 
 	it('trusts only a gap-free prefix of the action log', async () => {

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
 	abandonCampaign,
+	belowCampaignMinimum,
 	bestCompletedCapital,
 	CAMPAIGN_CAPITAL,
+	CAMPAIGN_MIN_CAPITAL,
 	nextCampaignMission,
 	settleCampaignRun,
 	startCampaign,
@@ -76,6 +78,25 @@ describe('campaign runs', () => {
 
 	it('ending with no equity left ends the campaign run like a bankruptcy', () => {
 		const p = play(startCampaign(EMPTY, 'c1', 1), 'r1', 'finished', '0');
+		expect(p.campaign!.status).toBe('bankrupt');
+	});
+
+	it('a finished mission that leaves less than the campaign minimum ends the run as bankrupt, stage not passed', () => {
+		// Liquidated at m03's 20x cap: the engine still finishes the run, but m02 caps leverage at 10x.
+		let p = play(startCampaign(EMPTY, 'c1', 1), 'r1', 'finished', '9000');
+		p = play(p, 'r2', 'finished', '0.61');
+		expect(p.campaign).toMatchObject({ status: 'bankrupt', index: 1, capital: '0.61' });
+		expect(p.campaign!.legs[1].result).toBe('bankrupt');
+		expect(p.assessed).toEqual(['m01-false-breakout']);
+		expect(nextCampaignMission(p.campaign)).toBeNull();
+		expect(belowCampaignMinimum(CAMPAIGN_MIN_CAPITAL)).toBe(false);
+		expect(belowCampaignMinimum('99.99')).toBe(true);
+		const atMinimum = play(startCampaign(EMPTY, 'c2', 1), 'r3', 'finished', CAMPAIGN_MIN_CAPITAL);
+		expect(atMinimum.campaign).toMatchObject({ status: 'active', index: 1 });
+	});
+
+	it('leaving a mission with less than the campaign minimum also ends the run', () => {
+		const p = play(startCampaign(EMPTY, 'c1', 1), 'r1', 'left', '42');
 		expect(p.campaign!.status).toBe('bankrupt');
 	});
 

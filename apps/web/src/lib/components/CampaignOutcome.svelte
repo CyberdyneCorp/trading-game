@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Debrief block of a campaign mission: the capital it carries on, or the end of the campaign run.
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { CAMPAIGN_CAPITAL } from '#lib/game/campaign.ts';
+	import { belowCampaignMinimum, CAMPAIGN_CAPITAL, CAMPAIGN_MIN_CAPITAL } from '#lib/game/campaign.ts';
 	import { campaignMissions, stagesOf } from '#lib/game/curriculum.ts';
 	import { fmtMoney } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
@@ -14,6 +14,8 @@
 	const c = $derived(session.progress.campaign);
 	const leg = $derived(c && link && c.id === link.id ? c.legs.find((l) => l.runId === session.currentRunId) : undefined);
 	const next = $derived(session.campaignMission);
+	// The engine finished the run, but what is left cannot carry a campaign (spec "Game over on bankruptcy").
+	const broke = $derived(leg != null && session.state?.status === 'finished' && belowCampaignMinimum(leg.endCapital));
 	const stages = $derived(leg?.result === 'finished' ? stagesOf(leg.missionId).map((s) => t(`stage.${s}`)).join(', ') : '');
 </script>
 
@@ -29,6 +31,7 @@
 			<p class="up">{t('campaign.complete', { capital: fmtMoney(c.capital, L) })}</p>
 			<button class="primary" onclick={() => session.startCampaign()} disabled={session.busy}>▶ {t('campaign.new')}</button>
 		{:else}
+			{#if broke}<p class="down" data-testid="campaign-broke">{t('campaign.broke', { min: fmtMoney(CAMPAIGN_MIN_CAPITAL, L) })}</p>{/if}
 			<p class="down">{t('campaign.over', { capital: fmtMoney(CAMPAIGN_CAPITAL, L) })}</p>
 			<button class="primary" onclick={() => session.startCampaign()} disabled={session.busy}>▶ {t('campaign.new')}</button>
 		{/if}

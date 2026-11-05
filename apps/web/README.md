@@ -53,7 +53,7 @@ Game rules, fills, scoring and the debrief come from the engine; the client form
 
 ## Campaign, curriculum map and journal
 
-The menu offers the campaign (missions in `campaignMissions()` order, capital carried through the engine's `startingBalance` start option, bankruptcy ends the campaign run), free play (any mission, its own rules), the curriculum map (`CurriculumMap.svelte`: stage statuses from `curriculum.ts`, progress summary) and the journal (`Journal.svelte`: every run's plan entries from the `runs` store, newest first, filterable by mission). The curriculum's unlock rules are data in `curriculum.ts`; in a campaign mission a locked "leverage above 2×" becomes the engine's `leverageCap` start option, and the briefing lists what stays locked and which stage unlocks it.
+The menu offers the campaign (missions in `campaignMissions()` order, capital carried through the engine's `startingBalance` start option, bankruptcy or less than `CAMPAIGN_MIN_CAPITAL` left ends the campaign run; ending it by choice asks first and leaves its mission in progress), free play (any mission, its own rules), the curriculum map (`CurriculumMap.svelte`: stage statuses from `curriculum.ts`, progress summary) and the journal (`Journal.svelte`: every run's plan entries from the `runs` store, newest first, filterable by mission; a run replaced by another before its end is stored as `left`). The curriculum's unlock rules are data in `curriculum.ts`; in a campaign mission a locked "leverage above 2×" becomes the engine's `leverageCap` start option, and the briefing lists what stays locked and which stage unlocks it.
 
 ## Imported markets (CSV and packs)
 
