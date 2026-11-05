@@ -42,13 +42,15 @@ src/
   lib/game/                view-models (session, autoplay, settings, pwa, i18n, audio, sound, csvImport — *.svelte.ts rune classes),
                            IndexedDB storage, packStore (OPFS packs, quota, eviction), engineCache (engine pinning),
                            browserSupport (unsupported-browser check), and pure helpers (sizing, stops, optionsMath, calibration,
-                           analysis, debrief, format, news, hotkeys, tutorials, advisor, points, perks, curriculum, campaign, journal, candle/chart
+                           analysis, debrief, format, news, hotkeys, shortcuts (+ keymap.svelte.ts), rejections, tutorials, advisor, points, perks, curriculum, campaign, journal, candle/chart
                            pattern catalogs, patternOutcome and packs) with *.test.ts next to them
   lib/components/          views: Terminal, Chart (+ chartPanes.ts), OrderTicket (+ TrailField: trailing stop by price or percent), OptionTicket, OptionChain,
                            RightRail, TopBar, AdvisorPanel, Briefing (+ PerkPanel), Tutorial (+ TutorialArt), Debrief (+ RegimeReveal), MissionMenu, dialogs,
                            PatternSheet (+ PatternAnimation), HelpOverlay, CsvImport, CampaignPanel, CampaignOutcome,
-                           CurriculumMap, Journal; chartDrag.ts (stop/target line drag)
+                           CurriculumMap, Journal (+ JournalEntries, RunJournal), ShortcutSettings, ChartTable (+ chartA11y.ts);
+                           chartDrag.ts (stop/target line drag)
 e2e/                       Playwright: mission.spec.ts (gameplay), missions-batch-a.spec.ts (m06–m08 to the debrief), missions-batch-b.spec.ts (m09–m12 to the debrief, announced calendar, campaign report), campaign.spec.ts (campaign, curriculum, journal), perks.spec.ts (intel perks), engine-rules.spec.ts (percent trailing stop, margin tiers), engine-rules-v17.spec.ts (gaps filled with bars without trading, mark-price note),
+                           gameplay-ux.spec.ts (sizing modes, rejection numbers, liquidation flow, UX01 bar table, shortcuts, run journal, interrupted pack download),
                            packs.spec.ts (CSV import, practice packs), branch-pack.spec.ts (packer-built branch and synthetic packs),
                            offline.spec.ts (OFF01-web), storage.spec.ts (no future bars on the main thread or in storage, checkpoints),
                            updates.spec.ts (evicted pack, old-engine resume), deploy.spec.ts (update mid-mission),
@@ -63,6 +65,14 @@ Game rules, fills, scoring and the debrief come from the engine; the seeded reve
 ## Mission rules, lesson questions and assisted practice
 
 The briefing renders the engine's `missionRules` (task 4.1): objectives (`objectives.ts`, PT-BR and en text per engine code, numbers in the locale), permissions and limits; the rail's liquidation warning uses the mission's distance, and the ticket (new order or protective stop) needs a ticked confirmation for a stop beyond liquidation when the mission asks for it. `LessonQuiz` shows the mission's lesson questions (`tl_lesson` through the worker's `lesson` request; texts in `lessons.ts`, checked against `engine/rubrics/lessons.json` by `lessons.test.ts`); each answer is a logged `lesson` action (an engine command), so perk toggles on the briefing replay it onto the restarted run. The debrief adds `LessonResults` (answers and key) and `DecisionStrip` (the engine's act/hold/wait records). `AssistPanel` (terminal and debrief) rewinds to a chosen bar (`rewindPrefix` in `assisted.ts` rebuilds the run from its own actions) or starts the mission on another seed; lesson answers given on the briefing are kept by every rewind, even one to the first decision; the new run record carries `assisted`, starts without the advisor (the terminal hides the advisor panel, as for practice packs), and is skipped by `finishedMissions`, points and campaign settlement. E2E: `e2e/scoring-v11.spec.ts`.
+
+## Ticket, rejections, accessible chart and shortcuts
+
+- **Sizing:** the ticket sizes by quantity, notional (cr), % of equity (exposure: the notional is that share of equity) or risk % to a stop (`sizedQty` in `sizing.ts`, rounded down to the lot); every amount accepts the decimal comma and the estimates show the resulting notional. The advisor's apply writes its stop and size the way the player would type them (`priceInputText`, `qtyInputText`: "41,8" in PT-BR).
+- **Rejections:** a refused command shows the plain-language reason with the numbers behind it in the locale (`rejections.ts`): required vs available margin (orders, a lower leverage that re-margins the open position, adding margin), the margin left vs the initial margin, the leverage vs the cap. The engine returns only the code; the figures are the client's display estimates, quoted only when they explain the refusal (an option premium that fits while the engine also reserves the fee shows the plain reason, never "needed less than available").
+- **States:** "no data" on the chart before any closed bar; "download interrupted" when a `.tlpack` cannot be read or is cut short (`packLooksCut` in `packs.ts`). Session expired, sync pending and device conflict wait for the backend.
+- **Accessible chart:** `ChartTable` holds every closed bar in pages of 50 (the default page ends with the current bar, UX01) plus a text summary; it is visually hidden until "Table" opens it (Esc closes) or keyboard focus enters it. The canvas box is a keyboard slider: arrows, Page Up/Down and Home/End move the focused candle, its OHLCV and patterns are announced (`aria-valuetext`; a continuity bar, a data gap without trading, is tagged in the announcement and in its table row), Enter opens its pattern card, and Space still advances.
+- **Shortcuts:** defaults in `shortcuts.ts` (Space, Shift+Space, B, S, X, P, A, M, O option chain, J run journal, ?), remappable in the menu settings and from the help overlay (`ShortcutSettings`), saved per viewer in localStorage (`tradelab.keymap.v1`). A key used by another action is refused naming it; Enter, Esc, Tab, arrows and Home/End/Page keys are reserved, with or without Shift. The help overlay and button hints show the current keys.
 
 ## Campaign, curriculum map and journal
 

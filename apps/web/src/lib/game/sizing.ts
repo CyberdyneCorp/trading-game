@@ -182,6 +182,43 @@ export function fitToMargin(
 	return { qty: Math.min(qty, fits), leverage: cap };
 }
 
+/** How the ticket sizes an order (spec terminal-ui "Order ticket for perpetuals"). */
+export type SizeBy = 'qty' | 'notional' | 'equity' | 'risk';
+
+const floorLot = (units: number, lot: number): number => (units > 0 && Number.isFinite(units) ? Math.floor(units / lot + 1e-9) * lot : 0);
+
+/** Quantity whose notional at `entry` is at most `notional` credits, rounded down to the lot. */
+export function qtyForNotional(notional: number, entry: number, k: Costs, lot: number): number {
+	if (!(notional > 0) || !(entry > 0)) return 0;
+	return floorLot(notional / (entry * k.multiplier), lot);
+}
+
+/**
+ * Quantity whose notional is `pct`% of equity: exposure, not margin, so 100% is one times the
+ * equity whatever the leverage (above 100% needs leverage to be carried). Rounded down to the lot.
+ */
+export function qtyForEquityPct(equity: number, pct: number, entry: number, k: Costs, lot: number): number {
+	return qtyForNotional(equity * (pct / 100), entry, k, lot);
+}
+
+export interface SizeInputs {
+	equity: number;
+	entry: number;
+	stop: number | null;
+	/** The quantity field (also used by risk sizing until a stop is set). */
+	qty: number;
+	/** Credits for `notional`, percent of equity for `equity`, percent risked for `risk`. */
+	amount: number;
+}
+
+/** The ticket's quantity for a sizing mode, rounded down to the lot. */
+export function sizedQty(by: SizeBy, x: SizeInputs, k: Costs, lot: number): number {
+	if (by === 'notional') return qtyForNotional(x.amount, x.entry, k, lot);
+	if (by === 'equity') return qtyForEquityPct(x.equity, x.amount, x.entry, k, lot);
+	if (by === 'risk' && x.stop != null) return x.amount > 0 ? qtyForRisk(x.equity, x.amount, x.entry, x.stop, k, lot) : 0;
+	return floorLot(x.qty, lot);
+}
+
 export interface OpposingEffect {
 	kind: 'reduce' | 'close' | 'reverse';
 	/** Size of the open position (absolute). */

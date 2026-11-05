@@ -74,7 +74,7 @@ test('filled gaps: bars without trading are shown and a market order waits for t
 	await advance(page); // bar 42 trades again: the order fills at its open
 	await expect(page.getByText(/Execução #1/)).toBeVisible();
 	await expect(page.getByTestId('continuity-tag')).toHaveCount(0);
-	await expect(page.locator('table.sr-only')).toContainText('(SEM NEGOCIAÇÃO)');
+	await expect(page.getByTestId('chart-table')).toContainText('(SEM NEGOCIAÇÃO)');
 	await expect(page.getByTestId('continuity-legend')).toHaveAttribute('title', /indicadores ignoram essas barras/i);
 
 	await page.reload(); // the action log replays on the stored pack, gaps included
