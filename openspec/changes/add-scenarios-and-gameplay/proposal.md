@@ -14,6 +14,7 @@ The engine simulates; the game teaches. We need a portable, signed scenario form
 - Debrief contents and P&L attribution (costs, funding, liquidation, option Greeks).
 - Scoring (risk, plan coherence, understanding, calibration) with renormalization.
 - Curriculum progression that unlocks shorting, higher leverage caps and options writing through demonstrated understanding only.
+- Phase-2 content: seven more built-in missions (m06–m12) covering structure and orders, risk sizing and trailing stops, regime changes, long volatility, hedging and carry, scheduled news and a capstone, with the small generator capabilities they need (Markov regime chains, drawn event outcomes, announced events, a seeded reveal). Design D8; built in two batches (tasks 6.A, 6.B).
 
 ## Capabilities
 
