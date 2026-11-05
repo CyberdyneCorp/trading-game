@@ -6,6 +6,7 @@
 #include <raven/raven_widget.h>
 #include <raven/raven_window.h>
 
+#include <algorithm>
 #include <array>
 #include <optional>
 

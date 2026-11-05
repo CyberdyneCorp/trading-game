@@ -1,6 +1,7 @@
 // Debrief tables: per-trade R table with the stop/liquidation advice, calibration, advisor reads,
 // signals by revealed regime (RegimeReveal.svelte), releases (ReleaseReveal.svelte) and the timeline.
 #include <algorithm>
+#include <cmath>
 
 #include "model/content.hpp"
 #include "viewmodel/format.hpp"

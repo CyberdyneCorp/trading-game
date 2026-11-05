@@ -1,5 +1,7 @@
 // Journal (web Journal.svelte + JournalEntries.svelte): the plans recorded before each entry, run by
 // run, newest first, filterable by mission. The free text stays on this device and is never scored.
+#include <cmath>
+#include <cstdio>
 #include <ctime>
 
 #include "viewmodel/format.hpp"
