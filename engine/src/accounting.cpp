@@ -186,7 +186,8 @@ void apply_funding(const Scenario& sc, RunState& st, std::uint32_t bar) {
   Position& p = st.position;
   if (p.flat()) return;
   const Rate rate = sc.funding_rate[bar];
-  const Money n = notional(sc, p.qty, sc.bars[bar].close, Rounding::HalfEven);
+  const Price mark = mark_bar(sc, bar).close;  // policy v17: the mark close (last close without a mark series)
+  const Money n = notional(sc, p.qty, mark, Rounding::HalfEven);
   // Positive rate: longs pay. Payer rounds up, receiver rounds down.
   const bool pays = (rate.raw > 0) == p.is_long();
   const Money magnitude = unwrap(mul<Money>(n, Rate::from_raw(rate.raw < 0 ? -rate.raw : rate.raw),
@@ -199,7 +200,7 @@ void apply_funding(const Scenario& sc, RunState& st, std::uint32_t bar) {
   Event ev;
   ev.type = EventType::Funding;
   ev.qty = abs_qty(p.qty);
-  ev.price = sc.bars[bar].close;
+  ev.price = mark;
   ev.amount = delta;
   push_event(st, ev);
 }

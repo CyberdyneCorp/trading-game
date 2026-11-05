@@ -58,6 +58,14 @@ When the scenario includes mark-price bars, unrealized P&L, margin checks and li
 - **WHEN** the last-price low touches a long's liquidation price but the mark-price low stays above it
 - **THEN** the position SHALL NOT be liquidated
 
+#### Scenario: Mark price drives funding and the account mark
+- **WHEN** a scenario has mark-price bars and a long crosses a funding boundary
+- **THEN** funding SHALL be computed on the mark close, unrealized P&L and equity SHALL use the mark close, and fills SHALL keep the traded price
+
+#### Scenario: No mark series
+- **WHEN** a scenario has no mark-price bars (every built-in mission and pack today)
+- **THEN** the contract in the state SHALL report `markFromLastPrice: true` and margin, liquidation and funding SHALL use the last-price bars
+
 ### Requirement: Liquidation
 In OHLC mode a long SHALL be liquidated when the bar's low (of the mark price when available, else last price) reaches its liquidation price and a short when the bar's high reaches it, evaluated before any favorable exit in that bar. The position SHALL be closed at the liquidation price, or at the open if the bar gapped beyond it. The player's loss SHALL be capped at the position's isolated margin: the entire isolated margin SHALL be forfeited, and any shortfall SHALL be absorbed by a simulated insurance fund, never debited from the player. All reduce-only orders for the market SHALL be cancelled. A `liquidated` event SHALL record trigger, fill price, margin lost and the `ambiguousIntrabar` flag when applicable.
 
