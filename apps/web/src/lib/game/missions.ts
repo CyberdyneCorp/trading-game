@@ -183,7 +183,7 @@ texts['m07-trend-trailing'] = {
 		],
 		topic: 'Dimensionamento de risco · stop, stop móvel e múltiplos de R',
 		reveal:
-			'Este cenário foi desenhado como uma TENDÊNCIA com recuos: depois do range, uma manchete crível de adoção subiu o valor justo e a direção da tendência foi sorteada inclinada por ela — para cima em cerca de 6 de cada 10 partidas, nunca em todas. Os recuos até a média tiraram da posição quem usou stop móvel de 1×ATR; um stop móvel de 3×ATR devolveu parte do ganho, mas ficou no movimento. Um alvo fixo de 2R acertou mais ou menos tantas vezes quanto o stop móvel, mas ganhou bem menos quando a tendência veio. No fim, um topo (ou fundo) nervoso e de volta ao range. O tamanho pelo stop, não a alavancagem, decidiu quanto cada erro custou.'
+			'Este cenário foi desenhado como uma TENDÊNCIA com recuos: depois do range, uma manchete crível de adoção subiu o valor justo e a direção da tendência foi sorteada inclinada por ela — para cima em cerca de 6 de cada 10 partidas, nunca em todas. Os recuos até a média tiraram da posição quem usou stop móvel de 1×ATR; um stop móvel de 3×ATR devolveu parte do ganho, mas ficou no movimento. Um alvo fixo de 1,5R acertou mais vezes que o stop móvel, mas ganhou bem menos quando a tendência veio. No fim, um topo (ou fundo) nervoso e de volta ao range. O tamanho pelo stop, não a alavancagem, decidiu quanto cada erro custou.'
 	},
 	en: {
 		title: 'Mission 07 · Size and exit',
@@ -195,7 +195,7 @@ texts['m07-trend-trailing'] = {
 		],
 		topic: 'Risk sizing · stops, trailing stops and R multiples',
 		reveal:
-			'This scenario was designed as a TREND with pullbacks: after the range, a credible adoption headline lifted fair value and the trend’s direction was drawn tilted by it — up in about 6 of 10 runs, never in all. Pullbacks to the average took out 1×ATR trailing stops; a 3×ATR trail gave some back but stayed in the move. A fixed 2R target won about as often as the trail but earned much less when the trend came. At the end, a choppy top (or bottom) and back to a range. Sizing from the stop, not leverage, decided what each mistake cost.'
+			'This scenario was designed as a TREND with pullbacks: after the range, a credible adoption headline lifted fair value and the trend’s direction was drawn tilted by it — up in about 6 of 10 runs, never in all. Pullbacks to the average took out 1×ATR trailing stops; a 3×ATR trail gave some back but stayed in the move. A fixed 1.5R target won more often than the trail but earned much less when the trend came. At the end, a choppy top (or bottom) and back to a range. Sizing from the stop, not leverage, decided what each mistake cost.'
 	}
 };
 

@@ -185,7 +185,7 @@ namespace {
 
 constexpr const char* kM07 = "m07-trend-trailing";
 
-enum class Exit : std::uint8_t { Trail3, Trail1, Target2R };
+enum class Exit : std::uint8_t { Trail3, Trail1, Target };
 
 struct Breakout {
   bool entered = false;
@@ -214,12 +214,12 @@ Breakout follow_breakout(Play& p, Exit exit) {
     }
     const double a = p.atr_at(t);
     const double stop = p.close(t) - side * 2.0 * a;
-    const double target = p.close(t) + side * 4.0 * a;  // 2R with a 2xATR stop
+    const double target = p.close(t) + side * 3.0 * a;  // 1.5R with a 2xATR stop (design D8.3)
     const double qty = 100.0 / (2.0 * a);                // 1% risk sized from the stop
     p.order(OrderType::Market, side > 0 ? OrderSide::Buy : OrderSide::Sell, lots(qty), {},
-            exit == Exit::Trail1 ? Price{} : ticks(stop), exit == Exit::Target2R ? ticks(target) : Price{});
+            exit == Exit::Trail1 ? Price{} : ticks(stop), exit == Exit::Target ? ticks(target) : Price{});
     p.step();
-    if (exit != Exit::Target2R) p.trail(ticks((exit == Exit::Trail3 ? 3.0 : 1.0) * a));
+    if (exit != Exit::Target) p.trail(ticks((exit == Exit::Trail3 ? 3.0 : 1.0) * a));
     b = {true, side, t + 1, 0};
     while (p.active() && !p.flat()) p.step();
     b.exit = p.st.step;
@@ -244,7 +244,7 @@ TEST_CASE("Learnability m07: the trend's direction leans on the headline, never 
   CHECK(share(up, kSeeds) <= 0.75);
 }
 
-TEST_CASE("Learnability m07: a wide trail keeps the move, a tight one is cut by pullbacks, a fixed target wins more and earns less") {
+TEST_CASE("Learnability m07: a wide trail keeps the move, a tight one is cut by pullbacks, a closer fixed target wins more and earns less") {
   Outcomes trail3;
   Outcomes trail1;
   Outcomes target;
@@ -265,7 +265,7 @@ TEST_CASE("Learnability m07: a wide trail keeps the move, a tight one is cut by 
       tight_early += b1.exit <= b1.entry + kHorizon ? 1 : 0;
     }
     Play c(kM07, seed);
-    follow_breakout(c, Exit::Target2R);
+    follow_breakout(c, Exit::Target);
     target.add(c);
     const RegimeSpan* trend = a.first_span(RegimeLabel::Trend);
     if (b3.entered && trend->direction == b3.side) {
@@ -278,7 +278,7 @@ TEST_CASE("Learnability m07: a wide trail keeps the move, a tight one is cut by 
   MESSAGE("m07 3xATR trail: wins " << trail3.positive() << ", mean " << trail3.mean() << ", return/DD " << trail3.return_to_drawdown());
   MESSAGE("m07 1xATR trail: wins " << trail1.positive() << ", mean " << trail1.mean() << ", out within 5 bars "
                                     << share(tight_early, tight_trades));
-  MESSAGE("m07 2R target: wins " << target.positive() << ", mean " << target.mean());
+  MESSAGE("m07 1.5R target: wins " << target.positive() << ", mean " << target.mean());
   MESSAGE("m07 trend seeds (" << trend_seeds << "): trail " << with_trend_trail / trend_seeds << ", target "
                               << with_trend_target / trend_seeds);
   MESSAGE("m07 buy-and-hold: positive " << hold.positive() << ", return/DD " << hold.return_to_drawdown());
@@ -287,9 +287,9 @@ TEST_CASE("Learnability m07: a wide trail keeps the move, a tight one is cut by 
   CHECK(trail3.return_to_drawdown() > hold.return_to_drawdown());
   CHECK(share(tight_early, tight_trades) > 0.5);
   CHECK(trail1.mean() < 0.5 * trail3.mean());
-  // As built: with the same 2xATR stop, a 4xATR (2R) target is reached in about the seeds where the
-  // 3xATR trail locks a profit, so it wins about as often (design D8.3 asked for more often).
-  CHECK(target.positive() >= trail3.positive() - 0.05);
+  // Design D8.3 (6.A4): a 1.5R target (3xATR with the 2xATR stop) is reached in more seeds than the
+  // 3xATR trail locks a profit in; a 2R (4xATR) target was reached in about the same seeds (63% each).
+  CHECK(target.positive() >= trail3.positive() + 0.05);
   CHECK(with_trend_target < with_trend_trail);
   for (const Outcomes* o : {&trail3, &trail1, &target}) CHECK(o->losing() >= 0.15);
 }
@@ -299,6 +299,7 @@ TEST_CASE("Learnability m07: a wide trail keeps the move, a tight one is cut by 
 namespace {
 
 constexpr const char* kM08 = "m08-regime-switch";
+constexpr std::uint32_t kAdxPeriod = 7;
 
 struct RegimeHits {
   Hits rsi_range;
@@ -326,34 +327,78 @@ int ema_pullback(const Play& p, const Series& e, std::uint32_t i) {
   return touched && held ? dir : 0;
 }
 
+// The indicator reads of one run, computed once over all its bars.
+struct Reads {
+  Series rsi14;
+  Series ema20;
+  Adx adx7;
+  explicit Reads(const Play& p)
+      : rsi14(rsi(p.sc, p.last(), 14)), ema20(ema(p.sc, p.last(), 20)), adx7(adx(p.sc, p.last(), kAdxPeriod)) {}
+  [[nodiscard]] int fade(std::uint32_t i) const {
+    const double rv = num(rsi14[i]);
+    return (rv < 30.0) - (rv > 70.0);
+  }
+};
+
+// The ADX (DMI) regime filter (design D8.3, 6.A5): fade RSI extremes only below 20; follow an EMA
+// pullback only above 25, with the DI lines on its side and the ADX still rising (a trend that is
+// starting, not one that ended bars ago). ADX(7) lags a switch less than the common ADX(14), which
+// stayed above 25 through most of the range after a trend and kept its pullbacks.
+int adx_filtered(const Play& p, const Reads& x, std::uint32_t i, int& fade_out, int& follow_out) {
+  const double adx_v = num(x.adx7.adx[i]);
+  const bool rising = adx_v > num(x.adx7.adx[i - 1]);
+  const int di = sign(num(x.adx7.plus_di[i]) - num(x.adx7.minus_di[i]));
+  const int follow = ema_pullback(p, x.ema20, i);
+  follow_out = adx_v > 25.0 && rising && follow == di ? follow : 0;
+  fade_out = adx_v < 20.0 ? x.fade(i) : 0;
+  return fade_out != 0 ? fade_out : follow_out;
+}
+
 void read_regime_signals(const Play& p, RegimeHits& h, double& seed_rsi, double& seed_ema) {
   const std::uint32_t last = p.last();
-  const Series r = rsi(p.sc, last, 14);
-  const Series e = ema(p.sc, last, 20);
-  const Adx a = adx(p.sc, last, 14);
+  const Reads x(p);
   for (std::uint32_t i = p.sc.mission.warmup_bars; i + kHorizon <= last; ++i) {
     const double move = std::log(p.close(i + kHorizon) / p.open(i + 1));
-    const double rv = num(r[i]);
-    const int fade = (rv < 30.0) - (rv > 70.0);
-    const int follow = ema_pullback(p, e, i);
+    const int fade = x.fade(i);
+    const int follow = ema_pullback(p, x.ema20, i);
     const RegimeLabel label = p.label_at(i);
     (label == RegimeLabel::Range ? h.rsi_range : h.rsi_trend).add(label == RegimeLabel::HighVol ? 0 : fade, move);
     (label == RegimeLabel::Trend ? h.ema_trend : h.ema_range).add(label == RegimeLabel::HighVol ? 0 : follow, move);
     h.rsi_all.add(fade, move);
     h.ema_all.add(follow, move);
-    // The ADX (DMI) filter: fade only below 20; follow only above 25 and with the DI lines on the
-    // trend's side.
-    const double adx_v = num(a.adx[i]);
-    const int di = sign(num(a.plus_di[i]) - num(a.minus_di[i]));
-    const int filtered_follow = adx_v > 25.0 && follow == di ? follow : 0;
-    const int filtered_fade = adx_v < 20.0 ? fade : 0;
-    h.filtered.add(filtered_fade != 0 ? filtered_fade : filtered_follow, move);
+    int filtered_fade = 0;
+    int filtered_follow = 0;
+    h.filtered.add(adx_filtered(p, x, i, filtered_fade, filtered_follow), move);
     h.filtered_fade.add(filtered_fade, move);
     h.filtered_follow.add(filtered_follow, move);
     if (label == RegimeLabel::Trend) h.filtered_follow_trend.add(filtered_follow, move);
     seed_rsi += fade * move;
     seed_ema += follow * move;
   }
+}
+
+// The ADX rule played through the engine: on a filtered signal at a close, enter at market with a
+// 2xATR stop sized for 1% risk, and close at market kHorizon bars later unless the stop came first.
+// The ADX rule played through the engine: on a filtered signal at a close, enter at market with a
+// 2xATR stop sized for 1% risk, then trail it at 2xATR until it is hit. One position at a time.
+void play_adx_rule(Play& p) {
+  const Reads x(p);
+  while (p.active() && p.st.step + kHorizon + 1 < p.last()) {
+    const std::uint32_t t = p.st.step;
+    int fade = 0;
+    int follow = 0;
+    const int side = adx_filtered(p, x, t, fade, follow);
+    if (side == 0) {
+      p.step();
+      continue;
+    }
+    const double a = p.atr_at(t);
+    p.order(OrderType::Market, side > 0 ? OrderSide::Buy : OrderSide::Sell, lots(100.0 / (2.0 * a)), {}, ticks(p.close(t) - side * 2.0 * a));
+    p.step();
+    if (!p.flat()) p.trail(ticks(2.0 * a));
+    while (p.active() && !p.flat()) p.step();
+  }
+  p.finish();
 }
 
 }  // namespace
@@ -394,7 +439,7 @@ TEST_CASE("Learnability m08: fades work in ranges and fail in trends; following 
   // pullback: ADX(14) lags a switch by about as long as a short regime lasts, so above 25 it still
   // keeps the pullbacks of the range that follows a trend. That lag is the lesson (design D8.3).
   CHECK(h.filtered.rate() >= h.rsi_all.rate() + 0.03);
-  CHECK(h.filtered.rate() >= h.ema_all.rate() - 0.03);
+  CHECK(h.filtered.rate() >= h.ema_all.rate() + 0.03);
   CHECK(h.filtered.rate() < 0.65);
   CHECK(share(rsi_losing, kSeeds) >= 0.15);
   CHECK(share(ema_losing, kSeeds) >= 0.15);
@@ -405,6 +450,20 @@ TEST_CASE("Learnability m08: fades work in ranges and fail in trends; following 
   for (std::size_t k = 0; k < std::min<std::size_t>(3, counts.size()); ++k) top3 += counts[k];
   MESSAGE("m08: the first switch after the warm-up lands on its top 3 bars in " << top3 << " of " << kSeeds << " seeds");
   CHECK(top3 * 3 <= static_cast<int>(kSeeds));
+}
+
+TEST_CASE("Learnability m08: the ADX rule played with stops beats buy-and-hold on return/drawdown, and still loses often") {
+  Outcomes rule;
+  for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+    Play p(kM08, seed);
+    play_adx_rule(p);
+    rule.add(p);
+  }
+  const Outcomes hold = buy_and_hold(kM08);
+  MESSAGE("m08 ADX rule: wins " << rule.positive() << ", mean " << rule.mean() << ", return/DD " << rule.return_to_drawdown());
+  MESSAGE("m08 buy-and-hold: positive " << hold.positive() << ", mean " << hold.mean() << ", return/DD " << hold.return_to_drawdown());
+  CHECK(rule.return_to_drawdown() > hold.return_to_drawdown());
+  CHECK(rule.losing() >= 0.15);
 }
 
 // ---- every mission ----------------------------------------------------------------------------
