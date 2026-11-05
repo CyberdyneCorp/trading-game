@@ -7,6 +7,7 @@
 	import { fmtNum } from '#lib/game/format.ts';
 	import type { DownloadView } from '#lib/game/catalog.svelte.ts';
 	import { intervalLabel } from '#lib/game/packs.ts';
+	import { marketTagKey } from '#lib/game/missions.ts';
 	import { i18n, packReasonText, t, type MessageKey } from '#lib/game/i18n.svelte.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 
@@ -69,7 +70,7 @@
 				<div class="head">
 					<strong>{localized(e.title, L)}</strong>
 					{#if st === 'installed'}<span class="tag up" data-testid="catalog-installed">{t('catalog.installed')}</span>{/if}
-					<span class="tag attention">{t('menu.known')}</span>
+					<span class="tag attention" data-testid="catalog-tag">{t(marketTagKey(true, session.packs.find((p) => p.digest === e.digest)?.mode ?? e.mode))}</span>
 				</div>
 				{#if localized(e.summary, L)}<p>{localized(e.summary, L)}</p>{/if}
 				<p class="small">

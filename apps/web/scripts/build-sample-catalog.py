@@ -131,7 +131,7 @@ def build(s: Sample, seed_hex: str, key: dict[str, str]) -> dict[str, object]:
     return {
         "id": s.slug, "file": f"packs/{digest}.tlpack", "digest": digest, "size": len(data),
         "scenarioId": info["scenarioId"], "keyId": key["id"], "intervalSeconds": s.interval,
-        "bars": info["totalBars"] - info["warmupBars"], "leverageCap": info["leverageCap"],
+        "bars": info["totalBars"] - info["warmupBars"], "leverageCap": info["leverageCap"], "mode": info["mode"],
         "title": s.title, "summary": s.summary,
     }
 

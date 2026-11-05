@@ -11,6 +11,7 @@
    "intervalSeconds": 3600,
    "bars": 4740,
    "leverageCap": 5,
+   "mode": "synthetic",
    "title": {
     "pt-BR": "Mercado A · 1h",
     "en": "Market A · 1h"
@@ -30,6 +31,7 @@
    "intervalSeconds": 14400,
    "bars": 540,
    "leverageCap": 3,
+   "mode": "synthetic",
    "title": {
     "pt-BR": "Mercado B · 4h",
     "en": "Market B · 4h"
