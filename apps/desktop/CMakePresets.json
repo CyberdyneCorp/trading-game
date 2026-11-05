@@ -1,0 +1,57 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 28, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "macos-release",
+      "inherits": "base",
+      "displayName": "macOS (Cocoa + Vulkan through MoltenVK)",
+      "cacheVariables": { "CMAKE_OSX_ARCHITECTURES": "arm64", "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+    },
+    {
+      "name": "linux-release",
+      "inherits": "base",
+      "displayName": "Linux (X11 + Wayland, Vulkan)",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "linux-headless",
+      "inherits": "base",
+      "displayName": "Linux headless (Raven null platform, no Vulkan): CI without X11 or GPU",
+      "cacheVariables": { "TRADELAB_DESKTOP_HEADLESS": "ON" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "macos-release", "configurePreset": "macos-release" },
+    { "name": "linux-release", "configurePreset": "linux-release" },
+    { "name": "linux-headless", "configurePreset": "linux-headless" }
+  ],
+  "testPresets": [
+    {
+      "name": "macos-release",
+      "configurePreset": "macos-release",
+      "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "windowed|novulkan" } }
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release",
+      "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "windowed|novulkan" } }
+    },
+    {
+      "name": "linux-headless",
+      "configurePreset": "linux-headless",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}

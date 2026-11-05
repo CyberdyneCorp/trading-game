@@ -1,0 +1,29 @@
+<!-- Terminal, first cut (web: Terminal.svelte with TopBar, Chart, OrderTicket, RightRail). -->
+<Border Background="#0B1010" Padding="12">
+    <VBox Spacing="8">
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="8">
+            <HBox Spacing="16">
+                <Label Text="TRADELAB" Color="#39FF88"/>
+                <Label Name="game-market" Color="#FFC857"/>
+                <Label Name="game-mission" Color="#8FB3A1" Slot.Fill="1"/>
+                <Label Name="game-turn" Color="#E3F5EA"/>
+                <Button Name="game-menu" Style="Flat" OnClicked="tl.game.menu"/>
+            </HBox>
+        </Border>
+        <Border Background="#0B1010" BorderColor="#24413A" BorderWidth="1" Slot.Fill="1">
+            <Custom Name="game-chart"/>
+        </Border>
+        <Label Name="game-account" Color="#E3F5EA"/>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="8">
+            <HBox Spacing="12">
+                <Label Name="game-qty-label" Color="#8FB3A1" Slot.VAlign="Center"/>
+                <TextInput Name="game-qty" Width="120"/>
+                <Button Name="game-buy" Style="Primary" OnClicked="tl.game.buy"/>
+                <Button Name="game-sell" OnClicked="tl.game.sell"/>
+                <Spacer Slot.Fill="1"/>
+                <Button Name="game-advance" Style="Primary" OnClicked="tl.game.advance"/>
+            </HBox>
+        </Border>
+        <Label Name="game-notice" Color="#FFC857"/>
+    </VBox>
+</Border>

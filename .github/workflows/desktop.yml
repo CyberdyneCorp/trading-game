@@ -1,0 +1,122 @@
+name: desktop
+
+on:
+  pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "engine/**"
+      - "apps/web/src/lib/game/i18n.svelte.ts"
+      - "apps/web/src/lib/game/missions.ts"
+      - "apps/web/src/lib/game/packs.ts"
+      - "openspec/changes/add-native-clients/**"
+      - ".github/workflows/desktop.yml"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# The engine builds with -Wpedantic -Werror and uses __int128, which GCC rejects under -pedantic:
+# Linux uses Clang, as engine.yml does.
+env:
+  CC: clang
+  CXX: clang++
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  linux:
+    name: linux (ubuntu 24.04, X11 + lavapipe)
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    steps:
+      - name: Install packages
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake ninja-build git python3 \
+            libx11-dev zlib1g-dev libvulkan1 mesa-vulkan-drivers xvfb xauth clang clang-tidy
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Raven pin agrees with the docs
+        run: python3 apps/desktop/scripts/check_raven_pin.py
+      - name: i18n catalogs in sync with apps/web
+        run: |
+          (cd apps/web && npm ci --ignore-scripts)
+          node apps/desktop/scripts/check_i18n.mjs
+          node --test apps/desktop/tests/scripts/check_i18n.test.mjs
+      - name: Build
+        working-directory: apps/desktop
+        run: |
+          cmake --preset linux-release
+          cmake --build --preset linux-release -j 4
+      - name: Unit, headless, CMake-rule and script tests
+        working-directory: apps/desktop
+        run: ctest --preset linux-release
+      - name: Windowed tests (Xvfb + Mesa lavapipe)
+        working-directory: apps/desktop
+        run: |
+          export VK_ICD_FILENAMES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -1)
+          xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build/linux-release -L windowed --output-on-failure
+      - name: No Vulkan driver, then no Vulkan loader (exit 3 with the message)
+        working-directory: apps/desktop
+        run: |
+          ctest --test-dir build/linux-release -L novulkan --output-on-failure
+          apt-get remove -y libvulkan1 mesa-vulkan-drivers
+          ctest --test-dir build/linux-release -L novulkan --output-on-failure
+      - name: Cognitive complexity <= 15
+        working-directory: apps/desktop
+        run: scripts/check_complexity.sh build/linux-release
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-captures-linux
+          path: apps/desktop/build/linux-release/captures
+          if-no-files-found: ignore
+
+  linux-headless:
+    name: linux-headless (Raven null platform, no Vulkan)
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    steps:
+      - name: Install packages
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake ninja-build git python3 clang
+      - uses: actions/checkout@v4
+      - name: Build + tests
+        working-directory: apps/desktop
+        run: |
+          cmake --preset linux-headless
+          cmake --build --preset linux-headless -j 4
+          ctest --preset linux-headless
+
+  macos:
+    name: macos (arm64)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja and MoltenVK
+        run: brew install ninja molten-vk
+      - name: Build
+        working-directory: apps/desktop
+        run: |
+          cmake --preset macos-release
+          cmake --build --preset macos-release -j 4
+      - name: Unit, headless, CMake-rule and script tests
+        working-directory: apps/desktop
+        run: ctest --preset macos-release
+      # Windowed tests need a Metal device; hosted runners may not expose one (design "Risks": fall back
+      # to a self-hosted Apple Silicon runner). Run them, but do not fail the job until that is settled.
+      - name: Windowed tests (MoltenVK, best effort on hosted runners)
+        working-directory: apps/desktop
+        continue-on-error: true
+        run: ctest --test-dir build/macos-release -L windowed --output-on-failure
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-captures-macos
+          path: apps/desktop/build/macos-release/captures
+          if-no-files-found: ignore

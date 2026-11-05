@@ -1,0 +1,53 @@
+// Engine adapter: one mission run through the engine's C ABI (tradelab/c_api.h, linked statically from
+// tradelab::engine), the same surface the web (WASM) and Python use. Not thread-safe: EngineHost's
+// worker is the only caller (the C ABI's returned strings and run-less buffers are not shared).
+#pragma once
+
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "model/json.hpp"
+#include "model/snapshot.hpp"
+
+struct tl_run;
+
+namespace tradelab::desktop {
+
+enum class Side : std::uint8_t { Buy = 0, Sell = 1 };
+
+// The built-in missions (tl_missions), in engine order.
+std::vector<MissionInfo> engine_missions();
+
+// Builds a snapshot from tl_state JSON (and tl_debrief JSON once the run has ended).
+Snapshot snapshot_from_state(const json::Value& state);
+Debrief debrief_from_json(const json::Value& debrief);
+
+class EngineRun {
+ public:
+  // nullptr for an unknown mission id.
+  static std::unique_ptr<EngineRun> create(const std::string& mission, std::uint32_t seed);
+  ~EngineRun();
+  EngineRun(const EngineRun&) = delete;
+  EngineRun& operator=(const EngineRun&) = delete;
+
+  [[nodiscard]] std::uint32_t seed() const { return seed_; }
+  [[nodiscard]] std::string state_json() const;
+  [[nodiscard]] std::string debrief_json() const;
+  // Advances up to `steps` bars; returns whether the run is still active afterwards.
+  bool advance(int steps);
+  // Market order; returns the engine's result {"accepted","reason",...}.
+  CommandResult place_market(Side side, const std::string& qty);
+  [[nodiscard]] Snapshot snapshot() const;
+
+ private:
+  EngineRun(tl_run* run, std::uint32_t seed) : run_(run), seed_(seed) {}
+  tl_run* run_;
+  std::uint32_t seed_;
+  std::uint32_t next_client_id_ = 1;
+};
+
+}  // namespace tradelab::desktop

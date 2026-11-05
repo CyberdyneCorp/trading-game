@@ -9,6 +9,7 @@ Educational trading game: learn **perpetual futures** (long/short, leverage, fun
 | `engine/` | Deterministic C++20 simulation core — [`engine/README.md`](engine/README.md) |
 | `bindings/python/` | Python (ctypes) binding over the engine C ABI, used by the API |
 | `apps/web/` | SvelteKit web client (PWA, works offline) — [`apps/web/README.md`](apps/web/README.md) |
+| `apps/desktop/` | C++20 desktop client on Raven for Linux and macOS (foundation: menu, briefing, first terminal and debrief) — [`apps/desktop/README.md`](apps/desktop/README.md) |
 | `services/api/` | FastAPI backend: sync, server-side replay, progress — [`services/api/README.md`](services/api/README.md) |
 | `tools/` | Lint helpers (banned-API check for the engine) |
 
@@ -615,7 +616,7 @@ Next:
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.
 - Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data).
-- Desktop client for Linux and macOS (C++20 on [Raven](https://github.com/oscar-soirey/Raven), Vulkan/MoltenVK; plan in `openspec/changes/add-native-clients`), then iPad/iPhone (SwiftUI).
+- Desktop client for Linux and macOS (C++20 on [Raven](https://github.com/oscar-soirey/Raven), Vulkan/MoltenVK; plan in `openspec/changes/add-native-clients`): the foundation is in `apps/desktop` (build, MVVM layers, engine worker, mission menu to debrief, generated PT-BR/en catalogs, headless and windowed tests); the full terminal, storage, packs, look, packaging and updates are next. Then iPad/iPhone (SwiftUI).
 
 ## Tests
 
@@ -625,6 +626,9 @@ cd engine && cmake --preset native-debug && cmake --build --preset native-debug 
 
 # web
 cd apps/web && npm run check && npm test && npm run test:e2e
+
+# desktop (macos-release or linux-release; windowed tests: see apps/desktop/README.md)
+cd apps/desktop && cmake --preset macos-release && cmake --build --preset macos-release && ctest --preset macos-release
 
 # api (needs the engine C ABI library: see services/api/README.md)
 cd services/api && uv run --python 3.12 pytest -q

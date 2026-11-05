@@ -1,0 +1,38 @@
+{
+  "desktop.vulkanMissing.title": {
+    "pt-BR": "TradeLab: driver Vulkan não encontrado",
+    "en": "TradeLab: no Vulkan driver found"
+  },
+  "desktop.vulkanMissing.body": {
+    "pt-BR": "O TradeLab precisa de um driver Vulkan para desenhar a janela e nenhum foi encontrado.",
+    "en": "TradeLab needs a Vulkan driver to draw its window and none was found."
+  },
+  "desktop.vulkanMissing.linux": {
+    "pt-BR": "Instale `libvulkan1` e o driver Vulkan da sua placa de vídeo (por exemplo `mesa-vulkan-drivers`) e abra o TradeLab de novo.",
+    "en": "Install `libvulkan1` and your graphics card's Vulkan driver (for example `mesa-vulkan-drivers`) and open TradeLab again."
+  },
+  "desktop.vulkanMissing.macos": {
+    "pt-BR": "A instalação parece incompleta: baixe o TradeLab de novo.",
+    "en": "The installation looks incomplete: download TradeLab again."
+  },
+  "desktop.vulkanMissing.detail": {
+    "pt-BR": "Detalhe: {detail}",
+    "en": "Detail: {detail}"
+  },
+  "desktop.language": {
+    "pt-BR": "English",
+    "en": "Português (Brasil)"
+  },
+  "desktop.waiting": {
+    "pt-BR": "Calculando…",
+    "en": "Working…"
+  },
+  "desktop.progress": {
+    "pt-BR": "Avançando {done} de {total}",
+    "en": "Advancing {done} of {total}"
+  },
+  "desktop.qtyInvalid": {
+    "pt-BR": "Digite uma quantidade válida (ex.: 1,5).",
+    "en": "Type a valid quantity (e.g. 1.5)."
+  }
+}

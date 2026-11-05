@@ -1,0 +1,20 @@
+<!-- Briefing (web: Briefing.svelte): what the run's engine state says about the mission. -->
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <Label Name="brief-title" TextSize="30" Color="#39FF88"/>
+        <Label Name="brief-mission" TextSize="22" Color="#E3F5EA"/>
+        <Label Name="brief-tagline" Wrap="true" Color="#8FB3A1"/>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="16">
+            <VBox Spacing="8">
+                <Label Name="brief-capital" Color="#E3F5EA"/>
+                <Label Name="brief-instrument" Color="#E3F5EA"/>
+                <Label Name="brief-leverage" Color="#E3F5EA"/>
+                <Label Name="brief-mode" Wrap="true" Color="#FFC857"/>
+            </VBox>
+        </Border>
+        <HBox Spacing="12">
+            <Button Name="brief-go" Style="Primary" OnClicked="tl.brief.go"/>
+            <Button Name="brief-back" OnClicked="tl.brief.back"/>
+        </HBox>
+    </VBox>
+</Border>

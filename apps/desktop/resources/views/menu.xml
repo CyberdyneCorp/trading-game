@@ -1,0 +1,25 @@
+<!-- Mission menu (web: MissionMenu.svelte). Texts come from AppViewModel::bindings(). -->
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <Label Text="TRADELAB" TextSize="30" Color="#39FF88"/>
+        <Label Name="menu-subtitle" Color="#8FB3A1"/>
+        <HBox Spacing="12">
+            <Label Name="menu-title" TextSize="20" Color="#E3F5EA" Slot.Fill="1"/>
+            <Button Name="menu-language" Style="Flat" OnClicked="tl.menu.language"/>
+        </HBox>
+        <Label Name="menu-note" Wrap="true" Color="#8FB3A1"/>
+        <HBox Spacing="16" Slot.Fill="1">
+            <ListView Name="menu-list" Width="360"/>
+            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="16" Slot.Fill="1">
+                <VBox Spacing="10">
+                    <Label Name="menu-detail-title" TextSize="22" Color="#39FF88"/>
+                    <Label Name="menu-detail-tagline" Wrap="true" Color="#E3F5EA"/>
+                    <Label Name="menu-detail-topic" Wrap="true" Color="#8FB3A1"/>
+                    <Label Name="menu-detail-tags" Color="#4FD8FF"/>
+                    <Button Name="menu-start" Style="Primary" OnClicked="tl.menu.start" Slot.HAlign="Left"/>
+                </VBox>
+            </Border>
+        </HBox>
+        <Label Name="menu-disclaimer" Wrap="true" Color="#8FB3A1"/>
+    </VBox>
+</Border>

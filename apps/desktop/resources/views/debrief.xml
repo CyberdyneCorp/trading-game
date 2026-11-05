@@ -1,0 +1,20 @@
+<!-- Debrief, first cut (web: Debrief.svelte): outcome and process score from tl_debrief. -->
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <Label Name="debrief-title" TextSize="30" Color="#39FF88"/>
+        <Label Name="debrief-text" Wrap="true" Color="#8FB3A1"/>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="16">
+            <VBox Spacing="8">
+                <Label Name="debrief-outcome" Color="#8FB3A1"/>
+                <Label Name="debrief-pnl" TextSize="24" Color="#E3F5EA"/>
+                <Label Name="debrief-pnl-pct" Color="#8FB3A1"/>
+                <Label Name="debrief-hold" Color="#E3F5EA"/>
+                <Label Name="debrief-score" TextSize="20" Color="#4FD8FF"/>
+            </VBox>
+        </Border>
+        <HBox Spacing="12">
+            <Button Name="debrief-again" Style="Primary" OnClicked="tl.debrief.again"/>
+            <Button Name="debrief-menu" OnClicked="tl.debrief.menu"/>
+        </HBox>
+    </VBox>
+</Border>

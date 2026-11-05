@@ -6,7 +6,7 @@ Desktop (C++20) and iPad/iPhone (SwiftUI) clients bring full offline play and na
 
 ## What Changes
 
-Nothing below exists yet; this change is planned for Phases 3–4.
+Planned for Phases 3–4. The desktop foundation exists (`apps/desktop`, see its README); the rest below is not built yet.
 
 - `apps/desktop`: C++20 on [Raven](https://github.com/oscar-soirey/Raven) (C11 GUI library, Apache-2.0), pinned at commit `0fc738631c33844d6da732210267d21b5223f960` and fetched by CMake `FetchContent`. Raven opens its own windows (Cocoa on macOS, X11 and Wayland on Linux) and draws with Vulkan loaded at run time (MoltenVK on macOS, shipped inside the app). The app links the engine's static library (`tradelab::engine`) directly, follows MVVM (`model/`, `viewmodel/`, `view/` with Raven XML layouts), runs the simulation on a worker thread, and gets the retro look from a Raven theme file and a CRT effect shader. Texts are generated from the web catalogs (PT-BR first, en second). Offline packs and SQLite storage in the platform user-data directory; macOS `.app` and Linux AppImage with Ed25519-verified updates. Targets: macOS (arm64; universal only if the x86_64 slice passes the goldens) and Linux (x86-64, X11 and Wayland). Windows is out of scope for this change.
 - First desktop release is guest-only and fully offline: sign-in and sync wait for Cyberdyne Auth (`add-cyberdyne-identity-and-backend`); their tasks stay open.
