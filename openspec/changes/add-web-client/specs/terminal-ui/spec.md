@@ -34,6 +34,10 @@ Submit order, close position and advance market SHALL be visually and spatially 
 - **WHEN** an order is rejected with `insufficient_margin`
 - **THEN** the UI SHALL explain the required and available margin, formatted in the player's locale (as the client estimated them; the engine returns the reason code only)
 
+#### Scenario: Estimate that does not explain the rejection
+- **WHEN** an option buy whose premium fits the available balance is rejected with `insufficient_margin` (the engine also reserves the fee)
+- **THEN** the UI SHALL show the plain reason and SHALL NOT quote a required amount below the available one
+
 ### Requirement: Order ticket for perpetuals
 The ticket SHALL accept size as quantity, notional (credits), % of equity (exposure: the notional is that share of equity, so 100% is one times the equity whatever the leverage) or risk budget (% of equity lost at the stop), each rounded down to the lot and typed with either decimal mark; SHALL require a leverage within the mission cap (a typed value above it is clamped to the cap); and SHALL show before submission: estimated entry, initial margin, fees, liquidation price, planned risk to stop, and a warning when the stop lies beyond the liquidation price. With a position open, a leverage different from the position's SHALL show that sending re-margins the open position too, with its liquidation price before and after (as a warning when it moves closer). When the initial margin plus fee of the part that adds exposure exceeds the available balance, the ticket SHALL say so and SHALL NOT submit. With a position open, an order on the opposite side (however it was sized, by risk included) SHALL say whether it reduces the position (and to what), closes it, or closes it and opens the rest on the other side. The leverage field SHALL keep the value the player typed until the account leverage or the cap changes (other commands, such as asking the advisor, SHALL NOT reset it). The phrase "maximum guaranteed loss" SHALL NOT be used; the term is "planned risk".
 
@@ -128,7 +132,7 @@ Clients SHALL implement distinct states for: loading, no data, indicator warming
 - **THEN** the chart SHALL show a "warming up (n bars)" state instead of a value
 
 ### Requirement: Accessible chart
-The chart SHALL have an equivalent accessible table of every closed bar (paged, the default page ending with the current bar, and openable on screen), a text summary (the latest bar, the move since the first bar and the recent range) and per-candle keyboard focus (arrows, Page Up/Down, Home/End; the focused bar's OHLCV and patterns announced in the locale). Assistive technologies SHALL never receive data for bars after the current step.
+The chart SHALL have an equivalent accessible table of every closed bar (paged, the default page ending with the current bar, and openable on screen), a text summary (the latest bar, the move since the first bar and the recent range) and per-candle keyboard focus (arrows, Page Up/Down, Home/End; the focused bar's OHLCV and patterns announced in the locale). Closing the table on screen (Esc, its close button or the toggle) SHALL hide it even when the focus was on one of its controls, returning the focus to the toggle. Assistive technologies SHALL never receive data for bars after the current step.
 
 #### Scenario: Screen reader and future bars (UX01)
 - **WHEN** a screen reader traverses the chart table

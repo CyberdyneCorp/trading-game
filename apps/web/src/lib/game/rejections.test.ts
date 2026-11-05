@@ -51,4 +51,12 @@ describe('rejection messages with numbers', () => {
 		expect(rejectionText('invalid_tick', { need: 1 })).toBe('preço fora do tick');
 		expect(rejectionText('brand_new')).toBe('brand_new');
 	});
+
+	it('never quotes an estimate that does not explain the refusal (it falls back to the plain reason)', () => {
+		// An option buy whose premium fits: the engine also reserves the fee, which the client cannot see.
+		expect(rejectionText('insufficient_margin', { need: 9_989.98, available: 10_000 })).toBe('margem insuficiente');
+		expect(rejectionText('insufficient_margin', { need: 10_000, available: 10_000 })).toBe('margem insuficiente');
+		expect(rejectionText('margin_below_initial', { margin: 1_000, initial: 1_000 })).toBe('margem ficaria abaixo da inicial');
+		expect(rejectionText('leverage_above_cap', { leverage: 5, cap: 10 })).toBe('alavancagem acima do limite da missão');
+	});
 });

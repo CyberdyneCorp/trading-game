@@ -94,6 +94,22 @@ test('rejections explain themselves with numbers: margin not available, margin b
 	await expect(notice).toContainText(/a margem ficaria em [\d.]+,\d\d cr, abaixo da margem inicial de [\d.]+,\d\d cr/);
 });
 
+test('an option buy whose premium fits but whose fee does not is refused without contradictory numbers', async ({ page }) => {
+	await page.goto('/?seed=12');
+	await startFromMenu(page, 3); // m04 calls and puts
+	await answerIfAsked(page);
+	await page.keyboard.press('o');
+	const row = page.locator('table').filter({ hasText: 'Strike' }).last().locator('tbody tr').first();
+	const ask = num((await row.locator('td').nth(3).textContent())!);
+	await row.locator('td').nth(3).click();
+	// The premium alone fits the 10,000 available; the engine also reserves the fee, which does not.
+	const ticket = page.locator('section.oticket');
+	await ticket.locator('label:has-text("Contratos") input').fill(String(Math.floor(10_000 / ask)));
+	await ticket.getByRole('button', { name: /Enviar ordem de opção/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	await expect(page.locator('.notice')).toHaveText('✖ margem insuficiente');
+});
+
 test('a lower leverage that would need more margin than available is refused with both amounts', async ({ page }) => {
 	await openTerminal(page, 31);
 	const lev = page.locator('label:has-text("Alavancagem") input').first();
@@ -166,7 +182,9 @@ test('UX01: the bar table ends with the current closed bar, pages back, and cand
 	await expect(lastRow()).toHaveText(String(first - 1));
 	await expect(page.getByTestId('table-range')).toContainText(`de ${last0 + 2}`);
 	await page.keyboard.press('Escape');
+	// Esc hides it even though the focus was on one of its buttons: the focus goes back to the toggle.
 	await expect(table).not.toBeInViewport();
+	await expect(page.getByTestId('chart-table-toggle')).toBeFocused();
 
 	// Per-candle focus: End announces the current bar, arrows step, Space still advances.
 	const chart = page.getByTestId('chart-box');
@@ -195,6 +213,13 @@ test('shortcuts are remappable: conflicts and reserved keys are refused, the map
 	await page.getByTestId('rebind-advance').click();
 	await page.keyboard.press('Enter');
 	await expect(message).toContainText('A tecla Enter é reservada');
+	await expect(page.getByTestId('key-advance')).toHaveText('Space');
+
+	// Shift does not free a reserved key: on the focused chart Shift+← still moves the candle, so it
+	// would both step the focus and advance the market.
+	await page.getByTestId('rebind-advance').click();
+	await page.keyboard.press('Shift+ArrowLeft');
+	await expect(message).toContainText('A tecla Shift + ArrowLeft é reservada');
 	await expect(page.getByTestId('key-advance')).toHaveText('Space');
 
 	await page.getByTestId('rebind-buy').click();

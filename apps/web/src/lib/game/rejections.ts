@@ -24,16 +24,21 @@ export interface RejectionFacts {
 
 const has = (...v: (number | undefined)[]): boolean => v.every((x) => x != null && Number.isFinite(x));
 
-/** Plain-language text for a refused command, with its numbers in the player's locale when known. */
+/**
+ * Plain-language text for a refused command, with its numbers in the player's locale when known.
+ * The figures are client estimates, so they are quoted only when they explain the refusal: an
+ * estimate that fits (e.g. an option premium without the fee the engine also reserves) would read
+ * "needed 9,989.98, 10,000.00 available", so the plain reason is shown instead.
+ */
 export function rejectionText(reason: string, f: RejectionFacts = {}): string {
 	const L = i18n.locale;
-	if (reason === 'insufficient_margin' && has(f.need, f.available)) {
+	if (reason === 'insufficient_margin' && has(f.need, f.available) && f.need! > f.available!) {
 		return t('reasonWhy.insufficient_margin', { need: fmtMoney(f.need!, L), avail: fmtMoney(f.available!, L) });
 	}
-	if (reason === 'margin_below_initial' && has(f.margin, f.initial)) {
+	if (reason === 'margin_below_initial' && has(f.margin, f.initial) && f.margin! < f.initial!) {
 		return t('reasonWhy.margin_below_initial', { margin: fmtMoney(f.margin!, L), initial: fmtMoney(f.initial!, L) });
 	}
-	if (reason === 'leverage_above_cap' && has(f.leverage, f.cap)) {
+	if (reason === 'leverage_above_cap' && has(f.leverage, f.cap) && f.leverage! > f.cap!) {
 		return t('reasonWhy.leverage_above_cap', { lev: f.leverage!, cap: f.cap! });
 	}
 	return reasonText(reason);

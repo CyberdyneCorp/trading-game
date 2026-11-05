@@ -36,9 +36,12 @@ export const DEFAULT_KEYMAP: Readonly<Keymap> = {
 /**
  * Keys no shortcut may take: Enter submits the focused order button (advance never shares a key with
  * submission), Escape closes dialogs and cancels a chart pick, Tab moves the focus, arrows and
- * Home/End/Page keys move the chart's focused candle. Modifier keys alone are not keys.
+ * Home/End/Page keys move the chart's focused candle. With Shift held they still do (Shift+Tab moves
+ * the focus back, the chart reads Shift+Arrow as an arrow), so Shift does not free them. Modifier keys
+ * alone are not keys.
  */
-const RESERVED = new Set(['Enter', 'Escape', 'Tab', 'Shift+Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
+const RESERVED = new Set(['Enter', 'Escape', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
+const isReserved = (key: string): boolean => RESERVED.has(key.replace(/^Shift\+/, ''));
 const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Dead', 'Unidentified', 'Process']);
 
 interface KeyLike {
@@ -75,7 +78,7 @@ export type BindResult =
 
 /** Binds `key` to `action`, refusing a reserved key or one another action already uses. */
 export function bind(map: Keymap, action: ShortcutAction, key: string): BindResult {
-	if (RESERVED.has(key)) return { ok: false, error: 'reserved', key };
+	if (isReserved(key)) return { ok: false, error: 'reserved', key };
 	const other = actionFor(map, key);
 	if (other && other !== action) return { ok: false, error: 'conflict', key, other };
 	return { ok: true, map: { ...map, [action]: key } };
@@ -94,6 +97,6 @@ export function sanitizeKeymap(raw: unknown): Keymap {
 		if (typeof v === 'string' && v.length > 0) map[a] = v;
 	}
 	const keys = SHORTCUT_ACTIONS.map((a) => map[a]);
-	const valid = new Set(keys).size === keys.length && keys.every((k) => !RESERVED.has(k));
+	const valid = new Set(keys).size === keys.length && keys.every((k) => !isReserved(k));
 	return valid ? map : { ...DEFAULT_KEYMAP };
 }

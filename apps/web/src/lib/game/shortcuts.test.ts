@@ -43,6 +43,12 @@ describe('bind', () => {
 		expect(bind(DEFAULT_KEYMAP, 'journal', 'Escape').ok).toBe(false);
 		expect(bind(DEFAULT_KEYMAP, 'journal', 'ArrowLeft').ok).toBe(false); // the chart's candle focus
 	});
+	it('keeps a reserved key reserved with Shift held (the chart and the focus still act on it)', () => {
+		for (const key of ['Shift+Enter', 'Shift+ArrowLeft', 'Shift+Home', 'Shift+PageDown', 'Shift+Escape', 'Shift+Tab']) {
+			expect(bind(DEFAULT_KEYMAP, 'advance', key)).toEqual({ ok: false, error: 'reserved', key });
+		}
+		expect(bind(DEFAULT_KEYMAP, 'advance', 'Shift+F2').ok).toBe(true);
+	});
 });
 
 describe('sanitizeKeymap', () => {
@@ -54,5 +60,6 @@ describe('sanitizeKeymap', () => {
 	it('falls back to the defaults for a map with a duplicate or reserved key', () => {
 		expect(sanitizeKeymap({ buy: 's' })).toEqual(DEFAULT_KEYMAP);
 		expect(sanitizeKeymap({ advance: 'Enter' })).toEqual(DEFAULT_KEYMAP);
+		expect(sanitizeKeymap({ advance: 'Shift+ArrowRight' })).toEqual(DEFAULT_KEYMAP);
 	});
 });

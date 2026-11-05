@@ -58,6 +58,15 @@
 	let focusBar = $state<number | null>(null);
 	let announce = $state('');
 	let tableOpen = $state(false);
+	let tableToggle = $state<HTMLButtonElement | null>(null);
+	let wrap = $state<HTMLDivElement | null>(null);
+
+	// Closing the table hands the focus back to its toggle: focus left on one of its buttons kept the
+	// table on screen (it shows while focus is inside it) after Esc had closed it.
+	function closeTable() {
+		tableOpen = false;
+		if (wrap?.querySelector('.bar-table')?.contains(document.activeElement)) tableToggle?.focus();
+	}
 
 	// Bars still needed before an indicator has a value (spec indicators "Warm-up").
 	function warming(series: (string | null)[], need: number): number {
@@ -528,7 +537,7 @@
 	function onKeydown(e: KeyboardEvent) {
 		if (picking && e.key === 'Escape') onCancelPick?.();
 		if (drag && e.key === 'Escape') cancelDrag();
-		if (tableOpen && e.key === 'Escape') tableOpen = false;
+		if (tableOpen && e.key === 'Escape') closeTable();
 	}
 
 	// Per-candle keyboard focus: arrows, Page Up/Down, Home/End move it and announce the bar;
@@ -597,7 +606,7 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="chart-wrap">
+<div class="chart-wrap" bind:this={wrap}>
 	<div class="readout num" aria-hidden="true">
 		{#if hoverBar}
 			<span class="muted">#{hoverIndex}</span>
@@ -636,7 +645,7 @@
 		{#if warming(game.indicators.ema50, 50) > 0}
 			<span class="muted">{t('chart.warming', { name: 'EMA50', n: warming(game.indicators.ema50, 50) })}</span>
 		{/if}
-		<button class="toggle table-toggle" aria-expanded={tableOpen} onclick={() => (tableOpen = !tableOpen)} data-testid="chart-table-toggle">
+		<button class="toggle table-toggle" bind:this={tableToggle} aria-expanded={tableOpen} onclick={() => (tableOpen ? closeTable() : (tableOpen = true))} data-testid="chart-table-toggle">
 			▦ {t('chart.tableToggle')}
 		</button>
 		{#if picking}<span class="attention" role="status">⌖ {t('chart.pickHint')}</span>{/if}
@@ -692,7 +701,7 @@
 			aria-hidden="true"
 		></canvas>
 	</div>
-	<ChartTable {bars} open={tableOpen} onClose={() => (tableOpen = false)} />
+	<ChartTable {bars} open={tableOpen} onClose={closeTable} />
 </div>
 
 <style>
