@@ -83,6 +83,17 @@ A new app version SHALL be installed by the service worker in the background and
 - **WHEN** an unfinished run recorded with engine 1.2 is resumed after the app updated to engine 1.3
 - **THEN** it SHALL resume on engine 1.2 and produce the same digest
 
+### Requirement: Journal and curriculum screens
+The client SHALL offer, from the menu, a journal screen listing the plans the player recorded (thesis, invalidation, target, confidence, planned risk, option loss scenario), grouped by run with the mission, mode (campaign, free play, practice), date and status, newest first and filterable by mission; and a curriculum map showing every stage in order with its status, assessment missions and unlocks, plus progress (stages passed, missions completed, campaign runs). Journal text SHALL stay on the device. Progress SHALL be kept in a versioned local record that the client migrates from older versions without losing tutorials seen or advisor points.
+
+#### Scenario: Plan in the journal
+- **WHEN** the player records a plan with a thesis and later opens the journal
+- **THEN** the thesis SHALL be listed under that run with its confidence and levels
+
+#### Scenario: Older progress record
+- **WHEN** the client finds a progress record saved before campaigns existed
+- **THEN** it SHALL keep the tutorials seen and the advisor points, and start with no campaign run and no stage passed
+
 ### Requirement: Keyboard operation
 Every action SHALL be reachable by keyboard with visible focus. Default shortcuts SHALL include advance one step, advance batch, open ticket, close position, toggle option chain and open journal, SHALL be listed in a help overlay, and SHALL be remappable. Advance SHALL never share a key with order submission.
 

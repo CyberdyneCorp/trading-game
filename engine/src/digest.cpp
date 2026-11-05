@@ -54,7 +54,8 @@ void write_metrics(Writer& w, const Metrics& m) {
   w.fixed(m.turnover);
 }
 
-// Policy v11: start options and advice (a default run writes 0, 0, false, 0, 0).
+// Policy v11: start options and advice (a default run writes 0, 0, false, 0, 0); policy v12
+// appends the campaign options (starting balance and leverage cap, 0 and 0 by default).
 void write_advisor(Writer& w, const RunState& st) {
   w.u32(st.options.advice_allowance);
   w.u8(st.options.news_lead);
@@ -74,6 +75,8 @@ void write_advisor(Writer& w, const RunState& st) {
       w.u32(static_cast<std::uint32_t>(r.ref));
     }
   }
+  w.fixed(st.options.starting_balance);
+  w.u32(static_cast<std::uint32_t>(st.options.leverage_cap));
 }
 
 }  // namespace

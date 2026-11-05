@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
+	import { campaignMissions, campaignPermissions, LOCKED_LEVERAGE_CAP, unlockStage } from '#lib/game/curriculum.ts';
 	import { tutorialFor } from '#lib/game/tutorials.ts';
 	import { fmtMoney, fmtPct, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
@@ -10,6 +11,20 @@
 	const L = $derived(i18n.locale);
 	const c = $derived(s.contract);
 	const txt = $derived(missionText(s.mission, L));
+	const link = $derived(session.runCampaign);
+	const modeText = $derived.by(() => {
+		if (link) return t('brief.modeCampaign', { n: link.index + 1, total: campaignMissions().length, seed: session.seed });
+		return s.knownScenario ? t('brief.modePack', { seed: session.seed }) : t('brief.modeSynthetic', { seed: session.seed });
+	});
+	// What the curriculum keeps locked in this campaign mission (option unlocks only where options
+	// trade), and the stage that unlocks it.
+	const locked = $derived(
+		link
+			? campaignPermissions(s.mission, session.progress.assessed).locked.filter((u) => s.options.enabled || !u.startsWith('options')).map((u) =>
+					t('unlock.after', { what: t(`unlock.${u}`, { cap: LOCKED_LEVERAGE_CAP }), stage: t(`stage.${unlockStage(u)}`) })
+				)
+			: []
+	);
 </script>
 
 <main class="brief">
@@ -18,7 +33,7 @@
 		<h1>{txt.title}</h1>
 		<p class="tagline">{txt.tagline}</p>
 		<dl class="kv">
-			<dt>{t('brief.mode')}</dt><dd class="attention">{s.knownScenario ? t('brief.modePack', { seed: session.seed }) : t('brief.modeSynthetic', { seed: session.seed })}</dd>
+			<dt>{t('brief.mode')}</dt><dd class="attention">{modeText}</dd>
 			<dt>{t('brief.capital')}</dt><dd>{fmtMoney(s.initialBalance, L)}</dd>
 			<dt>{t('brief.instrument')}</dt><dd>{t('brief.instrumentValue')}</dd>
 			<dt>{t('brief.leverage')}</dt><dd>1x – {c.leverageCap}x</dd>
@@ -37,6 +52,9 @@
 		<ul>
 			{#each txt.objectives as o (o)}<li>{o}</li>{/each}
 		</ul>
+		{#if locked.length}
+			<p class="locked" data-testid="campaign-locked">🔒 {t('campaign.locked', { what: locked.join(', ') })}</p>
+		{/if}
 		<p class="rules">{t('brief.rules')}</p>
 		<p class="muted small">{txt.topic}</p>
 		<div class="actions">
@@ -61,6 +79,11 @@
 	}
 	.kv {
 		margin: 1rem 0;
+	}
+	.locked {
+		border-left: 3px solid var(--attention);
+		padding-left: 0.7rem;
+		color: var(--attention);
 	}
 	.rules {
 		border-left: 3px solid var(--info);

@@ -5,6 +5,7 @@
 // so anything the UI showed as accepted survives a crash or a closed tab. Resume replays the log
 // through the deterministic engine; the stored digest only verifies the replay.
 
+import type { CampaignLink, CampaignProgress, CampaignRun } from './campaign.ts';
 import { START_POINTS } from './points.ts';
 
 export interface RunRecord<J = unknown, Q = unknown> {
@@ -19,10 +20,17 @@ export interface RunRecord<J = unknown, Q = unknown> {
 	digest: string;
 	status: 'active' | 'finished' | 'bankrupt';
 	actions: number; // number of committed actions
-	/** Start options (advice allowance, perks); absent on runs recorded before policy v11 = defaults. */
-	options?: { adviceAllowance: number; newsLead: number; calendar: boolean };
+	/**
+	 * Start options (advice allowance, perks; campaign capital and leverage cap since policy v12);
+	 * absent on runs recorded before policy v11 = defaults.
+	 */
+	options?: { adviceAllowance: number; newsLead: number; calendar: boolean; startingBalance?: string; leverageCap?: number };
 	/** Runs on a scenario pack (e.g. an imported CSV): the pack's digest in the `packs` store. */
 	packDigest?: string;
+	/** Campaign runs: the campaign run and mission index this run plays. */
+	campaign?: CampaignLink;
+	/** Last known engine equity (decimal string): what a campaign mission carries when it is left. */
+	equity?: string;
 }
 
 /**
@@ -47,8 +55,12 @@ export interface StoredRun<A, J, Q> {
 	actions: A[];
 }
 
-/** Per-device player progress (specs mission-tutorial and progression-rewards). */
-export interface Progress {
+/**
+ * Per-device player progress (specs mission-tutorial, progression-rewards, curriculum). Version 2
+ * adds the campaign run, its history and the missions assessed in a campaign (curriculum stages).
+ */
+export interface Progress extends CampaignProgress {
+	version: 2;
 	tutorialsSeen: string[];
 	/** Advisor point balance (see points.ts). */
 	advisorPoints: number;
@@ -56,7 +68,37 @@ export interface Progress {
 	settledRuns: string[];
 }
 
-export const EMPTY_PROGRESS: Progress = { tutorialsSeen: [], advisorPoints: START_POINTS, settledRuns: [] };
+export const EMPTY_PROGRESS: Progress = {
+	version: 2,
+	tutorialsSeen: [],
+	advisorPoints: START_POINTS,
+	settledRuns: [],
+	campaign: null,
+	campaignHistory: [],
+	assessed: []
+};
+
+const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+const isCampaign = (v: unknown): v is CampaignRun =>
+	!!v && typeof v === 'object' && typeof (v as CampaignRun).id === 'string' && Array.isArray((v as CampaignRun).legs);
+
+/**
+ * Reads any stored progress shape: version 1 (tutorials, then advisor points) gets the version 2
+ * fields empty; unknown or damaged fields fall back to their defaults instead of failing.
+ */
+export function migrateProgress(row: Record<string, unknown> | undefined): Progress {
+	const r = row ?? {};
+	const history = Array.isArray(r.campaignHistory) ? r.campaignHistory.filter(isCampaign) : [];
+	return {
+		version: 2,
+		tutorialsSeen: strings(r.tutorialsSeen),
+		advisorPoints: typeof r.advisorPoints === 'number' ? r.advisorPoints : START_POINTS,
+		settledRuns: strings(r.settledRuns),
+		campaign: isCampaign(r.campaign) ? r.campaign : null,
+		campaignHistory: history,
+		assessed: strings(r.assessed)
+	};
+}
 
 const DB_NAME = 'tradelab';
 const DB_VERSION = 2; // v2: packs store
@@ -143,12 +185,8 @@ export class RunStore<A, J, Q> {
 
 	async progress(): Promise<Progress> {
 		const tx = this.db.transaction('meta', 'readonly');
-		const row = (await req(tx.objectStore('meta').get('progress'))) as ({ key: string } & Partial<Progress>) | undefined;
-		return {
-			tutorialsSeen: row?.tutorialsSeen ?? [],
-			advisorPoints: row?.advisorPoints ?? START_POINTS,
-			settledRuns: row?.settledRuns ?? []
-		};
+		const row = (await req(tx.objectStore('meta').get('progress'))) as Record<string, unknown> | undefined;
+		return migrateProgress(row);
 	}
 
 	async saveProgress(p: Progress): Promise<void> {
@@ -193,6 +231,13 @@ export class RunStore<A, J, Q> {
 		if (!row) store.put({ key: 'deviceSeed', hex });
 		await done(tx);
 		return hex;
+	}
+
+	/** Every run header (no action logs), newest first: the journal screen reads them. */
+	async runs(): Promise<RunRecord<J, Q>[]> {
+		const tx = this.db.transaction('runs', 'readonly');
+		const all = (await req(tx.objectStore('runs').getAll())) as RunRecord<J, Q>[];
+		return all.sort((a, b) => b.createdAt - a.createdAt);
 	}
 
 	/** Missions with at least one run played to the end (bankrupt runs do not count). */

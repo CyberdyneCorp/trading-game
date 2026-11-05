@@ -22,7 +22,7 @@ def test_cross_binding_golden_matches_native_cpp():
         run.advance(30)
         run.close_position(6)
         state = run.advance(1000)
-    assert state["digest"] == "42fb769798588fd66737e4c975dbbd0f9e4fc56ea9d14ae70a2d95b2853533ad"
+    assert state["digest"] == "f9e6d831dd72aebe392d68257c693731da6cf478a4e750ce5903e94e1476bf2d"
     assert state["eventsDigest"] == "ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19"
 
 
@@ -79,7 +79,7 @@ def test_cross_binding_golden_with_advice_matches_native_cpp():
         state = run.advance(1000)
     assert state["advisor"]["left"] == 1
     assert len(state["advisor"]["advice"]) == 2
-    assert state["digest"] == "8921cab669fc115f6990231395a50d0d76f71d01022cf5826f40399b4e2fb5f4"
+    assert state["digest"] == "bf0d684d1a7b13fa984744e742be1c5b414d12f186819bb9b7d7d95143dc79c6"
     assert state["eventsDigest"] == "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f"
 
 
@@ -96,3 +96,22 @@ def test_replay_with_advice_and_options():
     plain = replay("m01-false-breakout", 3, log)
     assert all(not x["accepted"] for x in plain.results if x is not None)
     assert plain.digest == replay("m01-false-breakout", 3, [{"k": "adv", "n": 505}]).digest
+
+
+def test_campaign_options_carry_capital_and_gate_leverage():
+    """Policy v12: a campaign mission starts from the carried capital, with the curriculum's leverage cap."""
+    opts = RunOptions.from_json({"adviceAllowance": 0, "newsLead": 0, "calendar": False,
+                                 "startingBalance": "8000.5", "leverageCap": 2})
+    assert opts.starting_balance == "8000.5" and opts.leverage_cap == 2
+    with Run("m01-false-breakout", 5, opts) as run:
+        state = run.state()
+        assert state["initialBalance"].startswith("8000.5")
+        assert state["contract"]["leverageCap"] == 2
+        assert run.set_leverage(1, 3)["reason"] == "leverage_above_cap"
+        state = run.advance(10000)
+        assert run.debrief()["finalEquity"].startswith("8000.5")
+    r = replay("m01-false-breakout", 5, [{"k": "lev", "lev": 3}, {"k": "adv", "n": 500}], opts)
+    assert r.results[0]["reason"] == "leverage_above_cap"
+    assert r.digest == state["digest"]
+    with pytest.raises(EngineError):
+        Run("m01-false-breakout", 5, RunOptions(starting_balance="0"))

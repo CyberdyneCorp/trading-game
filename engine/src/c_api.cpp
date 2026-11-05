@@ -57,12 +57,12 @@ const char* run_status_name(RunStatus s) {
 
 const char* side_name(OrderSide s) { return s == OrderSide::Buy ? "buy" : "sell"; }
 
-void write_contract(JsonOut& j, const Scenario& sc) {
+void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
   const ContractSpec& k = sc.contract;
   j.key("contract").begin_obj();
   j.field("tickSize", k.tick_size).field("lotSize", k.lot_size).field("minQty", k.min_qty);
   j.field("multiplier", k.multiplier).field("maxLeverage", k.max_leverage);
-  j.field("leverageCap", std::min(sc.mission.leverage_cap, k.max_leverage));
+  j.field("leverageCap", run_leverage_cap(sc, st));
   j.field("makerFee", k.maker_fee).field("takerFee", k.taker_fee).field("maintenanceMargin", k.maintenance_margin);
   j.field("fundingInterval", k.funding_interval).field("allowShort", sc.mission.allow_short);
   j.field("halfSpread", sc.costs.half_spread).field("slippage", sc.costs.slippage);
@@ -368,8 +368,8 @@ const char* state_json(tl_run& r) {
   j.field("marketMode", r.from_pack ? r.pack.mode : std::string("synthetic")).field("knownScenario", r.from_pack);
   j.field("step", st.step).field("lastDecisionStep", last_decision_step(sc));
   j.field("warmupBars", sc.mission.warmup_bars).field("totalBars", static_cast<std::uint32_t>(sc.bars.size()));
-  j.field("initialBalance", sc.mission.initial_balance).field("leverage", st.leverage);
-  write_contract(j, sc);
+  j.field("initialBalance", run_initial_balance(sc, st)).field("leverage", st.leverage);
+  write_contract(j, sc, st);
   write_bars(j, sc, st.step);
   write_account(j, sc, st);
   write_orders(j, st);
@@ -461,10 +461,10 @@ void write_pack_reveal(JsonOut& j, const PackInfo& p) {
 }
 
 // Buy-and-hold benchmark: 1x long from the first eligible open to the final close, taker fees both ways.
-Money buy_and_hold(const Scenario& sc) {
+Money buy_and_hold(const Scenario& sc, const RunState& st) {
   const Price entry = sc.bars[sc.mission.warmup_bars + 1].open;
   const Price exit = sc.bars.back().close;
-  const Money budget = sc.mission.initial_balance;
+  const Money budget = run_initial_balance(sc, st);
   const Qty raw = detail::unwrap(div<Qty>(budget, Money::from_raw(entry.raw), Rounding::Floor));
   const Qty qty = detail::unwrap(round_to_step(Qty::from_raw(raw.raw * 999 / 1000), sc.contract.lot_size, Rounding::Floor));
   const Money pnl = detail::unwrap(mul<Money>(qty, Price::from_raw(exit.raw - entry.raw), Rounding::Floor));
@@ -513,17 +513,24 @@ const char* tl_missions(void) {
   return buffer.c_str();
 }
 
-tl_run* tl_run_create(const char* mission_id, uint32_t seed) { return tl_run_create_ex(mission_id, seed, 0, 0, 0); }
+tl_run* tl_run_create(const char* mission_id, uint32_t seed) {
+  return tl_run_create_ex(mission_id, seed, 0, 0, 0, nullptr, 0);
+}
 
 tl_run* tl_run_create_ex(const char* mission_id, uint32_t seed, uint32_t advice_allowance, uint32_t news_lead,
-                         int32_t calendar) {
-  if (news_lead > 255) return nullptr;
+                         int32_t calendar, const char* starting_balance, int32_t leverage_cap) {
+  if (news_lead > 255 || leverage_cap < 0) return nullptr;
+  RunOptions options{advice_allowance, static_cast<std::uint8_t>(news_lead), calendar != 0, Money{}, leverage_cap};
+  if (starting_balance != nullptr && *starting_balance != '\0') {
+    const auto balance = parse_decimal<Money>(starting_balance);
+    if (!balance.ok() || balance.value().raw <= 0) return nullptr;
+    options.starting_balance = balance.value();
+  }
   auto* run = new tl_run();
   if (mission_id == nullptr || !build_mission(mission_id, seed, run->scenario)) {
     delete run;
     return nullptr;
   }
-  const RunOptions options{advice_allowance, static_cast<std::uint8_t>(news_lead), calendar != 0};
   run->state = start_run(run->scenario, seed, options);
   return run;
 }
@@ -657,7 +664,7 @@ const char* tl_debrief(tl_run* run) {
   j.begin_obj().field("mission", sc.id).field("alias", sc.alias);
   j.field("status", run_status_name(run->state.status));
   j.field("finalEquity", account_view(sc, run->state).equity);
-  j.field("buyAndHoldPnl", buy_and_hold(sc)).field("flatPnl", Money{});
+  j.field("buyAndHoldPnl", buy_and_hold(sc, run->state)).field("flatPnl", Money{});
   j.field("syntheticMarket", !run->from_pack).field("seed", run->state.seed);
   if (run->from_pack) write_pack_reveal(j, run->pack);
   j.field("startPrice", sc.bars[sc.mission.warmup_bars].close).field("endPrice", sc.bars.back().close);

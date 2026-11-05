@@ -6,6 +6,7 @@
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
+	import CampaignOutcome from './CampaignOutcome.svelte';
 	import Chart from './Chart.svelte';
 	import { describeEvent } from './EventFeed.svelte';
 	import type { EngineTrade } from '#lib/engine/types.ts';
@@ -76,6 +77,7 @@
 		<h1>{t('debrief.finished')}</h1>
 	{/if}
 	<p class="muted">{missionText(s.mission, L).title}</p>
+	<CampaignOutcome {session} />
 
 	<div class="grid">
 		<section class="panel">
@@ -250,7 +252,9 @@
 
 	<div class="actions">
 		<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
-		<button class="primary" onclick={() => session.startMission(s.mission)}>↻ {t('debrief.again')}</button>
+		{#if !session.runCampaign}
+			<button class="primary" onclick={() => session.startMission(s.mission)}>↻ {t('debrief.again')}</button>
+		{/if}
 	</div>
 </main>
 

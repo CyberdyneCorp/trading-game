@@ -67,6 +67,9 @@ mindmap
       Pattern cheat sheet
     Learning
       Five missions
+      Campaign with carried capital
+      Curriculum map and unlocks
+      Plan journal
       Honest advisor and points
       Pre-trade plan
       Calibration questions
@@ -82,7 +85,10 @@ mindmap
 
 | Area | Details |
 |---|---|
-| Missions | 5 synthetic missions (table below). Each has a first-start tutorial, a briefing, objectives, a leverage cap and a "what was really going on" reveal in the debrief. Missions played to the end are marked Completed in the menu. |
+| Missions | 5 synthetic missions (table below). Each has a first-start tutorial, a briefing, objectives, a leverage cap and a "what was really going on" reveal in the debrief. Missions played to the end are marked Completed in the menu. Free play starts any of them with its own rules. |
+| Campaign | The missions in curriculum order (m01, m03, m02, m04, m05) with **capital carried** from one mission to the next; bankruptcy ends the campaign run and a new one starts from 10,000. Leverage above 2× stays locked in campaign missions until Futures II is passed (see [Campaign and curriculum](#campaign-and-curriculum)). |
+| Curriculum and progress | A map of the 13 curriculum stages (passed, open, locked, coming soon), what each one assesses and unlocks, missions completed and campaign runs played. Passed stages are never lost. |
+| Journal | Every plan you wrote (thesis, invalidation, target, confidence, planned risk), run by run, filterable by mission. It stays on the device and is never scored. |
 | Perpetual futures | Isolated margin, leverage up to the mission cap, funding every N bars, mark-to-market, liquidation, bankruptcy (game over when you can't afford the minimum order). |
 | Options | Cash-settled European calls/puts priced with Black-76 on the perpetual, with an IV model, Greeks, option chain, writing with margin and margin calls. |
 | Orders | Market / limit / stop entries, reduce-only stop-loss and take-profit (brackets, OCO), trailing stop, costs (fees, spread, slippage, bar-volume capacity). The ticket warns when a new leverage would re-margin the open position (liquidation before → after), and both tickets refuse an order whose margin (or an option buy whose premium) exceeds the available balance. |
@@ -339,8 +345,9 @@ Historical packs from Market4Me are specified but not built yet. The pack format
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Tutorial: first start of a mission
-    [*] --> Briefing: later starts
+    [*] --> Menu
+    Menu --> Tutorial: free play or campaign, first start of a mission
+    Menu --> Briefing: later starts
     Tutorial --> Briefing: finished or skipped
     Briefing --> Tutorial: replay
     Briefing --> Plan: start mission
@@ -349,8 +356,11 @@ stateDiagram-v2
     Trading --> Debrief: last bar reached
     Trading --> Bankrupt: cannot afford minimum order
     Bankrupt --> Debrief
-    Debrief --> [*]
+    Debrief --> Menu
+    Debrief --> Briefing: campaign, next mission (capital carried)
 ```
+
+From the menu: **Campaign** (missions in curriculum order, capital carried), **free play** (any mission, its own rules), practice on imported markets, the **curriculum map** and the **journal**.
 
 1. **Tutorial** — the first time you start a mission on a device, 3–5 short illustrated cards explain its concept, what to watch and which controls to use (arrows or Enter to page, Esc to skip). They never hint at what the market will do. Replay them from the briefing.
 2. **Briefing** — the mission's story, objectives, instrument and leverage cap. A warm-up history is already on the chart.
@@ -374,6 +384,23 @@ Next to the score, the debrief shows outcome facts that are **not** score inputs
 - For options, the **P&L by Greek** (delta, gamma, theta, vega and a residual), labeled approximate: bar by bar, from the Greeks of the quote at the start of each interval; the residual holds the spread paid and higher-order effects, so the five lines add up to the option P&L before fees.
 - For a perpetual trade whose stop (stop order, else the plan's invalidation) sat at or beyond its liquidation price (at the highest leverage the position carried, including a re-leverage while it was open): the **highest leverage that would have kept the stop in front** of liquidation, also named in the liquidation and stop-beyond-liquidation findings.
 - When time decay (theta) or a falling implied volatility (vega) explains at least half of an option loss, a finding says so and the next lesson is Options II (IV and Greeks).
+
+### Campaign and curriculum
+
+A campaign run plays the missions in curriculum order: m01 (Futures I), m03 (Futures II), m02 (Futures III), m04 (Options I and II), m05 (Options III). The first starts with 10,000; each later one starts with the final equity of the one before, passed to the engine as a start option (`startingBalance`, policy v12), so the engine stays the only source of balances and the server can replay it. Going bankrupt ends the campaign run (game over, then the debrief, which offers a new campaign run from 10,000). A liquidation that leaves capital does not: the campaign goes on with what is left. Leaving a campaign mission for another run carries the equity it had when it was left, and the campaign stays on that mission; "End campaign" in the menu closes the run by choice.
+
+Finishing a mission in a campaign run passes its curriculum stages for good: bankruptcy, liquidation or an ended campaign run never remove them. The curriculum (`apps/web/src/lib/game/curriculum.ts`) is data: 13 stages in dependency order, each with its assessment missions and its unlocks. Stages without missions yet (their lessons are pending) show as coming soon and do not block the next ones. Unlocks are never bought:
+
+| Unlock | Stage that grants it | In a campaign mission before that |
+|---|---|---|
+| Shorting | Futures I (m01) | Locked |
+| Leverage above 2× | Futures II (m03) | The engine caps leverage at 2× (`leverageCap` start option) |
+| Buying options | Options I (m04) | Locked |
+| Writing options | Options III (m05) | Locked |
+
+A stage's own assessment mission always has its unlocks (it is where they are taught), so in the campaign order only the leverage cap ever bites (in m01 until Futures II is passed); a unit test checks that no campaign mission meets a lock the engine cannot enforce. Free play keeps every mission's own rules and does not pass stages.
+
+Progress lives in IndexedDB `meta.progress` (version 2): tutorials seen, advisor points, the campaign run, ended campaign runs and the missions assessed. A record from an older build is migrated on load (its tutorials and points are kept).
 
 ### Advisor points
 
@@ -403,15 +430,16 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v2, execution policy v11, scoring v7 with the full debrief), the five missions with first-start tutorials, the advisor with points earned by disciplined trades, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
+Built: the deterministic engine (perps, options, indicators, patterns, generator v2, execution policy v12, scoring v7 with the full debrief), the five missions with first-start tutorials, campaign runs with carried capital, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay, progress, export, erase) and scenario packs (signed, zstd, validated in the engine) with private CSV import.
 
 Next:
 
 - Legal intel perks unlocked by finished missions: economic calendar and fast wire (`add-advisor-intel-tutorials`, phase 3). The engine already takes the start options (`news_lead`, `calendar`) and the advisor already reads a fast-wire headline; the state view, the briefing toggles and the server re-simulation with stored options come with that phase.
-- More content toward the phase-2 target (12 missions, ≥4 regimes), campaign runs and the curriculum map.
+- More content toward the phase-2 target (12 missions, ≥4 regimes), and the lessons runner (concept, demonstration, decision, feedback, transfer) for the curriculum stages that have no mission yet.
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.
-- Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data), curriculum map.
+- Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data).
+- Server replay of runs with start options (advisor allowance, campaign capital and leverage cap): the API replays with default options today.
 - Desktop client (C++20, Dear ImGui + SDL3), then iPad/iPhone (SwiftUI).
 
 ## Tests

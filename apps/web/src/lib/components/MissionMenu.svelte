@@ -7,6 +7,7 @@
 	import { i18n, packReasonText, t, type Locale } from '#lib/game/i18n.svelte.ts';
 	import { PACK_MAX_BYTES } from '#lib/game/packs.ts';
 	import type { StoredPack } from '#lib/game/storage.ts';
+	import CampaignPanel from './CampaignPanel.svelte';
 
 	let { session }: { session: GameSession } = $props();
 	let packMessage = $state<{ ok: boolean; text: string } | null>(null);
@@ -70,12 +71,23 @@
 
 	{#if session.saved}
 		<section class="panel resume">
-			<span>{missionText(session.saved.missionId, i18n.locale).title} · seed {session.saved.seed}</span>
+			<span>
+				{#if session.saved.campaign}<span class="tag info">{t('journal.mode.campaign')}</span>{/if}
+				{missionText(session.saved.missionId, i18n.locale).title} · seed {session.saved.seed}
+			</span>
 			<button class="primary" onclick={() => session.resume()} disabled={session.busy}>▶ {t('menu.resume')}</button>
 		</section>
 	{/if}
 
+	<nav class="screens">
+		<button onclick={() => session.openCurriculum()} data-testid="open-curriculum">▦ {t('curriculum.open')}</button>
+		<button onclick={() => session.openJournal()} data-testid="open-journal">✎ {t('journal.open')}</button>
+	</nav>
+
+	<CampaignPanel {session} />
+
 	<h2>{t('menu.missions')}</h2>
+	<p class="muted small">{t('menu.freePlayNote')}</p>
 	<div class="cards">
 		{#each session.missions as m (m.id)}
 			{@const txt = missionText(m.id, i18n.locale)}
@@ -203,6 +215,11 @@
 		align-items: center;
 		gap: 1rem;
 		margin: 0.6rem 0;
+	}
+	.screens {
+		display: flex;
+		gap: 0.5rem;
+		margin: 0.8rem 0;
 	}
 	.resume {
 		display: flex;

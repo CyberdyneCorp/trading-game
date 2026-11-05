@@ -23,10 +23,12 @@ const char* tl_missions(void);
 
 /* Returns NULL for an unknown mission id. */
 tl_run* tl_run_create(const char* mission_id, uint32_t seed);
-/* With start options (policy v11): advice allowance, fast-wire lead in bars (0..255), calendar on/off.
- * tl_run_create(m, s) == tl_run_create_ex(m, s, 0, 0, 0). */
+/* With start options: advice allowance, fast-wire lead in bars (0..255), calendar on/off (policy v11);
+ * campaign starting balance (decimal string > 0; NULL or "" = the mission's) and leverage cap
+ * (> 0 lowers the mission's cap; 0 = the mission's) (policy v12). Returns NULL for an unknown
+ * mission or invalid options. tl_run_create(m, s) == tl_run_create_ex(m, s, 0, 0, 0, NULL, 0). */
 tl_run* tl_run_create_ex(const char* mission_id, uint32_t seed, uint32_t advice_allowance, uint32_t news_lead,
-                         int32_t calendar);
+                         int32_t calendar, const char* starting_balance, int32_t leverage_cap);
 void tl_run_destroy(tl_run* run);
 
 const char* tl_place_order(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,

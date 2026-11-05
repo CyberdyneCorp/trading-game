@@ -290,7 +290,7 @@ TEST_CASE("Points: a bankrupt run earns no finishing bonus") {
 // ---- C ABI ----------------------------------------------------------------------------------
 
 TEST_CASE("C ABI: start options, advice in the state and the debrief, no_advice_left") {
-  tl_run* run = tl_run_create_ex("m01-false-breakout", 5, 2, 0, 0);
+  tl_run* run = tl_run_create_ex("m01-false-breakout", 5, 2, 0, 0, nullptr, 0);
   REQUIRE(run != nullptr);
   std::string s = tl_state(run);
   CHECK(s.find("\"advisor\":{\"version\":1,\"allowance\":2,\"left\":2,\"newsLead\":0,\"calendar\":false,\"advice\":[]}") !=
@@ -312,12 +312,12 @@ TEST_CASE("C ABI: start options, advice in the state and the debrief, no_advice_
   CHECK(d.find("\"advice\":[{\"step\":60,") != std::string::npos);
   CHECK(d.find("\"adviceHitBp\":") != std::string::npos);
   tl_run_destroy(run);
-  CHECK(tl_run_create_ex("m01-false-breakout", 5, 0, 256, 0) == nullptr);
+  CHECK(tl_run_create_ex("m01-false-breakout", 5, 0, 256, 0, nullptr, 0) == nullptr);
 }
 
 // Golden (design D6): m02 with {allowance 3, news_lead 1, calendar} and two pieces of advice.
 TEST_CASE("Golden: scripted run with start options and advice is bit-frozen across targets") {
-  tl_run* run = tl_run_create_ex("m02-funding-squeeze", 2026, 3, 1, 1);
+  tl_run* run = tl_run_create_ex("m02-funding-squeeze", 2026, 3, 1, 1, nullptr, 0);
   tl_request_advice(run, 1);
   tl_set_leverage(run, 2, 3);
   tl_record_plan(run, 3, 0, 0, 0, 1, "95", "115", 60, "100");
@@ -329,6 +329,6 @@ TEST_CASE("Golden: scripted run with start options and advice is bit-frozen acro
   CHECK(s.find("\"allowance\":3,\"left\":1,\"newsLead\":1,\"calendar\":true") != std::string::npos);
   CHECK(s.find("\"type\":\"fill\"") != std::string::npos);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"8921cab669fc115f6990231395a50d0d76f71d01022cf5826f40399b4e2fb5f4\","
+        "\"digest\":\"bf0d684d1a7b13fa984744e742be1c5b414d12f186819bb9b7d7d95143dc79c6\","
         "\"eventsDigest\":\"c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f\"}");
 }

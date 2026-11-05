@@ -221,6 +221,8 @@ void visit(Ar& a, RunState& st) {
   a.flag(st.options.calendar);
   a.u32(st.advice_left);
   visit_seq(a, st.advice);
+  a.fx(st.options.starting_balance);
+  a.i32(st.options.leverage_cap);
 }
 
 

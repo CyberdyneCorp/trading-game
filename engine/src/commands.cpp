@@ -155,7 +155,7 @@ CommandResult cancel_order(RunState& st, const Command& c) {
 }
 
 CommandResult set_leverage(const Scenario& sc, RunState& st, const Command& c) {
-  const std::int32_t cap = std::min(sc.mission.leverage_cap, sc.contract.max_leverage);
+  const std::int32_t cap = run_leverage_cap(sc, st);
   if (c.leverage < 1) return reject(Reason::InvalidLeverage);
   if (c.leverage > cap) return reject(Reason::LeverageAboveCap);
   Position& p = st.position;

@@ -203,11 +203,18 @@ export interface NewsView {
 	actual: number;
 }
 
-/** Start options of a run (engine policy v11): advice allowance and intel perks. */
+/**
+ * Start options of a run: advice allowance and intel perks (engine policy v11); campaign capital
+ * carried in and the curriculum's leverage cap (policy v12; absent = the mission's own rules).
+ */
 export interface RunOptionsView {
 	adviceAllowance: number;
 	newsLead: number;
 	calendar: boolean;
+	/** Decimal string > 0. */
+	startingBalance?: string;
+	/** > 0 lowers the mission's leverage cap. */
+	leverageCap?: number;
 }
 
 export const DEFAULT_RUN_OPTIONS: RunOptionsView = { adviceAllowance: 0, newsLead: 0, calendar: false };

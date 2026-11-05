@@ -115,7 +115,7 @@ TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
   tl_run_destroy(run);
   const std::string digests = s.substr(s.find("\"digest\""));
   CHECK(digests ==
-        "\"digest\":\"42fb769798588fd66737e4c975dbbd0f9e4fc56ea9d14ae70a2d95b2853533ad\","
+        "\"digest\":\"f9e6d831dd72aebe392d68257c693731da6cf478a4e750ce5903e94e1476bf2d\","
         "\"eventsDigest\":\"ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19\"}");
 }
 
@@ -147,7 +147,7 @@ TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
   const std::string s = tl_advance(run, 1000);
   tl_run_destroy(run);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"b7c7df0c88e1f41eeb2aef2bafc068e4698f25814b0f77f54b6fdc33e502b9ff\","
+        "\"digest\":\"4548fca4bd531de2b01d6ad6d89a6fbab0b59edfc0dd998ceeac9cd362e45c35\","
         "\"eventsDigest\":\"908ac0b1ffd77daf85c8c88e59123a55cb3ddc5ab1509965ae294ae637c4c8aa\"}");
 }
 
