@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fmtNum } from '#lib/game/format.ts';
-import { candleCells, hitsTag, LABEL_H, pinOf, priceRange, spreadLabels } from './chartScale.ts';
+import { candleCells, drawnCandles, hitsTag, LABEL_H, pinOf, priceRange, spreadLabels } from './chartScale.ts';
 
 describe('candleCells', () => {
 	it('regression: the screen-reader candle table uses the locale, not raw engine decimals', () => {
@@ -78,5 +78,35 @@ describe('hitsTag', () => {
 		expect(hitsTag(205, tags)).toBe(true); // the 98,46 grid label half-hidden behind it
 		expect(hitsTag(212 + LABEL_H, tags)).toBe(false);
 		expect(hitsTag(205, [])).toBe(false);
+	});
+});
+
+describe('drawnCandles', () => {
+	const bars = [
+		[10, 12, 9, 11, 5],
+		[11, 15, 10, 14, 7],
+		[14, 14, 8, 9, 3],
+		[9, 10, 7, 8, 9],
+		[8, 9, 6, 7, 1]
+	];
+
+	it('draws every bar as is when a bar is at least a pixel wide', () => {
+		expect(drawnCandles(bars, 4).map((k) => [k.at, k.o, k.h, k.l, k.c, k.v])).toEqual(bars.map((b, i) => [i, ...b]));
+	});
+
+	it('merges bars that would share a pixel column: first open, extremes, last close, largest volume', () => {
+		// 0.5 px per bar: pairs share a column; the odd last bar stays alone.
+		expect(drawnCandles(bars, 0.5)).toEqual([
+			{ at: 0.5, o: 10, h: 15, l: 9, c: 14, v: 7 },
+			{ at: 2.5, o: 14, h: 14, l: 7, c: 8, v: 9 },
+			{ at: 4, o: 8, h: 9, l: 6, c: 7, v: 1 }
+		]);
+	});
+
+	it('draws 5,000 bars on a 1,368 px plot as one candle per column at most', () => {
+		const many = Array.from({ length: 5000 }, (_, i) => [i, i + 2, i - 1, i + 1, i % 7]);
+		const out = drawnCandles(many, 1368 / 5012);
+		expect(out.length).toBeLessThanOrEqual(1368);
+		expect(out[0]).toMatchObject({ o: 0, h: 5, l: -1, c: 4 });
 	});
 });

@@ -83,3 +83,29 @@ export function spreadLabels(ys: number[], top: number, bottom: number): number[
 export function hitsTag(y: number, tagYs: number[]): boolean {
 	return tagYs.some((t) => Math.abs(t - y) < LABEL_H);
 }
+
+/** A drawn candle: OHLCV and the (fractional) slot index its center is drawn at. */
+export type DrawnCandle = { at: number; o: number; h: number; l: number; c: number; v: number };
+
+/**
+ * Candles to draw for bars `[o, h, l, c, v]` at `slotW` pixels per bar. Narrower than a pixel,
+ * consecutive bars that would share a column are merged (first open, highest high, lowest low,
+ * last close, largest volume), so a 5,000-bar chart draws about one candle per pixel column.
+ */
+export function drawnCandles(bars: readonly (readonly number[])[], slotW: number): DrawnCandle[] {
+	const n = slotW >= 1 ? 1 : Math.ceil(1 / slotW);
+	const out: DrawnCandle[] = [];
+	for (let i = 0; i < bars.length; i += n) {
+		const group = bars.slice(i, i + n);
+		let h = -Infinity;
+		let l = Infinity;
+		let v = 0;
+		for (const b of group) {
+			h = Math.max(h, b[1]);
+			l = Math.min(l, b[2]);
+			v = Math.max(v, b[4]);
+		}
+		out.push({ at: i + (group.length - 1) / 2, o: group[0][0], h, l, c: group[group.length - 1][3], v });
+	}
+	return out;
+}

@@ -62,6 +62,10 @@ describe('CSV issue and pack reason texts', () => {
 		expect(csvIssueText('brand_new')).toBe('brand_new');
 		expect(packReasonText('hash_mismatch')).toBe('a data file was changed (hash mismatch)');
 		expect(packReasonText('brand_new')).toBe('brand_new');
+		expect(packReasonText('quota:1.5 MB')).toBe(
+			'not enough free space: 1.5 MB more is needed. Remove packs you no longer use or free space in the browser settings'
+		);
 		i18n.locale = 'pt-BR';
+		expect(packReasonText('quota:1,5 MB')).toMatch(/^sem espaço livre: faltam 1,5 MB\. Remova pacotes/);
 	});
 });

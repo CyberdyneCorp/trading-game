@@ -3,6 +3,7 @@
 // same state digest), so only the log is persisted, never balances.
 
 import { EventNames } from './eventNames.ts';
+import { currentEnginePath, engineBuildLabel } from '#lib/engine/build.ts';
 import { EngineClient } from '#lib/engine/client.ts';
 import type { CsvBuildResult, EngineRequest } from '#lib/engine/protocol.ts';
 import {
@@ -33,11 +34,14 @@ import {
 } from './campaign.ts';
 import { legReport } from './campaignReport.ts';
 import { campaignPermissions } from './curriculum.ts';
-import { t } from './i18n.svelte.ts';
+import { i18n, t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
 import { distinctFinished, newPerks, perkOptions, perksUsed, unlockedPerks, type PerkId } from './perks.ts';
 import { randomSeedBytes, trustedKeys } from './packs.ts';
-import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type RunRecord, type StoredPack } from './storage.ts';
+import { missingCapabilities, type MissingCapability } from './browserSupport.ts';
+import { enginesToKeep, gcEngines, pinEngine } from './engineCache.ts';
+import { formatBytes, MemoryPackIndex, opfsPackDir, PackLibrary, quotaShortfall, storageQuota, type PackEntry, type Quota } from './packStore.ts';
+import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type Progress, type RunRecord } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
 
 export type Screen = 'loading' | 'menu' | 'import' | 'tutorial' | 'briefing' | 'terminal' | 'debrief' | 'curriculum' | 'journal';
@@ -76,6 +80,12 @@ type Action =
 	| { k: 'adv'; n: number };
 
 type CommandAction = Exclude<Action, { k: 'adv' }>;
+
+/** A checkpoint every this many logged actions: resume restores it and replays at most this many. */
+export const CHECKPOINT_EVERY = 20;
+
+/** Absolute URL of an engine build path, for the worker's dynamic import. */
+const engineUrl = (path: string) => new URL(path, globalThis.location?.href ?? 'http://localhost/').href;
 
 /** Summary of the resumable run shown on the menu. */
 export interface RunSummary {
@@ -142,8 +152,12 @@ export class GameSession {
 	progress = $state<Progress>({ ...EMPTY_PROGRESS });
 	/** Menu-level problem (e.g. the saved run's pack was removed); cleared when a run starts. */
 	menuAlert = $state<string | null>(null);
-	/** Installed scenario packs (imported CSVs and loaded .tlpack files), verified by the engine. */
-	packs = $state<StoredPack[]>([]);
+	/** Installed scenario packs (imported CSVs and loaded .tlpack files), verified by the engine; evicted ones flagged. */
+	packs = $state<PackEntry[]>([]);
+	/** Storage used and available for this origin (null when the browser does not say). */
+	quota = $state<Quota | null>(null);
+	/** Capabilities this browser lacks; non-empty = the unsupported-browser message instead of the game. */
+	unsupported = $state<MissingCapability[]>([]);
 
 	/** This device's signing identity for private imports (seed stays in IndexedDB). */
 	private device: { seedHex: string; key: TrustedKey } | null = null;
@@ -157,6 +171,10 @@ export class GameSession {
 	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
 
 	private engine: EngineClient | null = null;
+	/** This version's engine build (path) and the build loaded in the worker (differs while a pinned run plays). */
+	private enginePath = '';
+	private loadedEngine = '';
+	private library: PackLibrary | null = null;
 	private log: Action[] = [];
 	private clientId = 1;
 	private store: RunStore<Action, PlanEntry, never> | null = null;
@@ -170,13 +188,17 @@ export class GameSession {
 
 	async init(): Promise<void> {
 		try {
+			this.unsupported = await missingCapabilities();
+			if (this.unsupported.length) return;
 			this.engine = new EngineClient();
-			const info = await this.engine.request({ kind: 'init' });
+			this.enginePath = currentEnginePath();
+			const info = await this.engine.request({ kind: 'init', engineUrl: engineUrl(this.enginePath) });
+			this.loadedEngine = this.enginePath;
 			this.missions = info.missions;
 			this.policy = info.version.executionPolicy;
 			await this.openStore();
 			await this.refreshSaved();
-			this.packs = (await this.store?.packs().catch(() => null)) ?? [];
+			await this.refreshPacks();
 			this.progress = (await this.store?.progress().catch(() => null)) ?? { ...EMPTY_PROGRESS };
 			this.screen = 'menu';
 		} catch (e) {
@@ -192,16 +214,25 @@ export class GameSession {
 			this.store = null;
 			this.durable = false;
 		}
+		this.library = new PackLibrary(this.store ?? new MemoryPackIndex(), await opfsPackDir());
 	}
 
 	private async refreshSaved(): Promise<void> {
 		const finished = await this.store?.finishedMissions().catch(() => []);
 		if (finished) this.completed = [...new Set([...this.completed, ...finished])];
 		const run = await this.store?.activeRun().catch(() => null);
-		this.saved =
-			run && run.record.status === 'active'
-				? { missionId: run.record.missionId, seed: run.record.seed, actions: run.actions.length, campaign: run.record.campaign ?? null }
-				: null;
+		const active = run && run.record.status === 'active' ? run : null;
+		const r = active?.record;
+		this.saved = r && active ? { missionId: r.missionId, seed: r.seed, actions: active.actions.length, campaign: r.campaign ?? null } : null;
+		// Only the resumable run needs its checkpoint and its engine build; the rest is reclaimed.
+		await this.store?.pruneCheckpoints(r?.runId ?? null).catch(() => undefined);
+		await gcEngines(enginesToKeep(this.enginePath, r?.engine));
+	}
+
+	/** Installed packs, each checked against its bytes (eviction), and the storage quota. */
+	private async refreshPacks(): Promise<void> {
+		this.packs = (await this.library?.list().catch(() => null)) ?? [];
+		this.quota = await storageQuota();
 	}
 
 	/** Asks the browser to keep offline data (spec web-client "Persistent offline storage"). */
@@ -323,6 +354,34 @@ export class GameSession {
 		});
 	}
 
+	// A new run always starts on this version's engine (a pinned older build serves only its own run).
+	private async useCurrentEngine(): Promise<void> {
+		if (this.loadedEngine !== this.enginePath) await this.switchEngine(this.enginePath);
+	}
+
+	private async switchEngine(path: string): Promise<void> {
+		const v = await this.eng().request({ kind: 'useEngine', engineUrl: engineUrl(path) });
+		this.loadedEngine = path;
+		this.policy = v.executionPolicy;
+	}
+
+	/**
+	 * An unfinished run resumes on the engine build it started on (spec web-client "Old run after
+	 * update"). A run recorded before pinning, or whose build is gone, resumes on this version's
+	 * build; the returned notice says so.
+	 */
+	private async useRunEngine(path: string | undefined): Promise<Notice | null> {
+		const target = path || this.enginePath;
+		if (target === this.loadedEngine) return null;
+		try {
+			await this.switchEngine(target);
+			return target === this.enginePath ? null : { tone: 'ok', text: t('engine.pinned', { build: engineBuildLabel(target) }) };
+		} catch {
+			await this.switchEngine(this.enginePath);
+			return { tone: 'warn', text: t('engine.pinMissing', { build: engineBuildLabel(target) }) };
+		}
+	}
+
 	private async launch(
 		missionId: string,
 		seed: number,
@@ -330,6 +389,7 @@ export class GameSession {
 		campaign: CampaignLink | null,
 		perks: PerkId[] = []
 	): Promise<void> {
+		await this.useCurrentEngine();
 		this.resetRun(missionId, seed);
 		this.options = options;
 		this.perkChoice = perks;
@@ -353,12 +413,15 @@ export class GameSession {
 	/** Practice run on an installed pack (e.g. an imported CSV); the pack is verified again on start. */
 	async startPack(digest: string, seed = this.randomSeed()): Promise<void> {
 		const pack = this.packs.find((p) => p.digest === digest);
-		if (!pack) return;
+		if (!pack || pack.evicted) return;
 		await this.exclusive(async () => {
+			const bytes = await this.packBytes(digest);
+			if (!bytes) return this.markEvicted(digest); // evicted since the menu was drawn: no partial start
 			await this.settleAbandoned();
+			await this.useCurrentEngine();
 			this.resetRun(pack.scenarioId, seed);
 			this.options = { ...DEFAULT_RUN_OPTIONS }; // pack runs start without advisor or perks
-			this.state = await this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
+			this.state = await this.eng().request({ kind: 'startPack', pack: bytes, keys: await this.trusted(), seed });
 			await this.createRunRecord(pack.scenarioId, seed, { packDigest: digest });
 			this.screen = 'briefing';
 		});
@@ -385,11 +448,13 @@ export class GameSession {
 				actions: 0,
 				options: { ...this.options },
 				equity: this.state?.account.equity,
+				engine: this.loadedEngine,
 				...(link.packDigest ? { packDigest: link.packDigest } : {}),
 				...(link.campaign ? { campaign: { ...link.campaign } } : {})
 			})
 			.catch(() => (this.durable = false));
 		void this.requestPersistence();
+		void pinEngine(this.loadedEngine); // kept across app updates until the run ends
 	}
 
 	// ---- scenario packs and CSV import (spec scenario-packs; web-client task 4.5) ----
@@ -424,16 +489,21 @@ export class GameSession {
 		return check.ok ? res : { ...res, ok: false, reason: check.reason };
 	}
 
-	/** Verify-then-install: only bytes the engine accepted are stored (by digest). */
+	/**
+	 * Verify-then-install: only bytes the engine accepted are stored (by digest), and only when they
+	 * fit in the storage quota (spec web-client "Quota exceeded": the space missing is reported).
+	 */
 	async installPack(bytes: Uint8Array, label: string): Promise<PackCheck> {
+		this.quota = await storageQuota();
+		const short = quotaShortfall(this.quota, bytes.length);
+		if (short > 0) return { ok: false, reason: `quota:${formatBytes(short, i18n.locale)}`, detail: '' };
 		const check = await this.eng().request({ kind: 'packValidate', pack: bytes, keys: await this.trusted() });
-		if (!check.ok || !check.pack) return check;
+		if (!check.ok || !check.pack || !this.library) return check;
 		const s = check.pack;
-		const stored: StoredPack = {
+		const meta = {
 			digest: s.digest,
 			scenarioId: s.scenarioId,
 			label,
-			bytes,
 			private: s.private,
 			totalBars: s.totalBars,
 			warmupBars: s.warmupBars,
@@ -441,14 +511,30 @@ export class GameSession {
 			gaps: s.gaps,
 			addedAt: Date.now()
 		};
-		await this.store?.savePack(stored).catch(() => (this.durable = false));
-		this.packs = [...this.packs.filter((p) => p.digest !== stored.digest), stored];
+		const entry = await this.library.install(meta, bytes).catch(() => null);
+		if (!entry) {
+			this.durable = false;
+			return { ok: false, reason: 'storage_failed', detail: '' };
+		}
+		this.packs = [...this.packs.filter((p) => p.digest !== entry.digest), entry];
+		this.quota = await storageQuota();
 		return check;
 	}
 
 	async removePack(digest: string): Promise<void> {
-		await this.store?.deletePack(digest).catch(() => (this.durable = false));
+		await this.library?.remove(digest).catch(() => (this.durable = false));
 		this.packs = this.packs.filter((p) => p.digest !== digest);
+		this.quota = await storageQuota();
+	}
+
+	/** The pack file (to start, resume or export it); null when it was evicted. */
+	async packBytes(digest: string): Promise<Uint8Array | null> {
+		return (await this.library?.bytes(digest).catch(() => null)) ?? null;
+	}
+
+	private markEvicted(digest: string): void {
+		this.packs = this.packs.map((p) => (p.digest === digest ? { ...p, evicted: true } : p));
+		this.menuAlert = t('pack.evicted');
 	}
 
 	// Start/resume/commands share one engine run: never let two of them interleave
@@ -471,39 +557,77 @@ export class GameSession {
 		const run = await this.store?.activeRun();
 		if (!run) return;
 		const r = run.record;
-		this.options = { ...DEFAULT_RUN_OPTIONS, ...r.options };
-		const state = await this.startEngine(r.missionId, r.seed, r.packDigest);
-		if (!state) {
+		// A pack run needs its pack's bytes; an evicted pack never starts from partial data.
+		const pack = r.packDigest ? await this.packBytes(r.packDigest) : null;
+		if (r.packDigest && !pack) {
 			this.menuAlert = t('pack.missing');
 			this.saved = null;
 			return;
 		}
+		this.options = { ...DEFAULT_RUN_OPTIONS, ...r.options };
+		const engineNotice = await this.useRunEngine(r.engine);
 		this.resetRun(r.missionId, r.seed);
 		this.runId = r.runId;
 		this.runCampaign = r.campaign ?? null;
 		this.perkChoice = perksUsed(this.options);
-		this.state = state;
-		for (const a of run.actions) await this.exec(a, false);
+		const restored = await this.restoreOrStart(r, run.actions, pack);
+		for (const a of run.actions.slice(restored)) await this.exec(a, false);
 		// Keep the replayed history so the next action gets the right sequence number.
 		this.log = [...run.actions];
 		this.journal = r.journal;
 		this.stopWarnings = r.stopWarnings;
-		if (r.executionPolicy !== this.policy) {
-			this.notice = { tone: 'warn', text: `run recorded with execution policy v${r.executionPolicy}; engine is v${this.policy}` };
-		} else if (this.state && r.digest && r.actions === run.actions.length && this.state.digest !== r.digest) {
-			this.notice = { tone: 'warn', text: `replay digest mismatch (${r.digest.slice(0, 8)})` };
-		}
+		this.notice = engineNotice ?? this.replayNotice(r, run.actions.length);
 		this.screen = this.state?.status === 'active' ? 'terminal' : 'debrief';
 		if (this.screen === 'debrief') await this.loadDebrief();
 		this.saved = null;
 	}
 
-	// A pack run restarts from its stored pack; null when the pack is no longer installed.
-	private async startEngine(missionId: string, seed: number, packDigest?: string): Promise<GameState | null> {
-		if (!packDigest) return this.eng().request({ kind: 'start', missionId, seed, options: { ...this.options } });
-		const pack = (await this.store?.pack(packDigest).catch(() => null)) ?? this.packs.find((p) => p.digest === packDigest);
-		if (!pack) return null;
-		return this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
+	private replayNotice(r: RunRecord<PlanEntry, never>, actions: number): Notice | null {
+		if (r.executionPolicy !== this.policy) {
+			return { tone: 'warn', text: `run recorded with execution policy v${r.executionPolicy}; engine is v${this.policy}` };
+		}
+		if (this.state && r.digest && r.actions === actions && this.state.digest !== r.digest) {
+			return { tone: 'warn', text: `replay digest mismatch (${r.digest.slice(0, 8)})` };
+		}
+		return null;
+	}
+
+	/**
+	 * Puts the engine at the run's latest checkpoint when there is a usable one (written by the same
+	 * engine build, restored digest as recorded), else at the run's start. Returns how many logged
+	 * actions the engine state already includes; the caller replays the rest.
+	 */
+	private async restoreOrStart(r: RunRecord<PlanEntry, never>, actions: Action[], pack: Uint8Array | null): Promise<number> {
+		const keys = pack ? await this.trusted() : [];
+		const cp = await this.store?.checkpoint(r.runId).catch(() => null);
+		if (cp && cp.engine === this.loadedEngine && cp.actions <= actions.length) {
+			const source = pack ? { pack, keys } : {};
+			const state = await this.eng()
+				.request({ kind: 'restore', missionId: r.missionId, seed: r.seed, checkpoint: cp.hex, ...source })
+				.catch(() => null);
+			if (state && state.digest === cp.digest) {
+				this.state = state;
+				this.clientId = 1 + actions.slice(0, cp.actions).filter((a) => a.k !== 'adv').length;
+				return cp.actions;
+			}
+		}
+		this.state = pack
+			? await this.eng().request({ kind: 'startPack', pack, keys, seed: r.seed })
+			: await this.eng().request({ kind: 'start', missionId: r.missionId, seed: r.seed, options: { ...this.options } });
+		return 0;
+	}
+
+	// Every CHECKPOINT_EVERY logged actions: the engine's state after them, for a short resume. The
+	// worker answers in request order, so the checkpoint is the state right after this action.
+	private checkpoint(): void {
+		const store = this.store;
+		const actions = this.log.length;
+		if (!store || !this.state || actions % CHECKPOINT_EVERY !== 0) return;
+		const base = { runId: this.runId, actions, digest: this.state.digest, engine: this.loadedEngine };
+		void this.eng()
+			.request({ kind: 'checkpoint' })
+			.then((cp) => store.saveCheckpoint({ ...base, hex: cp.checkpoint }))
+			.catch(() => undefined); // only an optimization: resume replays the whole log without it
 	}
 
 	/** A mission's tutorial is shown automatically only the first time it is started on this device. */
@@ -535,6 +659,7 @@ export class GameSession {
 	backToMenu(): void {
 		this.screen = 'menu';
 		void this.refreshSaved();
+		void this.refreshPacks();
 	}
 
 	async setLeverage(lev: number): Promise<CommandResult | null> {
@@ -718,13 +843,16 @@ export class GameSession {
 			this.log.push(a);
 		}
 		const e = this.eng();
+		let result: CommandResult | null = null;
 		if (a.k === 'adv') {
 			this.state = await e.request({ kind: 'advance', steps: a.n });
-			return null;
+		} else {
+			const r = await e.request(commandRequest(a, this.clientId++));
+			this.state = r.state;
+			result = r.result;
 		}
-		const r = await e.request(commandRequest(a, this.clientId++));
-		this.state = r.state;
-		return r.result;
+		if (live) this.checkpoint();
+		return result;
 	}
 
 	// In memory too: the menu must not wait for the fire-and-forget header write in persist().

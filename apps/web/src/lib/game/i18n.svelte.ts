@@ -437,6 +437,19 @@ const pt = {
 	'pack.installed': 'Pacote instalado: {label}',
 	'pack.refused': 'Pacote recusado: {reason}',
 	'pack.missing': 'O pacote desta partida não está mais neste dispositivo.',
+	'pack.evicted': 'O navegador apagou os dados deste pacote para liberar espaço. Remova-o e importe o CSV ou carregue o .tlpack de novo.',
+	'pack.evictedTag': 'NÃO ESTÁ NO DISPOSITIVO',
+	'packReason.quota': 'sem espaço livre: faltam {arg}. Remova pacotes que não usa ou libere espaço nas configurações do navegador',
+	'packReason.storage_failed': 'não foi possível gravar o pacote neste dispositivo',
+	'pwa.quota': 'Espaço: {used} usados de {total}',
+	'pwa.quotaUnknown': 'Espaço disponível desconhecido neste navegador',
+	'engine.pinned': 'Partida retomada no motor da versão em que começou (build {build}).',
+	'engine.pinMissing': 'O motor desta partida (build {build}) não está mais neste dispositivo: retomada no motor atual.',
+	'unsupported.title': 'Navegador não suportado',
+	'unsupported.intro': 'O TradeLab precisa de recursos que este navegador não oferece:',
+	'unsupported.webassembly': 'WebAssembly (o motor do jogo roda nele)',
+	'unsupported.ed25519': 'Assinaturas Ed25519 no WebCrypto (verificação dos pacotes de mercado)',
+	'unsupported.advice': 'Use a versão mais recente do Chrome, Edge, Firefox ou Safari.',
 	'packReason.hash_mismatch': 'um arquivo de dados foi alterado (hash não confere)',
 	'packReason.untrusted_key': 'assinado por uma chave desconhecida (só pacotes deste dispositivo ou de publicadores confiáveis)',
 	'packReason.bad_signature': 'assinatura inválida',
@@ -1160,6 +1173,19 @@ const en: Record<MessageKey, string> = {
 	'pack.installed': 'Pack installed: {label}',
 	'pack.refused': 'Pack refused: {reason}',
 	'pack.missing': 'This run’s pack is no longer on this device.',
+	'pack.evicted': 'The browser deleted this pack’s data to free space. Remove it and import the CSV or load the .tlpack again.',
+	'pack.evictedTag': 'NOT ON THIS DEVICE',
+	'packReason.quota': 'not enough free space: {arg} more is needed. Remove packs you no longer use or free space in the browser settings',
+	'packReason.storage_failed': 'the pack could not be saved on this device',
+	'pwa.quota': 'Space: {used} used of {total}',
+	'pwa.quotaUnknown': 'This browser does not report the available space',
+	'engine.pinned': 'Run resumed on the engine of the version it started on (build {build}).',
+	'engine.pinMissing': 'This run’s engine (build {build}) is no longer on this device: resumed on the current engine.',
+	'unsupported.title': 'Unsupported browser',
+	'unsupported.intro': 'TradeLab needs features this browser does not offer:',
+	'unsupported.webassembly': 'WebAssembly (the game engine runs on it)',
+	'unsupported.ed25519': 'Ed25519 signatures in WebCrypto (market pack verification)',
+	'unsupported.advice': 'Use the latest Chrome, Edge, Firefox or Safari.',
 	'packReason.hash_mismatch': 'a data file was changed (hash mismatch)',
 	'packReason.untrusted_key': 'signed by an unknown key (only packs from this device or trusted publishers)',
 	'packReason.bad_signature': 'invalid signature',
@@ -1483,10 +1509,11 @@ export function csvMetaText(field: string): string {
 	return key in pt ? t(key as MessageKey) : t('csv.meta', { field });
 }
 
-/** Text for an engine pack refusal reason (falls back to the code itself). */
+/** Text for a pack refusal reason such as "bad_signature" or "quota:1,2 MB" (falls back to the code itself). */
 export function packReasonText(code: string): string {
-	const key = `packReason.${code}`;
-	return key in pt ? t(key as MessageKey) : code;
+	const i = code.indexOf(':');
+	const key = `packReason.${i < 0 ? code : code.slice(0, i)}`;
+	return key in pt ? t(key as MessageKey, { arg: i < 0 ? '' : code.slice(i + 1) }) : code;
 }
 
 /** Plain-language text for an engine reason code (falls back to the code itself). */

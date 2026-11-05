@@ -1,13 +1,13 @@
 # Tasks: add-web-client
 
 ## 1. Scaffold
-- [ ] 1.1 SvelteKit + TS strict + Vitest + Playwright + axe; bundle-size and perf budget checks in CI — SvelteKit 3 + Svelte 5 + TS strict, Vitest units and Playwright E2E (Chromium only) run in `.github/workflows/web.yml`; axe checks, WebKit, bundle-size and performance budgets pending
+- [x] 1.1 SvelteKit + TS strict + Vitest + Playwright + axe; bundle-size and perf budget checks in CI — SvelteKit 3 + Svelte 5 + TS strict, Vitest units; Playwright projects `chromium` (every spec), `webkit` (axe, browser support, engine isolation/checkpoints, a full mission) and `deploy` (simulated deploy, runs alone) in `.github/workflows/web.yml`; axe WCAG 2.1 A/AA checks on menu, briefing, game, debrief, journal and curriculum map (`e2e/a11y.spec.ts`); `npm run budget:size` (`scripts/check-budgets.mjs`: initial JS + WASM under 1 MB gzipped) and `e2e/budgets.spec.ts` (mission ready < 3 s, p95 advance latency < 100 ms, 5,000-bar pack ready < 3 s and zooming at 60 fps)
 - [x] 1.2 Design tokens, fonts (license-checked), CRT effect layer with toggles
-- [ ] 1.3 Unsupported-browser message (no WebAssembly, no Ed25519 WebCrypto)
+- [x] 1.3 Unsupported-browser message (no WebAssembly, no Ed25519 WebCrypto) — `browserSupport.ts` probes both before the engine loads; the page lists what is missing in PT-BR/en (`browserSupport.test.ts`, `e2e/browser-support.spec.ts`)
 
 ## 2. Engine integration
-- [ ] 2.1 Worker + typed protocol from IDL; leak test (no future data on main thread) — worker (`src/lib/engine/engine.worker.ts`) and typed protocol (`protocol.ts`, `types.ts`, hand-written, not generated from an IDL) done; the engine C-ABI test asserts the state JSON carries exactly the bars up to the current step; a main-thread/message-log leak test is pending
-- [ ] 2.2 IndexedDB persistence (runs, commands, checkpoints, packs); reload test — runs + per-action commits done (commit-before-engine, legacy migration, reload/resume tests); packs stored by digest (`packs` store, runs reference `packDigest`, pack runs resume by replay); checkpoints pending
+- [ ] 2.1 Worker + typed protocol from IDL; leak test (no future data on main thread) — worker (`src/lib/engine/engine.worker.ts`) and typed protocol (`protocol.ts`, `types.ts`, hand-written) done; leak test done (`e2e/storage.spec.ts`: every worker message and every IndexedDB row mid-run is checked against the bars revealed later; the C-ABI test asserts the state JSON carries exactly the bars up to the current step); pending: generating the protocol types from an IDL
+- [x] 2.2 IndexedDB persistence (runs, commands, checkpoints, packs); reload test — runs + per-action commits (commit-before-engine, legacy migration); checkpoints every 20 actions (`checkpoints` store, latest per run, written by the engine build that made them), resume restores the latest and replays only the tail, falling back to a full replay when it is refused (`e2e/storage.spec.ts`); pack index by digest (bytes in OPFS, see 5.2)
 
 ## 3. Phase 1 vertical slice
 - [x] 3.1 Briefing → terminal → debrief for one synthetic perp mission
@@ -35,8 +35,8 @@
 
 ## 5. Offline PWA
 - [x] 5.1 Web manifest, icons, service worker precache (shell, fonts, i18n, versioned engine WASM); API network-only — `src/service-worker.ts`, routing in `src/lib/game/swRoutes.ts` (`/api/*` never cached; unit-tested)
-- [ ] 5.2 OPFS pack store with verify-then-install, quota display, `storage.persist()`, eviction detection — `storage.persist()` requested at mission start and its result shown in settings; verify-then-install done (engine verifies, then the pack is stored by digest in IndexedDB, and verified again on every start/resume); OPFS store, quota display and eviction detection pending
+- [x] 5.2 OPFS pack store with verify-then-install, quota display, `storage.persist()`, eviction detection — `packStore.ts`: bytes in OPFS `packs/<digest>.tlpack` (IndexedDB bytes where OPFS cannot write), index in IndexedDB; used/available space in the menu and refusal with the space missing when a pack does not fit; on start a missing or truncated file marks the pack "not on this device" with a clear message, and no run starts from it
 - [ ] 5.3 Resumable pack downloads (Range; Background Fetch where available)
-- [ ] 5.4 Engine-version pinning for unfinished runs + cache GC; update prompt after mission — update prompt (menu only) and policy-mismatch warning done; keeping old engine builds for unfinished runs pending
+- [x] 5.4 Engine-version pinning for unfinished runs + cache GC; update prompt after mission — the engine is a content-hashed module (`engine/build.ts`); a run records its build and pins it in the `tradelab-engines-v1` cache, which survives updates; resume loads that build in the worker (current build with a notice when it is gone); builds no unfinished run needs are collected (`engineCache.ts`); update prompt in the menu only
 - [ ] 5.5 Offline UX: unavailable catalog/sync states, offline profile badge, iOS Add-to-Home-Screen hint — OFFLINE badge (top bar + menu) and iOS Add-to-Home-Screen hint done; catalog/sync states and profile badge pending (no catalog, sync or profile yet)
-- [ ] 5.6 Playwright offline E2E (context.setOffline): OFF01-web, evicted pack, update mid-mission, old-engine resume — OFF01-web (incl. offline reload/resume) done
+- [x] 5.6 Playwright offline E2E (context.setOffline): OFF01-web, evicted pack, update mid-mission, old-engine resume — `e2e/offline.spec.ts`, `e2e/updates.spec.ts` (evicted pack offline, old-engine resume offline, missing build), `e2e/deploy.spec.ts` (update mid-mission via `scripts/previewDeploy.ts`)
