@@ -1,11 +1,15 @@
-// Building packs: the signed archive writer and the private CSV-import pack (design D1, D5).
+// Building packs (design D1, D5): the signed archive writer, pack sources (a manifest plus the
+// uncompressed data files, for the packer to compress and sign), the private CSV-import pack, and
+// writing or re-signing a pack from stored files.
 
 #include <algorithm>
 
 #include "json_in.hpp"
 #include "json_out.hpp"
 #include "pack_codec.hpp"
+#include "pack_manifest.hpp"
 #include "tradelab/engine.hpp"
+#include "tradelab/generator.hpp"
 #include "tradelab/pack.hpp"
 #include "tradelab/scoring.hpp"
 #include "tradelab/sha256.hpp"
@@ -20,6 +24,7 @@ using detail::JsonValue;
 constexpr std::uint32_t kMinPlayable = 20;
 constexpr std::uint32_t kFundingPeriodSeconds = 8 * 3600;
 constexpr std::size_t kMaxMetaText = 64;
+constexpr std::uint32_t kMissionStepSeconds = 3600;
 
 JsonValue json_str(std::string s) {
   JsonValue v;
@@ -99,72 +104,189 @@ ContractSpec practice_contract(std::uint32_t interval_seconds) {
   return c;
 }
 
-struct CsvPlan {
-  const CsvMeta& meta;
-  const CsvReport& report;
-  std::uint32_t warmup = 0;
-  std::int32_t leverage_cap = 1;
-  ContractSpec contract;
-  std::string scenario_id;
-};
-
-std::string manifest_text(const CsvPlan& p, std::uint32_t bars) {
-  const ContractSpec& c = p.contract;
-  JsonOut j;
-  j.begin_obj().field("schemaVersion", kPackSchemaVersion).field("scenarioId", p.scenario_id).field("packVersion", std::uint32_t{1});
-  j.field("mode", "historical").field("private", true);
-  j.key("engineCompatibility").begin_obj().field("min", kEngineVersion).field("max", kEngineVersion).end_obj();
-  j.field("executionPolicyVersion", kExecutionPolicyVersion).field("scoringVersion", kScoringVersion);
-  j.field("timeframe", timeframe_name(p.meta.interval_seconds)).field("stepSeconds", p.meta.interval_seconds);
-  j.field("displayPrecision", std::uint32_t{2}).field("aliasPolicy", "per-run");
-  j.key("instruments").begin_obj().key("perpetual").begin_obj();
-  j.field("multiplier", c.multiplier).field("tickSize", c.tick_size).field("lotSize", c.lot_size).field("minQty", c.min_qty);
-  j.field("maxLeverage", c.max_leverage).end_obj().end_obj();
-  j.key("costModel").begin_obj().field("makerFee", c.maker_fee).field("takerFee", c.taker_fee);
-  j.field("halfSpread", Rate::from_raw(1'000'000)).field("slippage", Rate::from_raw(2'000'000)).end_obj();
-  j.key("liquidityModel").begin_obj().field("capacityFraction", Rate::from_raw(1'000'000'000)).end_obj();
-  j.key("fundingModel").begin_obj().field("intervalSteps", c.funding_interval);
-  j.field("source", p.report.has_funding ? "file" : "none").end_obj();
-  j.key("ivModel").begin_obj().field("kind", "none").end_obj();
-  j.key("marginModel").begin_obj().field("maintenanceMargin", c.maintenance_margin).end_obj();
-  j.key("missionRules").begin_obj().field("initialBalance", Money::from_raw(10'000 * Money::kScale));
-  j.field("leverageCap", p.leverage_cap).field("warmupBars", p.warmup).field("allowShort", true).end_obj();
-  j.key("data").begin_obj().field("bars", bars).field("gaps", p.report.gap_count).end_obj();
-  j.key("files").begin_arr().end_arr().field("signingKeyId", "");
-  j.key("provenance").begin_obj().field("source", "csv-import").field("tool", std::string("tradelab-engine ") + kEngineVersion).end_obj();
-  j.key("license").begin_obj().field("name", "private-import").field("attribution", "").field("transformation", true);
-  j.field("commercial", false).field("offlineRedistribution", false).end_obj();
-  j.key("distribution").begin_obj().field("downloadable", false).end_obj();
-  j.end_obj();
-  return j.text();
+CostModel practice_costs() {
+  CostModel k;
+  k.half_spread = Rate::from_raw(1'000'000);            // 0.01%
+  k.slippage = Rate::from_raw(2'000'000);               // 0.02%
+  k.capacity_fraction = Rate::from_raw(1'000'000'000);  // 10% of bar volume
+  return k;
 }
 
-std::string reveal_text(const CsvPlan& p) {
+// Everything a manifest says besides the scenario's own contract, costs, rules and data counts.
+struct ManifestHead {
+  std::string scenario_id;
+  std::string mode;  // historical | synthetic | branch
+  bool private_pack = false;
+  std::uint32_t step_seconds = 3600;
+  bool funding_file = false;
+  std::uint32_t gaps = 0;
+  std::optional<std::uint32_t> branch_step;
+  std::vector<std::pair<std::string, std::string>> provenance;
+  std::string license_name;
+  std::string attribution;
+  bool transformation = true;
+  bool commercial = false;
+  bool offline = false;
+  bool downloadable = false;
+};
+
+void write_options(JsonOut& j, const OptionSpec& o) {
+  j.key("options").begin_obj().field("multiplier", o.multiplier).field("premiumTick", o.premium_tick).field("lotSize", o.lot_size);
+  j.field("feeRate", o.fee_rate).field("spread", o.spread).field("skew", o.skew).field("smile", o.smile).field("termSlope", o.term_slope);
+  j.field("minutesPerStep", o.minutes_per_step).field("settlementBars", o.settlement_bars);
+  j.field("imBase", o.im_base).field("imFloor", o.im_floor).field("mmBase", o.mm_base).field("allowShort", o.allow_short).end_obj();
+}
+
+void write_market(JsonOut& j, const Scenario& sc, const ManifestHead& h) {
+  const ContractSpec& c = sc.contract;
+  const bool options = !sc.options.series.empty();
+  j.key("instruments").begin_obj().key("perpetual").begin_obj();
+  j.field("multiplier", c.multiplier).field("tickSize", c.tick_size).field("lotSize", c.lot_size).field("minQty", c.min_qty);
+  j.field("maxLeverage", c.max_leverage).end_obj();
+  if (options) write_options(j, sc.options);
+  j.end_obj();
+  j.key("costModel").begin_obj().field("makerFee", c.maker_fee).field("takerFee", c.taker_fee);
+  j.field("halfSpread", sc.costs.half_spread).field("slippage", sc.costs.slippage).end_obj();
+  j.key("liquidityModel").begin_obj().field("capacityFraction", sc.costs.capacity_fraction).end_obj();
+  j.key("fundingModel").begin_obj().field("intervalSteps", c.funding_interval).field("source", h.funding_file ? "file" : "none").end_obj();
+  const char* iv = options ? (sc.options.iv_base.empty() ? "realized" : "file") : "none";
+  j.key("ivModel").begin_obj().field("kind", iv).end_obj();
+  j.key("marginModel").begin_obj().field("maintenanceMargin", c.maintenance_margin).end_obj();
+}
+
+void write_data(JsonOut& j, const Scenario& sc, const ManifestHead& h) {
+  const MissionRules& r = sc.mission;
+  j.key("missionRules").begin_obj().field("initialBalance", r.initial_balance);
+  j.field("leverageCap", r.leverage_cap).field("warmupBars", r.warmup_bars).field("allowShort", r.allow_short).end_obj();
+  j.key("data").begin_obj().field("bars", static_cast<std::uint32_t>(sc.bars.size())).field("gaps", h.gaps);
+  // Tables appear only when the pack has them, so a perpetual-only pack keeps the v1 field set.
+  if (!sc.news.empty()) j.field("events", static_cast<std::uint32_t>(sc.news.size()));
+  if (!sc.liquidity.empty()) j.field("liquidityShocks", static_cast<std::uint32_t>(sc.liquidity.size()));
+  if (!sc.options.series.empty()) j.field("optionSeries", static_cast<std::uint32_t>(sc.options.series.size()));
+  if (h.branch_step) j.field("branchStep", *h.branch_step);
+  j.end_obj();
+}
+
+void write_rights(JsonOut& j, const ManifestHead& h) {
+  j.key("files").begin_arr().end_arr().field("signingKeyId", "");
+  j.key("provenance").begin_obj();
+  for (const auto& [k, v] : h.provenance) j.field(k, v);
+  j.end_obj();
+  j.key("license").begin_obj().field("name", h.license_name).field("attribution", h.attribution).field("transformation", h.transformation);
+  j.field("commercial", h.commercial).field("offlineRedistribution", h.offline).end_obj();
+  j.key("distribution").begin_obj().field("downloadable", h.downloadable).end_obj();
+}
+
+// The manifest of a scenario. Stored canonically (sorted keys) when signed, so member order here
+// does not matter.
+std::string manifest_text(const Scenario& sc, const ManifestHead& h) {
   JsonOut j;
-  j.begin_obj().field("asset", p.meta.asset).field("pair", p.meta.pair).field("venue", p.meta.venue);
-  j.field("periodFrom", iso_utc(p.report.first_time)).field("periodTo", iso_utc(p.report.last_time));
-  j.field("source", "csv-import");
-  j.field("transformation", "prices x 100 / open of bar " + std::to_string(p.warmup) + ", half-even to 0.01; volume x the inverse");
+  j.begin_obj().field("schemaVersion", kPackSchemaVersion).field("scenarioId", h.scenario_id).field("packVersion", std::uint32_t{1});
+  j.field("mode", h.mode).field("private", h.private_pack);
+  j.key("engineCompatibility").begin_obj().field("min", kEngineVersion).field("max", kEngineVersion).end_obj();
+  j.field("executionPolicyVersion", kExecutionPolicyVersion).field("scoringVersion", kScoringVersion);
+  j.field("timeframe", timeframe_name(h.step_seconds)).field("stepSeconds", h.step_seconds);
+  j.field("displayPrecision", std::uint32_t{2}).field("aliasPolicy", "per-run");
+  write_market(j, sc, h);
+  write_data(j, sc, h);
+  write_rights(j, h);
   j.end_obj();
   return j.text();
 }
 
 std::vector<std::uint8_t> as_bytes(const std::string& s) { return {s.begin(), s.end()}; }
 
-PackFile stored_bin(std::string name, const std::vector<std::uint8_t>& raw) {
-  return {std::move(name), detail::zstd_store(raw), raw.size()};
+// The data files of a scenario, uncompressed (stored = raw).
+std::vector<PackFile> raw_files(const Scenario& sc, bool funding) {
+  const auto raw = [](std::string name, std::vector<std::uint8_t> bytes) {
+    const std::uint64_t n = bytes.size();
+    return PackFile{std::move(name), std::move(bytes), n};
+  };
+  std::vector<PackFile> files = {raw("bars.bin", encode_bars(sc.bars))};
+  if (funding) files.push_back(raw("funding.bin", encode_funding(sc.funding_rate)));
+  if (!sc.news.empty() || !sc.liquidity.empty()) files.push_back(raw("events.bin", encode_events(sc.news, sc.liquidity)));
+  if (!sc.options.series.empty()) files.push_back(raw("options.bin", encode_options(sc.options)));
+  return files;
 }
 
 bool meta_ok(const CsvMeta& m) {
   return m.asset.size() <= kMaxMetaText && m.pair.size() <= kMaxMetaText && m.venue.size() <= kMaxMetaText;
 }
 
-PackBuild failed(PackBuild out, const char* reason) {
+std::uint32_t auto_warmup(std::uint32_t rows) { return std::clamp<std::uint32_t>(rows / 4, 20, 60); }
+
+PackSource source_failed(PackSource out, const char* reason, std::string detail = {}) {
   out.reason = reason;
+  out.detail = std::move(detail);
   return out;
 }
 
-std::uint32_t auto_warmup(std::uint32_t rows) { return std::clamp<std::uint32_t>(rows / 4, 20, 60); }
+std::string reveal_text(const CsvMeta& meta, const CsvReport& report, std::uint32_t warmup, const std::optional<BranchRequest>& branch) {
+  JsonOut j;
+  j.begin_obj().field("asset", meta.asset).field("pair", meta.pair).field("venue", meta.venue);
+  j.field("periodFrom", iso_utc(report.first_time)).field("periodTo", iso_utc(report.last_time));
+  j.field("source", "csv-import");
+  std::string transformation = "prices x 100 / open of bar " + std::to_string(warmup) + ", half-even to 0.01; volume x the inverse";
+  if (branch) {
+    transformation += "; after bar " + std::to_string(branch->step) + ": " + branch->mission + " seed " + std::to_string(branch->seed) +
+                      ", rescaled to continue from its close (synthetic)";
+  }
+  j.field("transformation", transformation);
+  j.end_obj();
+  return j.text();
+}
+
+// The masked CSV market as a scenario with the practice contract and rules.
+Scenario csv_scenario(const std::vector<CsvRow>& rows, const std::vector<Bar>& masked, const CsvMeta& meta, std::uint32_t warmup,
+                      std::int32_t leverage_cap) {
+  Scenario sc;
+  sc.contract = practice_contract(meta.interval_seconds);
+  sc.costs = practice_costs();
+  sc.mission.initial_balance = Money::from_raw(10'000 * Money::kScale);
+  sc.mission.leverage_cap = leverage_cap;
+  sc.mission.warmup_bars = warmup;
+  sc.mission.allow_short = true;
+  sc.bars = masked;
+  for (const CsvRow& r : rows) sc.funding_rate.push_back(r.funding);
+  return sc;
+}
+
+// Splices the branch market in; false (with the reason) when it cannot.
+bool apply_branch(const BranchRequest& b, Scenario& sc, std::string* reason) {
+  Scenario alt;
+  if (!build_mission(b.mission, b.seed, alt)) {
+    *reason = "unknown_mission";
+    return false;
+  }
+  Scenario out;
+  if (b.step < sc.mission.warmup_bars || !splice_branch(sc, b.step, alt, out)) {
+    *reason = "invalid_branch";
+    return false;
+  }
+  sc = std::move(out);
+  return true;
+}
+
+PackFile stored(PackFile f) {
+  f.stored = detail::zstd_store(f.stored);
+  return f;
+}
+
+PackBuild build_failed(PackBuild out, std::string reason) {
+  out.reason = std::move(reason);
+  return out;
+}
+
+bool is_bin(std::string_view name) { return name.size() > 4 && name.substr(name.size() - 4) == ".bin"; }
+
+PackBuild signed_pack(std::string_view manifest, const std::vector<PackFile>& files, const SecretSeed& seed, std::string_view prefix) {
+  PackBuild out;
+  const KeyPair key = ed25519_keypair(seed);
+  out.bytes = write_pack(manifest, files, key, key_id(prefix, key.public_key));
+  if (out.bytes.empty()) return build_failed(std::move(out), "manifest_invalid");
+  out.digest = to_hex(sha256(out.bytes));
+  return out;
+}
 
 }  // namespace
 
@@ -183,36 +305,123 @@ std::vector<std::uint8_t> write_pack(std::string_view manifest_json, const std::
   return detail::tar_write(entries);
 }
 
-PackBuild build_csv_pack(std::string_view csv, const CsvMeta& meta, const ImportRules& rules, const SecretSeed& device_seed) {
-  PackBuild out;
+PackSource mission_pack_source(const std::string& mission_id, std::uint64_t seed) {
+  PackSource out;
+  Scenario sc;
+  if (!build_mission(mission_id, seed, sc)) return source_failed(std::move(out), "unknown_mission", mission_id);
+  ManifestHead h;
+  h.scenario_id = mission_id + "-s" + std::to_string(seed);
+  h.mode = "synthetic";
+  h.step_seconds = kMissionStepSeconds;
+  h.funding_file = true;
+  h.provenance = {{"source", "generator"}, {"generatorVersion", std::to_string(kGeneratorVersion)}, {"mission", mission_id},
+                  {"seed", std::to_string(seed)}, {"tool", std::string("tradelab-engine ") + kEngineVersion}};
+  h.license_name = "tradelab-synthetic";
+  h.attribution = "TradeLab synthetic market generator";
+  h.commercial = h.offline = h.downloadable = true;
+  out.scenario_id = h.scenario_id;
+  out.manifest = manifest_text(sc, h);
+  out.files = raw_files(sc, true);
+  return out;
+}
+
+PackSource csv_pack_source(std::string_view csv, const CsvMeta& meta, const ImportRules& rules, bool private_pack,
+                           const std::optional<BranchRequest>& branch) {
+  PackSource out;
   std::vector<CsvRow> rows;
   out.report = import_csv(csv, meta, &rows);
-  if (!out.report.ok) return failed(std::move(out), "csv_invalid");
+  if (!out.report.ok) return source_failed(std::move(out), "csv_invalid");
   const auto n = static_cast<std::uint32_t>(rows.size());
-  CsvPlan plan{meta, out.report, rules.warmup_bars == 0 ? auto_warmup(n) : rules.warmup_bars, rules.leverage_cap,
-               practice_contract(meta.interval_seconds), {}};
-  if (!meta_ok(meta) || plan.leverage_cap < 1 || plan.leverage_cap > 20 || plan.warmup + kMinPlayable > n) {
-    return failed(std::move(out), "invalid_rules");
+  const std::uint32_t warmup = rules.warmup_bars == 0 ? auto_warmup(n) : rules.warmup_bars;
+  if (!meta_ok(meta) || rules.leverage_cap < 1 || rules.leverage_cap > 20 || warmup + kMinPlayable > n) {
+    return source_failed(std::move(out), "invalid_rules");
   }
   std::vector<Bar> raw(n);
-  std::vector<Rate> funding(n);
-  for (std::uint32_t i = 0; i < n; ++i) {
-    raw[i] = Bar{rows[i].open, rows[i].high, rows[i].low, rows[i].close, rows[i].volume, false};
-    funding[i] = rows[i].funding;
-  }
+  for (std::uint32_t i = 0; i < n; ++i) raw[i] = Bar{rows[i].open, rows[i].high, rows[i].low, rows[i].close, rows[i].volume, false};
   std::vector<Bar> masked;
-  if (!mask_bars(raw, plan.warmup, plan.contract.tick_size, &masked)) return failed(std::move(out), "masking_failed");
-  const auto bars_bin = encode_bars(masked);
-  plan.scenario_id = "csv-" + to_hex(sha256(bars_bin)).substr(0, 12);
-  std::vector<PackFile> files = {stored_bin("bars.bin", bars_bin)};
-  if (out.report.has_funding) files.push_back(stored_bin("funding.bin", encode_funding(funding)));
-  const std::string reveal = reveal_text(plan);
-  files.push_back({"reveal.json", as_bytes(reveal), reveal.size()});
-  const KeyPair key = ed25519_keypair(device_seed);
-  out.bytes = write_pack(manifest_text(plan, n), files, key, key_id("device", key.public_key));
-  out.scenario_id = plan.scenario_id;
-  out.digest = to_hex(sha256(out.bytes));
+  if (!mask_bars(raw, warmup, practice_contract(meta.interval_seconds).tick_size, &masked)) return source_failed(std::move(out), "masking_failed");
+  Scenario sc = csv_scenario(rows, masked, meta, warmup, rules.leverage_cap);
+  std::string reason;
+  if (branch && !apply_branch(*branch, sc, &reason)) return source_failed(std::move(out), reason.c_str());
+  ManifestHead h;
+  h.scenario_id = "csv-" + to_hex(sha256(encode_bars(masked))).substr(0, 12);
+  h.mode = branch ? "branch" : "historical";
+  h.private_pack = private_pack;
+  h.step_seconds = meta.interval_seconds;
+  h.funding_file = out.report.has_funding || branch.has_value();
+  h.gaps = out.report.gap_count;
+  if (branch) h.branch_step = branch->step;
+  h.provenance = {{"source", "csv-import"}, {"tool", std::string("tradelab-engine ") + kEngineVersion}};
+  if (branch) {
+    h.provenance.insert(h.provenance.end(), {{"generatorVersion", std::to_string(kGeneratorVersion)},
+                                             {"branchMission", branch->mission},
+                                             {"branchSeed", std::to_string(branch->seed)}});
+  }
+  h.license_name = private_pack ? "private-import" : "unlicensed";
+  out.scenario_id = h.scenario_id;
+  out.manifest = manifest_text(sc, h);
+  out.files = raw_files(sc, h.funding_file);
+  const std::string reveal = reveal_text(meta, out.report, warmup, branch);
+  out.files.push_back({"reveal.json", as_bytes(reveal), reveal.size()});
   return out;
+}
+
+std::vector<std::uint8_t> source_archive(const PackSource& source) {
+  std::vector<detail::TarFile> entries = {{"manifest.json", as_bytes(source.manifest)}};
+  for (const PackFile& f : source.files) entries.push_back({f.name, f.stored});
+  return detail::tar_write(entries);
+}
+
+PackBuild build_csv_pack(std::string_view csv, const CsvMeta& meta, const ImportRules& rules, const SecretSeed& device_seed) {
+  PackSource src = csv_pack_source(csv, meta, rules, true, std::nullopt);
+  PackBuild out;
+  out.report = std::move(src.report);
+  if (!src.ok()) return build_failed(std::move(out), src.reason);
+  std::vector<PackFile> files;
+  for (PackFile& f : src.files) files.push_back(is_bin(f.name) ? stored(std::move(f)) : std::move(f));
+  PackBuild signed_out = signed_pack(src.manifest, files, device_seed, "device");
+  signed_out.report = std::move(out.report);
+  signed_out.scenario_id = src.scenario_id;
+  return signed_out;
+}
+
+PackBuild assemble_pack(std::string_view manifest_json, std::span<const std::uint8_t> files_tar, const SecretSeed& seed,
+                        std::string_view key_prefix) {
+  std::vector<detail::TarEntry> entries;
+  if (detail::tar_read(files_tar, PackLimits{}.max_files - 2, &entries) != detail::TarStatus::Ok) {
+    return build_failed({}, "malformed_container");
+  }
+  std::vector<PackFile> files;
+  for (const detail::TarEntry& e : entries) {
+    PackFile f{e.name, {e.data.begin(), e.data.end()}, e.data.size()};
+    if (is_bin(e.name)) {
+      const auto size = detail::zstd_content_size(e.data);
+      if (!size) return build_failed({}, "malformed_data:" + e.name);
+      f.decompressed_size = *size;
+    }
+    files.push_back(std::move(f));
+  }
+  return signed_pack(manifest_json, files, seed, key_prefix);
+}
+
+PackBuild resign_pack(std::span<const std::uint8_t> pack, const SecretSeed& seed, std::string_view key_prefix) {
+  std::vector<detail::TarEntry> entries;
+  if (detail::tar_read(pack, PackLimits{}.max_files, &entries) != detail::TarStatus::Ok) return build_failed({}, "malformed_container");
+  const auto manifest = std::find_if(entries.begin(), entries.end(), [](const auto& e) { return e.name == "manifest.json"; });
+  if (manifest == entries.end()) return build_failed({}, "missing_file");
+  const std::string text(manifest->data.begin(), manifest->data.end());
+  const auto parsed = detail::parse_json(text);
+  detail::Manifest m;
+  detail::ManifestError err;
+  if (!parsed.ok || !detail::parse_manifest(parsed.value, &m, &err)) return build_failed({}, parsed.ok ? err.reason : "manifest_invalid");
+  if (m.private_pack) return build_failed({}, "private_pack");
+  std::vector<PackFile> files;
+  for (const detail::ManifestFile& mf : m.files) {
+    const auto e = std::find_if(entries.begin(), entries.end(), [&mf](const auto& x) { return x.name == mf.name; });
+    if (e == entries.end()) return build_failed({}, "missing_file");
+    files.push_back({mf.name, {e->data.begin(), e->data.end()}, mf.decompressed_size});
+  }
+  return signed_pack(text, files, seed, key_prefix);
 }
 
 }  // namespace tradelab

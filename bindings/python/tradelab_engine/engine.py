@@ -73,6 +73,11 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_pack_validate": (c_char_p, [c_char_p, u32, c_char_p, i32]),
         "tl_run_create_pack": (c_void_p, [c_char_p, u32, c_char_p, u32]),
         "tl_run_restore_pack": (c_void_p, [c_char_p, u32, c_char_p, u32, c_char_p]),
+        "tl_pack_source_mission": (c_char_p, [c_char_p, u32]),
+        "tl_pack_source_csv": (c_char_p, [c_char_p, c_char_p]),
+        "tl_pack_write": (c_char_p, [c_char_p, c_char_p, u32, c_char_p, c_char_p]),
+        "tl_pack_resign": (c_char_p, [c_char_p, u32, c_char_p, c_char_p]),
+        "tl_signing_key": (c_char_p, [c_char_p, c_char_p]),
     }
     for name, (restype, argtypes) in signatures.items():
         fn = getattr(lib, name)
@@ -134,6 +139,44 @@ def build_csv_pack(csv: str, meta: dict[str, Any], seed_hex: str) -> tuple[dict[
 def pack_validate(pack: bytes, trusted: TrustedKeys, *, publish: bool = False) -> dict[str, Any]:
     """Verifies a pack for install or publishing (LIC01): {"ok", "reason", "detail", "pack"}."""
     return _json(load_library().tl_pack_validate(pack, len(pack), json.dumps(trusted).encode(), int(publish)))
+
+
+# ---- pack authoring (tools/packer, design D5) ----
+
+def _with_blob(raw: bytes) -> tuple[dict[str, Any], bytes]:
+    lib = load_library()
+    result = _json(raw)
+    data = ctypes.string_at(lib.tl_blob_data(), lib.tl_blob_size()) if result["ok"] else b""
+    return result, data
+
+
+def pack_source_mission(mission_id: str, seed: int) -> tuple[dict[str, Any], bytes]:
+    """A built-in mission generated for a seed as a synthetic pack source: (result, archive of
+    manifest.json and the uncompressed data files)."""
+    return _with_blob(load_library().tl_pack_source_mission(mission_id.encode(), seed))
+
+
+def pack_source_csv(csv: str, meta: dict[str, Any]) -> tuple[dict[str, Any], bytes]:
+    """A masked CSV window as a publishable historical (or, with branchStep/branchMission/branchSeed
+    in `meta`, branch) pack source: (result, archive)."""
+    return _with_blob(load_library().tl_pack_source_csv(csv.encode(), json.dumps(meta).encode()))
+
+
+def pack_write(manifest: str, files_tar: bytes, seed_hex: str, key_prefix: str) -> tuple[dict[str, Any], bytes]:
+    """Signs and writes a pack from a manifest and an archive of stored files (.bin = zstd frames
+    declaring their content size): (result, pack bytes)."""
+    lib = load_library()
+    return _with_blob(lib.tl_pack_write(manifest.encode(), files_tar, len(files_tar), seed_hex.encode(), key_prefix.encode()))
+
+
+def pack_resign(pack: bytes, seed_hex: str, key_prefix: str) -> tuple[dict[str, Any], bytes]:
+    """Signs a non-private pack again with another key: (result, pack bytes)."""
+    return _with_blob(load_library().tl_pack_resign(pack, len(pack), seed_hex.encode(), key_prefix.encode()))
+
+
+def signing_key(seed_hex: str, key_prefix: str) -> dict[str, str]:
+    """{"id": "<prefix>-<16 hex>", "publicKey"} of the key a seed signs with."""
+    return _json(load_library().tl_signing_key(seed_hex.encode(), key_prefix.encode()))
 @dataclass(frozen=True)
 class RunOptions:
     """Start options (execution policy v11; v12 adds the campaign fields). The defaults are a plain
