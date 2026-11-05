@@ -174,11 +174,26 @@ def compress(data: bytes, level: int) -> bytes:
 
 
 SOURCE_ORDER = ("bars.bin", "funding.bin", "events.bin", "options.bin", "reveal.json")
+CALIBRATION_DIR = Path(__file__).resolve().parents[2] / "docs" / "calibration"
+
+
+def missing_calibration(manifest: dict[str, Any]) -> str | None:
+    """Generated bars need their generator version's calibration report to be published (spec
+    market-generator "Calibration report"): the report path when it is missing, else None."""
+    version = manifest.get("provenance", {}).get("generatorVersion")
+    if manifest.get("mode") not in ("synthetic", "branch") or version is None:
+        return None
+    report = CALIBRATION_DIR / f"generator-v{version}.md"
+    return None if report.exists() else str(report)
 
 
 def cmd_build(args: argparse.Namespace) -> int:
     src: Path = args.source
     manifest = (src / "manifest.json").read_text()
+    missing = missing_calibration(json.loads(manifest)) if args.publish else None
+    if missing:
+        emit({"ok": False, "reason": "calibration_report_missing", "detail": missing})
+        return 1
     files = []
     raw_total = stored_total = 0
     for name in SOURCE_ORDER:

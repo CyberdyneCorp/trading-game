@@ -352,6 +352,11 @@ PackSource csv_pack_source(std::string_view csv, const CsvMeta& meta, const Impo
   h.gaps = out.report.gap_count;
   if (branch) h.branch_step = branch->step;
   h.provenance = {{"source", "csv-import"}, {"tool", std::string("tradelab-engine ") + kEngineVersion}};
+  if (branch) {
+    h.provenance.insert(h.provenance.end(), {{"generatorVersion", std::to_string(kGeneratorVersion)},
+                                             {"branchMission", branch->mission},
+                                             {"branchSeed", std::to_string(branch->seed)}});
+  }
   h.license_name = private_pack ? "private-import" : "unlicensed";
   out.scenario_id = h.scenario_id;
   out.manifest = manifest_text(sc, h);

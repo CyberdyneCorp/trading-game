@@ -180,3 +180,16 @@ def test_unknown_mission_source():
     assert archive == b""
     with tarfile.open(fileobj=io.BytesIO(pack_source_mission("m01-false-breakout", 1)[1])) as tar:
         assert tar.getnames()[0] == "manifest.json"
+
+
+def test_publishing_generated_bars_needs_their_calibration_report(tmp_path: Path, seed_file: Path, capsys, monkeypatch):
+    src = tmp_path / "src"
+    assert packer.main(["generate", "m02-funding-squeeze", "--seed", "1", "-o", str(src)]) == 0
+    capsys.readouterr()
+    version = json.loads((src / "manifest.json").read_text())["provenance"]["generatorVersion"]
+    assert (packer.CALIBRATION_DIR / f"generator-v{version}.md").exists()  # the committed report
+    monkeypatch.setattr(packer, "CALIBRATION_DIR", tmp_path / "nowhere")
+    code, result = run_cli(["build", str(src), "--seed-file", str(seed_file), "--publish", "-o", str(tmp_path / "p")], capsys)
+    assert code == 1
+    assert result["reason"] == "calibration_report_missing"
+    assert packer.main(["build", str(src), "--seed-file", str(seed_file), "-o", str(tmp_path / "p")]) == 0  # not for publishing
