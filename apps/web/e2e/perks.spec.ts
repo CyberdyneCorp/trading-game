@@ -141,3 +141,19 @@ test('campaign missions start without perks so campaign runs stay comparable', a
 	await expect(page.getByTestId('perks')).toHaveCount(0);
 	await expect(page.getByRole('checkbox')).toHaveCount(0);
 });
+
+test('regression: a perk checkbox sits on the same line as its name', async ({ page }) => {
+	// Before: the global "input { width: 100% }" stretched it, so it was centered alone above the label.
+	await page.goto('/?seed=11');
+	await seedFinished(page, ['m03-volatility-shock']);
+	for (const width of [1024, 1440]) {
+		await page.setViewportSize({ width, height: 900 });
+		await briefing(page, 0, width === 1024);
+		const box = (await page.getByTestId('perk-calendar').boundingBox())!;
+		const name = (await page.getByTestId('perks').locator('li strong').first().boundingBox())!;
+		expect(box.width).toBeLessThan(40);
+		expect(name.x).toBeGreaterThan(box.x + box.width - 1); // to its right
+		expect(Math.abs(name.y + name.height / 2 - (box.y + box.height / 2))).toBeLessThan(name.height); // same line
+		await page.getByRole('button', { name: /Voltar às missões/ }).click();
+	}
+});

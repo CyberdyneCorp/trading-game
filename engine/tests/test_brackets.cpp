@@ -217,6 +217,38 @@ TEST_CASE("Regression: moving a bracket stop keeps it in its OCO group (the targ
   for (const Order* k : children_of(d.state(), entry.order_id)) CHECK_FALSE(k->active());
 }
 
+TEST_CASE("Regression: an exit larger than the position it closes is cancelled on the same bar (policy v14)") {
+  // Before: a partial close left the bracket TP at the old size; when it closed the rest, its
+  // remainder stayed working (PartiallyFilled, no position) and was only cancelled on the next bar.
+  Scenario sc = make_scenario({{"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"},
+                               {"100", "100", "100", "100"},
+                               {"100", "111", "100", "110"},
+                               {"110", "110", "110", "110"}});
+  Driver d(sc);
+  const auto entry = d.bracket(OrderType::Market, OrderSide::Buy, "10", nullptr, "95", "110");
+  d.step();
+  d.order(OrderType::Market, OrderSide::Sell, "1");
+  d.step();  // 9 left; both exits still say 10
+  REQUIRE(d.state().position.qty == Q("9"));
+  const auto kids = children_of(d.state(), entry.order_id);
+  REQUIRE(kids.size() == 2);
+  const std::uint32_t tp_id = kids[0]->type == OrderType::TakeProfit ? kids[0]->id : kids[1]->id;
+  d.step();  // bar 3 reaches the TP: it sells 9 and closes the position
+  CHECK(d.state().position.flat());
+  const Order* tp = find_order(d.state(), tp_id);
+  REQUIRE(tp != nullptr);
+  CHECK(tp->filled == Q("9"));
+  CHECK(tp->status == OrderStatus::Cancelled);
+  for (const Order* k : children_of(d.state(), entry.order_id)) CHECK_FALSE(k->active());
+  // Its remainder is cancelled right after its fill, on the same bar, as "position closed".
+  const Event& last = d.state().events.back();
+  CHECK(last.type == EventType::OrderUpdate);
+  CHECK(last.order_id == tp_id);
+  CHECK(last.reason == Reason::PositionClosed);
+  CHECK(last.step == d.state().step);
+}
+
 TEST_CASE("MoveOrder accepts only working perpetual exits on the tick") {
   Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "100", "100", "100"}});
   Driver d(sc);

@@ -365,7 +365,7 @@ export interface EngineTrade {
 	safeLeverage?: number | null;
 }
 
-/** Approximate option P&L by Greek (engine); the residual holds spread and higher-order effects. */
+/** Approximate option P&L by Greek (engine); the residual is the spread paid (full revaluation, scoring v8). */
 export interface GreekAttribution {
 	delta: Decimal;
 	gamma: Decimal;

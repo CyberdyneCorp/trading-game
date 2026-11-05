@@ -13,7 +13,7 @@ namespace tradelab {
 // Engine release, checked against a pack's engineCompatibility range.
 inline constexpr const char* kEngineVersion = "0.1.0";
 
-constexpr std::uint32_t kExecutionPolicyVersion = 13;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap); v13 MoveOrder (a working exit moved in place, OCO link kept)
+constexpr std::uint32_t kExecutionPolicyVersion = 14;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap); v13 MoveOrder (a working exit moved in place, OCO link kept); v14 an exit that closes the position cancels its own remainder on the same bar
 
 // Calibration questions (spec mission-scoring "Calibration"): asked every kQuestionEvery steps from
 // the first decision step while the resolving bar exists; resolved kQuestionHorizon bars later.

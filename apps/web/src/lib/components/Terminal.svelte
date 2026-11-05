@@ -17,7 +17,7 @@
 	import NewsPanel from './NewsPanel.svelte';
 	import { newsArrived } from '#lib/game/news.ts';
 	import HelpOverlay from './HelpOverlay.svelte';
-	import OrderTicket, { type OrderDraft, type TicketPreview } from './OrderTicket.svelte';
+	import OrderTicket, { type OrderDraft, type TicketOrderType, type TicketPreview } from './OrderTicket.svelte';
 	import OptionChain from './OptionChain.svelte';
 	import OptionTicket, { type OptionDraft } from './OptionTicket.svelte';
 	import type { OptionQuoteView } from '#lib/engine/types.ts';
@@ -75,6 +75,7 @@
 	let ticketSizeBy = $state<'qty' | 'risk'>('risk');
 	let ticketQty = $state('10');
 	let ticketLeverage = $state(1);
+	let ticketType = $state<TicketOrderType>('market');
 
 	// The advisor's stop and size go to the perpetual ticket; nothing is sent until the player submits.
 	function onApplyAdvice(a: AdviceView) {
@@ -82,11 +83,15 @@
 		side = a.stance === 'short' ? 'sell' : 'buy';
 		ticketStop = priceToTick(num(a.stop), num(c.tickSize));
 		ticketSizeBy = 'qty';
-		// 1% risk at a tight stop can need more than the current leverage: raise it (or cut the size at the cap).
+		// The read is sized for a market entry at the mark: a stale limit price would change its risk.
+		ticketType = 'market';
+		// 1% risk at a tight stop can need more than the ticket's leverage: raise it (or cut the size at the
+		// cap), never lower what the player typed.
 		const s = session.state!;
 		const k = costsOf(c);
 		const entry = estimatedMarketEntry(side, num(s.account.mark), k);
-		const fit = fitToMargin(num(a.size), entry, num(s.account.available), s.leverage, c.leverageCap, k, num(c.lotSize));
+		const typed = Math.min(Math.max(1, Math.round(ticketLeverage || 1)), c.leverageCap);
+		const fit = fitToMargin(num(a.size), entry, num(s.account.available), typed, c.leverageCap, k, num(c.lotSize));
 		ticketQty = qtyToLot(fit.qty, num(c.lotSize));
 		ticketLeverage = fit.leverage;
 		tab = 'perp';
@@ -277,7 +282,7 @@
 				{#if tab === 'options' && optionsOn}
 					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
 				{:else}
-					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} bind:leverage={ticketLeverage} {onSubmit} onPick={(set) => (pick = set)} />
+					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} bind:leverage={ticketLeverage} bind:orderType={ticketType} {onSubmit} onPick={(set) => (pick = set)} />
 				{/if}
 			</div>
 			<div class="stack">

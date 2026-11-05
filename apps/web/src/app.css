@@ -111,6 +111,11 @@ textarea {
 	padding: 0.35em 0.5em;
 	width: 100%;
 }
+/* Checkboxes and radios sit inline with their label text, not stretched onto a line of their own. */
+input[type='checkbox'],
+input[type='radio'] {
+	width: auto;
+}
 
 :focus-visible {
 	outline: 2px solid var(--info);
