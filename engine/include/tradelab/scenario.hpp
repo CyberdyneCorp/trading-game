@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "tradelab/fixed.hpp"
+#include "tradelab/idl_types.hpp"
 #include "tradelab/result.hpp"
 
 namespace tradelab {
@@ -23,11 +24,6 @@ struct Bar {
   // fed to indicators by the scenario's gap policy (policy v17).
   bool continuity = false;
 };
-
-// How indicators treat continuity bars (policy v17): Skip leaves them out of every input (no value at
-// a continuity bar; VWAP sessions still count real bars); CarryForward feeds them as flat bars at the
-// previous close with zero volume.
-enum class GapPolicy : std::uint8_t { Skip = 0, CarryForward = 1 };
 
 // Sub-bar closes ending at the close of bar `bar` (oldest first; the last equals the bar's close),
 // `minutes` apart. Used for TWAP settlement windows finer than a bar (spec options "Expiry and
@@ -75,8 +71,6 @@ struct MissionRules {
   GapPolicy gap_policy = GapPolicy::Skip;  // continuity bars in indicators (policy v17)
 };
 
-enum class OptionKind : std::uint8_t { Call = 0, Put = 1 };
-
 // European, cash-settled option on the perpetual price (spec: options).
 struct OptionSeries {
   std::uint32_t id = 0;  // >= 1; unique within the scenario
@@ -110,19 +104,6 @@ struct OptionSpec {
   Rate im_floor;
   Rate mm_base;
   bool allow_short = false;
-};
-
-enum class NewsKind : std::uint8_t {
-  RateDecision = 0,
-  RegulationRumor = 1,
-  ExchangeIncident = 2,
-  NetworkOutage = 3,
-  LiquidityInflow = 4,
-  InstitutionalAdoption = 5,
-  RumorDenied = 6,
-  LiquidityOutflow = 7,  // phase-2 flows (design D8): appended, existing values keep their numbers
-  MacroData = 8,         // phase-2 scheduled releases: a fictional economic print
-  NetworkUpgrade = 9,
 };
 
 // What the player can see about a news item once released (spec: market-generator "Events").

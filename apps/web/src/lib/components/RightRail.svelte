@@ -70,7 +70,8 @@
 			<div class="liq" class:danger={liqDanger} role={liqDanger ? 'alert' : undefined}>
 				<div class="muted">{t('rail.liq')}</div>
 				<div class="liq-price num">{liq != null ? fmtPrice(String(liq), L) : '—'}</div>
-				<div class="num">{t('rail.liqDistance')}: {liqDist != null ? fmtPct(liqDist, L) : '—'}</div>
+				<!-- The label may wrap in a narrow rail; the value stays on one line (PT-BR overflowed the box). -->
+				<div data-testid="rail-liq-distance">{t('rail.liqDistance')}: <span class="num">{liqDist != null ? fmtPct(liqDist, L) : '—'}</span></div>
 				{#if liqDanger}<div class="attention">⚠ {t('rail.liqWarning')}</div>{/if}
 			</div>
 			{#if onMargin}

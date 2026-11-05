@@ -90,19 +90,51 @@ export function releveredLiquidation(side: Side, qty: number, entry: number, lev
 	return liquidationPrice(side, Math.abs(qty), entry, margin, k);
 }
 
-export function estimate(input: TicketInput, k: Costs): TicketEstimate {
+/** The open position the ticket's order lands on: signed qty, entry, isolated margin and its leverage. */
+export interface OpenPosition {
+	qty: number;
+	entry: number;
+	margin: number;
+	leverage: number;
+}
+
+/**
+ * Liquidation of the position the order leads to, as the engine books it: an add averages the entry
+ * and adds the order's initial margin, a reduction releases margin pro rata, a reversal opens the
+ * remainder on its own; the tier is that of the resulting notional (policy v16). A different
+ * leverage re-margins the open part first (engine set_leverage).
+ */
+export function liquidationAfter(input: TicketInput, pos: OpenPosition, k: Costs): number | null {
+	const { side, qty, entry, leverage } = input;
+	const held = Math.abs(pos.qty);
+	const lev = Math.max(1, leverage);
+	const heldMargin = lev === pos.leverage ? pos.margin : (held * pos.entry * k.multiplier) / lev;
+	const posSide: Side = pos.qty > 0 ? 'buy' : 'sell';
+	if (held === 0 || posSide === side) {
+		const total = held + qty;
+		const avg = total > 0 ? (held * pos.entry + qty * entry) / total : entry;
+		return liquidationPrice(side, total, avg, heldMargin + (qty * entry * k.multiplier) / lev, k);
+	}
+	if (qty < held) return liquidationPrice(posSide, held - qty, pos.entry, (heldMargin * (held - qty)) / held, k);
+	const rest = qty - held;
+	return rest > 0 ? liquidationPrice(side, rest, entry, (rest * entry * k.multiplier) / lev, k) : null;
+}
+
+export function estimate(input: TicketInput, k: Costs, pos?: OpenPosition): TicketEstimate {
 	const { side, qty, entry, leverage, stop } = input;
 	const notional = qty * k.multiplier * entry;
 	const margin = notional / Math.max(1, leverage);
 	const fee = notional * k.takerFee;
-	const liquidation = liquidationPrice(side, qty, entry, margin, k);
+	const liquidation = pos ? liquidationAfter(input, pos, k) : liquidationPrice(side, qty, entry, margin, k);
+	// A reduction leaves the position on the other side: its liquidation says nothing about this stop.
+	const onOrderSide = !pos || pos.qty === 0 || pos.qty > 0 === (side === 'buy') || qty > Math.abs(pos.qty);
 	let plannedRisk: number | null = null;
 	let stopBeyondLiquidation = false;
 	if (stop != null && stop > 0) {
 		const exitAdj = side === 'buy' ? stop * (1 - k.halfSpread - k.slippage) : stop * (1 + k.halfSpread + k.slippage);
 		const perUnit = side === 'buy' ? entry - exitAdj : exitAdj - entry;
 		plannedRisk = perUnit * qty * k.multiplier + fee + qty * k.multiplier * exitAdj * k.takerFee;
-		if (liquidation != null) stopBeyondLiquidation = side === 'buy' ? stop <= liquidation : stop >= liquidation;
+		if (liquidation != null && onOrderSide) stopBeyondLiquidation = side === 'buy' ? stop <= liquidation : stop >= liquidation;
 	}
 	return { notional, margin, fee, liquidation, plannedRisk, stopBeyondLiquidation };
 }

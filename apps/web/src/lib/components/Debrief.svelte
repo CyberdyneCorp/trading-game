@@ -143,7 +143,7 @@
 			{#if d.reveal}
 				<p data-testid="pack-reveal">{reveal?.line}</p>
 				{#if reveal?.transform}<p class="muted small">{t('debrief.revealTransform', { text: reveal.transform })}</p>{/if}
-				{#if d.reveal.gaps > 0}<p class="muted small">{tCount('debrief.revealGaps', d.reveal.gaps)}</p>{/if}
+				{#if d.reveal.gaps > 0}<p class="muted small" data-testid="reveal-gaps">{tCount(d.reveal.gapPolicy ? 'debrief.revealGapsFilled' : 'debrief.revealGaps', d.reveal.gaps)}</p>{/if}
 			{:else}
 				<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
 				<h3>{t('debrief.scenario')}</h3>

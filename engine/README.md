@@ -46,6 +46,20 @@ The only legitimate update is an intentional change to a kernel, the PRNG, the g
 
 A new mission is not such a change: it adds its own golden and leaves every existing one byte-identical (design D8.1). Each generator capability acts only when a mission declares it, so the phase-2 missions added no policy version.
 
+## Interface definition (IDL)
+
+`engine/idl/tradelab.idl` declares the enumerations shared by state, commands, events and the debrief (numeric value and JSON name) and every JSON shape the C ABI returns. `python3 engine/idl/gen.py` writes three files that are never edited by hand:
+
+- `include/tradelab/idl_types.hpp`: the C++ `enum class`es and `json_name()`, which the C ABI writers use;
+- `tests/idl_schema.hpp`: the shapes as JSON, checked by `tests/test_idl_conformance.cpp` against real output (every mission played with every command kind, a CSV import, a pack run, the packer calls, the error paths): exact keys, value types, declared enum names, decimal strings;
+- `apps/web/src/lib/engine/types.ts`: the web client's types.
+
+Adding a field or an enum value: edit the IDL (append enum values, never renumber them: they are part of the recorded-run format), run the generator, then make the C ABI emit it; the conformance test fails until both agree. `gen.py --check` runs in CI (engine lint job and web job) and fails on a stale generated file. The engine's internal structs (`RunState`, `Command`, `Scenario`) stay hand-written (design D10).
+
+## Indicator reference values
+
+`tests/test_indicator_reference.cpp` checks every indicator against TA-Lib's 252-bar daily regression series with TA-Lib 0.8.3's outputs for the game's parameters, vendored in `tests/data/talib_reference.inc` with TA-Lib's BSD-3-Clause license (`tests/data/TA-LIB-LICENSE.txt`). SMA, EMA, RSI, ATR, VWAP and Bollinger share TA-Lib's definitions: the warm-up equals TA-Lib's lookback and values agree within 1e-6. MACD and +DI/−DI/ADX seed their smoothing differently from TA-Lib (each EMA at its own period; Wilder sums seeded with the full period), so they agree within 1e-6 (MACD) and 1e-3 points (DI/ADX) from bar 150 on, with the same warm-up. Regenerate the table with `uv run --python 3.12 --with TA-Lib==0.8.3 --with numpy python tools/indicator_reference.py`.
+
 ## Phase-2 generator capabilities (generator v5, scoring v9)
 
 **G1 Markov regime chain.** `GeneratorSpec.chain` (`RegimeChain`: segment templates, per-mille transition rows with a zero diagonal, initial weights, `min_dwell`/`max_dwell`, `bars`, insertion index `at`) is expanded per seed into ordinary segments by `expanded(spec, seed)` before `scheduled()` applies the per-seed lead, so the rest of the generator is unchanged. The path is drawn on `Stream::Regime` (6) with integer draws (`chain_path`); the last visit is cut so the chain fills exactly `bars`. `Segment.label` (`RegimeLabel`: range, trend, high_vol, low_liquidity, crowded, calm, shock) names a segment for the reveal and tests and never feeds generation. Missions without a chain generate exactly as before (`kGeneratorVersion` 3 is not a digest input). `tests/test_generator.cpp` checks transition and initial frequencies over 2,000 seeds (±3 points), the fixed length, the dwell range, that a spec without a chain expands to itself, and that two chains agreeing up to bar k give identical bars, IV and funding up to k.

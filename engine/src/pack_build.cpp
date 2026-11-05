@@ -167,7 +167,7 @@ void write_data(JsonOut& j, const Scenario& sc, const ManifestHead& h) {
   if (h.branch_step) j.field("branchStep", *h.branch_step);
   // Continuity bars (policy v17) give bars.bin its sixth column; the policy says how indicators treat them.
   if (std::any_of(sc.bars.begin(), sc.bars.end(), [](const Bar& b) { return b.continuity; })) {
-    j.field("gapPolicy", r.gap_policy == GapPolicy::CarryForward ? "carryForward" : "skip");
+    j.field("gapPolicy", json_name(r.gap_policy));
   }
   j.end_obj();
 }

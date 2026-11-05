@@ -106,15 +106,21 @@ Four clients (web, desktop, iPad, Android later) and one server must agree bit-f
 - Property-style tests are seeded randomized loops (engine `Pcg32`, stream `Sandbox`) in doctest, not RapidCheck: reconciliation and non-negative balances (SIM08, with and without options), checkpoint resume. No-lookahead is checked by mutating future bars and comparing digests (SIM01, indicators, patterns, OPT04).
 
 ### D9. Bindings in this change
-- WASM: Emscripten target `tradelab_wasm` (`-sMODULARIZE -sEXPORT_ES6 -sSINGLE_FILE`, exports the `tl_*` functions), built by `apps/web/scripts/build-engine.sh` into `apps/web/src/lib/engine/wasm/tradelab.mjs` and used from a Web Worker. TypeScript types are currently hand-written (`apps/web/src/lib/engine/types.ts`); generating them from a small IDL (`engine/idl/*.yaml`) is pending (tasks 3.1, 8.2).
+- WASM: Emscripten target `tradelab_wasm` (`-sMODULARIZE -sEXPORT_ES6 -sSINGLE_FILE`, exports the `tl_*` functions), built by `apps/web/scripts/build-engine.sh` into `apps/web/src/lib/engine/wasm/tradelab.mjs` and used from a Web Worker. TypeScript types are generated (see D10). `apps/web/scripts/check-wasm-size.mjs` fails the web CI job when the gzipped module reaches 400 KB.
 - Python: pure-Python package `tradelab_engine` (`bindings/python/`) using ctypes over the C ABI in the shared library `libtradelab` (CMake target `tradelab_capi`), located via `TRADELAB_LIB`, the package directory or the engine build tree. Consumed by `services/api` (its image builds the library) for server re-simulation. ctypes was chosen over nanobind: the C ABI already exists for WASM, so no compiled extension or per-platform wheel is needed.
+
+### D10. Interface definition (IDL)
+- One IDL, `engine/idl/tradelab.idl`, declares the enumerations shared by state, commands, events and the debrief (numeric value + JSON name) and every JSON shape the C ABI returns (state, debrief, reveal, command results and payloads, CSV/pack results including the native-only packer calls, checkpoints, errors). A small line-based syntax (enum / struct / union / tuple, `///` docs) rather than YAML: the generator (`engine/idl/gen.py`) needs only the Python standard library, so CI and contributors need no extra packages.
+- Generated, never edited by hand: `engine/include/tradelab/idl_types.hpp` (C++ `enum class`es with their numeric values, which are part of the recorded-run format, and `json_name()` used by the C ABI writers), `engine/tests/idl_schema.hpp` (the shapes as JSON) and `apps/web/src/lib/engine/types.ts`. `gen.py --check` runs in the engine lint job and the web job and fails on a stale file.
+- The engine's internal structs (`RunState`, `Command`, `Scenario`) stay hand-written: they hold fixed-point types and define the checkpoint encoding, which the IDL does not describe. What ties them to the IDL is `tests/test_idl_conformance.cpp`: it plays every mission (every command kind, options where listed), a CSV import, a pack run, the packer calls and the error paths through the C ABI and checks each output against the schema: exact keys, value types, declared enum names and decimal strings. Values outside the IDL (a hand-written TS constant such as `DEFAULT_RUN_OPTIONS`) live next to the generated file (`defaults.ts`).
+- Generating the shapes surfaced two drifts the hand-written types had: a pack debrief also carries `marketMode` and `packDigest`, and `tl_csv_validate` with unusable metadata returns only `{ok, metaError}` (now `CsvMetaError`, part of `CsvValidation`), not a report.
 
 ## Risks / Trade-offs
 
 - **Kernel accuracy vs. determinism** → kernels target ~1e-12 relative error; premiums are quantized to tick so any residual difference would show up as a golden failure, not a silent drift.
 - **Simplified liquidation (full margin forfeit)** → may overstate losses vs. some venues; disclosed in UI and debrief.
 - **OHLC conservatism penalizes favorable exits** → flagged `ambiguousIntrabar`; sub-bar data replaces it when licensed.
-- **WASM bundle size** → target < 400 KB gzipped (single-file module is ~66 KB gzipped today); not yet measured in CI (task 8.2).
+- **WASM bundle size** → budget < 400 KB gzipped, checked in the web CI job (single-file module: ~183 KB gzipped with the full mission catalog).
 
 ## Open Questions
 

@@ -123,7 +123,9 @@
 	const qtyStr = $derived(qtyToLot(qty, lot));
 	// The field can hold anything typed; orders and estimates use the value clamped to the mission cap.
 	const lev = $derived(Math.min(Math.max(1, Math.round(leverage || 1)), cap));
-	const est = $derived(estimate({ side, qty, entry, leverage: lev, stop }, k));
+	// Liquidation of the position this order leads to (an add, a reduction or a reversal), not of the order alone.
+	const openPos = $derived({ qty: posQty, entry: num(s.position.entry), margin: num(s.position.margin), leverage: s.leverage });
+	const est = $derived(estimate({ side, qty, entry, leverage: lev, stop }, k, openPos));
 	const shortBlocked = $derived(!s.contract.allowShort && side === 'sell' && posQty <= 0);
 	const increases = $derived(posQty === 0 || posQty > 0 === (side === 'buy') || qty > Math.abs(posQty));
 	// Against an open position the order reduces, closes or reverses it rather than opening a new trade.
@@ -329,7 +331,7 @@
 		<dt>{t('ticket.estEntry')}</dt><dd>{fmtPrice(String(entry), L)}</dd>
 		<dt>{t('ticket.estMargin')}</dt><dd>{fmtMoney(est.margin, L)}</dd>
 		<dt>{t('ticket.estFee')}</dt><dd>{fmtMoney(est.fee, L)}</dd>
-		<dt>{t('ticket.estLiq')}</dt><dd class="down">{est.liquidation ? fmtPrice(String(est.liquidation), L) : '—'}</dd>
+		<dt>{t('ticket.estLiq')}</dt><dd class="down" data-testid="ticket-est-liq">{est.liquidation ? fmtPrice(String(est.liquidation), L) : '—'}</dd>
 		<dt>{t('ticket.estRisk')}</dt><dd>{est.plannedRisk != null ? fmtMoney(est.plannedRisk, L) : '—'}</dd>
 	</dl>
 	{#if relever}
