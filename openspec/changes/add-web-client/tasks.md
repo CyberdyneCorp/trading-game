@@ -6,7 +6,7 @@
 - [ ] 1.3 Unsupported-browser message (no WebAssembly, no Ed25519 WebCrypto)
 
 ## 2. Engine integration
-- [ ] 2.1 Worker + typed protocol from IDL; leak test (no future data on main thread) — worker (`src/lib/engine/engine.worker.ts`) and typed protocol (`protocol.ts`, `types.ts`, hand-written, not generated from an IDL) done; the engine C-ABI test asserts the state JSON carries exactly the bars up to the current step; a main-thread/message-log leak test is pending
+- [ ] 2.1 Worker + typed protocol from IDL; leak test (no future data on main thread) — worker (`src/lib/engine/engine.worker.ts`) and typed protocol (`protocol.ts`; `types.ts` and the command payloads generated from the engine IDL, `engine/idl/tradelab.idl`) done; the engine C-ABI test asserts the state JSON carries exactly the bars up to the current step; a main-thread/message-log leak test is pending
 - [ ] 2.2 IndexedDB persistence (runs, commands, checkpoints, packs); reload test — runs + per-action commits done (commit-before-engine, legacy migration, reload/resume tests); packs stored by digest (`packs` store, runs reference `packDigest`, pack runs resume by replay); checkpoints pending
 
 ## 3. Phase 1 vertical slice

@@ -56,3 +56,10 @@ Indicator values exposed at decision step `t` SHALL be computed from closed bars
 #### Scenario: Indicator independent of next bar
 - **WHEN** bar `t+1` is altered
 - **THEN** all indicator values at step `t` SHALL be unchanged
+
+### Requirement: Reference values
+Indicator values SHALL be tested against a published reference dataset, vendored with its license and attribution: TA-Lib's 252-bar daily regression series with TA-Lib's own outputs for the game's parameters. Where the formulas are the same (SMA, EMA, RSI, ATR, VWAP over one session, Bollinger) the warm-up SHALL equal TA-Lib's lookback and every value SHALL agree within 1e-6. Where TA-Lib seeds its smoothing differently (MACD: the fast EMA seeded at the slow EMA's first bar; +DI/-DI/ADX: Wilder sums seeded with period - 1 bars) values SHALL agree within 1e-6 (MACD) and 1e-3 points (DI/ADX) from bar 150 on, once the seed difference has decayed, and the MACD signal, DI and ADX warm-ups SHALL equal TA-Lib's.
+
+#### Scenario: RSI against the reference
+- **WHEN** RSI(14) is computed over the reference series
+- **THEN** it SHALL be absent exactly where TA-Lib's RSI(14) is and within 1e-6 of it on every other bar
