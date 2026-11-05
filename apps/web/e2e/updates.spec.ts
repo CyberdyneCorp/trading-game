@@ -108,6 +108,15 @@ test('regression: rewinding a run on an OPFS pack starts the assisted attempt fr
 	await page.getByRole('button', { name: /Abrir terminal/ }).click();
 	for (let i = 0; i < 4; i++) await step(page);
 	const before = await turn(page);
+	// A slow OPFS read (as on a loaded CI runner): the assisted tag must not show over the attempt being
+	// rewound while the pack file is still being read.
+	await page.evaluate(() => {
+		const getFile = FileSystemFileHandle.prototype.getFile;
+		FileSystemFileHandle.prototype.getFile = async function () {
+			await new Promise((r) => setTimeout(r, 500));
+			return getFile.call(this);
+		};
+	});
 
 	const assist = page.getByTestId('assist-panel');
 	await assist.locator('summary').click();

@@ -141,7 +141,9 @@ export class GameSession implements CatalogHost {
 	missions = $state<MissionInfo[]>([]);
 	missionId = $state('');
 	seed = $state(0);
-	#state = $state<GameState | null>(null);
+	// Raw, not a deep proxy: each engine reply replaces the whole state, and proxied reads of the
+	// bar-wide indicator arrays made every chart redraw (zoom, hover) track thousands of signals.
+	#state = $state.raw<GameState | null>(null);
 	/** Order types and option contract names seen during this run, for the event feed. */
 	readonly names = new EventNames();
 	get state(): GameState | null {
@@ -488,10 +490,12 @@ export class GameSession implements CatalogHost {
 		this.resetRun(missionId, seed);
 		this.options = options;
 		this.perkChoice = perks;
-		this.runAssisted = link;
 		await this.useCurrentEngine(); // a new attempt, so this version's engine (as for any new run)
 		const state = await this.startEngine(missionId, seed, packDigest);
 		if (!state) throw new Error('pack missing');
+		// Flagged together with its first state: set before the (OPFS) pack read, the assisted tag showed
+		// over the attempt being rewound.
+		this.runAssisted = link;
 		this.state = state;
 		this.lessonInfo = packDigest ? null : await this.eng().request({ kind: 'lesson', missionId });
 		await this.createRunRecord(missionId, seed, { packDigest, assisted: link });
