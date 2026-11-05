@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { breakeven, maxLoss, payoffAt, writeMargin, type OptionLeg } from './optionsMath.ts';
+import { breakeven, maxLoss, optionBuyCost, optionFee, payoffAt, writeMargin, type OptionLeg } from './optionsMath.ts';
 import type { OptionQuoteView } from '#lib/engine/types.ts';
 
 const call: OptionLeg = { kind: 'call', strike: 100, side: 'buy', qty: 2, premium: 3, multiplier: 1 };
@@ -26,5 +26,16 @@ describe('optionsMath', () => {
 		const q = { kind: 'call', strike: '110', ask: '1.50' } as OptionQuoteView;
 		// F = 100: OTM = 10 -> max(15 - 10, 10) + 1.5 = 11.5 per unit
 		expect(writeMargin(q, 100, 2, 1)).toBeCloseTo(23, 6);
+	});
+
+	it('regression: a buy needs the premium plus the fee, like the engine check (fee was left out)', () => {
+		const leg = { qty: 1, multiplier: 10, premium: 2 };
+		// 0.03% of 10 × 100 = 0.30, under the cap of 12.5% of 20 = 2.50
+		expect(optionFee(leg, 100, 0.0003)).toBeCloseTo(0.3, 9);
+		expect(optionBuyCost(leg, 100, 0.0003)).toBeCloseTo(20.3, 9);
+		// A cheap far option: the fee is capped at 12.5% of the premium
+		expect(optionFee({ ...leg, premium: 0.01 }, 100, 0.0003)).toBeCloseTo(0.0125, 9);
+		// With 20,00 available the premium alone fits but premium + fee does not
+		expect(optionBuyCost(leg, 100, 0.0003) > 20).toBe(true);
 	});
 });

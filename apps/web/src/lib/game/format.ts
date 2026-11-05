@@ -46,6 +46,18 @@ export function parseDecimal(input: string | number | null | undefined): number 
 	return /^[+-]?(\d+\.?\d*|\.\d+)$/.test(plain) ? Number(plain) : NaN;
 }
 
+/**
+ * Reads a credit amount typed by the player. Like parseDecimal, except that the locale's thousands
+ * separator ("." in PT-BR, "," in English) followed only by groups of exactly three digits groups
+ * thousands: "1.000" in PT-BR is one thousand credits, not 1. NaN when invalid.
+ */
+export function parseAmount(input: string | number | null | undefined, locale: Locale): number {
+	if (typeof input === 'number') return input;
+	const s = (input ?? '').replace(/\s/g, '');
+	const grouped = locale === 'pt-BR' ? /^[+-]?\d{1,3}(\.\d{3})+$/ : /^[+-]?\d{1,3}(,\d{3})+$/;
+	return grouped.test(s) ? Number(s.replace(/[.,]/g, '')) : parseDecimal(s);
+}
+
 export function fmtPct(fraction: number, locale: Locale, digits = 2, signed = false): string {
 	if (!Number.isFinite(fraction)) return '—';
 	return `${formatter(locale, digits, signed).format(fraction * 100)}%`;

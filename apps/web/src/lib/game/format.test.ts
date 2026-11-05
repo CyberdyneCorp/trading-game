@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtNum, parseDecimal, planHeadline, priceInputText, priceToTick, qtyInputText, qtyToLot, signMark } from './format.ts';
+import { fmtNum, parseAmount, parseDecimal, planHeadline, priceInputText, priceToTick, qtyInputText, qtyToLot, signMark } from './format.ts';
 
 describe('format', () => {
 	it('floors quantities to the lot and emits engine decimal strings', () => {
@@ -35,6 +35,17 @@ describe('format', () => {
 		expect(parseDecimal('')).toBeNaN();
 		expect(parseDecimal('abc')).toBeNaN();
 		expect(parseDecimal('9,5,1')).toBeNaN();
+	});
+	it('regression: a credit amount typed with a thousands separator is read as thousands ("1.000" was 1)', () => {
+		expect(parseAmount('1.000', 'pt-BR')).toBe(1000);
+		expect(parseAmount('12.500.000', 'pt-BR')).toBe(12_500_000);
+		expect(parseAmount('1.000,50', 'pt-BR')).toBe(1000.5);
+		expect(parseAmount('100,5', 'pt-BR')).toBe(100.5);
+		expect(parseAmount('100.5', 'pt-BR')).toBe(100.5); // not a thousands group: still a decimal
+		expect(parseAmount('1,000', 'en')).toBe(1000);
+		expect(parseAmount('1.000', 'en')).toBe(1);
+		expect(parseAmount('2,5', 'en')).toBe(2.5);
+		expect(parseAmount('', 'pt-BR')).toBeNaN();
 	});
 	it('formats plain numbers in the locale', () => {
 		expect(fmtNum(63, 'pt-BR', 1)).toBe('63,0');

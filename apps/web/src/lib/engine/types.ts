@@ -369,6 +369,8 @@ export interface OptionsView {
 	multiplier: Decimal;
 	premiumTick: Decimal;
 	lotSize: Decimal;
+	/** Option fee: this fraction of the underlying notional, capped at 12.5% of the premium. */
+	feeRate?: Decimal;
 	/** Settlement window in market time, minutes (policy v17). */
 	settlementMinutes?: number;
 	longValue: Decimal;

@@ -165,7 +165,7 @@ void write_options(JsonOut& j, const Scenario& sc, const RunState& st) {
   const detail::OptionBook b = detail::option_book(sc, st, st.step);
   j.key("options").begin_obj().field("enabled", !o.series.empty()).field("allowShort", o.allow_short);
   j.field("multiplier", o.multiplier).field("premiumTick", o.premium_tick).field("lotSize", o.lot_size);
-  j.field("settlementMinutes", o.settlement_minutes);
+  j.field("feeRate", o.fee_rate).field("settlementMinutes", o.settlement_minutes);
   j.field("longValue", b.long_value).field("shortValue", b.short_value);
   j.field("initialMargin", b.initial_margin).field("maintenanceMargin", b.maintenance_margin);
   j.key("chain").begin_arr();

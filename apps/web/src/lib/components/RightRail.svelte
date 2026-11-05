@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { GameState } from '#lib/engine/types.ts';
-	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseDecimal, signMark } from '#lib/game/format.ts';
+	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseAmount, signMark } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { bpPct, objectiveTexts } from '#lib/game/objectives.ts';
 	import { positionGreeks, seriesLabel } from '#lib/game/optionsMath.ts';
@@ -12,7 +12,7 @@
 	}: { game: GameState; plannedRisk: number | null; onMargin?: (amount: string) => void } = $props();
 	let marginAmount = $state('100');
 	function margin(sign: 1 | -1) {
-		const v = Math.abs(parseDecimal(marginAmount));
+		const v = Math.abs(parseAmount(marginAmount, i18n.locale));
 		if (onMargin && Number.isFinite(v) && v > 0) onMargin((sign * v).toFixed(2));
 	}
 

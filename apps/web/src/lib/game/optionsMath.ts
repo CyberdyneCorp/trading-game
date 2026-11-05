@@ -36,6 +36,17 @@ export function maxLoss(leg: OptionLeg): number | null {
 	return leg.side === 'buy' ? leg.premium * leg.qty * leg.multiplier : null;
 }
 
+/** Engine option fee: feeRate of the underlying notional, capped at 12.5% of the premium paid or received. */
+export function optionFee(leg: Pick<OptionLeg, 'qty' | 'multiplier' | 'premium'>, underlying: number, feeRate: number): number {
+	const units = leg.qty * leg.multiplier;
+	return Math.min(units * underlying * feeRate, units * leg.premium * 0.125);
+}
+
+/** Cash a buy needs on placement (engine required_for): the premium plus the fee. */
+export function optionBuyCost(leg: Pick<OptionLeg, 'qty' | 'multiplier' | 'premium'>, underlying: number, feeRate: number): number {
+	return leg.premium * leg.qty * leg.multiplier + optionFee(leg, underlying, feeRate);
+}
+
 export interface MarginParams {
 	imBase: number;
 	imFloor: number;
