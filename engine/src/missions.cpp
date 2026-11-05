@@ -46,7 +46,12 @@ ContractSpec default_contract() {
   c.max_leverage = 50;
   c.maker_fee = Rate::from_raw(2'000'000);         // 0.02%
   c.taker_fee = Rate::from_raw(5'000'000);         // 0.05%
-  c.maintenance_margin = Rate::from_raw(50'000'000);  // 0.5%
+  c.maintenance_margin = Rate::from_raw(50'000'000);  // 0.5% below 50,000 notional
+  // Policy v16: larger positions keep more maintenance margin and allow less leverage.
+  const auto credits = [](std::int64_t n) { return Money::from_raw(n * Money::kScale); };
+  c.margin_tiers = {{credits(50'000), Rate::from_raw(100'000'000), 20},     // 1%, 20x
+                    {credits(250'000), Rate::from_raw(250'000'000), 10},    // 2.5%, 10x
+                    {credits(1'000'000), Rate::from_raw(500'000'000), 5}};  // 5%, 5x
   return c;
 }
 

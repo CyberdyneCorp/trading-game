@@ -28,7 +28,7 @@ def test_m06_golden_matches_native_cpp():
         run.close_position(4)
         state = run.advance(1000)
     assert _digests(state) == (
-        "23648bda21adb3552ce57253b0c943955e7969f4fb6a607bc540174ade3c72b5",
+        "73915792a3b323a91ec8bd84fc7f73c8c20a9f922675ec7dd25a25442312cd25",
         "b084466a7e0ab87dacc53c40794afcbc017917decfac736279404e82558f009a",
     )
 
@@ -44,7 +44,7 @@ def test_m07_golden_matches_native_cpp():
         run.place_order(4, 0, 1, "30", None, False)
         state = run.advance(1000)
     assert _digests(state) == (
-        "bc09fbe3240b31707462fd0638c6d14dddbfe73adef73a5359b1f1b7a084f6c8",
+        "7bef8536703594ef7e1c7d20a5bf72a486e2165d09cfec01fcf2b72cf85d25a4",
         "911e8dce2b537d94c11f7c8a8af67a1472f169032d0c6e98d137b4bb95488bd0",
     )
 
@@ -60,7 +60,7 @@ def test_m08_golden_and_signals_by_regime_match_native_cpp():
         state = run.advance(1000)
         debrief = run.debrief()
     assert _digests(state) == (
-        "8e469afe0aa2c6373e71b1d487fce597354699e3383601f15d1fd1ebd95d8913",
+        "9cca2b0bb58cba31fb272c72780e4d0937dd784538d28bb36869c74e82fea9d8",
         "e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb",
     )
     assert debrief["score"]["version"] == 11

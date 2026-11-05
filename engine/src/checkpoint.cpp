@@ -88,6 +88,7 @@ void visit(Ar& a, Order& o) {
   a.u32(o.oco_group);
   a.fx(o.trail_distance);
   a.u32(o.series);
+  a.fx(o.trail_rate);  // checkpoint format 4 (policy v16)
 }
 
 template <typename Ar>
@@ -238,7 +239,7 @@ void visit(Ar& a, RunState& st) {
   visit_seq(a, st.advice);
   a.fx(st.options.starting_balance);
   a.i32(st.options.leverage_cap);
-  visit_seq(a, st.lesson_answers);  // format 4
+  visit_seq(a, st.lesson_answers);  // format 5 (scoring v11)
   visit_seq(a, st.decisions);
 }
 

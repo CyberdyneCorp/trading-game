@@ -120,7 +120,7 @@ describe('describeFindings', () => {
 describe('revealTexts', () => {
 	const csv: PackReveal = {
 		asset: 'BTC', pair: 'BTC/USDT', venue: '', periodFrom: '2023-11-14T22:00:00Z', periodTo: '2023-11-19T21:00:00Z',
-		source: 'csv-import', transformation: 'prices x 100 / open of bar 60, half-even to 0.01; volume x the inverse', gaps: 0
+		source: 'csv-import', transformation: 'prices x 100 / open of bar 60, half-even to 0.01; volume x the inverse', gaps: 0, gapPolicy: ''
 	};
 	it('regression: a CSV pack reveal is in the player language, without the raw source code or an empty venue', () => {
 		const r = revealTexts(csv, 'Mercado K');
@@ -135,6 +135,16 @@ describe('revealTexts', () => {
 		const r = revealTexts({ ...csv, source: 'publisher', transformation: 'rebased to 100' }, 'K');
 		expect(r.transform).toBe('rebased to 100');
 		expect(r.line).toContain('(publisher)');
+	});
+	it('regression: a synthetic pack reveals a generated market, not "era — (—), de a ()" and an empty transformation', () => {
+		const empty: PackReveal = { asset: '', pair: '', venue: '', periodFrom: '', periodTo: '', source: '', transformation: '', gaps: 0, gapPolicy: '' };
+		const r = revealTexts(empty, 'K6A', 'synthetic');
+		expect(r.line).toBe('O mercado K6A foi gerado sinteticamente e distribuído em um pacote. Preços simulados; não representam um ativo real.');
+		expect(r.transform).toBe('');
+		i18n.locale = 'en';
+		expect(revealTexts(empty, 'K6A', 'synthetic').line).toContain('generated synthetically');
+		i18n.locale = 'pt-BR';
+		expect(revealTexts(csv, 'K', 'historical').line).toContain('BTC/USDT');
 	});
 });
 

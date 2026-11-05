@@ -15,12 +15,29 @@ bool bar_valid(const Bar& b, Price tick) {
          on_grid(b.close.raw, tick.raw);
 }
 
+// Each added tier must sit above the previous one and leave initial margin above maintenance at its
+// own leverage cap (max_leverage * rate < 1), or a position would be liquidatable as it opens.
+bool tier_valid(const MarginTier& t, const MarginTier& prev) {
+  if (t.notional_floor <= prev.notional_floor || t.maintenance_margin < prev.maintenance_margin) return false;
+  if (t.max_leverage < 1 || t.max_leverage > prev.max_leverage) return false;
+  return static_cast<i128>(t.maintenance_margin.raw) * t.max_leverage < Rate::kScale;
+}
+
+bool tiers_valid(const ContractSpec& c) {
+  MarginTier prev{Money{}, c.maintenance_margin, c.max_leverage};
+  for (const MarginTier& t : c.margin_tiers) {
+    if (!tier_valid(t, prev)) return false;
+    prev = t;
+  }
+  return true;
+}
+
 bool contract_valid(const ContractSpec& c) {
   if (c.tick_size.raw <= 0 || c.lot_size.raw <= 0 || c.multiplier.raw <= 0) return false;
   if (c.min_qty.raw < c.lot_size.raw || !on_grid(c.min_qty.raw, c.lot_size.raw)) return false;
   if (c.max_leverage < 1 || c.max_leverage > 125 || c.funding_interval == 0) return false;
   const bool fees_ok = c.maker_fee.raw >= 0 && c.taker_fee.raw >= 0 && c.taker_fee < rate_one();
-  return fees_ok && c.maintenance_margin.raw > 0 && c.maintenance_margin < rate_one();
+  return fees_ok && c.maintenance_margin.raw > 0 && c.maintenance_margin < rate_one() && tiers_valid(c);
 }
 
 bool mission_valid(const Scenario& s) {
@@ -46,7 +63,7 @@ bool options_valid(const Scenario& s) {
   for (std::uint32_t i = 0; i < o.series.size(); ++i) {
     if (!series_valid(s, o.series[i], i)) return false;
   }
-  return o.im_floor.raw > 0 && o.mm_base.raw > 0 && o.settlement_bars >= 1;
+  return o.im_floor.raw > 0 && o.mm_base.raw > 0 && o.settlement_minutes >= 1;
 }
 
 bool news_valid(const Scenario& s) {
@@ -58,10 +75,41 @@ bool news_valid(const Scenario& s) {
   return true;
 }
 
+// A continuity bar repeats the previous close with no volume (nothing traded); bar 0 has no previous.
+bool continuity_valid(const Scenario& s) {
+  for (std::size_t i = 0; i < s.bars.size(); ++i) {
+    const Bar& b = s.bars[i];
+    if (!b.continuity) continue;
+    if (i == 0 || b.volume.raw != 0) return false;
+    const Price c = s.bars[i - 1].close;
+    if (b.open != c || b.high != c || b.low != c || b.close != c) return false;
+  }
+  return true;
+}
+
 bool liquidity_valid(const Scenario& s) {
   for (const LiquidityShock& l : s.liquidity) {
     const bool span_ok = l.start >= 1 && l.bars >= 1 && l.start < s.bars.size() && l.bars <= s.bars.size() - l.start;
     if (!span_ok || l.spread_pct < 10 || l.spread_pct > 1000 || l.capacity_pct > 1000) return false;
+  }
+  return true;
+}
+
+bool mark_valid(const Scenario& s) {
+  if (s.mark.empty()) return true;
+  if (s.mark.size() != s.bars.size()) return false;
+  return std::all_of(s.mark.begin(), s.mark.end(), [&s](const Bar& b) { return bar_valid(b, s.contract.tick_size); });
+}
+
+// Sub-bars end at their bar's close, stay on the tick grid and never start before bar 0's open.
+bool sub_bars_valid(const Scenario& s) {
+  const std::uint64_t step = s.options.minutes_per_step;
+  for (const SubBars& x : s.sub_bars) {
+    if (x.bar >= s.bars.size() || x.minutes == 0 || x.closes.empty()) return false;
+    if (x.closes.back() != s.bars[x.bar].close) return false;
+    if (static_cast<std::uint64_t>(x.minutes) * x.closes.size() > (x.bar + 1ULL) * step) return false;
+    const auto bad = [&s](Price p) { return p.raw <= 0 || !on_grid(p.raw, s.contract.tick_size.raw); };
+    if (std::any_of(x.closes.begin(), x.closes.end(), bad)) return false;
   }
   return true;
 }
@@ -96,6 +144,9 @@ ScenarioError validate(const Scenario& s) {
   if (!options_valid(s)) return ScenarioError::InvalidOptions;
   if (!news_valid(s)) return ScenarioError::InvalidNews;
   if (!liquidity_valid(s)) return ScenarioError::InvalidLiquidity;
+  if (!mark_valid(s)) return ScenarioError::InvalidMark;
+  if (!continuity_valid(s)) return ScenarioError::InvalidContinuity;
+  if (!sub_bars_valid(s)) return ScenarioError::InvalidSubBars;
   return ScenarioError::Ok;
 }
 

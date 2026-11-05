@@ -247,8 +247,7 @@ std::int32_t draw_lead(const GeneratorSpec& spec, std::uint64_t seed) {
 }  // namespace
 
 const char* regime_label_name(RegimeLabel label) {
-  static constexpr const char* kNames[] = {"unlabeled", "range", "trend", "high_vol", "low_liquidity", "crowded", "calm", "shock"};
-  return kNames[static_cast<std::size_t>(label)];
+  return json_name(label);
 }
 
 std::vector<std::pair<std::uint32_t, std::uint32_t>> chain_path(const RegimeChain& chain, std::uint64_t seed) {

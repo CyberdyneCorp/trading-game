@@ -105,7 +105,7 @@ void read_options(Fields& f, const JsonValue& o, Manifest* m) {
   f.dec(o, "smile", "instruments.options.smile", &x.smile, -kVolLimit, kVolLimit);
   f.dec(o, "termSlope", "instruments.options.termSlope", &x.term_slope, -kVolLimit, kVolLimit);
   f.integer(o, "minutesPerStep", "instruments.options.minutesPerStep", &x.minutes_per_step, 1, std::int64_t{7} * 1440);
-  f.integer(o, "settlementBars", "instruments.options.settlementBars", &x.settlement_bars, 1, 1000);
+  f.integer(o, "settlementMinutes", "instruments.options.settlementMinutes", &x.settlement_minutes, 1, 1'000'000);
   f.dec(o, "imBase", "instruments.options.imBase", &x.im_base, 0, kRateOne);
   f.dec(o, "imFloor", "instruments.options.imFloor", &x.im_floor, 1, kRateOne);
   f.dec(o, "mmBase", "instruments.options.mmBase", &x.mm_base, 1, kRateOne);
@@ -194,6 +194,9 @@ void read_mission(Fields& f, const JsonValue& r, Manifest* m) {
   if (data != nullptr) {
     f.integer(*data, "bars", "data.bars", &m->bars, 3, 1'000'000);
     f.integer(*data, "gaps", "data.gaps", &m->gaps, 0, 1'000'000);
+    if (data->find("gapPolicy") != nullptr) {
+      f.one_of(*data, "gapPolicy", "data.gapPolicy", &m->gap_policy, {"skip", "carryForward"});
+    }
     f.opt_integer(*data, "events", "data.events", &m->events, 0, kMaxTableRows);
     f.opt_integer(*data, "liquidityShocks", "data.liquidityShocks", &m->liquidity_shocks, 0, kMaxTableRows);
     f.opt_integer(*data, "optionSeries", "data.optionSeries", &m->option_series, 0, kMaxTableRows);

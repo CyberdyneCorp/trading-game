@@ -11,11 +11,13 @@ Requires Node 22 and Emscripten (`brew install emscripten`, or emsdk with `emcma
 ```bash
 npm install
 npm run engine:build   # compiles engine/ to WASM -> src/lib/engine/wasm/tradelab.mjs (gitignored)
+npm run engine:size    # fails when that module is 400 KB gzipped or more (CI runs it)
+npm run engine:types   # regenerates src/lib/engine/types.ts from engine/idl/tradelab.idl
 npm run dev            # http://localhost:5173 ; append ?seed=123 for a reproducible market
 npm run build && npm run preview   # production build incl. service worker (offline mode)
 ```
 
-Rebuild the engine (`npm run engine:build`) after any change under `engine/`.
+Rebuild the engine (`npm run engine:build`) after any change under `engine/`, and regenerate the types (`npm run engine:types`) after any change to `engine/idl/tradelab.idl`; CI fails on stale generated types.
 
 ## Test
 
@@ -33,19 +35,20 @@ npm run test:e2e   # Playwright: builds, serves on :4173 (override with E2E_PORT
 src/
   routes/+page.svelte      single page; switches menu / briefing / terminal / debrief / curriculum / journal
   service-worker.ts        precache of the versioned build, offline shell, update on request
-  lib/engine/              model bridge: engine.worker.ts (WASM host), client.ts, protocol.ts, types.ts, reveal.ts (reveal gate), wasm/
+  lib/engine/              model bridge: engine.worker.ts (WASM host), client.ts, protocol.ts, types.ts (generated from
+                           engine/idl: `npm run engine:types`; never edit by hand), defaults.ts, reveal.ts (reveal gate), wasm/
   lib/game/                view-models (session, autoplay, settings, pwa, i18n, audio, sound, csvImport — *.svelte.ts rune classes),
                            IndexedDB storage, and pure helpers (sizing, stops, optionsMath, calibration,
                            analysis, debrief, format, news, hotkeys, tutorials, advisor, points, perks, curriculum, campaign, journal, candle/chart
                            pattern catalogs, patternOutcome and packs) with *.test.ts next to them
-  lib/components/          views: Terminal, Chart (+ chartPanes.ts), OrderTicket, OptionTicket, OptionChain,
+  lib/components/          views: Terminal, Chart (+ chartPanes.ts), OrderTicket (+ TrailField: trailing stop by price or percent), OptionTicket, OptionChain,
                            RightRail, TopBar, AdvisorPanel, Briefing (+ PerkPanel), Tutorial (+ TutorialArt), Debrief (+ RegimeReveal), MissionMenu, dialogs,
                            PatternSheet (+ PatternAnimation), HelpOverlay, CsvImport, CampaignPanel, CampaignOutcome,
                            CurriculumMap, Journal; chartDrag.ts (stop/target line drag)
-e2e/                       Playwright: mission.spec.ts (gameplay), missions-batch-a.spec.ts (m06–m08 to the debrief), missions-batch-b.spec.ts (m09–m12 to the debrief, announced calendar, campaign report), campaign.spec.ts (campaign, curriculum, journal), perks.spec.ts (intel perks),
-                           packs.spec.ts (CSV import, practice packs),
+e2e/                       Playwright: mission.spec.ts (gameplay), missions-batch-a.spec.ts (m06–m08 to the debrief), missions-batch-b.spec.ts (m09–m12 to the debrief, announced calendar, campaign report), campaign.spec.ts (campaign, curriculum, journal), perks.spec.ts (intel perks), engine-rules.spec.ts (percent trailing stop, margin tiers), engine-rules-v17.spec.ts (gaps filled with bars without trading, mark-price note),
+                           packs.spec.ts (CSV import, practice packs), branch-pack.spec.ts (packer-built branch and synthetic packs),
                            offline.spec.ts (OFF01-web)
-scripts/                   build-engine.sh (Emscripten), make-icons.py (PWA icons)
+scripts/                   build-engine.sh (Emscripten), check-wasm-size.mjs (gzip budget), make-icons.py (PWA icons)
 static/                    manifest.webmanifest, icons
 ```
 
@@ -65,4 +68,4 @@ The menu offers the campaign (missions in `campaignMissions()` order, capital ca
 
 ## Imported markets (CSV and packs)
 
-"Import CSV" in the menu opens a wizard: pick a file, confirm what the engine cannot know (asset, pair, venue, bar interval, timestamp unit, volume unit, leverage cap; the unit and interval are guessed from the first rows), validate, then create a practice mission. The engine (`tl_csv_validate`, `tl_pack_build_csv`) does all the checking, so the errors are the same on every client; the wizard only translates their codes (`csvIssueText`, `csvMetaText` for refused declared values, `packReasonText` for build refusals). The worker hands the CSV text to the engine through the WASM heap (`withText` in `engine.worker.ts`), not as a `ccall` string, which Emscripten copies onto its 64 KB stack; any string argument that can grow past a few KB must do the same. If an engine call traps, the worker drops the module and loads a fresh one on the next request. The result is a private `.tlpack`, masked to a price base of 100 and signed by this device's key, whose seed is created once and kept in the `meta` store. Packs are verified by the engine before they are stored by digest in the `packs` store (IndexedDB stands in for OPFS for now) and again when a run starts or resumes. A run on a pack records `packDigest`, and resuming replays its log on that pack. "Load pack" installs a `.tlpack` file only if it is signed by this device or by a key pinned in `PINNED_PUBLISHER_KEYS` (`src/lib/game/packs.ts`, empty until there is a publisher key). Mid-run, the UI shows these markets as KNOWN and never shows the real asset or prices; the debrief shows the reveal from the engine (the CSV-import source and transformation note are translated by `revealTexts` in `src/lib/game/debrief.ts`). Practice runs start without the advisor and never change the advisor point balance.
+"Import CSV" in the menu opens a wizard: pick a file, confirm what the engine cannot know (asset, pair, venue, bar interval, timestamp unit, volume unit, leverage cap; the unit and interval are guessed from the first rows), validate, then create a practice mission. The engine (`tl_csv_validate`, `tl_pack_build_csv`) does all the checking, so the errors are the same on every client; the wizard only translates their codes (`csvIssueText`, `csvMetaText` for refused declared values, `packReasonText` for build refusals). The worker hands the CSV text to the engine through the WASM heap (`withText` in `engine.worker.ts`), not as a `ccall` string, which Emscripten copies onto its 64 KB stack; any string argument that can grow past a few KB must do the same. If an engine call traps, the worker drops the module and loads a fresh one on the next request. The result is a private `.tlpack`, masked to a price base of 100 and signed by this device's key, whose seed is created once and kept in the `meta` store. Packs are verified by the engine before they are stored by digest in the `packs` store (IndexedDB stands in for OPFS for now) and again when a run starts or resumes. A run on a pack records `packDigest`, and resuming replays its log on that pack. "Load pack" installs a `.tlpack` file only if it is signed by this device or by a key pinned in `PINNED_PUBLISHER_KEYS` (`src/lib/game/packs.ts`, empty until there is a publisher key). Mid-run, the UI shows these markets as KNOWN and never shows the real asset or prices; the debrief shows the reveal from the engine (the CSV-import source and transformation note are translated by `revealTexts` in `src/lib/game/debrief.ts`). A synthetic pack (`marketMode` `synthetic`, e.g. from `packer generate`) has no real market behind it: the briefing calls it a synthetic pack and the debrief says it was generated, with no transformation note. "Play again" after a pack run starts the same pack on a new seed (`GameSession.playAgain`). Practice runs start without the advisor and never change the advisor point balance. When the report lists gaps, the wizard offers to join the bars (default) or fill each gap with bars without trading (engine policy v17, metadata `gapFill`: indicators skip them or carry the last close forward); the chart draws them as shaded slots with a dashed line at the carried close, the readout and the accessible table say "no trading", and a legend counts them with the gap policy in its tooltip. The briefing states whether positions are marked at the last price (`contract.markFromLastPrice`), and the option ticket refuses a series inside its settlement window (`settling`, reason `series_settling`).

@@ -6,7 +6,7 @@
 	import PerkPanel from './PerkPanel.svelte';
 	import LessonQuiz from './LessonQuiz.svelte';
 	import { bpPct, objectiveTexts } from '#lib/game/objectives.ts';
-	import { fmtMoney, fmtPct, num } from '#lib/game/format.ts';
+	import { fmtMoney, fmtNum, fmtPct, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
 	let { session }: { session: GameSession } = $props();
@@ -19,10 +19,17 @@
 	const PERMS = ['long', 'short', 'optionsBuy', 'optionsWrite'] as const;
 	const allowed = $derived(PERMS.filter((p) => rules.permissions[p]).map((p) => t(`perm.${p}`)));
 	const notAllowed = $derived(PERMS.filter((p) => !rules.permissions[p]).map((p) => t(`perm.${p}`)));
+	// Higher maintenance tiers by notional (policy v16): "≥ 50.000: 1% (20x)".
+	const tiers = $derived(
+		(c.marginTiers ?? []).slice(1).map((m) =>
+			t('brief.tier', { floor: fmtNum(num(m.notionalFloor), L, 0), mmr: fmtPct(num(m.maintenanceMargin), L, 1), max: m.maxLeverage })
+		)
+	);
 	const link = $derived(session.runCampaign);
 	const modeText = $derived.by(() => {
 		if (link) return t(link.index === 0 ? 'brief.modeCampaignFirst' : 'brief.modeCampaign', { n: link.index + 1, total: campaignMissions().length, seed: session.seed });
-		return s.knownScenario ? t('brief.modePack', { seed: session.seed }) : t('brief.modeSynthetic', { seed: session.seed });
+		if (!s.knownScenario) return t('brief.modeSynthetic', { seed: session.seed });
+		return t(s.marketMode === 'synthetic' ? 'brief.modePackSynthetic' : 'brief.modePack', { seed: session.seed });
 	});
 	// What the curriculum keeps locked in this campaign mission (option unlocks only where options
 	// trade), and the stage that unlocks it.
@@ -50,6 +57,10 @@
 			<dt>{t('brief.limits')}</dt>
 			<dd data-testid="brief-limits">{t('brief.limitsValue', { liq: bpPct(rules.liqWarningBp, L), dd: bpPct(rules.drawdownBudgetBp, L) })}</dd>
 			<dt>{t('brief.mmr')}</dt><dd>{fmtPct(num(c.maintenanceMargin), L)}</dd>
+			{#if tiers.length}<dt>{t('brief.tiers')}</dt><dd data-testid="brief-tiers">{tiers.join(' · ')}</dd>{/if}
+			{#if c.markFromLastPrice != null}
+				<dt>{t('brief.mark')}</dt><dd data-testid="brief-mark">{t(c.markFromLastPrice ? 'brief.markLast' : 'brief.markSeries')}</dd>
+			{/if}
 			<dt>{t('brief.costs')}</dt>
 			<dd>
 				{t('brief.costsValue', {

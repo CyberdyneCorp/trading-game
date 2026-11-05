@@ -5,22 +5,22 @@
 import { EventNames } from './eventNames.ts';
 import { EngineClient } from '#lib/engine/client.ts';
 import type { CsvBuildResult, EngineRequest } from '#lib/engine/protocol.ts';
-import {
-	DEFAULT_RUN_OPTIONS,
-	type CommandResult,
-	type CsvMeta,
-	type CsvReport,
-	type DebriefData,
-	type GameState,
-	type LessonInfo,
-	type MissionInfo,
-	type MissionReveal,
-	type OrderSideName,
-	type OrderTypeName,
-	type OrderView,
-	type PackCheck,
-	type RunOptionsView,
-	type TrustedKey
+import { DEFAULT_RUN_OPTIONS } from '#lib/engine/defaults.ts';
+import type {
+	CommandResult,
+	CsvMeta,
+	CsvValidation,
+	DebriefData,
+	GameState,
+	LessonInfo,
+	MissionInfo,
+	MissionReveal,
+	OrderSideName,
+	OrderTypeName,
+	OrderView,
+	PackCheck,
+	RunOptionsView,
+	TrustedKey
 } from '#lib/engine/types.ts';
 import type { PlanEntry } from './analysis';
 import { assistAllowed, rewindPrefix, type AssistedLink } from './assisted.ts';
@@ -56,6 +56,7 @@ type Action =
 			stop?: string | null;
 			tp?: string | null;
 			trail?: string | null;
+			trailRate?: string | null;
 	  }
 	| { k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null }
 	| { k: 'margin'; amount: string }
@@ -98,11 +99,13 @@ interface AbandonedRun {
 	equity: string;
 }
 
-/** Optional order extras: bracket exits (engine-side OCO) and trailing distance. */
+/** Optional order extras: bracket exits (engine-side OCO) and trailing distance or rate (policy v16). */
 export interface OrderExtras {
 	stop?: string | null;
 	takeProfit?: string | null;
 	trail?: string | null;
+	/** Trailing stop distance as a rate of the best close: "0.02" = 2%. */
+	trailRate?: string | null;
 }
 
 export interface Notice {
@@ -154,6 +157,8 @@ export class GameSession {
 	options = $state<RunOptionsView>({ ...DEFAULT_RUN_OPTIONS });
 	/** The campaign mission the current run plays; null in free play and practice. */
 	runCampaign = $state<CampaignLink | null>(null);
+	/** Digest of the pack this run plays; null for a built-in mission. */
+	runPack = $state<string | null>(null);
 	/** Intel perks enabled for the current run (briefing toggles; empty outside free play). */
 	perkChoice = $state<PerkId[]>([]);
 	/** The mission's lesson questions (engine rubric, no answer key); null without any. */
@@ -231,6 +236,12 @@ export class GameSession {
 	}
 
 	/** Free play: any mission with its own rules (no campaign capital, no curriculum gate), with every unlocked perk on. */
+	/** "Play again" from the debrief: the same pack on a new seed, or the mission on a new market. */
+	async playAgain(): Promise<void> {
+		if (this.runPack) await this.startPack(this.runPack);
+		else await this.startMission(this.missionId);
+	}
+
 	async startMission(missionId: string, seed = this.randomSeed()): Promise<void> {
 		await this.exclusive(async () => {
 			await this.settleAbandoned();
@@ -432,6 +443,7 @@ export class GameSession {
 		await this.exclusive(async () => {
 			await this.settleAbandoned();
 			this.resetRun(pack.scenarioId, seed);
+			this.runPack = digest;
 			this.options = { ...DEFAULT_RUN_OPTIONS }; // pack runs start without advisor or perks
 			this.state = await this.eng().request({ kind: 'startPack', pack: pack.bytes, keys: await this.trusted(), seed });
 			this.lessonInfo = null;
@@ -488,7 +500,7 @@ export class GameSession {
 		return trustedKeys((await this.deviceIdentity()).key);
 	}
 
-	async validateCsv(csv: string, meta: CsvMeta): Promise<CsvReport> {
+	async validateCsv(csv: string, meta: CsvMeta): Promise<CsvValidation> {
 		return this.eng().request({ kind: 'csvValidate', csv, meta: { ...meta } });
 	}
 
@@ -561,6 +573,7 @@ export class GameSession {
 		this.runAssisted = r.assisted ?? null;
 		this.lessonInfo = r.packDigest ? null : await this.eng().request({ kind: 'lesson', missionId: r.missionId });
 		this.lessonsAnswered = run.actions.flatMap((a) => (a.k === 'lesson' ? [a.q] : []));
+		this.runPack = r.packDigest ?? null;
 		this.perkChoice = perksUsed(this.options);
 		this.state = state;
 		for (const a of run.actions) await this.exec(a, false);
@@ -638,7 +651,8 @@ export class GameSession {
 			ro: reduceOnly,
 			stop: extras.stop ?? null,
 			tp: extras.takeProfit ?? null,
-			trail: extras.trail ?? null
+			trail: extras.trail ?? null,
+			...(extras.trailRate ? { trailRate: extras.trailRate } : {})
 		});
 		if (res?.warning === 'stop_beyond_liquidation') this.stopWarnings += 1;
 		return res;
@@ -787,6 +801,7 @@ export class GameSession {
 		this.runCampaign = null;
 		this.runAssisted = null;
 		this.lessonsAnswered = [];
+		this.runPack = null;
 		this.perkChoice = [];
 		this.names.reset();
 	}
@@ -922,7 +937,8 @@ function commandRequest(a: CommandAction, clientId: number): Extract<EngineReque
 				reduceOnly: a.ro,
 				attachStop: a.stop ?? null,
 				attachTp: a.tp ?? null,
-				trailDistance: a.trail ?? null
+				trailDistance: a.trail ?? null,
+				trailRate: a.trailRate ?? null
 			};
 		case 'opt':
 			return { kind: 'option', clientId, series: a.series, side: a.side, type: a.type, qty: a.qty, premium: a.premium };

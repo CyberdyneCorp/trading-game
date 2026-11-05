@@ -30,6 +30,7 @@ struct Order {
   std::uint32_t oco_group = 0;  // siblings share it; a fill on one reduces the others
   Price trail_distance;         // TrailingStop: distance from the best close
   std::uint32_t series = 0;     // 0 = perpetual; otherwise an option series id
+  Rate trail_rate;              // TrailingStop (policy v16): distance as a rate of the best close; 0 = fixed
 
   [[nodiscard]] bool active() const {
     return status == OrderStatus::Accepted || status == OrderStatus::PartiallyFilled ||
@@ -107,12 +108,7 @@ struct CalibrationAnswer {
 // What the player did at a decision point, recorded by `advance` for the step it leaves (task 4.2,
 // spec gameplay-loop "Waiting is a decision"). A pure function of the commands and the state at that
 // step, so it is kept outside the state digest (like the command log) and in the checkpoint.
-enum class DecisionKind : std::uint8_t {
-  Wait = 0,  // no order placed, cancelled or moved, no leverage or margin change, and no exposure
-  Hold = 1,  // no such command while a position (perpetual or option) stayed open
-  Act = 2,   // at least one accepted command that placed, cancelled or moved an order, or changed leverage or margin
-};
-
+// DecisionKind (wait, hold, act) is declared in the IDL (idl_types.hpp).
 struct DecisionRecord {
   std::uint32_t step = 0;
   DecisionKind kind = DecisionKind::Wait;

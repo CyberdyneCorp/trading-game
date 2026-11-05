@@ -42,16 +42,20 @@ bool magnitude_ok(const Scenario& sc, Qty qty, Price px) {
   return n.ok() && n.value() <= detail::kMaxNotional;
 }
 
+// A trailing stop takes exactly one of a fixed distance on the tick grid or a rate of the close in
+// (0, 1) (policy v16).
+bool trail_valid(const ContractSpec& k, const Command& c) {
+  if (c.trail_rate.raw != 0) return c.trail_distance.raw == 0 && c.trail_rate.raw > 0 && c.trail_rate < rate_one();
+  return c.trail_distance.raw > 0 && c.trail_distance.raw % k.tick_size.raw == 0;
+}
+
 Reason validate_shape(const Scenario& sc, const Command& c) {
   const ContractSpec& k = sc.contract;
   if (c.order_type == OrderType::TakeProfit && !c.reduce_only) return Reason::UnsupportedOrderType;
   if (c.qty.raw <= 0 || c.qty.raw % k.lot_size.raw != 0) return Reason::InvalidQuantity;
   if (!c.reduce_only && c.qty < k.min_qty) return Reason::InvalidQuantity;
   if (c.order_type == OrderType::Market) return Reason::None;
-  if (c.order_type == OrderType::TrailingStop) {
-    const bool ok = c.trail_distance.raw > 0 && c.trail_distance.raw % k.tick_size.raw == 0;
-    return ok ? Reason::None : Reason::InvalidTick;
-  }
+  if (c.order_type == OrderType::TrailingStop) return trail_valid(k, c) ? Reason::None : Reason::InvalidTick;
   if (c.price.raw <= 0 || c.price.raw % k.tick_size.raw != 0) return Reason::InvalidTick;
   return Reason::None;
 }
@@ -79,6 +83,11 @@ Reason stop_warning(const Scenario& sc, const RunState& st, const Order& o) {
   return beyond ? Reason::StopBeyondLiquidation : Reason::None;
 }
 
+// Policy v16: a position may not be held above the leverage cap of its notional's margin tier.
+bool tier_allows(const Scenario& sc, const RunState& st, Money notional) {
+  return st.leverage <= detail::margin_tier(sc.contract, notional).max_leverage;
+}
+
 bool on_tick(Price p, Price tick) { return p.raw > 0 && p.raw % tick.raw == 0; }
 
 // Bracket exits must sit on the right side of the entry reference price.
@@ -96,15 +105,6 @@ Reason validate_bracket(const Scenario& sc, const RunState& st, const Command& c
   return stop_ok && tp_ok ? Reason::None : Reason::InvalidBracket;
 }
 
-// Initial trailing trigger from the decision-step close.
-Price initial_trail(const Scenario& sc, const RunState& st, OrderSide side, Price dist) {
-  const Price close = sc.bars[st.step].close;
-  const bool sell = side == OrderSide::Sell;
-  const Price raw = Price::from_raw(sell ? close.raw - dist.raw : close.raw + dist.raw);
-  const Price px = detail::unwrap(round_to_step(raw, sc.contract.tick_size, sell ? Rounding::Floor : Rounding::Ceil));
-  return std::max(px, sc.contract.tick_size);
-}
-
 Order make_order(const Scenario& sc, const RunState& st, const Command& c) {
   Order o;
   o.id = st.next_order_id;
@@ -119,7 +119,9 @@ Order make_order(const Scenario& sc, const RunState& st, const Command& c) {
   o.bracket_tp = c.attach_tp;
   if (c.order_type == OrderType::TrailingStop) {
     o.trail_distance = c.trail_distance;
-    o.price = initial_trail(sc, st, c.side, c.trail_distance);
+    o.trail_rate = c.trail_rate;
+    // Initial trigger from the decision-step close.
+    o.price = detail::trail_trigger(sc, c.side, sc.bars[st.step].close, c.trail_distance, c.trail_rate);
   }
   return o;
 }
@@ -137,6 +139,9 @@ CommandResult place_order(const Scenario& sc, RunState& st, const Command& c) {
   if (inc.raw > 0) {
     const AccountView view = account_view(sc, st);
     if (required_margin(sc, st, o, inc) > view.available) return reject(Reason::InsufficientMargin);
+    if (!tier_allows(sc, st, detail::notional_after(sc, st.position, c.side, inc, reference_price(sc, st, o)))) {
+      return reject(Reason::LeverageAboveTier);
+    }
   }
   st.orders.push_back(o);
   st.next_order_id += 1;
@@ -179,6 +184,7 @@ CommandResult set_leverage(const Scenario& sc, RunState& st, const Command& c) {
   Position& p = st.position;
   if (!p.flat()) {
     const Money n = detail::notional(sc, p.qty, p.entry, Rounding::Ceil);
+    if (c.leverage > detail::margin_tier(sc.contract, n).max_leverage) return reject(Reason::LeverageAboveTier);
     const Money new_margin = detail::initial_margin(n, c.leverage);
     const Money extra = Money::from_raw(new_margin.raw - p.margin.raw);
     if (extra > account_view(sc, st).available) return reject(Reason::InsufficientMargin);
@@ -335,14 +341,15 @@ Money order_margin_excluding(const Scenario& sc, const RunState& st, std::uint32
   return total;
 }
 
-bool margin_allows_fill(const Scenario& sc, const RunState& st, const Order& o, Qty q, Price px) {
+Reason fill_refusal(const Scenario& sc, const RunState& st, const Order& o, Qty q, Price px) {
   const Qty inc = increasing_qty(st, o.side, q, o.reduce_only);
-  if (inc.raw == 0) return true;
+  if (inc.raw == 0) return Reason::None;
   const Money n = notional(sc, inc, px, Rounding::Ceil);
   const Money need = Money::from_raw(initial_margin(n, st.leverage).raw + fee_for(n, sc.contract.taker_fee).raw);
   const Money avail = Money::from_raw(st.wallet.raw - st.position.margin.raw -
                                       order_margin_excluding(sc, st, o.id).raw);
-  return need <= avail;
+  if (need > avail) return Reason::InsufficientMargin;
+  return tier_allows(sc, st, notional_after(sc, st.position, o.side, inc, px)) ? Reason::None : Reason::LeverageAboveTier;
 }
 
 void emit_order_update(RunState& st, const Order& o, Reason reason) {
@@ -362,7 +369,7 @@ void emit_order_update(RunState& st, const Order& o, Reason reason) {
 AccountView account_view(const Scenario& sc, const RunState& st) {
   AccountView v;
   const Position& p = st.position;
-  v.mark = sc.bars[st.step].close;
+  v.mark = mark_bar(sc, st.step).close;  // last close when the scenario has no mark series
   v.unrealized = detail::unrealized_pnl(sc, p, v.mark);
   v.equity = Money::from_raw(st.wallet.raw + v.unrealized.raw);
   v.position_margin = p.margin;

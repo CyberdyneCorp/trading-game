@@ -72,7 +72,8 @@
 			<div class="liq" class:danger={liqDanger} role={liqDanger ? 'alert' : undefined}>
 				<div class="muted">{t('rail.liq')}</div>
 				<div class="liq-price num">{liq != null ? fmtPrice(String(liq), L) : '—'}</div>
-				<div class="num">{t('rail.liqDistance')}: {liqDist != null ? fmtPct(liqDist, L) : '—'}</div>
+				<!-- The label may wrap in a narrow rail; the value stays on one line (PT-BR overflowed the box). -->
+				<div data-testid="rail-liq-distance">{t('rail.liqDistance')}: <span class="num">{liqDist != null ? fmtPct(liqDist, L) : '—'}</span></div>
 				{#if liqDanger}<div class="attention" data-testid="liq-warning">⚠ {t('rail.liqWarning', { pct: bpPct(game.missionRules.liqWarningBp, L) })}</div>{/if}
 			</div>
 			{#if onMargin}
@@ -98,7 +99,7 @@
 					{@const markPx = q ? num(qty > 0 ? q.bid : q.ask) : 0}
 					{@const pnl = (markPx - num(p.avgPremium)) * qty * num(opts.multiplier)}
 					<li>
-						<span class={qty > 0 ? 'up' : 'down'}>{qty > 0 ? '▲' : '▼'} {q ? seriesLabel(q) : `#${p.series}`} × {fmtQty(String(Math.abs(qty)), L)}</span>
+						<span class={qty > 0 ? 'up' : 'down'}>{qty > 0 ? '▲' : '▼'} {q ? seriesLabel(q, L) : `#${p.series}`} × {fmtQty(String(Math.abs(qty)), L)}</span>
 						<span class="num {pnl >= 0 ? 'up' : 'down'}">{signMark(pnl)} {fmtMoney(pnl, L, true)}</span>
 					</li>
 				{/each}

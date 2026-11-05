@@ -23,6 +23,27 @@ export function stopFromPct(side: Side, entry: number, pct: number): number | nu
 }
 
 /**
+ * A trailing distance typed as a percent ("2,5" -> 2.5) as the engine's rate of the close
+ * ("0.025000"; policy v16), to at most 4 decimals of a percent. Null outside (0, 100).
+ */
+export function trailRateFromPercent(pct: number): string | null {
+	if (!Number.isFinite(pct) || pct <= 0 || pct >= 100) return null;
+	const units = Math.round(pct * 10_000); // 1e-6 of the close
+	return units > 0 ? (units / 1_000_000).toFixed(6) : null;
+}
+
+/**
+ * The first trigger of a trailing stop `pct` percent from `close`, on the exit side, rounded outward
+ * onto the tick like the engine (a sell trail down, a buy trail up). Display estimate.
+ */
+export function trailTriggerFromPercent(exit: Side, close: number, pct: number, tick: number): number | null {
+	if (!(close > 0) || !(pct > 0) || pct >= 100 || !(tick > 0)) return null;
+	const ticks = (close * (exit === 'sell' ? 1 - pct / 100 : 1 + pct / 100)) / tick;
+	const rounded = exit === 'sell' ? Math.floor(ticks + 1e-9) : Math.ceil(ticks - 1e-9);
+	return Math.max(1, rounded) * tick;
+}
+
+/**
  * Beyond the recent swing: one tick under the lowest low (long) or over the highest high (short)
  * of the last `lookback` closed bars. Null when the entry is already past that level.
  */

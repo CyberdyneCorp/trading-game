@@ -37,6 +37,10 @@ const char* tl_place_order(tl_run* run, uint32_t client_id, int32_t type, int32_
 const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
                               const char* price, int32_t reduce_only, const char* attach_stop,
                               const char* attach_tp, const char* trail_distance);
+/* Trailing stop whose distance is a rate of the best close (policy v16), a decimal fraction in (0, 1):
+ * "0.02" trails 2% behind it. Rejected with invalid_tick when the rate is missing or out of range. */
+const char* tl_place_trailing_rate(tl_run* run, uint32_t client_id, int32_t side, const char* qty,
+                                   int32_t reduce_only, const char* trail_rate);
 /* Option order on series `series`: type 0 market, 1 limit (premium); executes at the next bar's open. */
 const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
                                   const char* qty, const char* premium);
@@ -98,7 +102,8 @@ const char* tl_mission_reveal(const char* mission_id, uint32_t seed);
  * "errorCount","gaps":[{"line","from","to","missing"}],"gapCount","hasFunding","firstTime","lastTime"}
  * or {"ok":false,"metaError":"<field>"}. */
 const char* tl_csv_validate(const char* csv, const char* meta_json);
-/* Builds a private, masked pack from a CSV (metadata may add "leverageCap" 1..20 and "warmupBars"),
+/* Builds a private, masked pack from a CSV (metadata may add "leverageCap" 1..20, "warmupBars" and
+ * "gapFill": "none" (default), "skip" or "carryForward" to fill gaps with continuity bars, policy v17),
  * signed with the device key derived from a 32-byte seed (64 hex). Returns {"ok","reason","report",
  * "scenarioId","digest","size"}; the pack bytes are then read with tl_blob_data/tl_blob_size. */
 const char* tl_pack_build_csv(const char* csv, const char* meta_json, const char* device_seed_hex);

@@ -24,6 +24,7 @@ using detail::JsonValue;
 constexpr std::uint32_t kMinPlayable = 20;
 constexpr std::uint32_t kFundingPeriodSeconds = 8 * 3600;
 constexpr std::size_t kMaxMetaText = 64;
+constexpr std::size_t kCsvMaxFilledBars = PackLimits{}.max_bars;  // rows plus continuity bars
 constexpr std::uint32_t kMissionStepSeconds = 3600;
 
 JsonValue json_str(std::string s) {
@@ -133,7 +134,7 @@ struct ManifestHead {
 void write_options(JsonOut& j, const OptionSpec& o) {
   j.key("options").begin_obj().field("multiplier", o.multiplier).field("premiumTick", o.premium_tick).field("lotSize", o.lot_size);
   j.field("feeRate", o.fee_rate).field("spread", o.spread).field("skew", o.skew).field("smile", o.smile).field("termSlope", o.term_slope);
-  j.field("minutesPerStep", o.minutes_per_step).field("settlementBars", o.settlement_bars);
+  j.field("minutesPerStep", o.minutes_per_step).field("settlementMinutes", o.settlement_minutes);
   j.field("imBase", o.im_base).field("imFloor", o.im_floor).field("mmBase", o.mm_base).field("allowShort", o.allow_short).end_obj();
 }
 
@@ -164,6 +165,10 @@ void write_data(JsonOut& j, const Scenario& sc, const ManifestHead& h) {
   if (!sc.liquidity.empty()) j.field("liquidityShocks", static_cast<std::uint32_t>(sc.liquidity.size()));
   if (!sc.options.series.empty()) j.field("optionSeries", static_cast<std::uint32_t>(sc.options.series.size()));
   if (h.branch_step) j.field("branchStep", *h.branch_step);
+  // Continuity bars (policy v17) give bars.bin its sixth column; the policy says how indicators treat them.
+  if (std::any_of(sc.bars.begin(), sc.bars.end(), [](const Bar& b) { return b.continuity; })) {
+    j.field("gapPolicy", json_name(r.gap_policy));
+  }
   j.end_obj();
 }
 
@@ -237,17 +242,18 @@ std::string reveal_text(const CsvMeta& meta, const CsvReport& report, std::uint3
 }
 
 // The masked CSV market as a scenario with the practice contract and rules.
-Scenario csv_scenario(const std::vector<CsvRow>& rows, const std::vector<Bar>& masked, const CsvMeta& meta, std::uint32_t warmup,
-                      std::int32_t leverage_cap) {
+Scenario csv_scenario(std::vector<Bar> masked, std::vector<Rate> funding, const CsvMeta& meta, std::uint32_t warmup,
+                      const ImportRules& rules) {
   Scenario sc;
   sc.contract = practice_contract(meta.interval_seconds);
   sc.costs = practice_costs();
   sc.mission.initial_balance = Money::from_raw(10'000 * Money::kScale);
-  sc.mission.leverage_cap = leverage_cap;
+  sc.mission.leverage_cap = rules.leverage_cap;
   sc.mission.warmup_bars = warmup;
   sc.mission.allow_short = true;
-  sc.bars = masked;
-  for (const CsvRow& r : rows) sc.funding_rate.push_back(r.funding);
+  sc.mission.gap_policy = rules.fill_gaps.value_or(GapPolicy::Skip);
+  sc.bars = std::move(masked);
+  sc.funding_rate = std::move(funding);
   return sc;
 }
 
@@ -286,6 +292,24 @@ PackBuild signed_pack(std::string_view manifest, const std::vector<PackFile>& fi
   if (out.bytes.empty()) return build_failed(std::move(out), "manifest_invalid");
   out.digest = to_hex(sha256(out.bytes));
   return out;
+}
+
+// Bars and funding from the parsed rows. With `fill`, each missing interval becomes a continuity bar
+// (flat at the previous close, no volume, no funding); otherwise the rows are joined as they are.
+void csv_bars(const std::vector<CsvRow>& rows, const CsvMeta& meta, bool fill, std::vector<Bar>* bars,
+              std::vector<Rate>* funding) {
+  const std::int64_t step = meta.interval_seconds;
+  for (std::size_t i = 0; i < rows.size(); ++i) {
+    const CsvRow& r = rows[i];
+    const std::int64_t missing = fill && i > 0 ? (r.time - rows[i - 1].time) / step - 1 : 0;
+    for (std::int64_t k = 0; k < missing && bars->size() <= kCsvMaxFilledBars; ++k) {
+      const Price c = bars->back().close;
+      bars->push_back(Bar{c, c, c, c, Qty{}, false, true});
+      funding->push_back(Rate{});
+    }
+    bars->push_back(Bar{r.open, r.high, r.low, r.close, r.volume, false});
+    funding->push_back(r.funding);
+  }
 }
 
 }  // namespace
@@ -331,20 +355,23 @@ PackSource csv_pack_source(std::string_view csv, const CsvMeta& meta, const Impo
   std::vector<CsvRow> rows;
   out.report = import_csv(csv, meta, &rows);
   if (!out.report.ok) return source_failed(std::move(out), "csv_invalid");
-  const auto n = static_cast<std::uint32_t>(rows.size());
+  std::vector<Bar> raw;
+  std::vector<Rate> funding;
+  csv_bars(rows, meta, rules.fill_gaps.has_value() && out.report.gap_count > 0, &raw, &funding);
+  if (raw.size() > kCsvMaxFilledBars) return source_failed(std::move(out), "too_many_bars");
+  const auto n = static_cast<std::uint32_t>(raw.size());
   const std::uint32_t warmup = rules.warmup_bars == 0 ? auto_warmup(n) : rules.warmup_bars;
   if (!meta_ok(meta) || rules.leverage_cap < 1 || rules.leverage_cap > 20 || warmup + kMinPlayable > n) {
     return source_failed(std::move(out), "invalid_rules");
   }
-  std::vector<Bar> raw(n);
-  for (std::uint32_t i = 0; i < n; ++i) raw[i] = Bar{rows[i].open, rows[i].high, rows[i].low, rows[i].close, rows[i].volume, false};
   std::vector<Bar> masked;
   if (!mask_bars(raw, warmup, practice_contract(meta.interval_seconds).tick_size, &masked)) return source_failed(std::move(out), "masking_failed");
-  Scenario sc = csv_scenario(rows, masked, meta, warmup, rules.leverage_cap);
+  const std::string bars_hash = to_hex(sha256(encode_bars(masked)));
+  Scenario sc = csv_scenario(std::move(masked), std::move(funding), meta, warmup, rules);
   std::string reason;
   if (branch && !apply_branch(*branch, sc, &reason)) return source_failed(std::move(out), reason.c_str());
   ManifestHead h;
-  h.scenario_id = "csv-" + to_hex(sha256(encode_bars(masked))).substr(0, 12);
+  h.scenario_id = "csv-" + bars_hash.substr(0, 12);
   h.mode = branch ? "branch" : "historical";
   h.private_pack = private_pack;
   h.step_seconds = meta.interval_seconds;
@@ -378,6 +405,7 @@ PackBuild build_csv_pack(std::string_view csv, const CsvMeta& meta, const Import
   out.report = std::move(src.report);
   if (!src.ok()) return build_failed(std::move(out), src.reason);
   std::vector<PackFile> files;
+  files.reserve(src.files.size());
   for (PackFile& f : src.files) files.push_back(is_bin(f.name) ? stored(std::move(f)) : std::move(f));
   PackBuild signed_out = signed_pack(src.manifest, files, device_seed, "device");
   signed_out.report = std::move(out.report);

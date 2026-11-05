@@ -5,7 +5,8 @@
 import createTradelab, { type TradelabModule } from './wasm/tradelab.mjs';
 import type { CsvBuildResult, EngineRequest, WorkerEnvelope, WorkerReply } from './protocol';
 import { revealAllowed } from './reveal';
-import { DEFAULT_RUN_OPTIONS, ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
+import { DEFAULT_RUN_OPTIONS } from './defaults';
+import { ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
 
 type Fn = (...a: unknown[]) => number;
 
@@ -15,6 +16,7 @@ interface Api {
 	create: Fn;
 	destroy: Fn;
 	place: Fn;
+	trailRate: Fn;
 	option: Fn;
 	cancel: Fn;
 	move: Fn;
@@ -57,6 +59,7 @@ async function load(): Promise<Api> {
 		place: w('tl_place_order_ex', 'number', [
 			'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string', 'string', 'string'
 		]),
+		trailRate: w('tl_place_trailing_rate', 'number', ['number', 'number', 'number', 'string', 'number', 'string']),
 		option: w('tl_place_option_order', 'number', ['number', 'number', 'number', 'number', 'number', 'string', 'string']),
 		cancel: w('tl_cancel_order', 'number', ['number', 'number', 'number']),
 		move: w('tl_move_order', 'number', ['number', 'number', 'number', 'string']),
@@ -163,6 +166,17 @@ function lessonInfo(a: Api, missionId: string): unknown {
 	return info.error ? null : info;
 }
 
+type OrderRequest = Extract<EngineRequest, { kind: 'order' }>;
+
+// A trailing stop given as a rate of the close has its own entry point (policy v16).
+function placeOrder(a: Api, req: OrderRequest): number {
+	const side = SIDE_CODE[req.side];
+	const ro = req.reduceOnly ? 1 : 0;
+	if (req.type === 'trailing_stop' && req.trailRate) return a.trailRate(requireRun(), req.clientId, side, req.qty, ro, req.trailRate);
+	const t = ORDER_TYPE_CODE[req.type];
+	return a.place(requireRun(), req.clientId, t, side, req.qty, req.price ?? '', ro, req.attachStop ?? '', req.attachTp ?? '', req.trailDistance ?? '');
+}
+
 function withState(a: Api, resultPtr: number) {
 	const result = json(resultPtr);
 	return { result, state: json(a.state(requireRun())) };
@@ -192,21 +206,7 @@ async function handle(req: EngineRequest): Promise<unknown> {
 		case 'startPack':
 			return startPack(a, req.pack, req.keys, req.seed);
 		case 'order':
-			return withState(
-				a,
-				a.place(
-					requireRun(),
-					req.clientId,
-					ORDER_TYPE_CODE[req.type],
-					SIDE_CODE[req.side],
-					req.qty,
-					req.price ?? '',
-					req.reduceOnly ? 1 : 0,
-					req.attachStop ?? '',
-					req.attachTp ?? '',
-					req.trailDistance ?? ''
-				)
-			);
+			return withState(a, placeOrder(a, req));
 		case 'option':
 			return withState(
 				a,

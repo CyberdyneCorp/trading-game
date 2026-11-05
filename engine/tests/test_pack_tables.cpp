@@ -76,7 +76,8 @@ void check_same_scenario(const Scenario& a, const Scenario& b) {
   for (std::size_t i = 0; i < a.bars.size(); ++i) {
     const Bar& x = a.bars[i];
     const Bar& y = b.bars[i];
-    CHECK((x.open == y.open && x.high == y.high && x.low == y.low && x.close == y.close && x.volume == y.volume && x.synthetic == y.synthetic));
+    CHECK((x.open == y.open && x.high == y.high && x.low == y.low && x.close == y.close && x.volume == y.volume && x.synthetic == y.synthetic &&
+           x.continuity == y.continuity));
   }
   CHECK(a.funding_rate == b.funding_rate);
   REQUIRE(a.news.size() == b.news.size());
@@ -91,6 +92,7 @@ void check_same_scenario(const Scenario& a, const Scenario& b) {
   CHECK(a.options.spread == b.options.spread);
   CHECK(a.options.skew == b.options.skew);
   CHECK(a.options.allow_short == b.options.allow_short);
+  CHECK(a.options.settlement_minutes == b.options.settlement_minutes);
   CHECK(a.contract.funding_interval == b.contract.funding_interval);
   CHECK(a.costs.capacity_fraction == b.costs.capacity_fraction);
   CHECK(a.mission.leverage_cap == b.mission.leverage_cap);
@@ -256,7 +258,8 @@ TEST_CASE("Branch labeling: every bar after the branch point is synthetic, befor
   const double gap = static_cast<double>(p.scenario.bars[91].open.raw) / static_cast<double>(p.scenario.bars[90].close.raw);
   CHECK(std::abs(gap - alt_gap) < 0.0002);  // within a tick at the masked price level
 
-  // The state view carries the flag (6th element of each bar), so clients can label those bars.
+  // The state view carries the flag (6th element of each bar; the 7th is the continuity flag), so
+  // clients can label those bars.
   tl_run run;
   run.scenario = p.scenario;
   run.from_pack = true;
@@ -264,9 +267,9 @@ TEST_CASE("Branch labeling: every bar after the branch point is synthetic, befor
   run.state = start_run(run.scenario, 1);
   tl_advance(&run, 50);  // step 90: the branch bar is the last visible one
   std::string state = tl_state(&run);
-  CHECK(state.find(",false]]") != std::string::npos);
+  CHECK(state.find(",false,false]]") != std::string::npos);
   state = tl_advance(&run, 1);
-  CHECK(state.find(",true]]") != std::string::npos);
+  CHECK(state.find(",true,false]]") != std::string::npos);
 }
 
 TEST_CASE("Branch labeling: the manifest names the branch point only in branch mode") {
@@ -286,6 +289,41 @@ TEST_CASE("Branch labeling: the manifest names the branch point only in branch m
   CHECK(csv_pack_source(csv, meta, {}, false, BranchRequest{90, "m99", 4}).reason == "unknown_mission");
   CHECK(csv_pack_source(csv, meta, {}, false, BranchRequest{10, "m08-regime-switch", 4}).reason == "invalid_branch");
   CHECK(csv_pack_source(test::make_csv(1000), meta, {}, false, BranchRequest{90, "m08-regime-switch", 4}).reason == "invalid_branch");
+}
+
+TEST_CASE("Pack tables: options packs carry the settlement window in minutes (policy v17)") {
+  const PackSource src = mission_pack_source("m09-event-straddle", 7);
+  REQUIRE(src.ok());
+  CHECK(src.manifest.find("\"settlementBars\"") == std::string::npos);
+  const PackOpen p = open(build(src, replaced(src.manifest, "\"settlementMinutes\":30", "\"settlementMinutes\":90")));
+  REQUIRE_MESSAGE(p.ok(), (p.reason + " " + p.detail));
+  CHECK(p.scenario.options.settlement_minutes == 90);
+  CHECK(open(build(src, replaced(src.manifest, "\"settlementMinutes\":30", "\"settlementMinutes\":0"))).detail ==
+        "instruments.options.settlementMinutes");
+}
+
+TEST_CASE("Branch labeling: continuity bars (policy v17) survive a branch after the gap, not one before it") {
+  const std::string first = test::make_csv(60);
+  const std::string second = test::make_csv(60, 1'700'000'000 + 62 * 3600);  // two missing hours
+  const std::string csv = first + second.substr(second.find('\n') + 1);
+  ImportRules rules;
+  rules.fill_gaps = GapPolicy::CarryForward;
+  const PackSource after = csv_pack_source(csv, test::hourly_meta(), rules, false, BranchRequest{80, "m08-regime-switch", 4});
+  REQUIRE_MESSAGE(after.ok(), after.reason);
+  CHECK(after.manifest.find("\"gapPolicy\":\"carryForward\"") != std::string::npos);
+  PackOpen p = open(build(after));
+  REQUIRE_MESSAGE(p.ok(), (p.reason + " " + p.detail));
+  REQUIRE(p.scenario.bars.size() == 122);
+  CHECK((p.scenario.bars[60].continuity && p.scenario.bars[61].continuity && !p.scenario.bars[62].continuity));
+  CHECK(p.scenario.mission.gap_policy == GapPolicy::CarryForward);
+  CHECK((!p.scenario.bars[80].synthetic && p.scenario.bars[81].synthetic));
+  // Branching before the gap replaces the continuity bars with generated ones: no gap policy declared.
+  const PackSource before = csv_pack_source(csv, test::hourly_meta(), rules, false, BranchRequest{40, "m08-regime-switch", 4});
+  REQUIRE_MESSAGE(before.ok(), before.reason);
+  CHECK(before.manifest.find("gapPolicy") == std::string::npos);
+  p = open(build(before));
+  REQUIRE_MESSAGE(p.ok(), (p.reason + " " + p.detail));
+  CHECK(std::none_of(p.scenario.bars.begin(), p.scenario.bars.end(), [](const Bar& b) { return b.continuity; }));
 }
 
 TEST_CASE("Packer engine side: stored files, real frames and publisher re-signing") {
