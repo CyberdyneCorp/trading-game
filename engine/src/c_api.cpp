@@ -315,7 +315,7 @@ const char* lesson_name(LessonCode l) {
 }
 
 const char* exit_name(ExitReason e) {
-  static constexpr const char* kNames[] = {"stop", "target", "manual", "liquidation", "open", "expiry", "margin_call"};
+  static constexpr const char* kNames[] = {"stop", "target", "manual", "liquidation", "open", "expiry", "margin_call", "trailing"};
   return kNames[static_cast<std::size_t>(e)];
 }
 

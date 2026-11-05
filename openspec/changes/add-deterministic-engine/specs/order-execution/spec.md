@@ -40,12 +40,16 @@ A limit order SHALL never fill at a price worse than its limit. Touching the lim
 - **THEN** it SHALL fill at no more than 100 (at 98 plus costs bounded by the limit)
 
 ### Requirement: Stop-market and take-profit
-A stop-market order SHALL convert to a market order when triggered and SHALL NOT guarantee the stop price. A take-profit SHALL be a limit order on the exit side. If the bar opens beyond the stop price (gap), the fill SHALL be based on the open, not the stop price. This SHALL also apply to bracket legs attached by an entry filled at that open: a stop leg the open is already beyond (e.g. computed from the previous close) SHALL fill at the open, never at a trigger price the bar did not trade after the open.
+A stop-market order SHALL convert to a market order when triggered and SHALL NOT guarantee the stop price. Once triggered it SHALL follow the market-order capacity rule: a reduce-only stop (or trailing stop) cut short by capacity SHALL keep its remainder working at the following bar opens, never resting at its trigger again, and any other remainder SHALL be cancelled with reason `insufficient_capacity` (execution policy 15). A take-profit SHALL be a limit order on the exit side. If the bar opens beyond the stop price (gap), the fill SHALL be based on the open, not the stop price. This SHALL also apply to bracket legs attached by an entry filled at that open: a stop leg the open is already beyond (e.g. computed from the previous close) SHALL fill at the open, never at a trigger price the bar did not trade after the open.
 
 
 #### Scenario: Bracket stop breached at the entry's open
 - **WHEN** a market buy with a stop at 97 is placed at a close of 100 and the next bar opens at 90 (high 92)
 - **THEN** the entry SHALL fill at the open and the stop leg SHALL fill at the open with the gap flag, not at 97
+#### Scenario: Stop cut short by capacity
+- **WHEN** a long of 10 has a reduce-only stop at 95, a bar trades through 95 with capacity for 4, and the next bar opens at 99 without reaching 95
+- **THEN** 4 SHALL fill from the trigger on the first bar and 4 SHALL fill from the next open (99, adjusted for costs), with requested price 95, until the position is flat
+
 #### Scenario: Gap through stop (SIM04)
 - **WHEN** a long has a stop at 95 and the next bar opens at 90
 - **THEN** the stop SHALL fill from 90 adjusted for spread, slippage and fees

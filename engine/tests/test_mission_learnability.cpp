@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -312,8 +313,10 @@ TEST_CASE("Learnability m06: a stop-market in the thin phase fills beyond its tr
       if (p.flat()) p.order(OrderType::Market, OrderSide::Buy, lots(1'000.0 / p.close(t)), {}, ticks(p.close(t) - p.atr_at(t)));
       p.step();
     }
+    std::set<std::uint32_t> triggered;  // a remainder cut by capacity fills at a later open, not at the trigger
     for (const Event& e : p.st.events) {
       if (e.type != EventType::Fill || e.requested.raw == 0 || e.side != OrderSide::Sell) continue;
+      if (!triggered.insert(e.order_id).second) continue;
       beyond += (num(e.requested) - num(e.price)) / num(e.requested);
       fills += 1;
     }

@@ -28,7 +28,7 @@ def test_m06_golden_matches_native_cpp():
         run.close_position(4)
         state = run.advance(1000)
     assert _digests(state) == (
-        "c1777cf2365bb7009e9213b9478f6394223c265bfb56f0416f6e115622f95718",
+        "23648bda21adb3552ce57253b0c943955e7969f4fb6a607bc540174ade3c72b5",
         "b084466a7e0ab87dacc53c40794afcbc017917decfac736279404e82558f009a",
     )
 
@@ -44,7 +44,7 @@ def test_m07_golden_matches_native_cpp():
         run.place_order(4, 0, 1, "30", None, False)
         state = run.advance(1000)
     assert _digests(state) == (
-        "d9c825a90ab235770a9089f5e4b2a70b876200983a8442bdd15ff448d2de6c93",
+        "bc09fbe3240b31707462fd0638c6d14dddbfe73adef73a5359b1f1b7a084f6c8",
         "911e8dce2b537d94c11f7c8a8af67a1472f169032d0c6e98d137b4bb95488bd0",
     )
 
@@ -60,10 +60,10 @@ def test_m08_golden_and_signals_by_regime_match_native_cpp():
         state = run.advance(1000)
         debrief = run.debrief()
     assert _digests(state) == (
-        "48bbe464ad053dda5993d190ef7bacd593bd8cafc327b90b28fd57179c898c03",
+        "8e469afe0aa2c6373e71b1d487fce597354699e3383601f15d1fd1ebd95d8913",
         "e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb",
     )
-    assert debrief["score"]["version"] == 9
+    assert debrief["score"]["version"] == 10
     assert debrief["regimes"][0]["start"] == 60
     assert {r["label"] for r in debrief["regimes"]} <= {"range", "trend", "high_vol"}
     assert all(t["regime"] in {"range", "trend", "high_vol"} for t in debrief["trades"])

@@ -307,7 +307,7 @@ TEST_CASE("C ABI: start options, advice in the state and the debrief, no_advice_
   CHECK(std::string(tl_request_advice(run, 3)).find("no_advice_left") != std::string::npos);
   tl_advance(run, 10000);
   const std::string d = tl_debrief(run);
-  CHECK(d.find("\"score\":{\"version\":9") != std::string::npos);
+  CHECK(d.find("\"score\":{\"version\":10") != std::string::npos);
   CHECK(d.find("\"advisorPointsEarned\":2") != std::string::npos);  // finished, no trades
   CHECK(d.find("\"advice\":[{\"step\":60,") != std::string::npos);
   CHECK(d.find("\"adviceHitBp\":") != std::string::npos);
@@ -329,6 +329,6 @@ TEST_CASE("Golden: scripted run with start options and advice is bit-frozen acro
   CHECK(s.find("\"allowance\":3,\"left\":1,\"newsLead\":1,\"calendar\":true") != std::string::npos);
   CHECK(s.find("\"type\":\"fill\"") != std::string::npos);
   CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"9f95179e529dedbb9d62308206d136d6a922fcdef70e2b4a8bb6d20acd0ac21d\","
+        "\"digest\":\"10ad393347fd13bcb033c8a6bf4816298c1d312668ad888a2c1faa6b2a28a4ce\","
         "\"eventsDigest\":\"c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f\"}");
 }
