@@ -2,6 +2,8 @@
 // Estimates only: the engine is authoritative for fills, margin, margin calls and settlement.
 
 import type { OptionQuoteView, OptionsView } from '#lib/engine/types.ts';
+import { fmtPrice } from './format.ts';
+import type { Locale } from './i18n.svelte.ts';
 
 export type OptSide = 'buy' | 'sell';
 
@@ -82,6 +84,9 @@ export function positionGreeks(opts: OptionsView): PositionGreeks {
 	return g;
 }
 
-export function seriesLabel(q: Pick<OptionQuoteView, 'kind' | 'strike' | 'expiryStep'>): string {
-	return `${q.kind === 'call' ? 'C' : 'P'} ${Number(q.strike).toFixed(0)} · exp ${q.expiryStep}`;
+/** "C 100 · exp 96"; a strike off the whole numbers keeps its decimals in the locale ("P 97,50 · exp 85"). */
+export function seriesLabel(q: Pick<OptionQuoteView, 'kind' | 'strike' | 'expiryStep'>, locale: Locale): string {
+	const strike = Number(q.strike);
+	const shown = Number.isInteger(strike) ? String(strike) : fmtPrice(q.strike, locale);
+	return `${q.kind === 'call' ? 'C' : 'P'} ${shown} · exp ${q.expiryStep}`;
 }

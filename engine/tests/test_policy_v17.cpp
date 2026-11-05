@@ -4,6 +4,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <string>
 
 #include "pack_fixtures.hpp"

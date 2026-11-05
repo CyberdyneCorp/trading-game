@@ -56,6 +56,12 @@ class Fields {
     *out = static_cast<T>(v->integer);
   }
 
+  // An optional integer: absent keeps *out.
+  template <typename T>
+  void opt_integer(const JsonValue& p, std::string_view key, std::string_view path, T* out, std::int64_t lo, std::int64_t hi) {
+    if (p.find(key) != nullptr) integer(p, key, path, out, lo, hi);
+  }
+
   void boolean(const JsonValue& p, std::string_view key, std::string_view path, bool* out) {
     const JsonValue* v = get(p, key, path, Kind::Bool);
     if (v != nullptr) *out = v->boolean;
@@ -82,6 +88,30 @@ class Fields {
 };
 
 constexpr std::int64_t kMaxI64 = std::numeric_limits<std::int64_t>::max();
+constexpr std::int64_t kRateOne = Rate::kScale;
+constexpr std::int64_t kVolLimit = std::int64_t{10} * Vol::kScale;  // skew, smile, term slope within +-10
+constexpr std::uint32_t kMaxTableRows = 100'000;  // the PackLimits caps are checked by open_pack
+
+// instruments.options (spec "Pack manifest": option series): the pricing and margin parameters of
+// OptionSpec; the series and the IV column travel in options.bin.
+void read_options(Fields& f, const JsonValue& o, Manifest* m) {
+  OptionSpec& x = m->options;
+  f.dec(o, "multiplier", "instruments.options.multiplier", &x.multiplier, 1, kMaxI64);
+  f.dec(o, "premiumTick", "instruments.options.premiumTick", &x.premium_tick, 1, kMaxI64);
+  f.dec(o, "lotSize", "instruments.options.lotSize", &x.lot_size, 1, kMaxI64);
+  f.dec(o, "feeRate", "instruments.options.feeRate", &x.fee_rate, 0, kRateOne / 10);
+  f.dec(o, "spread", "instruments.options.spread", &x.spread, 0, kRateOne / 2);
+  f.dec(o, "skew", "instruments.options.skew", &x.skew, -kVolLimit, kVolLimit);
+  f.dec(o, "smile", "instruments.options.smile", &x.smile, -kVolLimit, kVolLimit);
+  f.dec(o, "termSlope", "instruments.options.termSlope", &x.term_slope, -kVolLimit, kVolLimit);
+  f.integer(o, "minutesPerStep", "instruments.options.minutesPerStep", &x.minutes_per_step, 1, std::int64_t{7} * 1440);
+  f.integer(o, "settlementMinutes", "instruments.options.settlementMinutes", &x.settlement_minutes, 1, 1'000'000);
+  f.dec(o, "imBase", "instruments.options.imBase", &x.im_base, 0, kRateOne);
+  f.dec(o, "imFloor", "instruments.options.imFloor", &x.im_floor, 1, kRateOne);
+  f.dec(o, "mmBase", "instruments.options.mmBase", &x.mm_base, 1, kRateOne);
+  f.boolean(o, "allowShort", "instruments.options.allowShort", &x.allow_short);
+  m->has_options = true;
+}
 
 void read_header(Fields& f, const JsonValue& r, Manifest* m) {
   f.integer(r, "schemaVersion", "schemaVersion", &m->schema_version, 1, 1000);
@@ -106,7 +136,9 @@ void read_instrument(Fields& f, const JsonValue& r, Manifest* m) {
   const JsonValue* inst = f.get(r, "instruments", "instruments", Kind::Object);
   const JsonValue* perp = inst == nullptr ? nullptr : f.get(*inst, "perpetual", "instruments.perpetual", Kind::Object);
   if (perp == nullptr) return;
-  if (inst->find("options") != nullptr) return f.fail("unsupported_feature", "instruments.options");
+  const JsonValue* options = inst->find("options");
+  if (options != nullptr && !options->is(Kind::Object)) return f.fail("invalid_field", "instruments.options");
+  if (options != nullptr) read_options(f, *options, m);
   ContractSpec& c = m->contract;
   f.dec(*perp, "multiplier", "instruments.perpetual.multiplier", &c.multiplier, 1, kMaxI64);
   f.dec(*perp, "tickSize", "instruments.perpetual.tickSize", &c.tick_size, 1, kMaxI64);
@@ -116,7 +148,6 @@ void read_instrument(Fields& f, const JsonValue& r, Manifest* m) {
 }
 
 void read_models(Fields& f, const JsonValue& r, Manifest* m) {
-  constexpr std::int64_t kRateOne = Rate::kScale;
   const JsonValue* cost = f.get(r, "costModel", "costModel", Kind::Object);
   if (cost != nullptr) {
     f.dec(*cost, "makerFee", "costModel.makerFee", &m->contract.maker_fee, 0, kRateOne - 1);
@@ -132,11 +163,22 @@ void read_models(Fields& f, const JsonValue& r, Manifest* m) {
     f.one_of(*fund, "source", "fundingModel.source", &m->funding_source, {"file", "none"});
   }
   const JsonValue* iv = f.get(r, "ivModel", "ivModel", Kind::Object);
-  if (iv != nullptr) f.one_of(*iv, "kind", "ivModel.kind", &m->iv_kind, {"realized", "none"});
+  if (iv != nullptr) f.one_of(*iv, "kind", "ivModel.kind", &m->iv_kind, {"realized", "none", "file"});
   const JsonValue* margin = f.get(r, "marginModel", "marginModel", Kind::Object);
   if (margin != nullptr) {
     f.dec(*margin, "maintenanceMargin", "marginModel.maintenanceMargin", &m->contract.maintenance_margin, 1, kRateOne - 1);
   }
+}
+
+// A branch pack names its branch point; the other modes have none.
+void read_branch(Fields& f, const JsonValue& data, Manifest* m) {
+  if (f.failed()) return;
+  const bool branch = m->mode == "branch";
+  if (branch != (data.find("branchStep") != nullptr)) return f.fail(branch ? "missing_field" : "invalid_field", "data.branchStep");
+  if (!branch) return;
+  std::uint32_t step = 0;
+  f.integer(data, "branchStep", "data.branchStep", &step, 0, 1'000'000);
+  m->branch_step = step;
 }
 
 void read_mission(Fields& f, const JsonValue& r, Manifest* m) {
@@ -155,6 +197,10 @@ void read_mission(Fields& f, const JsonValue& r, Manifest* m) {
     if (data->find("gapPolicy") != nullptr) {
       f.one_of(*data, "gapPolicy", "data.gapPolicy", &m->gap_policy, {"skip", "carryForward"});
     }
+    f.opt_integer(*data, "events", "data.events", &m->events, 0, kMaxTableRows);
+    f.opt_integer(*data, "liquidityShocks", "data.liquidityShocks", &m->liquidity_shocks, 0, kMaxTableRows);
+    f.opt_integer(*data, "optionSeries", "data.optionSeries", &m->option_series, 0, kMaxTableRows);
+    read_branch(f, *data, m);
   }
 }
 
