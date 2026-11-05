@@ -106,7 +106,10 @@
 					<span class="tag muted">{m.totalBars - m.warmupBars} {t('menu.bars')}</span>
 					<span class="tag attention">{t('top.synthetic')}</span>
 				</p>
-				<button class="primary" onclick={() => session.startMission(m.id)} disabled={session.busy}>{t('menu.start')}</button>
+				<!-- Twelve identical "Start mission" buttons: the name says which one (screen readers list buttons out of context). -->
+				<button class="primary" onclick={() => session.startMission(m.id)} disabled={session.busy} aria-label="{t('menu.start')}: {txt.title}">
+					{t('menu.start')}
+				</button>
 			</article>
 		{/each}
 	</div>
