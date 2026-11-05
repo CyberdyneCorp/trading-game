@@ -50,6 +50,11 @@ export interface Checkpoint {
 	hex: string;
 	digest: string;
 	engine: string;
+	/**
+	 * Option series names seen up to the checkpoint ([id, name], see eventNames.ts): a series that
+	 * expired before it is no longer in the restored state, but its fills and settlement still are.
+	 */
+	seriesNames?: [number, string][];
 }
 
 /**

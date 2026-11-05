@@ -105,3 +105,28 @@ test('regression: a damaged checkpoint falls back to replaying the whole log', a
 	expect(lastState(log)!.digest).toBe((db.runs[0] as { digest: string }).digest);
 	await answerIfAsked(page);
 });
+
+test('regression: an option that expired before the checkpoint keeps its name after resume (was OPT#5)', async ({ page }) => {
+	await page.goto('/?seed=4242');
+	// Mission 04 (options): buy the near call, which expires 36 bars after the start.
+	await page.getByRole('button', { name: /Iniciar missão/ }).nth(3).click();
+	await page.getByRole('button', { name: 'Pular tutorial' }).click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await answerIfAsked(page);
+	await page.locator('.chain table').first().locator('tbody tr').nth(2).locator('td').nth(3).getByRole('button').click();
+	await page.getByRole('button', { name: /Enviar ordem de opção/ }).click();
+	await page.getByRole('button', { name: /Enviar sem plano/ }).click();
+	for (let i = 0; i < 62; i++) await step(page);
+	const feed = page.locator('.feed');
+	await expect(feed.getByText(/Vencimento C 100 · exp/)).toBeVisible();
+	// The latest checkpoint is past the expiry: the restored state no longer lists the series.
+	await expect.poll(async () => ((await dumpDb(page)).checkpoints[0] as { actions: number } | undefined)?.actions).toBe(60);
+
+	await page.reload();
+	await page.getByRole('button', { name: /Continuar partida/ }).click();
+	await expect(page.locator('.turn')).toBeVisible();
+	expect(requestKinds(await workerLog(page))).toContain('restore');
+	await expect(feed.getByText(/Vencimento C 100 · exp/)).toBeVisible();
+	await expect(feed.getByText(/C 100 · exp \d+ Execução #1/)).toBeVisible();
+	await expect(feed.getByText(/OPT#/)).toHaveCount(0);
+});

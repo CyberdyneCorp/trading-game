@@ -28,6 +28,19 @@ export class EventNames {
 		if (!this.series.has(q.id)) this.series.set(q.id, seriesLabel(q));
 	}
 
+	/** The names seen so far, as [series id, name] pairs (saved with a checkpoint). */
+	entries(): [number, string][] {
+		return [...this.series];
+	}
+
+	/**
+	 * Adds names saved earlier (a checkpoint restore skips the states that listed series which have
+	 * expired since, so their names come from the checkpoint instead).
+	 */
+	restore(entries: readonly [number, string][]): void {
+		for (const [id, name] of entries) if (!this.series.has(id)) this.series.set(id, name);
+	}
+
 	seriesName(id: number): string {
 		return this.series.get(id) ?? `OPT#${id}`;
 	}

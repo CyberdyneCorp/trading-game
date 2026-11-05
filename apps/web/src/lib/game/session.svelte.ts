@@ -607,6 +607,7 @@ export class GameSession {
 				.catch(() => null);
 			if (state && state.digest === cp.digest) {
 				this.state = state;
+				this.names.restore(cp.seriesNames ?? []);
 				this.clientId = 1 + actions.slice(0, cp.actions).filter((a) => a.k !== 'adv').length;
 				return cp.actions;
 			}
@@ -623,7 +624,7 @@ export class GameSession {
 		const store = this.store;
 		const actions = this.log.length;
 		if (!store || !this.state || actions % CHECKPOINT_EVERY !== 0) return;
-		const base = { runId: this.runId, actions, digest: this.state.digest, engine: this.loadedEngine };
+		const base = { runId: this.runId, actions, digest: this.state.digest, engine: this.loadedEngine, seriesNames: this.names.entries() };
 		void this.eng()
 			.request({ kind: 'checkpoint' })
 			.then((cp) => store.saveCheckpoint({ ...base, hex: cp.checkpoint }))
