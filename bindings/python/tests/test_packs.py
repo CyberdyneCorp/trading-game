@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+import golden
 from tradelab_engine import EngineError, Run, build_csv_pack, csv_validate, device_key, pack_validate
 
 SEED = "11" * 32
@@ -136,7 +137,8 @@ def test_pack_is_readable_by_independent_tools():
 
 
 def golden_csv() -> str:
-    """Same text as golden_csv() in engine/tests/test_pack.cpp (prices in integer tenths)."""
+    """The market of engine/tests/golden/csv-pack.json and of golden_csv() in engine/tests/test_pack.cpp
+    (prices in integer tenths)."""
     def tenths(v: int) -> str:
         return f"{v // 10}.{v % 10}"
 
@@ -150,24 +152,13 @@ def golden_csv() -> str:
     return "\n".join(lines) + "\n"
 
 
-def test_cross_binding_golden_pack_run_matches_native_cpp():
-    """Same calls as the C++ test 'Golden: scripted run on an imported CSV pack' => identical digests."""
-    seed = "7" * 64
-    meta = {"asset": "X", "pair": "X/USD", "venue": "v", "volumeUnit": "base", "intervalSeconds": 3600,
-            "timestampUnit": "s", "leverageCap": 5}
-    result, pack = build_csv_pack(golden_csv(), meta, seed)
-    assert result["ok"], result
-    k = device_key(seed)
-    with Run.from_pack(pack, [{"id": k["id"], "key": k["publicKey"]}], 2026) as run:
-        run.set_leverage(1, 3)
-        run.place_order(2, 0, 0, "10", None, False)
-        run.advance(20)
-        run.place_order(3, 0, 1, "25", None, False)
-        run.advance(30)
-        run.close_position(4)
-        state = run.advance(1000)
-    assert state["digest"] == "b7bcd9961c3dd9b19a70c44108ad6816e9909589541ca64b05f8c6c5f6b1099c"
-    assert state["eventsDigest"] == "e3e42dedf85efb5b7fa7b55835e1998d82b3c552100f3c017214b6b585d382da"
+def test_golden_pack_fixture_is_the_golden_csv():
+    """The shared fixture csv-pack (replayed in test_golden.py) runs on exactly this market."""
+    pack = golden.load("csv-pack")["csvPack"]
+    assert golden.csv_text(pack) == golden_csv()
+    assert pack["meta"] == {"asset": "X", "pair": "X/USD", "venue": "v", "volumeUnit": "base", "intervalSeconds": 3600,
+                            "timestampUnit": "s", "leverageCap": 5}
+    assert pack["deviceSeed"] == "7" * 64
 
 
 def test_packer_cli_round_trip(tmp_path: Path, capsys: pytest.CaptureFixture[str]):

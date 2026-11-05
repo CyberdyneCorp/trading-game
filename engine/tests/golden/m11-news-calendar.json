@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m11-news-calendar",
+  "description": "Flat into a release (bracketed long closed early) and a bracketed short after it.",
+  "mission": "m11-news-calendar",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 3},
+    {"k": "order", "type": "market", "side": "buy", "qty": "60", "price": null, "ro": false, "stop": "95", "tp": "110", "trail": null},
+    {"k": "adv", "n": 20},
+    {"k": "close"},
+    {"k": "adv", "n": 30},
+    {"k": "order", "type": "market", "side": "sell", "qty": "60", "price": null, "ro": false, "stop": "112", "tp": "90", "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "c3df3be7347ec2f5f9b94c3c4d7d6d5e982aeb9c9600b25ea36b2004a3bf2fe5",
+    "eventsDigest": "839e5f90afee251e6cc920fb1b83a13faa1789a97071fabd9f6b538870a1babb",
+    "status": "finished",
+    "rejected": [{"action": 3, "reason": "position_closed"}]
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

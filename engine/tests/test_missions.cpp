@@ -3,6 +3,7 @@
 #include <span>
 #include <string>
 
+#include "golden.hpp"
 #include "tradelab/c_api.h"
 #include "tradelab/engine.hpp"
 #include "tradelab/generator.hpp"
@@ -92,34 +93,9 @@ TEST_CASE("C ABI: same mission, seed and commands produce identical digests") {
   CHECK(play() == play());
 }
 
-// Policy v2 changed the state digest (new order fields). Policy v3 adds the instrument (series) field
-// to orders and events, so both digests changed again; perpetual behavior tests are unchanged.
-// Mission m01 later gained news events, which changed its generated market (content, not policy).
-// Policy v9 (funding from the last closed bar) changed the state digests via the version.
-// Policy v10 (news priced on arrival, per-seed schedule) regenerates every mission market: both digests.
-// Policy v7 changed m05 (jump before the first expiry): new m05 digests; m01 only through the policy version.
-// Policy v4 adds plans and calibration answers to the state digest (event digests unchanged).
-// Policy v11 appends start options and advice to the state digest: m01 and m05 state digests changed
-// through the version and the (default) new fields only; their event digests are unchanged, so a
-// default run executes exactly as before. The advisor golden is in test_advisor.cpp.
-TEST_CASE("Golden: scripted mission run is bit-frozen across targets") {
-  tl_run* run = tl_run_create("m01-false-breakout", 2026);
-  tl_set_leverage(run, 1, 5);
-  tl_place_order(run, 2, 0, 0, "120", nullptr, 0);
-  tl_advance(run, 3);
-  tl_place_order(run, 3, 2, 1, "120", "99", 1);
-  tl_place_order(run, 4, 3, 1, "60", "104", 1);
-  tl_advance(run, 20);
-  tl_place_order(run, 5, 0, 1, "200", nullptr, 0);
-  tl_advance(run, 30);
-  tl_close_position(run, 6);
-  const std::string s = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  const std::string digests = s.substr(s.find("\"digest\""));
-  CHECK(digests ==
-        "\"digest\":\"0296b3e88ee2cc9697a1d904530457a71bde1f58ba1b52136c154e5c2e0907f1\","
-        "\"eventsDigest\":\"ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19\"}");
-}
+// The scripted goldens (m01 and m05 since phase 1, m02 with start options and advice, one per phase-2
+// mission m06-m12, a CSV pack run) and the reveal digests are shared fixtures in tests/golden, replayed
+// by test_golden.cpp, the Python binding and the native clients. engine/README.md keeps their history.
 
 TEST_CASE("Option missions: chain exposed at the decision step, trades settle through the C ABI") {
   tl_run* run = tl_run_create("m04-options-buyer", 9);
@@ -138,19 +114,6 @@ TEST_CASE("Option missions: chain exposed at the decision step, trades settle th
   CHECK(s.find("\"type\":\"option_settlement\"") != std::string::npos);
   CHECK(s.find("\"positions\":[]") != std::string::npos);
   tl_run_destroy(run);
-}
-
-TEST_CASE("Golden: scripted option-writing run is bit-frozen across targets") {
-  tl_run* run = tl_run_create("m05-options-writer", 77);
-  tl_place_option_order(run, 1, 7, 1, 0, "20", nullptr);   // write calls
-  tl_place_option_order(run, 2, 8, 1, 1, "10", "0.50");    // write puts with a limit
-  tl_advance(run, 30);
-  tl_place_option_order(run, 3, 7, 0, 0, "10", nullptr);   // buy back half
-  const std::string s = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"ac68db66659602d035e03c9950285400df3b2e5f450c1103b4cecfb927050bd7\","
-        "\"eventsDigest\":\"908ac0b1ffd77daf85c8c88e59123a55cb3ddc5ab1509965ae294ae637c4c8aa\"}");
 }
 
 TEST_CASE("News: same headline, seeded reactions include none and reversals (spec Events)") {
@@ -246,11 +209,9 @@ TEST_CASE("Regression: C ABI order events name their order type, bracket legs in
   tl_run_destroy(run);
 }
 
-// Phase-2 batch A (design D8): each new mission adds its own golden with default options; the m01 and
-// m05 goldens above stay byte-identical (no execution-policy change).
+// Phase-2 batch A (design D8): each new mission adds its own golden (tests/golden) with default options;
+// the m01 and m05 goldens stay byte-identical (no execution-policy change).
 namespace {
-
-std::string digests_of(const std::string& state) { return state.substr(state.find("\"digest\"")); }
 
 std::string reveal_digest(const char* mission, std::uint32_t seed) {
   const std::string json = tl_mission_reveal(mission, seed);
@@ -260,54 +221,13 @@ std::string reveal_digest(const char* mission, std::uint32_t seed) {
 
 }  // namespace
 
-TEST_CASE("Golden: m06 thin book, limit entry with a bracket and a market exit") {
-  tl_run* run = tl_run_create("m06-thin-book", 2026);
-  REQUIRE(run != nullptr);
-  tl_set_leverage(run, 1, 2);
-  tl_place_order_ex(run, 2, 1, 0, "40", "99.5", 0, "97.5", "102", nullptr);  // limit buy with a bracket
-  tl_advance(run, 30);
-  tl_place_order(run, 3, 0, 0, "150", nullptr, 0);  // larger than a thin bar's capacity
-  tl_advance(run, 40);
-  tl_close_position(run, 4);
-  const std::string s = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  CHECK(digests_of(s) ==
-        "\"digest\":\"73915792a3b323a91ec8bd84fc7f73c8c20a9f922675ec7dd25a25442312cd25\","
-        "\"eventsDigest\":\"b084466a7e0ab87dacc53c40794afcbc017917decfac736279404e82558f009a\"}");
-}
-
-TEST_CASE("Golden: m07 size and exit, a market entry then a trailing stop") {
-  tl_run* run = tl_run_create("m07-trend-trailing", 2026);
-  REQUIRE(run != nullptr);
-  tl_set_leverage(run, 1, 5);
-  tl_advance(run, 15);
-  tl_place_order(run, 2, 0, 0, "60", nullptr, 0);
-  tl_advance(run, 1);
-  tl_place_order_ex(run, 3, 4, 1, "60", nullptr, 1, nullptr, nullptr, "2.5");  // trailing stop, reduce-only
-  tl_advance(run, 40);
-  tl_place_order(run, 4, 0, 1, "30", nullptr, 0);
-  const std::string s = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  CHECK(digests_of(s) ==
-        "\"digest\":\"7bef8536703594ef7e1c7d20a5bf72a486e2165d09cfec01fcf2b72cf85d25a4\","
-        "\"eventsDigest\":\"911e8dce2b537d94c11f7c8a8af67a1472f169032d0c6e98d137b4bb95488bd0\"}");
-}
-
-TEST_CASE("Golden: m08 regime switch, a fade and a follow") {
-  tl_run* run = tl_run_create("m08-regime-switch", 2026);
-  REQUIRE(run != nullptr);
-  tl_set_leverage(run, 1, 3);
-  tl_place_order_ex(run, 2, 0, 1, "50", nullptr, 0, "104", "96", nullptr);
-  tl_advance(run, 35);
-  tl_close_position(run, 3);
-  tl_place_order_ex(run, 4, 0, 0, "80", nullptr, 0, "90", nullptr, nullptr);
-  tl_advance(run, 30);
-  const std::string s = tl_advance(run, 1000);
-  const std::string d = tl_debrief(run);
-  tl_run_destroy(run);
-  CHECK(digests_of(s) ==
-        "\"digest\":\"9cca2b0bb58cba31fb272c72780e4d0937dd784538d28bb36869c74e82fea9d8\","
-        "\"eventsDigest\":\"e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb\"}");
+TEST_CASE("Golden m08 (tests/golden): the run state never carries the reveal; the debrief has signals by regime") {
+  const detail::JsonParse fx = golden::load("m08-regime-switch");
+  REQUIRE(fx.ok);
+  const golden::RunResult r = golden::replay_run(fx.value);
+  REQUIRE(r.ok);
+  const std::string& s = r.state;
+  const std::string& d = r.debrief;
   CHECK(s.find("\"regimes\"") == std::string::npos);  // the run state never carries the reveal (design D6)
   CHECK(s.find("\"spans\"") == std::string::npos);
   CHECK(d.find("\"regimes\":[{\"start\":60") != std::string::npos);  // signals by regime, from the first decision
@@ -315,10 +235,9 @@ TEST_CASE("Golden: m08 regime switch, a fade and a follow") {
   CHECK(d.find("\"regime\":\"") != std::string::npos);  // each trade tagged with its entry regime
 }
 
-TEST_CASE("G4: tl_mission_reveal is a pure function of mission and seed (Python parity digest)") {
+TEST_CASE("G4: tl_mission_reveal is a pure function of mission and seed (digest: tests/golden/reveal-m08)") {
   CHECK(reveal_digest("m08-regime-switch", 7) == reveal_digest("m08-regime-switch", 7));
   CHECK(reveal_digest("m08-regime-switch", 7) != reveal_digest("m08-regime-switch", 8));
-  CHECK(reveal_digest("m08-regime-switch", 7) == "5ac2b53bfc31fa0cdf7d25d56bda08345c3bde8978808ef514f9ba76af9ee02f");
   CHECK(std::string(tl_mission_reveal("nope", 1)) == "{\"error\":\"unknown_mission\"}");
   const std::string m01 = tl_mission_reveal("m01-false-breakout", 4);
   CHECK(m01.find("\"kind\":\"rumor_denied\",\"actual\":-1,\"surprise\":-2,\"intensityPct\":100") != std::string::npos);
@@ -340,78 +259,10 @@ TEST_CASE("m06 is long only at 2x with a thin book; m08 is a 180-bar chain") {
   CHECK(m08.news.empty());
 }
 
-// Phase-2 batch B (design D8): m09-m12 add their own goldens with default options; every golden above
-// stays byte-identical (drawn outcomes and announcements act only where a mission declares them).
-TEST_CASE("Golden: m09 the day before, a straddle bought before the decision and sold after") {
-  tl_run* run = tl_run_create("m09-event-straddle", 2026);
-  REQUIRE(run != nullptr);
-  tl_advance(run, 8);
-  tl_place_option_order(run, 1, 7, 0, 0, "10", nullptr);  // ATM call, first expiry
-  tl_place_option_order(run, 2, 8, 0, 0, "10", nullptr);  // ATM put
-  tl_advance(run, 12);
-  tl_place_option_order(run, 3, 7, 1, 0, "10", nullptr);
-  tl_place_option_order(run, 4, 8, 1, 0, "10", nullptr);
-  tl_place_order(run, 5, 0, 0, "30", nullptr, 0);
-  const std::string s = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  CHECK(digests_of(s) ==
-        "\"digest\":\"1392b2ad137a4d857a12a57ad1b154d8e7d6f6c061b3dec388a8e52c049b0e08\","
-        "\"eventsDigest\":\"6afafb44fd90acf3ba94b9a18ffb072d0757af70047b7103f75adcd0a617ea83\"}");
-}
-
-TEST_CASE("Golden: m10 cover, a collar on a long through the rumor") {
-  tl_run* run = tl_run_create("m10-hedged-book", 2026);
-  REQUIRE(run != nullptr);
-  tl_set_leverage(run, 1, 1);
-  tl_place_order(run, 2, 0, 0, "40", nullptr, 0);
-  tl_place_option_order(run, 3, 20, 0, 0, "40", nullptr);  // put one strike below ATM, second expiry
-  tl_place_option_order(run, 4, 23, 1, 0, "40", nullptr);  // call one strike above ATM, written
-  tl_advance(run, 50);
-  tl_close_position(run, 5);
-  const std::string s = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  CHECK(digests_of(s) ==
-        "\"digest\":\"c72b368e8a95c70f3544ac0834af7cb60f641ff7b259747f56db903bbd078ffc\","
-        "\"eventsDigest\":\"ae540e1bed50c0d2e6995cc7d63fe6b8d04d772c11c34fd198d65688b87f3251\"}");
-}
-
-TEST_CASE("Golden: m11 calendar, flat into a release and a trade after it") {
-  tl_run* run = tl_run_create("m11-news-calendar", 2026);
-  REQUIRE(run != nullptr);
-  tl_set_leverage(run, 1, 3);
-  tl_place_order_ex(run, 2, 0, 0, "60", nullptr, 0, "95", "110", nullptr);
-  tl_advance(run, 20);
-  tl_close_position(run, 3);
-  tl_advance(run, 30);
-  tl_place_order_ex(run, 4, 0, 1, "60", nullptr, 0, "112", "90", nullptr);
-  const std::string s = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  CHECK(digests_of(s) ==
-        "\"digest\":\"c3df3be7347ec2f5f9b94c3c4d7d6d5e982aeb9c9600b25ea36b2004a3bf2fe5\","
-        "\"eventsDigest\":\"839e5f90afee251e6cc920fb1b83a13faa1789a97071fabd9f6b538870a1babb\"}");
-}
-
-TEST_CASE("Golden: m12 final exam, a long, a written straddle and a short") {
-  tl_run* run = tl_run_create("m12-capstone", 2026);
-  REQUIRE(run != nullptr);
-  tl_set_leverage(run, 1, 4);
-  tl_place_order_ex(run, 2, 0, 0, "80", nullptr, 0, "95", nullptr, nullptr);
-  tl_place_option_order(run, 3, 7, 1, 0, "10", nullptr);
-  tl_place_option_order(run, 4, 8, 1, 0, "10", nullptr);
-  tl_advance(run, 45);
-  tl_close_position(run, 5);
-  tl_advance(run, 30);
-  tl_place_order_ex(run, 6, 0, 1, "50", nullptr, 0, "115", nullptr, nullptr);
-  const std::string s = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  CHECK(digests_of(s) ==
-        "\"digest\":\"6cf7a03b9800436de835ffcba145e3dd4c02071f6bceab57adc11fc47fd56465\","
-        "\"eventsDigest\":\"70f0eb16beb797db73246a800de61e636a5f4593dd699e5a6f64bd4c55fac459\"}");
-}
-
-TEST_CASE("G4 with G2: the reveal reports each event's drawn outcome, intensity, gap and implied move") {
+// Phase-2 batch B (design D8): m09-m12 add their own goldens (tests/golden) with default options; every
+// earlier golden stays byte-identical (drawn outcomes and announcements act only where a mission declares them).
+TEST_CASE("G4 with G2: the reveal reports each event's drawn outcome, intensity, gap and implied move (digest: tests/golden/reveal-m11)") {
   CHECK(reveal_digest("m11-news-calendar", 7) == reveal_digest("m11-news-calendar", 7));
-  CHECK(reveal_digest("m11-news-calendar", 7) == "4282fd1e468d68bd8be98bd86422c185e85c48e25559b8c5ff3d6e710b1b3fe8");
   MissionReveal r;
   bool intensity_varies = false;
   for (std::uint64_t seed = 1; seed <= 10; ++seed) {

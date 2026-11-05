@@ -23,7 +23,7 @@ from .engine import (
     pack_write,
     signing_key,
 )
-from .replay import ACTION_KINDS, InvalidAction, ReplayResult, replay
+from .replay import ACTION_KINDS, InvalidAction, ReplayResult, replay, replay_on
 
 __all__ = [
     "ACTION_KINDS",
@@ -46,5 +46,6 @@ __all__ = [
     "pack_validate",
     "pack_write",
     "replay",
+    "replay_on",
     "signing_key",
 ]

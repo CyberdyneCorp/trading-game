@@ -2,7 +2,7 @@ name: engine
 
 on:
   pull_request:
-    paths: ["engine/**", "bindings/**", "tools/check_engine_bans.py", "tools/packer/**", ".github/workflows/engine.yml"]
+    paths: ["engine/**", "bindings/**", "tools/check_engine_bans.py", "tools/regen_golden.py", "tools/packer/**", ".github/workflows/engine.yml"]
   push:
     branches: [main]
 
@@ -78,6 +78,8 @@ jobs:
       - name: Python binding tests (cross-binding goldens)
         working-directory: bindings/python
         run: uv run --python 3.12 --with pytest pytest -q
+      - name: Shared golden fixtures are current (engine/tests/golden)
+        run: uv run --python 3.12 python tools/regen_golden.py
 
   # libFuzzer with ASan + UBSan on the untrusted-input parsers (CSV import, packs, JSON).
   fuzz:

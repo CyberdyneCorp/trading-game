@@ -1,0 +1,25 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m07-trend-trailing",
+  "description": "A market entry, a reduce-only trailing stop at a distance, a partial exit.",
+  "mission": "m07-trend-trailing",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 5},
+    {"k": "adv", "n": 15},
+    {"k": "order", "type": "market", "side": "buy", "qty": "60", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 1},
+    {"k": "order", "type": "trailing_stop", "side": "sell", "qty": "60", "price": null, "ro": true, "stop": null, "tp": null, "trail": "2.5"},
+    {"k": "adv", "n": 40},
+    {"k": "order", "type": "market", "side": "sell", "qty": "30", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "7bef8536703594ef7e1c7d20a5bf72a486e2165d09cfec01fcf2b72cf85d25a4",
+    "eventsDigest": "911e8dce2b537d94c11f7c8a8af67a1472f169032d0c6e98d137b4bb95488bd0",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}
