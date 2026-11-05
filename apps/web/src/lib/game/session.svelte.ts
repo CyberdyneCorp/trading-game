@@ -129,7 +129,9 @@ export class GameSession {
 	missions = $state<MissionInfo[]>([]);
 	missionId = $state('');
 	seed = $state(0);
-	#state = $state<GameState | null>(null);
+	// Raw, not a deep proxy: each engine reply replaces the whole state, and proxied reads of the
+	// bar-wide indicator arrays made every chart redraw (zoom, hover) track thousands of signals.
+	#state = $state.raw<GameState | null>(null);
 	/** Order types and option contract names seen during this run, for the event feed. */
 	readonly names = new EventNames();
 	get state(): GameState | null {
