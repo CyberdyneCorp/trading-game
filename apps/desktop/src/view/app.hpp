@@ -14,7 +14,8 @@ namespace tradelab::desktop {
 
 class App {
  public:
-  App(Catalog catalog, AppViewModel::SeedSource seeds);
+  // `storage` (optional) persists runs on this device: model/storage, opened by main from the user-data dir.
+  App(Catalog catalog, AppViewModel::SeedSource seeds, std::unique_ptr<storage::Storage> storage = nullptr);
   ~App();
   App(const App&) = delete;
   App& operator=(const App&) = delete;

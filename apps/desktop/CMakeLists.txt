@@ -44,6 +44,35 @@ find_package(Threads REQUIRED)
 target_link_libraries(tradelab_desktop_model PUBLIC tradelab::engine Threads::Threads)
 target_compile_options(tradelab_desktop_model PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
 
+# ---- Storage and packs (src/model/storage, src/model/packs), part of the model layer. ----
+# Vendored SQLite (third_party/README.md): its own warnings off, no floating-point flags.
+add_library(tradelab_sqlite STATIC third_party/sqlite/sqlite3.c)
+target_include_directories(tradelab_sqlite SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/sqlite)
+target_compile_definitions(tradelab_sqlite PRIVATE SQLITE_DQS=0 SQLITE_THREADSAFE=1 SQLITE_DEFAULT_FOREIGN_KEYS=1
+  SQLITE_OMIT_LOAD_EXTENSION SQLITE_OMIT_DEPRECATED)
+target_compile_options(tradelab_sqlite PRIVATE -w)
+target_link_libraries(tradelab_sqlite PUBLIC Threads::Threads)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_link_libraries(tradelab_sqlite PUBLIC m)
+endif()
+target_sources(tradelab_desktop_model PRIVATE
+  src/model/storage/actions.cpp
+  src/model/storage/fault.cpp
+  src/model/storage/json_writer.cpp
+  src/model/storage/paths.cpp
+  src/model/storage/progress.cpp
+  src/model/storage/run_recorder.cpp
+  src/model/storage/run_store.cpp
+  src/model/storage/schema.cpp
+  src/model/storage/sqlite.cpp
+  src/model/packs/catalog.cpp
+  src/model/packs/download.cpp
+  src/model/packs/files.cpp
+  src/model/packs/http_curl.cpp
+  src/model/packs/pack_library.cpp)
+# libcurl is opened at run time (dlopen), never linked.
+target_link_libraries(tradelab_desktop_model PRIVATE tradelab_sqlite ${CMAKE_DL_LIBS})
+
 add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/app_viewmodel.cpp
   src/viewmodel/chart_geometry.cpp

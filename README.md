@@ -616,7 +616,7 @@ Next:
 - Web login through a BFF (needs TradeLab clients registered in CyberdyneAuth) and wiring the client to sync.
 - `user_deleted` webhook, Alembic migrations, rate limits; deployment on Coolify.
 - Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data).
-- Desktop client for Linux and macOS (C++20 on [Raven](https://github.com/oscar-soirey/Raven), Vulkan/MoltenVK; plan in `openspec/changes/add-native-clients`): the foundation is in `apps/desktop` (build, MVVM layers, engine worker, mission menu to debrief, generated PT-BR/en catalogs, headless and windowed tests); the full terminal, storage, packs, look, packaging and updates are next. Then iPad/iPhone (SwiftUI).
+- Desktop client for Linux and macOS (C++20 on [Raven](https://github.com/oscar-soirey/Raven), Vulkan/MoltenVK; plan in `openspec/changes/add-native-clients`): the foundation is in `apps/desktop` (build, MVVM layers, engine worker, mission menu to debrief, generated PT-BR/en catalogs, headless and windowed tests) with local storage (SQLite action log committed before the engine, checkpoints, resume, OFF02 crash test) and packs (CSV import, catalog downloads resumed with HTTP Range, engine verification); the full terminal, look, packaging and updates are next. Then iPad/iPhone (SwiftUI).
 
 ## Tests
 

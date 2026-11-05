@@ -968,3 +968,6 @@ desktop.language,English,Português (Brasil)
 desktop.waiting,Calculando…,Working…
 desktop.progress,Avançando {done} de {total},Advancing {done} of {total}
 desktop.qtyInvalid,"Digite uma quantidade válida (ex.: 1,5).",Type a valid quantity (e.g. 1.5).
+desktop.alreadyRunning.title,O TradeLab já está aberto,TradeLab is already open
+desktop.alreadyRunning.body,Outra janela do TradeLab está usando os dados salvos deste usuário. Use essa janela ou feche-a antes de abrir o TradeLab de novo.,"Another TradeLab window is using this user's saved data. Use that window, or close it before opening TradeLab again."
+desktop.storageUnavailable,Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.,The saved data could not be opened ({detail}): this session will not be saved.

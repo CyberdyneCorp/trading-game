@@ -43,6 +43,15 @@ class EngineRun {
   CommandResult place_market(Side side, const std::string& qty);
   [[nodiscard]] Snapshot snapshot() const;
 
+  // Storage (model/storage): takes ownership of a run built by another tl_* constructor (pack, restore).
+  static std::unique_ptr<EngineRun> adopt(tl_run* run, std::uint32_t seed) {
+    return run == nullptr ? nullptr : std::unique_ptr<EngineRun>(new EngineRun(run, seed));
+  }
+  [[nodiscard]] tl_run* handle() const { return run_; }
+  // Client ids: one per non-advance command, 1, 2, ... (a replay hands out the same ids).
+  std::uint32_t take_client_id() { return next_client_id_++; }
+  void set_next_client_id(std::uint32_t id) { next_client_id_ = id; }
+
  private:
   EngineRun(tl_run* run, std::uint32_t seed) : run_(run), seed_(seed) {}
   tl_run* run_;

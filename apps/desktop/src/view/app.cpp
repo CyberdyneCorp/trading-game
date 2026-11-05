@@ -12,11 +12,12 @@ void on_frame(double /*delta*/, void* user_data) { static_cast<AppView*>(user_da
 
 }  // namespace
 
-App::App(Catalog catalog, AppViewModel::SeedSource seeds) {
+App::App(Catalog catalog, AppViewModel::SeedSource seeds, std::unique_ptr<storage::Storage> storage) {
   engine_ = std::make_unique<EngineHost>([](EngineHost::Task task) { ui::post(std::move(task)); },
                                          [this](std::shared_ptr<const Snapshot> snap) {
                                            if (vm_) vm_->on_snapshot(std::move(snap));
-                                         });
+                                         },
+                                         std::move(storage));
   vm_ = std::make_unique<AppViewModel>(std::move(catalog), engine_->missions(), *engine_, std::move(seeds));
   view_ = std::make_unique<AppView>(*vm_);
 }

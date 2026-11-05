@@ -40,6 +40,8 @@ class Value {
   // Object field, or a shared null value when absent (chains safely: v["a"]["b"]).
   [[nodiscard]] const Value& operator[](std::string_view key) const;
   [[nodiscard]] bool has(std::string_view key) const;
+  // Object fields in key order (empty for any other kind).
+  [[nodiscard]] const std::map<std::string, Value, std::less<>>& fields() const;
 
  private:
   Kind kind_ = Kind::Null;

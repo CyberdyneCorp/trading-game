@@ -25,7 +25,7 @@ struct Bar {
   double volume = 0;
 };
 
-enum class CommandKind : std::uint8_t { Start, Advance, Market };
+enum class CommandKind : std::uint8_t { Start, Advance, Market, Resume, StartPack };
 
 struct CommandResult {
   CommandKind kind = CommandKind::Start;
@@ -77,6 +77,12 @@ struct Snapshot {
   int progress_done = 0;  // batch advance: steps done of progress_total
   int progress_total = 0;
   std::optional<Debrief> debrief;
+
+  // Storage (model/storage): the snapshot answering a resume carries its notice ("engine_changed",
+  // "policy_changed", "digest_mismatch", "pack_missing", "damaged"; "" = none) and detail.
+  std::string resume_notice;
+  std::string resume_detail;
+  bool durable = true;  // false once a storage write failed: play goes on but may not resume
 
   [[nodiscard]] bool active() const { return status == "active"; }
 };
