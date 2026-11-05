@@ -46,6 +46,7 @@ import { enginesToKeep, gcEngines, pinEngine } from './engineCache.ts';
 import { formatBytes, MemoryPackIndex, opfsPackDir, PackLibrary, playableDigests, quotaShortfall, storageQuota, type PackEntry, type Quota } from './packStore.ts';
 import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type PackOrigin, type Progress, type RunRecord } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
+import { packOriginOf } from './missions.ts';
 
 export type Screen =
 	| 'loading'
@@ -110,6 +111,8 @@ export interface RunSummary {
 	actions: number;
 	/** The campaign mission this run plays (null in free play and practice). */
 	campaign: CampaignLink | null;
+	/** The pack a practice run plays (null for a mission), so the menu can name it by its origin. */
+	packDigest: string | null;
 }
 
 /** A run left behind by starting another one (it never reaches its debrief). */
@@ -253,7 +256,7 @@ export class GameSession implements CatalogHost {
 		const run = await this.store?.activeRun().catch(() => null);
 		const active = run && run.record.status === 'active' ? run : null;
 		const r = active?.record;
-		this.saved = r && active ? { missionId: r.missionId, seed: r.seed, actions: active.actions.length, campaign: r.campaign ?? null } : null;
+		this.saved = r && active ? { missionId: r.missionId, seed: r.seed, actions: active.actions.length, campaign: r.campaign ?? null, packDigest: r.packDigest ?? null } : null;
 		// Only the resumable run needs its checkpoint and its engine build; the rest is reclaimed.
 		await this.store?.pruneCheckpoints(r?.runId ?? null).catch(() => undefined);
 		await gcEngines(enginesToKeep(this.enginePath, r?.engine));
@@ -643,8 +646,7 @@ export class GameSession implements CatalogHost {
 
 	/** Where the current run's pack came from (null for a mission run). */
 	get runPackOrigin(): PackOrigin | null {
-		if (!this.runPack) return null;
-		return this.packs.find((p) => p.digest === this.runPack)?.origin ?? 'import';
+		return packOriginOf(this.packs, this.runPack);
 	}
 
 	/**
@@ -661,6 +663,7 @@ export class GameSession implements CatalogHost {
 		const meta = {
 			digest: s.digest,
 			scenarioId: s.scenarioId,
+			mode: s.mode,
 			label,
 			private: s.private,
 			totalBars: s.totalBars,

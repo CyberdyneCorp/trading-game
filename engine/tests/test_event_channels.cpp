@@ -5,8 +5,12 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <string>
 
+#include "../src/c_api_run.hpp"
 #include "scenario_builder.hpp"
+#include "tradelab/c_api.h"
+#include "tradelab/engine.hpp"
 #include "tradelab/generator.hpp"
 
 using namespace tradelab;
@@ -165,4 +169,34 @@ TEST_CASE("Event channels: a liquidity shock outside the market is an invalid sc
   CHECK(validate(sc) == ScenarioError::InvalidLiquidity);
   sc.liquidity = {{1, 2, 1000, 0}};
   CHECK(validate(sc) == ScenarioError::Ok);
+}
+
+// The state's "liquidity" value at `step` (advancing the run there): "null" or the object's start.
+std::string liquidity_at(tl_run& run, std::uint32_t step) {
+  const auto n = static_cast<std::int32_t>(step - run.state.step);
+  const std::string s = n == 0 ? std::string(tl_state(&run)) : std::string(tl_advance(&run, n));
+  const auto at = s.find("\"liquidity\":");
+  REQUIRE(at != std::string::npos);
+  return s.substr(at + 12, 14);
+}
+
+// Regression: nothing told the player a shock was in force, so the ticket estimated the declared costs.
+TEST_CASE("Event channels: the state shows the shocked costs of the next bar, never an unseen shock") {
+  Scenario sc;
+  REQUIRE(build_mission("m01-false-breakout", 7, sc));
+  const std::uint32_t s0 = start_run(sc, 7).step;
+  sc.news = {{s0 + 5, NewsKind::LiquidityOutflow, -1, 80, 0, 0}};
+  sc.liquidity = {{s0 + 6, 5, 300, 50}, {s0 + 20, 3, 200, 100}};  // the second one has no headline
+  REQUIRE(validate(sc) == ScenarioError::Ok);
+  tl_run run;
+  run.scenario = sc;
+  run.state = start_run(sc, 7);
+  CHECK(liquidity_at(run, s0 + 4).starts_with("null"));          // the headline is not out yet
+  CHECK(liquidity_at(run, s0 + 5) == "{\"halfSpread\":");        // headline out: the next bar is shocked
+  CHECK(costs_at(sc, s0 + 6).half_spread.raw == sc.costs.half_spread.raw * 3);
+  CHECK(liquidity_at(run, s0 + 9).starts_with("{"));             // the next bar is the shock's last
+  CHECK(liquidity_at(run, s0 + 10).starts_with("null"));
+  CHECK(liquidity_at(run, s0 + 19).starts_with("null"));         // no headline: hidden until it starts
+  CHECK(liquidity_at(run, s0 + 20).starts_with("{"));            // in force at this bar: seen
+  CHECK(liquidity_at(run, s0 + 22).starts_with("null"));
 }

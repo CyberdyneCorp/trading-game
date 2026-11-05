@@ -3,7 +3,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { journalMissions, journalRuns } from '#lib/game/journal.ts';
-	import { missionText } from '#lib/game/missions.ts';
+	import { missionText, packOriginOf } from '#lib/game/missions.ts';
 	import JournalEntries from './JournalEntries.svelte';
 
 	let { session }: { session: GameSession } = $props();
@@ -11,6 +11,10 @@
 	let filter = $state('');
 	const runs = $derived(journalRuns(session.journalRecords, filter || null));
 	const missions = $derived(journalMissions(session.journalRecords));
+	// A practice run is named by its pack's origin (catalog or imported), as on the briefing.
+	function titleOf(missionId: string, digest = session.journalRecords.find((r) => r.missionId === missionId)?.packDigest) {
+		return missionText(missionId, L, packOriginOf(session.packs, digest)).title;
+	}
 </script>
 
 <main class="journal">
@@ -25,7 +29,7 @@
 			{t('journal.filter')}
 			<select bind:value={filter} data-testid="journal-filter">
 				<option value="">{t('journal.all')}</option>
-				{#each missions as m (m)}<option value={m}>{missionText(m, L).title}</option>{/each}
+				{#each missions as m (m)}<option value={m}>{titleOf(m)}</option>{/each}
 			</select>
 		</label>
 	{/if}
@@ -36,7 +40,7 @@
 	{#each runs as run (run.runId)}
 		<section class="panel run" data-testid="journal-run">
 			<h2 class="panel-title">
-				{missionText(run.missionId, L).title}
+				{titleOf(run.missionId, run.packDigest)}
 				<span class="tag info">{t(`journal.mode.${run.mode}`)}</span>
 				{#if run.intel}<span class="tag attention" data-testid="journal-intel">{t('journal.intel')}</span>{/if}
 				{#if run.assisted}<span class="tag attention" data-testid="journal-assisted">{t('journal.assisted')}</span>{/if}

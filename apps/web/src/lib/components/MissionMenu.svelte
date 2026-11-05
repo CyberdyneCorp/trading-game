@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { missionText } from '#lib/game/missions.ts';
+	import { marketTagKey, missionText, packOriginOf } from '#lib/game/missions.ts';
 	import { settings } from '#lib/game/settings.svelte.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, packReasonText, t, type Locale } from '#lib/game/i18n.svelte.ts';
@@ -83,7 +83,7 @@
 		<section class="panel resume">
 			<span>
 				{#if session.saved.campaign}<span class="tag info">{t('journal.mode.campaign')}</span>{/if}
-				{missionText(session.saved.missionId, i18n.locale).title} · seed {session.saved.seed}
+				{missionText(session.saved.missionId, i18n.locale, packOriginOf(session.packs, session.saved.packDigest)).title} · seed {session.saved.seed}
 			</span>
 			<button class="primary" onclick={() => session.resume()} disabled={session.busy}>▶ {t('menu.resume')}</button>
 		</section>
@@ -131,7 +131,7 @@
 			{#each session.packs as p (p.digest)}
 				<li data-testid="pack-row" class:evicted={p.evicted}>
 					<span class="pack-name">{p.label}</span>
-					<span class="tag attention">{t('menu.known')}</span>
+					<span class="tag attention" data-testid="pack-tag">{t(marketTagKey(true, p.mode))}</span>
 					{#if p.evicted}<span class="tag down" data-testid="pack-evicted">{t('pack.evictedTag')}</span>{/if}
 					<span class="tag muted">{fmtNum(p.totalBars - p.warmupBars, i18n.locale, 0)} {t('menu.bars')}</span>
 					<span class="tag info">{t('menu.leverageCap')} {p.leverageCap}x</span>

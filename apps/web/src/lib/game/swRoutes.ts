@@ -24,7 +24,8 @@ export function keepCache(name: string, current: string): boolean {
 	return name === current || name === AUDIO_CACHE || name === ENGINE_CACHE || name === BACKGROUND_CACHE;
 }
 
-export const isAudio = (path: string) => /\/audio\/[^/]+$/.test(path);
+/** Audio files: a URL pathname ("/audio/…") or a build manifest asset path ("audio/…", no leading slash). */
+export const isAudio = (path: string) => /(^|\/)audio\/[^/]+$/.test(path);
 
 /**
  * Static pack catalog (manifest and .tlpack files): never precached, never cached. Takes a URL

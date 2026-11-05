@@ -94,7 +94,7 @@
 		// 1% risk at a tight stop can need more than the ticket's leverage: raise it (or cut the size at the
 		// cap), never lower what the player typed.
 		const s = session.state!;
-		const k = costsOf(c);
+		const k = costsOf(c, s.liquidity);
 		const entry = estimatedMarketEntry(side, num(s.account.mark), k);
 		const typed = Math.min(Math.max(1, Math.round(ticketLeverage || 1)), c.leverageCap);
 		const fit = fitToMargin(num(a.size), entry, num(s.account.available), typed, c.leverageCap, k, num(c.lotSize));

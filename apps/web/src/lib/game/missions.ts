@@ -266,12 +266,53 @@ export function packModeKey(marketMode: string, origin: PackOrigin | null): Mess
 	return catalog ? 'brief.modeCatalog' : 'brief.modePack';
 }
 
+/**
+ * Tag of a market: generated prices (a built-in mission or a synthetic pack) are SYNTHETIC; a masked
+ * recorded market (historical or branch pack) is KNOWN. `mode` is the pack's, or the state's marketMode.
+ */
+export function marketTagKey(knownScenario: boolean, mode: string | undefined): MessageKey {
+	return knownScenario && mode !== 'synthetic' ? 'top.known' : 'top.synthetic';
+}
+
+/** Where a run's pack came from: null for a mission run; a pack no longer listed was imported. */
+export function packOriginOf(packs: readonly { digest: string; origin?: PackOrigin }[], digest: string | null | undefined): PackOrigin | null {
+	if (!digest) return null;
+	return packs.find((p) => p.digest === digest)?.origin ?? 'import';
+}
+
 export function isPracticeScenario(id: string): boolean {
 	return id.startsWith('csv-');
+}
+
+// A pack generated from a built-in mission ("packer generate m09-event-straddle --seed 7" names its
+// scenario "m09-event-straddle-s7") or from another source: it carries no texts of its own.
+const GENERATED_ID = /^(m\d{2}-[a-z0-9-]+)-s\d+$/;
+const PRACTICE_GENERATED: Record<Locale, MissionText & { from: string }> = {
+	'pt-BR': {
+		title: 'Treino · pacote sintético',
+		tagline: 'Um mercado gerado distribuído em um pacote: preços simulados, não um ativo real. Pratique o processo.',
+		topic: 'Prática livre · pacote sintético',
+		reveal: '',
+		from: 'pacote sintético'
+	},
+	en: {
+		title: 'Practice · synthetic pack',
+		tagline: 'A generated market shipped in a pack: simulated prices, not a real asset. Practice your process.',
+		topic: 'Free practice · synthetic pack',
+		reveal: '',
+		from: 'synthetic pack'
+	}
+};
+
+function packedMissionText(id: string, locale: Locale): MissionText {
+	const { from, ...generic } = PRACTICE_GENERATED[locale];
+	const base = texts[GENERATED_ID.exec(id)?.[1] ?? '']?.[locale];
+	// The designed reveal describes the built-in run; a pack's debrief shows the engine's reveal.
+	return base ? { ...base, title: `${generic.title.split(' · ')[0]} · ${base.title.split(' · ').pop()} (${from})`, reveal: '' } : generic;
 }
 
 /** Texts of a mission; for a practice pack run, `origin` says whether it was imported or downloaded. */
 export function missionText(id: string, locale: Locale, origin: PackOrigin | null = null): MissionText {
 	if (isPracticeScenario(id)) return origin === 'catalog' ? { ...PRACTICE[locale], ...PRACTICE_CATALOG[locale] } : PRACTICE[locale];
-	return texts[id]?.[locale] ?? { title: id, tagline: '', topic: '', reveal: '' };
+	return texts[id]?.[locale] ?? packedMissionText(id, locale);
 }

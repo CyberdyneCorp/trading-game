@@ -30,7 +30,7 @@
 
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { costsOf, estimate, estimatedMarketEntry, marginTier, opposingEffect, releveredLiquidation, requiredMargin, sizedQty, type SizeBy } from '#lib/game/sizing.ts';
+	import { costsOf, estimate, estimatedMarketEntry, marginTier, opposingEffect, releveredLiquidation, requiredMargin, shockFactors, sizedQty, type SizeBy } from '#lib/game/sizing.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseAmount, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
@@ -82,7 +82,9 @@
 
 	const s = $derived(session.state!);
 	const L = $derived(i18n.locale);
-	const k = $derived(costsOf(s.contract));
+	const k = $derived(costsOf(s.contract, s.liquidity));
+	// A liquidity shock in force on the bar orders placed now fill on: the estimates above already use its costs.
+	const shock = $derived(s.liquidity ? shockFactors(s.contract, s.liquidity) : null);
 	const tick = $derived(num(s.contract.tickSize));
 	const lot = $derived(num(s.contract.lotSize));
 	const mark = $derived(num(s.account.mark));
@@ -370,6 +372,11 @@
 	</div>
 	{#if sizeBy === 'risk' && stop == null}
 		<p class="small attention">↳ {t('ticket.riskNeedsStop')}</p>
+	{/if}
+	{#if shock}
+		<p class="warnbox" role="status" data-testid="ticket-shock">
+			⚠ {t('ticket.shock', { cost: fmtNum(shock.cost, L, 1), capacity: fmtPct(shock.capacity, L, 0) })}
+		</p>
 	{/if}
 
 	<dl class="kv est">

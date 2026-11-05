@@ -27,13 +27,24 @@ export type SeriesKey = Pick<OptionQuoteView, 'kind' | 'strike' | 'expiryStep'>;
 
 export class EventNames {
 	private series = new Map<number, SeriesKey>();
+	/** Option order id -> series: the engine's "accepted" update does not name the contract. */
+	private orderSeries = new Map<number, number>();
 
 	reset(): void {
 		this.series.clear();
+		this.orderSeries.clear();
 	}
 
-	observe(s: Pick<GameState, 'options'>): void {
+	observe(s: Pick<GameState, 'options'> & Partial<Pick<GameState, 'orders' | 'events'>>): void {
 		for (const q of s.options.chain) this.rememberSeries(q);
+		// Working option orders, and filled ones (their fills carry the series) after a checkpoint resume.
+		for (const o of s.orders ?? []) if (o.series) this.orderSeries.set(o.id, o.series);
+		for (const e of s.events ?? []) if (e.type === 'fill' && e.series && e.orderId) this.orderSeries.set(e.orderId, e.series);
+	}
+
+	/** The option series an order was placed on (0 for a perpetual order or one never seen). */
+	seriesOfOrder(orderId: number): number {
+		return this.orderSeries.get(orderId) ?? 0;
 	}
 
 	rememberSeries(q: Pick<OptionQuoteView, 'id' | 'kind' | 'strike' | 'expiryStep'>): void {

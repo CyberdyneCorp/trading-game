@@ -3,7 +3,7 @@
 	import { keyLabel } from '#lib/game/shortcuts.ts';
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { missionText } from '#lib/game/missions.ts';
+	import { marketTagKey, missionText, packModeKey } from '#lib/game/missions.ts';
 	import { campaignMissions } from '#lib/game/curriculum.ts';
 	import { branchTurn, intervalLabel } from '#lib/game/packs.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
@@ -21,6 +21,9 @@
 	const turn = $derived(s ? s.step - s.warmupBars + 1 : 0);
 	const missionTitle = $derived(s ? missionText(s.mission, i18n.locale, session.runPackOrigin).title : '');
 	const branch = $derived(s ? branchTurn(s) : null);
+	const modeLine = $derived(
+		s ? t(s.knownScenario ? packModeKey(s.marketMode, session.runPackOrigin) : 'brief.modeSynthetic', { seed: session.seed }) : ''
+	);
 </script>
 
 {#if s}
@@ -29,11 +32,7 @@
 		<div class="market">
 			<span class="muted">{t('top.market')}</span>
 			<strong class="alias">{s.alias}</strong>
-			{#if s.knownScenario}
-				<span class="tag attention" title={t('brief.modePack', { seed: session.seed })}>{t('top.known')}</span>
-			{:else}
-				<span class="tag attention" title={t('brief.modeSynthetic', { seed: session.seed })}>{t('top.synthetic')}</span>
-			{/if}
+			<span class="tag attention" title={modeLine} data-testid="market-tag">{t(marketTagKey(s.knownScenario, s.marketMode))}</span>
 			{#if session.runAssisted}
 				<span class="tag attention" title={t('assist.banner')} data-testid="assisted-tag">{t('assist.tag')}</span>
 			{/if}

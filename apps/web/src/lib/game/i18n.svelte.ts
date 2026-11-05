@@ -186,6 +186,7 @@ const pt = {
 	'orders.child': 'filha de #{id}',
 	'orders.trailPct': 'trailing a esta porcentagem do melhor fechamento',
 	'ticket.estEntry': 'Entrada estimada',
+	'ticket.shock': 'Choque de liquidez na próxima barra: spread + slippage ×{cost}, capacidade {capacity} do normal. As estimativas já usam esses custos.',
 	'ticket.estMargin': 'Margem inicial',
 	'ticket.estFee': 'Taxa estimada',
 	'ticket.estLiq': 'Liquidação estimada',
@@ -520,6 +521,7 @@ const pt = {
 	'csv.cancel': 'Cancelar',
 	'csv.create': 'Criar missão de treino',
 	'csv.rows': '{n} barras',
+	'csv.rowsOne': '{n} barra',
 	'csv.period': 'De {from} a {to}',
 	'csv.withFunding': 'com taxa de funding',
 	'csv.noFunding': 'sem funding (taxa zero)',
@@ -1099,6 +1101,7 @@ const en: Record<MessageKey, string> = {
 	'orders.child': 'child of #{id}',
 	'orders.trailPct': 'trailing at this percent of the best close',
 	'ticket.estEntry': 'Estimated entry',
+	'ticket.shock': 'Liquidity shock on the next bar: spread + slippage ×{cost}, capacity {capacity} of normal. The estimates already use these costs.',
 	'ticket.estMargin': 'Initial margin',
 	'ticket.estFee': 'Estimated fee',
 	'ticket.estLiq': 'Estimated liquidation',
@@ -1432,6 +1435,7 @@ const en: Record<MessageKey, string> = {
 	'csv.cancel': 'Cancel',
 	'csv.create': 'Create practice mission',
 	'csv.rows': '{n} bars',
+	'csv.rowsOne': '{n} bar',
 	'csv.period': 'From {from} to {to}',
 	'csv.withFunding': 'with funding rates',
 	'csv.noFunding': 'no funding (zero rate)',
@@ -1849,10 +1853,13 @@ export function csvIssueText(code: string): string {
 	return key in pt ? t(key as MessageKey, { arg: i < 0 ? '' : code.slice(i + 1) }) : code;
 }
 
-/** `key` with `{n}`, or its `…One` singular form when n is 1 ("em 1 barra", not "em 1 barras"). */
+/**
+ * `key` with `{n}` written in the locale ("2.000 barras" in PT-BR), or its `…One` singular form when n
+ * is 1 ("em 1 barra", not "em 1 barras").
+ */
 export function tCount(key: MessageKey, n: number, params: Record<string, string | number> = {}): string {
 	const one = `${key}One`;
-	return t(n === 1 && one in pt ? (one as MessageKey) : key, { ...params, n });
+	return t(n === 1 && one in pt ? (one as MessageKey) : key, { ...params, n: new Intl.NumberFormat(i18n.locale).format(n) });
 }
 
 /** Guidance for a declared CSV field the engine refused (falls back to naming the field). */

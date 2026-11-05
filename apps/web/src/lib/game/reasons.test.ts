@@ -28,6 +28,16 @@ describe('reasonText', () => {
 });
 
 describe('tCount', () => {
+	// Playtest: the CSV import report read "2000 barras".
+	it('regression: writes the count in the locale ("2.000 barras", "2,000 bars")', () => {
+		expect(tCount('csv.rows', 2000)).toBe('2.000 barras');
+		expect(tCount('csv.rows', 1)).toBe('1 barra');
+		expect(tCount('csv.more', 1200)).toBe('… e mais 1.200');
+		i18n.locale = 'en';
+		expect(tCount('csv.rows', 2000)).toBe('2,000 bars');
+		i18n.locale = 'pt-BR';
+	});
+
 	it('regression: one bar is singular ("em 1 barra", not "em 1 barras")', () => {
 		expect(tCount('rail.fundingIn', 1)).toBe('em 1 barra');
 		expect(tCount('rail.fundingIn', 3)).toBe('em 3 barras');

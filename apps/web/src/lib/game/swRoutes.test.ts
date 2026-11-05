@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isCatalog, rangeResponse, swRoute } from './swRoutes.ts';
+import { isAudio, isCatalog, rangeResponse, swRoute } from './swRoutes.ts';
 
 const origin = 'https://tradelab.example';
 const url = (path: string, base = origin) => new URL(path, base);
@@ -43,6 +43,14 @@ describe('catalog', () => {
 		expect(isCatalog('catalog/catalog.json')).toBe(true);
 		expect(isCatalog('catalog/packs/x.tlpack')).toBe(true);
 		expect(isCatalog('icons/icon-192.png')).toBe(false);
+	});
+
+	// Playtest: the same missing slash let every audio file into the install precache.
+	it('regression: excludes audio given as a build manifest asset path from the precache', () => {
+		expect(isAudio('audio/game-1.mp3')).toBe(true);
+		expect(isAudio('/audio/game-1.mp3')).toBe(true);
+		expect(isAudio('icons/audio.png')).toBe(false);
+		expect(isAudio('studio/x.mp3')).toBe(false);
 	});
 });
 

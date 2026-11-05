@@ -51,7 +51,7 @@ void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
   // Policy v17: margin and liquidation read the last price when the scenario has no mark series;
   // indicators treat continuity bars by the gap policy.
   j.field("markFromLastPrice", mark_from_last_price(sc));
-  j.field("gapPolicy", json_name(sc.mission.gap_policy));
+  j.field("gapPolicy", json_name(sc.mission.gap_policy)).field("liquidityShocks", !sc.liquidity.empty());
   write_margin_tiers(j, k);
   j.end_obj();
 }
@@ -247,6 +247,30 @@ void write_upcoming(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.end_arr();
 }
 
+// A liquidity shock the player can see: already in force at this bar, or starting on the next bar
+// right after a headline released at this one (generated shocks start the bar after their headline).
+bool shock_visible(const Scenario& sc, const LiquidityShock& l, std::uint32_t step) {
+  if (l.start <= step) return true;
+  return std::any_of(sc.news.begin(), sc.news.end(), [&](const NewsItem& n) { return n.release_step == step && l.start == step + 1; });
+}
+
+// The costs orders placed now execute with (next bar) while a visible liquidity shock covers it; null
+// otherwise. State JSON only: no digest input, and never a shock the player could not have seen.
+void write_liquidity(JsonOut& j, const Scenario& sc, const RunState& st) {
+  j.key("liquidity");
+  const std::uint32_t next = st.step + 1;
+  const bool shocked = next < sc.bars.size() && std::any_of(sc.liquidity.begin(), sc.liquidity.end(), [&](const LiquidityShock& l) {
+                         return next >= l.start && next - l.start < l.bars && shock_visible(sc, l, st.step);
+                       });
+  if (!shocked) {
+    j.null();
+    return;
+  }
+  const CostModel c = costs_at(sc, next);
+  j.begin_obj().field("halfSpread", c.half_spread).field("slippage", c.slippage);
+  j.field("capacityFraction", c.capacity_fraction).end_obj();
+}
+
 // Economic calendar perk: the release step of each scheduled item (rate decisions) not visible yet;
 // never its expectation, value or tone. Empty without the perk.
 void write_calendar(JsonOut& j, const Scenario& sc, const RunState& st) {
@@ -439,6 +463,7 @@ const char* state_json(tl_run& r) {
   write_indicators(j, sc, st.step);
   write_news(j, sc, st);
   write_calendar(j, sc, st);
+  write_liquidity(j, sc, st);
   write_upcoming(j, sc, st);
   write_calibration_state(j, sc, st);
   write_advisor(j, st);
