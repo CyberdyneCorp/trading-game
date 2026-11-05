@@ -14,6 +14,7 @@
 	import { costsOf, estimatedMarketEntry, fitToMargin } from '#lib/game/sizing.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
+	import { newsArrived } from '#lib/game/news.ts';
 	import HelpOverlay from './HelpOverlay.svelte';
 	import OrderTicket, { type OrderDraft, type TicketPreview } from './OrderTicket.svelte';
 	import OptionChain from './OptionChain.svelte';
@@ -50,7 +51,7 @@
 			if (!s) return null;
 			const hit = s.events.find((e) => e.step === s.step && NOTABLE[e.type]);
 			if (hit) return NOTABLE[hit.type] ?? null;
-			return s.news.some((n) => n.step === s.step) ? 'news' : null;
+			return newsArrived(s) ? 'news' : null;
 		}
 	});
 	$effect(() => () => auto.stop());
@@ -293,7 +294,7 @@
 				{#if !session.state.knownScenario}
 					<AdvisorPanel {session} onApply={onApplyAdvice} />
 				{/if}
-				<NewsPanel news={session.state.news} />
+				<NewsPanel news={session.state.news} calendar={session.state.calendar} step={session.state.step} />
 				<EventFeed events={session.state.events} names={session.names} />
 			</div>
 		</div>

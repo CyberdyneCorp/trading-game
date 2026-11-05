@@ -36,24 +36,28 @@ src/
   lib/engine/              model bridge: engine.worker.ts (WASM host), client.ts, protocol.ts, types.ts, wasm/
   lib/game/                view-models (session, autoplay, settings, pwa, i18n, audio, sound, csvImport — *.svelte.ts rune classes),
                            IndexedDB storage, and pure helpers (sizing, stops, optionsMath, calibration,
-                           analysis, debrief, format, news, hotkeys, tutorials, advisor, points, curriculum, campaign, journal, candle/chart
+                           analysis, debrief, format, news, hotkeys, tutorials, advisor, points, perks, curriculum, campaign, journal, candle/chart
                            pattern catalogs, patternOutcome and packs) with *.test.ts next to them
   lib/components/          views: Terminal, Chart (+ chartPanes.ts), OrderTicket, OptionTicket, OptionChain,
-                           RightRail, TopBar, AdvisorPanel, Briefing, Tutorial (+ TutorialArt), Debrief, MissionMenu, dialogs,
+                           RightRail, TopBar, AdvisorPanel, Briefing (+ PerkPanel), Tutorial (+ TutorialArt), Debrief, MissionMenu, dialogs,
                            PatternSheet (+ PatternAnimation), HelpOverlay, CsvImport, CampaignPanel, CampaignOutcome,
                            CurriculumMap, Journal; chartDrag.ts (stop/target line drag)
-e2e/                       Playwright: mission.spec.ts (gameplay), campaign.spec.ts (campaign, curriculum, journal),
+e2e/                       Playwright: mission.spec.ts (gameplay), campaign.spec.ts (campaign, curriculum, journal), perks.spec.ts (intel perks),
                            packs.spec.ts (CSV import, practice packs),
                            offline.spec.ts (OFF01-web)
 scripts/                   build-engine.sh (Emscripten), make-icons.py (PWA icons)
 static/                    manifest.webmanifest, icons
 ```
 
-Game rules, fills, scoring and the debrief come from the engine; the client formats engine decimal strings for display and never computes authoritative state (ticket previews in `sizing.ts`/`optionsMath.ts` mirror engine formulas for display only). Runs persist as an append-only action log in IndexedDB (`tradelab` DB: `runs`, `actions`, `meta`, `packs`); resume replays the log through the deterministic engine. A run record also keeps its start options (advice allowance; campaign capital and leverage cap), its campaign link and its last equity, and `meta.progress` (version 2, `migrateProgress` reads older shapes) keeps the tutorials seen, the advisor point balance (`points.ts`: start 3, cap 10, settled once per run id; a resumable run is settled, earning nothing, when another run is started), the campaign run, ended campaign runs and the missions assessed in a campaign (`campaign.ts`, `curriculum.ts`; a campaign mission is settled once per run id from the engine's final equity, and a left one from its last equity).
+Game rules, fills, scoring and the debrief come from the engine; the client formats engine decimal strings for display and never computes authoritative state (ticket previews in `sizing.ts`/`optionsMath.ts` mirror engine formulas for display only). Runs persist as an append-only action log in IndexedDB (`tradelab` DB: `runs`, `actions`, `meta`, `packs`); resume replays the log through the deterministic engine. A run record also keeps its start options (advice allowance, intel perks; campaign capital and leverage cap), its campaign link and its last equity, and `meta.progress` (version 2, `migrateProgress` reads older shapes) keeps the tutorials seen, the intel perks already explained, the advisor point balance (`points.ts`: start 3, cap 10, settled once per run id; a resumable run is settled, earning nothing, when another run is started), the campaign run, ended campaign runs and the missions assessed in a campaign (`campaign.ts`, `curriculum.ts`; a campaign mission is settled once per run id from the engine's final equity, and a left one from its last equity).
 
 ## Campaign, curriculum map and journal
 
 The menu offers the campaign (missions in `campaignMissions()` order, capital carried through the engine's `startingBalance` start option, bankruptcy or less than `CAMPAIGN_MIN_CAPITAL` left ends the campaign run; ending it by choice asks first and leaves its mission in progress), free play (any mission, its own rules), the curriculum map (`CurriculumMap.svelte`: stage statuses from `curriculum.ts`, progress summary) and the journal (`Journal.svelte`: every run's plan entries from the `runs` store, newest first, filterable by mission; a run replaced by another before its end is stored as `left`). The curriculum's unlock rules are data in `curriculum.ts`; in a campaign mission a locked "leverage above 2×" becomes the engine's `leverageCap` start option, and the briefing lists what stays locked and which stage unlocks it.
+
+## Intel perks
+
+`perks.ts` holds the rules: Economic calendar at 1, Fast wire I at 2 and Fast wire II at 4 distinct built-in missions finished (`GameSession.finishedCount`, from the runs played to the end; imported packs do not count). A free-play run starts with every unlocked perk on; `PerkPanel` on the briefing toggles them (`GameSession.setPerk` restarts the not-yet-played run on the same seed with the new `newsLead`/`calendar` start options and updates its record), shows each locked perk's requirement, and explains a newly unlocked perk once (`progress.perksIntroduced`, written when the terminal opens). Campaign missions and pack runs start without perks. `NewsPanel` shows early headlines (EARLY, "public in N bars") and the calendar; auto-advance pauses when a headline arrives early (`newsArrived`). The debrief and the journal label runs whose start options used a perk "with intel" (`perksUsed`, `withIntel`).
 
 ## Imported markets (CSV and packs)
 

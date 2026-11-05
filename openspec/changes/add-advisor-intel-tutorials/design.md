@@ -98,6 +98,13 @@ Perks unlock by the number of distinct finished missions (#31's `finishedMission
 
 Each unlocked perk is a toggle on the briefing and is on by default.
 
+As built (phase 3):
+- **State view only.** `news_lead` and `calendar` change what `tl_state` serializes (`news[].early`, a top-level `calendar` array of release steps not visible yet), not the execution: no policy bump, every digest unchanged (`test_intel.cpp` compares bars and event digests with and without perks in every mission).
+- **Free play only.** Campaign missions and practice packs start without perks, so campaign runs (whose capital carries on) stay comparable; the campaign briefing says so. Unlocks count distinct built-in missions finished in any mode (`finishedMissions`, packs excluded).
+- **Toggles restart the unplayed run.** Perks are start options, so turning one on or off on the briefing restarts the run (no action yet) on the same seed with the new options and updates its record.
+- **Explained once.** `meta.progress.perksIntroduced` (a new key of version 2) records the perks a free-play briefing has explained; the card shows until the player opens the terminal from it.
+- **Server.** The sync body carries the run record's `options`; the API stores them with the run (fixed by the first sync, a different value later is a conflict), replays with them, and lists `withIntel`.
+
 ### D5. Tutorials are client content
 
 `missions.ts` gains `tutorial: Card[]` per mission and locale. Each card has a title, 1–3 sentences and an illustration key (`chart`, `ticket`, `news`, `funding`, `options`, `advisor`, `risk`), drawn as small inline SVGs in a `TutorialCard` component.

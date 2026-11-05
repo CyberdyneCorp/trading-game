@@ -26,6 +26,15 @@ class Run:
     digest_mismatch: bool = False
     score_total: int | None = None
     report: dict[str, Any] | None = None  # engine debrief/score report once finished
+    # Start options as the client recorded them (advice allowance, intel perks, campaign capital and
+    # leverage cap); None = the mission's defaults. The replay starts the engine with them.
+    options: dict[str, Any] | None = None
+
+    @property
+    def with_intel(self) -> bool:
+        """Played with an intel perk (fast wire or calendar): its score is labeled, never mixed silently."""
+        o = self.options or {}
+        return bool(o.get("newsLead")) or bool(o.get("calendar"))
 
 
 @dataclass(frozen=True)
@@ -37,6 +46,7 @@ class IncomingRun:
     actions: list[tuple[int, Action]]  # (seq, action)
     client_digest: str | None = None
     client_action_count: int | None = None
+    options: dict[str, Any] | None = None  # start options of the run record (None = defaults)
 
 
 @dataclass(frozen=True)

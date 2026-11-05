@@ -6,6 +6,7 @@
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
+	import { perksUsed } from '#lib/game/perks.ts';
 	import CampaignOutcome from './CampaignOutcome.svelte';
 	import Chart from './Chart.svelte';
 	import { describeEvent } from './EventFeed.svelte';
@@ -62,6 +63,7 @@
 			.filter((x) => x.text)
 			.sort((x, y) => x.step - y.step)
 	);
+	const intel = $derived(perksUsed(session.options));
 	const points = $derived({ used: s.advisor.advice.length, earned: d.advisorPointsEarned, balance: session.progress.advisorPoints });
 	const judged = $derived(d.advice.filter((x) => x.outcome === 'right' || x.outcome === 'wrong').length);
 	const dimLabels = { risk: 'debrief.risk', plan: 'debrief.plan', understanding: 'debrief.understanding', calibration: 'debrief.calibration' } as const;
@@ -77,6 +79,12 @@
 		<h1>{t('debrief.finished')}</h1>
 	{/if}
 	<p class="muted">{missionText(s.mission, L).title}</p>
+	{#if intel.length}
+		<p class="intel" data-testid="debrief-intel">
+			<span class="tag attention">{t('debrief.intel')}</span>
+			{t('debrief.intelNote', { perks: intel.map((p) => t(`perk.${p}`)).join(', ') })}
+		</p>
+	{/if}
 	<CampaignOutcome {session} />
 
 	<div class="grid">

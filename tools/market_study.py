@@ -18,6 +18,7 @@ HORIZON = 5        # bars, technical signals
 NEWS_HORIZON = 10  # bars, news
 EXTREME_FUNDING = 0.0006
 ADVICE_EVERY = 5   # bars between advisor requests (as in test_mission_realism.cpp)
+WIRE_LEADS = (1, 2)  # Fast wire I and II: headlines this many bars before their release
 
 
 class Tally:
@@ -110,14 +111,20 @@ def technical(signals, state, funding):
 
 
 def news(table, mission, state):
+    """Follows each headline from the first open after it is visible: publicly (release step i), or
+    with a fast wire of lead L (visible at i - L, entered at the open of i - L + 1, before the gap).
+    The bars are the same with or without the perk, so one run measures all three."""
     opens = [float(b[0]) for b in state["bars"]]
     closes = [float(b[3]) for b in state["bars"]]
     for item in state["news"]:
         i = item["step"]
         surprise = item["actual"] - item["expectation"]
         key = (mission, item["kind"], surprise)
-        table[key]["follow"].add(sign(surprise) or item["tone"], math.log(closes[i + NEWS_HORIZON] / opens[i + 1]))
+        direction = sign(surprise) or item["tone"]
+        table[key]["follow"].add(direction, math.log(closes[i + NEWS_HORIZON] / opens[i + 1]))
         table[key]["gap"].append(math.log(opens[i + 1] / closes[i]))
+        for lead in WIRE_LEADS:
+            table[key][f"wire{lead}"].add(direction, math.log(closes[i + NEWS_HORIZON] / opens[i - lead + 1]))
 
 
 def kurtosis(x):
@@ -134,7 +141,7 @@ def autocorr(x, lag=1):
 def main():
     seeds = int(sys.argv[1]) if len(sys.argv) > 1 else 100
     signals = collections.defaultdict(Tally)
-    news_table = collections.defaultdict(lambda: {"follow": Tally(), "gap": []})
+    news_table = collections.defaultdict(lambda: {"follow": Tally(), "gap": [], "wire1": Tally(), "wire2": Tally()})
     returns = collections.defaultdict(list)
     worst_bar = collections.defaultdict(collections.Counter)
     advisor = collections.defaultdict(AdvisorTally)
@@ -161,6 +168,10 @@ def main():
     for (mission, kind, surprise), v in news_table.items():
         t = v["follow"]
         print(f"| {mission} {kind}, surprise {surprise:+d} | {100 * statistics.fmean(v['gap']):+.2f}% | {100 * t.hits / t.n:.0f}% | {100 * statistics.fmean(t.moves):+.2f}% |")
+    print(f"\n| News, followed for {NEWS_HORIZON} bars after release | Public (next open) | Fast wire I (1 bar early) | Fast wire II (2 bars early) |\n|---|---|---|---|")
+    for (mission, kind, surprise), v in news_table.items():
+        cells = [f"{100 * t.hits / t.n:.0f}%, {100 * statistics.fmean(t.moves):+.2f}%" for t in (v["follow"], v["wire1"], v["wire2"])]
+        print(f"| {mission} {kind}, surprise {surprise:+d} | " + " | ".join(cells) + " |")
     print("\n| Mission | Excess kurtosis | Autocorr. of returns | Autocorr. of abs returns | Biggest drop: most common bar (share of seeds) |\n|---|---|---|---|---|")
     for mission, r in returns.items():
         bar, count = worst_bar[mission].most_common(1)[0]

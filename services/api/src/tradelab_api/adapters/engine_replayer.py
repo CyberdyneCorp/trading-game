@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import tradelab_engine as te
@@ -14,10 +14,11 @@ class EngineReplayer:
     def supported_policy(self) -> int:
         return int(te.engine_version()["executionPolicy"])
 
-    def replay(self, mission_id: str, seed: int, actions: Sequence[Action]) -> dict[str, Any]:
+    def replay(self, mission_id: str, seed: int, actions: Sequence[Action],
+               options: Mapping[str, Any] | None = None) -> dict[str, Any]:
         try:
-            result = te.replay(mission_id, seed, actions)
-        except (te.InvalidAction, te.EngineError, KeyError, TypeError) as exc:
+            result = te.replay(mission_id, seed, actions, te.RunOptions.from_json(options))
+        except (te.InvalidAction, te.EngineError, KeyError, TypeError, ValueError) as exc:
             raise ValueError(str(exc)) from exc
         return {"digest": result.digest, "status": result.status, "debrief": result.debrief}
 

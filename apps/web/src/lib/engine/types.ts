@@ -201,6 +201,8 @@ export interface NewsView {
 	credibility: number;
 	expectation: number;
 	actual: number;
+	/** Delivered ahead of its public release by a fast wire (until `step`). */
+	early: boolean;
 }
 
 /**
@@ -281,6 +283,8 @@ export interface GameState {
 	options: OptionsView;
 	indicators: Indicators;
 	news: NewsView[];
+	/** Economic calendar perk: bars of upcoming scheduled releases (rate decisions), nothing else. */
+	calendar: number[];
 	calibration: { due: boolean; horizon: number; every: number; threshold: Decimal; answered: number };
 	advisor: AdvisorState;
 	events: EngineEvent[];

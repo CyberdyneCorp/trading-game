@@ -217,14 +217,27 @@ const char* news_kind_name(NewsKind k) {
   return kNames[static_cast<std::size_t>(k)];
 }
 
-// Only news published at or before the current step: the future never crosses the ABI.
-void write_news(JsonOut& j, const Scenario& sc, std::uint32_t step) {
+// News published by the current step, plus the headlines a fast wire (news_lead) delivers early,
+// flagged `early` until their release step. Bars after the step never cross the ABI.
+void write_news(JsonOut& j, const Scenario& sc, const RunState& st) {
+  const std::uint32_t visible_until = st.step + st.options.news_lead;
   j.key("news").begin_arr();
   for (const NewsItem& n : sc.news) {
-    if (n.release_step > step) continue;
+    if (n.release_step > visible_until) continue;
     j.begin_obj().field("step", n.release_step).field("kind", news_kind_name(n.kind)).field("tone", std::int32_t{n.tone});
     j.field("credibility", std::uint32_t{n.credibility}).field("expectation", std::int32_t{n.expectation});
-    j.field("actual", std::int32_t{n.actual}).end_obj();
+    j.field("actual", std::int32_t{n.actual}).field("early", n.release_step > st.step).end_obj();
+  }
+  j.end_arr();
+}
+
+// Economic calendar perk: the release step of each scheduled item (rate decisions) not visible yet;
+// never its expectation, value or tone. Empty without the perk.
+void write_calendar(JsonOut& j, const Scenario& sc, const RunState& st) {
+  const std::uint32_t visible_until = st.step + st.options.news_lead;
+  j.key("calendar").begin_arr();
+  for (const NewsItem& n : sc.news) {
+    if (st.options.calendar && n.kind == NewsKind::RateDecision && n.release_step > visible_until) j.num(n.release_step);
   }
   j.end_arr();
 }
@@ -375,7 +388,8 @@ const char* state_json(tl_run& r) {
   write_orders(j, st);
   write_options(j, sc, st);
   write_indicators(j, sc, st.step);
-  write_news(j, sc, st.step);
+  write_news(j, sc, st);
+  write_calendar(j, sc, st);
   write_calibration_state(j, sc, st);
   write_advisor(j, st);
   j.key("events").begin_arr();

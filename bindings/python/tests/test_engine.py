@@ -115,3 +115,19 @@ def test_campaign_options_carry_capital_and_gate_leverage():
     assert r.digest == state["digest"]
     with pytest.raises(EngineError):
         Run("m01-false-breakout", 5, RunOptions(starting_balance="0"))
+
+
+def test_intel_perks_in_the_state_view_leave_the_market_unchanged():
+    """Fast wire shows a headline early (flagged) and the calendar lists the rate decision's bar only."""
+    with Run("m02-funding-squeeze", 2026, RunOptions(news_lead=1, calendar=True)) as intel, \
+            Run("m02-funding-squeeze", 2026) as plain:
+        cal = intel.state()["calendar"]
+        assert len(cal) == 1 and plain.state()["calendar"] == []
+        rate = cal[0]
+        a = plain.advance(rate - 1 - plain.state()["step"])
+        b = intel.advance(rate - 1 - intel.state()["step"])
+        early = [n for n in b["news"] if n["early"]]
+        assert [n["kind"] for n in early] == ["rate_decision"] and early[0]["step"] == rate
+        assert all(n["step"] != rate for n in a["news"])
+        assert b["calendar"] == []
+        assert a["bars"] == b["bars"] and a["eventsDigest"] == b["eventsDigest"]

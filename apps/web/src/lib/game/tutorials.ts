@@ -18,7 +18,9 @@ export type TutorialArt =
 	| 'chain'
 	| 'decay'
 	| 'margin'
-	| 'advisor';
+	| 'advisor'
+	| 'calendar'
+	| 'wire';
 
 export interface TutorialCard {
 	art: TutorialArt;

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, Protocol
 
 from .domain.models import Action, Run
@@ -25,7 +25,8 @@ class IdempotencyStore(Protocol):
 
 class Replayer(Protocol):
     def supported_policy(self) -> int: ...
-    def replay(self, mission_id: str, seed: int, actions: Sequence[Action]) -> dict[str, Any]: ...
+    def replay(self, mission_id: str, seed: int, actions: Sequence[Action],
+               options: Mapping[str, Any] | None = None) -> dict[str, Any]: ...
 
 
 class TokenVerifier(Protocol):
