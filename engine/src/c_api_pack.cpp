@@ -125,7 +125,7 @@ std::optional<BranchRequest> parse_branch(const char* json, std::string* bad) {
   return b;
 }
 
-const char* emit_source(JsonOut& j, PackSource src) {
+const char* emit_source(JsonOut& j, const PackSource& src) {
   j.field("ok", src.ok()).field("reason", src.reason).field("detail", src.detail).field("scenarioId", src.scenario_id);
   j.key("files").begin_arr();
   for (const PackFile& f : src.files) j.str(f.name);
@@ -255,7 +255,7 @@ const char* tl_pack_source_csv(const char* csv, const char* meta_json) {
   j.key("report").begin_obj();
   write_report(j, src.report);
   j.end_obj();
-  return emit_source(j, std::move(src));
+  return emit_source(j, src);
 }
 
 const char* tl_pack_write(const char* manifest_json, const uint8_t* files_tar, uint32_t size, const char* seed_hex,

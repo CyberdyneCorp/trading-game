@@ -38,7 +38,7 @@ std::vector<std::uint8_t> stored_archive(const PackSource& src) {
   return detail::tar_write(files);
 }
 
-std::vector<std::uint8_t> build(const PackSource& src, std::string manifest = {}) {
+std::vector<std::uint8_t> build(const PackSource& src, const std::string& manifest = {}) {
   REQUIRE_MESSAGE(src.ok(), src.reason);
   const PackBuild b = assemble_pack(manifest.empty() ? src.manifest : manifest, stored_archive(src), publisher_seed(), "publisher");
   REQUIRE_MESSAGE(b.ok(), b.reason);
@@ -60,7 +60,7 @@ PackSource with_file(PackSource src, std::string_view name, std::vector<std::uin
   for (PackFile& f : src.files) {
     if (f.name == name) {
       f.decompressed_size = bytes.size();
-      f.stored = std::move(bytes);
+      f.stored = bytes;
     }
   }
   return src;

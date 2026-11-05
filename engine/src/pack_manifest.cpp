@@ -104,7 +104,7 @@ void read_options(Fields& f, const JsonValue& o, Manifest* m) {
   f.dec(o, "skew", "instruments.options.skew", &x.skew, -kVolLimit, kVolLimit);
   f.dec(o, "smile", "instruments.options.smile", &x.smile, -kVolLimit, kVolLimit);
   f.dec(o, "termSlope", "instruments.options.termSlope", &x.term_slope, -kVolLimit, kVolLimit);
-  f.integer(o, "minutesPerStep", "instruments.options.minutesPerStep", &x.minutes_per_step, 1, 7 * 1440);
+  f.integer(o, "minutesPerStep", "instruments.options.minutesPerStep", &x.minutes_per_step, 1, std::int64_t{7} * 1440);
   f.integer(o, "settlementBars", "instruments.options.settlementBars", &x.settlement_bars, 1, 1000);
   f.dec(o, "imBase", "instruments.options.imBase", &x.im_base, 0, kRateOne);
   f.dec(o, "imFloor", "instruments.options.imFloor", &x.im_floor, 1, kRateOne);

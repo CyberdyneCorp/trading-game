@@ -50,6 +50,19 @@ void branch_news(const Scenario& alt, std::uint32_t step, Scenario& out) {
   }
 }
 
+// Liquidity shocks of the recorded market cut at the branch point, then the branch market's that
+// start after it, cut at the end of the market.
+void branch_liquidity(const Scenario& recorded, std::uint32_t step, const Scenario& alt, Scenario& out) {
+  const auto n = static_cast<std::uint32_t>(recorded.bars.size());
+  out.liquidity.clear();
+  for (const LiquidityShock& l : recorded.liquidity) {
+    if (l.start <= step) out.liquidity.push_back({l.start, std::min(l.bars, step + 1 - l.start), l.spread_pct, l.capacity_pct});
+  }
+  for (const LiquidityShock& l : alt.liquidity) {
+    if (l.start > step && l.start < n) out.liquidity.push_back({l.start, std::min(l.bars, n - l.start), l.spread_pct, l.capacity_pct});
+  }
+}
+
 }  // namespace
 
 bool mask_bars(std::span<const Bar> in, std::uint32_t reference, Price tick, std::vector<Bar>* out) {
@@ -76,13 +89,7 @@ bool splice_branch(const Scenario& recorded, std::uint32_t branch_step, const Sc
     if (item.release_step <= branch_step) out.news.push_back(item);
   }
   branch_news(alt, branch_step, out);
-  out.liquidity.clear();
-  for (const LiquidityShock& l : recorded.liquidity) {
-    if (l.start <= branch_step) out.liquidity.push_back({l.start, std::min<std::uint32_t>(l.bars, branch_step + 1 - l.start), l.spread_pct, l.capacity_pct});
-  }
-  for (const LiquidityShock& l : alt.liquidity) {
-    if (l.start > branch_step && l.start < n) out.liquidity.push_back({l.start, std::min<std::uint32_t>(l.bars, static_cast<std::uint32_t>(n) - l.start), l.spread_pct, l.capacity_pct});
-  }
+  branch_liquidity(recorded, branch_step, alt, out);
   const bool iv = !recorded.options.series.empty() && recorded.options.iv_base.size() == n && alt.options.iv_base.size() >= n;
   for (std::size_t i = branch_step + 1; i < n; ++i) {
     if (!scale_bar(alt.bars[i], f, recorded.contract.tick_size, &out.bars[i])) return false;

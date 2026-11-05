@@ -303,7 +303,6 @@ class Opener {
 
   // events.bin: the news table, then the liquidity-shock table.
   bool events() {
-    if (m_.events > lim_.max_events || m_.liquidity_shocks > lim_.max_events) return fail("too_many_events");
     if (entry("events.bin") == nullptr) return (m_.events == 0 && m_.liquidity_shocks == 0) || fail("missing_file", "events.bin");
     std::vector<std::uint8_t> raw;
     if (!inflate("events.bin", &raw)) return false;
@@ -336,7 +335,6 @@ class Opener {
 
   // options.bin: the series table, then the IV table (one row per bar with ivModel "file", else empty).
   bool options() {
-    if (m_.option_series > lim_.max_option_series) return fail("too_many_series");
     const bool present = entry("options.bin") != nullptr;
     if (!m_.has_options) return (!present && m_.iv_kind != "file") || fail("missing_field", "instruments.options");
     if (!present) return fail("missing_file", "options.bin");
@@ -374,7 +372,10 @@ class Opener {
   }
 
   bool data() {
+    // Row limits first: nothing is decompressed for a pack that declares too much.
     if (m_.bars > lim_.max_bars) return fail("too_many_bars");
+    if (m_.events > lim_.max_events || m_.liquidity_shocks > lim_.max_events) return fail("too_many_events");
+    if (m_.option_series > lim_.max_option_series) return fail("too_many_series");
     return bars() && funding() && events() && options() && reveal() && label_bars();
   }
 
