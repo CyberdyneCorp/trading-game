@@ -7,7 +7,7 @@ Defines the learning path from candles and orders through perpetual futures and 
 ## ADDED Requirements
 
 ### Requirement: Ordered learning stages
-The curriculum SHALL contain stages in this dependency order: Foundations, Structure, Orders, Futures I (contract, long/short), Futures II (margin, leverage, liquidation), Futures III (funding), Risk sizing, Options I (payoffs), Options II (IV and Greeks), Options III (writing and margin), Patterns & Indicators, Evaluation, Events. Each lesson SHALL follow concept, demonstration, decision, feedback and a transfer exercise on a different market.
+The curriculum SHALL contain stages in this dependency order: Foundations, Structure, Orders, Futures I (contract, long/short), Futures II (margin, leverage, liquidation), Futures III (funding), Risk sizing, Options I (payoffs), Options II (IV and Greeks), Options III (writing and margin), Patterns & Indicators, Events, Evaluation. Evaluation comes last because comparing many attempts across regimes and events is the capstone (design D8.4). Each lesson SHALL follow concept, demonstration, decision, feedback and a transfer exercise on a different market.
 
 #### Scenario: Transfer on new market
 - **WHEN** a lesson's transfer exercise starts
@@ -31,8 +31,8 @@ A stage's assessment is completed by finishing (not going bankrupt in) its asses
 The stage graph (stages, their prerequisites, assessment missions and unlocks) and the unlock rules SHALL be data, not code paths per stage. A stage with no assessment content yet SHALL be shown as coming soon and SHALL NOT block the stages after it. The client SHALL show a curriculum map with each stage's status (passed, open, locked, coming soon), its assessment missions and its unlocks, and the player's progress.
 
 #### Scenario: Stage without content
-- **WHEN** Futures III is passed and Risk sizing has no assessment yet
-- **THEN** Risk sizing SHALL show as coming soon and Options I SHALL be open
+- **WHEN** a stage has no assessment mission (Foundations, taught only by its Academy lesson) and the stages before it are cleared
+- **THEN** it SHALL show as coming soon and the stage after it (Structure) SHALL be open
 
 ### Requirement: Failure examples
 Every pattern and indicator lesson SHALL include at least one example where the pattern fails and one high-cost market example. Illustrative examples SHALL be labeled as illustrative and SHALL NOT imply a real success frequency.
@@ -66,3 +66,46 @@ After a debrief, the system SHALL recommend a lesson mapped from observable erro
 #### Scenario: The IV finding follows the side
 - **WHEN** the vega loss came mostly from written options (implied volatility rose against a seller)
 - **THEN** the debrief SHALL describe rising IV on written options, never an IV crush or "buying with high IV"; theta SHALL be named only as a cost of bought options
+
+### Requirement: Phase-2 mission graph
+The built-in curriculum SHALL assess its stages with twelve missions (design D8.4):
+
+| Stage | Missions |
+|---|---|
+| Foundations | none (Academy lesson only) |
+| Structure | m06 |
+| Orders | m06 |
+| Futures I | m01 |
+| Futures II | m03 |
+| Futures III | m02 |
+| Risk sizing | m07 |
+| Options I | m04 |
+| Options II | m04 and m09 |
+| Options III | m05 and m10 |
+| Patterns & Indicators | m08 |
+| Events | m11 |
+| Evaluation | m12 |
+
+The unlocks stay with Futures I (shorting), Futures II (leverage above 2×), Options I (buying options) and Options III (writing options). The campaign SHALL play m06, m01, m03, m02, m07, m04, m09, m05, m10, m08, m11, m12.
+
+A mission that comes before an unlock's stage SHALL NOT allow that unlock in its own engine rules, so that every campaign lock is enforced by the engine without new start options:
+- m06 allows no shorting and has a 2× cap;
+- m09 allows no option writing.
+
+The first mission of the campaign SHALL carry the introductory tutorial cards (reading the chart; plan, advisor and points).
+
+#### Scenario: Campaign starts with structure and orders
+- **WHEN** a player starts a new campaign run
+- **THEN** its first mission SHALL be m06, long only with a 2× cap, and its tutorial SHALL introduce the chart, the plan and the advisor
+
+#### Scenario: A stage with two missions
+- **WHEN** a player has finished m04 but not m09 in a campaign run
+- **THEN** Options I SHALL be passed, Options II SHALL stay open and Options III SHALL stay locked
+
+#### Scenario: No lock the engine cannot enforce
+- **WHEN** m09 is played in a campaign run before Options III is passed
+- **THEN** the briefing SHALL list option writing as locked and the engine SHALL reject writing an option, because m09's own option rules forbid it
+
+#### Scenario: Capstone last
+- **WHEN** every stage before Evaluation is passed
+- **THEN** Evaluation SHALL be open and m12 SHALL be the next campaign mission

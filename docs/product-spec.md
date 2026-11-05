@@ -95,10 +95,10 @@ Missions never force a trade to progress. Observe and wait have their own feedba
 | Options II | Implied volatility, Greeks (delta, gamma, theta, vega), IV crush | Predict the sign of P&L for a move + IV change |
 | Options III | Writing options, margin on short options, covered/defined-risk spreads | Explain why short options have unbounded or large risk |
 | Patterns & indicators | Doji, hammer, engulfing, inside bar, breakouts; SMA, EMA, RSI, ATR (MVP), MACD, Bollinger (later) | Explain the calculation, lag and limits |
-| Evaluation | Expectancy, costs, sample size, regimes, overfitting | Compare many attempts; never conclude from one trade |
 | Events | Expectation vs surprise, liquidity, uncertain reactions | Adjust hypothesis without "good news = up" |
+| Evaluation | Expectancy, costs, sample size, regimes, overfitting | Compare many attempts; never conclude from one trade |
 
-Lessons include failure examples and high-cost markets. Evaluation windows never overlap tutorial windows (including indicator warm-up).
+Events comes before Evaluation: the capstone mission assesses Evaluation (design D8.4 in `add-scenarios-and-gameplay`). Lessons include failure examples and high-cost markets. Evaluation windows never overlap tutorial windows (including indicator warm-up).
 
 ## 6. Gamification without distorting learning
 
@@ -190,7 +190,7 @@ See `openspec/changes/add-cyberdyne-identity-and-backend/`. Summary: CyberdyneAu
 | 4 iPad/iPhone | SwiftUI, Swift C++ interop, offline packs, sync | Same digests; airplane-mode mission |
 | 5 Expansion | Stop-limit, multi-timeframe, editorial admin, online comparable challenges, Android | Per change |
 
-Progress (2026-11-04): phase 0 done; phase 1 done except staging login; from phase 2, five missions (3 perp, 2 options) with first-start tutorials, options buy+write, trailing/brackets, indicators (incl. MACD, Bollinger, VWAP, ADX), candle-pattern detection, installable offline PWA and the sync API are built; advisor, points and intel perks are specified (`add-advisor-intel-tutorials`) — see the root `README.md`.
+Progress (2026-11-04): phase 0 done; phase 1 done except staging login; from phase 2, five missions (3 perp, 2 options) with first-start tutorials, options buy+write, trailing/brackets, indicators (incl. MACD, Bollinger, VWAP, ADX), candle-pattern detection, installable offline PWA and the sync API are built; advisor, points and intel perks are specified (`add-advisor-intel-tutorials`); missions m06–m12 are designed (`add-scenarios-and-gameplay` D8, two build batches) — see the root `README.md`.
 
 **Out of MVP:** real money, broker connections, cross margin, hedge mode, portfolio margin, American options, multi-asset portfolios, social trading, global financial ranking, public authoring without moderation, any return promise.
 

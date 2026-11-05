@@ -118,3 +118,30 @@ These numbers SHALL be computed by the engine (report-only: they SHALL NOT chang
 #### Scenario: Liquidation explained
 - **WHEN** a run included a liquidation
 - **THEN** the debrief SHALL show leverage, margin, liquidation price, the bar that triggered it and what leverage would have kept the planned stop in front of liquidation
+
+### Requirement: Seeded market reveal
+For a generated mission, the debrief's market reveal SHALL add what this seed drew to the mission's designed reveal text:
+- the regime spans, shown as a band under the chart;
+- each event's drawn actual, intensity and reaction.
+
+Where the mission has regime spans, the debrief SHALL show a "signals by regime" table, computed by the engine as a report-only fact (scoring version 8): for RSI fade, Bollinger fade, MACD follow and SMA20 follow, the hits and samples in each span of this run. Each trade SHALL be tagged with the regime it was entered in. The client SHALL NOT request the reveal before the run has ended.
+
+#### Scenario: Regime band after the run
+- **WHEN** a run of m08 ends
+- **THEN** the debrief SHALL show the drawn regime band under the chart and the signals-by-regime table, and each trade row SHALL name the regime it was entered in
+
+#### Scenario: No reveal while playing
+- **WHEN** a run is still active
+- **THEN** no worker message or UI state SHALL carry regime spans or drawn outcomes for steps after the current one
+
+### Requirement: Campaign report
+The capstone mission's debrief (m12) SHALL show a campaign report over the settled missions of the current campaign run:
+- number of trades, win rate, average R and expectancy in R;
+- the share of costs (fees, spread/slippage, funding) in gross P&L;
+- results by revealed regime.
+
+The report SHALL be built from the engine debriefs already stored for those runs; the client SHALL NOT recompute their P&L. With fewer than 30 trades, the report SHALL say that there are too few trades to conclude anything about an edge.
+
+#### Scenario: Too few trades
+- **WHEN** a campaign run reaches the m12 debrief with 18 trades in all its missions
+- **THEN** the campaign report SHALL show its numbers together with the warning that 18 trades are too few to conclude

@@ -18,9 +18,9 @@
 - [x] 2.2 Fuzz tests for import (libFuzzer on native) — `engine/fuzz/` targets for CSV import (and the pack built from it), pack validation and the JSON reader (canonical form is a fixed point); CI job `fuzz` runs each for 60 s with ASan + UBSan
 
 ## 3. Generator
-- [ ] 3.1 Regime/vol/jump process, volume, funding, IV base — scripted segments, GARCH-like vol clustering, jumps, volume tied to |return|, funding rule and IV base done (`engine/src/generator.cpp`); Markov regime transitions pending (missions script their segments)
+- [ ] 3.1 Regime/vol/jump process, volume, funding, IV base — scripted segments, GARCH-like vol clustering, jumps, volume tied to |return|, funding rule and IV base done (`engine/src/generator.cpp`); Markov regime transitions pending (missions script their segments; designed as G1 in D8.1, built in 6.A1)
 - [x] 3.1a Generator v2 market structure (fair value, range/trend anchors, momentum, compression, tilted breakouts, crowding squeezes) with calibration tests (`engine/tests/test_generator.cpp`); missions m01–m05 redesigned; execution policy v5
-- [ ] 3.2 Event model with seeded reaction distributions — done: release step, credibility, expectation/actual (surprise), seeded reaction direction (none / along the surprise / reversed), transient drift, volatility, volume and IV channels, duration, fair-value impact (surprise × credibility); test of the reaction distribution over 1,000 seeds. Pending: lead time, jump/spread/capacity/funding channels, sampled intensity (magnitude is fixed per event)
+- [ ] 3.2 Event model with seeded reaction distributions — done: release step, credibility, expectation/actual (surprise), seeded reaction direction (none / along the surprise / reversed), transient drift, volatility, volume and IV channels, duration, fair-value impact (surprise × credibility); test of the reaction distribution over 1,000 seeds. Pending: lead time (designed as G3, 6.B2), drawn outcomes and sampled intensity (magnitude is fixed per event; designed as G2, 6.B1), jump/spread/capacity/funding channels (deferred: not needed by m06–m12)
 - [ ] 3.3 Player-independence and branch-label tests — player independence done (`test_missions.cpp` "events never depend on the player"); branch-label test pending (no branch mode yet)
 - [ ] 3.4 Calibration report notebook + first report
 - [x] 3.5 Realism: news priced on arrival (opening gap), per-seed mission schedule, mission-level realism tests and `tools/market_study.py` (design D3b)
@@ -38,5 +38,32 @@
 ## 5. Content
 - [ ] 5.1 `tools/packer` CLI — minimal `tools/packer/packer.py` over the Python binding: `key`, `import-csv`, `validate` (incl. publish/LIC01); pending: `mask` of external windows, `generate`, `build` with real zstd compression, publisher `sign`, `inspect`, `m4m-pull` (1b.x)
 - [x] 5.2 Phase-1 content: 1 synthetic perp mission (breakout fails, stop works) — `m01-false-breakout`, built into `engine/src/missions.cpp` (moves to a pack with 1.x)
-- [ ] 5.3 Phase-2 content: 12 missions, ≥4 regimes, 3 event families, options chapters — 5 built-in missions so far (m01–m03 perpetuals, m04 options buying, m05 options writing)
+- [ ] 5.3 Phase-2 content: 12 missions, ≥4 regimes, 3 event families, options chapters — 5 built-in missions so far (m01–m03 perpetuals, m04 options buying, m05 options writing); m06–m12 designed in D8 and built in 6.A/6.B (with them: 6 regimes, 3 event families, two options chapters)
 - [x] 5.4 Curriculum graph and unlock rules as data; tests for gating and non-destructive failure — `apps/web/src/lib/game/curriculum.ts` (13 stages, prerequisites, assessment missions, unlocks; empty stages are coming soon and do not block), leverage above 2× gated in campaign missions through the engine's `leverage_cap`; gating tests in `curriculum.test.ts`, non-destructive failure in `campaign.test.ts` and the e2e "Bankrupt mid-campaign" (design D7). Lessons per stage (concept, demonstration, decision, feedback, transfer) are pending with web-client 4.4
+
+## 6. Phase-2 missions m06–m12 (design D8)
+
+Two build batches. Each mission ships with its golden (default options), its learnability tests and its PT-BR/EN texts and tutorial cards, and the existing goldens stay unchanged (no execution-policy bump; D8.1). Each batch ends with the realism and market-study tables in the README.
+
+### 6.A Batch A: m06, m07, m08
+- [ ] 6.A1 G1 Markov regime chain: `GeneratorSpec.chain`, `Segment.label`, `Stream::Regime`, expansion before `scheduled()`, `kGeneratorVersion` 3; tests: transition frequencies (2,000 seeds), fixed length, dwell range, m01–m05 bars and goldens byte-identical, funding does not announce the next visit
+- [ ] 6.A2 G4 seeded reveal: `mission_reveal(id, seed)`, C ABI `tl_mission_reveal`, WASM worker, Python binding; debrief "signals by regime" table and per-trade regime tag (next scoring version, report-only, no digest change); worker message-schema test that no reveal crosses before the run ends; Python parity test
+- [ ] 6.A3 `MissionDef` cost/contract override and per-mission short permission (data only); `NewsKind::LiquidityOutflow`; mission m06-thin-book; golden; learnability tests (D8.3 row m06)
+- [ ] 6.A4 Mission m07-trend-trailing; golden; learnability tests with reference players (breakout follower with 3×ATR trail, 1×ATR trail, fixed 2R target)
+- [ ] 6.A5 Mission m08-regime-switch on a G1 chain; golden; learnability tests by revealed span (RSI fade, EMA pullback, ADX filter, first-switch spread)
+- [ ] 6.A6 New `engine/tests/test_mission_learnability.cpp` with the buy-and-hold bound (< 75% positive in every mission, m01–m05 included) and the "every reference strategy loses in ≥ 15% of seeds" rule; `test_mission_realism.cpp` over 8 missions (the shock-gap check counts credible size-2 surprises instead of expecting three); `tools/market_study.py` learnability and buy-and-hold rows
+- [ ] 6.A7 Web: mission texts (title, tagline, objectives, topic, reveal) in PT-BR and EN; tutorial cards with the new art `book`, `trail` and `regime`; m06 carries the chart and advisor intro cards; regime band and signals-by-regime table in the debrief; PT-BR number formatting in every new view
+- [ ] 6.A8 Curriculum data: Structure and Orders assessed by m06, Risk by m07, Patterns & Indicators by m08; campaign order m06, m01, m03, m02, m07, m04, m05, m08; `curriculum.test.ts` (`missionUses`: m06 has no shorting and a 2× cap; no unenforceable lock), `campaign.test.ts` and the campaign e2e (the campaign starts with m06)
+- [ ] 6.A9 README (missions table, campaign and curriculum, "What can the player predict?"), engine README (new goldens), product spec progress line
+
+### 6.B Batch B: m09, m10, m11, m12
+- [ ] 6.B1 G2 drawn event outcomes and intensity: `actual_weights`, `intensity_min`/`intensity_max`, `Stream::Outcome`; tests: frequencies (2,000 seeds), intensity range, undeclared events unchanged, a drawn surprise of 0 does not move the fair value
+- [ ] 6.B2 G3 announced events: `NewsItem.announce_lead`, `upcoming` list in the state view (C ABI, WASM, Python); property test that the actual, tone and credibility are invisible before release; advisor `EventAhead` reason (moves toward wait) with advisor realism over all missions; `NewsKind::MacroData` and `NetworkUpgrade`
+- [ ] 6.B3 Mission m09-event-straddle (options buying only); golden; learnability tests (straddle by drawn surprise, IV crush, straddle bought after the release)
+- [ ] 6.B4 Mission m10-hedged-book (buy and write); golden; learnability tests (protective-put floor property, gapped stops, cost of unneeded insurance, collar without margin call, naked put writer, funding carry)
+- [ ] 6.B5 Mission m11-news-calendar; golden; learnability tests (follow after the headline, gap by surprise, stops through releases, consensus direction)
+- [ ] 6.B6 Mission m12-capstone; golden; learnability tests (no fixed strategy positive in more than 70% of seeds; the reference rule set beats buy-and-hold on return/drawdown and loses in ≥ 20%)
+- [ ] 6.B7 Curriculum: Events before Evaluation (spec "Ordered learning stages"); Options II assessed by m04 and m09, Options III by m05 and m10, Events by m11, Evaluation by m12; campaign of 12 missions in the D8.4 order; `missionUses` (m09 writes no options); unit and e2e tests; `docs/product-spec.md` curriculum table
+- [ ] 6.B8 Campaign report in the m12 debrief, built from the stored engine debriefs of the campaign run (trades, win rate, average R, expectancy, cost share, by regime, warning below 30 trades); unit and e2e tests
+- [ ] 6.B9 Web: texts and tutorial cards (new art `calendar`, `straddle` and `report`), the upcoming-events panel with consensus, the per-release reveal; i18n for the new news kinds; e2e for m09 and m11
+- [ ] 6.B10 Realism and learnability over 12 missions; market study and README tables; tick 5.3 once all twelve missions are built
