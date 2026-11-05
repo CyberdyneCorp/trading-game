@@ -25,6 +25,7 @@ constexpr std::uint32_t kPricedBars = 3;             // a surprise released this
 constexpr std::uint32_t kPatternBars = 2;            // a pattern this many bars old still counts
 constexpr std::uint32_t kSqueezeBars = 30;           // ATR at its lowest of this many bars
 constexpr std::int32_t kStanceVotes = 2;
+constexpr std::uint32_t kEventAheadBars = 3;         // an announced release this close: toward wait
 
 enum class Regime : std::uint8_t { None, Up, Down, Range };
 
@@ -115,6 +116,19 @@ void news_reasons(Reader& r, std::uint8_t news_lead) {
   }
 }
 
+// An announced release (G3) within the next kEventAheadBars bars: its outcome is unknown and most of
+// a surprise lands in the opening gap, so the read moves one step toward wait. Reads only what the
+// state lists as upcoming: the release step, never the actual.
+void event_ahead_reason(Reader& r) {
+  for (const NewsItem& n : r.sc.news) {
+    const bool announced = n.announce_lead > 0 && r.s + n.announce_lead >= n.release_step;
+    if (announced && n.release_step > r.s && n.release_step <= r.s + kEventAheadBars) {
+      r.toward_wait(AdviceReasonCode::EventAhead, static_cast<std::int32_t>(n.release_step));
+      return;
+    }
+  }
+}
+
 // Published funding above the crowding threshold: a warning against joining the crowded side
 // (ref +1 longs pay, -1 shorts pay). A warning, not a vote: the crowd is usually right until the
 // squeeze (README "What can the player predict?"), so it neither fades nor dampens the read.
@@ -177,6 +191,7 @@ Advice advise(const Scenario& sc, const RunState& st) {
   if (regime == Regime::Up || regime == Regime::Down) trend_votes(r, macd(sc, st.step, 12, 26, 9));
   pattern_vote(r, regime);
   news_reasons(r, st.options.news_lead);
+  event_ahead_reason(r);
   funding_reason(r);
   const std::optional<Price>& atr_now = atr14[st.step];
   const bool squeeze = atr_now.has_value() && squeeze_reason(r, atr14, atr_now.value());

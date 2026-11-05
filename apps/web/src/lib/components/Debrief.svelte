@@ -3,10 +3,12 @@
 	import { describeFindings, describeLesson } from '#lib/game/analysis.ts';
 	import { pctFromBp } from '#lib/game/advisor.ts';
 	import RegimeReveal from './RegimeReveal.svelte';
+	import ReleaseReveal from './ReleaseReveal.svelte';
+	import CampaignReport from './CampaignReport.svelte';
 	import { entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
-	import { missionText } from '#lib/game/missions.ts';
+	import { CAPSTONE_MISSION, missionText } from '#lib/game/missions.ts';
 	import { perksUsed } from '#lib/game/perks.ts';
 	import CampaignOutcome from './CampaignOutcome.svelte';
 	import Chart from './Chart.svelte';
@@ -68,6 +70,12 @@
 			.sort((x, y) => x.step - y.step)
 	);
 	const intel = $derived(perksUsed(session.options));
+	// The capstone's debrief reports on the whole campaign run it closes (spec "Campaign report").
+	const reportLegs = $derived.by(() => {
+		const link = session.runCampaign;
+		const c = session.progress.campaign;
+		return s.mission === CAPSTONE_MISSION && link && c && c.id === link.id ? c.legs : null;
+	});
 	const points = $derived({ used: s.advisor.advice.length, earned: d.advisorPointsEarned, balance: session.progress.advisorPoints });
 	const judged = $derived(d.advice.filter((x) => x.outcome === 'right' || x.outcome === 'wrong').length);
 	const dimLabels = { risk: 'debrief.risk', plan: 'debrief.plan', understanding: 'debrief.understanding', calibration: 'debrief.calibration' } as const;
@@ -90,6 +98,7 @@
 		</p>
 	{/if}
 	<CampaignOutcome {session} />
+	{#if reportLegs}<CampaignReport legs={reportLegs} />{/if}
 
 	<div class="grid">
 		<section class="panel">
@@ -259,6 +268,7 @@
 	</section>
 	{#if session.reveal}
 		<RegimeReveal spans={session.reveal.spans} rows={d.regimes} from={s.warmupBars} to={s.step} />
+		<ReleaseReveal events={session.reveal.events} trades={d.trades} lastStep={s.step} />
 	{/if}
 
 	<section class="panel">

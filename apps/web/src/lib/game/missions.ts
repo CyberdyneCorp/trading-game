@@ -226,6 +226,122 @@ texts['m08-regime-switch'] = {
 	}
 };
 
+// Phase-2 batch B (design D8.2). m09 assesses Options II with m04, m10 Options III with m05, m11
+// Events and m12 Evaluation (the capstone, last in the campaign). The reveal points at the per-release
+// table and, for m12, the campaign report that the debrief draws.
+texts['m09-event-straddle'] = {
+	'pt-BR': {
+		title: 'Missão 09 · Véspera',
+		tagline: 'Uma decisão de juros está na agenda, com o consenso publicado. O que ela vai dizer, ninguém sabe.',
+		objectives: [
+			'Antes de comprar, calcule os dois pontos de equilíbrio do straddle ou do strangle.',
+			'Escreva no plano o cenário em que o trade perde (sem surpresa, queda da IV).',
+			'Não pague mais que 2% do patrimônio em prêmio.'
+		],
+		topic: 'Opções II · volatilidade implícita × realizada, straddles e theta',
+		reveal:
+			'Este cenário foi desenhado como uma VÉSPERA DE EVENTO: a decisão foi anunciada 20 barras antes com consenso de "juros mantidos", e a volatilidade implícita subiu enquanto o range se comprimia. O resultado foi sorteado: igual ao consenso em 4 de cada 10 partidas, uma surpresa leve em 4 e uma forte em 2, com tamanho também sorteado. O straddle comprado antes pagou quando o movimento realizado superou o movimento implícito no prêmio (em geral só com surpresa forte); sem surpresa, theta e a queda da IV depois da divulgação levaram o prêmio. Comprar depois da divulgação pagou a IV ainda alta e perdeu o gap. A tabela abaixo mostra o que esta partida sorteou e o movimento implícito contra o realizado.'
+	},
+	en: {
+		title: 'Mission 09 · The day before',
+		tagline: 'A rate decision is on the calendar, with its consensus published. What it will say, nobody knows.',
+		objectives: [
+			'Before buying, compute the straddle’s or strangle’s two breakevens.',
+			'Write in the plan the scenario in which the trade loses (no surprise, falling IV).',
+			'Do not pay more than 2% of equity in premium.'
+		],
+		topic: 'Options II · implied vs realized volatility, straddles and theta',
+		reveal:
+			'This scenario was designed as THE DAY BEFORE AN EVENT: the decision was announced 20 bars ahead with a consensus of "rates on hold", and implied volatility rose while the range compressed. The outcome was drawn: as expected in 4 of 10 runs, a mild surprise in 4 and a strong one in 2, with a drawn size too. A straddle bought before paid when the realized move beat the move implied in its premium (usually only on a strong surprise); without a surprise, theta and the IV collapse after the release took the premium. Buying after the release paid for IV still high and missed the gap. The table below shows what this run drew and the implied against the realized move.'
+	}
+};
+
+texts['m10-hedged-book'] = {
+	'pt-BR': {
+		title: 'Missão 10 · Proteção',
+		tagline: 'Uma alta firme, com muita gente comprada. Quanto custa dormir tranquilo?',
+		objectives: [
+			'Antes de operar, escreva a perda máxima de cada estrutura (put de proteção, collar, spread).',
+			'Mantenha folga sobre a margem de manutenção das opções vendidas.',
+			'Compare o funding que você paga com o theta que você paga.'
+		],
+		topic: 'Opções III · put de proteção, collar, venda coberta, spreads e carrego',
+		reveal:
+			'Este cenário foi desenhado como um LIVRO PROTEGIDO: uma alta com longs lotados pagando funding a cada 4 barras e um rumor regulatório sem aviso, numa barra que muda a cada partida — às vezes depois do primeiro vencimento. A gravidade foi sorteada: forte em cerca de 45% das partidas, leve em 35% e nenhuma em 20%. A put de proteção pôs um piso de custo conhecido; o collar financiou a put abrindo mão da alta; uma put curta demais podia vencer na véspera do choque. Quem vendeu puts em excesso levou chamada de margem quando o rumor era forte, e quem segurou long alavancado com stop viu o stop executar bem além do preço no gap. Sem choque, a proteção foi só custo — o que também faz parte da lição.'
+	},
+	en: {
+		title: 'Mission 10 · Cover',
+		tagline: 'A steady rally, with many traders long. What does it cost to sleep well?',
+		objectives: [
+			'Before trading, write each structure’s maximum loss (protective put, collar, spread).',
+			'Keep a buffer above the maintenance margin of written options.',
+			'Compare the funding you pay with the theta you pay.'
+		],
+		topic: 'Options III · protective puts, collars, covered calls, spreads and carry',
+		reveal:
+			'This scenario was designed as a HEDGED BOOK: a rally with crowded longs paying funding every 4 bars and an unannounced regulation rumor, on a bar that changes from run to run — sometimes after the first expiry. Its severity was drawn: strong in about 45% of runs, mild in 35% and none in 20%. A protective put set a floor at a known cost; a collar financed the put by giving up the upside; a put that was too short-dated could expire the bar before the shock. Oversized put writers were margin-called when the rumor was strong, and a leveraged long with a stop saw it fill far beyond its price in the gap. With no shock, the hedge was only a cost — which is part of the lesson too.'
+	}
+};
+
+texts['m11-news-calendar'] = {
+	'pt-BR': {
+		title: 'Missão 11 · Agenda',
+		tagline: 'Três divulgações estão na agenda, cada uma com seu consenso. O mercado não espera por elas.',
+		objectives: [
+			'Antes de cada divulgação, decida ficar fora, pequeno ou protegido, e registre por quê.',
+			'Não opere a manchete depois do gap sem um motivo novo.',
+			'Risco planejado de até 1%, contando o gap.'
+		],
+		topic: 'Eventos · expectativa × surpresa, gaps e stops que saltam',
+		reveal:
+			'Este cenário foi desenhado como uma AGENDA: um índice de atividade, uma decisão de juros e uma atualização de rede foram anunciados de 15 a 25 barras antes, com consenso, e caíram no regime em que o caminho sorteado estava. O consenso já estava no preço: só a surpresa moveu o valor justo, quase toda no gap da abertura. Os resultados foram sorteados em torno do consenso, a atualização podia atrasar, e a reação de curto prazo também foi sorteada — notícia boa às vezes caiu. Um incidente sem aviso foi real em metade das partidas. A tabela abaixo mostra, para cada divulgação, consenso, resultado, gap, reação e se você estava posicionado antes ou entrou depois.'
+	},
+	en: {
+		title: 'Mission 11 · Calendar',
+		tagline: 'Three releases are on the calendar, each with its consensus. The market does not wait for them.',
+		objectives: [
+			'Before each release, decide to be flat, small or hedged, and record why.',
+			'Do not trade the headline after the gap without a new reason.',
+			'Planned risk of at most 1%, counting the gap.'
+		],
+		topic: 'Events · expectation vs surprise, gaps and jumping stops',
+		reveal:
+			'This scenario was designed as a CALENDAR: an activity index, a rate decision and a network upgrade were announced 15 to 25 bars ahead, with a consensus, and landed in whatever regime the drawn path was in. The consensus was already in the price: only the surprise moved fair value, almost all of it in the opening gap. Outcomes were drawn around the consensus, the upgrade could slip, and the short-term reaction was drawn too — good news sometimes sold off. An unannounced incident was real in half the runs. The table below shows, for each release, the consensus, the outcome, the gap, the reaction and whether you were positioned before or entered after.'
+	}
+};
+
+texts['m12-capstone'] = {
+	'pt-BR': {
+		title: 'Missão 12 · Prova final',
+		tagline: 'Tudo o que você viu até aqui, num só mercado. Uma missão é uma amostra.',
+		objectives: [
+			'Termine a missão.',
+			'Cada entrada com plano e stop.',
+			'Nenhuma liquidação e nenhuma chamada de margem.',
+			'Leia o relatório da campanha antes de concluir qualquer coisa.'
+		],
+		topic: 'Avaliação · identificar o regime, dimensionar pelo pior caso, comparar muitas tentativas',
+		reveal:
+			'Este cenário foi desenhado como a PROVA FINAL: um caminho sorteado de laterais, tendências, volatilidade alta, livro fino e uma lateral com shorts lotados, onde quem ficava comprado recebia funding — com o risco de o caminho virar tendência de baixa. Uma decisão de juros foi anunciada com consenso; uma falha de rede sem aviso não mudou nada em 6 de cada 10 partidas. Nenhuma regra fixa (comprar e segurar, vender sobrecompra, seguir o MACD, vender straddle, carregar o funding) ganhou na maioria esmagadora das partidas; ler o regime antes, arriscar 1% e ficar fora da divulgação perdeu menos por unidade de drawdown, e ainda perdeu em parte delas. O relatório da campanha mostra seus resultados em todas as missões: com menos de 30 trades, é cedo para concluir.'
+	},
+	en: {
+		title: 'Mission 12 · Final exam',
+		tagline: 'Everything you have seen so far, in one market. One mission is one sample.',
+		objectives: [
+			'Finish the mission.',
+			'Every entry with a plan and a stop.',
+			'No liquidation and no margin call.',
+			'Read the campaign report before concluding anything.'
+		],
+		topic: 'Evaluation · identify the regime, size for the worst case, compare many attempts',
+		reveal:
+			'This scenario was designed as the FINAL EXAM: a drawn path of ranges, trends, high volatility, a thin book and a crowded-short range where longs collected funding — at the risk of the path turning into a downtrend. A rate decision was announced with a consensus; an unannounced network outage changed nothing in 6 of 10 runs. No fixed rule (buy and hold, fade overbought, follow MACD, sell a straddle, carry the funding) won in an overwhelming share of runs; reading the regime first, risking 1% and staying flat through the release lost less per unit of drawdown, and still lost in some of them. The campaign report shows your results across every mission: with fewer than 30 trades it is too early to conclude.'
+	}
+};
+
+/** The capstone: its debrief carries the campaign report (design D8.2 m12). */
+export const CAPSTONE_MISSION = 'm12-capstone';
+
 // Practice runs on imported packs (scenario ids "csv-…"): the player already knows the market, so
 // the texts stay generic; the debrief shows the engine's reveal instead of a designed lesson.
 const PRACTICE: Record<Locale, MissionText> = {

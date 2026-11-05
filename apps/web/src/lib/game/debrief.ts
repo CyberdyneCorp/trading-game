@@ -1,7 +1,7 @@
 // Display helpers for the engine debrief (report-only numbers computed by engine/src/debrief.cpp).
 // The client formats; it never recomputes attribution, costs or leverage advice.
 
-import type { Account, EngineTrade, GreekAttribution, NewsView, PackReveal, RegimeSignals, RegimeSpan, SignalTally } from '#lib/engine/types.ts';
+import type { Account, EngineTrade, GreekAttribution, NewsView, PackReveal, RegimeSignals, RegimeSpan, RevealEvent, SignalTally } from '#lib/engine/types.ts';
 import { fmtPct, fmtPrice, num } from './format.ts';
 import { t, type Locale } from './i18n.svelte.ts';
 import { headline } from './news.ts';
@@ -128,4 +128,43 @@ export function newsTimeline(news: readonly NewsView[], locale: Locale): Timelin
 /** Rows of the signals-by-regime table: only spans where at least one signal fired. */
 export function signalRows(rows: readonly RegimeSignals[] | undefined): RegimeSignals[] {
 	return (rows ?? []).filter((r) => SIGNAL_KEYS.some((k) => r[k].samples > 0));
+}
+
+export type ReleasePosition = 'before' | 'after' | 'both' | 'flat';
+
+export interface ReleaseRow extends RevealEvent {
+	/** Surprise weighted by credibility (surprise x credibility / 100). */
+	weighted: number;
+	you: ReleasePosition;
+}
+
+/** Bars after a release in which an entry counts as "entered after" it. */
+export const AFTER_RELEASE_BARS = 10;
+
+function heldAt(tr: EngineTrade, step: number): boolean {
+	return tr.entryStep <= step && (tr.exitStep == null || tr.exitStep > step);
+}
+
+function youAt(trades: readonly EngineTrade[], step: number): ReleasePosition {
+	const before = trades.some((tr) => heldAt(tr, step));
+	const after = trades.some((tr) => tr.entryStep > step && tr.entryStep <= step + AFTER_RELEASE_BARS);
+	if (before && after) return 'both';
+	if (before) return 'before';
+	return after ? 'after' : 'flat';
+}
+
+/**
+ * The per-release reveal (design D8.2 m09/m11): each release the run reached, with what was drawn
+ * and whether the player held a position through it or entered within AFTER_RELEASE_BARS after it,
+ * read from the engine's trade rows (entry and exit bars). Nothing is recomputed.
+ */
+export function releaseRows(events: readonly RevealEvent[], trades: readonly EngineTrade[], lastStep: number): ReleaseRow[] {
+	return events
+		.filter((e) => e.step <= lastStep)
+		.map((e) => ({ ...e, weighted: (e.surprise * e.credibility) / 100, you: youAt(trades, e.step) }));
+}
+
+/** Signed basis points as a percentage with the locale's decimal separator: "+2,35%" / "+2.35%". */
+export function fmtBp(bp: number, locale: Locale): string {
+	return fmtPct(bp / 10000, locale, 2, true);
 }

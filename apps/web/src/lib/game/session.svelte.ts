@@ -31,6 +31,7 @@ import {
 	type CampaignLink,
 	type LegResult
 } from './campaign.ts';
+import { legReport } from './campaignReport.ts';
 import { campaignPermissions } from './curriculum.ts';
 import { t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
@@ -750,7 +751,8 @@ export class GameSession {
 		let next = settleRun(this.progress, this.runId, s.advisor.advice.length, d.advisorPointsEarned);
 		if (this.runCampaign) {
 			const result: LegResult = s.status === 'bankrupt' ? 'bankrupt' : 'finished';
-			next = settleCampaignRun(next, this.runCampaign, { runId: this.runId, missionId: this.missionId, result, equity: d.finalEquity });
+			const report = legReport(d, s.totals);
+			next = settleCampaignRun(next, this.runCampaign, { runId: this.runId, missionId: this.missionId, result, equity: d.finalEquity, report });
 		}
 		this.saveProgress(next);
 	}

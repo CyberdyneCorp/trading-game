@@ -5,12 +5,14 @@ import { campaignMissions } from './curriculum.ts';
 
 const MISSIONS = [
 	'm01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer',
-	'm06-thin-book', 'm07-trend-trailing', 'm08-regime-switch'
+	'm06-thin-book', 'm07-trend-trailing', 'm08-regime-switch', 'm09-event-straddle', 'm10-hedged-book', 'm11-news-calendar',
+	'm12-capstone'
 ];
 // What the scenarios were built to do is revealed only in the debrief: no outcome, no direction, no
-// timing (m06 leaves its range, m07's trend direction, m08's switches).
+// timing (m06 leaves its range, m07's trend direction, m08's switches, m09's drawn decision, m10's
+// rumor, m11's slipping upgrade, m12's outage).
 const SPOILERS =
-	/rompimento falso|false breakout|incidente|incident|outage|falha de rede|choque|shock|crash|sai do range|leaves? the range|liquidez volta|liquidity returns|para cima|upward|tend[êe]ncia de alta|trend up|sem avisar|without warning|troca de regime|regime switch/i;
+	/rompimento falso|false breakout|incidente|incident|outage|falha de rede|choque|shock|crash|sai do range|leaves? the range|liquidez volta|liquidity returns|para cima|upward|tend[êe]ncia de alta|trend up|sem avisar|without warning|troca de regime|regime switch|rumor|surpresa forte|strong surprise|adiad|delayed|slips?\b|juros mantidos|rates on hold/i;
 
 // A sentence ends at . ! ? followed by a capital letter or the end ("LIQ? mostra" is one sentence).
 const sentences = (s: string) => s.split(/[.!?](?:\s+(?=[A-ZÀ-Ú"])|$)/).filter((x) => x.trim().length > 0).length;
@@ -55,6 +57,17 @@ describe('mission tutorials', () => {
 		expect(arts).toEqual(['chart', 'book', 'ticket', 'risk', 'advisor']);
 		expect(tutorialFor('m07-trend-trailing', 'en').map((c) => c.art)).toContain('trail');
 		expect(tutorialFor('m08-regime-switch', 'en').map((c) => c.art)).toContain('regime');
+	});
+
+	it('batch B cards: the straddle and the announced calendar (m09), the report first in the capstone (m12)', () => {
+		const arts = (id: string) => tutorialFor(id, 'en').map((c) => c.art);
+		expect(arts('m09-event-straddle')).toEqual(['calendar', 'straddle', 'volatility', 'decay', 'chain']);
+		expect(arts('m10-hedged-book')).toEqual(['payoff', 'margin', 'funding', 'chain', 'risk']);
+		expect(arts('m11-news-calendar')).toEqual(['calendar', 'news', 'risk', 'plan', 'advisor']);
+		expect(arts('m12-capstone')).toEqual(['report', 'regime', 'calendar', 'funding', 'risk']);
+		// m11's advisor card explains the EventAhead wait, not the m01 points intro.
+		expect(tutorialFor('m11-news-calendar', 'en').find((c) => c.art === 'advisor')?.body).toMatch(/3 bars.*wait/s);
+		expect(tutorialFor('m11-news-calendar', 'pt-BR').find((c) => c.art === 'advisor')?.body).toMatch(/3 barras.*esperar/s);
 	});
 
 	it('an unknown mission has no tutorial', () => {

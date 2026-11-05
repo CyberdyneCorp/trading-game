@@ -6,7 +6,7 @@ import { i18n } from './i18n.svelte.ts';
 // Every reason code the engine can emit (engine/src/c_api.cpp advice_reason_name).
 const CODES: AdviceReasonCode[] = [
 	'regime_trend_up', 'regime_trend_down', 'regime_range', 'rsi_extreme', 'band_fade', 'macd_momentum', 'pattern',
-	'news_priced', 'news_early', 'funding_crowded', 'low_vol_squeeze'
+	'news_priced', 'news_early', 'funding_crowded', 'low_vol_squeeze', 'event_ahead'
 ];
 
 describe('advisor display', () => {
@@ -29,6 +29,7 @@ describe('advisor display', () => {
 		expect(reasonLine({ code: 'funding_crowded', vote: 0, ref: 1 }, [], 'en')).toContain('longs');
 		expect(reasonLine({ code: 'funding_crowded', vote: 0, ref: -1 }, [], 'en')).toContain('shorts');
 		expect(reasonLine({ code: 'news_priced', vote: 0, ref: 93 }, [], 'en')).toContain('93');
+		expect(reasonLine({ code: 'event_ahead', vote: 0, ref: 96 }, [], 'en')).toContain('Announced release at bar 96');
 		i18n.locale = 'pt-BR';
 	});
 

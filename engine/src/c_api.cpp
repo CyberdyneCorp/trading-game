@@ -215,7 +215,8 @@ void write_indicators(JsonOut& j, const Scenario& sc, std::uint32_t step) {
 
 const char* news_kind_name(NewsKind k) {
   static constexpr const char* kNames[] = {"rate_decision",  "regulation_rumor",       "exchange_incident", "network_outage",
-                                           "liquidity_inflow", "institutional_adoption", "rumor_denied", "liquidity_outflow"};
+                                           "liquidity_inflow", "institutional_adoption", "rumor_denied", "liquidity_outflow",
+                                           "macro_data",       "network_upgrade"};
   return kNames[static_cast<std::size_t>(k)];
 }
 
@@ -229,6 +230,19 @@ void write_news(JsonOut& j, const Scenario& sc, const RunState& st) {
     j.begin_obj().field("step", n.release_step).field("kind", news_kind_name(n.kind)).field("tone", std::int32_t{n.tone});
     j.field("credibility", std::uint32_t{n.credibility}).field("expectation", std::int32_t{n.expectation});
     j.field("actual", std::int32_t{n.actual}).field("early", n.release_step > st.step).end_obj();
+  }
+  j.end_arr();
+}
+
+// Announced releases (G3) not visible yet: kind, release step and the consensus only, from the
+// close of release_step - announce_lead. Tone, actual and credibility stay hidden until release.
+void write_upcoming(JsonOut& j, const Scenario& sc, const RunState& st) {
+  const std::uint32_t visible_until = st.step + st.options.news_lead;
+  j.key("upcoming").begin_arr();
+  for (const NewsItem& n : sc.news) {
+    if (n.announce_lead == 0 || n.release_step <= visible_until || st.step + n.announce_lead < n.release_step) continue;
+    j.begin_obj().field("step", n.release_step).field("kind", news_kind_name(n.kind));
+    j.field("expectation", std::int32_t{n.expectation}).end_obj();
   }
   j.end_arr();
 }
@@ -258,7 +272,7 @@ const char* stance_name(AdviceStance s) {
 const char* advice_reason_name(AdviceReasonCode c) {
   static constexpr const char* kNames[] = {"regime_trend_up", "regime_trend_down", "regime_range", "rsi_extreme",
                                            "band_fade",       "macd_momentum",     "pattern",      "news_priced",
-                                           "news_early",      "funding_crowded",   "low_vol_squeeze"};
+                                           "news_early",      "funding_crowded",   "low_vol_squeeze", "event_ahead"};
   return kNames[static_cast<std::size_t>(c)];
 }
 
@@ -427,6 +441,7 @@ const char* state_json(tl_run& r) {
   write_indicators(j, sc, st.step);
   write_news(j, sc, st);
   write_calendar(j, sc, st);
+  write_upcoming(j, sc, st);
   write_calibration_state(j, sc, st);
   write_advisor(j, st);
   j.key("events").begin_arr();
@@ -550,6 +565,8 @@ const char* tl_mission_reveal(const char* mission_id, uint32_t seed) {
   for (const EventReveal& e : r.events) {
     j.begin_obj().field("step", e.release_step).field("kind", news_kind_name(e.kind)).field("actual", std::int32_t{e.actual});
     j.field("surprise", std::int32_t{e.surprise}).field("intensityPct", e.intensity_pct).field("reaction", std::int32_t{e.reaction});
+    j.field("expectation", std::int32_t{e.expectation}).field("credibility", std::uint32_t{e.credibility});
+    j.field("announceLead", e.announce_lead).field("gapBp", e.gap_bp).field("moveBp", e.move_bp).field("impliedBp", e.implied_bp);
     j.end_obj();
   }
   j.end_arr().end_obj();

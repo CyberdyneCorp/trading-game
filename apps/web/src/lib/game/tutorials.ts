@@ -23,7 +23,9 @@ export type TutorialArt =
 	| 'wire'
 	| 'book'
 	| 'trail'
-	| 'regime';
+	| 'regime'
+	| 'straddle'
+	| 'report';
 
 export interface TutorialCard {
 	art: TutorialArt;
@@ -415,6 +417,234 @@ const m08: Cards = {
 	]
 };
 
+const m09: Cards = {
+	'pt-BR': [
+		{
+			art: 'calendar',
+			title: 'Agenda anunciada',
+			body: 'Algumas divulgações são anunciadas com antecedência: o painel de notícias mostra a barra e o consenso, nunca o resultado. O consenso já está no preço; só a surpresa (anunciado − consenso) move o valor justo.'
+		},
+		{
+			art: 'straddle',
+			title: 'Straddle: dois pontos de equilíbrio',
+			body: 'Comprar uma call e uma put do mesmo strike e vencimento ganha com um movimento grande para qualquer lado. Os pontos de equilíbrio ficam no strike mais e menos o prêmio total pago. Entre eles, o trade perde, no máximo o prêmio.'
+		},
+		{
+			art: 'volatility',
+			title: 'Implícita × realizada',
+			body: 'O prêmio embute o movimento que o mercado espera (a volatilidade implícita, IV). O straddle só paga se o movimento realizado superar esse movimento implícito. Antes de um evento a IV costuma subir, e o prêmio fica caro.'
+		},
+		{
+			art: 'decay',
+			title: 'Theta e a queda da IV',
+			body: 'Cada barra de espera custa theta ao comprador. Depois de uma divulgação, a incerteza sai do preço e a IV costuma cair, levando parte do prêmio junto. Comprar depois da notícia paga o prêmio e já perdeu o gap.'
+		},
+		{
+			art: 'chain',
+			title: 'Strike e vencimento',
+			body: 'Escolha um vencimento que passe da divulgação, ou a opção vence antes do evento. Strikes perto do preço (ATM) reagem mais ao movimento; os distantes custam menos e pagam só com movimentos maiores. Nesta missão você só compra opções.'
+		}
+	],
+	en: [
+		{
+			art: 'calendar',
+			title: 'The announced calendar',
+			body: 'Some releases are announced ahead: the news panel shows their bar and consensus, never the outcome. The consensus is already in the price; only the surprise (announced − consensus) moves fair value.'
+		},
+		{
+			art: 'straddle',
+			title: 'Straddle: two breakevens',
+			body: 'Buying a call and a put of the same strike and expiry gains on a large move either way. The breakevens sit at the strike plus and minus the total premium paid. Between them the trade loses, at most the premium.'
+		},
+		{
+			art: 'volatility',
+			title: 'Implied vs realized',
+			body: 'The premium prices the move the market expects (implied volatility, IV). A straddle pays only if the realized move beats that implied move. Before an event IV tends to rise, and the premium gets expensive.'
+		},
+		{
+			art: 'decay',
+			title: 'Theta and falling IV',
+			body: 'Every bar of waiting costs the buyer theta. After a release the uncertainty leaves the price and IV tends to fall, taking part of the premium with it. Buying after the news pays the premium and has already missed the gap.'
+		},
+		{
+			art: 'chain',
+			title: 'Strike and expiry',
+			body: 'Choose an expiry after the release, or the option expires before the event. Strikes near the price (ATM) respond more to the move; distant ones cost less and pay only on bigger moves. In this mission you can only buy options.'
+		}
+	]
+};
+
+const m10: Cards = {
+	'pt-BR': [
+		{
+			art: 'payoff',
+			title: 'Put de proteção e collar',
+			body: 'Comprado no perpétuo, uma put compra um piso: abaixo do strike, a put ganha o que a posição perde. O collar vende uma call acima do preço para pagar a put, abrindo mão da alta além dela.'
+		},
+		{
+			art: 'margin',
+			title: 'Cada perna tem sua margem',
+			body: 'Aqui cada opção vendida tem margem própria: o ganho do perpétuo não libera margem da call vendida. As opções compradas contam no patrimônio pelo bid. Abaixo da margem de manutenção há recompra forçada.'
+		},
+		{
+			art: 'funding',
+			title: 'Carrego: funding × theta',
+			body: 'Ficar comprado no perpétuo custa funding quando muitos estão comprados. Uma call comprada custa theta em vez disso. Compare os dois antes de escolher como ficar exposto.'
+		},
+		{
+			art: 'chain',
+			title: 'O prazo da proteção',
+			body: 'Seguro tem prazo: uma put vence numa barra certa, e o risco pode chegar depois dela. Prazos mais longos custam mais e protegem por mais tempo.'
+		},
+		{
+			art: 'risk',
+			title: 'Perda máxima de cada estrutura',
+			body: 'Put de proteção: entrada menos strike, mais o prêmio. Spread comprado: o prêmio líquido. Opção vendida a descoberto: muito mais do que o prêmio recebido.'
+		}
+	],
+	en: [
+		{
+			art: 'payoff',
+			title: 'Protective put and collar',
+			body: 'Long the perpetual, a put buys a floor: below the strike, the put gains what the position loses. A collar sells a call above the price to pay for the put, giving up the upside beyond it.'
+		},
+		{
+			art: 'margin',
+			title: 'Each leg has its own margin',
+			body: 'Here each written option is margined on its own: the perpetual’s gain does not free the written call’s margin. Bought options count toward equity at the bid. Below maintenance margin there is a forced buy-back.'
+		},
+		{
+			art: 'funding',
+			title: 'Carry: funding vs theta',
+			body: 'Holding the perpetual long costs funding when many traders are long. A bought call costs theta instead. Compare the two before choosing how to be exposed.'
+		},
+		{
+			art: 'chain',
+			title: 'The tenor of the hedge',
+			body: 'Insurance has a tenor: a put expires on a set bar, and the risk can come after it. Longer tenors cost more and protect for longer.'
+		},
+		{
+			art: 'risk',
+			title: 'Each structure’s maximum loss',
+			body: 'Protective put: entry minus strike, plus the premium. A bought spread: the net premium. A naked written option: far more than the premium collected.'
+		}
+	]
+};
+
+const m11: Cards = {
+	'pt-BR': [
+		{
+			art: 'calendar',
+			title: 'A agenda',
+			body: 'O painel de notícias lista as divulgações anunciadas: o que é, em que barra sai e o consenso. O resultado só aparece na divulgação.'
+		},
+		{
+			art: 'news',
+			title: 'Expectativa × surpresa',
+			body: 'O consenso já está no preço: um resultado igual a ele não muda o valor justo. A surpresa, pesada pela credibilidade, muda, e quase toda entra no gap da abertura seguinte. Notícia boa pode cair, se o mercado já esperava mais.'
+		},
+		{
+			art: 'risk',
+			title: 'Gaps saltam stops',
+			body: 'Um stop vira ordem a mercado quando é atingido; num gap, ele executa no preço da abertura, não no seu. Conte o gap no risco de quem atravessa uma divulgação posicionado.'
+		},
+		{
+			art: 'plan',
+			title: 'Decidir antes',
+			body: 'Antes de cada divulgação, escolha: fora, pequeno ou protegido, e registre o motivo no plano. Ficar fora também é uma decisão.'
+		},
+		{
+			art: 'advisor',
+			title: 'Por que o assessor espera',
+			body: 'Com uma divulgação anunciada a até 3 barras, o assessor puxa a leitura para esperar. Ele não sabe o resultado, assim como você.'
+		}
+	],
+	en: [
+		{
+			art: 'calendar',
+			title: 'The calendar',
+			body: 'The news panel lists announced releases: what each one is, the bar it comes out and its consensus. The outcome appears only at the release.'
+		},
+		{
+			art: 'news',
+			title: 'Expectation vs surprise',
+			body: 'The consensus is already in the price: an outcome equal to it does not change fair value. The surprise, weighted by credibility, does, and almost all of it lands in the next open’s gap. Good news can sell off when the market expected more.'
+		},
+		{
+			art: 'risk',
+			title: 'Gaps jump stops',
+			body: 'A stop becomes a market order when it is hit; in a gap it fills at the open, not at your price. Count the gap in the risk of holding a position through a release.'
+		},
+		{
+			art: 'plan',
+			title: 'Decide before',
+			body: 'Before each release, choose: flat, small or hedged, and record why in the plan. Staying flat is a decision too.'
+		},
+		{
+			art: 'advisor',
+			title: 'Why the advisor waits',
+			body: 'With an announced release up to 3 bars away, the advisor pulls its read toward wait. It does not know the outcome, and neither do you.'
+		}
+	]
+};
+
+const m12: Cards = {
+	'pt-BR': [
+		{
+			art: 'report',
+			title: 'Expectativa e amostra',
+			body: 'Expectativa é o resultado médio por trade em R: taxa de acerto vezes ganho médio, menos taxa de erro vezes perda média. Com poucos trades ela é quase só sorte. O debrief desta missão traz o relatório de toda a campanha.'
+		},
+		{
+			art: 'regime',
+			title: 'Primeiro o regime',
+			body: 'Antes da ferramenta, identifique o regime: lateral, tendência, volatilidade alta ou livro fino. Cada ferramenta serve a um regime e perde nos outros.'
+		},
+		{
+			art: 'calendar',
+			title: 'A divulgação',
+			body: 'Há divulgação anunciada nesta missão: veja a barra e o consenso no painel de notícias. Decida antes dela como quer estar posicionado.'
+		},
+		{
+			art: 'funding',
+			title: 'Receber para carregar',
+			body: 'Quando os shorts estão lotados, quem fica comprado recebe funding a cada intervalo. O ganho é pequeno e certo; a perda, se o preço cair, não é.'
+		},
+		{
+			art: 'risk',
+			title: 'Um trade não pode acabar com a campanha',
+			body: 'Dimensione pelo pior caso, contando gaps e saltos. Sem liquidação e sem chamada de margem: o capital que sobra segue para a próxima campanha.'
+		}
+	],
+	en: [
+		{
+			art: 'report',
+			title: 'Expectancy and sample size',
+			body: 'Expectancy is the average result per trade in R: win rate times average win, minus loss rate times average loss. With few trades it is mostly luck. This mission’s debrief carries the report of the whole campaign run.'
+		},
+		{
+			art: 'regime',
+			title: 'The regime first',
+			body: 'Before the tool, identify the regime: range, trend, high volatility or a thin book. Each tool fits one regime and loses in the others.'
+		},
+		{
+			art: 'calendar',
+			title: 'The release',
+			body: 'There is an announced release in this mission: see its bar and consensus in the news panel. Decide before it how you want to be positioned.'
+		},
+		{
+			art: 'funding',
+			title: 'Paid to carry',
+			body: 'When shorts are crowded, longs collect funding every interval. The gain is small and steady; the loss, if price falls, is not.'
+		},
+		{
+			art: 'risk',
+			title: 'One trade must not end the campaign',
+			body: 'Size for the worst case, counting gaps and jumps. No liquidation and no margin call: what is left carries on.'
+		}
+	]
+};
+
 const TUTORIALS: Record<string, Cards> = {
 	'm01-false-breakout': m01,
 	'm02-funding-squeeze': m02,
@@ -423,7 +653,11 @@ const TUTORIALS: Record<string, Cards> = {
 	'm05-options-writer': m05,
 	'm06-thin-book': m06,
 	'm07-trend-trailing': m07,
-	'm08-regime-switch': m08
+	'm08-regime-switch': m08,
+	'm09-event-straddle': m09,
+	'm10-hedged-book': m10,
+	'm11-news-calendar': m11,
+	'm12-capstone': m12
 };
 
 export function tutorialFor(missionId: string, locale: Locale): TutorialCard[] {

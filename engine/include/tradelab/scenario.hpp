@@ -87,6 +87,8 @@ enum class NewsKind : std::uint8_t {
   InstitutionalAdoption = 5,
   RumorDenied = 6,
   LiquidityOutflow = 7,  // phase-2 flows (design D8): appended, existing values keep their numbers
+  MacroData = 8,         // phase-2 scheduled releases: a fictional economic print
+  NetworkUpgrade = 9,
 };
 
 // What the player can see about a news item once released (spec: market-generator "Events").
@@ -98,6 +100,10 @@ struct NewsItem {
   std::uint8_t credibility = 100;  // 0..100
   std::int8_t expectation = 0;     // what the market expected: -2..2 (shown)
   std::int8_t actual = 0;          // what was announced: -2..2 (shown); surprise = actual - expectation
+  // G3 (design D8.1): announced this many bars ahead. From the close of release_step - announce_lead
+  // the state lists it as upcoming with kind, release step and expectation only. Visibility only:
+  // the bars never depend on it. 0 = unannounced.
+  std::uint32_t announce_lead = 0;
 };
 
 struct Scenario {

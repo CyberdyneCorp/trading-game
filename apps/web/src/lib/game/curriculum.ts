@@ -19,8 +19,8 @@ export type StageId =
 	| 'options2'
 	| 'options3'
 	| 'patterns'
-	| 'evaluation'
-	| 'events';
+	| 'events'
+	| 'evaluation';
 
 /** Tools a campaign mission may use only once their stage is passed. Never purchasable. */
 export type Unlock = 'short' | 'leverage' | 'optionsBuy' | 'optionsWrite';
@@ -43,11 +43,12 @@ export const STAGES: readonly Stage[] = [
 	{ id: 'futures3', requires: ['futures2'], missions: ['m02-funding-squeeze'], unlocks: [] },
 	{ id: 'risk', requires: ['futures3'], missions: ['m07-trend-trailing'], unlocks: [] },
 	{ id: 'options1', requires: ['risk'], missions: ['m04-options-buyer'], unlocks: ['optionsBuy'] },
-	{ id: 'options2', requires: ['options1'], missions: ['m04-options-buyer'], unlocks: [] },
-	{ id: 'options3', requires: ['options2'], missions: ['m05-options-writer'], unlocks: ['optionsWrite'] },
+	{ id: 'options2', requires: ['options1'], missions: ['m04-options-buyer', 'm09-event-straddle'], unlocks: [] },
+	{ id: 'options3', requires: ['options2'], missions: ['m05-options-writer', 'm10-hedged-book'], unlocks: ['optionsWrite'] },
 	{ id: 'patterns', requires: ['options3'], missions: ['m08-regime-switch'], unlocks: [] },
-	{ id: 'evaluation', requires: ['patterns'], missions: [], unlocks: [] },
-	{ id: 'events', requires: ['evaluation'], missions: [], unlocks: [] }
+	// Events before Evaluation (design D8.4): the capstone builds on the news lesson and comes last.
+	{ id: 'events', requires: ['patterns'], missions: ['m11-news-calendar'], unlocks: [] },
+	{ id: 'evaluation', requires: ['events'], missions: ['m12-capstone'], unlocks: [] }
 ];
 
 /** Highest leverage a campaign mission allows before the stage that unlocks `leverage` is passed. */

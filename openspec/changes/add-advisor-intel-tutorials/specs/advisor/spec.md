@@ -1,14 +1,18 @@
 ## ADDED Requirements
 
 ### Requirement: Advice from visible data only
-The engine SHALL compute advice at the current decision step only from data visible to the player at that step: closed bars up to the step, released news (including early headlines delivered by an active perk), the published funding rate and candle patterns ending at or before the step. It SHALL NOT use hidden generator state (fair value, segments, scripted reactions) or any bar after the step.
+The engine SHALL compute advice at the current decision step only from data visible to the player at that step: closed bars up to the step, released news (including early headlines delivered by an active perk), the published funding rate, candle patterns ending at or before the step, and the release steps of releases announced by then (never their outcome). It SHALL NOT use hidden generator state (fair value, segments, scripted reactions) or any bar after the step.
 
 #### Scenario: Future bars do not change advice
 - **WHEN** two scenarios are identical up to step s and differ afterwards
 - **THEN** advice requested at step s SHALL be identical in both
 
 ### Requirement: Advice content
-Advice SHALL contain a stance (long, short or wait), a confidence in basis points between 5000 and 6500, a suggested protective stop price, a suggested size risking 1% of equity at that stop, and the list of reasons that produced it. Each reason SHALL say which way it voted. When a credible news surprise was released within the last 3 bars, advice SHALL say that the news is already priced and SHALL NOT vote in the news' direction because of it.
+Advice SHALL contain a stance (long, short or wait), a confidence in basis points between 5000 and 6500, a suggested protective stop price, a suggested size risking 1% of equity at that stop, and the list of reasons that produced it. Each reason SHALL say which way it voted. When a credible news surprise was released within the last 3 bars, advice SHALL say that the news is already priced and SHALL NOT vote in the news' direction because of it. When a release announced ahead (add-scenarios-and-gameplay G3) is due within the next 3 bars, advice SHALL say that an announced event is ahead and that reason SHALL pull the read one step toward wait, without voting either way.
+
+#### Scenario: Announced release ahead
+- **WHEN** a release announced 20 bars ahead is due 2 bars after the current step
+- **THEN** the reasons SHALL include "event ahead" with its release step and that reason SHALL vote for neither side
 
 #### Scenario: Range with an oversold RSI
 - **WHEN** ADX(14) is below 20 and RSI(14) is below 30 with no other votes
@@ -27,7 +31,7 @@ Requesting advice SHALL be an engine command with a sequence number, recorded in
 - **AND** the state digest SHALL be unchanged by the rejected request
 
 ### Requirement: Honest advisor
-Across the built-in missions (5 missions × 60 seeds, advice every 5 bars, outcome measured from the next open to 5 bars later), long and short advice SHALL be right in 45% to 65% of cases in every mission. The advisor SHALL choose "wait" in at least 20% of requests, and its mean stated confidence SHALL be within 8 percentage points of its measured hit rate.
+Across the built-in missions (every built-in mission × 60 seeds, advice every 5 bars, outcome measured from the next open to 5 bars later), long and short advice SHALL be right in 45% to 65% of cases in every mission. The advisor SHALL choose "wait" in at least 20% of requests, and its mean stated confidence SHALL be within 8 percentage points of its measured hit rate.
 
 #### Scenario: Advisor is not an oracle
 - **WHEN** the realism test measures the advisor on m03
