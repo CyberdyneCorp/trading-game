@@ -73,7 +73,7 @@ void campaign_outcome(const Ctx& c, ScreenModel& m) {
   out.lines.push_back({c.tr("campaign.leg", {{"start", c.money(leg->start_capital)}, {"end", c.money(leg->end_capital)}})});
   std::vector<std::string> passed;
   if (leg->result == LegResult::Finished) {
-    for (const auto& st : stages_of(content, leg->mission_id)) passed.push_back(c.tr("stage." + st));
+    for (const auto& st : stages_passed_with(content, leg->mission_id, c.vm.progress().assessed)) passed.push_back(c.tr("stage." + st));
   }
   std::string stages;
   for (const auto& p : passed) stages += (stages.empty() ? "" : ", ") + p;

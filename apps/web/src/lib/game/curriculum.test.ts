@@ -8,6 +8,7 @@ import {
 	LOCKED_LEVERAGE_CAP,
 	STAGES,
 	stagePassed,
+	stagesPassedWith,
 	stageStatus,
 	type Unlock
 } from './curriculum.ts';
@@ -228,5 +229,12 @@ describe('summary', () => {
 		expect(curriculumSummary([M06])).toEqual({ passed: 2, withContent: 14 }); // Structure and Orders
 		expect(curriculumSummary([M11, M12])).toEqual({ passed: 2, withContent: 14 }); // Events and Evaluation
 		expect(curriculumSummary([M06], ['foundations-bar'])).toEqual({ passed: 3, withContent: 14 }); // + Foundations by its lesson
+	});
+
+	it('Regression: a campaign mission names only the stages it leaves passed (m13 alone does not pass Strategies)', () => {
+		expect(stagesPassedWith('m13-call-spread', ['m13-call-spread'])).toEqual([]);
+		expect(stagesPassedWith('m17-before-expiry', [...STRATEGIES])).toEqual(['strategies']);
+		expect(stagesPassedWith('m04-options-buyer', ['m04-options-buyer'])).toEqual(['options1']); // Options II needs m09 too
+		expect(stagesPassedWith('m06-thin-book', ['m06-thin-book'])).toEqual(['structure', 'orders']);
 	});
 });

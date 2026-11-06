@@ -67,6 +67,14 @@ Ids stages_of(const WebContent& c, std::string_view mission) {
   return out;
 }
 
+Ids stages_passed_with(const WebContent& c, std::string_view mission, const Ids& assessed) {
+  Ids out;
+  for (const auto& s : stages_of(c, mission)) {
+    if (stage_passed(c, s, assessed)) out.push_back(s);
+  }
+  return out;
+}
+
 std::string unlock_stage(const WebContent& c, std::string_view unlock) {
   for (const auto& s : c.stages) {
     if (contains(s.unlocks, unlock)) return s.id;

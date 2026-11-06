@@ -22,6 +22,8 @@ Ids campaign_missions(const WebContent& c);
 bool stage_passed(const WebContent& c, std::string_view id, const Ids& assessed, const Ids& lessons_done = {});
 StageStatus stage_status(const WebContent& c, std::string_view id, const Ids& assessed, const Ids& lessons_done = {});
 Ids stages_of(const WebContent& c, std::string_view mission);
+// The stages a finished mission leaves passed: a stage with several missions is passed by its last.
+Ids stages_passed_with(const WebContent& c, std::string_view mission, const Ids& assessed);
 std::string unlock_stage(const WebContent& c, std::string_view unlock);
 
 struct Permissions {

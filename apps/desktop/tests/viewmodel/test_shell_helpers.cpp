@@ -63,6 +63,11 @@ TEST_CASE("curriculum: statuses, campaign order and the leverage gate") {
   CHECK(stage_passed(C(), "orders", {"m06-thin-book"}));  // its lesson never gates it
   CHECK_FALSE(stage_passed(C(), "orders", {}, {"orders-execution"}));
   CHECK(stage_status(C(), "futures1", {"m06-thin-book"}) == StageStatus::Open);
+  // Regression: the debrief named Strategies passed after m13 alone (it has five missions).
+  CHECK(stages_passed_with(C(), "m13-call-spread", {"m13-call-spread"}).empty());
+  CHECK(stages_passed_with(C(), "m04-options-buyer", {"m04-options-buyer"}) == Ids{"options1"});
+  const Ids strategies{"m13-call-spread", "m14-covered-call", "m15-protective-put", "m16-range-condor", "m17-before-expiry"};
+  CHECK(stages_passed_with(C(), "m17-before-expiry", strategies) == Ids{"strategies"});
 
   const Permissions first = campaign_permissions(C(), "m06-thin-book", none);
   CHECK(first.leverage_cap == 2);

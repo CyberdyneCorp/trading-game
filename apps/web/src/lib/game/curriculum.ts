@@ -115,6 +115,14 @@ export function stagesOf(missionId: string): StageId[] {
 	return STAGES.filter((s) => s.missions.includes(missionId)).map((s) => s.id);
 }
 
+/**
+ * The stages a finished mission leaves passed: its stages whose missions are now all assessed. A stage
+ * with several missions (Options II, Options III, Strategies) is passed by its last one, not its first.
+ */
+export function stagesPassedWith(missionId: string, assessed: readonly string[]): StageId[] {
+	return stagesOf(missionId).filter((s) => stagePassed(s, assessed));
+}
+
 /** The stage that grants an unlock. */
 export function unlockStage(u: Unlock): StageId {
 	const s = STAGES.find((x) => x.unlocks.includes(u));
