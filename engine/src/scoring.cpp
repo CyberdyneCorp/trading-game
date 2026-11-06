@@ -319,24 +319,29 @@ void apply_fill(OpenBook& b, const Event& e) {
 // calls, so it is not counted as an unprotected entry either. Cover is judged after all fills of a
 // step (the legs of a combo fill at the same open), at every step with a fill: closing the long
 // that covered a short leaves it naked.
+std::int64_t held_option(const OpenBook& b, std::uint32_t series) {
+  const auto it = std::find_if(b.options.begin(), b.options.end(), [series](const auto& p) { return p.first == series; });
+  return it == b.options.end() ? 0 : it->second;
+}
+
+// Applies one event to the open book (and counts option entries); true when it was a fill.
+bool apply_event(OpenBook& b, const Event& e, Facts& f) {
+  if (e.type == EventType::Liquidation) b.perp = 0;
+  if (e.type == EventType::OptionSettlement) {
+    for (auto& [id, q] : b.options) q = id == e.series ? 0 : q;
+  }
+  if (e.type != EventType::Fill) return false;
+  if (option_fill(e) && grows_exposure(held_option(b, e.series), sign_of(e.side) * e.qty.raw)) f.entries += 1;
+  apply_fill(b, e);
+  return true;
+}
+
 void count_option_entries(const Scenario& sc, const RunState& st, Facts& f) {
   OpenBook book;
   bool filled_this_step = false;
   for (std::size_t i = 0; i < st.events.size(); ++i) {
-    const Event& e = st.events[i];
-    if (e.type == EventType::Liquidation) book.perp = 0;
-    if (e.type == EventType::OptionSettlement) {
-      for (auto& [id, q] : book.options) q = id == e.series ? 0 : q;
-    }
-    if (e.type == EventType::Fill) {
-      const auto it = std::find_if(book.options.begin(), book.options.end(), [&e](const auto& p) { return p.first == e.series; });
-      const std::int64_t held = it == book.options.end() ? 0 : it->second;
-      const bool grows = grows_exposure(held, sign_of(e.side) * e.qty.raw);
-      if (option_fill(e)) f.entries += grows ? 1 : 0;
-      filled_this_step = true;
-      apply_fill(book, e);
-    }
-    const bool step_ends = i + 1 == st.events.size() || st.events[i + 1].step != e.step;
+    filled_this_step = apply_event(book, st.events[i], f) || filled_this_step;
+    const bool step_ends = i + 1 == st.events.size() || st.events[i + 1].step != st.events[i].step;
     if (step_ends && filled_this_step) {
       f.wrote_options = f.wrote_options || has_uncovered_short(sc, book);
       filled_this_step = false;
