@@ -22,3 +22,31 @@ class UnsupportedPolicy(DomainError):
 
 class InvalidLog(DomainError):
     code = "invalid_log"
+
+
+class TooLarge(DomainError):
+    """An upload above its configured size limit (413)."""
+
+    code = "too_large"
+class LimitExceeded(DomainError):
+    """A per-player limit (for example the number of preference keys) would be exceeded."""
+
+    code = "limit_exceeded"
+
+
+class Forbidden(DomainError):
+    """Signed in, but without the entitlement the resource requires."""
+
+    code = "forbidden"
+
+
+class Unauthenticated(DomainError):
+    """The resource needs a signed-in player."""
+
+    code = "unauthenticated"
+
+
+class ReplayUnavailable(DomainError):
+    """The replay worker of an older execution policy failed; nothing was stored, retry later."""
+
+    code = "replay_unavailable"
