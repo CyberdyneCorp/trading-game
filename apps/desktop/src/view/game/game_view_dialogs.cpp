@@ -32,6 +32,19 @@ Rid add_label(Rid box, const std::string& text, game::Tone tone, float size = 13
   return l;
 }
 
+// The run's plans; a combo's entry also shows its state and net premium so far (RunJournal's comboNote).
+std::vector<game::Line> journal_dialog_lines(const game::Texts& t, const game::GameViewModel& m) {
+  std::vector<game::Line> lines;
+  const auto texts = game::journal_lines(t, m.journal());
+  for (std::size_t i = 0; i < texts.size(); ++i) {
+    lines.push_back({texts[i], game::Tone::Plain});
+    const std::string note = m.journal()[i].combo.empty() ? std::string() : m.combo_note(m.journal()[i].combo);
+    if (!note.empty()) lines.push_back({"    " + note, game::Tone::Muted});
+  }
+  if (lines.empty()) lines.push_back({t.tr("runJournal.empty"), game::Tone::Muted});
+  return lines;
+}
+
 }  // namespace
 
 void GameView::bind_plan_dialog() {
@@ -97,19 +110,7 @@ void GameView::apply_modal(const game::Texts& t, const GameState& g) {
       break;
     }
     case Modal::Help: apply_help(t); break;
-    case Modal::Journal: {
-      std::vector<game::Line> lines;
-      const auto texts = game::journal_lines(t, vm().journal());
-      for (std::size_t i = 0; i < texts.size(); ++i) {
-        lines.push_back({texts[i], game::Tone::Plain});
-        // A combo's entry: its state and net premium so far (RunJournal's comboNote).
-        const std::string& combo = vm().journal()[i].combo;
-        if (!combo.empty() && !vm().combo_note(combo).empty()) lines.push_back({"    " + vm().combo_note(combo), game::Tone::Muted});
-      }
-      if (lines.empty()) lines.push_back({t.tr("runJournal.empty"), game::Tone::Muted});
-      journal_.set(lines);
-      break;
-    }
+    case Modal::Journal: journal_.set(journal_dialog_lines(t, vm())); break;
     case Modal::Pattern: {
       const auto id = vm().pattern_id();
       const game::PatternCard c = id ? game::pattern_card(t, *id) : game::PatternCard{t.tr("patterns.title"), t.tr("patterns.note"), "", ""};

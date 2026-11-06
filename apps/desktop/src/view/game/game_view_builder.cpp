@@ -155,6 +155,31 @@ void GameView::apply_builder(const game::Texts& t, const GameState& g) {
   Rwidget_invalidate(find(b::kPayoff));
 }
 
+namespace {
+
+Rid add_combo(Rid row, const std::vector<std::string>& items, const std::string& name, float width) {
+  const Rid c = Rwidget_create(R_WIDGET_COMBO_BOX);
+  fill(c, items);
+  Rwidget_set_accessible_name(c, name.c_str());
+  if (width > 0) Rwidget_set_size(c, width, -1);
+  Rwidget_add_child(row, c);
+  return c;
+}
+
+Rid add_filler(Rid row) {
+  const Rid spacer = Rwidget_create(R_WIDGET_SPACER);
+  Rwidget_add_child(row, spacer);
+  Rslot_set_fill(spacer, 1);
+  return spacer;
+}
+
+game::LegKind kind_at(int k) {
+  if (k == 0) return game::LegKind::Call;
+  return k == 1 ? game::LegKind::Put : game::LegKind::Perp;
+}
+
+}  // namespace
+
 // One row per leg: kind, side, strike (options), quantity, remove; and its no-bid warning. Rebuilt only
 // when the rows' shape changes, so a quantity being typed keeps its field.
 void GameView::build_leg_rows(const game::BuilderView& v) {
@@ -162,7 +187,11 @@ void GameView::build_leg_rows(const game::BuilderView& v) {
   for (const auto& l : v.legs) key += std::to_string(l.kind == 2 ? 2 : 0);
   if (key == legs_key_ && leg_rows_.size() == v.legs.size()) return;
   legs_key_ = key;
-  const Rid box = find(b::kLegs);
+  clear_leg_rows();
+  for (std::size_t i = 0; i < v.legs.size(); ++i) add_leg_row(v, i);
+}
+
+void GameView::clear_leg_rows() {
   for (const Rid leg : leg_rows_) {
     for (int r = 0; r < Rwidget_get_child_count(leg); ++r) {
       const Rid row = Rwidget_get_child(leg, r);
@@ -171,67 +200,56 @@ void GameView::build_leg_rows(const game::BuilderView& v) {
     Rwidget_destroy(leg);
   }
   leg_rows_.clear();
-  for (std::size_t i = 0; i < v.legs.size(); ++i) {
-    const Rid leg = Rwidget_create(R_WIDGET_VBOX);
-    const Rid row = Rwidget_create(R_WIDGET_HBOX);
-    Rwidget_add_child(leg, row);
-    const auto combo = [&](const std::vector<std::string>& items, const char* name, float width) {
-      const Rid c = Rwidget_create(R_WIDGET_COMBO_BOX);
-      fill(c, items);
-      Rwidget_set_accessible_name(c, name);
-      if (width > 0) Rwidget_set_size(c, width, -1);
-      Rwidget_add_child(row, c);
-      return c;
-    };
-    const game::Texts t = vm().texts();
-    const Rid kind = combo(v.kinds, t.tr("lab.kind").c_str(), 64);
-    const Rid side = combo(v.sides, t.tr("lab.side").c_str(), 84);
-    cb_.choose(kind, [this, i](int k) {
+}
+
+void GameView::add_leg_row(const game::BuilderView& v, std::size_t i) {
+  const game::Texts t = vm().texts();
+  const Rid leg = Rwidget_create(R_WIDGET_VBOX);
+  const Rid row = Rwidget_create(R_WIDGET_HBOX);
+  Rwidget_add_child(leg, row);
+  cb_.choose(add_combo(row, v.kinds, t.tr("lab.kind"), 64), [this, i](int k) {
+    if (vm().state() == nullptr) return;
+    vm().builder.set_kind(*vm().state(), i, kind_at(k));
+    vm().builder_changed();
+  });
+  cb_.choose(add_combo(row, v.sides, t.tr("lab.side"), 84), [this, i](int s) {
+    vm().builder.set_side(i, s == 0);
+    vm().builder_changed();
+  });
+  if (v.legs[i].kind == 2) {
+    add_filler(row);
+  } else {
+    const Rid strike = add_combo(row, v.strikes, t.tr("opt.strike"), 0);
+    Rslot_set_fill(strike, 1);
+    cb_.choose(strike, [this, i](int s) {
       if (vm().state() == nullptr) return;
-      vm().builder.set_kind(*vm().state(), i, k == 0 ? game::LegKind::Call : (k == 1 ? game::LegKind::Put : game::LegKind::Perp));
+      vm().builder.set_strike(*vm().state(), i, s);
       vm().builder_changed();
     });
-    cb_.choose(side, [this, i](int s) {
-      vm().builder.set_side(i, s == 0);
-      vm().builder_changed();
-    });
-    if (v.legs[i].kind != 2) {
-      const Rid strike = combo(v.strikes, t.tr("opt.strike").c_str(), 0);
-      Rslot_set_fill(strike, 1);
-      cb_.choose(strike, [this, i](int s) {
-        if (vm().state() == nullptr) return;
-        vm().builder.set_strike(*vm().state(), i, s);
-        vm().builder_changed();
-      });
-    } else {
-      const Rid spacer = Rwidget_create(R_WIDGET_SPACER);
-      Rwidget_add_child(row, spacer);
-      Rslot_set_fill(spacer, 1);
-    }
-    const Rid qty = Rwidget_create(R_WIDGET_TEXT_INPUT);
-    Rwidget_set_size(qty, 52, -1);
-    Rwidget_set_accessible_name(qty, t.tr("opt.qty").c_str());
-    Rwidget_add_child(row, qty);
-    cb_.text(qty, [this, i](const std::string& text) { vm().builder.set_leg_qty(i, text); });
-    cb_.commit(qty, [this] { vm().builder_changed(); });
-    const Rid remove = Rbutton_create("\xE2\x9C\x95");  // ✕
-    Rwidget_set_accessible_name(remove, t.tr("lab.remove").c_str());
-    Rwidget_add_child(row, remove);
-    cb_.click(remove, [this, i] {
-      vm().builder.remove_leg(i);
-      vm().builder_changed();
-    });
-    const Rid warn = Rlabel_create(t.tr("builder.noBid").c_str());
-    Rlabel_set_wrap(warn, R_TRUE);
-    Rlabel_set_text_size(warn, 11);
-    set_color(warn, game::Tone::Attention);
-    const Rid warn_row = Rwidget_create(R_WIDGET_HBOX);
-    Rwidget_add_child(warn_row, warn);
-    Rslot_set_fill(warn, 1);
-    Rwidget_add_child(leg, warn_row);
-    Rwidget_add_child(box, leg);
-    leg_rows_.push_back(leg);
   }
+  const Rid qty = Rwidget_create(R_WIDGET_TEXT_INPUT);
+  Rwidget_set_size(qty, 52, -1);
+  Rwidget_set_accessible_name(qty, t.tr("opt.qty").c_str());
+  Rwidget_add_child(row, qty);
+  cb_.text(qty, [this, i](const std::string& text) { vm().builder.set_leg_qty(i, text); });
+  cb_.commit(qty, [this] { vm().builder_changed(); });
+  const Rid remove = Rbutton_create("\xE2\x9C\x95");  // ✕
+  Rwidget_set_accessible_name(remove, t.tr("lab.remove").c_str());
+  Rwidget_add_child(row, remove);
+  cb_.click(remove, [this, i] {
+    vm().builder.remove_leg(i);
+    vm().builder_changed();
+  });
+  const Rid warn = Rlabel_create(t.tr("builder.noBid").c_str());
+  Rlabel_set_wrap(warn, R_TRUE);
+  Rlabel_set_text_size(warn, 11);
+  set_color(warn, game::Tone::Attention);
+  const Rid warn_row = Rwidget_create(R_WIDGET_HBOX);
+  Rwidget_add_child(warn_row, warn);
+  Rslot_set_fill(warn, 1);
+  Rwidget_add_child(leg, warn_row);
+  Rwidget_add_child(find(b::kLegs), leg);
+  leg_rows_.push_back(leg);
 }
 
 void GameView::apply_leg_rows(const game::BuilderView& v) {

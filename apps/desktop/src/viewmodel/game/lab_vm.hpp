@@ -66,6 +66,8 @@ std::string max_loss_text(const Texts& t, const WhatIfResult& r);
 // The same numbers in a narrow panel (the builder): one line per leg, then the position's Greeks.
 std::vector<Line> whatif_compact(const Texts& t, const WhatIfResult& r);
 ChartScene payoff_scene(const WhatIfResult& r, float width, float height);
+// The chart's accessible description and legend, into `v`.
+void chart_texts(const Texts& t, const WhatIfResult& r, LabView& v);
 
 class LabViewModel {
  public:
@@ -102,6 +104,7 @@ class LabViewModel {
   [[nodiscard]] const std::string& error() const { return error_; }
 
   [[nodiscard]] LabView view(const Texts& t) const;
+  [[nodiscard]] LabSliderView slider_view(const Texts& t, Slider s) const;
   AnalysisTicket ticket;
 
  private:

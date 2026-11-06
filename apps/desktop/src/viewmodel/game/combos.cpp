@@ -54,6 +54,16 @@ ComboState overall(const ComboRecord& rec, const std::vector<LegStatus>& legs) {
   return filled == 0 ? ComboState::NotExecuted : ComboState::Incomplete;
 }
 
+// The accepted orders from `start` match the legs in order (side and quantity).
+bool run_matches(const std::vector<const EngineEvent*>& accepted, std::size_t start, const ComboRecord& rec) {
+  for (std::size_t i = 0; i < rec.legs.size(); ++i) {
+    const EngineEvent& e = *accepted[start + i];
+    const OrderLeg& leg = rec.legs[i];
+    if (e.side != (leg.buy ? "buy" : "sell") || !same_qty(e.qty, leg.qty)) return false;
+  }
+  return true;
+}
+
 const ComboTrade* trade_of_leg(const std::vector<ComboTrade>& trades, const LegStatus& l) {
   const std::string side = l.leg.buy ? "long" : "short";
   for (const auto& t : trades) {
@@ -122,13 +132,7 @@ std::vector<std::optional<int>> combo_order_ids(const std::vector<EngineEvent>& 
   }
   const auto n = static_cast<std::ptrdiff_t>(rec.legs.size());
   for (auto start = static_cast<std::ptrdiff_t>(accepted.size()) - n; start >= 0; --start) {
-    bool match = true;
-    for (std::ptrdiff_t i = 0; i < n && match; ++i) {
-      const EngineEvent& e = *accepted[static_cast<std::size_t>(start + i)];
-      const OrderLeg& leg = rec.legs[static_cast<std::size_t>(i)];
-      match = e.side == (leg.buy ? "buy" : "sell") && same_qty(e.qty, leg.qty);
-    }
-    if (!match) continue;
+    if (!run_matches(accepted, static_cast<std::size_t>(start), rec)) continue;
     std::vector<std::optional<int>> ids;
     for (std::ptrdiff_t i = 0; i < n; ++i) ids.emplace_back(accepted[static_cast<std::size_t>(start + i)]->order_id);
     return ids;

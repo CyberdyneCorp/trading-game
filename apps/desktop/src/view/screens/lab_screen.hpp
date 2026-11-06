@@ -28,6 +28,7 @@ class LabScreen {
  private:
   [[nodiscard]] Rid find(std::string_view name) const;
   void build_rows(const game::Texts& t);
+  void add_row(const game::Texts& t, std::size_t i);
   void apply_rows();
   void edited();
 

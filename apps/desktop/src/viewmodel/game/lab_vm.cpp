@@ -231,15 +231,7 @@ LabView LabViewModel::view(const Texts& t) const {
   const bool terminal = mode == LabMode::Terminal;
   const Locale L = t.locale();
   v.note = t.tr("lab.model") + (terminal ? " " + t.tr("lab.todayIv") : "");
-  for (const Slider s : kSliders) {
-    const bool locked = std::find(unlocked.begin(), unlocked.end(), s) == unlocked.end();
-    LabSliderView sv{s, t.tr("lab.slider." + std::string(slider_code(s))) + (locked ? kDot + t.tr("lab.locked") : ""),
-                     s == Slider::Price ? -kPriceRange : (s == Slider::Iv ? -kIvRange : 0),
-                     s == Slider::Price ? kPriceRange : (s == Slider::Iv ? kIvRange : max_time()),
-                     slider_value(shift, s), !locked && !(s == Slider::Time && max_time() == 0),
-                     slider_text(t, s, shift, forward, terminal)};
-    v.sliders.push_back(std::move(sv));
-  }
+  for (const Slider s : kSliders) v.sliders.push_back(slider_view(t, s));
   if (!error_.empty()) v.error = t.tr(error_ == "unsupported" ? "lab.unsupported" : "lab.error");
   if (!result_ || !error_.empty()) return v;
   const WhatIfResult& r = *result_;
@@ -254,6 +246,26 @@ LabView LabViewModel::view(const Texts& t) const {
   }
   if (r.at_expiry) v.at_expiry_note = t.tr("lab.atExpiryNote");
   v.table = whatif_table(t, r, !terminal);
+  chart_texts(t, r, v);
+  return v;
+}
+
+LabSliderView LabViewModel::slider_view(const Texts& t, Slider s) const {
+  const bool locked = std::find(unlocked.begin(), unlocked.end(), s) == unlocked.end();
+  LabSliderView sv;
+  sv.which = s;
+  sv.label = t.tr("lab.slider." + std::string(slider_code(s))) + (locked ? kDot + t.tr("lab.locked") : "");
+  sv.min = s == Slider::Price ? -kPriceRange : (s == Slider::Iv ? -kIvRange : 0);
+  sv.max = s == Slider::Price ? kPriceRange : (s == Slider::Iv ? kIvRange : max_time());
+  sv.value = slider_value(shift, s);
+  sv.enabled = !locked && !(s == Slider::Time && max_time() == 0);
+  sv.text = slider_text(t, s, shift, forward, mode == LabMode::Terminal);
+  return sv;
+}
+
+// The chart's accessible description (PayoffChart.svelte's summary) and its legend.
+void chart_texts(const Texts& t, const WhatIfResult& r, LabView& v) {
+  const Locale L = t.locale();
   const std::string profit = r.expiry && r.expiry->max_profit ? fmt::fmt_money(*r.expiry->max_profit, L) : t.tr("lab.unbounded");
   const std::string loss = r.expiry && r.expiry->max_loss ? fmt::fmt_money(*r.expiry->max_loss, L) : t.tr("lab.unbounded");
   v.chart_summary = t.tr("lab.chartSummary", {{"bes", breakevens_text(r, L)}, {"profit", profit}, {"loss", loss}});
@@ -261,7 +273,6 @@ LabView LabViewModel::view(const Texts& t) const {
     v.chart_legend = fmt::fmt_price(js_number(g->lo), L) + "   \xE2\x94\x80\xE2\x94\x80 " + t.tr("lab.atExpiry") + "   - - " +
                      t.tr("lab.today") + "   " + fmt::fmt_price(js_number(g->hi), L);
   }
-  return v;
 }
 
 }  // namespace tradelab::desktop::game

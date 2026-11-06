@@ -86,6 +86,8 @@ class GameView {
   void bind_builder();
   void apply_builder(const game::Texts& t, const GameState& g);
   void build_leg_rows(const game::BuilderView& v);
+  void clear_leg_rows();
+  void add_leg_row(const game::BuilderView& v, std::size_t i);
   void apply_leg_rows(const game::BuilderView& v);
   void apply_combo_notice();
   void apply_lab_dialog(const game::Texts& t);

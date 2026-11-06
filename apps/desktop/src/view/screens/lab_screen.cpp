@@ -93,6 +93,24 @@ void LabScreen::refresh() {
   panel_->apply(t);
 }
 
+namespace {
+
+Rid add_combo(Rid row, std::initializer_list<std::string> items, const std::string& name) {
+  const Rid c = Rwidget_create(R_WIDGET_COMBO_BOX);
+  for (const auto& item : items) Rcombo_box_add_item(c, item.c_str());
+  Rwidget_set_accessible_name(c, name.c_str());
+  Rwidget_set_size(c, 120, -1);
+  Rwidget_add_child(row, c);
+  return c;
+}
+
+game::LegKind kind_at(int k) {
+  if (k == 0) return game::LegKind::Call;
+  return k == 1 ? game::LegKind::Put : game::LegKind::Perp;
+}
+
+}  // namespace
+
 // A row per leg: kind, side, strike, quantity, days, IV, entry and remove; rebuilt when the number of
 // legs or the locale changes, so a field being typed in keeps its focus.
 void LabScreen::build_rows(const game::Texts& t) {
@@ -105,54 +123,44 @@ void LabScreen::build_rows(const game::Texts& t) {
     Rwidget_destroy(row);
   }
   rows_.clear();
-  const Rid box = find(b::kScreenLegs);
-  for (std::size_t i = 0; i < legs.size(); ++i) {
-    const Rid row = Rwidget_create(R_WIDGET_WRAP_BOX);
-    const auto combo = [&](std::initializer_list<std::string> items, const std::string& name) {
-      const Rid c = Rwidget_create(R_WIDGET_COMBO_BOX);
-      for (const auto& item : items) Rcombo_box_add_item(c, item.c_str());
-      Rwidget_set_accessible_name(c, name.c_str());
-      Rwidget_set_size(c, 120, -1);
-      Rwidget_add_child(row, c);
-      return c;
-    };
-    const Rid kind = combo({"Call", "Put", t.tr("lab.perp")}, t.tr("lab.kind"));
-    const Rid side = combo({t.tr("opt.buy"), t.tr("opt.sell")}, t.tr("lab.side"));
-    cb_.choose(kind, [this, i](int k) {
-      auto& l = app_.academy_lab().academy_legs.at(i);
-      l.kind = k == 0 ? game::LegKind::Call : (k == 1 ? game::LegKind::Put : game::LegKind::Perp);
-      edited();
+  for (std::size_t i = 0; i < legs.size(); ++i) add_row(t, i);
+}
+
+void LabScreen::add_row(const game::Texts& t, std::size_t i) {
+  const Rid row = Rwidget_create(R_WIDGET_WRAP_BOX);
+  cb_.choose(add_combo(row, {"Call", "Put", t.tr("lab.perp")}, t.tr("lab.kind")), [this, i](int k) {
+    app_.academy_lab().academy_legs.at(i).kind = kind_at(k);
+    edited();
+  });
+  cb_.choose(add_combo(row, {t.tr("opt.buy"), t.tr("opt.sell")}, t.tr("lab.side")), [this, i](int s) {
+    app_.academy_lab().academy_legs.at(i).buy = s == 0;
+    edited();
+  });
+  for (const auto& f : kFields) {
+    const Rid label = Rlabel_create(t.tr(f.label).c_str());
+    Rlabel_set_text_size(label, 11);
+    set_color(label, game::Tone::Muted);
+    Rwidget_add_child(row, label);
+    const Rid input = Rwidget_create(R_WIDGET_TEXT_INPUT);
+    Rwidget_set_size(input, f.width, -1);
+    Rwidget_set_accessible_name(input, t.tr(f.label).c_str());
+    Rwidget_add_child(row, input);
+    double AcademyLeg::*member = f.member;
+    cb_.text(input, [this, i, member](const std::string& text) {
+      const double v = fmt::parse_decimal(text);
+      if (std::isfinite(v)) app_.academy_lab().academy_legs.at(i).*member = v;
     });
-    cb_.choose(side, [this, i](int s) {
-      app_.academy_lab().academy_legs.at(i).buy = s == 0;
-      edited();
-    });
-    for (const auto& f : kFields) {
-      const Rid label = Rlabel_create(t.tr(f.label).c_str());
-      Rlabel_set_text_size(label, 11);
-      set_color(label, game::Tone::Muted);
-      Rwidget_add_child(row, label);
-      const Rid input = Rwidget_create(R_WIDGET_TEXT_INPUT);
-      Rwidget_set_size(input, f.width, -1);
-      Rwidget_set_accessible_name(input, t.tr(f.label).c_str());
-      Rwidget_add_child(row, input);
-      double AcademyLeg::*member = f.member;
-      cb_.text(input, [this, i, member](const std::string& text) {
-        const double v = fmt::parse_decimal(text);
-        if (std::isfinite(v)) app_.academy_lab().academy_legs.at(i).*member = v;
-      });
-      cb_.commit(input, [this] { edited(); });
-    }
-    const Rid remove = Rbutton_create("\xE2\x9C\x95");  // ✕
-    Rwidget_set_accessible_name(remove, t.tr("lab.remove").c_str());
-    Rwidget_add_child(row, remove);
-    cb_.click(remove, [this, i] {
-      app_.academy_lab().remove_leg(i);
-      edited();
-    });
-    Rwidget_add_child(box, row);
-    rows_.push_back(row);
+    cb_.commit(input, [this] { edited(); });
   }
+  const Rid remove = Rbutton_create("\xE2\x9C\x95");  // ✕
+  Rwidget_set_accessible_name(remove, t.tr("lab.remove").c_str());
+  Rwidget_add_child(row, remove);
+  cb_.click(remove, [this, i] {
+    app_.academy_lab().remove_leg(i);
+    edited();
+  });
+  Rwidget_add_child(find(b::kScreenLegs), row);
+  rows_.push_back(row);
 }
 
 void LabScreen::apply_rows() {
