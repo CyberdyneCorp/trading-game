@@ -301,7 +301,7 @@ TEST_CASE("academy: completing schedules a review a day later; reviews move up, 
 TEST_CASE("academy: the menu's review prompt counts the reviews due and stays dismissed for the day") {
   Fixture f;
   ScreenModel m = f.vm.screen_model();
-  CHECK(m.text_of(names::kMenuAcademy) == "🎓 Academia");
+  CHECK(m.text_of(names::kMenuAcademy) == "Academia");
   CHECK_FALSE(m.is_visible(names::kMenuReviewRow));
   f.vm.open_lesson("mind-plan", Screen::Menu);
   f.finish_lesson(false);

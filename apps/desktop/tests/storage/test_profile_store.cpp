@@ -66,6 +66,30 @@ TEST_CASE("profile store: progress written in one launch is read back in the nex
   CHECK(again.durable());
 }
 
+TEST_CASE("profile store: the Academy's progress (reviews, tours, glossary) is read back; damaged reviews dropped") {
+  TempDir dir;
+  tradelab::desktop::Progress p;
+  p.lessons_done = {"options-payoff"};
+  p.lesson_reviews = {{"options-payoff", {3, "2026-05-01"}}, {"risk-sizing", {kReviewRetired, "2026-04-01"}}};
+  p.coach_done = {"first-trade"};
+  p.glossary_seen = {"call", "put"};
+  {
+    storage::ProfileStore store(dir.path() / "tradelab.db");
+    store.save_progress(p);
+  }
+  storage::ProfileStore again(dir.path() / "tradelab.db");
+  const tradelab::desktop::Progress back = again.load_progress();
+  CHECK(back.lesson_reviews == p.lesson_reviews);
+  CHECK(back.coach_done == p.coach_done);
+  CHECK(back.glossary_seen == p.glossary_seen);
+  // review.ts readReviews: a bad box or day is dropped, a box past the last is retired.
+  const auto bad = json::parse(R"({"a":{"box":0,"due":"2026-01-01"},"b":{"box":2,"due":"01/01/2026"},"c":{"box":9,"due":"2026-01-01"}})");
+  REQUIRE(bad);
+  const LessonReviews read = progress_json::reviews_from(*bad);
+  REQUIRE(read.size() == 1);
+  CHECK(read.at("c").box == kReviewRetired);
+}
+
 TEST_CASE("profile store: the runs table is the shell's run list; the shell writes journal, campaign link and left") {
   TempDir dir;
   storage::ProfileStore store(dir.path() / "tradelab.db");

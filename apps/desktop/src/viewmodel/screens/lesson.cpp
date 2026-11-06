@@ -84,7 +84,7 @@ void terms(const AppViewModel& vm, const LessonStep& step, ScreenModel& m) {
     m.show(names::kLessonTerms[i], shown);
     if (!shown) continue;
     const std::string tip = term_tip(vm, step.terms[i]);
-    m.text(names::kLessonTerms[i], "\xF0\x9F\x93\x96 " + vm.tr("glossary." + step.terms[i] + ".term"));  // 📖
+    m.text(names::kLessonTerms[i], vm.tr("glossary." + step.terms[i] + ".term"));
     m.tip(names::kLessonTerms[i], tip + " " + vm.tr("glossary.more"));
   }
 }

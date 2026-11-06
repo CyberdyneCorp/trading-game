@@ -153,18 +153,28 @@ Suggested PRs, in order:
 
 ## D. Desktop
 
-- [ ] D1 Generator, needs W1: `gen_i18n.mjs` reads `content/academy/*.json`, `glossary.json` and `coach.json` into `strings.csv` (`academyLesson.*`, `glossary.*`, `coach.*`) and `content.json`, replacing the TypeScript evaluation of `academy.ts`; `check_i18n.mjs` drift; script tests updated; the Foundations lesson renders as before (headless and windowed captures unchanged).
+- [x] D1 Generator, needs W1: `gen_i18n.mjs` reads `content/academy/*.json`, `glossary.json` and `coach.json` into `strings.csv` (`academyLesson.*`, `glossary.*`, `coach.*`) and `content.json`, replacing the TypeScript evaluation of `academy.ts`; `check_i18n.mjs` drift; script tests updated; the Foundations lesson renders as before (headless and windowed captures unchanged).
+
+  As built: content.json also carries the glossary's structure (id, stage, related), the coach steps (id, target, completes), each lesson step's linked glossary ids (`terms`) and `glossary.ts` `FINDING_TERMS` (`findingTerms`); script tests in `tests/scripts/screen_sources.test.mjs`.
 - [ ] D2 Engine adapter, needs E2–E4 and E6: `tl_option_whatif`, `tl_run_option_whatif` and `tl_combo_preview` on the `EngineHost` worker; the `combo` field in `storage::Action` and replay; the `whatif` fixtures in `tradelab_desktop_golden_tests`.
 - [ ] D3 Lesson runner widgets and question types, needs D1 and D2:
   - viewmodels for `chart` levels, `ticket` sandbox, `table`, `payoff`, `whatif` and `builder`, plus the `number` and `set` questions;
   - painters in the view layer;
   - unit tests with the web's vectors;
   - headless lesson by keyboard.
+
+  Progress: `chart` levels (painted and listed as text), the `ticket` sandbox (port of `ticketSandbox.ts`), `table`, `payoff` (port of `payoff.ts`, painted from `payoff_geometry`), `number` (either decimal mark, units; port of `readTypedNumber`) and `set` questions, review mode, with web parity fixtures (`payoff`, `ticketSandbox`, `lessonRun`), viewmodel tests and every lesson played headless from the keyboard and windowed with the mouse. Open: the `whatif` and `builder` widgets (needs D2 and the web's W5/W6 widgets, not written on the web yet).
 - [ ] D4 What-if lab screen (Academy and terminal), needs D2; unit and headless tests; zero shift equals the chain.
 - [ ] D5 Strategy builder panel in the option ticket, needs D2: templates, analysis, submission order with `combo`, cancel on refusal, incomplete notice, journal and debrief grouping; viewmodel tests with a fake engine; a headless flow.
-- [ ] D6 Glossary screen and tooltips, needs D1: `Rwidget_set_tooltip` on hover, the help line and accessible description on focus; screen-reader names; headless test.
-- [ ] D7 Coach marks overlay, needs D1: anchored to the named widgets; skip, `Esc`, replay from help and briefing; `prefs.json` `coachDone`; keys never advance from the callout; headless keyboard test.
-- [ ] D8 Academy screen, curriculum Strategies stage and lessons x/y, the review prompt (`prefs.json` `lessonReviews`), and the recommended lesson from the debrief; tests with a fake clock.
+- [x] D6 Glossary screen and tooltips, needs D1: `Rwidget_set_tooltip` on hover, the help line and accessible description on focus; screen-reader names; headless test.
+
+  As built: marked terms in the lesson sandbox and payoff analytics, the terminal's ticket, rail and option chain, and the debrief findings (`findingTerms`); each step's linked terms are buttons that open the glossary at the term; the focused term's definition shows on the screen's help line; search folds Latin-1 accents and case (web parity fixture `glossary`).
+- [x] D7 Coach marks overlay, needs D1: anchored to the named widgets; skip, `Esc`, replay from help and briefing; `prefs.json` `coachDone`; keys never advance from the callout; headless keyboard test.
+
+  As built: `coachDone` is stored with the rest of the progress (SQLite progress v3) instead of `prefs.json`; the callout is placed next to its docked target every frame (`academy::callout_box`), waits while a terminal dialog (calibration, plan) is open, describes its target for screen readers and is announced; the debrief step is inline over that run's findings. Windowed test with captures.
+- [x] D8 Academy screen, curriculum Strategies stage and lessons x/y, the review prompt (`prefs.json` `lessonReviews`), and the recommended lesson from the debrief; tests with a fake clock.
+
+  As built: `lessonReviews` lives in SQLite progress v3 (not `prefs.json`); the review prompt's dismissal is a display setting (`reviewDismissed`, the web's localStorage key); the curriculum stages (Strategies included) come from content.json, and the map shows each stage's lessons x/y.
 - [ ] D9 Missions m13–m17 in the menu, campaign, briefing margin rule, tutorials (new art) and debrief comparison:
   - the playtest extended to 17 missions (strategies played with the builder);
   - windowed reference captures for every new screen on macOS and on Linux (lavapipe in docker; say so if docker is unavailable);

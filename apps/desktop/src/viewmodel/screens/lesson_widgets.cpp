@@ -77,6 +77,16 @@ void payoff(const AppViewModel& vm, const PayoffWidget& w, ScreenModel& m) {
 
 // ---- table (LessonTable.svelte) ----
 
+// A number in the locale with the column's digits and suffix, or the step's text of a text cell.
+std::string table_cell(const AppViewModel& vm, const std::string& step_base, const TableCell& v, const TableColumn& col) {
+  if (!v.number) {
+    const std::string key = step_base + ".cell." + v.id;
+    return vm.catalog().has(key) ? vm.tr(key) : v.id;
+  }
+  const int digits = col.digits.value_or(std::floor(v.value) == v.value ? 0 : 2);
+  return fmt::fmt_num(v.value, vm.locale(), digits) + col.suffix;
+}
+
 void table(const AppViewModel& vm, const std::string& step_base, const TableWidget& w, ScreenModel& m) {
   m.text(names::kLessonTableCaption, caption(vm, w.market, vm.tr("academy.data")));
   WidgetTable t{names::kLessonTable, {}, {}};
@@ -86,17 +96,7 @@ void table(const AppViewModel& vm, const std::string& step_base, const TableWidg
   }
   for (const auto& row : w.rows) {
     std::vector<std::string> cells;
-    for (std::size_t c = 0; c < row.size() && c < w.columns.size(); ++c) {
-      const TableCell& v = row[c];
-      const TableColumn& col = w.columns[c];
-      if (!v.number) {
-        const std::string key = step_base + ".cell." + v.id;
-        cells.push_back(vm.catalog().has(key) ? vm.tr(key) : v.id);
-        continue;
-      }
-      const int digits = col.digits.value_or(std::floor(v.value) == v.value ? 0 : 2);
-      cells.push_back(fmt::fmt_num(v.value, vm.locale(), digits) + col.suffix);
-    }
+    for (std::size_t c = 0; c < row.size() && c < w.columns.size(); ++c) cells.push_back(table_cell(vm, step_base, row[c], w.columns[c]));
     t.rows.push_back(std::move(cells));
   }
   m.tables.push_back(std::move(t));

@@ -129,7 +129,7 @@ ScreenModel academy(const AppViewModel& vm) {
   ScreenModel m;
   const auto due = vm.reviews_due();
   m.text(names::kAcademyTitle, vm.tr("academy.title"));
-  m.text(names::kAcademyGlossary, "\xF0\x9F\x93\x96 " + vm.tr("glossary.open"));  // 📖
+  m.text(names::kAcademyGlossary, vm.tr("glossary.open"));
   m.text(names::kAcademyBack, vm.tr("debrief.menu"));
   m.text(names::kAcademyIntro, vm.tr("academy.intro"));
   due_box(vm, due, m);
@@ -183,8 +183,8 @@ ScreenModel glossary(const AppViewModel& vm) {
 // ---- Parts of other screens ----
 
 void academy_menu(const AppViewModel& vm, ScreenModel& m) {
-  m.text(names::kMenuAcademy, "\xF0\x9F\x8E\x93 " + vm.tr("academy.open"));   // 🎓
-  m.text(names::kMenuGlossary, "\xF0\x9F\x93\x96 " + vm.tr("glossary.open"));  // 📖
+  m.text(names::kMenuAcademy, vm.tr("academy.open")); 
+  m.text(names::kMenuGlossary, vm.tr("glossary.open"));
   const bool prompt = vm.review_prompt_shown();
   m.show(names::kMenuReviewRow, prompt);
   if (!prompt) return;
@@ -194,23 +194,23 @@ void academy_menu(const AppViewModel& vm, ScreenModel& m) {
 }
 
 void academy_curriculum(const AppViewModel& vm, ScreenModel& m) {
-  m.text(names::kCurriculumAcademy, "\xF0\x9F\x8E\x93 " + vm.tr("academy.open"));
+  m.text(names::kCurriculumAcademy, vm.tr("academy.open"));
 }
 
 void academy_briefing(const AppViewModel& vm, ScreenModel& m) {
-  m.text(names::kBriefTour, "\xF0\x9F\xA7\xAD " + vm.tr("coach.replay"));  // 🧭
+  m.text(names::kBriefTour, vm.tr("coach.replay"));
 }
 
 void academy_debrief(const AppViewModel& vm, ScreenModel& m) {
   const std::string lesson = vm.debrief_lesson();
   m.show(names::kDebriefOpenLesson, !lesson.empty());
-  if (!lesson.empty()) m.text(names::kDebriefOpenLesson, "\xF0\x9F\x8E\x93 " + vm.tr("debrief.openLesson", {{"title", lesson_title(vm, lesson)}}));
+  if (!lesson.empty()) m.text(names::kDebriefOpenLesson, vm.tr("debrief.openLesson", {{"title", lesson_title(vm, lesson)}}));
   m.describe(names::coach_anchor("debrief"), "");
   coach_callout(vm, true, m);
 }
 
 void academy_game(const AppViewModel& vm, ScreenModel& m) {
-  m.text(names::kGameHelpTour, "\xF0\x9F\xA7\xAD " + vm.tr("coach.replay"));
+  m.text(names::kGameHelpTour, vm.tr("coach.replay"));
   terminal_terms(vm, m);
   coach_targets(vm, m);
   coach_callout(vm, false, m);
