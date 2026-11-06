@@ -19,7 +19,7 @@
 	const s = $derived(session.state);
 	const playable = $derived(s ? s.lastDecisionStep - s.warmupBars + 1 : 0);
 	const turn = $derived(s ? s.step - s.warmupBars + 1 : 0);
-	const missionTitle = $derived(s ? missionText(s.mission, i18n.locale, session.runPackOrigin).title : '');
+	const missionTitle = $derived(s ? missionText(s.mission, i18n.locale, session.runPackOrigin, session.runPackTexts).title : '');
 	const branch = $derived(s ? branchTurn(s) : null);
 	const modeLine = $derived(
 		s ? t(s.knownScenario ? packModeKey(s.marketMode, session.runPackOrigin) : 'brief.modeSynthetic', { seed: session.seed }) : ''

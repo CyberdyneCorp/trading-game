@@ -1,13 +1,17 @@
 import pytest
 
 import golden
-from tradelab_engine import EngineError, InvalidAction, Run, RunOptions, engine_version, missions, replay
+from tradelab_engine import EngineError, InvalidAction, Run, RunOptions, abi_version, engine_version, missions, replay
 
 
 def test_version_and_catalog():
     assert engine_version()["executionPolicy"] >= 4
     ids = {m["id"] for m in missions()}
     assert {"m01-false-breakout", "m04-options-buyer"} <= ids
+
+
+def test_abi_version_is_reported():
+    assert abi_version() == 1
 
 
 def test_replay_action_log_reproduces_and_scores():

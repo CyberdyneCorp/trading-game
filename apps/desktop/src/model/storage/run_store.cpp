@@ -15,7 +15,7 @@ namespace {
 
 constexpr const char* kRunColumns =
     "run_id, mission_id, seed, created_at, execution_policy, engine, status, actions, digest, options, journal, "
-    "questions, stop_warnings, campaign, assisted, equity, pack_digest";
+    "questions, stop_warnings, campaign, assisted, equity, pack_digest, engine_abi";
 
 RunRecord read_run(const Statement& s) {
   RunRecord r;
@@ -36,6 +36,7 @@ RunRecord read_run(const Statement& s) {
   r.assisted = s.optional_text(14);
   r.equity = s.optional_text(15);
   r.pack_digest = s.optional_text(16);
+  if (!s.is_null(17)) r.engine_abi = static_cast<int>(s.int64(17));
   return r;
 }
 
@@ -120,7 +121,7 @@ void RunStore::create_run(const RunRecord& r) {
   Transaction tx(db_);
   leave_active_locked();
   db_.prepare(std::string("INSERT INTO runs (") + kRunColumns +
-              ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+              ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .bind(1, r.run_id)
       .bind(2, r.mission_id)
       .bind(3, static_cast<std::int64_t>(r.seed))
@@ -138,6 +139,7 @@ void RunStore::create_run(const RunRecord& r) {
       .bind(15, r.assisted)
       .bind(16, r.equity)
       .bind(17, r.pack_digest)
+      .bind(18, r.engine_abi ? std::optional<std::int64_t>(*r.engine_abi) : std::nullopt)
       .run();
   set_meta("active", r.run_id);
   tx.commit();

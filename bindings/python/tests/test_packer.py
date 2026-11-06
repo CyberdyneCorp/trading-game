@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 import zstandard
 
-from tradelab_engine import Run, pack_source_mission, pack_validate, signing_key
+from tradelab_engine import Run, device_key, pack_source_mission, pack_validate, signing_key
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "packer"))
 import packer  # noqa: E402
@@ -34,6 +34,11 @@ def run_cli(argv: list[str], capsys: pytest.CaptureFixture[str]) -> tuple[int, d
 
 def trusted(seed_file: Path, prefix: str = "publisher") -> list[dict[str, str]]:
     key = signing_key(seed_file.read_text().strip(), prefix)
+    return [{"id": key["id"], "key": key["publicKey"]}]
+
+
+def trusted_device(seed_hex: str) -> list[dict[str, str]]:
+    key = device_key(seed_hex)
     return [{"id": key["id"], "key": key["publicKey"]}]
 
 
@@ -193,3 +198,64 @@ def test_publishing_generated_bars_needs_their_calibration_report(tmp_path: Path
     assert code == 1
     assert result["reason"] == "calibration_report_missing"
     assert packer.main(["build", str(src), "--seed-file", str(seed_file), "-o", str(tmp_path / "p")]) == 0  # not for publishing
+
+
+MISSION_TEXTS = {"texts": [
+    {"locale": "pt-BR", "title": "Treino · choque de liquidez", "briefing": "O livro afina depois da manchete: confira o custo antes de entrar."},
+    {"locale": "en", "title": "Practice · liquidity shock", "briefing": "The book thins after the headline: check the cost before you enter."},
+]}
+
+
+def test_schema_v2_texts_story_and_tiers_through_the_packer(tmp_path: Path, seed_file: Path, capsys):
+    src = tmp_path / "src"
+    assert packer.main(["generate", "m01-false-breakout", "--seed", "3", "-o", str(src)]) == 0
+    capsys.readouterr()
+    manifest = json.loads((src / "manifest.json").read_text())
+    # A generated mission keeps its margin tiers and objectives, which only schema v2 can say.
+    assert manifest["schemaVersion"] == 2
+    assert [t["maxLeverage"] for t in manifest["marginModel"]["tiers"]] == [20, 10, 5]
+    assert manifest["missionRules"]["objectives"][0]["code"] == "plan_every_entry"
+    # The author adds mission texts and a story: a liquidity-outflow headline, then the shock.
+    (src / "mission.json").write_text(json.dumps(MISSION_TEXTS, ensure_ascii=False))
+    (src / "events.bin").unlink(missing_ok=True)
+    story = {"news": [{"step": 80, "kind": "liquidity_outflow", "tone": -1, "credibility": 90, "actual": -1}],
+             "liquidityShocks": [{"start": 81, "bars": 6, "spreadPct": 400, "capacityPct": 25}]}
+    (src / "events.json").write_text(json.dumps(story))
+    pack_path = tmp_path / "v2.tlpack"
+    code, result = run_cli(["build", str(src), "--seed-file", str(seed_file), "-o", str(pack_path)], capsys)
+    assert code == 0, result
+    summary = result["validation"]["pack"]
+    assert summary["schemaVersion"] == 2
+    assert [t["locale"] for t in summary["texts"]] == ["pt-BR", "en"]
+
+    key = trusted(seed_file)[0]
+    code, result = run_cli(["inspect", str(pack_path), "--key", f"{key['id']}={key['key']}"], capsys)
+    assert code == 0, result
+    assert result["manifest"]["schemaVersion"] == 2
+    assert result["manifest"]["data"]["liquidityShocks"] == 1
+    assert len(result["tiers"]) == 3
+    files = {f["name"]: f for f in result["files"]}
+    assert files["mission.json"]["titles"]["en"] == "Practice · liquidity shock"
+    assert [t["rows"] for t in files["events.bin"]["tables"]] == [1, 1]
+
+    # In play, the shock shows on the ticket from the headline's bar on (the engine's liquidity view).
+    with Run.from_pack(pack_path.read_bytes(), trusted(seed_file), 3) as run:
+        state = run.state()
+        assert state["contract"]["liquidityShocks"] is True
+        while state["step"] < 80:
+            state = run.advance(1)
+        assert state["liquidity"] is not None
+        assert float(state["liquidity"]["halfSpread"]) > float(state["contract"]["halfSpread"])
+
+
+def test_a_v1_pack_built_before_schema_v2_still_loads():
+    fixture = Path(__file__).resolve().parents[3] / "apps" / "web" / "e2e" / "fixtures" / "synthetic-m09.tlpack"
+    data = fixture.read_bytes()
+    with tarfile.open(fileobj=io.BytesIO(data)) as tar:
+        manifest = json.loads(tar.extractfile("manifest.json").read())
+    assert manifest["schemaVersion"] == 1
+    device = trusted_device("0e2e" * 16)  # the seed in apps/web/e2e/branch-pack.spec.ts
+    result = pack_validate(data, device)
+    assert result["ok"], result
+    assert result["pack"]["schemaVersion"] == 1
+    assert result["pack"]["texts"] == []

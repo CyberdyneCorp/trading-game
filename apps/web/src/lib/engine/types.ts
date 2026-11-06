@@ -983,6 +983,20 @@ export interface PackSummary {
 	gaps: number;
 	/** 'skip' / 'carryForward' when the import filled its gaps with continuity bars, else ''. */
 	gapPolicy?: PackGapPolicy;
+	/**
+	 * Manifest schema of the pack: 1, or 2 (mission texts and objectives, mark-price bars, settlement
+	 * sub-bars, margin tiers).
+	 */
+	schemaVersion: number;
+	/** mission.json of a v2 pack: one entry per locale (pt-BR and en); empty without it. */
+	texts: PackText[];
+}
+
+/** A pack's own mission texts in one locale (v2 mission.json). */
+export interface PackText {
+	locale: string;
+	title: string;
+	briefing: string;
 }
 
 export interface PackCheck {

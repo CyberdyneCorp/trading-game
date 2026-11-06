@@ -480,6 +480,8 @@ const pt = {
 	'pwa.quotaUnknown': 'Espaço disponível desconhecido neste navegador',
 	'engine.pinned': 'Partida retomada no motor da versão em que começou (build {build}).',
 	'engine.pinMissing': 'O motor desta partida (build {build}) não está mais neste dispositivo: retomada no motor atual.',
+	'engine.abiMismatch':
+		'Esta partida começou numa versão do motor (build {build}, interface {abi}) que esta versão do app não consegue conduzir (interface {expected}). Ela não pode ser retomada: comece uma nova partida.',
 	'unsupported.title': 'Navegador não suportado',
 	'unsupported.intro': 'O TradeLab precisa de recursos que este navegador não oferece:',
 	'unsupported.webassembly': 'WebAssembly (o motor do jogo roda nele)',
@@ -1399,6 +1401,8 @@ const en: Record<MessageKey, string> = {
 	'pwa.quotaUnknown': 'This browser does not report the available space',
 	'engine.pinned': 'Run resumed on the engine of the version it started on (build {build}).',
 	'engine.pinMissing': 'This run’s engine (build {build}) is no longer on this device: resumed on the current engine.',
+	'engine.abiMismatch':
+		'This run started on an engine version (build {build}, interface {abi}) that this version of the app cannot drive (interface {expected}). It cannot be resumed: start a new run.',
 	'unsupported.title': 'Unsupported browser',
 	'unsupported.intro': 'TradeLab needs features this browser does not offer:',
 	'unsupported.webassembly': 'WebAssembly (the game engine runs on it)',

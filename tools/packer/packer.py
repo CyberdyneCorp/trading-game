@@ -11,6 +11,7 @@ Publishing (a pack source is a directory with manifest.json and the uncompressed
   packer.py mask window.csv --pair BTC/USDT --license CC-BY-4.0 --attribution "..." -o src/
   packer.py mask window.csv --branch-at 90 --branch-mission m08-regime-switch --branch-seed 4 -o src/
   packer.py build src/ --seed-file publisher.seed -o pack.tlpack              # zstd level 19, signed
+    (a source may add mission.json texts, mark.bin, subbars.bin: schema v2; events.json: a story)
   packer.py sign pack.tlpack --seed-file release.seed -o release.tlpack       # publisher re-sign
   packer.py inspect pack.tlpack [--key <id>=<64 hex>]
   packer.py validate pack.tlpack --key <id>=<64 hex> [--publish]
@@ -173,7 +174,64 @@ def compress(data: bytes, level: int) -> bytes:
     return zstd().ZstdCompressor(level=level, write_content_size=True, write_checksum=True).compress(data)
 
 
-SOURCE_ORDER = ("bars.bin", "funding.bin", "events.bin", "options.bin", "reveal.json")
+SOURCE_ORDER = ("bars.bin", "funding.bin", "events.bin", "options.bin", "reveal.json", "mark.bin", "subbars.bin", "mission.json")
+V2_FILES = ("mark.bin", "subbars.bin", "mission.json")
+V2_RULES = ("objectives", "liqWarningBp", "drawdownBudgetBp", "confirmStopBeyondLiq")
+# NewsKind json names (engine/idl/tradelab.idl), in numeric order.
+NEWS_KINDS = ("rate_decision", "regulation_rumor", "exchange_incident", "network_outage", "liquidity_inflow",
+              "institutional_adoption", "rumor_denied", "liquidity_outflow", "macro_data", "network_upgrade")
+
+
+def table(magic: bytes, columns: list[list[int]]) -> bytes:
+    """One columnar table: header (magic, rows, columns, 0) then each column as little-endian int64."""
+    rows = len(columns[0]) if columns else 0
+    out = bytearray(TABLE_HEADER.pack(magic, rows, len(columns), 0))
+    for col in columns:
+        out += struct.pack(f"<{len(col)}q", *col)
+    return bytes(out)
+
+
+def news_kind(value: Any) -> int:
+    return value if isinstance(value, int) else NEWS_KINDS.index(value)
+
+
+def encode_events(story: dict[str, Any]) -> bytes:
+    """events.json -> events.bin: the news table (TLE1) then the liquidity-shock table (TLQ1).
+
+    {"news": [{"step", "kind" (name or number), "tone" -1..1, "credibility" 0..100, "expectation" -2..2,
+    "actual" -2..2, "announceLead"}], "liquidityShocks": [{"start", "bars", "spreadPct", "capacityPct"}]}
+    The engine checks the values (steps inside the market, a shock never on bar 0, spread 10..1000%)."""
+    news = story.get("news", [])
+    shocks = story.get("liquidityShocks", [])
+    tle = table(b"TLE1", [[n["step"] for n in news], [news_kind(n["kind"]) for n in news], [n.get("tone", 0) for n in news],
+                          [n.get("credibility", 100) for n in news], [n.get("expectation", 0) for n in news],
+                          [n.get("actual", 0) for n in news], [n.get("announceLead", 0) for n in news]])
+    tlq = table(b"TLQ1", [[s["start"] for s in shocks], [s["bars"] for s in shocks], [s.get("spreadPct", 100) for s in shocks],
+                          [s.get("capacityPct", 100) for s in shocks]])
+    return tle + tlq
+
+
+def apply_story(src: Path, manifest: dict[str, Any]) -> bytes | None:
+    """events.bin from the source's events.json (when there is one), with the counts in the manifest."""
+    path = src / "events.json"
+    if not path.exists():
+        return None
+    story = json.loads(path.read_text())
+    data = manifest.setdefault("data", {})
+    for key, rows in (("events", story.get("news", [])), ("liquidityShocks", story.get("liquidityShocks", []))):
+        if rows:
+            data[key] = len(rows)
+        else:
+            data.pop(key, None)
+    return encode_events(story)
+
+
+def needs_v2(manifest: dict[str, Any], names: list[str]) -> bool:
+    """Whether the source uses anything only schema v2 can say (engine README "Scenario packs")."""
+    rules = manifest.get("missionRules", {})
+    data = manifest.get("data", {})
+    return (any(n in V2_FILES for n in names) or "tiers" in manifest.get("marginModel", {})
+            or any(k in rules for k in V2_RULES) or "markBars" in data or "subBars" in data)
 CALIBRATION_DIR = Path(__file__).resolve().parents[2] / "docs" / "calibration"
 
 
@@ -189,18 +247,20 @@ def missing_calibration(manifest: dict[str, Any]) -> str | None:
 
 def cmd_build(args: argparse.Namespace) -> int:
     src: Path = args.source
-    manifest = (src / "manifest.json").read_text()
-    missing = missing_calibration(json.loads(manifest)) if args.publish else None
+    doc = json.loads((src / "manifest.json").read_text())
+    missing = missing_calibration(doc) if args.publish else None
     if missing:
         emit({"ok": False, "reason": "calibration_report_missing", "detail": missing})
         return 1
+    story = apply_story(src, doc)
+    names = [n for n in SOURCE_ORDER if (src / n).exists() or (n == "events.bin" and story is not None)]
+    if needs_v2(doc, names):
+        doc["schemaVersion"] = max(2, int(doc.get("schemaVersion", 1)))
+    manifest = json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
     files = []
     raw_total = stored_total = 0
-    for name in SOURCE_ORDER:
-        path = src / name
-        if not path.exists():
-            continue
-        raw = path.read_bytes()
+    for name in names:
+        raw = story if name == "events.bin" and story is not None else (src / name).read_bytes()
         stored = compress(raw, args.level) if name.endswith(".bin") else raw
         raw_total += len(raw)
         stored_total += len(stored)
@@ -248,7 +308,16 @@ def describe_file(name: str, stored: bytes, listed: dict[str, Any] | None) -> di
         raw = zstd().ZstdDecompressor().decompress(stored, max_output_size=limit)
         entry["ratio"] = round(len(raw) / max(1, len(stored)), 2)
         entry["tables"] = tables(raw)
+    if name == "mission.json":
+        entry["titles"] = {t.get("locale"): t.get("title") for t in json.loads(stored).get("texts", [])}
     return entry
+
+
+def v2_summary(manifest: dict[str, Any]) -> dict[str, Any]:
+    """The schema-v2 parts of a manifest: margin tiers and the mission's objectives and limits."""
+    rules = manifest.get("missionRules", {})
+    return {"tiers": manifest.get("marginModel", {}).get("tiers", []),
+            "missionRules": {k: rules[k] for k in V2_RULES if k in rules}}
 
 
 def cmd_inspect(args: argparse.Namespace) -> int:
@@ -257,12 +326,13 @@ def cmd_inspect(args: argparse.Namespace) -> int:
         members = {m.name: tar.extractfile(m).read() for m in tar.getmembers()}
     manifest = json.loads(members.get("manifest.json", b"{}"))
     listed = {f["name"]: f for f in manifest.get("files", [])}
-    summary = {key: manifest.get(key) for key in ("scenarioId", "packVersion", "mode", "private", "signingKeyId",
+    summary = {key: manifest.get(key) for key in ("schemaVersion", "scenarioId", "packVersion", "mode", "private", "signingKeyId",
                                                     "executionPolicyVersion", "scoringVersion", "timeframe", "data",
                                                     "license", "distribution", "provenance")}
     result: dict[str, Any] = {
         "digest": hashlib.sha256(data).hexdigest(), "size": len(data), "manifest": summary,
         "options": "options" in manifest.get("instruments", {}),
+        **v2_summary(manifest),
         "files": [describe_file(name, blob, listed.get(name)) for name, blob in members.items()
                   if name not in ("manifest.json", "manifest.sig")],
     }

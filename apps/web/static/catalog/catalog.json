@@ -40,6 +40,26 @@
     "pt-BR": "Mercado sintético mascarado, em barras de 4 horas, com alavancagem até 3×.",
     "en": "Masked synthetic market in four-hour bars, with leverage up to 3×."
    }
+  },
+  {
+   "id": "sample-c-shock",
+   "file": "packs/3090a1aae3e3416923ad8dafa72f0c21bbad9f5d3558116356a8f9f37fed82c7.tlpack",
+   "digest": "3090a1aae3e3416923ad8dafa72f0c21bbad9f5d3558116356a8f9f37fed82c7",
+   "size": 15360,
+   "scenarioId": "csv-8f7d7cd22279",
+   "keyId": "publisher-4eec1d54ffe7656f",
+   "intervalSeconds": 3600,
+   "bars": 340,
+   "leverageCap": 5,
+   "mode": "synthetic",
+   "title": {
+    "pt-BR": "Mercado C · choque de liquidez",
+    "en": "Market C · liquidity shock"
+   },
+   "summary": {
+    "pt-BR": "Mercado sintético em barras de 1 hora. Uma formadora de mercado sai do livro duas vezes: o spread abre e a profundidade some por algumas barras.",
+    "en": "Synthetic market in one-hour bars. A market maker leaves the book twice: the spread widens and depth vanishes for a few bars."
+   }
   }
  ]
 }

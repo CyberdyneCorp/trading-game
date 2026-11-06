@@ -178,6 +178,48 @@ test('old-engine resume:an unfinished run resumes offline on the engine build it
 	await context.setOffline(false);
 });
 
+// Regression (engine C ABI, tl_abi_version): a pinned build that speaks another ABI used to be driven
+// anyway, calling functions it may lack or read differently. A fake old build (this build's module
+// with its ABI export patched, or removed as in builds older than tl_abi_version) must refuse the
+// resume with a clear message and leave the current engine loaded.
+for (const fake of [
+	{ name: 'another ABI', patch: 'm._tl_abi_version = () => 2;', abi: '2' },
+	{ name: 'no tl_abi_version (older build)', patch: 'delete m._tl_abi_version;', abi: '0' }
+]) {
+	test(`a pinned build with ${fake.name} refuses to resume the run and says why`, async ({ page, context }) => {
+		await page.goto('/?seed=4242');
+		await waitForServiceWorker(page);
+		await startFirstMission(page);
+		await step(page);
+		const run = (await dumpDb(page)).runs[0] as { runId: string; engine: string };
+		await page.evaluate(
+			async ({ cacheName, current, old, patch }) => {
+				const src = `import factory from '${current}';\nexport default async (...a) => { const m = await factory(...a); ${patch} return m; };\n`;
+				await (await caches.open(cacheName)).put(old, new Response(src, { headers: { 'Content-Type': 'text/javascript' } }));
+			},
+			{ cacheName: ENGINE_CACHE, current: run.engine, old: OLD_ENGINE, patch: fake.patch }
+		);
+		await patchRow(page, 'runs', run.runId, { engine: OLD_ENGINE });
+
+		await context.setOffline(true);
+		await page.reload();
+		await page.getByRole('button', { name: /Continuar partida/ }).click();
+		await expect(page.getByTestId('menu-alert')).toContainText(
+			`Esta partida começou numa versão do motor (build OLDBUILD, interface ${fake.abi}) que esta versão do app não consegue conduzir (interface 1)`
+		);
+		await expect(page.locator('.turn')).toHaveCount(0);
+		const log = await workerLog(page);
+		const used = log.toWorker.map((m) => JSON.parse(m).req).filter((r) => r.kind === 'useEngine');
+		expect(used.map((r) => new URL(r.engineUrl).pathname)).toEqual([OLD_ENGINE, run.engine]);
+		expect(requestKinds(log)).not.toContain('restore');
+		expect(requestKinds(log)).not.toContain('advance');
+		// A new run still starts on this version's engine.
+		await startFirstMission(page);
+		await step(page);
+		await context.setOffline(false);
+	});
+}
+
 test('a run whose engine build is gone resumes on the current engine and says so', async ({ page }) => {
 	await page.goto('/?seed=4242');
 	await startFirstMission(page);

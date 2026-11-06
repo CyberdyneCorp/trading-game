@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include "model/json.hpp"
+#include "model/snapshot.hpp"
 #include "model/storage/run_store.hpp"
 
 namespace tradelab::desktop::packs {
@@ -27,7 +29,11 @@ struct PackCheck {
   std::string reason;  // engine reason code, or: too_large, digest_mismatch, storage_failed
   std::string detail;
   std::optional<storage::StoredPack> entry;
+  std::vector<PackText> texts;  // a schema-v2 pack's own mission texts (empty without them)
 };
+
+// The "texts" of a tl_pack_validate summary ({"locale","title","briefing"} per locale).
+std::vector<PackText> pack_texts_from_summary(const json::Value& pack);
 
 struct CsvImportResult {
   bool ok = false;
@@ -49,6 +55,8 @@ class PackLibrary {
   [[nodiscard]] const std::string& device_seed();
 
   PackCheck install(std::span<const std::uint8_t> bytes, const std::string& label, const std::string& origin);
+  // The mission texts of a pack's bytes (verified by the engine again); empty without them.
+  [[nodiscard]] std::vector<PackText> texts(std::span<const std::uint8_t> bytes);
   // The pack's bytes; nullopt when it is not indexed, its file is gone or has another size.
   [[nodiscard]] std::optional<std::vector<std::uint8_t>> bytes(const std::string& digest);
   // Start-up check: indexed packs whose file is missing or truncated (shown as missing, never played).

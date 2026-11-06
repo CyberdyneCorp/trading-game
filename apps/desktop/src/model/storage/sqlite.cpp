@@ -42,6 +42,10 @@ Statement& Statement::bind(int index, const std::optional<std::string>& text) {
   return text ? bind(index, std::string_view(*text)) : bind_null(index);
 }
 
+Statement& Statement::bind(int index, const std::optional<std::int64_t>& value) {
+  return value ? bind(index, *value) : bind_null(index);
+}
+
 Statement& Statement::bind_blob(int index, std::span<const std::uint8_t> bytes) {
   check(db_, sqlite3_bind_blob(stmt_, index, bytes.data(), static_cast<int>(bytes.size()), SQLITE_TRANSIENT), "bind");
   return *this;

@@ -152,19 +152,62 @@ void write_market(JsonOut& j, const Scenario& sc, const ManifestHead& h) {
   j.key("fundingModel").begin_obj().field("intervalSteps", c.funding_interval).field("source", h.funding_file ? "file" : "none").end_obj();
   const char* iv = options ? (sc.options.iv_base.empty() ? "realized" : "file") : "none";
   j.key("ivModel").begin_obj().field("kind", iv).end_obj();
-  j.key("marginModel").begin_obj().field("maintenanceMargin", c.maintenance_margin).end_obj();
+  j.key("marginModel").begin_obj().field("maintenanceMargin", c.maintenance_margin);
+  if (!c.margin_tiers.empty()) {
+    j.key("tiers").begin_arr();
+    for (const MarginTier& t : c.margin_tiers) {
+      j.begin_obj().field("notionalFloor", t.notional_floor).field("maintenanceMargin", t.maintenance_margin);
+      j.field("maxLeverage", t.max_leverage).end_obj();
+    }
+    j.end_arr();
+  }
+  j.end_obj();
+}
+
+bool same_objectives(const std::vector<Objective>& a, const std::vector<Objective>& b) {
+  return std::equal(a.begin(), a.end(), b.begin(), b.end(),
+                    [](const Objective& x, const Objective& y) { return x.code == y.code && x.value_bp == y.value_bp; });
+}
+
+// A pack needs schema v2 when it carries anything v1 cannot say; otherwise it is written as v1, byte
+// for byte as before (engine README "Scenario packs").
+bool needs_v2(const Scenario& sc) {
+  const MissionRules& r = sc.mission;
+  const MissionRules defaults;
+  const bool rules = !same_objectives(r.objectives, defaults.objectives) || r.liq_warning_bp != defaults.liq_warning_bp ||
+                     r.drawdown_budget_bp != defaults.drawdown_budget_bp ||
+                     r.confirm_stop_beyond_liq != defaults.confirm_stop_beyond_liq;
+  return rules || !sc.contract.margin_tiers.empty() || !sc.mark.empty() || !sc.sub_bars.empty();
+}
+
+// The v2 mission rules: objectives and limits, written whole so the pack states them all.
+void write_v2_rules(JsonOut& j, const MissionRules& r) {
+  j.key("objectives").begin_arr();
+  for (const Objective& o : r.objectives) j.begin_obj().field("code", json_name(o.code)).field("valueBp", o.value_bp).end_obj();
+  j.end_arr().field("liqWarningBp", r.liq_warning_bp).field("drawdownBudgetBp", r.drawdown_budget_bp);
+  j.field("confirmStopBeyondLiq", r.confirm_stop_beyond_liq);
+}
+
+std::uint32_t sub_bar_rows(const Scenario& sc) {
+  std::size_t n = 0;
+  for (const SubBars& x : sc.sub_bars) n += x.closes.size();
+  return static_cast<std::uint32_t>(n);
 }
 
 void write_data(JsonOut& j, const Scenario& sc, const ManifestHead& h) {
   const MissionRules& r = sc.mission;
   j.key("missionRules").begin_obj().field("initialBalance", r.initial_balance);
-  j.field("leverageCap", r.leverage_cap).field("warmupBars", r.warmup_bars).field("allowShort", r.allow_short).end_obj();
+  j.field("leverageCap", r.leverage_cap).field("warmupBars", r.warmup_bars).field("allowShort", r.allow_short);
+  const bool v2 = needs_v2(sc);
+  if (v2) write_v2_rules(j, r);
+  j.end_obj();
   j.key("data").begin_obj().field("bars", static_cast<std::uint32_t>(sc.bars.size())).field("gaps", h.gaps);
   // Tables appear only when the pack has them, so a perpetual-only pack keeps the v1 field set.
   if (!sc.news.empty()) j.field("events", static_cast<std::uint32_t>(sc.news.size()));
   if (!sc.liquidity.empty()) j.field("liquidityShocks", static_cast<std::uint32_t>(sc.liquidity.size()));
   if (!sc.options.series.empty()) j.field("optionSeries", static_cast<std::uint32_t>(sc.options.series.size()));
   if (h.branch_step) j.field("branchStep", *h.branch_step);
+  if (v2) j.field("markBars", !sc.mark.empty()).field("subBars", sub_bar_rows(sc));
   // Continuity bars (policy v17) give bars.bin its sixth column; the policy says how indicators treat them.
   if (std::any_of(sc.bars.begin(), sc.bars.end(), [](const Bar& b) { return b.continuity; })) {
     j.field("gapPolicy", json_name(r.gap_policy));
@@ -186,7 +229,8 @@ void write_rights(JsonOut& j, const ManifestHead& h) {
 // does not matter.
 std::string manifest_text(const Scenario& sc, const ManifestHead& h) {
   JsonOut j;
-  j.begin_obj().field("schemaVersion", kPackSchemaVersion).field("scenarioId", h.scenario_id).field("packVersion", std::uint32_t{1});
+  const std::uint32_t schema = needs_v2(sc) ? kPackSchemaVersion : kPackMinSchemaVersion;
+  j.begin_obj().field("schemaVersion", schema).field("scenarioId", h.scenario_id).field("packVersion", std::uint32_t{1});
   j.field("mode", h.mode).field("private", h.private_pack);
   j.key("engineCompatibility").begin_obj().field("min", kEngineVersion).field("max", kEngineVersion).end_obj();
   j.field("executionPolicyVersion", kExecutionPolicyVersion).field("scoringVersion", kScoringVersion);
@@ -211,6 +255,8 @@ std::vector<PackFile> raw_files(const Scenario& sc, bool funding) {
   if (funding) files.push_back(raw("funding.bin", encode_funding(sc.funding_rate)));
   if (!sc.news.empty() || !sc.liquidity.empty()) files.push_back(raw("events.bin", encode_events(sc.news, sc.liquidity)));
   if (!sc.options.series.empty()) files.push_back(raw("options.bin", encode_options(sc.options)));
+  if (!sc.mark.empty()) files.push_back(raw("mark.bin", encode_mark(sc.mark)));
+  if (!sc.sub_bars.empty()) files.push_back(raw("subbars.bin", encode_sub_bars(sc.sub_bars)));
   return files;
 }
 

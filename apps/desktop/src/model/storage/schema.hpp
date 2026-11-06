@@ -4,6 +4,8 @@
 //   2  packs (installed packs by digest) and runs.pack_digest           (web DB v2)
 //   3  checkpoints (latest per run, tagged with the engine that wrote it) (web DB v3)
 //   4  downloads (resumable pack downloads: url, size, bytes committed)   (desktop only)
+//   5  runs.engine_abi: the engine C ABI a run was recorded under (tl_abi_version; NULL = before it was
+//      recorded, ABI 1)                                                   (desktop only)
 // A database newer than this build is refused (SchemaTooNew) rather than written to.
 #pragma once
 
@@ -11,7 +13,7 @@
 
 namespace tradelab::desktop::storage {
 
-constexpr int kSchemaVersion = 4;
+constexpr int kSchemaVersion = 5;
 
 class SchemaTooNew : public Error {
  public:

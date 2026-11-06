@@ -140,7 +140,8 @@ TEST_CASE("pack: limits, decompression bombs and unexpected files") {
   CHECK(reason_of(make_pack(kBaseManifest, {{"bars.bin", bomb, zeros.size()}})) == "decompression_limit");  // above the cap
 
   const auto raw = encode_bars(flat_bars(100));
-  // mission.json and i18n.json stay reserved; options.bin needs the option parameters in the manifest.
+  // A v1 pack cannot carry mission.json (schema v2) and i18n.json stays reserved; options.bin needs the
+  // option parameters in the manifest.
   const std::vector<PackFile> with_mission = {{"bars.bin", detail::zstd_store(raw), raw.size()}, {"mission.json", {'{', '}'}, 2}};
   CHECK(reason_of(make_pack(kBaseManifest, with_mission)) == "unsupported_feature");
   const std::vector<PackFile> with_options = {{"bars.bin", detail::zstd_store(raw), raw.size()}, {"options.bin", {1}, 1}};

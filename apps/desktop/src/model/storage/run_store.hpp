@@ -32,6 +32,9 @@ struct RunRecord {
   std::int64_t created_at = 0;  // ms since the epoch
   int execution_policy = 0;
   std::string engine;           // engine version that started the run (tl_version "engine")
+  // Engine C ABI the run was recorded under (tl_abi_version); nullopt for runs recorded before schema
+  // v5, which were all ABI 1 (the only ABI the desktop has spoken until then).
+  std::optional<int> engine_abi;
   std::string status = "active";  // active | finished | bankrupt | left
   std::int64_t actions = 0;       // committed actions
   std::string digest;

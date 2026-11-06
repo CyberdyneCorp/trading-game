@@ -603,6 +603,8 @@ const char* tl_version(void) {
   return version.c_str();
 }
 
+uint32_t tl_abi_version(void) { return kAbiVersion; }
+
 const char* tl_missions(void) {
   static std::string buffer;
   JsonOut j;
