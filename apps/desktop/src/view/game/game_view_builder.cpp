@@ -146,6 +146,9 @@ void GameView::apply_builder(const game::Texts& t, const GameState& g) {
   set_label(find(b::kTotals), kv(v.totals));
   set_label(find(b::kAnalysis), kv(v.analysis));
   set_visible(find(b::kPayoff), v.has_whatif);
+  Rwidget_set_accessible_name(find(b::kPayoff), v.chart_summary.c_str());
+  set_label(find(b::kLegend), v.chart_legend);
+  set_visible(find(b::kLegend), v.has_whatif);
   builder_table_.set(v.table);
   set_visible(find(b::kOpenLab), v.has_whatif);
   ui::set_text(find(b::kOpenLab), "\xE2\x9A\x97 " + t.tr("builder.openLab"));

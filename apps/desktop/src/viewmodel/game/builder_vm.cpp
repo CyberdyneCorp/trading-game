@@ -291,6 +291,7 @@ void BuilderViewModel::view_analysis(const Texts& t, const GameState& g, Builder
     v.analysis.emplace_back(t.tr("lab.maxLoss"), max_loss_text(t, w));
   }
   v.table = whatif_compact(t, w);
+  chart_texts(t, w, v.chart_summary, v.chart_legend);
 }
 
 }  // namespace tradelab::desktop::game

@@ -62,6 +62,8 @@ struct BuilderView {
   std::vector<std::pair<std::string, std::string>> totals;
   std::vector<std::pair<std::string, std::string>> analysis;
   std::vector<Line> table;
+  std::string chart_summary;  // the payoff chart's accessible description
+  std::string chart_legend;   // its price range and line styles, as in the lab
   bool has_whatif = false;
   std::string lab_positions;  // button text when the player holds positions
   std::string legging;

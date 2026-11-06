@@ -248,6 +248,7 @@
                                     <Label Name="game-builder-totals" Color="#E3F5EA" Wrap="true" TextSize="12"/>
                                     <Label Name="game-builder-analysis" Color="#E3F5EA" Wrap="true" TextSize="12"/>
                                     <Custom Name="game-builder-payoff" Height="110"/>
+                                    <Label Name="game-builder-legend" Color="#8FB3A1" Wrap="true" TextSize="11"/>
                                     <VBox Name="game-builder-table" Spacing="1"/>
                                     <Button Name="game-builder-open-lab"/>
                                     <Label Name="game-builder-legging" Color="#8FB3A1" Wrap="true" TextSize="11"/>

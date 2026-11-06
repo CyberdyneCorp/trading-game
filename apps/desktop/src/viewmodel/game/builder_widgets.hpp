@@ -29,6 +29,7 @@ inline constexpr std::string_view kPreview = "game-builder-preview";
 inline constexpr std::string_view kTotals = "game-builder-totals";
 inline constexpr std::string_view kAnalysis = "game-builder-analysis";
 inline constexpr std::string_view kPayoff = "game-builder-payoff";
+inline constexpr std::string_view kLegend = "game-builder-legend";
 inline constexpr std::string_view kTable = "game-builder-table";
 inline constexpr std::string_view kOpenLab = "game-builder-open-lab";
 inline constexpr std::string_view kLegging = "game-builder-legging";
@@ -53,11 +54,11 @@ inline constexpr std::string_view kCloseText = "game-combo-close-text";
 inline constexpr std::string_view kCloseNo = "game-combo-close-no";
 inline constexpr std::string_view kCloseYes = "game-combo-close-yes";
 
-inline constexpr std::array<std::string_view, 34> kRequired = {
+inline constexpr std::array<std::string_view, 35> kRequired = {
     kTab,      kTitle,         kLabPositions, kNone,       kBody,     kExpiryLabel,  kExpiry,       kQtyLabel,       kQty,
     kShort,    kWriteLocked,   kCaption,      kLegs,       kAddLeg,   kUseLong,      kProblem,      kNoAnalysis,     kPreview,
     kTotals,   kAnalysis,      kPayoff,       kTable,      kOpenLab,  kLegging,      kSubmit,       kNotice,         kNoticeKeep,
-    kNoticeClose, kLabTitle,   kLabClose,     kCloseTitle, kCloseText, kCloseNo,     kCloseYes};
+    kNoticeClose, kLabTitle,   kLabClose,     kCloseTitle, kCloseText, kCloseNo,     kCloseYes,       kLegend};
 
 // The Academy lab screen (views/lab.xml).
 inline constexpr std::string_view kScreenPrefix = "lab-";

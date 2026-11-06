@@ -51,11 +51,19 @@ std::string leg_label(const Texts& t, const WhatIfLeg& l) {
 
 std::string greek(const std::string& v, Locale L, int digits = 4) { return fmt::fmt_num(fmt::num(v), L, digits); }
 
+// A leg's implied volatility ("66,5%"), starred when the engine floored it; a dash for the perpetual.
+std::string iv_text(const WhatIfLeg& l, Locale L) {
+  if (!l.iv) return "\xE2\x80\x94";  // —
+  return fmt::fmt_pct(fmt::num(*l.iv), L, 1) + (l.iv_floored ? "*" : "");
+}
+
+bool any_iv_floored(const WhatIfResult& r) {
+  return std::any_of(r.legs.begin(), r.legs.end(), [](const WhatIfLeg& l) { return l.iv_floored; });
+}
+
 Line leg_row(const Texts& t, const WhatIfLeg& l) {
   const Locale L = t.locale();
-  std::string iv = "\xE2\x80\x94";  // —
-  if (l.iv) iv = fmt::fmt_pct(fmt::num(*l.iv), L, 1) + (l.iv_floored ? "*" : "");
-  return {row({leg_label(t, l), fmt::fmt_price(l.value, L), iv, greek(l.delta, L), greek(l.gamma, L), greek(l.theta, L),
+  return {row({leg_label(t, l), fmt::fmt_price(l.value, L), iv_text(l, L), greek(l.delta, L), greek(l.gamma, L), greek(l.theta, L),
                greek(l.vega, L), fmt::fmt_money(l.pnl, L, true)}),
           sign_tone(l.pnl)};
 }
@@ -121,9 +129,7 @@ std::vector<Line> whatif_table(const Texts& t, const WhatIfResult& r, bool per_d
   out.push_back({row({t.tr("lab.net"), fmt::fmt_money(r.net.value, L), "", greek(r.net.delta, L, 3), greek(r.net.gamma, L),
                       fmt::fmt_money(r.net.theta, L), fmt::fmt_money(r.net.vega, L), fmt::fmt_money(r.net.pnl, L, true)}),
                  sign_tone(r.net.pnl)});
-  if (std::any_of(r.legs.begin(), r.legs.end(), [](const WhatIfLeg& l) { return l.iv_floored; })) {
-    out.push_back({"* " + t.tr("lab.ivFloored"), Tone::Muted});
-  }
+  if (any_iv_floored(r)) out.push_back({"* " + t.tr("lab.ivFloored"), Tone::Muted});
   return out;
 }
 
@@ -131,14 +137,17 @@ std::vector<Line> whatif_compact(const Texts& t, const WhatIfResult& r) {
   const Locale L = t.locale();
   std::vector<Line> out;
   for (const auto& l : r.legs) {
-    out.push_back({leg_label(t, l) + kDot + fmt::fmt_price(l.value, L) + kDot + "\xCE\x94 " + greek(l.delta, L) + kDot +
-                       fmt::fmt_money(l.pnl, L, true),
-                   sign_tone(l.pnl)});
+    std::string line = leg_label(t, l) + kDot + fmt::fmt_price(l.value, L);
+    if (l.iv) line += kDot + t.tr("opt.iv") + " " + iv_text(l, L);
+    out.push_back({line + kDot + "\xCE\x94 " + greek(l.delta, L) + kDot + fmt::fmt_money(l.pnl, L, true), sign_tone(l.pnl)});
   }
-  out.push_back({t.tr("lab.net") + ": \xCE\x94 " + greek(r.net.delta, L, 3) + kDot + "\xCE\x93 " + greek(r.net.gamma, L) + kDot +
-                     "\xCE\x98/" + t.tr("lab.perBar") + " " + fmt::fmt_money(r.net.theta, L) + kDot + "\xCE\xBD/" +
-                     t.tr("lab.perPoint") + " " + fmt::fmt_money(r.net.vega, L),
-                 Tone::Plain});
+  // The web's WhatIfTable total row: the position's value and P&L, then its Greeks.
+  out.push_back({t.tr("lab.net") + ": " + fmt::fmt_money(r.net.value, L) + kDot + t.tr("lab.pnl") + " " +
+                     fmt::fmt_money(r.net.pnl, L, true) + kDot + "\xCE\x94 " + greek(r.net.delta, L, 3) + kDot + "\xCE\x93 " +
+                     greek(r.net.gamma, L) + kDot + "\xCE\x98/" + t.tr("lab.perBar") + " " + fmt::fmt_money(r.net.theta, L) +
+                     kDot + "\xCE\xBD/" + t.tr("lab.perPoint") + " " + fmt::fmt_money(r.net.vega, L),
+                 sign_tone(r.net.pnl)});
+  if (any_iv_floored(r)) out.push_back({"* " + t.tr("lab.ivFloored"), Tone::Muted});
   return out;
 }
 
@@ -246,7 +255,7 @@ LabView LabViewModel::view(const Texts& t) const {
   }
   if (r.at_expiry) v.at_expiry_note = t.tr("lab.atExpiryNote");
   v.table = whatif_table(t, r, !terminal);
-  chart_texts(t, r, v);
+  chart_texts(t, r, v.chart_summary, v.chart_legend);
   return v;
 }
 
@@ -264,13 +273,13 @@ LabSliderView LabViewModel::slider_view(const Texts& t, Slider s) const {
 }
 
 // The chart's accessible description (PayoffChart.svelte's summary) and its legend.
-void chart_texts(const Texts& t, const WhatIfResult& r, LabView& v) {
+void chart_texts(const Texts& t, const WhatIfResult& r, std::string& summary, std::string& legend) {
   const Locale L = t.locale();
   const std::string profit = r.expiry && r.expiry->max_profit ? fmt::fmt_money(*r.expiry->max_profit, L) : t.tr("lab.unbounded");
   const std::string loss = r.expiry && r.expiry->max_loss ? fmt::fmt_money(*r.expiry->max_loss, L) : t.tr("lab.unbounded");
-  v.chart_summary = t.tr("lab.chartSummary", {{"bes", breakevens_text(r, L)}, {"profit", profit}, {"loss", loss}});
+  summary = t.tr("lab.chartSummary", {{"bes", breakevens_text(r, L)}, {"profit", profit}, {"loss", loss}});
   if (const auto g = payoff_geometry(r, 1, 1, {})) {
-    v.chart_legend = fmt::fmt_price(js_number(g->lo), L) + "   \xE2\x94\x80\xE2\x94\x80 " + t.tr("lab.atExpiry") + "   - - " +
+    legend = fmt::fmt_price(js_number(g->lo), L) + "   \xE2\x94\x80\xE2\x94\x80 " + t.tr("lab.atExpiry") + "   - - " +
                      t.tr("lab.today") + "   " + fmt::fmt_price(js_number(g->hi), L);
   }
 }

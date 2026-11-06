@@ -137,6 +137,10 @@ TEST_CASE("builder: an iron condor's legs from the chain, its analysis from the 
   CHECK(v.totals[2].first.find("venda coberta") != std::string::npos);  // spread margin declared by the mission
   REQUIRE(v.preview.size() == 5);
   CHECK(v.preview[1].text.find("+2,0 P 97,50") != std::string::npos);
+  // The payoff chart has the lab's legend (price range, line styles) and an accessible description.
+  CHECK(v.chart_legend.rfind("70,00", 0) == 0);
+  CHECK(v.chart_legend.find("no vencimento") != std::string::npos);
+  CHECK(v.chart_summary.find("98,20") != std::string::npos);
 }
 
 TEST_CASE("builder: a refused leg in the dry run blocks the submit") {
@@ -448,4 +452,27 @@ TEST_CASE("builder: tagged legs are logged as the web logs them and replay to th
   tagged->advance(1);
   CHECK(plain->snapshot().digest == tagged->snapshot().digest);
   CHECK(tagged->snapshot().game->options.positions.size() == 4);
+}
+
+// Playtest X1: the builder's per-leg lines left out what the web's WhatIfTable shows in the same panel:
+// each leg's IV (the skew across a condor's strikes), the position's value and P&L, the IV-floor note.
+TEST_CASE("builder: the compact what-if lines carry each leg's IV, the position's value and P&L, the floor note") {
+  const Catalog catalog = builtin_catalog();
+  const Texts t{catalog};
+  WhatIfResult r;
+  const WhatIfLeg put{"put",    true,   "1",     8,        100,      "97.5",   "0.55",  "0.53",
+                      "0.668", false,  "-0.2037", "0.0621", "-0.0161", "0.0193", "0.53", "-0.02"};
+  const WhatIfLeg call{"call",  false,  "1",      11,       100,      "102.5",  "1.16",   "1.21",
+                       "0.05", true,   "0.3887", "0.0847", "-0.0217", "0.0262", "-1.21", "-0.05"};
+  const WhatIfLeg perp{"perp", true, "1", 0, 0, std::nullopt, "101.11", "101.11", std::nullopt, false, "1", "0", "0", "0", "101.11", "0"};
+  r.legs = {put, call, perp};
+  r.net = {"-1.46", "-0.12", "0.007", "-0.0445", "0.01", "-0.01"};
+  const std::vector<Line> lines = whatif_compact(t, r);
+  REQUIRE(lines.size() == 5);
+  CHECK(lines[0].text == "+1 P 97,50 \xC2\xB7 0,53 \xC2\xB7 IV 66,8% \xC2\xB7 \xCE\x94 -0,2037 \xC2\xB7 -0,02 cr");
+  CHECK(lines[1].text.find("IV 5,0%*") != std::string::npos);
+  CHECK(lines[2].text.find("IV") == std::string::npos);  // the perpetual has no volatility
+  CHECK(lines[3].text.rfind("Posi\xC3\xA7\xC3\xA3o: -1,46 cr \xC2\xB7 P&L -0,12 cr \xC2\xB7 \xCE\x94 0,007", 0) == 0);
+  CHECK(lines[3].tone == Tone::Down);
+  CHECK(lines[4].text.rfind("* ", 0) == 0);
 }
