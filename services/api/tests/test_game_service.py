@@ -13,7 +13,7 @@ from tradelab_api.application.erasure import ErasureService
 from tradelab_api.application.game import MAX_ACTIONS_PER_RUN, MAX_RUNS_PER_BATCH, GameService
 from tradelab_api.application.imports import ImportService
 from tradelab_api.domain.errors import InvalidLog, NotFound, TooLarge
-from tradelab_api.domain.models import Action, ErasureEntry, IncomingRun, Run
+from tradelab_api.domain.models import Action, ErasureEntry, IncomingRun, Preference, Run
 
 POLICY = 7
 KINDS = frozenset({"ans", "order", "adv"})
@@ -61,8 +61,11 @@ class FakeReplayer:
     def supported_policy(self) -> int:
         return POLICY
 
+    def supported_policies(self) -> frozenset[int]:
+        return frozenset({POLICY})
+
     def replay(self, mission_id: str, seed: int, actions: Sequence[Action],
-               options: Mapping[str, Any] | None = None) -> dict[str, Any]:
+               options: Mapping[str, Any] | None = None, policy: int | None = None) -> dict[str, Any]:
         self.calls.append((mission_id, seed, len(actions), options))
         if any(a.get("bad") for a in actions):
             raise ValueError("engine refused the log")
@@ -71,6 +74,20 @@ class FakeReplayer:
         if not advs:
             return {"digest": digest, "status": "active", "debrief": None}
         return {"digest": digest, "status": "finished", "debrief": {"score": {"total": advs * 10}, "netPnl": "12.50"}}
+
+
+class FakePrefs:
+    def __init__(self) -> None:
+        self.rows: dict[str, dict[str, Preference]] = {}
+
+    def all(self, owner: str) -> dict[str, Preference]:
+        return dict(self.rows.get(owner, {}))
+
+    def put(self, owner: str, prefs: Sequence[Preference]) -> None:
+        self.rows.setdefault(owner, {}).update({p.key: p for p in prefs})
+
+    def delete_owner(self, owner: str) -> None:
+        self.rows.pop(owner, None)
 
 
 class FakeClock:
@@ -208,12 +225,12 @@ def test_options_reach_the_replay(svc, ports):
 def test_progress_and_export(svc):
     svc.sync("alice", "dev", [incoming("r1"), incoming("r2", actions=LOG[:1]),
                               incoming("r3", actions=[*LOG, {"k": "adv"}])])
-    [p] = svc.progress("alice")
+    [p], _ = svc.progress("alice")
     assert (p.mission_id, p.runs, p.completed, p.best_score, p.best_net_pnl) == ("m01", 3, 2, 20, "12.50")
     export = svc.export("alice")
     assert export["player"] == "alice"
     assert sorted(len(r["actions"]) for r in export["runs"]) == [1, 3, 4]
-    assert svc.progress("bob") == []
+    assert svc.progress("bob") == ([], [])
 
 
 def test_erasure_deletes_and_audits(ports):
@@ -225,6 +242,18 @@ def test_erasure_deletes_and_audits(ports):
     assert runs.runs == {}
     [entry] = audit.entries
     assert entry == ErasureEntry(hashlib.sha256(b"alice").hexdigest(), "player", None, 1, NOW)
+
+
+def test_regression_erasure_also_deletes_preferences(ports):
+    # Before: ErasureService (in-game and webhook erasure) left the player's preferences behind.
+    runs, replayer = ports
+    prefs = FakePrefs()
+    prefs.put("alice", [Preference("ui.lang", "pt-BR", 1)])
+    prefs.put("bob", [Preference("ui.lang", "en", 1)])
+    erasure = ErasureService(runs, FakeAudit(), FakeClock(), prefs)
+    erasure.handle_event(FakeReceipts(), "msg_9", "user.deleted", {"user_id": "alice"})
+    assert prefs.all("alice") == {}
+    assert prefs.all("bob") != {}
 
 
 def test_webhook_events_are_processed_once(ports):

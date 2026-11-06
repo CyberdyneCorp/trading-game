@@ -14,7 +14,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..domain.models import ErasureEntry
-from ..ports import Clock, ErasureLog, RunRepository, WebhookReceipts
+from ..ports import Clock, ErasureLog, PreferenceStore, RunRepository, WebhookReceipts
 
 USER_DELETED = "user.deleted"
 
@@ -26,12 +26,16 @@ def subject_digest(sub: str) -> str:
 
 
 class ErasureService:
-    def __init__(self, runs: RunRepository, audit: ErasureLog, clock: Clock) -> None:
+    def __init__(self, runs: RunRepository, audit: ErasureLog, clock: Clock,
+                 prefs: PreferenceStore | None = None) -> None:
         self._runs = runs
+        self._prefs = prefs
         self._audit = audit
         self._clock = clock
 
     def erase(self, sub: str, source: str, reference: str | None = None) -> int:
+        if self._prefs is not None:
+            self._prefs.delete_owner(sub)
         deleted = self._runs.delete_owner(sub)
         entry = ErasureEntry(subject_digest(sub), source, reference, deleted, self._clock.now())
         self._audit.record(entry)

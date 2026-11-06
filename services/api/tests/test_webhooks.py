@@ -45,9 +45,12 @@ def audit(client) -> list[Any]:
 def test_user_deleted_erases_the_players_data_and_is_logged(client, auth):
     sync(client, auth, [run_body()], key="a", sub="alice")
     sync(client, auth, [run_body(run_id="run-0002-bobb")], key="a", sub="bob")
+    pref = {"preferences": {"ui.lang": {"value": "pt-BR", "updatedAt": 1}}}
+    assert client.patch("/api/v1/preferences", headers=auth("alice", key="p"), json=pref).status_code == 200
     assert post(client, deleted("alice"), webhook_id="msg_del_1").status_code == 204
     assert client.get("/api/v1/runs", headers=auth("alice")).json() == []
-    assert client.get("/api/v1/progress", headers=auth("alice")).json() == []
+    assert client.get("/api/v1/progress", headers=auth("alice")).json() == {"missions": [], "achievements": []}
+    assert client.get("/api/v1/preferences", headers=auth("alice")).json() == {"preferences": {}}
     assert len(client.get("/api/v1/runs", headers=auth("bob")).json()) == 1
     entries = audit(client)
     assert [(e.source, e.reference, e.deleted_runs) for e in entries] == [("webhook", "msg_del_1", 1)]

@@ -27,3 +27,10 @@ class Settings(BaseSettings):
 
     def role_client_ids(self) -> frozenset[str]:
         return frozenset(c.strip() for c in self.role_clients.split(",") if c.strip())
+    # Pack object store (filesystem adapter): a directory holding catalog.json and the packs it names.
+    packs_dir: str | None = None
+    # Older execution policies: cache built by tools/build_policy_cache.py, window = policies supported
+    # (current included), processes per older policy.
+    policy_cache: str | None = None
+    policy_window: int = 3
+    replay_workers: int = 2

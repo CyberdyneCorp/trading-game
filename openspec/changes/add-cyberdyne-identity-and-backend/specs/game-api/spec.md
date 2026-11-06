@@ -7,7 +7,7 @@ Defines the TradeLab HTTP API for scenario catalog and packs, run sync, server-s
 ## ADDED Requirements
 
 ### Requirement: Endpoints
-The API SHALL expose under `/api/v1`: `GET /health`, `GET /missions`, `POST /sync/batches`, `GET /runs`, `GET /runs/{id}`, `GET /progress`, `GET /me/export`, `DELETE /me/data`, `GET /scenarios`, `GET /scenarios/{id}/manifest`, `GET /packs/{digest}`, `POST /scenario-imports/validate` and `POST /webhooks/cyberdyne-auth`. Runs SHALL be created, extended and completed only through `POST /sync/batches`; there SHALL be no separate run-creation, command or completion endpoint. All endpoints except health, mission listing, catalog listing for public packs and the webhook SHALL require an authenticated player; a missing, malformed or invalid credential SHALL return 401.
+The API SHALL expose under `/api/v1`: `GET /health`, `GET /missions`, `POST /sync/batches`, `GET /runs`, `GET /runs/{id}`, `GET /progress`, `GET /preferences`, `PATCH /preferences`, `GET /me/export`, `DELETE /me/data`, `GET /scenarios`, `GET /scenarios/{id}/manifest`, `GET /packs/{digest}`, `POST /scenario-imports/validate` and `POST /webhooks/cyberdyne-auth`. Runs SHALL be created, extended and completed only through `POST /sync/batches`; there SHALL be no separate run-creation, command or completion endpoint. All endpoints except health, mission listing, the catalog listing, the manifest and download of free packs, and the webhook SHALL require an authenticated player; a missing, malformed or invalid credential SHALL return 401.
 
 #### Scenario: Unauthenticated sync
 - **WHEN** `POST /api/v1/sync/batches` or `GET /api/v1/runs` is called without a valid bearer token or session
@@ -51,7 +51,7 @@ On every sync the API SHALL re-simulate the run from its complete stored action 
 - **THEN** that run's outcome SHALL carry error `invalid_log`, nothing SHALL be stored for it, and other runs in the batch SHALL be processed normally
 
 ### Requirement: Engine version support
-The API SHALL re-simulate a run only with the execution-policy version it was recorded with. A run recorded with a version the server cannot replay SHALL be rejected for that run with error `unsupported_policy`, storing nothing for it. The API SHALL keep every engine and execution-policy version still referenced by an active or syncing run available for re-simulation, within a published support window.
+The API SHALL re-simulate a run only with the execution-policy version it was recorded with. A run recorded with a version the server cannot replay SHALL be rejected for that run with error `unsupported_policy`, storing nothing for it. The API SHALL keep every engine and execution-policy version still referenced by an active or syncing run available for re-simulation, within a published support window (the last N policy versions, the current one included), each older version in its own worker processes with the engine library and binding built from that version's commit. A run's execution policy SHALL be fixed by its first sync; a later sync of the same run id with another policy SHALL fail for that run with `conflict`. A replay worker that fails SHALL fail only that run, with `replay_unavailable`, storing nothing.
 
 #### Scenario: Unsupported version
 - **WHEN** a device syncs a run recorded with an execution policy the server does not have
@@ -59,14 +59,40 @@ The API SHALL re-simulate a run only with the execution-policy version it was re
 
 #### Scenario: Old engine run syncs
 - **WHEN** a device syncs a run recorded with an older supported engine version
-- **THEN** the API SHALL re-simulate it with that version
+- **THEN** the API SHALL re-simulate it with that version, and its digest SHALL equal the digest that version's engine produces for the same log
 
 ### Requirement: Pack delivery
-Packs SHALL be served by content digest, immutable, with `Content-Length`, strong `ETag` and HTTP range support for resumable downloads. Packs requiring an entitlement SHALL return 403 to users without it.
+`GET /scenarios` SHALL return the catalog manifest in the format the web client reads from its static manifest (schema 1), with each pack's `file` naming `GET /packs/{digest}` relative to the catalog URL. Packs SHALL be served by content digest, immutable, with `Content-Length`, strong `ETag` and HTTP range support for resumable downloads. Free packs SHALL need no credential. Packs requiring an entitlement SHALL be listed only to players whose verified token holds it and SHALL fail closed: 401 without a credential, 403 with a token that does not hold the entitlement or whose entitlements claim is missing or malformed.
 
 #### Scenario: Resume download
 - **WHEN** a client requests a byte range of a pack after an interruption
 - **THEN** the API SHALL return 206 with the requested range
+
+#### Scenario: Range past the end
+- **WHEN** a client requests a range starting at or after the pack's size
+- **THEN** the API SHALL return 416 with `Content-Range: bytes */<size>`
+
+#### Scenario: Entitled pack without the entitlement
+- **WHEN** a signed-in player without the pack's entitlement requests an entitled pack
+- **THEN** the API SHALL respond 403 and the pack SHALL NOT appear in that player's catalog listing
+
+### Requirement: Progress and achievements
+`GET /progress` SHALL derive every figure from server-replayed runs only: per mission the runs, completed runs, best server score and the best engine-scored lesson result; and achievements as the union over all of the player's runs, each earned by the earliest qualifying run: a mission lesson answered for every point in a finished run, a campaign mission finished (not bankrupt, leaving at least the campaign minimum) in a campaign run whose link names that mission at its index, and one campaign run with such a leg for every campaign mission. A run's campaign link SHALL be fixed by its first sync. Achievements SHALL be removed only by erasing the player's data.
+
+#### Scenario: Lesson achievement
+- **WHEN** a player syncs a finished run whose recorded lesson answers earn every lesson point
+- **THEN** `GET /progress` SHALL list the lesson achievement for that mission with that run
+
+#### Scenario: Sync order does not matter
+- **WHEN** the same runs are synced from several devices in any order
+- **THEN** the achievements SHALL be the same
+
+### Requirement: Preferences
+The API SHALL store player preferences per key with last-writer-wins semantics: a write carrying a key's change time SHALL replace the stored value only when newer, ties SHALL be broken deterministically by the value, and a change time in the future SHALL be clamped to the server's clock. Preferences SHALL be limited in number and size, private to their owner, exported and erased with the player's data.
+
+#### Scenario: Older write loses
+- **WHEN** a device sends a preference changed before the stored one
+- **THEN** the stored value SHALL be kept and returned
 
 ### Requirement: Limits and validation
 The API SHALL enforce a request size limit (`TRADELAB_MAX_BODY_BYTES`, default 4 MiB, 413) on the declared `Content-Length` and on the bytes actually received (so chunked bodies are limited too), rejecting a malformed `Content-Length` with 400, at most 50 runs per sync batch (413), at most 20,000 actions per run (more in one request fails schema validation; a stored log that would exceed it fails that run with `invalid_log`), per-user rate limits, and schema validation (422). Monetary values SHALL travel as decimal strings, SHALL NOT be parsed into floats by the API, and SHALL be parsed by the engine as int64 fixed-point identically on client and server.

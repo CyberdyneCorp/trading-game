@@ -1,6 +1,8 @@
 """Request authentication dependencies: bearer token → verified claims → rate limit → player or staff.
 
-No `from __future__ import annotations`: FastAPI resolves these signatures at runtime.
+Only `Authorization: Bearer` is read: cookies (CyberdyneAuth's parent-domain ones included) are ignored
+by construction (design D4a). No `from __future__ import annotations`: FastAPI resolves these
+signatures at runtime.
 """
 
 from collections.abc import Callable
@@ -32,6 +34,12 @@ class Authenticator:
         if wait > 0:
             raise HTTPException(429, "rate limit exceeded", headers={"Retry-After": retry_after_header(wait)})
         return claims
+
+    def optional_claims(self, authorization: Annotated[str | None, Header()] = None) -> dict[str, Any] | None:
+        """As `claims`, but None without an Authorization header (public routes that a token personalizes)."""
+        if authorization is None:
+            return None
+        return self.claims(authorization)
 
     def player(self) -> Callable[..., str]:
         def dependency(claims: Annotated[dict[str, Any], Depends(self.claims)]) -> str:

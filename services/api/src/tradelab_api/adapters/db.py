@@ -8,12 +8,24 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, create_engine, delete, select
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    create_engine,
+    delete,
+    select,
+)
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
-from ..domain.models import Action, ErasureEntry, Run
+from ..domain.models import Action, ErasureEntry, Preference, Run
 
 
 class Base(DeclarativeBase):
@@ -37,6 +49,7 @@ class RunRow(Base):
     score_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
     report: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     options: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    campaign: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
 
 class ActionRow(Base):
@@ -44,6 +57,14 @@ class ActionRow(Base):
     run_id: Mapped[str] = mapped_column(ForeignKey("runs.run_id", ondelete="CASCADE"), primary_key=True)
     seq: Mapped[int] = mapped_column(Integer, primary_key=True)
     action: Mapped[dict[str, Any]] = mapped_column(JSON)
+
+
+class PreferenceRow(Base):
+    __tablename__ = "preferences"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[Any] = mapped_column(JSON)
+    updated_at: Mapped[int] = mapped_column(BigInteger)
 
 
 class IdempotencyRow(Base):
@@ -77,7 +98,7 @@ class ErasureLogRow(Base):
 
 _FIELDS = (
     "run_id", "owner", "mission_id", "seed", "execution_policy", "device_id", "created_at", "actions", "status",
-    "server_digest", "client_digest", "digest_mismatch", "score_total", "report", "options",
+    "server_digest", "client_digest", "digest_mismatch", "score_total", "report", "options", "campaign",
 )
 
 
@@ -138,6 +159,24 @@ class SqlRunRepository:
         self._s.execute(delete(IdempotencyRow).where(IdempotencyRow.owner == owner))
         self._s.flush()
         return len(ids)
+
+
+class SqlPreferenceStore:
+    def __init__(self, session: Session) -> None:
+        self._s = session
+
+    def all(self, owner: str) -> dict[str, Preference]:
+        rows = self._s.scalars(select(PreferenceRow).where(PreferenceRow.owner == owner))
+        return {r.key: Preference(r.key, r.value, r.updated_at) for r in rows}
+
+    def put(self, owner: str, prefs: Sequence[Preference]) -> None:
+        for p in prefs:
+            self._s.merge(PreferenceRow(owner=owner, key=p.key, value=p.value, updated_at=p.updated_at))
+        self._s.flush()
+
+    def delete_owner(self, owner: str) -> None:
+        self._s.execute(delete(PreferenceRow).where(PreferenceRow.owner == owner))
+        self._s.flush()
 
 
 class SqlIdempotencyStore:

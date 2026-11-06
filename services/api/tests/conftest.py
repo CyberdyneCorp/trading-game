@@ -5,6 +5,7 @@ import os
 import time
 import uuid
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -16,9 +17,13 @@ from jwt.algorithms import RSAAlgorithm
 
 from tradelab_api.adapters.engine_replayer import ACTION_KINDS, EngineCsvValidator, EngineReplayer
 from tradelab_api.adapters.oidc import OidcVerifier
+from tradelab_api.adapters.policy_replayer import PolicyReplayer
 from tradelab_api.config import Settings
 from tradelab_api.http.app import create_app
 
+# Older execution policies (tools/build_policy_cache.py). Without the cache only the current policy is
+# replayed and the older-policy tests skip, unless TRADELAB_REQUIRE_POLICY_CACHE=1 (CI) fails them.
+POLICY_CACHE = Path(os.environ.get("TRADELAB_POLICY_CACHE", Path(__file__).resolve().parents[1] / ".policy-cache"))
 ISSUER = "https://auth.test.local"
 WEBHOOK_SECRET = "whsec_" + "dGVzdC13ZWJob29rLXNlY3JldC0zMi1ieXRlcy0hISE="  # base64 of a 32-byte test key
 DISCOVERY = f"{ISSUER}/.well-known/openid-configuration"
@@ -65,6 +70,13 @@ def idp() -> FakeIdP:
     return FakeIdP()
 
 
+@pytest.fixture(scope="session")
+def replayer() -> Any:
+    r = PolicyReplayer(EngineReplayer(), POLICY_CACHE, window=3, workers=1)
+    yield r
+    r.close()
+
+
 def database_url_for_tests() -> str:
     """TRADELAB_TEST_DATABASE_URL runs the same suite against PostgreSQL (CI does); default: SQLite.
     A PostgreSQL database is emptied first."""
@@ -74,23 +86,24 @@ def database_url_for_tests() -> str:
     return url
 
 
-def build_client(idp: FakeIdP, *, app_options: dict[str, Any] | None = None, **settings: Any) -> TestClient:
+def build_client(idp: FakeIdP, replayer: Any, *, packs: Any = None, app_options: dict[str, Any] | None = None,
+                 **settings: Any) -> TestClient:
     http = httpx.Client(transport=httpx.MockTransport(idp.handler))
     verifier = OidcVerifier(DISCOVERY, "tradelab-api", client=http)
     settings.setdefault("webhook_secret", WEBHOOK_SECRET)
-    app = create_app(Settings(database_url=database_url_for_tests(), **settings), verifier, EngineReplayer(), ACTION_KINDS,
-                     csv_validator=EngineCsvValidator(), **(app_options or {}))
+    app = create_app(Settings(database_url=database_url_for_tests(), **settings), verifier, replayer, ACTION_KINDS,
+                     csv_validator=EngineCsvValidator(), packs=packs, **(app_options or {}))
     return TestClient(app)
 
 
 @pytest.fixture
-def client(idp: FakeIdP) -> TestClient:
-    return build_client(idp)
+def client(idp: FakeIdP, replayer: Any) -> TestClient:
+    return build_client(idp, replayer)
 
 
 @pytest.fixture
-def client_with(idp: FakeIdP) -> Callable[..., TestClient]:
-    return lambda **settings: build_client(idp, **settings)
+def client_with(idp: FakeIdP, replayer: Any) -> Callable[..., TestClient]:
+    return lambda **settings: build_client(idp, replayer, **settings)
 
 
 def _reset(url: str) -> None:
@@ -107,8 +120,8 @@ def _reset(url: str) -> None:
 
 @pytest.fixture
 def auth(idp: FakeIdP) -> Callable[..., dict[str, str]]:
-    def headers(sub: str = "player-1", key: str | None = None) -> dict[str, str]:
-        h = {"Authorization": f"Bearer {idp.token(sub)}"}
+    def headers(sub: str = "player-1", key: str | None = None, **claims: Any) -> dict[str, str]:
+        h = {"Authorization": f"Bearer {idp.token(sub, **claims)}"}
         if key:
             h["Idempotency-Key"] = key
         return h

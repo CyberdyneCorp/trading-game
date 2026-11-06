@@ -6,7 +6,8 @@ defined inside the route registration functions at runtime.
 
 
 import json
-from collections.abc import Callable, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Annotated, Any
@@ -19,6 +20,7 @@ from ..adapters import migrations
 from ..adapters.db import (
     SqlErasureLog,
     SqlIdempotencyStore,
+    SqlPreferenceStore,
     SqlRunRepository,
     SqlWebhookReceipts,
     make_engine,
@@ -26,16 +28,18 @@ from ..adapters.db import (
     session_factory,
 )
 from ..adapters.webhook_signature import InvalidWebhook, MalformedWebhook, WebhookVerifier
+from ..application.catalog import CatalogService
 from ..application.erasure import ErasureService
-from ..application.game import MAX_RUNS_PER_BATCH, GameService, run_view
+from ..application.game import MAX_RUNS_PER_BATCH, GameService, preference_view, run_view
 from ..application.imports import ImportService
 from ..config import Settings
 from ..domain.access import PermissionResolver, RoleLookup, no_lookup
-from ..domain.errors import DomainError, InvalidLog, NotFound, TooLarge
-from ..domain.models import IncomingRun
-from ..ports import Clock, CsvValidator, Replayer, TokenVerifier
+from ..domain.errors import DomainError, Forbidden, InvalidLog, LimitExceeded, NotFound, TooLarge, Unauthenticated
+from ..domain.models import Achievement, IncomingRun, MissionProgress, Preference, SyncOutcome
+from ..ports import Clock, CsvValidator, ObjectStore, Replayer, TokenVerifier
 from .auth import Authenticator
 from .body_limit import BodyLimit
+from .catalog_routes import add_catalog_routes
 from .rate_limit import TokenBuckets
 from .schemas import (
     CsvReportOut,
@@ -43,6 +47,8 @@ from .schemas import (
     ErasedOut,
     ExportOut,
     HealthOut,
+    PreferencesIn,
+    PreferencesOut,
     ProgressOut,
     RunDetailOut,
     RunIn,
@@ -52,6 +58,8 @@ from .schemas import (
 )
 
 WEBHOOK_PATH = "/api/v1/webhooks/cyberdyne-auth"
+_STATUS = {NotFound: 404, InvalidLog: 413, TooLarge: 413, LimitExceeded: 413, Unauthenticated: 401, Forbidden: 403}
+IdempotencyKey = Annotated[str | None, Header()]
 
 
 class SystemClock:
@@ -76,17 +84,23 @@ class _Wiring:
             yield s
 
     def game(self, s: Session) -> GameService:
-        return GameService(SqlRunRepository(s), self.replayer, self.clock, self.action_kinds)
+        return GameService(SqlRunRepository(s), self.replayer, self.clock, self.action_kinds, SqlPreferenceStore(s))
 
     def erasure(self, s: Session) -> ErasureService:
-        return ErasureService(SqlRunRepository(s), SqlErasureLog(s), self.clock)
+        return ErasureService(SqlRunRepository(s), SqlErasureLog(s), self.clock, SqlPreferenceStore(s))
 
 
 def create_app(settings: Settings, verifier: TokenVerifier, replayer: Replayer, action_kinds: frozenset[str],
                clock: Any | None = None, *, csv_validator: CsvValidator | None = None,
                role_lookup: RoleLookup = no_lookup, rate_clock: Callable[[], float] | None = None,
-               webhook_clock: Callable[[], float] | None = None) -> FastAPI:
-    app = FastAPI(title="TradeLab API", version="0.1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
+               webhook_clock: Callable[[], float] | None = None, packs: ObjectStore | None = None) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        getattr(replayer, "close", lambda: None)()  # older-policy replay worker pools
+
+    app = FastAPI(title="TradeLab API", version="0.1.0", docs_url="/api/docs", openapi_url="/api/openapi.json",
+                  lifespan=lifespan)
     engine = make_engine(settings.database_url)
     if settings.migrate_on_start:
         migrations.upgrade(engine)
@@ -112,12 +126,12 @@ def create_app(settings: Settings, verifier: TokenVerifier, replayer: Replayer, 
     _public_routes(app, wiring)
     _run_routes(app, wiring)
     _privacy_routes(app, wiring)
+    add_catalog_routes(app, CatalogService(packs), wiring.auth.optional_claims)
     return app
 
 
 async def _domain_error(_: Request, exc: DomainError) -> JSONResponse:
-    status = {NotFound: 404, InvalidLog: 413, TooLarge: 413}.get(type(exc), 422)
-    return JSONResponse({"detail": exc.code}, status_code=status)
+    return JSONResponse({"detail": exc.code}, status_code=_STATUS.get(type(exc), 422))
 
 
 async def _idempotent(request: Request, s: Session, owner: str, key: str | None, run: Callable[[], Any]) -> Any:
@@ -140,11 +154,12 @@ async def _idempotent(request: Request, s: Session, owner: str, key: str | None,
 def _public_routes(app: FastAPI, w: _Wiring) -> None:
     @app.get("/api/v1/health", response_model=HealthOut)
     def health() -> dict[str, Any]:
-        return {"status": "ok", "executionPolicy": w.replayer.supported_policy()}
+        return {"status": "ok", "executionPolicy": w.replayer.supported_policy(),
+                "supportedPolicies": sorted(w.replayer.supported_policies())}
 
     @app.get("/api/v1/missions", response_model=list[dict[str, Any]])
     def missions() -> Any:
-        return getattr(w.replayer, "missions", lambda: [])()
+        return getattr(w.replayer, "missions", list)()
 
 
 def _run_routes(app: FastAPI, w: _Wiring) -> None:
@@ -153,16 +168,12 @@ def _run_routes(app: FastAPI, w: _Wiring) -> None:
 
     @app.post("/api/v1/sync/batches", response_model=list[SyncOutcomeOut])
     async def sync(request: Request, body: SyncBatchIn, owner: Player, s: Db,
-                   idempotency_key: Annotated[str | None, Header()] = None) -> Any:
+                   idempotency_key: IdempotencyKey = None) -> Any:
         if len(body.runs) > MAX_RUNS_PER_BATCH:
             raise HTTPException(413, f"at most {MAX_RUNS_PER_BATCH} runs per batch")
-        incoming = [
-            IncomingRun(r.runId, r.missionId, r.seed, r.executionPolicy, [(a.seq, a.action) for a in r.actions],
-                        r.clientDigest, r.clientActionCount, _options(r))
-            for r in body.runs
-        ]
+        incoming = [_incoming(r) for r in body.runs]
         return await _idempotent(request, s, owner, idempotency_key,
-                                 lambda: _outcomes(w.game(s).sync(owner, body.deviceId, incoming)))
+                                 lambda: [_outcome_view(o) for o in w.game(s).sync(owner, body.deviceId, incoming)])
 
     @app.get("/api/v1/runs", response_model=list[RunOut])
     def runs(owner: Player, s: Db) -> list[dict[str, Any]]:
@@ -173,10 +184,22 @@ def _run_routes(app: FastAPI, w: _Wiring) -> None:
         r = w.game(s).run(owner, run_id)
         return {**run_view(r), "report": r.report}
 
-    @app.get("/api/v1/progress", response_model=list[ProgressOut])
-    def progress(owner: Player, s: Db) -> list[dict[str, Any]]:
-        return [{"missionId": p.mission_id, "runs": p.runs, "completed": p.completed, "bestScore": p.best_score,
-                 "bestNetPnl": p.best_net_pnl} for p in w.game(s).progress(owner)]
+    @app.get("/api/v1/progress", response_model=ProgressOut)
+    def progress(owner: Player, s: Db) -> dict[str, Any]:
+        missions, earned = w.game(s).progress(owner)
+        return {"missions": [_mission_view(p) for p in missions], "achievements": [_achievement_view(a) for a in earned]}
+
+    @app.get("/api/v1/preferences", response_model=PreferencesOut)
+    def preferences(owner: Player, s: Db) -> dict[str, Any]:
+        return {"preferences": preference_view(w.game(s).preferences(owner))}
+
+    @app.patch("/api/v1/preferences", response_model=PreferencesOut)
+    async def set_preferences(request: Request, body: PreferencesIn, owner: Player, s: Db,
+                              idempotency_key: IdempotencyKey = None) -> Any:
+        incoming = [Preference(k, v.value, v.updatedAt) for k, v in body.preferences.items()]
+        return await _idempotent(
+            request, s, owner, idempotency_key,
+            lambda: {"preferences": preference_view(w.game(s).set_preferences(owner, incoming))})
 
     @app.get("/api/v1/me/export", response_model=ExportOut)
     def export(owner: Player, s: Db) -> Any:
@@ -188,8 +211,7 @@ def _privacy_routes(app: FastAPI, w: _Wiring) -> None:
     Db = Annotated[Session, Depends(w.session)]
 
     @app.delete("/api/v1/me/data", response_model=ErasedOut)
-    async def erase(request: Request, owner: Player, s: Db,
-                    idempotency_key: Annotated[str | None, Header()] = None) -> Any:
+    async def erase(request: Request, owner: Player, s: Db, idempotency_key: IdempotencyKey = None) -> Any:
         return await _idempotent(request, s, owner, idempotency_key,
                                  lambda: {"deletedRuns": w.erasure(s).erase(owner, "player")})
 
@@ -214,15 +236,34 @@ def _privacy_routes(app: FastAPI, w: _Wiring) -> None:
         return Response(status_code=204)
 
 
-def _outcomes(out: list[Any]) -> list[dict[str, Any]]:
-    return [SyncOutcomeOut(runId=o.run_id, acceptedThrough=o.accepted_through, status=o.status,
-                           serverDigest=o.server_digest, digestMatch=o.digest_match, scoreTotal=o.score_total,
-                           error=o.error).model_dump() for o in out]
+def _incoming(r: RunIn) -> IncomingRun:
+    return IncomingRun(r.runId, r.missionId, r.seed, r.executionPolicy, [(a.seq, a.action) for a in r.actions],
+                       r.clientDigest, r.clientActionCount, _options(r), _campaign(r))
+
+
+def _outcome_view(o: SyncOutcome) -> dict[str, Any]:
+    return SyncOutcomeOut(runId=o.run_id, acceptedThrough=o.accepted_through, status=o.status,
+                          serverDigest=o.server_digest, digestMatch=o.digest_match, scoreTotal=o.score_total,
+                          error=o.error).model_dump()
+
+
+def _mission_view(p: MissionProgress) -> dict[str, Any]:
+    return {"missionId": p.mission_id, "runs": p.runs, "completed": p.completed, "bestScore": p.best_score,
+            "bestNetPnl": p.best_net_pnl, "lessonPoints": p.lesson_points, "lessonTotal": p.lesson_total}
+
+
+def _achievement_view(a: Achievement) -> dict[str, Any]:
+    return {"id": a.id, "kind": a.kind, "missionId": a.mission_id, "campaignId": a.campaign_id, "runId": a.run_id,
+            "earnedAt": a.earned_at.isoformat()}
 
 
 def _options(r: RunIn) -> dict[str, Any] | None:
     """Start options without their defaults, so a default run stores None however the client sent it."""
     return (r.options.model_dump(exclude_defaults=True) or None) if r.options else None
+
+
+def _campaign(r: RunIn) -> dict[str, Any] | None:
+    return r.campaign.model_dump() if r.campaign else None
 
 
 def json_dumps(value: Any) -> str:

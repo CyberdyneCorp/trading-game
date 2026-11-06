@@ -60,6 +60,10 @@ def test_responses_validate_against_the_published_schemas(client, auth, spec):
     get("/api/v1/runs/{run_id}", "/api/v1/runs/run-0001-abcd", headers=auth())
     get("/api/v1/runs/{run_id}", "/api/v1/runs/run-0002-abcd", headers=auth())
     get("/api/v1/progress", headers=auth())
+    prefs = {"preferences": {"ui.lang": {"value": "pt-BR", "updatedAt": 1}}}
+    check(spec, "patch", "/api/v1/preferences", client.patch("/api/v1/preferences", json=prefs, headers=auth(key="p1")))
+    get("/api/v1/preferences", headers=auth())
+    get("/api/v1/scenarios")
     get("/api/v1/me/export", headers=auth())
     for body in ({"csv": make_csv(), "meta": META}, {"csv": "x", "meta": {}}, {"csv": "timestamp\n1\n", "meta": META}):
         check(spec, "post", "/api/v1/scenario-imports/validate",

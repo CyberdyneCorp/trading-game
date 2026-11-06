@@ -10,7 +10,7 @@ from tradelab_api.adapters import migrations
 from tradelab_api.adapters.db import Base, make_engine
 from tradelab_api.config import Settings
 
-TABLES = {"runs", "run_actions", "idempotency_keys", "webhook_receipts", "erasure_log"}
+TABLES = {"runs", "run_actions", "idempotency_keys", "webhook_receipts", "erasure_log", "preferences"}
 
 
 def test_models_and_migrations_agree():
@@ -27,7 +27,8 @@ def test_downgrade_to_baseline_and_back():
     migrations.downgrade(engine, "0001")
     names = set(inspect(engine).get_table_names())
     assert {"runs", "run_actions", "idempotency_keys"} <= names
-    assert not names & {"webhook_receipts", "erasure_log"}
+    assert not names & {"webhook_receipts", "erasure_log", "preferences"}
+    assert "campaign" not in {c["name"] for c in inspect(engine).get_columns("runs")}
     migrations.upgrade(engine)
     assert migrations.pending_model_changes(engine) == []
     engine.dispose()
@@ -48,3 +49,22 @@ def test_startup_migrates_unless_disabled(client_with):
     assert Settings().migrate_on_start is True
     client = client_with(migrate_on_start=False)
     assert client.get("/api/v1/health").status_code == 200  # the release step owns the schema then
+
+
+def test_upgrade_from_0002_keeps_runs_and_adds_campaign_and_preferences():
+    # A database migrated before preferences and campaign links existed: its runs survive the upgrade.
+    from sqlalchemy import text
+
+    engine = make_engine(database_url_for_tests())
+    migrations.upgrade(engine, "0002")
+    with engine.begin() as conn:
+        conn.execute(text(
+            "INSERT INTO runs (run_id, owner, mission_id, seed, execution_policy, device_id, created_at, actions,"
+            " status, server_digest, client_digest, digest_mismatch) VALUES ('run-old-0001', 'p', 'm01', 1, 15,"
+            " 'd', '2026-01-01T00:00:00+00:00', 0, 'active', '', '', false)"))
+    migrations.upgrade(engine)
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT run_id, campaign FROM runs")).all() == [("run-old-0001", None)]
+        assert conn.execute(text("SELECT count(*) FROM preferences")).scalar() == 0
+    assert migrations.pending_model_changes(engine) == []
+    engine.dispose()

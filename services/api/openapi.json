@@ -1,6 +1,58 @@
 {
   "components": {
     "schemas": {
+      "AchievementOut": {
+        "properties": {
+          "campaignId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignid"
+          },
+          "earnedAt": {
+            "title": "Earnedat",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "missionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missionid"
+          },
+          "runId": {
+            "title": "Runid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "missionId",
+          "campaignId",
+          "runId",
+          "earnedAt"
+        ],
+        "title": "AchievementOut",
+        "type": "object"
+      },
       "ActionIn": {
         "properties": {
           "action": {
@@ -19,6 +71,30 @@
           "action"
         ],
         "title": "ActionIn",
+        "type": "object"
+      },
+      "CampaignLinkIn": {
+        "additionalProperties": false,
+        "description": "The campaign run a run record plays and its mission index in the curriculum order.",
+        "properties": {
+          "id": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "index": {
+            "maximum": 63.0,
+            "minimum": 0.0,
+            "title": "Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "index"
+        ],
+        "title": "CampaignLinkIn",
         "type": "object"
       },
       "CsvIssueOut": {
@@ -200,6 +276,13 @@
             "title": "Player",
             "type": "string"
           },
+          "preferences": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PreferenceOut"
+            },
+            "title": "Preferences",
+            "type": "object"
+          },
           "runs": {
             "items": {
               "$ref": "#/components/schemas/ExportRunOut"
@@ -210,7 +293,8 @@
         },
         "required": [
           "player",
-          "runs"
+          "runs",
+          "preferences"
         ],
         "title": "ExportOut",
         "type": "object"
@@ -224,6 +308,18 @@
             },
             "title": "Actions",
             "type": "array"
+          },
+          "campaign": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign"
           },
           "createdAt": {
             "title": "Createdat",
@@ -313,6 +409,7 @@
           "digestMismatch",
           "scoreTotal",
           "options",
+          "campaign",
           "withIntel",
           "actions",
           "report"
@@ -342,16 +439,24 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "supportedPolicies": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Supportedpolicies",
+            "type": "array"
           }
         },
         "required": [
           "status",
-          "executionPolicy"
+          "executionPolicy",
+          "supportedPolicies"
         ],
         "title": "HealthOut",
         "type": "object"
       },
-      "ProgressOut": {
+      "MissionProgressOut": {
         "properties": {
           "bestNetPnl": {
             "anyOf": [
@@ -379,6 +484,28 @@
             "title": "Completed",
             "type": "integer"
           },
+          "lessonPoints": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lessonpoints"
+          },
+          "lessonTotal": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lessontotal"
+          },
           "missionId": {
             "title": "Missionid",
             "type": "string"
@@ -393,7 +520,104 @@
           "runs",
           "completed",
           "bestScore",
-          "bestNetPnl"
+          "bestNetPnl",
+          "lessonPoints",
+          "lessonTotal"
+        ],
+        "title": "MissionProgressOut",
+        "type": "object"
+      },
+      "PreferenceIn": {
+        "additionalProperties": false,
+        "properties": {
+          "updatedAt": {
+            "maximum": 9007199254740992.0,
+            "minimum": 0.0,
+            "title": "Updatedat",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value",
+          "updatedAt"
+        ],
+        "title": "PreferenceIn",
+        "type": "object"
+      },
+      "PreferenceOut": {
+        "properties": {
+          "updatedAt": {
+            "title": "Updatedat",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value",
+          "updatedAt"
+        ],
+        "title": "PreferenceOut",
+        "type": "object"
+      },
+      "PreferencesIn": {
+        "additionalProperties": false,
+        "properties": {
+          "preferences": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PreferenceIn"
+            },
+            "maxProperties": 100,
+            "title": "Preferences",
+            "type": "object"
+          }
+        },
+        "required": [
+          "preferences"
+        ],
+        "title": "PreferencesIn",
+        "type": "object"
+      },
+      "PreferencesOut": {
+        "properties": {
+          "preferences": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PreferenceOut"
+            },
+            "title": "Preferences",
+            "type": "object"
+          }
+        },
+        "required": [
+          "preferences"
+        ],
+        "title": "PreferencesOut",
+        "type": "object"
+      },
+      "ProgressOut": {
+        "properties": {
+          "achievements": {
+            "items": {
+              "$ref": "#/components/schemas/AchievementOut"
+            },
+            "title": "Achievements",
+            "type": "array"
+          },
+          "missions": {
+            "items": {
+              "$ref": "#/components/schemas/MissionProgressOut"
+            },
+            "title": "Missions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "missions",
+          "achievements"
         ],
         "title": "ProgressOut",
         "type": "object"
@@ -403,6 +627,18 @@
           "actions": {
             "title": "Actions",
             "type": "integer"
+          },
+          "campaign": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign"
           },
           "createdAt": {
             "title": "Createdat",
@@ -492,6 +728,7 @@
           "digestMismatch",
           "scoreTotal",
           "options",
+          "campaign",
           "withIntel",
           "actions",
           "report"
@@ -508,6 +745,16 @@
             "maxItems": 20000,
             "title": "Actions",
             "type": "array"
+          },
+          "campaign": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CampaignLinkIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "clientActionCount": {
             "anyOf": [
@@ -629,6 +876,18 @@
             "title": "Actions",
             "type": "integer"
           },
+          "campaign": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign"
+          },
           "createdAt": {
             "title": "Createdat",
             "type": "string"
@@ -705,6 +964,7 @@
           "digestMismatch",
           "scoreTotal",
           "options",
+          "campaign",
           "withIntel",
           "actions"
         ],
@@ -996,6 +1256,226 @@
         "summary": "Missions"
       }
     },
+    "/api/v1/packs/{digest}": {
+      "get": {
+        "operationId": "get_pack",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "digest",
+            "required": true,
+            "schema": {
+              "title": "Digest",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pack"
+      },
+      "head": {
+        "operationId": "head_pack",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "digest",
+            "required": true,
+            "schema": {
+              "title": "Digest",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pack"
+      }
+    },
+    "/api/v1/preferences": {
+      "get": {
+        "operationId": "preferences_api_v1_preferences_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preferences"
+      },
+      "patch": {
+        "operationId": "set_preferences_api_v1_preferences_patch",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Preferences"
+      }
+    },
     "/api/v1/progress": {
       "get": {
         "operationId": "progress_api_v1_progress_get",
@@ -1022,11 +1502,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ProgressOut"
-                  },
-                  "title": "Response Progress Api V1 Progress Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/ProgressOut"
                 }
               }
             },
@@ -1205,6 +1681,103 @@
           }
         },
         "summary": "Validate Import"
+      }
+    },
+    "/api/v1/scenarios": {
+      "get": {
+        "operationId": "scenarios_api_v1_scenarios_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scenarios"
+      }
+    },
+    "/api/v1/scenarios/{pack_id}/manifest": {
+      "get": {
+        "operationId": "scenario_manifest_api_v1_scenarios__pack_id__manifest_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pack_id",
+            "required": true,
+            "schema": {
+              "title": "Pack Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scenario Manifest"
       }
     },
     "/api/v1/sync/batches": {
