@@ -51,6 +51,7 @@
 	} from '#lib/game/strategies.ts';
 	import { unboundedAbove } from '#lib/game/whatifLab.ts';
 	import PayoffChart from './PayoffChart.svelte';
+	import Term from './Term.svelte';
 	import WhatIfTable from './WhatIfTable.svelte';
 
 	let {
@@ -236,7 +237,7 @@
 							<td><input aria-label={t('opt.qty')} inputmode="decimal" value={l.qty} onchange={(e) => edit(i, { qty: Math.max(0, parseDecimal((e.currentTarget as HTMLInputElement).value) || 0) })} /></td>
 							<td><button aria-label={t('lab.remove')} onclick={() => ((legs = legs.filter((_, j) => j !== i)), (strategy = 'custom'))}>✕</button></td>
 						</tr>
-						{#if noBid(l)}<tr><td colspan="5" class="attention small" data-testid="builder-no-bid">⚠ {t('builder.noBid')}</td></tr>{/if}
+						{#if noBid(l)}<tr><td colspan="5" class="attention small" data-testid="builder-no-bid">⚠ <Term id="legging-risk">{t('builder.noBid')}</Term></td></tr>{/if}
 					{/each}
 				</tbody>
 			</table>
@@ -264,7 +265,7 @@
 				{/each}
 			</ol>
 			<dl class="kv est" data-testid="builder-totals">
-				<dt>{t(Number(p.netPremium) >= 0 ? 'builder.credit' : 'builder.debit')}</dt><dd>{fmtMoney(String(Math.abs(Number(p.netPremium))), L)}</dd>
+				<dt><Term id="premium">{t(Number(p.netPremium) >= 0 ? 'builder.credit' : 'builder.debit')}</Term></dt><dd>{fmtMoney(String(Math.abs(Number(p.netPremium))), L)}</dd>
 				<dt>{t('ticket.estFee')}</dt><dd>{fmtMoney(p.fees, L)}</dd>
 				<dt>{t(game.missionRules.spreadMargin ? 'builder.marginSpread' : 'builder.marginPerLeg')}</dt><dd data-testid="builder-margin">{fmtMoney(p.optionMarginAfterFill, L)}</dd>
 				<dt>{t('builder.availableAfter')}</dt><dd>{fmtMoney(p.availableAfterFill, L)}</dd>
@@ -275,9 +276,9 @@
 			{@const above = unboundedAbove(w)}
 			{#if w.expiry}
 				<dl class="kv est" data-testid="builder-analysis">
-					<dt>{t('opt.breakeven')}</dt><dd data-testid="builder-breakevens">{w.expiry.breakevens.map((b) => fmtPrice(b, L)).join(' · ') || '—'}</dd>
+					<dt><Term id="breakeven">{t('opt.breakeven')}</Term></dt><dd data-testid="builder-breakevens">{w.expiry.breakevens.map((b) => fmtPrice(b, L)).join(' · ') || '—'}</dd>
 					<dt>{t('lab.maxProfit')}</dt><dd>{w.expiry.maxProfit != null ? fmtMoney(w.expiry.maxProfit, L) : t('lab.unbounded')}</dd>
-					<dt>{t('lab.maxLoss')}</dt><dd data-testid="builder-max-loss">{w.expiry.maxLoss != null ? fmtMoney(w.expiry.maxLoss, L) : t('lab.unboundedAbove', { price: above ? fmtPrice(above, L) : '—' })}</dd>
+					<dt><Term id="defined-risk">{t('lab.maxLoss')}</Term></dt><dd data-testid="builder-max-loss">{w.expiry.maxLoss != null ? fmtMoney(w.expiry.maxLoss, L) : t('lab.unboundedAbove', { price: above ? fmtPrice(above, L) : '—' })}</dd>
 				</dl>
 			{/if}
 			<PayoffChart result={w} testid="builder-payoff" />

@@ -3,7 +3,7 @@
 	// terms alphabetically, search ignoring accents and case, each term's stage and related terms.
 	// Shared by the glossary screen and the in-place dialog ("more").
 	import { searchTerms, termById, type GlossaryTerm } from '#lib/content/glossary.ts';
-	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { tick } from 'svelte';
 
 	let { focus = null, seen = [], onOpen }: { focus?: string | null; seen?: readonly string[]; onOpen?: (id: string) => void } = $props();
@@ -31,7 +31,7 @@
 		{t('glossary.search')}
 		<input type="search" bind:value={query} data-testid="glossary-search" />
 	</label>
-	<p class="muted small" role="status">{t('glossary.count', { n: hits.length })}</p>
+	<p class="muted small" role="status">{tCount('glossary.count', hits.length)}</p>
 	<div class="cols">
 		<ul class="list" aria-label={t('glossary.title')}>
 			{#each hits as term (term.id)}
@@ -41,7 +41,7 @@
 						aria-current={selected === term.id ? 'true' : undefined}
 						onclick={() => select(term.id)}
 						data-testid="glossary-term">
-						{term.text[L].term}{#if !seen.includes(term.id)}<span class="new"> {t('glossary.new')}</span>{/if}
+						{term.text[L].term}{#if !seen.includes(term.id)}<span class="new">{t('glossary.new')}</span>{/if}
 					</button>
 				</li>
 			{/each}
@@ -108,6 +108,7 @@
 		outline: 1px solid var(--accent);
 	}
 	.new {
+		margin-left: 0.5em; /* the row is a flex button: a leading space would collapse */
 		color: var(--info);
 		font-size: 0.7rem;
 	}

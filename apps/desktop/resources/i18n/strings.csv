@@ -875,6 +875,7 @@ glossary.title,Glossário,Glossary
 glossary.note,"Termos do jogo com definição curta, explicação e exemplos. A busca ignora acentos e maiúsculas.","The game’s terms with a short definition, an explanation and examples. Search ignores accents and case."
 glossary.search,Buscar termo,Search a term
 glossary.count,{n} termos,{n} terms
+glossary.countOne,1 termo,1 term
 glossary.new,novo,new
 glossary.example,Exemplo,Example
 glossary.aliases,Também,Also

@@ -67,6 +67,12 @@ describe('glossary (design D7)', () => {
 		expect(bare).toEqual([]);
 	});
 
+	it('the strategy builder marks its outputs as terms (premium, breakeven, maximum loss, legging risk)', () => {
+		const src = COMPONENTS['../components/StrategyBuilder.svelte'];
+		const marked = [...src.matchAll(/<Term id="([a-z-]+)"/g)].map((m) => m[1]);
+		expect(marked).toEqual(expect.arrayContaining(['premium', 'breakeven', 'defined-risk', 'legging-risk']));
+	});
+
 	it('Linked term missing: every term marked in the UI or linked by a tutorial exists in both locales', () => {
 		const marked = Object.values(COMPONENTS).flatMap((src) => [...src.matchAll(/<Term id="([a-z-]+)"/g)].map((m) => m[1]));
 		expect(marked.length).toBeGreaterThan(15);
