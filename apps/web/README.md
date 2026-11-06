@@ -35,7 +35,7 @@ E2E_API_PORT=8787 npx playwright test   # the pack catalog served by services/ap
 
 ```
 src/
-  routes/+page.svelte      single page; switches menu / briefing / terminal / debrief / curriculum / journal / lesson / academy / glossary / catalog
+  routes/+page.svelte      single page; switches menu / briefing / terminal / debrief / curriculum / journal / lesson / academy / glossary / lab / catalog
   lib/content/             Academy lessons, glossary and guided tour as JSON (PT-BR and en side by side) with their typed loaders,
                            validators and checks (academy.ts, checks.ts, payoff.ts, ticketSandbox.ts, glossary.ts, coach.ts)
   service-worker.ts        precache of the versioned build, offline shell, update on request
@@ -45,21 +45,22 @@ src/
   lib/game/                view-models (session, autoplay, settings, pwa, i18n, audio, sound, csvImport — *.svelte.ts rune classes),
                            IndexedDB storage, packStore (OPFS packs, quota, eviction), engineCache (engine pinning),
                            browserSupport (unsupported-browser check), and pure helpers (sizing, stops, optionsMath, calibration,
-                           analysis, debrief, format, news, hotkeys, shortcuts (+ keymap.svelte.ts), rejections, tutorials, advisor, points, perks, curriculum, lessons (mission questions), lessonRun (Academy runner), review (spaced review), coach (guided tour), glossaryUi, catalog, download, campaign, journal, candle/chart
+                           analysis, debrief, format, news, hotkeys, shortcuts (+ keymap.svelte.ts), rejections, tutorials, advisor, points, perks, curriculum, lessons (mission questions), lessonRun (Academy runner), strategies (builder templates and orders), combos (combo submission, status and grouping), whatifLab (lab requests and payoff geometry), review (spaced review), coach (guided tour), glossaryUi, catalog, download, campaign, journal, candle/chart
                            pattern catalogs, patternOutcome and packs) with *.test.ts next to them
   lib/components/          views: Terminal, Chart (+ chartPanes.ts), OrderTicket (+ TrailField: trailing stop by price or percent), OptionTicket, OptionChain,
                            RightRail, TopBar, AdvisorPanel, Briefing (+ PerkPanel), Tutorial (+ TutorialArt), Debrief (+ RegimeReveal), MissionMenu, dialogs,
                            PatternSheet (+ PatternAnimation), HelpOverlay, CsvImport, CampaignPanel, CampaignOutcome,
                            CurriculumMap, Journal (+ JournalEntries, RunJournal), ShortcutSettings, ChartTable (+ chartA11y.ts),
                            LessonRunner (+ LessonChart, LessonQuestion, LessonTicket, LessonPayoff, LessonTable, RichText), Academy, ReviewPrompt,
-                           Glossary (+ GlossaryList, GlossaryDialog, Term), CoachMarks, Catalog;
+                           Glossary (+ GlossaryList, GlossaryDialog, Term), CoachMarks, Catalog,
+                           StrategyBuilder, WhatIfLab (+ AcademyLegs, WhatIfTable, PayoffChart), LabScreen, ComboNotice;
                            chartDrag.ts (stop/target line drag)
 e2e/                       Playwright: mission.spec.ts (gameplay), missions-batch-a.spec.ts (m06–m08 to the debrief), missions-batch-b.spec.ts (m09–m12 to the debrief, announced calendar, campaign report), campaign.spec.ts (campaign, curriculum, journal), perks.spec.ts (intel perks), engine-rules.spec.ts (percent trailing stop, margin tiers), engine-rules-v17.spec.ts (gaps filled with bars without trading, mark-price note),
                            gameplay-ux.spec.ts (sizing modes, rejection numbers, liquidation flow, UX01 bar table, shortcuts, run journal, interrupted pack download),
                            packs.spec.ts (CSV import, practice packs), catalog.spec.ts (catalog, resumable download, Academy lesson), academy.spec.ts (every lesson to its end, sandbox/payoff/table with axe, spaced review with a mocked clock, glossary search and definition on focus, guided first trade), catalog-api.spec.ts (the same download from services/api, E2E_API_PORT only), branch-pack.spec.ts (packer-built branch and synthetic packs),
                            offline.spec.ts (OFF01-web), storage.spec.ts (no future bars on the main thread or in storage, checkpoints),
                            updates.spec.ts (evicted pack, old-engine resume), deploy.spec.ts (update mid-mission),
-                           a11y.spec.ts (axe), keyboard.spec.ts (keyboard-only play, screen-reader names), browser-support.spec.ts, budgets.spec.ts (performance); helpers.ts
+                           strategies.spec.ts (what-if lab, every builder template, condor filled and grouped, refused leg, incomplete combo), a11y.spec.ts (axe), keyboard.spec.ts (keyboard-only play, screen-reader names), browser-support.spec.ts, budgets.spec.ts (performance); helpers.ts
 scripts/                   check-budgets.mjs (size budget), check-wasm-size.mjs (WASM gzip budget), previewDeploy.ts (E2E deploy simulator, `vite preview` only),
                            build-engine.sh (Emscripten), make-icons.py (PWA icons), build-sample-catalog.py (sample pack catalog)
 static/                    manifest.webmanifest, icons, catalog/ (catalog.json + packs/<digest>.tlpack)
@@ -103,6 +104,15 @@ Content lives as JSON next to the code, PT-BR and en side by side per item (`src
 - **Guided first trade** (`coach.json`, `coach.svelte.ts`, `CoachMarks`): on the first campaign terminal of the device, coach marks point at the chart, the ticket, its stop field, the risk line and the advance control, then at the findings when that run's debrief opens. The callout is a non-modal dialog: focus moves to it, Space and Enter act on its buttons (the terminal ignores keys inside `data-own-keys`), `Esc` or "Skip tour" end it, each step is announced in a polite live region, and nothing animates with reduced motion. A typed stop or one advance completes their steps. The help overlay and the briefing replay it ("Tour guiado") in any mode.
 
 `meta.progress` is version 3: `lessonsDone`, `lessonReviews` (`{id: {box, due}}`), `coachDone` and `glossarySeen` (only for a "new" mark); `migrateProgress` fills them from version 2. Academy lessons are client data, unlike a mission's lesson questions (`lessons.ts`, scored by the engine). Lessons never gate the campaign.
+
+## What-if lab and strategy builder
+
+Design D3 and D4 of `openspec/changes/add-academy-and-strategies/`. Every value, P&L, Greek, breakeven and bound these screens show comes from the engine through three report-only worker requests (`whatif`, `runWhatif`, `comboPreview`: `tl_option_whatif`, `tl_run_option_whatif`, `tl_combo_preview`); they are never logged and never change the run. The worker feature-detects the exports: on a run pinned to an older engine build the reply is `unsupported` and the lab and the builder's analysis say so instead of showing numbers. `optionsMath.ts` keeps its mirrors for the single-leg ticket only.
+
+- **Lab** (`WhatIfLab.svelte`, `whatifLab.ts`): price (±30%), time and IV (±30 points) sliders; the payoff at expiry and at the slider's time and IV (`PayoffChart`), the position value and P&L, breakevens and bounds (an unbounded loss is named above its upper breakeven), and each leg's and the position's Greeks (`WhatIfTable`; an IV held at the model's 5% floor is marked). It states the model (Black-76, zero rate). Academy mode (`LabScreen`, from the menu) edits legs on an illustrative market at 100 (`AcademyLegs`; "use the model's price" sets the entries from the engine); a lesson can embed it with only some sliders unlocked (`unlocked`). Terminal mode opens from the builder's legs or from the open positions, uses the run's IV model at today's base and says so; at zero shift each leg rounds to the chain's mid.
+- **Builder** (`StrategyBuilder.svelte`, the terminal's "Estratégias" tab; `strategies.ts`): the seven templates from the listed chain around the last price (straddle and strangle also short), free legs (up to four options on one expiry and one perpetual leg), "use my long" for the covered call and protective put, and templates that write options disabled with the stage that unlocks writing. The dry run lists each leg's acceptance, the quote it crosses, the net premium, fees, the margin under the mission's rule (`missionRules.spreadMargin`) and the balance after the fills; submit is disabled while it refuses a leg or is out of date. A sale with no bid now is flagged (legging risk).
+- **Submission** (`combos.ts`): one plan per leg for the engine (one journal entry), then market orders longs first, the perpetual, then shorts, each logged with `combo` and `strategy` tags that replay ignores (`sessionCombo.test.ts`). A leg refused at placement cancels the accepted ones at once (`submitCombo`). After the open, `comboStatus` follows the legs through the engine's events; an incomplete combo shows `ComboNotice` (open legs, the cancelled ones and why, the risk from the engine's what-if of what is held) with "close the open legs" (after a confirmation) or "keep"; nothing is sent on its own. Combos are rebuilt from the action log on resume; the run journal shows a combo's state and net premium, and the debrief groups its trades under one row with the summed result (`groupTrades`).
+- **Tests:** `strategies.test.ts`, `combos.test.ts` (a fake engine port), `whatifLab.test.ts`, and `strategiesEngine.test.ts`, which loads the WASM build in Node (`wasmNode.test-util.ts`) to check the requests against the engine kernel (zero shift equals the chain, sliders move the numbers, every template's dry run and bounds).
 
 ## Pack catalog and downloads
 

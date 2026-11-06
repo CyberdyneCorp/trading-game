@@ -16,6 +16,7 @@
 	import Glossary from '#lib/components/Glossary.svelte';
 	import GlossaryDialog from '#lib/components/GlossaryDialog.svelte';
 	import { glossaryUi } from '#lib/game/glossaryUi.svelte.ts';
+	import LabScreen from '#lib/components/LabScreen.svelte';
 	import Journal from '#lib/components/Journal.svelte';
 	import Tutorial from '#lib/components/Tutorial.svelte';
 	import CrtOverlay from '#lib/components/CrtOverlay.svelte';
@@ -80,6 +81,8 @@
 	<Academy {session} />
 {:else if session.screen === 'glossary'}
 	<Glossary {session} />
+{:else if session.screen === 'lab'}
+	<LabScreen {session} />
 {:else if session.screen === 'catalog'}
 	<Catalog {session} />
 {:else if session.screen === 'journal'}

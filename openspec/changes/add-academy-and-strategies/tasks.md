@@ -17,8 +17,8 @@ Suggested PRs, in order:
 
 ## E. Engine and bindings
 
-- [ ] E1 Shared pricing kernel: move `make_inputs`, `black76` and quantization behind one internal function used by `quote()`. OPT01 and every golden must stay unchanged (no digest diff; `tools/regen_golden.py` shows no change).
-- [ ] E2 What-if valuation (design D4):
+- [x] E1 Shared pricing kernel: move `make_inputs`, `black76` and quantization behind one internal function used by `quote()`. OPT01 and every golden must stay unchanged (no digest diff; `tools/regen_golden.py` shows no change).
+- [x] E2 What-if valuation (design D4):
   - `tl_option_whatif(json)` (no run) and `tl_run_option_whatif(run, json)` (series ids, run IV model with the current step's base, shifts for forward, bars and IV points floored at 5%);
   - outputs per leg and net (value, P&L, Greeks) with the representations of D4, and exact expiry analytics (breakevens, `maxProfit`/`maxLoss` with `null` for unbounded, the price floor at 0);
   - payoff curves at expiry and at the shift.
@@ -31,7 +31,7 @@ Suggested PRs, in order:
   - at expiry the time-value Greeks are 0.
 
   `kAbiVersion` stays 1 (additions); update `c_api.h` docs.
-- [ ] E3 Combo dry run `tl_combo_preview(run, legs_json)`, needs E2:
+- [x] E3 Combo dry run `tl_combo_preview(run, legs_json)`, needs E2:
   - applies the ordered legs on a copy of `RunState` with the command functions;
   - reports per leg accepted/reason, the quote crossed, premium, fee, margin reserved and available after, plus totals.
 
@@ -39,7 +39,7 @@ Suggested PRs, in order:
   - state and digest identical before and after;
   - matches a real placement leg by leg (reasons and balances) for every template in m05, m10 and a `spread_margin` scenario;
   - a perpetual leg included.
-- [ ] E4 Defined-risk margin (design D5): `OptionSpec.spread_margin`, pairing (requirement per pair, greedy by series id, lowest requirement first), the condor rule (larger side when the short strikes do not overlap), min with per-leg, working buys counted at acceptance, filled longs only at execution; `missionRules.spreadMargin` in the state view.
+- [x] E4 Defined-risk margin (design D5): `OptionSpec.spread_margin`, pairing (requirement per pair, greedy by series id, lowest requirement first), the condor rule (larger side when the short strikes do not overlap), min with per-leg, working buys counted at acceptance, filled longs only at execution; `missionRules.spreadMargin` in the state view.
 
   Property tests:
   - a debit spread's short needs 0;
@@ -49,12 +49,12 @@ Suggested PRs, in order:
   - order independence;
   - a cover cancelled at the open → the short is checked naked and cancelled `insufficient_margin` when it does not fit;
   - flag off: m05 and m10 goldens and `option_book` unchanged.
-- [ ] E5 `whatif` golden fixture kind:
+- [x] E5 `whatif` golden fixture kind:
   - `tests/golden/whatif-call.json`, `whatif-condor.json` and `whatif-covered-call.json`, listed in `index.json`;
   - replayed by `test_golden.cpp` (native and WASM) and `bindings/python/tests/test_golden.py`;
   - `tools/regen_golden.py` writes them;
   - the engine README's fixture table documents the kind.
-- [ ] E6 Bindings, needs E2–E4:
+- [x] E6 Bindings, needs E2–E4:
   - WASM exports and worker requests `whatif`, `runWhatif` and `comboPreview` (feature-detected: absent on an older pinned build → the client hides the lab and builder analysis);
   - Python `option_whatif`, `Run.option_whatif` and `Run.combo_preview`;
   - parity tests;
@@ -103,11 +103,11 @@ Suggested PRs, in order:
 - [ ] W5 What-if lab (design D4, options-whatif spec), needs E6:
   - worker requests and the `WhatIfLab` component (price, time and IV sliders; expiry and today curves; per-leg and net Greeks; the "Black-76, zero rate" note);
   - Academy mode (editable legs) and terminal mode (from positions or builder legs, the "today's IV level" note);
-  - lesson widgets `payoff`, `whatif` and `builder`;
+  - lesson widgets `payoff`, `whatif` and `builder` (open: they plug into W2's runner; `WhatIfLab` already takes `unlocked` sliders and Academy legs);
   - unit tests with a fake worker;
   - e2e: zero shift equals the chain, sliders change engine numbers.
 - [ ] W6 Lessons, part 2 (options and strategies), needs W5. As built so far: the five lessons exist with the `payoff` widget and expiry-arithmetic checks (Vitest); left: the `whatif` and `builder` widgets and the engine-checked numbers below: `options-payoff`, `options-greeks`, `options-iv`, `options-writing`, `strategies-shapes`, with checks verified by `bindings/python/tests/test_academy_numbers.py` (needs E6).
-- [ ] W7 Strategy builder (design D3, strategy-builder spec), needs E3, E4 and E6:
+- [x] W7 Strategy builder (design D3, strategy-builder spec), needs E3, E4 and E6:
   - templates from the chain, the short toggle, free legs on one expiry, "use my long";
   - writing-locked templates disabled with the reason;
   - analysis from `runWhatif` + `comboPreview`;

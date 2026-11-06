@@ -8,7 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from tradelab_engine import ReplayResult, Run, RunOptions, build_csv_pack, device_key, replay, replay_on
+from tradelab_engine import (ReplayResult, Run, RunOptions, build_csv_pack, device_key, option_whatif, replay,
+                             replay_on)
 from tradelab_engine.engine import load_library
 
 GOLDEN_DIR = Path(__file__).resolve().parents[3] / "engine" / "tests" / "golden"
@@ -54,10 +55,18 @@ def reveal_sha256(fx: dict[str, Any]) -> str:
     return hashlib.sha256(load_library().tl_mission_reveal(fx["mission"].encode(), fx["seed"])).hexdigest()
 
 
-def actual(fx: dict[str, Any]) -> dict[str, str]:
+def whatif_result(fx: dict[str, Any]) -> dict[str, Any]:
+    """tl_option_whatif's output for a "whatif" fixture's request (every value a string or null)."""
+    assert fx["kind"] == "whatif"
+    return option_whatif(fx["request"])
+
+
+def actual(fx: dict[str, Any]) -> dict[str, Any]:
     """The values a fixture's "expected" block freezes, as produced by this engine build."""
     if fx["kind"] == "reveal":
         return {"sha256": reveal_sha256(fx)}
+    if fx["kind"] == "whatif":
+        return {"result": whatif_result(fx)}
     result = replay_run(fx)
     rejected = [{"action": i, "reason": r["reason"]} for i, r in enumerate(result.results)
                 if r is not None and not r["accepted"]]

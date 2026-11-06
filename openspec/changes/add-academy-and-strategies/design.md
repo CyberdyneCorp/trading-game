@@ -207,6 +207,13 @@ It also reports totals. The copy is discarded; a test checks that `tl_state` and
 
 **Fixtures.** A new shared fixture kind, `"whatif"`, holds an input and its expected output strings. `tests/golden/index.json` lists them. `test_golden.cpp` (native and WASM), the Python golden test and the desktop golden test replay them. Three fixtures: a single call with every shift, an iron condor with breakevens and bounded losses, and a covered call with a perpetual leg.
 
+**As built (D4).**
+- `src/options_kernel.hpp`: `price_unit` (Black-76 and the quote's quantization) and `series_inputs`; `quote()` calls them, OPT01 and every golden unchanged.
+- A sale's requirement in the dry run is what the command checks; option buys still reserve nothing while they work, so the dry run also reports the margins and the balance once the accepted legs fill at today's quotes (`optionMarginAfterFill`, `positionMarginAfterFill`, `availableAfterFill`), which the builder shows.
+- A run leg without `entry` is valued against the price it would cross now (ask, bid, last close). A run-less perpetual leg's units are qty x multiplier.
+- `maxLoss` is reported as a positive amount for a loss (`null` = unbounded, above).
+- The web logs `strategy` (the structure name) next to `combo` on each leg, and tags the cancels of a withdrawn combo; replay ignores both.
+
 ### D5. Engine: defined-risk (vertical spread) margin, declared per mission
 
 `OptionSpec.spread_margin` (bool, default false). When true:
@@ -235,6 +242,8 @@ Why the worst loss at expiry: a covered short cannot lose more than that require
 - Pairing is order-independent for the same positions.
 - A short whose long failed to fill is margined naked at execution.
 - With the flag off, `option_book` is identical to today's on every mission (m05 and m10 goldens).
+
+**As built (D5).** `src/spread_margin.cpp`. A sale's requirement is the holdings' initial margin with the sale minus without it (never below 0), so selling a long that covered a short is charged too. Within the condor rule the side with the smaller sum keeps no paired margin (ties keep the call side), per measure (initial and maintenance). Packs do not carry the flag yet (`instruments.options` has no `spreadMargin`): a mission declaring it must add it to the pack manifest before it can be packed.
 
 ### D6. Guided first trade (coach marks)
 

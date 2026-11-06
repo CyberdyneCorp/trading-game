@@ -123,6 +123,10 @@ struct OptionSpec {
   Rate im_floor;
   Rate mm_base;
   bool allow_short = false;
+  // Defined-risk margin (design D5 of add-academy-and-strategies): a short paired with longs of the
+  // same kind and expiry is margined at the smaller of its per-leg margin and its worst loss at
+  // expiry. Off: every short is margined on its own, exactly as before.
+  bool spread_margin = false;
 };
 
 // What the player can see about a news item once released (spec: market-generator "Events").
