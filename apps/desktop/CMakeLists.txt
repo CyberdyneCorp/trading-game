@@ -47,6 +47,7 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/chart_input.cpp
   src/viewmodel/game/chart_scale.cpp
   src/viewmodel/game/chart_vm.cpp
+  src/viewmodel/game/combos.cpp
   src/viewmodel/game/dialogs_vm.cpp
   src/viewmodel/game/dock_layout.cpp
   src/viewmodel/game/game_keys.cpp
@@ -58,8 +59,10 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/progress.cpp
   src/viewmodel/game/shortcuts.cpp
   src/viewmodel/game/sizing.cpp
+  src/viewmodel/game/strategies.cpp
   src/viewmodel/game/texts.cpp
-  src/viewmodel/game/ticket_vm.cpp)
+  src/viewmodel/game/ticket_vm.cpp
+  src/viewmodel/game/whatif_lab.cpp)
 set(TRADELAB_DESKTOP_GAME_VIEW_SOURCES
   src/view/game/game_view.cpp
   src/view/game/game_view_dialogs.cpp

@@ -31,9 +31,11 @@ const server = await createServer({
 });
 
 const load = (name) => server.ssrLoadModule(`/src/lib/game/${name}`);
+// The engine's what-if golden fixtures: real engine answers for the lab's chart geometry.
+const golden = (name) => JSON.parse(readFileSync(resolve(here, `../../../engine/tests/golden/${name}.json`), 'utf8')).expected.result;
 let fixtures;
 try {
-	fixtures = await buildFixtures(load);
+	fixtures = await buildFixtures(load, golden);
 } finally {
 	await server.close();
 }

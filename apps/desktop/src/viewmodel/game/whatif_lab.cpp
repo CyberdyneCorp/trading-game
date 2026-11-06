@@ -102,22 +102,34 @@ std::string_view slider_code(Slider s) {
   return "iv";
 }
 
-// Number#toFixed rounds the exact binary value half away from zero; "%.*f" rounds it to nearest, ties
-// to even. They differ only on exact binary ties (x.125 to 2 places), which the lab's inputs (cents,
-// percent of a cent price) reach only through such literals; the parity fixtures cover the cases used.
+namespace {
+
+// Adds one unit in the last place of a decimal text of digits and at most one '.'.
+std::string round_up(std::string s) {
+  for (auto i = s.size(); i-- > 0;) {
+    if (s[i] == '.') continue;
+    if (s[i] != '9') {
+      ++s[i];
+      return s;
+    }
+    s[i] = '0';
+  }
+  return "1" + s;
+}
+
+}  // namespace
+
+// Number#toFixed: the exact binary value of |v| rounded at `digits` places, half up, then the sign
+// (87.65 * 0.7 is 61.35499999... and gives "61.35"; rounding the product times 100 gave 61.36).
 std::string to_fixed(double v, int digits) {
   if (!std::isfinite(v)) return std::isnan(v) ? "NaN" : (v > 0 ? "Infinity" : "-Infinity");
-  const double scale = std::pow(10.0, digits);
-  const double scaled = v * scale;
-  double rounded = std::nearbyint(scaled);
-  if (std::fabs(scaled - std::trunc(scaled)) == 0.5) rounded = scaled > 0 ? std::ceil(scaled) : std::floor(scaled);
-  char buf[64];
-  std::snprintf(buf, sizeof buf, "%.*f", digits, rounded / scale);
-  std::string out = buf;
-  if (out.front() == '-' && std::all_of(out.begin() + 1, out.end(), [](char c) { return c == '0' || c == '.'; })) {
-    out.erase(0, 1);  // (-0.001).toFixed(2) is "-0.00" in JS, but the lab never sends negatives
-  }
-  return out;
+  char buf[512];
+  std::snprintf(buf, sizeof buf, "%.*f", digits + 60, std::fabs(v));  // exact far enough to see the half
+  const std::string exact = buf;
+  const auto point = exact.find('.');
+  std::string out = exact.substr(0, digits > 0 ? point + 1 + static_cast<std::size_t>(digits) : point);
+  if (exact[point + 1 + static_cast<std::size_t>(digits)] >= '5') out = round_up(out);
+  return v < 0 ? "-" + out : out;
 }
 
 // The shortest text that reads back as the same double (JavaScript's String(number) for the ranges used).
@@ -265,6 +277,15 @@ std::optional<PayoffGeometry> payoff_geometry(const WhatIfResult& r, double w, d
     if (inside(k)) g.strike_x.push_back(x(k));
   }
   return g;
+}
+
+std::string path_text(const std::vector<ChartPoint>& points) {
+  std::string out;
+  for (std::size_t i = 0; i < points.size(); ++i) {
+    if (i) out += ' ';
+    out += (i ? "L" : "M") + to_fixed(points[i].x, 1) + "," + to_fixed(points[i].y, 1);
+  }
+  return out;
 }
 
 }  // namespace tradelab::desktop::game

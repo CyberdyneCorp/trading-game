@@ -146,5 +146,7 @@ struct PayoffGeometry {
 };
 
 std::optional<PayoffGeometry> payoff_geometry(const WhatIfResult& r, double w, double h, const std::vector<double>& strikes);
+// The web's SVG path of a curve ("M x,y L x,y ...", one decimal): the parity fixtures compare it.
+std::string path_text(const std::vector<ChartPoint>& points);
 
 }  // namespace tradelab::desktop::game

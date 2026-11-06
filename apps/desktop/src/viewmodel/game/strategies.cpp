@@ -6,6 +6,7 @@
 
 #include "model/storage/json_writer.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/whatif_lab.hpp"
 
 namespace tradelab::desktop::game {
 
@@ -221,9 +222,8 @@ std::vector<AnalysisLeg> whatif_legs(const std::vector<OrderLeg>& orders, const 
 
 namespace {
 
-std::string unsigned_text(const std::string& decimal) {
-  return !decimal.empty() && decimal.front() == '-' ? decimal.substr(1) : decimal;
-}
+// String(Math.abs(Number(q))): "-1.50000000" -> "1.5".
+std::string unsigned_text(const std::string& decimal) { return js_number(std::fabs(fmt::num(decimal))); }
 
 }  // namespace
 
