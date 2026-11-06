@@ -91,6 +91,7 @@
 
 	<nav class="screens">
 		<button onclick={() => session.openCurriculum()} data-testid="open-curriculum">▦ {t('curriculum.open')}</button>
+		<button onclick={() => session.openLab()} data-testid="open-lab">⚗ {t('lab.open')}</button>
 		<button onclick={() => session.openJournal()} data-testid="open-journal">✎ {t('journal.open')}</button>
 		<button onclick={() => session.openCatalog()} data-testid="open-catalog">⇩ {t('catalog.open')}</button>
 	</nav>

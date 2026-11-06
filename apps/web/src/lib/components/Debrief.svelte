@@ -17,6 +17,7 @@
 	import Chart from './Chart.svelte';
 	import { describeEvent } from './EventFeed.svelte';
 	import type { EngineTrade } from '#lib/engine/types.ts';
+	import { comboStatus, groupTrades, netPremium } from '#lib/game/combos.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const s = $derived(session.state!);
@@ -25,6 +26,9 @@
 	// Engine report (authoritative; the server recomputes the same thing from the same commands).
 	const a = $derived({ netPnl: Number(d.netPnl), dims: d.score.dims, total: d.score.total, findings: d.findings, lesson: d.lesson });
 	const trades = $derived(d.trades);
+	// Strategy-builder combos: their legs' trades under one row (name, state, net premium, summed result).
+	const grouped = $derived(groupTrades(d.trades, session.combos.map((r) => comboStatus(s.events, r))));
+	const cols = $derived(session.reveal ? 10 : 9);
 	const greeks = $derived(greekRows(d.greeks));
 	const findingTexts = $derived(describeFindings(a.findings, L, s.missionRules));
 	// Depends on L so the texts follow a language switch.
@@ -84,6 +88,29 @@
 	const judged = $derived(d.advice.filter((x) => x.outcome === 'right' || x.outcome === 'wrong').length);
 	const dimLabels = { risk: 'debrief.risk', plan: 'debrief.plan', understanding: 'debrief.understanding', calibration: 'debrief.calibration' } as const;
 </script>
+
+{#snippet tradeRow(tr: EngineTrade, inCombo: boolean)}
+	{@const net = Number(tr.net)}
+	{@const r = tr.rBp == null ? null : tr.rBp / 10000}
+	{@const advice = adviceText(tr)}
+	<tr class:leg={inCombo}>
+		<td>{tr.n}</td>
+		<td class={tr.side === 'long' ? 'up' : 'down'}>{tradeLabel(tr)} × {fmtQty(tr.qty, L)}</td>
+		<td class="num">{fmtPrice(tr.entryAvg, L)} <span class="muted">@{tr.entryStep}</span></td>
+		<td class="num">{tr.exitStep != null ? fmtPrice(tr.exitAvg, L) : '—'}</td>
+		<td class="num {net >= 0 ? 'up' : 'down'}">{signMark(net)} {fmtMoney(net, L, true)}</td>
+		<td class="num">{r != null ? `${fmtNum(r, L, 2, true)}R` : '—'}</td>
+		<td class="num">{tr.bars}</td>
+		<td>{t(`trade.${tr.reason}`)}</td>
+		<td class={tr.planRespected === false ? 'down' : tr.planRespected ? 'up' : 'muted'}>
+			{tr.planRespected == null ? '—' : tr.planRespected ? '✔ ' + t('trade.respected') : '✖ ' + t('trade.violated')}
+		</td>
+		{#if session.reveal}<td data-testid="trade-regime">{entryRegimeName(tr, session.reveal.spans)}</td>{/if}
+	</tr>
+	{#if advice}
+		<tr class="advice"><td></td><td colspan={session.reveal ? 9 : 8} class="down">✖ {advice}</td></tr>
+	{/if}
+{/snippet}
 
 <main class="debrief">
 	{#if bankrupt}
@@ -207,28 +234,19 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each trades as tr (tr.n)}
-						{@const net = Number(tr.net)}
-						{@const r = tr.rBp == null ? null : tr.rBp / 10000}
-						{@const advice = adviceText(tr)}
-						<tr>
-							<td>{tr.n}</td>
-							<td class={tr.side === 'long' ? 'up' : 'down'}>{tradeLabel(tr)} × {fmtQty(tr.qty, L)}</td>
-							<td class="num">{fmtPrice(tr.entryAvg, L)} <span class="muted">@{tr.entryStep}</span></td>
-							<td class="num">{tr.exitStep != null ? fmtPrice(tr.exitAvg, L) : '—'}</td>
-							<td class="num {net >= 0 ? 'up' : 'down'}">{signMark(net)} {fmtMoney(net, L, true)}</td>
-							<td class="num">{r != null ? `${fmtNum(r, L, 2, true)}R` : '—'}</td>
-							<td class="num">{tr.bars}</td>
-							<td>{t(`trade.${tr.reason}`)}</td>
-							<td class={tr.planRespected === false ? 'down' : tr.planRespected ? 'up' : 'muted'}>
-								{tr.planRespected == null ? '—' : tr.planRespected ? '✔ ' + t('trade.respected') : '✖ ' + t('trade.violated')}
+					{#each grouped.combos as c (c.status.record.id)}
+						<tr class="combo" data-testid="debrief-combo">
+							<td colspan="4">
+								◆ {t('combo.label', { name: t(`strategy.${c.status.record.strategy}`), n: c.status.record.legs.length })} ·
+								<span class:attention={c.status.state === 'incomplete'}>{t(`combo.state.${c.status.state}`)}</span> ·
+								{t('combo.premium', { amount: fmtMoney(netPremium(c.status, num(s.options.multiplier)), L, true) })}
 							</td>
-							{#if session.reveal}<td data-testid="trade-regime">{entryRegimeName(tr, session.reveal.spans)}</td>{/if}
+							<td class="num {c.net >= 0 ? 'up' : 'down'}" data-testid="debrief-combo-net">{signMark(c.net)} {fmtMoney(c.net, L, true)}</td>
+							<td colspan={cols - 5}></td>
 						</tr>
-						{#if advice}
-							<tr class="advice"><td></td><td colspan={session.reveal ? 9 : 8} class="down">✖ {advice}</td></tr>
-						{/if}
+						{#each c.trades as tr (tr.n)}{@render tradeRow(tr, true)}{/each}
 					{/each}
+					{#each grouped.rest as tr (tr.n)}{@render tradeRow(tr, false)}{/each}
 				</tbody>
 			</table>
 		{/if}
@@ -342,6 +360,13 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
+	}
+	.trades .combo td {
+		border-top: 1px solid var(--muted);
+		color: var(--info);
+	}
+	.trades .leg td:nth-child(2) {
+		padding-left: 1rem;
 	}
 	.trades {
 		width: 100%;

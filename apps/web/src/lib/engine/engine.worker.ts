@@ -43,6 +43,10 @@ interface Api {
 	checkpoint: Fn;
 	restore: Fn;
 	restorePack: Fn;
+	// Option analysis (add-academy-and-strategies D4); null on builds that predate it.
+	whatif: Fn | null;
+	runWhatif: Fn | null;
+	comboPreview: Fn | null;
 }
 
 let mod: TradelabModule | null = null;
@@ -101,9 +105,17 @@ async function load(): Promise<Api> {
 		checkpoint: w('tl_checkpoint', 'number', ['number']),
 		// Checkpoint hex by pointer (withText), like the CSV: it grows past the stack with long runs.
 		restore: w('tl_run_restore', 'number', ['string', 'number', 'number']),
-		restorePack: w('tl_run_restore_pack', 'number', ['number', 'number', 'string', 'number', 'number'])
+		restorePack: w('tl_run_restore_pack', 'number', ['number', 'number', 'string', 'number', 'number']),
+		// Feature-detected: a run pinned to an older build has no analysis, and the client hides it.
+		whatif: exported(mod, 'tl_option_whatif') ? w('tl_option_whatif', 'number', ['number']) : null,
+		runWhatif: exported(mod, 'tl_run_option_whatif') ? w('tl_run_option_whatif', 'number', ['number', 'number']) : null,
+		comboPreview: exported(mod, 'tl_combo_preview') ? w('tl_combo_preview', 'number', ['number', 'number']) : null
 	};
 	return api;
+}
+
+function exported(m: TradelabModule, name: string): boolean {
+	return typeof (m as unknown as Record<string, unknown>)[`_${name}`] === 'function';
 }
 
 // A trap leaves the module's memory in an unknown state: drop it (and the run it held) so the next
@@ -210,6 +222,18 @@ function lessonInfo(a: Api, missionId: string): unknown {
 	return info.error ? null : info;
 }
 
+type AnalysisRequest = Extract<EngineRequest, { kind: 'whatif' | 'runWhatif' | 'comboPreview' }>;
+
+// Report-only option analysis: the request JSON goes through the heap (withText), the reply is the
+// engine's object or its error code. Nothing is logged and the run is not changed.
+function analysis(a: Api, req: AnalysisRequest): { ok: true; value: unknown } | { ok: false; error: string } {
+	const fn = a[req.kind];
+	if (!fn) return { ok: false, error: 'unsupported' };
+	const text = JSON.stringify(req.request);
+	const out = withText(text, (ptr) => json(req.kind === 'whatif' ? fn(ptr) : fn(requireRun(), ptr))) as { error?: string };
+	return out.error ? { ok: false, error: out.error } : { ok: true, value: out };
+}
+
 type OrderRequest = Extract<EngineRequest, { kind: 'order' }>;
 
 // A trailing stop given as a rate of the close has its own entry point (policy v16).
@@ -282,6 +306,10 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			return withState(a, a.answer(requireRun(), req.clientId, req.pBp, req.skipped ? 1 : 0));
 		case 'lesson':
 			return lessonInfo(a, req.missionId);
+		case 'whatif':
+		case 'runWhatif':
+		case 'comboPreview':
+			return analysis(a, req);
 		case 'lessonAnswer':
 			return withState(
 				a,

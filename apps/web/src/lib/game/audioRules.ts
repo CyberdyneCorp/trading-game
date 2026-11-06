@@ -8,7 +8,7 @@ import type { EngineEvent, GameState } from '#lib/engine/types.ts';
 
 export type Mood = 'menu' | 'game' | 'tense';
 export type Sting = 'win' | 'loss';
-export type ScreenName = 'loading' | 'menu' | 'import' | 'tutorial' | 'briefing' | 'terminal' | 'debrief' | 'curriculum' | 'journal' | 'lesson' | 'catalog';
+export type ScreenName = 'loading' | 'menu' | 'import' | 'tutorial' | 'briefing' | 'terminal' | 'debrief' | 'curriculum' | 'journal' | 'lesson' | 'lab' | 'catalog';
 
 export const LIQ_DANGER = 0.05; // within 5% of the liquidation price
 export const MARGIN_DANGER = 2; // option equity under 2x the maintenance margin

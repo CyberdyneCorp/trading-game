@@ -912,6 +912,116 @@ assist.tag,ASSISTIDA,ASSISTED
 assist.banner,"Prática assistida: esta tentativa não conta para o progresso, os pontos do assessor nem a campanha.","Assisted practice: this attempt does not count for progress, advisor points or the campaign."
 assist.campaignBlocked,"Numa missão de campanha em andamento não dá para voltar no tempo; depois do debrief, sim.",A campaign mission in progress cannot be rewound; after its debrief it can.
 journal.assisted,assistida,assisted
+lab.open,Laboratório de opções,Options lab
+lab.title,Laboratório de opções (e se...?),Options lab (what if...?)
+lab.intro,"Monte uma posição e mova o preço, o tempo e a volatilidade implícita para ver o que acontece com o valor, o P&L e as gregas. Todos os números vêm do motor do jogo, o mesmo que cota a cadeia.","Build a position and move the price, the time and the implied volatility to see what happens to its value, P&L and Greeks. Every number comes from the game engine, the same one that quotes the chain."
+lab.illustrative,MERCADO ILUSTRATIVO (preço 100),ILLUSTRATIVE MARKET (price 100)
+lab.model,Modelo Black-76 com taxa de juros zero (não há campo de taxa).,Black-76 model at a zero interest rate (there is no rate input).
+lab.todayIv,Os números supõem o nível de volatilidade implícita de hoje: a cotação das próximas barras muda quando esse nível muda.,The numbers assume today's implied volatility level: the next bars' quotes change when that level moves.
+lab.slider.price,Preço do ativo,Underlying price
+lab.slider.time,Tempo decorrido,Time elapsed
+lab.slider.iv,Volatilidade implícita,Implied volatility
+lab.locked,fixo nesta lição,fixed in this lesson
+lab.reset,Zerar deslocamentos,Reset shifts
+lab.ivPoints,{n} pontos de vol.,{n} vol points
+lab.bars,+{n} barras,+{n} bars
+lab.days,+{n} dias,+{n} days
+lab.unsupported,"A análise de opções não existe na versão do motor desta partida (uma versão mais antiga, fixada no início dela).","Option analysis does not exist in this run's engine version (an older one, pinned when the run started)."
+lab.error,"O motor não conseguiu avaliar estas pernas (confira strikes, quantidades e preços).","The engine could not value these legs (check strikes, quantities and prices)."
+lab.positionValue,Valor da posição agora,Position value now
+lab.pnlNow,P&L nesse cenário,P&L in this scenario
+lab.maxProfit,Lucro máximo no vencimento,Max profit at expiry
+lab.maxLoss,Perda máxima no vencimento,Max loss at expiry
+lab.unbounded,ilimitado,unbounded
+lab.unboundedAbove,ilimitada acima de {price},unbounded above {price}
+lab.atExpiryNote,"No vencimento: cada opção vale só o valor intrínseco, e theta, gama e vega são zero.","At expiry: each option is worth only its intrinsic value, and theta, gamma and vega are zero."
+lab.atExpiry,no vencimento,at expiry
+lab.today,no cenário escolhido,in the chosen scenario
+lab.chartSummary,Gráfico de P&L por preço do ativo. Pontos de equilíbrio: {bes}. Lucro máximo: {profit}. Perda máxima: {loss}.,P&L by underlying price. Breakevens: {bes}. Max profit: {profit}. Max loss: {loss}.
+lab.perp,perpétuo,perpetual
+lab.tableCaption,"Por perna: valor, IV e gregas por unidade; P&L da perna. Total: valor, gregas e P&L da posição.","Per leg: value, IV and Greeks per unit; the leg's P&L. Total: the position's value, Greeks and P&L."
+lab.tableCaptionNet,"Valor, gregas e P&L da posição.","The position's value, Greeks and P&L."
+lab.leg,Perna,Leg
+lab.value,Valor,Value
+lab.pnl,P&L,P&L
+lab.net,Posição,Position
+lab.deltaHint,Delta: quanto o valor muda quando o ativo sobe 1,Delta: how much the value moves when the underlying rises by 1
+lab.gammaHint,Gama: quanto o delta muda quando o ativo sobe 1,Gamma: how much delta moves when the underlying rises by 1
+lab.thetaHint,"Theta: quanto o valor muda a cada barra que passa, com o resto parado","Theta: how much the value moves per bar that passes, everything else unchanged"
+lab.vegaHint,Vega: quanto o valor muda por 1 ponto de volatilidade implícita,Vega: how much the value moves per implied volatility point
+lab.ivFloored,"A volatilidade ficou no piso do modelo, 5%.",The volatility hit the model's 5% floor.
+lab.legsCaption,Pernas (edite à vontade),Legs (edit freely)
+lab.kind,Tipo,Kind
+lab.side,Lado,Side
+lab.daysToExpiry,Dias até o vencimento,Days to expiry
+lab.ivPct,IV (%),IV (%)
+lab.entry,Preço de entrada,Entry price
+lab.remove,Remover perna,Remove leg
+lab.addOption,opção,option
+lab.addPerp,perpétuo,perpetual
+lab.priceAtModel,Usar o preço do modelo como entrada,Use the model's price as the entry
+lab.close,Fechar laboratório,Close the lab
+builder.tab,Estratégias,Strategies
+builder.title,Montador de estratégias,Strategy builder
+builder.noExpiry,Nenhum vencimento aceita ordens agora.,No expiry takes orders now.
+builder.expiry,Vencimento,Expiry
+builder.expiryAt,barra {step} ({n} barras),bar {step} ({n} bars)
+builder.short,Versão vendida (straddle e strangle),Short version (straddle and strangle)
+builder.templates,Modelos,Templates
+builder.writeLocked,Modelos que vendem opções estão bloqueados: lançar opções (venda a descoberto) é liberado no estágio Opções III.,Templates that sell options are locked: writing options unlocks at the Options III stage.
+builder.addLeg,perna,leg
+builder.useLong,Usar minha posição comprada ({qty}) no lugar do perpétuo,Use my long position ({qty}) instead of the perpetual
+builder.problem.empty,Escolha um modelo ou adicione pernas.,Pick a template or add legs.
+builder.problem.too_many,No máximo quatro pernas de opção.,At most four option legs.
+builder.problem.two_perps,No máximo uma perna no perpétuo.,At most one perpetual leg.
+builder.problem.qty,Toda perna precisa de quantidade maior que zero.,Every leg needs a quantity above zero.
+builder.problem.unlisted,Algum strike não está listado neste vencimento.,A strike is not listed on this expiry.
+builder.problem.write_locked,"Estas pernas vendem opções, e lançar opções não é permitido nesta missão.","These legs sell options, and writing options is not allowed in this mission."
+builder.order,Ordem de envio e simulação (nada é enviado),Submission order and dry run (nothing is sent)
+builder.accepted,aceita,accepted
+builder.credit,Crédito líquido (prêmios),Net credit (premiums)
+builder.debit,Débito líquido (prêmios),Net debit (premiums)
+builder.marginSpread,Margem exigida (spread de risco definido),Margin required (defined-risk spread)
+builder.marginPerLeg,Margem exigida (cada venda separada),Margin required (each sale on its own)
+builder.availableAfter,Disponível depois das execuções,Available after the fills
+builder.openLab,Abrir no laboratório,Open in the lab
+builder.labPositions,Laboratório com minhas posições,Lab with my positions
+builder.legging,"As pernas viram ordens a mercado separadas, enviadas nesta barra: compras de opção primeiro, depois o perpétuo, depois as vendas. Se uma for recusada agora, as outras são canceladas. Na abertura, uma perna ainda pode ser cancelada (sem comprador, margem): o combo fica incompleto e você decide o que fazer.","The legs become separate market orders, sent at this bar: option buys first, then the perpetual, then the sales. If one is refused now, the others are cancelled. At the open a leg can still be cancelled (no buyer, margin): the combo is then incomplete and you decide what to do."
+builder.submit,Enviar combo,Submit combo
+builder.noBid,"Sem comprador agora (bid 0,00): esta venda a mercado tende a ser cancelada na abertura, e o combo ficaria incompleto.","No buyer now (bid 0.00): this market sale will likely be cancelled at the open, leaving the combo incomplete."
+strategy.bull_call,Trava de alta com calls,Bull call spread
+strategy.bear_put,Trava de baixa com puts,Bear put spread
+strategy.covered_call,Venda coberta de call,Covered call
+strategy.protective_put,Put de proteção,Protective put
+strategy.straddle,Straddle comprado,Long straddle
+strategy.strangle,Strangle comprado,Long strangle
+strategy.iron_condor,Iron condor,Iron condor
+strategy.short_straddle,Straddle vendido,Short straddle
+strategy.short_strangle,Strangle vendido,Short strangle
+strategy.custom,Pernas livres,Free legs
+combo.label,{name} · {n} pernas,{name} · {n} legs
+combo.sent,✓ {name}: pernas enviadas (executam na próxima abertura),✓ {name}: legs sent (they execute at the next open)
+combo.refused,Perna {n} recusada: {reason}. As pernas já aceitas foram canceladas; nada do combo vai executar.,Leg {n} refused: {reason}. The legs already accepted were cancelled; nothing of the combo will execute.
+combo.long,compra,long
+combo.short,venda,short
+combo.riskUnbounded,Risco agora: perda ilimitada acima de {price} no vencimento.,Risk now: unbounded loss above {price} at expiry.
+combo.riskBounded,Risco agora: perda máxima de {loss} no vencimento.,Risk now: max loss of {loss} at expiry.
+combo.closing,Ordens para fechar as pernas abertas enviadas (executam na próxima abertura).,Orders to close the open legs sent (they execute at the next open).
+combo.incompleteTitle,Combo incompleto: {name},Incomplete combo: {name}
+combo.openLegs,Pernas abertas,Open legs
+combo.cancelledLegs,Canceladas na abertura,Cancelled at the open
+combo.legging,Isto é o risco de execução em pernas: ordens separadas podem não executar todas juntas.,This is legging risk: separate orders may not all execute together.
+combo.keep,Manter,Keep
+combo.close,Fechar pernas abertas,Close the open legs
+combo.closeTitle,Fechar as pernas abertas?,Close the open legs?
+combo.closeConfirm,"Enviar ordens a mercado para fechar: {legs}. Elas executam na próxima abertura, ao preço de lá.","Send market orders to close: {legs}. They execute at the next open, at its price."
+combo.closeYes,Fechar,Close
+combo.state.filled,completo,complete
+combo.state.incomplete,incompleto,incomplete
+combo.state.not_executed,não executado,not executed
+combo.state.withdrawn,cancelado no envio,cancelled at submission
+combo.state.working,aguardando,working
+combo.premium,prêmio líquido {amount},net premium {amount}
 mission.m01-false-breakout.title,Missão 01 · Range,Mission 01 · Range
 mission.m01-false-breakout.tagline,O mercado passou semanas andando de lado. O que vem a seguir é com você.,The market has been moving sideways for weeks. What comes next is up to you.
 mission.m01-false-breakout.topic,"Futuros I · long e short, ordens e stops","Futures I · long and short, orders and stops"

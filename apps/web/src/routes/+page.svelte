@@ -12,6 +12,7 @@
 	import Catalog from '#lib/components/Catalog.svelte';
 	import CurriculumMap from '#lib/components/CurriculumMap.svelte';
 	import LessonRunner from '#lib/components/LessonRunner.svelte';
+	import LabScreen from '#lib/components/LabScreen.svelte';
 	import Journal from '#lib/components/Journal.svelte';
 	import Tutorial from '#lib/components/Tutorial.svelte';
 	import CrtOverlay from '#lib/components/CrtOverlay.svelte';
@@ -71,6 +72,8 @@
 	<CurriculumMap {session} />
 {:else if session.screen === 'lesson'}
 	<LessonRunner {session} />
+{:else if session.screen === 'lab'}
+	<LabScreen {session} />
 {:else if session.screen === 'catalog'}
 	<Catalog {session} />
 {:else if session.screen === 'journal'}

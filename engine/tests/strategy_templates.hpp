@@ -1,8 +1,8 @@
 #pragma once
 
 // Test helper: the builder's seven templates (design D3) as combo legs on a run's chain, strikes
-// from the first expiry that is listed and not settling, around the last close. The web builder
-// computes the same legs in apps/web/src/lib/game/strategies.ts.
+// from the first expiry that is listed and not settling, at fixed steps around the at-the-money strike
+// (the web builder picks its own strikes, apps/web/src/lib/game/strategies.ts).
 
 #include <algorithm>
 #include <cstdlib>
