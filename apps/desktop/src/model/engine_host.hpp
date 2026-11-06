@@ -56,6 +56,13 @@ class EngineCommands {
   // Assisted practice: a new attempt rebuilt from the current run's own actions before the decision at
   // `to_step` (same market and start options, without the advisor); acknowledged as CommandKind::Rewind.
   virtual void rewind(int /*to_step*/, const RunLinks& /*links*/) {}
+  // A report-only engine call (what-if valuation, combo dry run): `reply` gets the engine's JSON on the
+  // UI thread, after the commands sent before it. An engine that cannot answer replies
+  // {"error":"unsupported"} (the web's feature detection: the lab and the builder's analysis hide).
+  using AnalysisReply = std::function<void(const std::string&)>;
+  virtual void analyze(AnalysisKind /*kind*/, const std::string& /*request*/, AnalysisReply reply) {
+    reply(R"({"error":"unsupported"})");
+  }
 };
 
 class EngineHost final : public EngineCommands {
@@ -86,6 +93,7 @@ class EngineHost final : public EngineCommands {
   void start_linked(const std::string& mission, std::uint32_t seed, const RunOptions& options,
                     const RunLinks& links) override;
   void rewind(int to_step, const RunLinks& links) override;
+  void analyze(AnalysisKind kind, const std::string& request, AnalysisReply reply) override;
   // Runs `job` on the worker, in queue order, with the storage (pack install/import, catalog downloads:
   // the engine's run-less calls must stay on this thread). Not run when the host has no storage.
   void post_storage_job(StorageJob job);
@@ -107,6 +115,8 @@ class EngineHost final : public EngineCommands {
     std::string digest;
     RunLinks links;
     StorageJob job;
+    AnalysisKind analysis = AnalysisKind::WhatIf;
+    AnalysisReply reply;  // set: a report-only analysis of `qty` (the request JSON), not a run command
   };
 
   // What the worker knows of the run in play, to rebuild it (assisted rewind).
@@ -138,9 +148,10 @@ class EngineHost final : public EngineCommands {
   void run_resume();
   void run_start_pack(const Command& c);
   void run_rewind(const Command& c);
+  void run_analysis(const Command& c);
   std::unique_ptr<EngineRun> open_run(const Current& next, const RunLinks& links, std::string* reason);
   storage::ApplyResult perform(const storage::Action& a);
-  void stamp(Snapshot& s) const;
+  void stamp(Snapshot& s);
   void settle(Snapshot& s);
   void publish_refusal(CommandKind kind, const std::string& reason);
   [[nodiscard]] bool delivery_pending() const;
@@ -163,6 +174,7 @@ class EngineHost final : public EngineCommands {
   std::unique_ptr<storage::Storage> storage_;
   std::unique_ptr<storage::RunRecorder> recorder_;
   Current current_;
+  std::shared_ptr<const std::vector<std::string>> shared_log_;  // copy of current_.log for snapshots
   std::uint64_t seq_ = 0;
 
   std::thread worker_;

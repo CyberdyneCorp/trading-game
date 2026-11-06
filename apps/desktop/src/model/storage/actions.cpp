@@ -31,6 +31,17 @@ int32_t order_type_code(std::string_view type) {
 
 Action finish(JsonWriter& w) { return Action{w.end_object().text()}; }
 
+// The web spreads the ComboTag after the action's own fields ({...action, combo, strategy}).
+Action with_tag(Action a, const GameCommand& c) {
+  if (c.combo.empty() || a.json.empty() || a.json.back() != '}') return a;
+  JsonWriter w;
+  w.begin_object().field("combo", c.combo).field("strategy", c.strategy.empty() ? "custom" : c.strategy);
+  const std::string tag = w.end_object().text();
+  a.json.pop_back();
+  a.json += "," + tag.substr(1);
+  return a;
+}
+
 std::optional<std::string> present(const std::string& s) {
   return s.empty() ? std::nullopt : std::optional<std::string>(s);
 }
@@ -265,10 +276,11 @@ Action advice() {
 
 Action from_game(const GameCommand& c) {
   switch (c.kind) {
-    case GameCommandKind::Order: return order_from(c);
+    case GameCommandKind::Order: return with_tag(order_from(c), c);
     case GameCommandKind::TrailingRate: return trailing_rate_from(c);
-    case GameCommandKind::Option: return option(id_of(c.id), side_of(c.buy), c.type == 1, c.qty, present(c.price));
-    case GameCommandKind::Cancel: return cancel(id_of(c.id));
+    case GameCommandKind::Option:
+      return with_tag(option(id_of(c.id), side_of(c.buy), c.type == 1, c.qty, present(c.price)), c);
+    case GameCommandKind::Cancel: return with_tag(cancel(id_of(c.id)), c);
     case GameCommandKind::Move: return actions::move(id_of(c.id), c.price);
     case GameCommandKind::Leverage: return leverage(c.number);
     case GameCommandKind::Close: return close();

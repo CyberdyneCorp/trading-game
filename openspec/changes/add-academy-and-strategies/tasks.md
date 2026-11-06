@@ -156,7 +156,7 @@ Suggested PRs, in order:
 - [x] D1 Generator, needs W1: `gen_i18n.mjs` reads `content/academy/*.json`, `glossary.json` and `coach.json` into `strings.csv` (`academyLesson.*`, `glossary.*`, `coach.*`) and `content.json`, replacing the TypeScript evaluation of `academy.ts`; `check_i18n.mjs` drift; script tests updated; the Foundations lesson renders as before (headless and windowed captures unchanged).
 
   As built: content.json also carries the glossary's structure (id, stage, related), the coach steps (id, target, completes), each lesson step's linked glossary ids (`terms`) and `glossary.ts` `FINDING_TERMS` (`findingTerms`); script tests in `tests/scripts/screen_sources.test.mjs`.
-- [ ] D2 Engine adapter, needs E2–E4 and E6: `tl_option_whatif`, `tl_run_option_whatif` and `tl_combo_preview` on the `EngineHost` worker; the `combo` field in `storage::Action` and replay; the `whatif` fixtures in `tradelab_desktop_golden_tests`.
+- [x] D2 Engine adapter, needs E2–E4 and E6: `tl_option_whatif`, `tl_run_option_whatif` and `tl_combo_preview` on the `EngineHost` worker; the `combo` field in `storage::Action` and replay; the `whatif` fixtures in `tradelab_desktop_golden_tests`.
 - [ ] D3 Lesson runner widgets and question types, needs D1 and D2:
   - viewmodels for `chart` levels, `ticket` sandbox, `table`, `payoff`, `whatif` and `builder`, plus the `number` and `set` questions;
   - painters in the view layer;
@@ -164,8 +164,8 @@ Suggested PRs, in order:
   - headless lesson by keyboard.
 
   Progress: `chart` levels (painted and listed as text), the `ticket` sandbox (port of `ticketSandbox.ts`), `table`, `payoff` (port of `payoff.ts`, painted from `payoff_geometry`), `number` (either decimal mark, units; port of `readTypedNumber`) and `set` questions, review mode, with web parity fixtures (`payoff`, `ticketSandbox`, `lessonRun`), viewmodel tests and every lesson played headless from the keyboard and windowed with the mouse. Open: the `whatif` and `builder` widgets (needs D2 and the web's W5/W6 widgets, not written on the web yet).
-- [ ] D4 What-if lab screen (Academy and terminal), needs D2; unit and headless tests; zero shift equals the chain.
-- [ ] D5 Strategy builder panel in the option ticket, needs D2: templates, analysis, submission order with `combo`, cancel on refusal, incomplete notice, journal and debrief grouping; viewmodel tests with a fake engine; a headless flow.
+- [x] D4 What-if lab screen (Academy and terminal), needs D2; unit and headless tests; zero shift equals the chain.
+- [x] D5 Strategy builder panel in the option ticket, needs D2: templates, analysis, submission order with `combo`, cancel on refusal, incomplete notice, journal and debrief grouping; viewmodel tests with a fake engine; a headless flow.
 - [x] D6 Glossary screen and tooltips, needs D1: `Rwidget_set_tooltip` on hover, the help line and accessible description on focus; screen-reader names; headless test.
 
   As built: marked terms in the lesson sandbox and payoff analytics, the terminal's ticket, rail and option chain, and the debrief findings (`findingTerms`); each step's linked terms are buttons that open the glossary at the term; the focused term's definition shows on the screen's help line; search folds Latin-1 accents and case (web parity fixture `glossary`).
@@ -180,6 +180,8 @@ Suggested PRs, in order:
   - windowed reference captures for every new screen on macOS and on Linux (lavapipe in docker; say so if docker is unavailable);
   - complexity ≤ 15;
   - desktop README.
+
+  Progress: m13–m17 are in the menu, the campaign order and the curriculum's Strategies stage (generated from the web; fixtures regenerated), with their mission texts, tutorial cards (text; the desktop draws no card art yet), lesson questions and goldens (`tradelab_desktop_golden_tests` replays them and the `whatif` fixtures); each is played to the debrief with a builder structure in `tests/headless/test_headless_strategies.cpp` and `tests/windowed/test_windowed_strategies.cpp` (captures `strategy-*.png`), and the debrief groups a combo's trades under one row. New reference images (`builder-condor-m13`, `academy-lab`, and `menu` with the lab button) were made on macOS only: docker did not respond on the development machine, so the Linux lavapipe run is open. Open: the briefing's margin rule and the debrief's strategy comparison (both wait for the web's W10 and the engine's E9), the new tutorial art, and the playtest suite (`test_playtest.cpp`) extended to m13–m17.
 
 ## X. Cross-checks and docs
 

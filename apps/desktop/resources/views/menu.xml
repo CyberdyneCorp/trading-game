@@ -26,6 +26,7 @@
             <Button Name="menu-import" OnClicked="tl.menu.import"/>
             <Button Name="menu-academy" OnClicked="tl.academy.open"/>
             <Button Name="menu-glossary" OnClicked="tl.glossary.open"/>
+            <Button Name="menu-lab" OnClicked="tl.menu.lab"/>
         </HBox>
         <!-- Spaced review (web ReviewPrompt.svelte): never blocks play; dismissed until tomorrow. -->
         <HBox Name="menu-review-row" Spacing="12">

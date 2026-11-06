@@ -84,7 +84,8 @@ struct PlanEntry {
   std::optional<double> planned_risk;
   bool skipped = false;
   std::string lose_scenario;
-  std::string instrument;  // option series label; empty = perpetual
+  std::string instrument;  // option series label or combo name ("Iron condor · 4 legs"); empty = perpetual
+  std::string combo;       // the strategy-builder combo this plan opened ("c1"); empty = none
 };
 
 enum class RunStatus : std::uint8_t { Active, Finished, Bankrupt, Left };

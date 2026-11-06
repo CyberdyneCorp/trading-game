@@ -4,6 +4,7 @@
 #include "viewmodel/campaign.hpp"
 #include "viewmodel/curriculum.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/builder_widgets.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/screens/screens.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -161,6 +162,7 @@ ScreenModel menu(const AppViewModel& vm) {
   m.text(names::kMenuSettings, "\xE2\x9A\x99 " + vm.tr("menu.settings"));      // ⚙
   m.text(names::kMenuCatalog, "\xE2\x87\xA9 " + vm.tr("catalog.open"));         // ⇩
   m.text(names::kMenuImport, vm.tr("menu.importCsv"));
+  m.text(names::builder::kMenuLab, "\xE2\x9A\x97 " + vm.tr("lab.open"));  // ⚗
   m.text(names::kMenuNotice, vm.notice());
   m.show(names::kMenuNotice, !vm.notice().empty());
   m.name(names::kMenuLanguage, vm.tr("settings.language") + ": " + vm.tr("desktop.language"));

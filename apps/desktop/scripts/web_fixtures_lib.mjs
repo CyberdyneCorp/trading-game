@@ -3,6 +3,8 @@
 // tests/viewmodel/test_web_parity.cpp calls the C++ port of `fn` with `args` and compares with `out`
 // (numbers with a 1e-9 relative tolerance, everything else exactly).
 
+import { combosFixture, strategiesFixture, whatifLabFixture } from './web_fixtures_options.mjs';
+
 const SIDES = ['buy', 'sell'];
 const LOCALES = ['pt-BR', 'en'];
 
@@ -457,7 +459,8 @@ function glossaryFixture(m) {
 	return { helper: 'content/glossary.ts', cases: list };
 }
 
-export async function buildFixtures(load) {
+// `golden(name)`: an engine what-if golden fixture's expected result (real engine answers).
+export async function buildFixtures(load, golden) {
 	const i18n = await load('i18n.svelte.ts');
 	const curriculum = await load('curriculum.ts');
 	return {
@@ -475,6 +478,9 @@ export async function buildFixtures(load) {
 		ticketSandbox: ticketSandboxFixture(await load('content/ticketSandbox.ts')),
 		lessonRun: lessonRunFixture(await load('lessonRun.svelte.ts')),
 		review: reviewFixture(await load('review.ts')),
-		glossary: glossaryFixture(await load('content/glossary.ts'))
+		glossary: glossaryFixture(await load('content/glossary.ts')),
+		strategies: strategiesFixture(await load('strategies.ts')),
+		combos: combosFixture(await load('combos.ts')),
+		whatifLab: whatifLabFixture(await load('whatifLab.ts'), golden('whatif-condor'), golden('whatif-call'))
 	};
 }
