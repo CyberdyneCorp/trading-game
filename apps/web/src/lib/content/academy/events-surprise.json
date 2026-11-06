@@ -36,7 +36,7 @@
 				},
 				"en": {
 					"title": "The expected is already priced",
-					"body": "Before a release the market has a [[consensus]]: the number it expects. That number is already in the price. What moves the price is the [[surprise]], the difference between the released number and the consensus. Good news can sell off if it is less good than expected."
+					"body": "Before a release the market has a [[consensus|consensus]]: the number it expects. That number is already in the price. What moves the price is the [[surprise|surprise]], the difference between the released number and the consensus. Good news can sell off if it is less good than expected."
 				}
 			}
 		},
@@ -56,13 +56,13 @@
 			"text": {
 				"pt-BR": {
 					"title": "Três divulgações",
-					"body": "O mesmo consenso, três resultados. Quando o número sai igual ao esperado, quase nada muda: a informação já era conhecida. A direção da reação acompanha o sinal da surpresa, não o número em si. Surpresas grandes costumam vir com um [[gap]]: a barra seguinte abre longe do fechamento anterior.",
+					"body": "O mesmo consenso, três resultados. Quando o número sai igual ao esperado, quase nada muda: a informação já era conhecida. A direção da reação acompanha o sinal da surpresa, não o número em si. Surpresas grandes costumam vir com um [[gap|gap]]: a barra seguinte abre longe do fechamento anterior.",
 					"columns": ["Consenso", "Divulgado", "Surpresa", "Reação"],
 					"cells": { "flat": "quase nada", "up": "alta", "down": "queda" }
 				},
 				"en": {
 					"title": "Three releases",
-					"body": "The same consensus, three results. When the number matches the expectation, little changes: the information was already known. The reaction's direction follows the surprise's sign, not the number itself. Large surprises often come with a [[gap]]: the next bar opens far from the previous close.",
+					"body": "The same consensus, three results. When the number matches the expectation, little changes: the information was already known. The reaction's direction follows the surprise's sign, not the number itself. Large surprises often come with a [[gap|gap]]: the next bar opens far from the previous close.",
 					"columns": ["Consensus", "Actual", "Surprise", "Reaction"],
 					"cells": { "flat": "little", "up": "rise", "down": "fall" }
 				}

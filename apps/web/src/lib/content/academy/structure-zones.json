@@ -61,7 +61,7 @@
 				},
 				"en": {
 					"title": "Zones, not lines",
-					"body": "[[support|Support]] is a price band where buyers showed up before; [[resistance]], where sellers did. They are bands because price rarely stops at the same cent: here the fall stopped twice between 98.10 and 98.40, and the rise stopped between 101.70 and 101.80."
+					"body": "[[support|Support]] is a price band where buyers showed up before; [[resistance|resistance]], where sellers did. They are bands because price rarely stops at the same cent: here the fall stopped twice between 98.10 and 98.40, and the rise stopped between 101.70 and 101.80."
 				}
 			}
 		},
@@ -76,7 +76,7 @@
 				},
 				"en": {
 					"title": "Highs and lows",
-					"body": "In an up [[trend]] each high passes the previous one and each low stays above the previous one: highs 101.60, 102.40, 103.10; lows 100.40, 101.20. While that sequence goes on, the structure is up. It breaks when a close falls below the last higher low."
+					"body": "In an up [[trend|trend]] each high passes the previous one and each low stays above the previous one: highs 101.60, 102.40, 103.10; lows 100.40, 101.20. While that sequence goes on, the structure is up. It breaks when a close falls below the last higher low."
 				}
 			}
 		},
@@ -91,7 +91,7 @@
 				},
 				"en": {
 					"title": "Breakout and retest",
-					"body": "Bar 9 closed at 102.40, above resistance: a [[breakout]]. Bar 10 came back to 101.60, the old resistance, and closed above it: a retest that held. The zone switched roles. Still, this is information about the past, not a guarantee about the next bar."
+					"body": "Bar 9 closed at 102.40, above resistance: a [[breakout|breakout]]. Bar 10 came back to 101.60, the old resistance, and closed above it: a retest that held. The zone switched roles. Still, this is information about the past, not a guarantee about the next bar."
 				}
 			}
 		},

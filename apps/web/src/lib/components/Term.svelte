@@ -37,8 +37,9 @@
 </script>
 
 {#if term}
-	<span class="term-wrap" role="presentation" onmouseenter={() => (hover = true)} onmouseleave={() => (hover = false)}>
-		<button
+	<!-- No whitespace between the tags: the term sits inside a sentence ("o strike;", "(lançamento)"). -->
+	<span class="term-wrap" role="presentation" onmouseenter={() => (hover = true)} onmouseleave={() => (hover = false)}
+		><button
 			type="button"
 			class="term"
 			aria-describedby={desc}
@@ -48,14 +49,12 @@
 			onpointerdown={onPointerDown}
 			onclick={more}
 			onkeydown={onKeydown}>{@render children()}</button
-		><span id={desc} hidden>{term.text[i18n.locale].short}</span>
-		{#if open}
-			<span class="term-tip" aria-hidden="true" data-testid="term-tip">
-				{term.text[i18n.locale].short}
-				<span class="more">{t('glossary.more')}</span>
-			</span>
-		{/if}
-	</span>
+		><span id={desc} hidden>{term.text[i18n.locale].short}</span
+		>{#if open}<span class="term-tip" aria-hidden="true" data-testid="term-tip"
+				>{term.text[i18n.locale].short}
+				<span class="more">{t('glossary.more')}</span></span
+			>{/if}</span
+	>
 {:else}
 	{@render children()}
 {/if}

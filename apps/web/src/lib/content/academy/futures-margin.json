@@ -23,7 +23,7 @@
 				},
 				"en": {
 					"title": "Margin and leverage",
-					"body": "To open a position you reserve the [[initial-margin|initial margin]] = notional / [[leverage]]: 1,000 notional at 10× needs 100. The [[maintenance-margin|maintenance margin]] is the minimum the position must keep (here, 1% of notional). When losses bring the margin down to that minimum, the position is liquidated. With [[isolated-margin|isolated margin]] you lose only that position's margin."
+					"body": "To open a position you reserve the [[initial-margin|initial margin]] = notional / [[leverage|leverage]]: 1,000 notional at 10× needs 100. The [[maintenance-margin|maintenance margin]] is the minimum the position must keep (here, 1% of notional). When losses bring the margin down to that minimum, the position is liquidated. With [[isolated-margin|isolated margin]] you lose only that position's margin."
 				}
 			}
 		},

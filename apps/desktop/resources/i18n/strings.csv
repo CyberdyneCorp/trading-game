@@ -685,7 +685,6 @@ stage.risk,Dimensionamento de risco,Risk sizing
 stage.options1,Opções I · payoffs,Options I · payoffs
 stage.options2,Opções II · IV e gregas,Options II · IV and Greeks
 stage.options3,Opções III · venda e margem,Options III · writing and margin
-stage.strategies,Estratégias · estruturas com várias pernas,Strategies · multi-leg structures
 stage.patterns,Padrões e indicadores,Patterns and indicators
 stage.evaluation,Avaliação de resultados,Evaluating results
 stage.events,Eventos,Events
@@ -1831,7 +1830,7 @@ academyLesson.orders-execution.slip.feedback.none,"O stop dispara quando o preç
 academyLesson.futures-pnl.title,"Long, short e resultado","Long, short and P&L"
 academyLesson.futures-pnl.summary,"Um contrato linear: resultado de long e short, nocional e taxas na entrada e na saída.","A linear contract: long and short P&L, notional, and fees on entry and exit."
 academyLesson.futures-pnl.linear.title,Um contrato linear,A linear contract
-academyLesson.futures-pnl.linear.body,"Um perpétuo acompanha o preço. Long ganha quando o preço sobe: (saída − entrada) × quantidade. Short ganha quando cai: (entrada − saída) × quantidade. O nocional é preço × quantidade: 5 unidades a 120 são 600. As taxas são uma fração do nocional, pagas na entrada e na saída.","A perpetual tracks the price. A long gains when the price rises: (exit − entry) × quantity. A short gains when it falls: (entry − exit) × quantity. Notional is price × quantity: 5 units at 120 are 600. Fees are a fraction of notional, paid on entry and on exit."
+academyLesson.futures-pnl.linear.body,"Um perpétuo acompanha o preço. Long ganha quando o preço sobe: (saída − entrada) × quantidade. Short ganha quando cai: (entrada − saída) × quantidade. O nocional é preço × quantidade: 5 unidades a 120 são 600. As taxas são uma fração do nocional, pagas na entrada e na saída.","A perpetual future tracks the price. A long gains when the price rises: (exit − entry) × quantity. A short gains when it falls: (entry − exit) × quantity. Notional is price × quantity: 5 units at 120 are 600. Fees are a fraction of notional, paid on entry and on exit."
 academyLesson.futures-pnl.long.title,Um long de 100 a 106,A long from 100 to 106
 academyLesson.futures-pnl.long.body,"Comprado em 2 unidades a 100, fechado a 106: (106 − 100) × 2 = +12 antes das taxas. O mesmo movimento num short de 2 unidades daria −12. Cada ponto vale o mesmo, para cima ou para baixo.","Long 2 units at 100, closed at 106: (106 − 100) × 2 = +12 before fees. The same move on a short of 2 units would be −12. Each point is worth the same, up or down."
 academyLesson.futures-pnl.short.title,Decisão: um short,Decision: a short

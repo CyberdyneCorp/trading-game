@@ -143,17 +143,6 @@
    "requires": [
     "options3"
    ],
-   "missions": [],
-   "lessons": [
-    "strategies-shapes"
-   ],
-   "unlocks": []
-  },
-  {
-   "id": "patterns",
-   "requires": [
-    "strategies"
-   ],
    "missions": [
     "m13-call-spread",
     "m14-covered-call",
@@ -161,7 +150,9 @@
     "m16-range-condor",
     "m17-before-expiry"
    ],
-   "lessons": [],
+   "lessons": [
+    "strategies-shapes"
+   ],
    "unlocks": []
   },
   {

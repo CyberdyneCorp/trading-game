@@ -57,11 +57,11 @@
 			"text": {
 				"pt-BR": {
 					"title": "O movimento que o preço embute",
-					"body": "Um [[straddle]] no dinheiro (call e put de strike 100, cada uma por 4) custa 8. Ele empata em 92 e 108 no vencimento: o mercado está cobrando um movimento de cerca de 8% para qualquer lado. O preço de um straddle no dinheiro é uma leitura rápida do movimento esperado."
+					"body": "Um [[straddle|straddle]] no dinheiro (call e put de strike 100, cada uma por 4) custa 8. Ele empata em 92 e 108 no vencimento: o mercado está cobrando um movimento de cerca de 8% para qualquer lado. O preço de um straddle no dinheiro é uma leitura rápida do movimento esperado."
 				},
 				"en": {
 					"title": "The move the price implies",
-					"body": "An at-the-money [[straddle]] (a call and a put at strike 100, each for 4) costs 8. It breaks even at 92 and 108 at expiry: the market is charging for a move of about 8% either way. The price of an at-the-money straddle is a quick read of the expected move."
+					"body": "An at-the-money [[straddle|straddle]] (a call and a put at strike 100, each for 4) costs 8. It breaks even at 92 and 108 at expiry: the market is charging for a move of about 8% either way. The price of an at-the-money straddle is a quick read of the expected move."
 				}
 			}
 		},

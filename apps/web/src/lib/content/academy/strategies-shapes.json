@@ -18,11 +18,11 @@
 			"text": {
 				"pt-BR": {
 					"title": "Estruturas são formas",
-					"body": "Combinar opções muda a forma do payoff. Uma [[vertical-spread|trava]] limita ganho e perda. Um [[straddle]] ou um [[strangle]] comprados ganham com movimento grande; vendidos, com o preço parado. Um [[iron-condor|iron condor]] é um strangle vendido com asas compradas. A pergunta central é se a perda tem teto: [[defined-risk|risco definido]] contra indefinido. Cada perna paga o seu spread e a sua taxa."
+					"body": "Combinar opções muda a forma do payoff. Uma [[vertical-spread|trava]] limita ganho e perda. Um [[straddle|straddle]] ou um [[strangle|strangle]] comprados ganham com movimento grande; vendidos, com o preço parado. Um [[iron-condor|iron condor]] é um strangle vendido com asas compradas. A pergunta central é se a perda tem teto: [[defined-risk|risco definido]] contra indefinido. Cada perna paga o seu spread e a sua taxa."
 				},
 				"en": {
 					"title": "Structures are shapes",
-					"body": "Combining options changes the payoff's shape. A [[vertical-spread|vertical spread]] bounds gain and loss. A bought [[straddle]] or [[strangle]] gains from a large move; sold, from a still price. An [[iron-condor|iron condor]] is a short strangle with bought wings. The central question is whether the loss has a ceiling: [[defined-risk|defined]] against undefined risk. Each leg pays its own spread and fee."
+					"body": "Combining options changes the payoff's shape. A [[vertical-spread|vertical spread]] bounds gain and loss. A bought [[straddle|straddle]] or [[strangle|strangle]] gains from a large move; sold, from a still price. An [[iron-condor|iron condor]] is a short strangle with bought wings. The central question is whether the loss has a ceiling: [[defined-risk|defined]] against undefined risk. Each leg pays its own spread and fee."
 				}
 			}
 		},

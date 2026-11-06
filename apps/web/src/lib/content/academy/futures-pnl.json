@@ -52,7 +52,7 @@
 				},
 				"en": {
 					"title": "A linear contract",
-					"body": "A [[perpetual]] tracks the price. A [[long]] gains when the price rises: (exit − entry) × quantity. A [[short]] gains when it falls: (entry − exit) × quantity. [[notional|Notional]] is price × quantity: 5 units at 120 are 600. [[fee|Fees]] are a fraction of notional, paid on entry and on exit."
+					"body": "A [[perpetual|perpetual future]] tracks the price. A [[long|long]] gains when the price rises: (exit − entry) × quantity. A [[short|short]] gains when it falls: (entry − exit) × quantity. [[notional|Notional]] is price × quantity: 5 units at 120 are 600. [[fee|Fees]] are a fraction of notional, paid on entry and on exit."
 				}
 			}
 		},

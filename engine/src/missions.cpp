@@ -625,14 +625,6 @@ OptionSpec default_option_spec(bool allow_short) {
   return o;
 }
 
-// Sets OptionSpec::spread_margin when this engine has it (design D5, task E4). The missions declare
-// the rule as data (MissionDef::spread_margin); the margin engine that reads it is built separately,
-// so the declaration compiles with and without it.
-template <class Spec>
-void declare_spread_margin(Spec& o, bool on) {
-  if constexpr (requires { o.spread_margin = on; }) o.spread_margin = on;
-}
-
 // Strike grid centered on the close at the listing step (known at listing: no lookahead).
 void add_chain(Scenario& out, const OptionChainDef& def, std::uint32_t warmup) {
   const std::uint32_t list = warmup + def.list_offset;
@@ -690,7 +682,7 @@ bool build_mission(const std::string& id, std::uint64_t seed, Scenario& out) {
   out.mission.drawdown_budget_bp = it->drawdown_budget_bp;
   if (it->options) {
     out.options = default_option_spec(it->allow_short_options);
-    declare_spread_margin(out.options, it->spread_margin);
+    out.options.spread_margin = it->spread_margin;  // defined-risk spread margin (design D5)
   }
   generate_market(it->gen, seed, out);
   if (it->options) add_chain(out, it->chain, it->info.warmup_bars);

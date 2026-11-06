@@ -22,11 +22,11 @@
 			"text": {
 				"pt-BR": {
 					"title": "Um direito, não uma obrigação",
-					"body": "Uma [[call]] dá o direito de comprar ao [[strike]]; uma [[put]], o direito de vender. Quem compra paga o [[premium|prêmio]] e não pode perder mais que ele. Aqui as opções são europeias e liquidadas em dinheiro no [[expiry|vencimento]]: no fim, uma call vale max(0, preço − strike) e uma put, max(0, strike − preço)."
+					"body": "Uma [[call|call]] dá o direito de comprar ao [[strike|strike]]; uma [[put|put]], o direito de vender. Quem compra paga o [[premium|prêmio]] e não pode perder mais que ele. Aqui as opções são europeias e liquidadas em dinheiro no [[expiry|vencimento]]: no fim, uma call vale max(0, preço − strike) e uma put, max(0, strike − preço)."
 				},
 				"en": {
 					"title": "A right, not an obligation",
-					"body": "A [[call]] gives the right to buy at the [[strike]]; a [[put]], the right to sell. The buyer pays the [[premium]] and cannot lose more than it. Here options are European and settled in cash at [[expiry]]: at the end a call is worth max(0, price − strike) and a put, max(0, strike − price)."
+					"body": "A [[call|call]] gives the right to buy at the [[strike|strike]]; a [[put|put]], the right to sell. The buyer pays the [[premium|premium]] and cannot lose more than it. Here options are European and settled in cash at [[expiry|expiry]]: at the end a call is worth max(0, price − strike) and a put, max(0, strike − price)."
 				}
 			}
 		},
@@ -61,7 +61,7 @@
 				},
 				"en": {
 					"title": "The payoff of a bought call",
-					"body": "A 100-strike call bought for 4. Below 100 it expires worthless and the loss is the premium, 4. Above 100 each point is worth a point. It breaks even at 104 (strike + premium): the [[breakeven]]. At 110 it gains 6; at 95 it loses 4."
+					"body": "A 100-strike call bought for 4. Below 100 it expires worthless and the loss is the premium, 4. Above 100 each point is worth a point. It breaks even at 104 (strike + premium): the [[breakeven|breakeven]]. At 110 it gains 6; at 95 it loses 4."
 				}
 			}
 		},

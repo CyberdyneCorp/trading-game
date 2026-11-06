@@ -29,11 +29,11 @@
 			"text": {
 				"pt-BR": {
 					"title": "Indicadores olham para trás",
-					"body": "Um [[indicator|indicador]] é um resumo das barras que já fecharam: uma [[moving-average|média móvel]] segue o preço com atraso; o [[rsi|RSI]] compara altas e quedas recentes. Nenhum deles sabe algo que as barras não mostrem. Primeiro identifique o [[regime]]: tendência, lateral ou agitado. Ferramentas de tendência dão sinais falsos em [[range|ranges]], e as de reversão sofrem em tendências."
+					"body": "Um [[indicator|indicador]] é um resumo das barras que já fecharam: uma [[moving-average|média móvel]] segue o preço com atraso; o [[rsi|RSI]] compara altas e quedas recentes. Nenhum deles sabe algo que as barras não mostrem. Primeiro identifique o [[regime|regime]]: tendência, lateral ou agitado. Ferramentas de tendência dão sinais falsos em [[range|ranges]], e as de reversão sofrem em tendências."
 				},
 				"en": {
 					"title": "Indicators look back",
-					"body": "An [[indicator]] is a summary of the bars that have closed: a [[moving-average|moving average]] follows the price with a lag; [[rsi|RSI]] compares recent rises and falls. None of them knows anything the bars do not show. First identify the [[regime]]: trending, ranging or choppy. Trend tools give false signals in [[range|ranges]], and mean-reversion tools suffer in trends."
+					"body": "An [[indicator|indicator]] is a summary of the bars that have closed: a [[moving-average|moving average]] follows the price with a lag; [[rsi|RSI]] compares recent rises and falls. None of them knows anything the bars do not show. First identify the [[regime|regime]]: trending, ranging or choppy. Trend tools give false signals in [[range|ranges]], and mean-reversion tools suffer in trends."
 				}
 			}
 		},

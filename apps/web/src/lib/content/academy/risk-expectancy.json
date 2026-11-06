@@ -37,12 +37,12 @@
 			"text": {
 				"pt-BR": {
 					"title": "Um diário de 10 trades",
-					"body": "Quatro ganhos de 2R e seis perdas de 1R. Repare nas perdas seguidas: elas acontecem mesmo numa estratégia com expectativa positiva. Um [[drawdown]] é a queda desde o pico, e recuperar exige mais do que caiu: −20% pede +25%; −50% pede +100%.",
+					"body": "Quatro ganhos de 2R e seis perdas de 1R. Repare nas perdas seguidas: elas acontecem mesmo numa estratégia com expectativa positiva. Um [[drawdown|drawdown]] é a queda desde o pico, e recuperar exige mais do que caiu: −20% pede +25%; −50% pede +100%.",
 					"columns": ["Trade", "Resultado"]
 				},
 				"en": {
 					"title": "A journal of 10 trades",
-					"body": "Four wins of 2R and six losses of 1R. Notice the losses in a row: they happen even in a strategy with positive expectancy. A [[drawdown]] is the fall from the peak, and recovering needs more than the fall: −20% needs +25%; −50% needs +100%.",
+					"body": "Four wins of 2R and six losses of 1R. Notice the losses in a row: they happen even in a strategy with positive expectancy. A [[drawdown|drawdown]] is the fall from the peak, and recovering needs more than the fall: −20% needs +25%; −50% needs +100%.",
 					"columns": ["Trade", "Result"]
 				}
 			}

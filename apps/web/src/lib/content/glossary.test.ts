@@ -56,6 +56,17 @@ describe('glossary (design D7)', () => {
 		expect(linkedTerms('[[gap]] e [[spread|o spread]]')).toEqual(['gap', 'spread']);
 	});
 
+	it('content links name their in-sentence text: a bare [[id]] would show the headword ("Uma Call", "o Spread (compra/venda)")', () => {
+		const files = import.meta.glob<string>(['./academy/*.json', './coach.json', './glossary.json'], { query: '?raw', import: 'default', eager: true });
+		const tutorials = ['m01-false-breakout', 'm04-options-buyer', 'm05-options-writer', 'm10-hedged-book', 'm13-call-spread', 'm16-range-condor'].flatMap((m) =>
+			LOCALES.flatMap((l) => tutorialFor(m, l).map((c) => `${c.title} ${c.body}`))
+		);
+		const bare = [...Object.entries(files), ...tutorials.map((t, i) => [`tutorial ${i}`, t] as const)].flatMap(([name, src]) =>
+			[...src.matchAll(/\[\[[a-z0-9-]+\]\]/g)].map((m) => `${name}: ${m[0]}`)
+		);
+		expect(bare).toEqual([]);
+	});
+
 	it('Linked term missing: every term marked in the UI or linked by a tutorial exists in both locales', () => {
 		const marked = Object.values(COMPONENTS).flatMap((src) => [...src.matchAll(/<Term id="([a-z-]+)"/g)].map((m) => m[1]));
 		expect(marked.length).toBeGreaterThan(15);

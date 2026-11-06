@@ -15,7 +15,7 @@
 			"text": {
 				"pt-BR": {
 					"title": "Delta",
-					"body": "O [[delta]] diz quanto o valor da opção muda quando o preço do ativo sobe 1. Calls vão de 0 a 1; puts, de −1 a 0. Uma call no dinheiro tem delta perto de 0,5: ela se move como meia unidade do ativo. Por isso o delta também serve como razão de hedge."
+					"body": "O [[delta|delta]] diz quanto o valor da opção muda quando o preço do ativo sobe 1. Calls vão de 0 a 1; puts, de −1 a 0. Uma call no dinheiro tem delta perto de 0,5: ela se move como meia unidade do ativo. Por isso o delta também serve como razão de hedge."
 				},
 				"en": {
 					"title": "Delta",
@@ -29,7 +29,7 @@
 			"text": {
 				"pt-BR": {
 					"title": "Gamma, theta e vega",
-					"body": "O [[gamma]] diz quanto o delta muda quando o preço anda 1; ele é maior no dinheiro e perto do vencimento. O [[theta]] é o valor que a opção perde por barra quando nada mais muda. O [[vega]] é quanto o valor muda por 1 ponto de [[implied-volatility|volatilidade implícita]]. Cada grega isola uma causa: preço, curvatura, tempo e volatilidade."
+					"body": "O [[gamma|gamma]] diz quanto o delta muda quando o preço anda 1; ele é maior no dinheiro e perto do vencimento. O [[theta|theta]] é o valor que a opção perde por barra quando nada mais muda. O [[vega|vega]] é quanto o valor muda por 1 ponto de [[implied-volatility|volatilidade implícita]]. Cada grega isola uma causa: preço, curvatura, tempo e volatilidade."
 				},
 				"en": {
 					"title": "Gamma, theta and vega",

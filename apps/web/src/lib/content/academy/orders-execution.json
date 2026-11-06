@@ -47,12 +47,12 @@
 			"text": {
 				"pt-BR": {
 					"title": "O spread é um custo",
-					"body": "Quem quer vender agora encontra a melhor compra (bid, 99,90); quem quer comprar agora encontra a melhor venda (ask, 100,10). A diferença, 0,20, é o [[spread]]. Uma ordem a mercado paga o spread; ordens grandes ou mercados rápidos ainda pagam [[slippage]], e uma barra só executa até a sua [[capacity|capacidade]]: o resto espera as próximas barras.",
+					"body": "Quem quer vender agora encontra a melhor compra (bid, 99,90); quem quer comprar agora encontra a melhor venda (ask, 100,10). A diferença, 0,20, é o [[spread|spread]]. Uma ordem a mercado paga o spread; ordens grandes ou mercados rápidos ainda pagam [[slippage|slippage]], e uma barra só executa até a sua [[capacity|capacidade]]: o resto espera as próximas barras.",
 					"columns": ["Compra (bid)", "Venda (ask)", "Spread"]
 				},
 				"en": {
 					"title": "The spread is a cost",
-					"body": "Whoever wants to sell now meets the best bid (99.90); whoever wants to buy now meets the best ask (100.10). The difference, 0.20, is the [[spread]]. A market order pays the spread; large orders or fast markets also pay [[slippage]], and a bar fills only up to its [[capacity]]: the rest waits for the next bars.",
+					"body": "Whoever wants to sell now meets the best bid (99.90); whoever wants to buy now meets the best ask (100.10). The difference, 0.20, is the [[spread|spread]]. A market order pays the spread; large orders or fast markets also pay [[slippage|slippage]], and a bar fills only up to its [[capacity|capacity]]: the rest waits for the next bars.",
 					"columns": ["Bid", "Ask", "Spread"]
 				}
 			}

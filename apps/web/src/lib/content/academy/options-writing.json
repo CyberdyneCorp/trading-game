@@ -24,7 +24,7 @@
 				},
 				"en": {
 					"title": "On the other side of the contract",
-					"body": "Selling an option ([[writing]]) means receiving the premium and taking on the obligation. The largest gain is the premium; a call sold on its own has no ceiling on its loss. That is why writing needs margin, checked every bar: below maintenance the option is bought back by force, a [[margin-call|margin call]]. In most missions each short leg has its own margin; when a mission accepts spread margin, the briefing says so."
+					"body": "Selling an option ([[writing|writing]]) means receiving the premium and taking on the obligation. The largest gain is the premium; a call sold on its own has no ceiling on its loss. That is why writing needs margin, checked every bar: below maintenance the option is bought back by force, a [[margin-call|margin call]]. In most missions each short leg has its own margin; when a mission accepts spread margin, the briefing says so."
 				}
 			}
 		},
