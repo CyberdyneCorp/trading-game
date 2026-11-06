@@ -46,13 +46,16 @@ tradelab_embed_resources(${CMAKE_BINARY_DIR}/generated/resources.cpp ${CMAKE_CUR
 set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/chart_input.cpp
   src/viewmodel/game/chart_scale.cpp
+  src/viewmodel/game/builder_vm.cpp
   src/viewmodel/game/chart_vm.cpp
   src/viewmodel/game/combos.cpp
   src/viewmodel/game/dialogs_vm.cpp
   src/viewmodel/game/dock_layout.cpp
+  src/viewmodel/game/game_combos.cpp
   src/viewmodel/game/game_keys.cpp
   src/viewmodel/game/game_viewmodel.cpp
   src/viewmodel/game/hotkeys.cpp
+  src/viewmodel/game/lab_vm.cpp
   src/viewmodel/game/options_math.cpp
   src/viewmodel/game/options_vm.cpp
   src/viewmodel/game/panels_vm.cpp

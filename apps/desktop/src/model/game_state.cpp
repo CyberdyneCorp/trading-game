@@ -131,6 +131,7 @@ OptionQuote quote_from(const Value& q) {
   out.expiry_step = to_int(q["expiryStep"]);
   out.bid = dbl(q["bid"]);
   out.ask = dbl(q["ask"]);
+  out.mid = dbl(q["mid"]);
   out.iv = dbl(q["iv"]);
   out.delta = dbl(q["delta"]);
   out.gamma = dbl(q["gamma"]);

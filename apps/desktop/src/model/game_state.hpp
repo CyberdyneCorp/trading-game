@@ -117,6 +117,7 @@ struct OptionQuote {
   std::string strike_text;
   int expiry_step = 0;
   double bid = 0, ask = 0, iv = 0, delta = 0, gamma = 0, theta = 0, vega = 0;
+  double mid = 0;  // the model value on the premium tick (the what-if at zero shift rounds to it)
   bool settling = false;
   bool listed = true;  // false: shown for its open positions only, no new orders
 };

@@ -30,6 +30,7 @@ class PlanDialog {
   std::string target;
   std::string lose_scenario;
   int confidence = 60;  // 50..95 by 5
+  bool risk_unbounded = false;  // a combo with no maximum loss: the planned risk is its margin (set after open)
 
   void open(bool buy, std::string qty, int leverage, std::optional<double> planned_risk, const std::string& stop,
             const std::string& take_profit, std::optional<std::string> option_label);

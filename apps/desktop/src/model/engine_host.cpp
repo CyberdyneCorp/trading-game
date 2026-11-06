@@ -203,12 +203,7 @@ void EngineHost::stamp(Snapshot& s) {
   if (recorder_) s.run_id = recorder_->run_id();
   s.assisted = current_.assisted;
   // One copy per change of the log (a command, an advance batch), shared by the snapshots after it.
-  const auto& log = current_.log;
-  const bool same = shared_log_ && shared_log_->size() == log.size() && (log.empty() || shared_log_->back() == log.back()) &&
-                    (log.empty() || shared_log_->front() == log.front());
-  if (!same) {
-    shared_log_ = std::make_shared<const std::vector<std::string>>(current_.log);
-  }
+  if (!shared_log_ || *shared_log_ != current_.log) shared_log_ = std::make_shared<const std::vector<std::string>>(current_.log);
   s.log = shared_log_;
 }
 
