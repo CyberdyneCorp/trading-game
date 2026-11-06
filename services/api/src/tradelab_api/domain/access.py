@@ -30,7 +30,7 @@ RoleLookup = Callable[[str], Iterable[str] | None]
 
 def no_lookup(_: str) -> None:
     """Default fallback: no service credential to ask CyberdyneAuth with, so roles stay unknown."""
-    return None
+    return
 
 
 def tradelab_roles(roles: Iterable[Any], clients: frozenset[str]) -> frozenset[str]:

@@ -3,6 +3,9 @@ SQLite and PostgreSQL), they downgrade cleanly, and the app no longer creates ta
 
 from __future__ import annotations
 
+import multiprocessing
+
+import pytest
 from conftest import database_url_for_tests
 from sqlalchemy import inspect
 
@@ -66,5 +69,33 @@ def test_upgrade_from_0002_keeps_runs_and_adds_campaign_and_preferences():
     with engine.connect() as conn:
         assert conn.execute(text("SELECT run_id, campaign FROM runs")).all() == [("run-old-0001", None)]
         assert conn.execute(text("SELECT count(*) FROM preferences")).scalar() == 0
+    assert migrations.pending_model_changes(engine) == []
+    engine.dispose()
+
+
+def _upgrade_after(url: str, barrier) -> str:
+    engine = make_engine(url)
+    barrier.wait()
+    try:
+        migrations.upgrade(engine)
+        return "ok"
+    except Exception as exc:  # noqa: BLE001
+        return type(exc).__name__
+    finally:
+        engine.dispose()
+
+
+def test_regression_concurrent_startups_migrate_once():
+    # Before: API processes starting together on an empty PostgreSQL (uvicorn --workers, a rolling
+    # deploy) all ran the DDL at once and every one but the first crashed with a UniqueViolation.
+    url = database_url_for_tests()
+    if url.startswith("sqlite"):
+        pytest.skip("concurrent schema changes need a server database (CI runs this on PostgreSQL)")
+    ctx = multiprocessing.get_context("spawn")
+    with ctx.Manager() as manager:
+        barrier = manager.Barrier(4)
+        with ctx.Pool(4) as pool:
+            assert pool.starmap(_upgrade_after, [(url, barrier)] * 4) == ["ok"] * 4
+    engine = make_engine(url)
     assert migrations.pending_model_changes(engine) == []
     engine.dispose()

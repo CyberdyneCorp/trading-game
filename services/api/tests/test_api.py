@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 import httpx
 import tradelab_engine as te
-from conftest import DISCOVERY
+from conftest import DISCOVERY, build_client
 
 from tradelab_api.adapters.oidc import OidcVerifier
 
@@ -181,3 +182,37 @@ def test_progress_export_and_erase(client, auth):
     assert res.json() == {"deletedRuns": 1}
     assert client.delete("/api/v1/me/data", headers=auth(key="del")).json() == {"deletedRuns": 1}  # idempotent
     assert client.get("/api/v1/runs", headers=auth()).json() == []
+
+
+class _HeldReplayer:
+    """Delegates to the real replayer, but each replay waits until `release` is set (at most 5 s)."""
+
+    def __init__(self, inner: Any) -> None:
+        self.inner, self.entered, self.release, self.done = inner, threading.Event(), threading.Event(), threading.Event()
+
+    def supported_policy(self) -> int:
+        return self.inner.supported_policy()
+
+    def supported_policies(self) -> frozenset[int]:
+        return self.inner.supported_policies()
+
+    def replay(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        self.entered.set()
+        self.release.wait(5)
+        self.done.set()
+        return self.inner.replay(*args, **kwargs)
+
+
+def test_regression_a_replaying_sync_does_not_stall_other_requests(idp, replayer, auth):
+    # Before: the async sync handler replayed on the event loop thread, so every other request
+    # (health, catalog, pack downloads) waited for the whole batch to replay.
+    held = _HeldReplayer(replayer)
+    with build_client(idp, held) as client:  # one event loop for every request, as under uvicorn
+        syncing = threading.Thread(target=lambda: sync(client, auth, [run_body()], key="slow"))
+        syncing.start()
+        assert held.entered.wait(5)
+        assert client.get("/api/v1/health").status_code == 200
+        still_replaying = not held.done.is_set()
+        held.release.set()
+        syncing.join()
+    assert still_replaying, "health answered only after the replay had finished"

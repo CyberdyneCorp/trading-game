@@ -10,10 +10,20 @@ from typing import Any
 import pytest
 
 from tradelab_api.application.erasure import ErasureService
-from tradelab_api.application.game import MAX_ACTIONS_PER_RUN, MAX_RUNS_PER_BATCH, GameService
+from tradelab_api.application.game import (
+    MAX_ACTIONS_PER_RUN,
+    MAX_RUNS_PER_BATCH,
+    GameService,
+)
 from tradelab_api.application.imports import ImportService
 from tradelab_api.domain.errors import InvalidLog, NotFound, TooLarge
-from tradelab_api.domain.models import Action, ErasureEntry, IncomingRun, Preference, Run
+from tradelab_api.domain.models import (
+    Action,
+    ErasureEntry,
+    IncomingRun,
+    Preference,
+    Run,
+)
 
 POLICY = 7
 KINDS = frozenset({"ans", "order", "adv"})
@@ -79,6 +89,10 @@ class FakeReplayer:
 class FakePrefs:
     def __init__(self) -> None:
         self.rows: dict[str, dict[str, Preference]] = {}
+        self.locked: list[str] = []
+
+    def lock(self, owner: str) -> None:
+        self.locked.append(owner)
 
     def all(self, owner: str) -> dict[str, Preference]:
         return dict(self.rows.get(owner, {}))
@@ -246,7 +260,7 @@ def test_erasure_deletes_and_audits(ports):
 
 def test_regression_erasure_also_deletes_preferences(ports):
     # Before: ErasureService (in-game and webhook erasure) left the player's preferences behind.
-    runs, replayer = ports
+    runs, _ = ports
     prefs = FakePrefs()
     prefs.put("alice", [Preference("ui.lang", "pt-BR", 1)])
     prefs.put("bob", [Preference("ui.lang", "en", 1)])

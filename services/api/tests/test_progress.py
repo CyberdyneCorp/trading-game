@@ -3,18 +3,27 @@
 from __future__ import annotations
 
 import re
+import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 import tradelab_engine as te
+from sqlalchemy.orm import Session
 from test_api import run_body, sync
 
+from tradelab_api.adapters.db import SqlPreferenceStore
+from tradelab_api.application.game import GameService
 from tradelab_api.domain.errors import LimitExceeded
 from tradelab_api.domain.models import Preference, Run
 from tradelab_api.domain.preferences import merge
-from tradelab_api.domain.progress import CAMPAIGN_MIN_CAPITAL, CAMPAIGN_MISSIONS, achievements, mission_progress
+from tradelab_api.domain.progress import (
+    CAMPAIGN_MIN_CAPITAL,
+    CAMPAIGN_MISSIONS,
+    achievements,
+    mission_progress,
+)
 
 WEB_GAME = Path(__file__).resolve().parents[3] / "apps" / "web" / "src" / "lib" / "game"
 FINISH = {"k": "adv", "n": 2000}  # advance past the last bar: the run finishes flat
@@ -168,6 +177,38 @@ def test_preferences_are_erased_with_the_players_data(client, auth):
     prefs(client, auth, {"locale": ("en", 1)}, "a")
     client.delete("/api/v1/me/data", headers=auth(key="del"))
     assert client.get("/api/v1/preferences", headers=auth()).json() == {"preferences": {}}
+
+
+def test_regression_overlapping_preference_writes_keep_the_newest(client):
+    # Before: set_preferences read, merged and wrote without a lock, so a write that read before an
+    # overlapping newer write committed after it and replaced the newer value (PostgreSQL).
+    engine = client.app.state.engine
+    if engine.dialect.name != "postgresql":
+        pytest.skip("needs concurrent connections (CI runs this on PostgreSQL)")
+
+    class Clock:
+        def now(self) -> datetime:
+            return datetime.now(UTC)
+
+    def newer() -> None:
+        with Session(engine) as s:
+            service = GameService(None, None, Clock(), frozenset(), SqlPreferenceStore(s))  # type: ignore[arg-type]
+            service.set_preferences("racer", [Preference("ui.lang", "new", 200)])
+            s.commit()
+
+    with Session(engine) as first:  # an older write that has already read the stored map
+        store = SqlPreferenceStore(first)
+        store.lock("racer")
+        seen = store.all("racer")
+        other = threading.Thread(target=newer)
+        other.start()
+        other.join(0.5)
+        assert other.is_alive()  # the newer write waits for this transaction
+        store.put("racer", merge(seen, [Preference("ui.lang", "old", 100)], 10**13))
+        first.commit()
+        other.join()
+    with Session(engine) as s:
+        assert SqlPreferenceStore(s).all("racer")["ui.lang"].value == "new"
 
 
 def test_merge_is_order_independent_and_bounded():

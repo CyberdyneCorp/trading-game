@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -27,15 +28,38 @@ from ..adapters.db import (
     request_hash,
     session_factory,
 )
-from ..adapters.webhook_signature import InvalidWebhook, MalformedWebhook, WebhookVerifier
+from ..adapters.webhook_signature import (
+    InvalidWebhook,
+    MalformedWebhook,
+    WebhookVerifier,
+)
 from ..application.catalog import CatalogService
 from ..application.erasure import ErasureService
-from ..application.game import MAX_RUNS_PER_BATCH, GameService, preference_view, run_view
+from ..application.game import (
+    MAX_RUNS_PER_BATCH,
+    GameService,
+    preference_view,
+    run_view,
+)
 from ..application.imports import ImportService
 from ..config import Settings
 from ..domain.access import PermissionResolver, RoleLookup, no_lookup
-from ..domain.errors import DomainError, Forbidden, InvalidLog, LimitExceeded, NotFound, TooLarge, Unauthenticated
-from ..domain.models import Achievement, IncomingRun, MissionProgress, Preference, SyncOutcome
+from ..domain.errors import (
+    DomainError,
+    Forbidden,
+    InvalidLog,
+    LimitExceeded,
+    NotFound,
+    TooLarge,
+    Unauthenticated,
+)
+from ..domain.models import (
+    Achievement,
+    IncomingRun,
+    MissionProgress,
+    Preference,
+    SyncOutcome,
+)
 from ..ports import Clock, CsvValidator, ObjectStore, Replayer, TokenVerifier
 from .auth import Authenticator
 from .body_limit import BodyLimit
@@ -135,11 +159,18 @@ async def _domain_error(_: Request, exc: DomainError) -> JSONResponse:
 
 
 async def _idempotent(request: Request, s: Session, owner: str, key: str | None, run: Callable[[], Any]) -> Any:
-    """Same key + same body => stored response; same key + other body => 409 (spec game-api)."""
+    """Same key + same body => stored response; same key + other body => 409 (spec game-api).
+
+    The use case (server replays, database writes) runs on the thread pool: it is blocking work and
+    must not stall the event loop that serves every other request."""
     if not key:
         raise HTTPException(400, "Idempotency-Key header required")
-    store = SqlIdempotencyStore(s)
     digest = request_hash(await request.body())
+    return await run_in_threadpool(_run_once, s, owner, key, digest, run)
+
+
+def _run_once(s: Session, owner: str, key: str, digest: str, run: Callable[[], Any]) -> Any:
+    store = SqlIdempotencyStore(s)
     seen = store.get(owner, key)
     if seen is not None:
         if seen[0] != digest:

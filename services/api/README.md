@@ -29,7 +29,7 @@ Without `TRADELAB_DATABASE_URL` the server uses an in-memory SQLite database tha
 
 ### Migrations (Alembic)
 
-The schema comes only from `src/tradelab_api/migrations/versions/` (nothing calls `create_all`). By default the app runs `alembic upgrade head` on its own connection at startup; set `TRADELAB_MIGRATE_ON_START=false` to run it as a release step instead. CLI (reads `TRADELAB_DATABASE_URL`):
+The schema comes only from `src/tradelab_api/migrations/versions/` (nothing calls `create_all`). By default the app runs `alembic upgrade head` on its own connection at startup; set `TRADELAB_MIGRATE_ON_START=false` to run it as a release step instead. On PostgreSQL the upgrade holds an advisory lock, so processes starting together (uvicorn workers, a rolling deploy) migrate once and the others wait. CLI (reads `TRADELAB_DATABASE_URL`):
 
 ```bash
 uv run alembic upgrade head
@@ -120,7 +120,7 @@ The campaign order and minimum mirror `apps/web/src/lib/game/curriculum.ts` and 
 
 ### Preferences
 
-Keys match `[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}`, at most 100 per player, values are any JSON up to 4 KB. Each key carries `updatedAt` (ms since the epoch, when the player changed it): a write replaces the stored value only when newer; equal times are broken by the value's canonical JSON, so merges commute. A time in the future is clamped to the server clock, so a device with a wrong clock cannot pin a value.
+Keys match `[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}`, at most 100 per player, values are any JSON up to 4 KB. Each key carries `updatedAt` (ms since the epoch, when the player changed it): a write replaces the stored value only when newer; equal times are broken by the value's canonical JSON, so merges commute. A time in the future is clamped to the server clock, so a device with a wrong clock cannot pin a value. A write locks the player's preference set for its transaction (PostgreSQL advisory lock), so overlapping writes merge one after the other and never replace a newer value.
 
 ### Packs
 

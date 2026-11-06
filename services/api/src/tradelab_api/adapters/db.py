@@ -20,6 +20,7 @@ from sqlalchemy import (
     create_engine,
     delete,
     select,
+    text,
 )
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
@@ -162,8 +163,18 @@ class SqlRunRepository:
 
 
 class SqlPreferenceStore:
+    # First key of the two-key pg_advisory_xact_lock; the second is hashtext(owner).
+    LOCK_CLASS = 0x7072_6566  # "pref"
+
     def __init__(self, session: Session) -> None:
         self._s = session
+
+    def lock(self, owner: str) -> None:
+        # Two writes for one player overlapping would both merge against the same stale read and the
+        # later commit could replace a newer value. Row locks cannot cover keys not stored yet, so the
+        # player's whole preference set is locked (PostgreSQL; SQLite serializes writers already).
+        if self._s.get_bind().dialect.name == "postgresql":
+            self._s.execute(text("SELECT pg_advisory_xact_lock(:c, hashtext(:o))"), {"c": self.LOCK_CLASS, "o": owner})
 
     def all(self, owner: str) -> dict[str, Preference]:
         rows = self._s.scalars(select(PreferenceRow).where(PreferenceRow.owner == owner))

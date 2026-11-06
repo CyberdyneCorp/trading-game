@@ -50,7 +50,7 @@ def check(spec: dict[str, Any], method: str, path: str, res: Any) -> None:
 
 
 def test_responses_validate_against_the_published_schemas(client, auth, spec):
-    get = lambda path, url=None, **kw: check(spec, "get", path, client.get(url or path, **kw))  # noqa: E731
+    get = lambda path, url=None, **kw: check(spec, "get", path, client.get(url or path, **kw))
     get("/api/v1/health")
     get("/api/v1/missions")
     res = sync(client, auth, [run_body(), run_body(run_id="run-0002-abcd", actions=LOG[:1],

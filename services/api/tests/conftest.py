@@ -15,7 +15,11 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 from jwt.algorithms import RSAAlgorithm
 
-from tradelab_api.adapters.engine_replayer import ACTION_KINDS, EngineCsvValidator, EngineReplayer
+from tradelab_api.adapters.engine_replayer import (
+    ACTION_KINDS,
+    EngineCsvValidator,
+    EngineReplayer,
+)
 from tradelab_api.adapters.oidc import OidcVerifier
 from tradelab_api.adapters.policy_replayer import PolicyReplayer
 from tradelab_api.config import Settings

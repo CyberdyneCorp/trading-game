@@ -13,8 +13,22 @@ from collections.abc import Sequence
 from typing import Any
 
 from ..domain import preferences as prefs
-from ..domain.errors import Conflict, DomainError, InvalidLog, NotFound, UnsupportedPolicy
-from ..domain.models import Achievement, Action, IncomingRun, MissionProgress, Preference, Run, SyncOutcome
+from ..domain.errors import (
+    Conflict,
+    DomainError,
+    InvalidLog,
+    NotFound,
+    UnsupportedPolicy,
+)
+from ..domain.models import (
+    Achievement,
+    Action,
+    IncomingRun,
+    MissionProgress,
+    Preference,
+    Run,
+    SyncOutcome,
+)
 from ..domain.progress import achievements, mission_progress
 from ..ports import Clock, PreferenceStore, Replayer, RunRepository
 
@@ -143,6 +157,7 @@ class GameService:
     def set_preferences(self, owner: str, incoming: Sequence[Preference]) -> dict[str, Preference]:
         if self._prefs is None:
             return {}
+        self._prefs.lock(owner)
         stored = self._prefs.all(owner)
         changed = prefs.merge(stored, incoming, int(self._clock.now().timestamp() * 1000))
         self._prefs.put(owner, changed)

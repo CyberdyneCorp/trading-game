@@ -13,7 +13,11 @@ from sqlalchemy.orm import Session
 from test_api import run_body, sync
 
 from tradelab_api.adapters.db import SqlErasureLog
-from tradelab_api.adapters.webhook_signature import InvalidWebhook, WebhookVerifier, sign
+from tradelab_api.adapters.webhook_signature import (
+    InvalidWebhook,
+    WebhookVerifier,
+    sign,
+)
 
 PATH = "/api/v1/webhooks/cyberdyne-auth"
 OTHER_SECRET = "whsec_" + "b3RoZXItc2VjcmV0LW90aGVyLXNlY3JldC0zMmJ5dGU="

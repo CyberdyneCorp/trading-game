@@ -13,11 +13,14 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
-from sqlalchemy.engine import Engine
+from sqlalchemy import text
+from sqlalchemy.engine import Connection, Engine
 
 from .db import Base
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "migrations"
+# pg_advisory_xact_lock key serializing schema changes (any constant shared by every API process).
+_LOCK_KEY = 0x7472_6164_656C_6162 & 0x7FFF_FFFF_FFFF_FFFF  # "tradelab"
 
 
 def _config() -> Config:
@@ -26,8 +29,16 @@ def _config() -> Config:
     return cfg
 
 
+def _serialize(conn: Connection) -> None:
+    """Several API processes start at once (uvicorn workers, rolling deploys): on PostgreSQL the first
+    one migrates while the others wait, then find the schema at head. Held until the transaction ends."""
+    if conn.dialect.name == "postgresql":
+        conn.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": _LOCK_KEY})
+
+
 def upgrade(engine: Engine, revision: str = "head") -> None:
     with engine.begin() as conn:
+        _serialize(conn)
         cfg = _config()
         cfg.attributes["connection"] = conn
         command.upgrade(cfg, revision)
@@ -35,6 +46,7 @@ def upgrade(engine: Engine, revision: str = "head") -> None:
 
 def downgrade(engine: Engine, revision: str) -> None:
     with engine.begin() as conn:
+        _serialize(conn)
         cfg = _config()
         cfg.attributes["connection"] = conn
         command.downgrade(cfg, revision)
