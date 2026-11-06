@@ -104,6 +104,8 @@ class ChartViewModel {
   void focus_lost();
 
   [[nodiscard]] int zoom() const { return zoom_; }
+  // Shows every bar from `step` on (the debrief: the whole run from its first decision).
+  void show_from(const GameState& g, int step);
   [[nodiscard]] std::optional<int> hover_bar(const GameState& g) const;
   [[nodiscard]] std::optional<int> focus_bar() const { return focus_; }
   // What a screen reader announces for the focused candle ("" without focus).

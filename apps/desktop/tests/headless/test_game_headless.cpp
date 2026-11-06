@@ -146,7 +146,7 @@ TEST_CASE("headless terminal: with the retro theme every terminal control fits i
   d.frames(2);
   Terminal t(app, d);
   REQUIRE(d.click(names::kMenuStart));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   REQUIRE(d.click(names::kBriefGo));
   t.skip_question();
   d.frames(2);

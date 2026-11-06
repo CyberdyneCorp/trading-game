@@ -30,7 +30,7 @@ struct Bar {
   double volume = 0;
 };
 
-enum class CommandKind : std::uint8_t { Start, Advance, Market, Game, Resume, StartPack };
+enum class CommandKind : std::uint8_t { Start, Advance, Market, Game, Resume, StartPack, Rewind };
 
 // Terminal commands (CommandKind::Game), one per engine call of the C ABI (model/game_command.hpp).
 enum class GameCommandKind : std::uint8_t {
@@ -86,6 +86,14 @@ struct RunOptions {
   bool operator==(const RunOptions&) const = default;
 };
 
+// Links stored on a new run's record (the web's RunRecord.campaign / .assisted), as their JSON
+// objects: {"id","index"} for a campaign mission, {"from","kind","step"} for an assisted attempt.
+// Empty = none.
+struct RunLinks {
+  std::string campaign;
+  std::string assisted;
+};
+
 struct Snapshot {
   std::uint64_t seq = 0;  // increases with every published snapshot of a host
   std::string mission;
@@ -129,6 +137,9 @@ struct Snapshot {
   // "policy_changed", "digest_mismatch", "pack_missing", "damaged"; "" = none) and detail.
   std::string resume_notice;
   std::string resume_detail;
+  // The stored run this state belongs to ("" without storage) and whether it is an assisted attempt.
+  std::string run_id;
+  bool assisted = false;
   bool durable = true;  // false once a storage write failed: play goes on but may not resume
 
   [[nodiscard]] bool active() const { return status == "active"; }

@@ -40,6 +40,20 @@ const WidgetTable* ScreenModel::table_of(std::string_view w) const {
   return nullptr;
 }
 
+bool ScreenModel::is_enabled(std::string_view w, bool fallback) const {
+  for (auto it = enabled.rbegin(); it != enabled.rend(); ++it) {
+    if (it->widget == w) return it->on;
+  }
+  return fallback;
+}
+
+const WidgetItems* ScreenModel::items_of(std::string_view w) const {
+  for (const auto& i : items) {
+    if (i.widget == w) return &i;
+  }
+  return nullptr;
+}
+
 bool ScreenModel::is_visible(std::string_view w, bool fallback) const {
   for (auto it = visible.rbegin(); it != visible.rend(); ++it) {
     if (it->widget == w) return it->on;
@@ -56,7 +70,10 @@ ScreenModel AppViewModel::screen_model() const {
     case Screen::Journal: return screens::journal(*this);
     case Screen::Lesson: return screens::lesson(*this);
     case Screen::Settings: return screens::settings(*this);
-    case Screen::Game: break;
+    case Screen::Tutorial: return screens::tutorial(*this);
+    case Screen::Catalog: return screens::catalog(*this);
+    case Screen::Import: return screens::csv_import(*this);
+    case Screen::Game: return screens::game(*this);
   }
   ScreenModel m;
   for (auto& b : bindings()) m.text(b.widget, std::move(b.text));
@@ -65,7 +82,13 @@ ScreenModel AppViewModel::screen_model() const {
 
 namespace screens {
 
-std::string mission_title(const AppViewModel& vm, const std::string& id) { return vm.tr("mission." + id + ".title"); }
+// A built-in mission's title, else the label of the installed pack it plays, else its id.
+std::string mission_title(const AppViewModel& vm, const std::string& id) {
+  const std::string key = "mission." + id + ".title";
+  if (vm.catalog().has(key)) return vm.tr(key);
+  const std::string label = vm.pack_label_of(id);
+  return label.empty() ? id : label;
+}
 
 }  // namespace screens
 

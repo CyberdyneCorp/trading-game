@@ -165,6 +165,7 @@ void RunStore::update_run(const std::string& run_id, const RunPatch& p) {
   if (p.status) patch_column(db_, run_id, "status", *p.status);
   if (p.equity) patch_column(db_, run_id, "equity", *p.equity);
   if (p.journal) patch_column(db_, run_id, "journal", *p.journal);
+  if (p.campaign) patch_column(db_, run_id, "campaign", *p.campaign);
   if (p.questions) patch_column(db_, run_id, "questions", *p.questions);
   if (p.stop_warnings) {
     db_.prepare("UPDATE runs SET stop_warnings = ? WHERE run_id = ?").bind(1, *p.stop_warnings).bind(2, run_id).run();

@@ -122,5 +122,29 @@
   "desktop.storageUnavailable": {
     "pt-BR": "Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.",
     "en": "The saved data could not be opened ({detail}): this session will not be saved."
+  },
+  "desktop.csv.path": {
+    "pt-BR": "Caminho do arquivo CSV neste computador",
+    "en": "CSV file path on this computer"
+  },
+  "desktop.csv.open": {
+    "pt-BR": "Abrir arquivo",
+    "en": "Open file"
+  },
+  "desktop.csv.unreadable": {
+    "pt-BR": "Não foi possível ler o arquivo: confira o caminho.",
+    "en": "The file could not be read: check the path."
+  },
+  "desktop.pack.missingFile": {
+    "pt-BR": "O arquivo deste pacote não está mais na pasta de dados. Remova-o e baixe ou importe de novo.",
+    "en": "This pack's file is no longer in the data folder. Remove it and download or import it again."
+  },
+  "desktop.debrief.chart": {
+    "pt-BR": "Gráfico da partida",
+    "en": "Run chart"
+  },
+  "desktop.debrief.chartNote": {
+    "pt-BR": "Quadrados: entradas (azul) e saídas (amarelo) de cada trade, ligadas por uma linha verde (ganho) ou vermelha (perda).",
+    "en": "Squares: each trade's entry (blue) and exit (yellow), joined by a green (gain) or red (loss) line."
   }
 }

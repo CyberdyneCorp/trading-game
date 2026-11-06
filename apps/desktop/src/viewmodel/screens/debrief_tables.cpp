@@ -96,7 +96,7 @@ void advisor_panel(const AppViewModel& vm, const Snapshot& s, const json::Value&
                          Tone::Muted});
   }
   const long used = static_cast<long>(s.state["advisor"]["advice"].size());
-  out.lines.push_back({vm.tr("debrief.points", {{"used", str(used)}, {"earned", d["advisorPointsEarned"].as_string("0")}, {"balance", str(vm.game().prefs().advisor_points)}})});
+  out.lines.push_back({vm.tr("debrief.points", {{"used", str(used)}, {"earned", vm.run_assisted() ? std::string("0") : d["advisorPointsEarned"].as_string("0")}, {"balance", str(vm.game().prefs().advisor_points)}})});
   out.lines.push_back({vm.tr("debrief.pointsHow"), Tone::Muted});
   m.lines.push_back(std::move(out));
 }

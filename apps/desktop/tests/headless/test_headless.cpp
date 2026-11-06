@@ -58,7 +58,7 @@ TEST_CASE("headless: mission 01 from the menu to the debrief with injected input
   d.frames(2);
 
   REQUIRE(d.click(names::kMenuStart));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   CHECK(d.text(names::kBriefCapital) == "Capital virtual: 10.000,00 cr");
 
   REQUIRE(d.click(names::kBriefGo));
@@ -101,7 +101,7 @@ TEST_CASE("headless: Space typed in the quantity field types, it does not advanc
   Driver d(app);
   d.frames(2);
   REQUIRE(d.click(names::kMenuStart));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   REQUIRE(d.click(names::kBriefGo));
   Terminal(app, d).skip_question();
   const int step = app.vm().snapshot()->step;

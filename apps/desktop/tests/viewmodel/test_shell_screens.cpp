@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "model/engine_run.hpp"
+#include "support/shell_helpers.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -60,6 +61,7 @@ struct Fixture {
   Fixture() {
     std::int64_t t = 1'700'000'000'000;
     vm.set_clock([t]() mutable { return t += 1000; });
+    testing::tutorials_seen(vm);  // the tutorial screen has its own tests
   }
   // Menu -> briefing -> terminal of `run`.
   void enter(RealRun& run) {

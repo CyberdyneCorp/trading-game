@@ -92,7 +92,7 @@ std::string default_prefs_path() {
 #endif
 }
 
-GamePrefs PrefsFile::load() const {
+GamePrefs PrefsFile::load() {
   std::ifstream in(path_, std::ios::binary);
   if (!in) return {};
   std::ostringstream text;
@@ -100,7 +100,7 @@ GamePrefs PrefsFile::load() const {
   return prefs_from_json(text.str());
 }
 
-bool PrefsFile::save(const GamePrefs& prefs) const {
+bool PrefsFile::save(const GamePrefs& prefs) {
   namespace fs = std::filesystem;
   std::error_code ec;
   const fs::path target(path_);

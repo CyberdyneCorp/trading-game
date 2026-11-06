@@ -9,6 +9,7 @@
                 <Label Text="TRADELAB" Color="#39FF88" Slot.VAlign="Center"/>
                 <Label Name="game-market" Color="#FFC857" Slot.VAlign="Center"/>
                 <Label Name="game-mission" Color="#8FB3A1" Slot.Fill="1" Slot.VAlign="Center"/>
+                <Label Name="game-assisted-tag" Class="attention" Slot.VAlign="Center"/>
                 <Label Name="game-turn" Color="#E3F5EA" Slot.VAlign="Center"/>
                 <Label Name="game-interval" Color="#8FB3A1" Slot.VAlign="Center"/>
                 <Button Name="game-advance" Style="Primary" OnClicked="tl.game.advance"/>
@@ -76,6 +77,19 @@
                         <Label Name="game-rail-funding" Color="#E3F5EA" TextSize="12" Wrap="true"/>
                         <Separator/>
                         <Label Name="game-rail-objectives" Color="#8FB3A1" TextSize="12" Wrap="true"/>
+                        <Border Name="game-assist" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6">
+                            <VBox Spacing="4">
+                                <Label Name="game-assist-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                                <Label Name="game-assist-note" Wrap="true" Class="muted" TextSize="12"/>
+                                <Label Name="game-assist-blocked" Wrap="true" Class="attention" TextSize="12"/>
+                                <Label Name="game-assist-turn-label" Wrap="true"/>
+                                <TextInput Name="game-assist-turn" Width="80"/>
+                                <WrapBox Spacing="6">
+                                    <Button Name="game-assist-rewind" OnClicked="tl.assist.rewind"/>
+                                    <Button Name="game-assist-new-seed" OnClicked="tl.assist.newSeed"/>
+                                </WrapBox>
+                            </VBox>
+                        </Border>
                     </VBox>
                 </ScrollBox>
             </Border>

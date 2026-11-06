@@ -189,6 +189,7 @@ void ShellView::bind() {
   ui::bind_action(names::kActKeyChange, [&vm] { vm.begin_key_change(); });
   ui::bind_action(names::kActKeyReset, [&vm] { vm.reset_keys(); });
   bind_callbacks();
+  bind_flows();
 }
 
 void ShellView::bind_callbacks() {
@@ -211,13 +212,15 @@ void ShellView::bind_callbacks() {
 void ShellView::apply(const ScreenModel& m) {
   for (const auto& t : m.texts) {
     const Rid w = find(t.widget);
-    if (w != R_INVALID_ID) ui::set_text(w, t.text);
+    // Unchanged texts are left alone: a field being typed in keeps its cursor.
+    if (w != R_INVALID_ID && ui::text_of(w) != t.text) ui::set_text(w, t.text);
   }
   for (const auto& n : m.names) Rwidget_set_accessible_name(find(n.widget), n.text.c_str());
   for (const auto& l : m.lines) apply_lines(l);
   for (const auto& t : m.tables) apply_table(t);
   for (const auto& it : m.items) apply_items(it);
   apply_flags(m);
+  apply_values(m);
 }
 
 // Widget callbacks fired by these setters see the viewmodel's own values: no-ops there.

@@ -207,4 +207,148 @@ inline constexpr auto kShellActions = std::to_array<std::string_view>(
      kActLessonLeave, kActLessonPrev, kActLessonNext, kActLessonFinish, kActLessonChoices[0], kActLessonChoices[1],
      kActLessonChoices[2], kActLessonChoices[3], kActLangPt, kActLangEn, kActKeyChange, kActKeyReset});
 
+// ---- Menu: packs, notice ----
+inline constexpr std::string_view kMenuCatalog = "menu-catalog";
+inline constexpr std::string_view kMenuImport = "menu-import";
+inline constexpr std::string_view kMenuNotice = "menu-notice";
+
+// ---- Tutorial before the briefing (web Tutorial.svelte) ----
+inline constexpr std::string_view kTutHead = "tut-head";
+inline constexpr std::string_view kTutStep = "tut-step";
+inline constexpr std::string_view kTutTitle = "tut-title";
+inline constexpr std::string_view kTutBody = "tut-body";
+inline constexpr std::string_view kTutSkip = "tut-skip";
+inline constexpr std::string_view kTutPrev = "tut-prev";
+inline constexpr std::string_view kTutNext = "tut-next";
+inline constexpr std::string_view kBriefTutorial = "brief-tutorial";
+
+// ---- Catalog (web Catalog.svelte) and installed packs (web MissionMenu.svelte practice panel) ----
+inline constexpr std::string_view kCatalogTitle = "catalog-title";
+inline constexpr std::string_view kCatalogBack = "catalog-back";
+inline constexpr std::string_view kCatalogNote = "catalog-note";
+inline constexpr std::string_view kCatalogState = "catalog-state";
+inline constexpr std::string_view kCatalogRetry = "catalog-retry";
+inline constexpr std::string_view kCatalogCached = "catalog-cached";
+inline constexpr std::string_view kCatalogList = "catalog-list";
+inline constexpr std::string_view kCatalogDetail = "catalog-detail";
+inline constexpr std::string_view kCatalogEntryTitle = "catalog-entry-title";
+inline constexpr std::string_view kCatalogEntryTags = "catalog-entry-tags";
+inline constexpr std::string_view kCatalogEntrySummary = "catalog-entry-summary";
+inline constexpr std::string_view kCatalogDownloadState = "catalog-download-state";
+inline constexpr std::string_view kCatalogProgress = "catalog-progress";
+inline constexpr std::string_view kCatalogDownload = "catalog-download";
+inline constexpr std::string_view kCatalogPause = "catalog-pause";
+inline constexpr std::string_view kCatalogPlay = "catalog-play";
+inline constexpr std::string_view kCatalogNeedsConnection = "catalog-needs-connection";
+inline constexpr std::string_view kLibraryTitle = "library-title";
+inline constexpr std::string_view kLibraryNote = "library-note";
+inline constexpr std::string_view kLibraryList = "library-list";
+inline constexpr std::string_view kLibraryEmpty = "library-empty";
+inline constexpr std::string_view kLibraryMissing = "library-missing";
+inline constexpr std::string_view kLibraryPlay = "library-play";
+inline constexpr std::string_view kLibraryRemove = "library-remove";
+
+// ---- CSV import (web CsvImport.svelte) ----
+inline constexpr std::string_view kCsvTitle = "csv-title";
+inline constexpr std::string_view kCsvIntro = "csv-intro";
+inline constexpr std::string_view kCsvPrivacy = "csv-privacy";
+inline constexpr std::string_view kCsvFileLabel = "csv-file-label";
+inline constexpr std::string_view kCsvPath = "csv-path";
+inline constexpr std::string_view kCsvOpen = "csv-open";
+inline constexpr std::string_view kCsvFileName = "csv-file-name";
+inline constexpr std::string_view kCsvMeta = "csv-meta";
+inline constexpr std::string_view kCsvAssetLabel = "csv-asset-label";
+inline constexpr std::string_view kCsvAsset = "csv-asset";
+inline constexpr std::string_view kCsvPairLabel = "csv-pair-label";
+inline constexpr std::string_view kCsvPair = "csv-pair";
+inline constexpr std::string_view kCsvVenueLabel = "csv-venue-label";
+inline constexpr std::string_view kCsvVenue = "csv-venue";
+inline constexpr std::string_view kCsvIntervalLabel = "csv-interval-label";
+inline constexpr std::string_view kCsvInterval = "csv-interval";
+inline constexpr std::string_view kCsvUnitLabel = "csv-unit-label";
+inline constexpr std::string_view kCsvUnit = "csv-unit";
+inline constexpr std::string_view kCsvVolumeLabel = "csv-volume-label";
+inline constexpr std::string_view kCsvVolume = "csv-volume";
+inline constexpr std::string_view kCsvLeverageLabel = "csv-leverage-label";
+inline constexpr std::string_view kCsvLeverage = "csv-leverage";
+inline constexpr std::string_view kCsvNameLabel = "csv-label-label";
+inline constexpr std::string_view kCsvName = "csv-label";
+inline constexpr std::string_view kCsvReport = "csv-report";
+inline constexpr std::string_view kCsvGapRow = "csv-gap-row";
+inline constexpr std::string_view kCsvGapLabel = "csv-gap-label";
+inline constexpr std::string_view kCsvGapFill = "csv-gap-fill";
+inline constexpr std::string_view kCsvGapHint = "csv-gap-hint";
+inline constexpr std::string_view kCsvError = "csv-error";
+inline constexpr std::string_view kCsvWorking = "csv-working";
+inline constexpr std::string_view kCsvCancel = "csv-cancel";
+inline constexpr std::string_view kCsvBack = "csv-back";
+inline constexpr std::string_view kCsvValidate = "csv-validate";
+inline constexpr std::string_view kCsvCreate = "csv-create";
+
+// ---- Assisted practice (web AssistPanel.svelte), in the terminal and in the debrief ----
+struct AssistNames {
+  std::string_view panel, title, note, turn_label, turn, rewind, new_seed, blocked;
+};
+inline constexpr AssistNames kGameAssist{"game-assist", "game-assist-title", "game-assist-note", "game-assist-turn-label",
+                                         "game-assist-turn", "game-assist-rewind", "game-assist-new-seed",
+                                         "game-assist-blocked"};
+inline constexpr AssistNames kDebriefAssist{"debrief-assist", "debrief-assist-title", "debrief-assist-note",
+                                            "debrief-assist-turn-label", "debrief-assist-turn", "debrief-assist-rewind",
+                                            "debrief-assist-new-seed", "debrief-assist-blocked"};
+inline constexpr std::string_view kGameAssistedTag = "game-assisted-tag";
+inline constexpr std::string_view kDebriefAssisted = "debrief-assisted";
+
+// ---- Debrief chart (the terminal's chart, read only) and its candle table ----
+inline constexpr std::string_view kDebriefChartTitle = "debrief-chart-title";
+inline constexpr std::string_view kDebriefChart = "debrief-chart";
+inline constexpr std::string_view kDebriefChartNote = "debrief-chart-note";
+inline constexpr std::string_view kDebriefBarsPage = "debrief-bars-page";
+inline constexpr std::string_view kDebriefBars = "debrief-bars";
+inline constexpr std::string_view kDebriefBarsPrev = "debrief-bars-prev";
+inline constexpr std::string_view kDebriefBarsNext = "debrief-bars-next";
+
+inline constexpr auto kFlowWidgets = std::to_array<std::string_view>({
+    kMenuCatalog, kMenuImport, kMenuNotice, kTutHead, kTutStep, kTutTitle, kTutBody, kTutSkip, kTutPrev, kTutNext,
+    kBriefTutorial, kCatalogTitle, kCatalogBack, kCatalogNote, kCatalogState, kCatalogRetry, kCatalogCached,
+    kCatalogList, kCatalogDetail, kCatalogEntryTitle, kCatalogEntryTags, kCatalogEntrySummary, kCatalogDownloadState,
+    kCatalogProgress, kCatalogDownload, kCatalogPause, kCatalogPlay, kCatalogNeedsConnection, kLibraryTitle,
+    kLibraryNote, kLibraryList, kLibraryEmpty, kLibraryMissing, kLibraryPlay, kLibraryRemove, kCsvTitle, kCsvIntro,
+    kCsvPrivacy, kCsvFileLabel, kCsvPath, kCsvOpen, kCsvFileName, kCsvMeta, kCsvAssetLabel, kCsvAsset, kCsvPairLabel,
+    kCsvPair, kCsvVenueLabel, kCsvVenue, kCsvIntervalLabel, kCsvInterval, kCsvUnitLabel, kCsvUnit, kCsvVolumeLabel,
+    kCsvVolume, kCsvLeverageLabel, kCsvLeverage, kCsvNameLabel, kCsvName, kCsvReport, kCsvGapRow, kCsvGapLabel,
+    kCsvGapFill, kCsvGapHint, kCsvError, kCsvWorking, kCsvCancel, kCsvBack, kCsvValidate, kCsvCreate,
+    kGameAssist.panel, kGameAssist.title, kGameAssist.note, kGameAssist.turn_label, kGameAssist.turn,
+    kGameAssist.rewind, kGameAssist.new_seed, kGameAssist.blocked, kDebriefAssist.panel, kDebriefAssist.title,
+    kDebriefAssist.note, kDebriefAssist.turn_label, kDebriefAssist.turn, kDebriefAssist.rewind,
+    kDebriefAssist.new_seed, kDebriefAssist.blocked, kGameAssistedTag, kDebriefAssisted, kDebriefChartTitle,
+    kDebriefChart, kDebriefChartNote, kDebriefBarsPage, kDebriefBars, kDebriefBarsPrev, kDebriefBarsNext});
+
+inline constexpr std::string_view kActOpenCatalog = "tl.menu.catalog";
+inline constexpr std::string_view kActOpenImport = "tl.menu.import";
+inline constexpr std::string_view kActTutSkip = "tl.tut.skip";
+inline constexpr std::string_view kActTutPrev = "tl.tut.prev";
+inline constexpr std::string_view kActTutNext = "tl.tut.next";
+inline constexpr std::string_view kActBriefTutorial = "tl.brief.tutorial";
+inline constexpr std::string_view kActCatalogDownload = "tl.catalog.download";
+inline constexpr std::string_view kActCatalogPause = "tl.catalog.pause";
+inline constexpr std::string_view kActCatalogPlay = "tl.catalog.play";
+inline constexpr std::string_view kActCatalogRetry = "tl.catalog.retry";
+inline constexpr std::string_view kActLibraryPlay = "tl.library.play";
+inline constexpr std::string_view kActLibraryRemove = "tl.library.remove";
+inline constexpr std::string_view kActCsvOpen = "tl.csv.open";
+inline constexpr std::string_view kActCsvValidate = "tl.csv.validate";
+inline constexpr std::string_view kActCsvBack = "tl.csv.back";
+inline constexpr std::string_view kActCsvCreate = "tl.csv.create";
+inline constexpr std::string_view kActCsvCancel = "tl.csv.cancel";
+inline constexpr std::string_view kActAssistRewind = "tl.assist.rewind";
+inline constexpr std::string_view kActAssistNewSeed = "tl.assist.newSeed";
+inline constexpr std::string_view kActDebriefBarsPrev = "tl.debrief.barsPrev";
+inline constexpr std::string_view kActDebriefBarsNext = "tl.debrief.barsNext";
+
+inline constexpr auto kFlowActions = std::to_array<std::string_view>(
+    {kActOpenCatalog, kActOpenImport, kActTutSkip, kActTutPrev, kActTutNext, kActBriefTutorial, kActCatalogDownload,
+     kActCatalogPause, kActCatalogPlay, kActCatalogRetry, kActLibraryPlay, kActLibraryRemove, kActCsvOpen,
+     kActCsvValidate, kActCsvBack, kActCsvCreate, kActCsvCancel, kActAssistRewind, kActAssistNewSeed,
+     kActDebriefBarsPrev, kActDebriefBarsNext});
+
 }  // namespace tradelab::desktop::names

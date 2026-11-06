@@ -88,6 +88,16 @@ void GameViewModel::tutorial_step(int delta) {
   touch();
 }
 
+bool GameViewModel::tutorial_seen(const std::string& mission) const {
+  return std::find(prefs_.tutorials_seen.begin(), prefs_.tutorials_seen.end(), mission) != prefs_.tutorials_seen.end();
+}
+
+void GameViewModel::mark_tutorial_seen(const std::string& mission) {
+  if (tutorial_seen(mission)) return;
+  prefs_.tutorials_seen.push_back(mission);
+  save_prefs();
+}
+
 // ---- intel perks ----
 
 void GameViewModel::open_perks() {

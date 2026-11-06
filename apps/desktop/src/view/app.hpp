@@ -8,8 +8,9 @@
 #include <vector>
 
 #include "model/engine_host.hpp"
-#include "model/game_prefs.hpp"
 #include "model/i18n.hpp"
+#include "model/packs/pack_service.hpp"
+#include "model/storage/profile_store.hpp"
 #include "model/update/update_service.hpp"
 #include "view/app_view.hpp"
 #include "viewmodel/app_viewmodel.hpp"
@@ -44,8 +45,15 @@ class App {
   EngineHost& engine() { return *engine_; }
 
  private:
-  PrefsFile prefs_{default_prefs_path()};  // terminal key map and progress (model/game_prefs.hpp)
+  void open_profile(const std::filesystem::path& dir);
+
+  // Progress and settings in SQLite (UI-thread connection), with the repositories the viewmodels use.
+  std::unique_ptr<storage::ProfileStore> profile_;
+  std::unique_ptr<storage::ProgressStore> progress_store_;
+  std::unique_ptr<storage::SettingsStore> settings_store_;
+  std::unique_ptr<storage::GamePrefsStore> prefs_store_;
   std::unique_ptr<EngineHost> engine_;
+  std::unique_ptr<packs::PackService> packs_;
   std::unique_ptr<AppViewModel> vm_;
   std::unique_ptr<AppView> view_;
   std::unique_ptr<update::UpdateService> updates_;

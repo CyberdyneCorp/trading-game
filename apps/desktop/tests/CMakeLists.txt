@@ -19,6 +19,8 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/game/test_ticket_chart.cpp
   viewmodel/test_shell_helpers.cpp
   viewmodel/test_shell_screens.cpp
+  viewmodel/test_flows.cpp
+  viewmodel/test_pack_screens.cpp
   viewmodel/test_theme.cpp)
 target_include_directories(tradelab_desktop_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -36,8 +38,11 @@ target_sources(tradelab_desktop_unit_tests PRIVATE
   storage/test_recorder.cpp
   storage/test_crash_recovery.cpp
   storage/test_scripted_pack.cpp
+  storage/test_profile_store.cpp
+  storage/test_assisted.cpp
   packs/test_packs.cpp
   packs/test_download.cpp
+  packs/test_pack_service.cpp
   update/test_updater.cpp)
 add_dependencies(tradelab_desktop_unit_tests tradelab_desktop_crash_child)
 target_compile_definitions(tradelab_desktop_unit_tests PRIVATE
@@ -58,7 +63,7 @@ set_tests_properties(desktop_golden PROPERTIES LABELS golden)
 
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
 add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp
-  headless/test_headless_shell.cpp)
+  headless/test_headless_shell.cpp headless/test_headless_flows.cpp)
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)
@@ -69,10 +74,11 @@ set_tests_properties(desktop_headless PROPERTIES LABELS headless ENVIRONMENT "RA
 # ---- Windowed: the real Vulkan renderer driven by injected input; frames saved as PNG. ----
 if(RAVEN_BACKEND_VULKAN)
   add_executable(tradelab_desktop_windowed_tests main.cpp windowed/test_windowed.cpp windowed/test_game_windowed.cpp
-    windowed/test_windowed_shell.cpp support/png.cpp)
+    windowed/test_windowed_shell.cpp windowed/test_windowed_flows.cpp support/png.cpp)
   target_include_directories(tradelab_desktop_windowed_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
   target_include_directories(tradelab_desktop_windowed_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(tradelab_desktop_windowed_tests PRIVATE tradelab_desktop_view)
+  target_compile_definitions(tradelab_desktop_windowed_tests PRIVATE TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog")
   find_package(ZLIB)
   if(ZLIB_FOUND)
     target_compile_definitions(tradelab_desktop_windowed_tests PRIVATE TRADELAB_HAVE_ZLIB)

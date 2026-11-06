@@ -8,6 +8,7 @@
         <Label Name="debrief-text" Wrap="true" Class="down"/>
         <Label Name="debrief-mission" Class="muted"/>
         <Label Name="debrief-tags" Class="attention"/>
+        <Label Name="debrief-assisted" Wrap="true" Class="attention"/>
         <Border Name="debrief-campaign-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
             <VBox Spacing="6">
                 <VBox Name="debrief-campaign" Spacing="4"/>
@@ -87,7 +88,33 @@
             </VBox>
         </Border>
         <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="debrief-chart-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Custom Name="debrief-chart" Height="320" AccessibleRole="Image"/>
+                <Label Name="debrief-chart-note" Wrap="true" Class="muted"/>
+                <HBox Spacing="6">
+                    <Button Name="debrief-bars-prev" OnClicked="tl.debrief.barsPrev"/>
+                    <Label Name="debrief-bars-page" Class="muted" Slot.VAlign="Center"/>
+                    <Button Name="debrief-bars-next" OnClicked="tl.debrief.barsNext"/>
+                </HBox>
+                <Table Name="debrief-bars" Height="180" Striped="true"/>
+            </VBox>
+        </Border>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
             <VBox Name="debrief-timeline" Spacing="2"/>
+        </Border>
+        <Border Name="debrief-assist" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="4">
+                <Label Name="debrief-assist-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Label Name="debrief-assist-note" Wrap="true" Class="muted" TextSize="12"/>
+                <Label Name="debrief-assist-blocked" Wrap="true" Class="attention" TextSize="12"/>
+                <Label Name="debrief-assist-turn-label" Wrap="true"/>
+                <TextInput Name="debrief-assist-turn" Width="80"/>
+                <WrapBox Spacing="6">
+                    <Button Name="debrief-assist-rewind" OnClicked="tl.assist.rewind"/>
+                    <Button Name="debrief-assist-new-seed" OnClicked="tl.assist.newSeed"/>
+                </WrapBox>
+            </VBox>
         </Border>
     </VBox>
 </Border>

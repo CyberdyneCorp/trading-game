@@ -16,6 +16,7 @@
 #include "view/game/game_view.hpp"
 #include "view/screens/shell_view.hpp"
 #include "viewmodel/app_viewmodel.hpp"
+#include "viewmodel/widget_names.hpp"
 
 namespace tradelab::desktop {
 
@@ -48,7 +49,7 @@ class AppView {
   AppViewModel& vm_;
   Rid window_ = R_INVALID_ID;
   Rid switcher_ = R_INVALID_ID;
-  std::array<Rid, 8> screens_{};
+  std::array<Rid, names::kViews.size()> screens_{};
   std::unique_ptr<ShellView> shell_;
   std::uint64_t shown_revision_ = 0;
   std::unique_ptr<view::GameView> game_view_;

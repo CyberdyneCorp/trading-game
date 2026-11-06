@@ -52,10 +52,10 @@ struct PerkRow {
 class GameViewModel {
  public:
   // `prefs` may be null (no persistence: tests). `built_in` lists the built-in mission ids.
-  GameViewModel(const Catalog& catalog, EngineCommands& engine, PrefsFile* prefs, std::vector<std::string> built_in);
+  GameViewModel(const Catalog& catalog, EngineCommands& engine, PrefsStore* prefs, std::vector<std::string> built_in);
 
-  // Loads the shortcut map and progress from `file` and saves there from now on (null: none).
-  void attach_prefs(PrefsFile* file);
+  // Loads the shortcut map and progress from `store` and saves there from now on (null: none).
+  void attach_prefs(PrefsStore* store);
   // Called with each plan the player records (AppViewModel keeps it in the run's journal).
   void set_plan_sink(std::function<void(const PlanEntry&)> sink) { plan_sink_ = std::move(sink); }
 
@@ -107,6 +107,10 @@ class GameViewModel {
   void lesson_skip(int question);
   void open_tutorial();
   void tutorial_step(int delta);  // past the last card closes it and marks it seen
+  [[nodiscard]] bool tutorial_seen(const std::string& mission) const;
+  void mark_tutorial_seen(const std::string& mission);
+  // The run in play is an assisted practice attempt: it settles no points and finishes no mission.
+  [[nodiscard]] bool assisted() const { return assisted_; }
   [[nodiscard]] int tutorial_index() const { return tutorial_index_; }
   void open_perks();
   void set_perk(Perk id, bool on);
@@ -181,7 +185,7 @@ class GameViewModel {
 
   const Catalog* catalog_;
   EngineCommands& engine_;
-  PrefsFile* prefs_file_;
+  PrefsStore* prefs_file_;
   GamePrefs prefs_;
   std::vector<std::string> built_in_;
   Keymap keymap_;
@@ -193,6 +197,8 @@ class GameViewModel {
   RunOptions next_options_;
   std::string run_id_;
   bool run_settled_ = false;
+  bool assisted_ = false;
+  void begin_run(const Snapshot& s, bool rewound);
   int run_counter_ = 0;
   int actions_ = 0;  // non-lesson commands this run (perks can change only before the first)
 

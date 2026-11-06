@@ -82,7 +82,7 @@ TEST_CASE("headless shell: every shown control of every shell screen has a scree
   for (const auto& m : app.view().missing_names()) MESSAGE("missing: " << m);
   check_names(app, Screen::Menu);
   REQUIRE(d.click(names::kMenuStart));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   check_names(app, Screen::Briefing);
   REQUIRE(d.click(names::kBriefBack));
   REQUIRE(d.click(names::kMenuCurriculum));
@@ -109,7 +109,7 @@ TEST_CASE("headless shell: keyboard only, from the menu to the briefing and into
   CHECK(app.vm().selected() == 1);
   REQUIRE(tab_to(d, names::kMenuStart));
   d.key(R_KEY_ENTER);
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   CHECK(app.vm().snapshot()->mission == "m02-funding-squeeze");
   REQUIRE(tab_to(d, names::kBriefGo));
   d.key(R_KEY_ENTER);

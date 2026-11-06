@@ -16,6 +16,12 @@ constexpr std::string_view kSep = " \xC2\xB7 ";  // " · "
 
 std::string str(int v) { return std::to_string(v); }
 
+// missions.ts marketTagKey: a known scenario (a pack) that is not synthetic is labelled KNOWN.
+std::string_view market_tag_key(const Snapshot& s) {
+  const bool known = s.state["knownScenario"].as_bool(false) && s.state["marketMode"].as_string("synthetic") != "synthetic";
+  return known ? "top.known" : "top.synthetic";
+}
+
 }  // namespace
 
 std::vector<Binding> AppViewModel::bindings() const {
@@ -27,7 +33,10 @@ std::vector<Binding> AppViewModel::bindings() const {
     case Screen::Curriculum:
     case Screen::Journal:
     case Screen::Lesson:
-    case Screen::Settings: break;  // screens::*
+    case Screen::Settings:
+    case Screen::Tutorial:
+    case Screen::Catalog:
+    case Screen::Import: break;  // screens::*
   }
   return {};
 }
@@ -98,7 +107,7 @@ std::vector<Binding> AppViewModel::game_bindings() const {
   const int turn = std::max(0, s.step - s.warmup_bars + 1);
   const int playable = s.last_decision_step - s.warmup_bars + 1;
   return {
-      {names::kGameMarket, tr("top.market") + " " + s.alias + " " + tr("top.synthetic")},
+      {names::kGameMarket, tr("top.market") + " " + s.alias + " " + tr(market_tag_key(s))},
       {names::kGameMission, mission_text(s.mission, "title")},
       {names::kGameTurn, tr("top.step") + " " + str(turn) + " " + tr("top.of") + " " + str(playable)},
       {names::kGameAccount, account_line()},
