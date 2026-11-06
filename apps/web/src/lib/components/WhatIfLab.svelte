@@ -135,7 +135,7 @@
 		</dl>
 		{#if result.atExpiry}<p class="muted small">{t('lab.atExpiryNote')}</p>{/if}
 		<PayoffChart {result} />
-		<WhatIfTable {result} />
+		<WhatIfTable {result} step={mode === 'terminal' ? 'bar' : 'day'} />
 	{/if}
 </section>
 

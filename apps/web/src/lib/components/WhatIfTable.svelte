@@ -4,7 +4,9 @@
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
-	let { result, perUnit = true }: { result: WhatIfResult; perUnit?: boolean } = $props();
+	// `step`: what one unit of time is (a day in the Academy lab, a bar in a run); theta is per step.
+	let { result, perUnit = true, step = 'bar' }: { result: WhatIfResult; perUnit?: boolean; step?: 'day' | 'bar' } = $props();
+	const unit = $derived(t(step === 'day' ? 'lab.perDay' : 'lab.perBar'));
 	const L = $derived(i18n.locale);
 
 	function label(l: WhatIfLegView): string {
@@ -24,8 +26,8 @@
 			<th scope="col">{t('opt.iv')}</th>
 			<th scope="col" title={t('lab.deltaHint')}>Δ</th>
 			<th scope="col" title={t('lab.gammaHint')}>Γ</th>
-			<th scope="col" title={t('lab.thetaHint')}>Θ</th>
-			<th scope="col" title={t('lab.vegaHint')}>ν</th>
+			<th scope="col" title={t('lab.thetaHint', { unit })}>Θ/{unit}</th>
+			<th scope="col" title={t('lab.vegaHint')}>ν/{t('lab.perPoint')}</th>
 			<th scope="col">{t('lab.pnl')}</th>
 		</tr>
 	</thead>

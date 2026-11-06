@@ -411,6 +411,8 @@ The segment values below are starting points, tuned at build time until the band
 - **Tutorial cards** (4): `roll` (new art: closing near, opening next), `decay` (theta speeds up), `chain` (choosing the next expiry), `plan` (decide before the last bars).
 - **Lesson questions:** choice, what happens to the theta of an ATM option in its last bars (it grows in size); choice, what a roll is (closing one position and opening another: two trades).
 
+**Covered writing (scoring v13, report only).** The `wrote_options` finding, and the good-process credit it withholds, apply only to an uncovered short option. After each step with a fill, a short is covered by long options of the same kind and expiry, and a short call also by long perpetual units. A bull call spread, an iron condor or a covered call is defined risk, so its debrief no longer says "you wrote options uncovered" (found by playing m13 through the builder). Closing the long that covered a short leaves it naked and raises the finding.
+
 **Strategy comparison (scoring v13, report only).** Each of m13–m17 declares a comparison: a list of named structures with legs relative to the forward (strike steps, expiry index, quantity rule) and an exit rule. After the run, the debrief values each structure on this seed's path:
 - entry at the next open after the player's first option entry, or at the mission's reference bar if they made none;
 - the same quantity rule;

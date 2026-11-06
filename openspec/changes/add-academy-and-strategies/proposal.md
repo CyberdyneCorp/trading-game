@@ -66,7 +66,7 @@ These changes are not archived yet (`openspec/specs/` is empty), so their change
 - **Engine.**
   - Execution policy stays at **v17**. `spread_margin` acts only where a mission declares it, the same pattern as design D8.1, so every existing golden stays byte-identical.
   - Generator stays at **v5**: m13–m17 use existing capabilities only.
-  - Scoring goes **v12 → v13**: the report-only `strategyComparison` debrief block. It is not a score input and changes no digest.
+  - Scoring goes **v12 → v13**: the report-only `strategyComparison` debrief block, and the `wrote_options` finding only for an uncovered short (a spread, condor or covered call is defined risk). Neither is a score input and neither changes a digest.
   - Checkpoint format stays at **5**.
   - C ABI stays at **1**: `tl_option_whatif` and `tl_combo_preview` are additions, which `kAbiVersion` does not count. Clients feature-detect them on an older pinned build.
   - New goldens: m13–m17 runs and `whatif` fixtures (a new fixture kind, replayed by every binding).

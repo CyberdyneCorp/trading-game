@@ -248,7 +248,7 @@ struct Facts {
   // trade, from the plan matched to its entry: a plan whose order was rejected is not a trade.
   std::optional<std::pair<std::uint32_t, Money>> oversized;  // entry step, planned risk
   bool all_planned = true;  // every trade had a (non-skipped) plan
-  bool wrote_options = false;  // an option position was opened by writing (risk not limited by a premium)
+  bool wrote_options = false;  // an option was written uncovered (risk not limited by a premium or a long; v13)
   // v11: the first perpetual trade whose liquidation price was closer to its entry than twice its stop
   // distance at the highest leverage it carried (a gap of one more stop distance would liquidate it).
   std::optional<TradeRow> tight_stop;
@@ -267,25 +267,85 @@ void note_fill(const RunState& st, const Event& e, bool grows, Facts& f) {
   f.capacity += (e.flags & kFlagCapacityFromBarVolume) != 0 ? 1 : 0;
 }
 
+// Open option and perpetual positions while the event log is walked (signed raw quantities).
+struct OpenBook {
+  std::vector<std::pair<std::uint32_t, std::int64_t>> options;  // series -> signed qty
+  std::int64_t perp = 0;
+};
+
+const OptionSeries* series_of(const Scenario& sc, std::uint32_t id) {
+  const auto it = std::find_if(sc.options.series.begin(), sc.options.series.end(), [id](const OptionSeries& s) { return s.id == id; });
+  return it == sc.options.series.end() ? nullptr : &*it;
+}
+
+// Underlying units held long (+) or short (-) in options of one kind and expiry.
+i128 option_units(const Scenario& sc, const OpenBook& b, OptionKind kind, std::uint32_t expiry, bool longs) {
+  i128 units = 0;
+  for (const auto& [id, q] : b.options) {
+    const OptionSeries* s = series_of(sc, id);
+    if (s == nullptr || s->kind != kind || s->expiry_step != expiry || (q > 0) != longs || q == 0) continue;
+    units += static_cast<i128>(q < 0 ? -q : q) * sc.options.multiplier.raw;
+  }
+  return units;
+}
+
+// Scoring v13: a written option is uncovered when its kind and expiry hold more short units than long
+// ones; a short call is also covered by long perpetual units (a covered call). Spreads, iron condors
+// and covered calls are defined-risk structures, not naked writing.
+bool has_uncovered_short(const Scenario& sc, const OpenBook& b) {
+  const i128 perp_long = b.perp > 0 ? static_cast<i128>(b.perp) * sc.contract.multiplier.raw : 0;
+  for (const auto& [id, q] : b.options) {
+    const OptionSeries* s = series_of(sc, id);
+    if (q >= 0 || s == nullptr) continue;
+    const i128 cover = option_units(sc, b, s->kind, s->expiry_step, true) + (s->kind == OptionKind::Call ? perp_long : 0);
+    if (option_units(sc, b, s->kind, s->expiry_step, false) > cover) return true;
+  }
+  return false;
+}
+
+void apply_fill(OpenBook& b, const Event& e) {
+  const std::int64_t q = sign_of(e.side) * e.qty.raw;
+  if (e.series == 0) {
+    b.perp += q;
+    return;
+  }
+  auto it = std::find_if(b.options.begin(), b.options.end(), [&e](const auto& p) { return p.first == e.series; });
+  if (it == b.options.end()) it = b.options.insert(b.options.end(), {e.series, 0});
+  it->second += q;
+}
+
 // Opening an option position is an entry too. A bought option is protected by construction (the
 // premium is the maximum loss); a written one has no stop, but its risk is checked through margin
-// calls, so it is not counted as an unprotected entry either.
-void count_option_entries(const RunState& st, Facts& f) {
-  std::vector<std::pair<std::uint32_t, std::int64_t>> pos;  // series -> signed qty
-  for (const Event& e : st.events) {
-    if (!option_fill(e)) continue;
-    auto it = std::find_if(pos.begin(), pos.end(), [&e](const auto& p) { return p.first == e.series; });
-    if (it == pos.end()) it = pos.insert(pos.end(), {e.series, 0});
-    const std::int64_t q = sign_of(e.side) * e.qty.raw;
-    const bool grows = grows_exposure(it->second, q);
-    f.entries += grows ? 1 : 0;
-    it->second += q;
-    f.wrote_options = f.wrote_options || (grows && it->second < 0);
+// calls, so it is not counted as an unprotected entry either. Cover is judged after all fills of a
+// step (the legs of a combo fill at the same open), at every step with a fill: closing the long
+// that covered a short leaves it naked.
+void count_option_entries(const Scenario& sc, const RunState& st, Facts& f) {
+  OpenBook book;
+  bool filled_this_step = false;
+  for (std::size_t i = 0; i < st.events.size(); ++i) {
+    const Event& e = st.events[i];
+    if (e.type == EventType::Liquidation) book.perp = 0;
+    if (e.type == EventType::OptionSettlement) {
+      for (auto& [id, q] : book.options) q = id == e.series ? 0 : q;
+    }
+    if (e.type == EventType::Fill) {
+      const auto it = std::find_if(book.options.begin(), book.options.end(), [&e](const auto& p) { return p.first == e.series; });
+      const std::int64_t held = it == book.options.end() ? 0 : it->second;
+      const bool grows = grows_exposure(held, sign_of(e.side) * e.qty.raw);
+      if (option_fill(e)) f.entries += grows ? 1 : 0;
+      filled_this_step = true;
+      apply_fill(book, e);
+    }
+    const bool step_ends = i + 1 == st.events.size() || st.events[i + 1].step != e.step;
+    if (step_ends && filled_this_step) {
+      f.wrote_options = f.wrote_options || has_uncovered_short(sc, book);
+      filled_this_step = false;
+    }
   }
 }
 
-void count_fills(const RunState& st, Facts& f) {
-  count_option_entries(st, f);
+void count_fills(const Scenario& sc, const RunState& st, Facts& f) {
+  count_option_entries(sc, st, f);
   std::int64_t pos = 0;
   for (const Event& e : st.events) {
     if (e.type == EventType::Liquidation) {
@@ -323,7 +383,7 @@ void trade_facts(const Scenario& sc, const RunState& st, Facts& f) {
 
 Facts collect(const Scenario& sc, const RunState& st) {
   Facts f;
-  count_fills(st, f);
+  count_fills(sc, st, f);
   for (const CommandRecord& c : st.command_log) f.stop_warnings += c.result.warning == Reason::StopBeyondLiquidation ? 1 : 0;
   for (const PlanRecord& p : st.plans) {
     f.planned += p.skipped ? 0 : 1;
