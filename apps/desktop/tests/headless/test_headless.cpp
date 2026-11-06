@@ -8,6 +8,7 @@
 
 #include "support/driver.hpp"
 #include "support/game_flows.hpp"
+#include "platform/audio_out.hpp"
 #include "view/app.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -124,4 +125,25 @@ TEST_CASE("headless: the language button switches every text to en and back") {
   CHECK(std::string(Rlist_view_get_item_text(app.view().find(names::kMenuList), 0)) == "Mission 01 · Range");
   REQUIRE(d.click(names::kMenuLanguage));
   CHECK(d.text(names::kMenuDetailTitle) == "Missão 01 · Range");
+}
+
+// The web's soundtrack on miniaudio (platform/audio_out): every track decodes on the null device, which
+// mixes like a real one without being heard; a missing file is no player, not a failure.
+TEST_CASE("headless: the web's tracks open and play on miniaudio's null device") {
+  auto out = platform::MiniaudioOut::create(TRADELAB_WEB_AUDIO_DIR, true);
+  REQUIRE(out != nullptr);
+  for (const char* file : {"menu-1.mp3", "menu-2.mp3", "game-1.mp3", "game-2.mp3", "tense-1.mp3", "tense-2.mp3",
+                           "trade-win.mp3", "trade-loss.mp3"}) {
+    CAPTURE(file);
+    auto track = out->open(file, !std::string_view(file).starts_with("trade"));
+    REQUIRE(track != nullptr);
+    track->set_volume(0.5F);
+    CHECK(track->volume() == doctest::Approx(0.5));
+    track->play();
+    CHECK_FALSE(track->finished());
+    track->pause();
+  }
+  CHECK(out->open("missing.mp3", true) == nullptr);
+  CHECK(platform::audio_dir(TRADELAB_WEB_AUDIO_DIR) == TRADELAB_WEB_AUDIO_DIR);
+  CHECK(platform::audio_dir("/nonexistent").empty());
 }

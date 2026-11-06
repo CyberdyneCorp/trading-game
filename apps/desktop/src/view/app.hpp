@@ -12,6 +12,7 @@
 #include "model/packs/pack_service.hpp"
 #include "model/storage/profile_store.hpp"
 #include "model/update/update_service.hpp"
+#include "platform/audio_out.hpp"
 #include "view/app_view.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 
@@ -52,6 +53,7 @@ class App {
   std::unique_ptr<storage::ProgressStore> progress_store_;
   std::unique_ptr<storage::SettingsStore> settings_store_;
   std::unique_ptr<storage::GamePrefsStore> prefs_store_;
+  std::unique_ptr<platform::MiniaudioOut> audio_;  // outlives the viewmodel, whose soundtrack plays on it
   std::unique_ptr<EngineHost> engine_;
   std::unique_ptr<packs::PackService> packs_;
   std::unique_ptr<AppViewModel> vm_;

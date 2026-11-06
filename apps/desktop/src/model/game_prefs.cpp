@@ -1,5 +1,8 @@
 #include "model/game_prefs.hpp"
 
+#include <algorithm>
+#include <array>
+#include <charconv>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -46,7 +49,36 @@ std::string env(const char* name) {
   return v != nullptr ? v : "";
 }
 
+std::string number(double v) {
+  std::array<char, 32> buf{};
+  const auto r = std::to_chars(buf.data(), buf.data() + buf.size(), v);
+  return {buf.data(), r.ptr};
+}
+
+double volume(const json::Value& v, double fallback) {
+  return v.kind() == json::Value::Kind::Number ? std::clamp(v.as_double(fallback), 0.0, 1.0) : fallback;
+}
+
+AudioPrefs audio_of(const json::Value& v) {
+  AudioPrefs a;
+  if (v.kind() != json::Value::Kind::Object) return a;
+  a.muted = v["muted"].as_bool(false);
+  a.music = volume(v["music"], a.music);
+  a.sfx = volume(v["sfx"], a.sfx);
+  return a;
+}
+
 }  // namespace
+
+std::string audio_prefs_json(const AudioPrefs& a) {
+  return std::string("{\"muted\":") + (a.muted ? "true" : "false") + ",\"music\":" + number(a.music) +
+         ",\"sfx\":" + number(a.sfx) + "}";
+}
+
+AudioPrefs audio_prefs_from_json(std::string_view text) {
+  const auto v = json::parse(text);
+  return v ? audio_of(*v) : AudioPrefs{};
+}
 
 std::string prefs_to_json(const GamePrefs& p) {
   std::string keys = "{";
@@ -58,7 +90,8 @@ std::string prefs_to_json(const GamePrefs& p) {
   keys += "}";
   return "{\"version\":1,\"keymap\":" + keys + ",\"tutorialsSeen\":" + list(p.tutorials_seen) +
          ",\"advisorPoints\":" + std::to_string(p.advisor_points) + ",\"settledRuns\":" + list(p.settled_runs) +
-         ",\"finished\":" + list(p.finished) + ",\"perksIntroduced\":" + list(p.perks_introduced) + "}\n";
+         ",\"finished\":" + list(p.finished) + ",\"perksIntroduced\":" + list(p.perks_introduced) +
+         ",\"audio\":" + audio_prefs_json(p.audio) + ",\"layout\":" + json_string(p.layout) + "}\n";
 }
 
 GamePrefs prefs_from_json(std::string_view text) {
@@ -77,6 +110,8 @@ GamePrefs prefs_from_json(std::string_view text) {
   p.settled_runs = strings_of((*v)["settledRuns"]);
   p.finished = strings_of((*v)["finished"]);
   p.perks_introduced = strings_of((*v)["perksIntroduced"]);
+  p.audio = audio_of((*v)["audio"]);
+  if ((*v)["layout"].kind() == json::Value::Kind::String) p.layout = (*v)["layout"].as_string();
   return p;
 }
 

@@ -182,6 +182,10 @@ TEST_CASE("headless shell: journal and settings (palette switch, text scale, a r
   d.frames(2);
   CHECK(app.vm().shell().keymap.at("buy") == "k");
   CHECK(d.text(names::kSettingsKeyMessage) == "\"Boleta: comprar\" agora usa K.");
+  // Sound off from Settings mutes the terminal too (one setting, kept with the prefs).
+  REQUIRE(d.click(names::kSettingsSound));
+  CHECK(app.vm().game().muted());
+  CHECK(app.vm().audio().settings().muted);
   REQUIRE(d.click(names::kSettingsLangEn));
   CHECK(d.text(names::kSettingsTitle) == "Settings");
 }

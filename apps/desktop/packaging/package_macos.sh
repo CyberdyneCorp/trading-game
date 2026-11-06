@@ -4,6 +4,7 @@
 #   Contents/Frameworks/libMoltenVK.dylib   pinned MoltenVK (packaging/pins.sh), install name @rpath/...
 #   Contents/Resources/vulkan/icd.d/MoltenVK_icd.json   for a system Vulkan loader, if one is used
 #   Contents/Resources/TradeLab.icns, Info.plist (version from CMakeLists.txt)
+#   Contents/Resources/audio/*.mp3          the web's soundtrack (apps/web/static/audio), played with miniaudio
 # The app loads the bundled MoltenVK by absolute path at start (platform::preload_bundled_vulkan), so no
 # Homebrew MoltenVK is needed.
 #
@@ -71,6 +72,8 @@ cat > "$app/Contents/Resources/vulkan/icd.d/MoltenVK_icd.json" <<'JSON'
   "ICD": { "library_path": "../../../Frameworks/libMoltenVK.dylib", "api_version": "1.4.0", "is_portability_driver": true }
 }
 JSON
+mkdir -p "$app/Contents/Resources/audio"
+cp "$here/../../web/static/audio/"*.mp3 "$app/Contents/Resources/audio/"
 sed "s/@VERSION@/$version/g" "$here/macos/Info.plist.in" > "$app/Contents/Info.plist"
 plutil -lint "$app/Contents/Info.plist" >/dev/null
 make_icns

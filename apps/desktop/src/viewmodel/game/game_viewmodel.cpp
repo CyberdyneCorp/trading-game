@@ -49,6 +49,25 @@ void GameViewModel::set_keymap(const std::map<std::string, std::string>& map) {
   touch();
 }
 
+void GameViewModel::set_audio(const AudioPrefs& a) {
+  if (a == prefs_.audio) return;
+  prefs_.audio = a;
+  save_prefs();
+  touch();
+}
+
+void GameViewModel::set_layout(std::string layout) {
+  if (layout == prefs_.layout) return;
+  prefs_.layout = std::move(layout);
+  save_prefs();
+}
+
+void GameViewModel::reset_layout() {
+  set_layout({});
+  dock.reset();
+  touch();
+}
+
 void GameViewModel::save_prefs() {
   prefs_.keymap = keymap_.to_map();
   if (prefs_file_ != nullptr) prefs_file_->save(prefs_);
@@ -143,6 +162,8 @@ void GameViewModel::reset_run(const GameState& g) {
 
 void GameViewModel::on_run_end(const Snapshot& s) {
   autoplay.stop(PauseReason::Finished);
+  // The reveal: the chart of the ended run shows the regimes the market went through.
+  if (chart.regimes().empty()) chart.set_regimes(regime_spans(s.debrief->reveal["spans"]));
   if (run_settled_) return;
   run_settled_ = true;
   if (assisted_) return;  // no points, no finished mission (web: an assisted run is never settled)

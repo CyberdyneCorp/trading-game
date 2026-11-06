@@ -12,6 +12,8 @@ namespace {
 
 constexpr const char* kDisplayKey = "display";
 constexpr const char* kKeymapKey = "keymap";
+constexpr const char* kAudioKey = "audio";
+constexpr const char* kLayoutKey = "layout";
 constexpr const char* kLegacyFinishedKey = "legacyFinished";  // finished missions from prefs.json
 
 json::Value parse_or_null(const std::optional<std::string>& text) {
@@ -91,6 +93,8 @@ bool ProfileStore::import_prefs_file(const std::filesystem::path& file) {
     add_missing(p.perks_introduced, old.perks_introduced);
     store_.save_progress(p);
     if (!old.keymap.empty() && !store_.setting(kKeymapKey)) store_.set_setting(kKeymapKey, progress_json::keymap(old.keymap));
+    if (!store_.setting(kAudioKey)) store_.set_setting(kAudioKey, audio_prefs_json(old.audio));
+    if (!old.layout.empty() && !store_.setting(kLayoutKey)) store_.set_setting(kLayoutKey, old.layout);
     std::vector<std::string> finished = strings_of(parse_or_null(store_.meta(kLegacyFinishedKey)));
     add_missing(finished, old.finished);
     store_.set_meta(kLegacyFinishedKey, list_json(finished));
@@ -201,6 +205,8 @@ GamePrefs ProfileStore::load_prefs() {
     out.settled_runs = p.settled_runs;
     out.perks_introduced = p.perks_introduced;
     out.keymap = progress_json::keymap_from(parse_or_null(store_.setting(kKeymapKey)));
+    if (const auto audio = store_.setting(kAudioKey)) out.audio = audio_prefs_from_json(*audio);
+    out.layout = store_.setting(kLayoutKey).value_or("");
   });
   out.finished = finished();
   return out;
@@ -215,6 +221,8 @@ bool ProfileStore::save_prefs(const GamePrefs& prefs) {
     p.perks_introduced = prefs.perks_introduced;
     store_.save_progress(p);
     store_.set_setting(kKeymapKey, progress_json::keymap(prefs.keymap));
+    store_.set_setting(kAudioKey, audio_prefs_json(prefs.audio));
+    store_.set_setting(kLayoutKey, prefs.layout);
   });
 }
 

@@ -95,6 +95,8 @@ App::App(Catalog catalog, AppViewModel::SeedSource seeds, std::unique_ptr<storag
         });
     vm_->attach_packs(packs_.get());
   }
+  audio_ = platform::MiniaudioOut::from_environment(TRADELAB_AUDIO_SOURCE_DIR);
+  vm_->attach_audio(audio_.get());
   view_ = std::make_unique<AppView>(*vm_);
 }
 

@@ -5,13 +5,18 @@
 #include <raven/raven_controls.h>
 #include <raven/raven_draw.h>
 #include <raven/raven_widget.h>
+#include <raven/raven_style.h>
+#include <raven/raven_shell.h>
+#include <raven/raven_window.h>
 
 #include <cctype>
 
 #include "view/game/scene_painter.hpp"
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/game_widgets.hpp"
+#include "viewmodel/game/hotkeys.hpp"
 #include "viewmodel/widget_names.hpp"
 
 namespace tradelab::desktop::view {
@@ -83,6 +88,9 @@ std::vector<std::string> GameView::missing_names() const {
   for (std::string_view w : n::kRequired) {
     if (find(w) == R_INVALID_ID) missing.push_back("widget " + std::string(w));
   }
+  for (std::string_view w : game::kPanels) {
+    if (find(w) == R_INVALID_ID) missing.push_back("widget " + std::string(w));
+  }
   for (std::string_view w : {"game-stop-chip-4", "game-tp-chip-2", "game-pstop-chip-4", "game-ptp-chip-2", "game-trail-chip-3"}) {
     if (find(w) == R_INVALID_ID) missing.push_back("widget " + std::string(w));
   }
@@ -98,6 +106,7 @@ void GameView::bind() {
   news_ = LineList(find(n::kNews), 12);
   feed_ = LineList(find(n::kFeed), 12);
   journal_ = LineList(find(n::kJournalLines), 13);
+  bind_dock();
   bind_chart();
   bind_top();
   bind_ticket();
@@ -230,14 +239,65 @@ void GameView::bind_top() {
   });
 }
 
+// ---- docked panels ----
+
+void GameView::bind_dock() {
+  const Rid area = find(n::kDock);
+  for (std::string_view panel : game::kPanels) Rdock_area_set_panel_closable(area, find(panel), R_FALSE);
+  Rdock_area_set_changed_callback(area, on_dock_changed, this);
+  cb_.click(find(n::kLayoutReset), [this] { vm().reset_layout(); });
+}
+
+// The player moved or resized a panel: the arrangement is kept with the prefs.
+void GameView::on_dock_changed(Rid area, void* self) {
+  auto* view = static_cast<GameView*>(self);
+  view->vm().dock.changed();
+  view->vm().set_layout(Rdock_area_save_layout(area));
+}
+
+// Each frame: the stored arrangement once, else the default for the area's size whenever it changes.
+void GameView::apply_dock() {
+  const Rid area = find(n::kDock);
+  float x = 0, y = 0, w = 0, h = 0;
+  Rwidget_get_rect(area, &x, &y, &w, &h);
+  game::DockMetrics m;
+  m.gap = std::max(Rwidget_get_metric(area, R_METRIC_SPLITTER_SIZE), 4.0F);
+  m.tab_bar = Rwidget_get_metric(area, R_METRIC_CONTROL_HEIGHT) + 2;
+  const auto step = vm().dock.frame(w, h, vm().prefs().layout, m);
+  if (!step.apply) return;
+  // A stored text Raven cannot read (damaged prefs) falls back to the default.
+  if (Rdock_area_load_layout(area, step.text.c_str()) == R_FALSE) vm().reset_layout();
+}
+
 // ---- keyboard ----
+
+namespace {
+
+game::Focus focus_kind(Rid widget) {
+  if (widget == R_INVALID_ID) return game::Focus::None;
+  switch (Rwidget_get_type(widget)) {
+    case R_WIDGET_TEXT_INPUT:
+    case R_WIDGET_TEXT_EDITOR:
+    case R_WIDGET_SPIN_BOX: return game::Focus::Text;
+    case R_WIDGET_COMBO_BOX: return game::Focus::Select;
+    case R_WIDGET_SLIDER: return game::Focus::Slider;
+    case R_WIDGET_CHECKBOX: return game::Focus::Checkbox;
+    case R_WIDGET_BUTTON: return game::Focus::Button;
+    default: return game::Focus::Other;
+  }
+}
+
+}  // namespace
 
 bool GameView::on_key(const REvent* e) {
   if (e->type != R_EVENT_KEY_DOWN) return false;
   const std::string name = key_name(e);
   if (name.empty()) return false;
   const Ruint chord = R_MOD_CTRL | R_MOD_ALT | R_MOD_SUPER;
-  const bool typing = Rwindow_wants_text_input(window_) != 0;
+  // The focused control keeps the keys it uses (web hotkeys.ts keepsKey): a text field all of them, a
+  // combo box all but Space, a slider its arrows; a checkbox or button none.
+  const game::Focus focus = Rwindow_wants_text_input(window_) != 0 ? game::Focus::Text : focus_kind(Rwindow_get_focused_widget(window_));
+  const bool typing = game::keeps_key(focus, name);
   const bool chart_focused = Rwidget_is_focused(find(names::kGameChart)) != 0;
   const game::KeyPress k{name, typing, (e->modifiers & chord) != 0, chart_focused};
   if (!vm().handle_key(k)) return false;
@@ -255,6 +315,7 @@ void GameView::refresh() {
   const double dt = std::chrono::duration<double>(now - last_tick_).count();
   last_tick_ = now;
   if (app_.screen() != Screen::Game) return;
+  apply_dock();
   vm().tick(dt);
   const GameState* g = vm().state();
   if (g == nullptr) return;

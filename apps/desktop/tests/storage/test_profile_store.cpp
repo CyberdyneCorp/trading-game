@@ -169,13 +169,31 @@ TEST_CASE("profile store: the terminal's preferences and the shell's progress sh
   CHECK(store.load_progress().lessons_done == p.lessons_done);
 }
 
+TEST_CASE("profile store: sound and the docked layout are settings rows read back by a new connection") {
+  TempDir dir;
+  {
+    storage::ProfileStore store(dir.path() / "tradelab.db");
+    GamePrefs prefs = store.load_prefs();
+    CHECK(prefs.audio == AudioPrefs{});
+    CHECK(prefs.layout.empty());
+    prefs.audio = AudioPrefs{true, 0.5, 0.25};
+    prefs.layout = "h:0.7(game-panel-chart,game-panel-rail)";
+    REQUIRE(store.save_prefs(prefs));
+  }
+  storage::ProfileStore again(dir.path() / "tradelab.db");
+  const GamePrefs back = again.load_prefs();
+  CHECK(back.audio == AudioPrefs{true, 0.5, 0.25});
+  CHECK(back.layout == "h:0.7(game-panel-chart,game-panel-rail)");
+}
+
 TEST_CASE("profile store: prefs.json from an earlier build is imported once and renamed") {
   TempDir dir;
   const auto file = dir.path() / "prefs.json";
   {
     std::ofstream out(file);
     out << R"({"version":1,"keymap":{"advance":"n"},"tutorialsSeen":["m02-trend"],"advisorPoints":6,)"
-        << R"("settledRuns":["r1"],"finished":["m01-false-breakout","m02-trend"],"perksIntroduced":["calendar"]})";
+        << R"("settledRuns":["r1"],"finished":["m01-false-breakout","m02-trend"],"perksIntroduced":["calendar"],)"
+        << R"("audio":{"muted":true,"music":0.2,"sfx":0.9},"layout":"stored-layout"})";
   }
   storage::ProfileStore store(dir.path() / "tradelab.db");
   CHECK(store.import_prefs_file(file));
@@ -188,6 +206,8 @@ TEST_CASE("profile store: prefs.json from an earlier build is imported once and 
   CHECK(p.advisor_points == 6);
   CHECK(p.settled_runs == std::vector<std::string>{"r1"});
   CHECK(p.perks_introduced == std::vector<std::string>{"calendar"});
+  CHECK(p.audio == AudioPrefs{true, 0.2, 0.9});
+  CHECK(p.layout == "stored-layout");
   // Missions finished before the import still unlock perks and show as completed.
   CHECK(p.finished == std::vector<std::string>{"m01-false-breakout", "m02-trend"});
   CHECK(store.load_progress().completed == p.finished);

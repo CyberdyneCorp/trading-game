@@ -5,6 +5,8 @@
 //                              settled runs, perks introduced, Academy lessons, campaign + history, assessed
 //   meta "setting:display"     language, CRT effects, colorblind palette, text scale
 //   meta "setting:keymap"      the shortcut map (Settings and the terminal share it)
+//   meta "setting:audio"       mute, music and effects volumes (the web's tradelab.audio.v1)
+//   meta "setting:layout"      the terminal's docked panels (Raven layout text; "" = the default)
 //   runs                       the shell's run list: journal and campaign link columns are written here,
 //                              status/equity by the simulation worker; completed missions are the runs
 //                              finished outside packs and assisted practice

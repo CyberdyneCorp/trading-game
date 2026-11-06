@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 #include "viewmodel/app_viewmodel.hpp"
+#include "viewmodel/game/panels_vm.hpp"
 #include "viewmodel/format.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -107,7 +108,8 @@ std::vector<Binding> AppViewModel::game_bindings() const {
   const int turn = std::max(0, s.step - s.warmup_bars + 1);
   const int playable = s.last_decision_step - s.warmup_bars + 1;
   return {
-      {names::kGameMarket, tr("top.market") + " " + s.alias + " " + tr(market_tag_key(s))},
+      {names::kGameMarket, game_->state() != nullptr ? game::top_bar(game_->texts(), *game_->state()).market
+                                                     : tr("top.market") + " " + s.alias + " " + tr(market_tag_key(s))},
       {names::kGameMission, mission_text(s.mission, "title")},
       {names::kGameTurn, tr("top.step") + " " + str(turn) + " " + tr("top.of") + " " + str(playable)},
       {names::kGameAccount, account_line()},

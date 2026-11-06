@@ -1,5 +1,7 @@
 #include "view/app_view.hpp"
 
+#include <chrono>
+
 #include <raven/raven_accessibility.h>
 #include <raven/raven_controls.h>
 #include <raven/raven_draw.h>
@@ -161,6 +163,9 @@ void AppView::apply_bindings() {
 }
 
 void AppView::refresh() {
+  const auto now = std::chrono::steady_clock::now();
+  vm_.tick_audio(std::chrono::duration<double>(now - last_frame_).count());
+  last_frame_ = now;
   if (game_view_) game_view_->refresh();
   if (vm_.revision() == shown_revision_) return;
   shown_revision_ = vm_.revision();

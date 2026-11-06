@@ -20,6 +20,7 @@
 #include "model/snapshot.hpp"
 #include "viewmodel/game/chart_vm.hpp"
 #include "viewmodel/game/dialogs_vm.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/options_vm.hpp"
 #include "viewmodel/game/panels_vm.hpp"
 #include "viewmodel/game/progress.hpp"
@@ -135,8 +136,13 @@ class GameViewModel {
   void set_keymap(const std::map<std::string, std::string>& map);
   // Frame time for auto-advance.
   void tick(double dt);
-  [[nodiscard]] bool muted() const { return muted_; }
+  [[nodiscard]] bool muted() const { return prefs_.audio.muted; }
   void toggle_mute() { run_action(Action::Mute); }
+  // Sound settings (Settings screen) and the terminal's panel layout, kept with the prefs.
+  void set_audio(const AudioPrefs& a);
+  void set_layout(std::string layout);
+  // "Reset layout": forgets the player's arrangement; the default for the window shows again.
+  void reset_layout();
   void toggle_auto() { run_action(Action::Auto); }
 
   // Panel viewmodels and dialog state, edited by the view (text fields) and read back.
@@ -148,12 +154,14 @@ class GameViewModel {
   LessonDialog lessons;
   Remap remap;
   AutoPlay autoplay;
+  DockLayout dock;
   std::string margin_amount = "100";
   void touch() { ++revision_; }
 
   [[nodiscard]] const SeriesNames& series_names() const { return names_; }
   [[nodiscard]] std::optional<double> planned_risk() const;
   [[nodiscard]] const GamePrefs& prefs() const { return prefs_; }
+  [[nodiscard]] const std::string& run_id() const { return run_id_; }
 
  private:
   enum class InFlight : std::uint8_t { None, Advance, Game, Start };
@@ -220,7 +228,6 @@ class GameViewModel {
   std::vector<PlanEntry> journal_;
   std::function<void(const PlanEntry&)> plan_sink_;
   SeriesNames names_;
-  bool muted_ = false;
   std::uint64_t revision_ = 1;
 };
 

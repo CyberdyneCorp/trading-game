@@ -17,6 +17,7 @@
 #include "model/snapshot.hpp"
 #include "model/update/update_service.hpp"
 #include "viewmodel/chart_geometry.hpp"
+#include "viewmodel/audio/audio_director.hpp"
 #include "viewmodel/game/game_viewmodel.hpp"
 #include "viewmodel/pack_screens.hpp"
 #include "viewmodel/screen_model.hpp"
@@ -38,9 +39,6 @@ enum class Screen : std::uint8_t {
   Catalog = 9,
   Import = 10
 };
-
-// Keys the terminal reacts to (web defaults, shortcuts.ts): Space advances one bar, Shift+Space five.
-enum class Key : std::uint8_t { Space, ShiftSpace, Other };
 
 // A run left unfinished in an earlier launch (the active run of the store), offered by the menu: a
 // mission (free play or a campaign mission), a pack run or an assisted attempt.
@@ -98,8 +96,9 @@ class AppViewModel {
   [[nodiscard]] game::GameViewModel& game() { return *game_; }
   [[nodiscard]] const game::GameViewModel& game() const { return *game_; }
   [[nodiscard]] const Catalog& catalog() const { return catalog_; }
-  // Returns true when the key was used. Shortcuts are ignored while the player types in a field.
-  bool handle_key(Key key, bool typing);
+  // A key press by its web name ("Space", "Shift+Space", "b"...), through the terminal's remappable key
+  // map. Returns true when the key was used. Shortcuts are ignored while the player types in a field.
+  bool handle_key(const std::string& name, bool typing);
 
   // Debrief
   void play_again();
@@ -218,6 +217,15 @@ class AppViewModel {
   void import_create();
   void import_cancel();
 
+  // ---- Sound (viewmodel/audio): the web's soundtrack; mute and volumes live in the terminal's prefs ----
+  void attach_audio(audio::AudioOut* out) { soundtrack_ = audio::Soundtrack(out); }
+  // Once per frame: music by screen and danger, stings of trades that closed, fades.
+  void tick_audio(double dt);
+  [[nodiscard]] const audio::AudioDirector& audio() const { return soundtrack_.director(); }
+  void set_sound_on(bool on);
+  void set_music_volume(double v);
+  void set_sfx_volume(double v);
+
   // ---- Updates (viewmodel/updates.cpp): offered in the menu only, installed only on the click ----
   void attach_updates(update::UpdateCommands* commands) { updates_ = commands; }
   void on_update(const update::UpdateState& state);  // UI thread
@@ -281,6 +289,7 @@ class AppViewModel {
   game::ChartViewModel debrief_chart_;
   update::UpdateCommands* updates_ = nullptr;
   update::UpdateState update_;
+  audio::Soundtrack soundtrack_;
 };
 
 }  // namespace tradelab::desktop

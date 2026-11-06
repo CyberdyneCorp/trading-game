@@ -1,5 +1,6 @@
 #include "viewmodel/app_viewmodel.hpp"
 
+#include <algorithm>
 #include <utility>
 
 #include "model/progress_json.hpp"
@@ -104,9 +105,33 @@ void AppViewModel::buy() { game_->select_side(game::Side::Buy); }
 
 void AppViewModel::sell() { game_->select_side(game::Side::Sell); }
 
-bool AppViewModel::handle_key(Key key, bool typing) {
-  if (screen_ != Screen::Game || key == Key::Other) return false;
-  return game_->handle_key({key == Key::ShiftSpace ? "Shift+Space" : "Space", typing, false, false});
+bool AppViewModel::handle_key(const std::string& name, bool typing) {
+  if (screen_ != Screen::Game || name.empty()) return false;
+  return game_->handle_key({name, typing, false, false});
+}
+
+void AppViewModel::tick_audio(double dt) {
+  const AudioPrefs& a = game_->prefs().audio;
+  const audio::AudioSettings s{a.muted, static_cast<float>(a.music), static_cast<float>(a.sfx)};
+  soundtrack_.update(screen_ == Screen::Game, game_->state(), game_->run_id(), s, dt);
+}
+
+void AppViewModel::set_sound_on(bool on) {
+  AudioPrefs a = game_->prefs().audio;
+  a.muted = !on;
+  game_->set_audio(a);
+}
+
+void AppViewModel::set_music_volume(double v) {
+  AudioPrefs a = game_->prefs().audio;
+  a.music = std::clamp(v, 0.0, 1.0);
+  game_->set_audio(a);
+}
+
+void AppViewModel::set_sfx_volume(double v) {
+  AudioPrefs a = game_->prefs().audio;
+  a.sfx = std::clamp(v, 0.0, 1.0);
+  game_->set_audio(a);
 }
 
 // The same mission (or the same pack) again, as a new ordinary attempt.
