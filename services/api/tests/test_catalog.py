@@ -60,10 +60,11 @@ def test_anonymous_catalog_is_the_static_manifest_with_api_pack_urls(api):
 
 def test_entitled_packs_are_listed_only_with_the_entitlement(api, idp):
     ids = lambda res: [p["id"] for p in res.json()["packs"]]
-    assert ids(api.get("/api/v1/scenarios", headers=bearer(idp))) == ["sample-a-1h", "sample-b-4h"]
+    free = [p["id"] for p in SAMPLE["packs"]]  # the static sample catalog (a, b and the liquidity-shock c)
+    assert ids(api.get("/api/v1/scenarios", headers=bearer(idp))) == free
     with_ent = api.get("/api/v1/scenarios", headers=bearer(idp, entitlements=[ENTITLEMENT]))
-    assert ids(with_ent) == ["sample-a-1h", "sample-b-4h", "premium-c"]
-    assert "entitlement" not in with_ent.json()["packs"][2]
+    assert ids(with_ent) == [*free, "premium-c"]
+    assert "entitlement" not in with_ent.json()["packs"][len(free)]
     assert api.get("/api/v1/scenarios", headers={"Authorization": "Bearer nope"}).status_code == 401
 
 
