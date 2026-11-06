@@ -122,5 +122,53 @@
   "desktop.storageUnavailable": {
     "pt-BR": "Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.",
     "en": "The saved data could not be opened ({detail}): this session will not be saved."
+  },
+  "desktop.csv.path": {
+    "pt-BR": "Caminho do arquivo CSV neste computador",
+    "en": "CSV file path on this computer"
+  },
+  "desktop.csv.open": {
+    "pt-BR": "Abrir arquivo",
+    "en": "Open file"
+  },
+  "desktop.csv.unreadable": {
+    "pt-BR": "Não foi possível ler o arquivo: confira o caminho.",
+    "en": "The file could not be read: check the path."
+  },
+  "desktop.pack.missingFile": {
+    "pt-BR": "O arquivo deste pacote não está mais na pasta de dados. Remova-o e baixe ou importe de novo.",
+    "en": "This pack's file is no longer in the data folder. Remove it and download or import it again."
+  },
+  "desktop.debrief.chart": {
+    "pt-BR": "Gráfico da partida",
+    "en": "Run chart"
+  },
+  "desktop.debrief.chartNote": {
+    "pt-BR": "Quadrados: entradas (azul) e saídas (amarelo) de cada trade, ligadas por uma linha verde (ganho) ou vermelha (perda).",
+    "en": "Squares: each trade's entry (blue) and exit (yellow), joined by a green (gain) or red (loss) line."
+  },
+  "desktop.panel.chart": {
+    "pt-BR": "Gráfico",
+    "en": "Chart"
+  },
+  "desktop.panel.account": {
+    "pt-BR": "Conta",
+    "en": "Account"
+  },
+  "desktop.panel.book": {
+    "pt-BR": "Opções e ordens",
+    "en": "Options and orders"
+  },
+  "desktop.panel.feed": {
+    "pt-BR": "Assessor, notícias e eventos",
+    "en": "Advisor, news and events"
+  },
+  "desktop.layout.reset": {
+    "pt-BR": "Restaurar painéis",
+    "en": "Reset layout"
+  },
+  "desktop.layout.resetHint": {
+    "pt-BR": "Arraste a aba de um painel para movê-lo e a borda entre painéis para mudar o tamanho; o arranjo fica salvo. Este botão volta ao arranjo padrão.",
+    "en": "Drag a panel's tab to move it and the border between panels to resize; the arrangement is saved. This button puts the default back."
   }
 }

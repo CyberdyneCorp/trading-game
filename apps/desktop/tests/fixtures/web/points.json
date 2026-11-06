@@ -1,0 +1,15 @@
+{"helper":"points.ts","cases":[
+{"fn":"allowanceFor","args":[{"advisorPoints":-2,"settledRuns":[]}],"out":0},
+{"fn":"allowanceFor","args":[{"advisorPoints":0,"settledRuns":[]}],"out":0},
+{"fn":"allowanceFor","args":[{"advisorPoints":3,"settledRuns":[]}],"out":3},
+{"fn":"allowanceFor","args":[{"advisorPoints":9.7,"settledRuns":[]}],"out":9},
+{"fn":"allowanceFor","args":[{"advisorPoints":10,"settledRuns":[]}],"out":10},
+{"fn":"allowanceFor","args":[{"advisorPoints":14,"settledRuns":[]}],"out":10},
+{"fn":"settleRun","args":[{"advisorPoints":3,"settledRuns":[]},"r1",2,1],"out":{"advisorPoints":2,"settledRuns":["r1"]}},
+{"fn":"settleRun","args":[{"advisorPoints":2,"settledRuns":["r1"]},"r1",2,1],"out":{"advisorPoints":2,"settledRuns":["r1"]}},
+{"fn":"settleRun","args":[{"advisorPoints":2,"settledRuns":["r1"]},"",1,0],"out":{"advisorPoints":2,"settledRuns":["r1"]}},
+{"fn":"settleRun","args":[{"advisorPoints":2,"settledRuns":["r1"]},"r2",0,9],"out":{"advisorPoints":10,"settledRuns":["r1","r2"]}},
+{"fn":"settleRun","args":[{"advisorPoints":10,"settledRuns":["r1","r2"]},"r3",5,0],"out":{"advisorPoints":5,"settledRuns":["r1","r2","r3"]}},
+{"fn":"settleRun","args":[{"advisorPoints":5,"settledRuns":["r1","r2","r3"]},"r4",9,0],"out":{"advisorPoints":0,"settledRuns":["r1","r2","r3","r4"]}},
+{"fn":"settleRun","args":[{"advisorPoints":0,"settledRuns":["r1","r2","r3","r4"]},"r5",0,2],"out":{"advisorPoints":2,"settledRuns":["r1","r2","r3","r4","r5"]}}
+]}

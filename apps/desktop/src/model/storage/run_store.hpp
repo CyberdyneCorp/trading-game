@@ -56,6 +56,7 @@ struct RunPatch {
   std::optional<std::string> journal;
   std::optional<std::string> questions;
   std::optional<int> stop_warnings;
+  std::optional<std::string> campaign;  // CampaignLink JSON (written by the shell, which knows the campaign)
 };
 
 struct StoredRun {

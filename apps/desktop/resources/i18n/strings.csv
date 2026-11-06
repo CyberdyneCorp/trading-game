@@ -2303,3 +2303,15 @@ desktop.update.applyFailed,Não foi possível instalar a versão {version} ({rea
 desktop.alreadyRunning.title,O TradeLab já está aberto,TradeLab is already open
 desktop.alreadyRunning.body,Outra janela do TradeLab está usando os dados salvos deste usuário. Use essa janela ou feche-a antes de abrir o TradeLab de novo.,"Another TradeLab window is using this user's saved data. Use that window, or close it before opening TradeLab again."
 desktop.storageUnavailable,Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.,The saved data could not be opened ({detail}): this session will not be saved.
+desktop.csv.path,Caminho do arquivo CSV neste computador,CSV file path on this computer
+desktop.csv.open,Abrir arquivo,Open file
+desktop.csv.unreadable,Não foi possível ler o arquivo: confira o caminho.,The file could not be read: check the path.
+desktop.pack.missingFile,O arquivo deste pacote não está mais na pasta de dados. Remova-o e baixe ou importe de novo.,This pack's file is no longer in the data folder. Remove it and download or import it again.
+desktop.debrief.chart,Gráfico da partida,Run chart
+desktop.debrief.chartNote,"Quadrados: entradas (azul) e saídas (amarelo) de cada trade, ligadas por uma linha verde (ganho) ou vermelha (perda).","Squares: each trade's entry (blue) and exit (yellow), joined by a green (gain) or red (loss) line."
+desktop.panel.chart,Gráfico,Chart
+desktop.panel.account,Conta,Account
+desktop.panel.book,Opções e ordens,Options and orders
+desktop.panel.feed,"Assessor, notícias e eventos","Advisor, news and events"
+desktop.layout.reset,Restaurar painéis,Reset layout
+desktop.layout.resetHint,Arraste a aba de um painel para movê-lo e a borda entre painéis para mudar o tamanho; o arranjo fica salvo. Este botão volta ao arranjo padrão.,Drag a panel's tab to move it and the border between panels to resize; the arrangement is saved. This button puts the default back.

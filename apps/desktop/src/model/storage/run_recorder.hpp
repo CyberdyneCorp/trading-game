@@ -66,6 +66,8 @@ struct Resumed {
   std::unique_ptr<EngineRun> run;  // null when nothing could be resumed (see notice)
   ResumeNotice notice;
   std::string run_id;
+  RunRecord record;                 // the resumed run's header
+  std::vector<std::string> log;     // its committed actions
   std::int64_t actions = 0;        // logged actions replayed into the state
   std::int64_t from_checkpoint = 0;  // of which restored from the checkpoint (0 = full replay)
 };
@@ -74,9 +76,12 @@ class RunRecorder {
  public:
   explicit RunRecorder(Storage& storage);
 
-  std::unique_ptr<EngineRun> start(const std::string& mission, std::uint32_t seed, const RunOptions& options = {});
+  // `links` are stored on the run's record (campaign mission, assisted attempt).
+  std::unique_ptr<EngineRun> start(const std::string& mission, std::uint32_t seed, const RunOptions& options = {},
+                                   const RunLinks& links = {});
   // A run on an installed pack; nullptr (with *reason) when it is missing or refused.
-  std::unique_ptr<EngineRun> start_pack(const std::string& digest, std::uint32_t seed, std::string* reason = nullptr);
+  std::unique_ptr<EngineRun> start_pack(const std::string& digest, std::uint32_t seed, std::string* reason = nullptr,
+                                        const RunLinks& links = {});
 
   // Commit-before-engine. Returns false when the write failed (play goes on, durable() is false).
   bool commit(const Action& action);

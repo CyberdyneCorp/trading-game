@@ -64,6 +64,21 @@ struct FakeEngine final : EngineCommands {
     commands.push_back(c);
     log.push_back(describe(c));
   }
+  RunLinks last_links;
+  RunOptions last_options;
+  void start_linked(const std::string& mission, std::uint32_t seed, const RunOptions& o, const RunLinks& links) override {
+    last_links = links;
+    last_options = o;
+    start_with(mission, seed, o);
+  }
+  void start_pack(const std::string& digest, std::uint32_t seed) override {
+    log.push_back("start-pack " + digest + " " + std::to_string(seed));
+  }
+  void rewind(int to_step, const RunLinks& links) override {
+    last_links = links;
+    log.push_back("rewind " + std::to_string(to_step));
+  }
+  void resume() override { log.push_back("resume"); }
 };
 
 // A terminal state at the first decision step of a 140-bar mission: price ~100, flat, 10,000 cr.

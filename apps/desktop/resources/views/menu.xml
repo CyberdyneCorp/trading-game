@@ -22,7 +22,10 @@
             <Button Name="menu-curriculum" OnClicked="tl.menu.curriculum"/>
             <Button Name="menu-journal" OnClicked="tl.menu.journal"/>
             <Button Name="menu-settings" OnClicked="tl.menu.settings"/>
+            <Button Name="menu-catalog" OnClicked="tl.menu.catalog"/>
+            <Button Name="menu-import" OnClicked="tl.menu.import"/>
         </HBox>
+        <Label Name="menu-notice" Wrap="true" Class="info"/>
         <HBox Spacing="16">
             <VBox Spacing="8" Slot.Fill="3">
                 <Label Name="menu-title" TextSize="25" Class="title" AccessibleRole="Heading"/>

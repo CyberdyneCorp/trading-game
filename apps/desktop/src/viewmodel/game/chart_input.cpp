@@ -42,6 +42,14 @@ float ChartViewModel::y_of(double price) const {
   return std::round(static_cast<float>((frame_.hi - price) / (frame_.hi - frame_.lo)) * (frame_.price_h - 8)) + 4.5f;
 }
 
+void ChartViewModel::show_from(const GameState& g, int step) {
+  const int total = static_cast<int>(g.bars.size());
+  const int next = std::min(std::max(30, total - std::max(0, step)), std::max(30, total));
+  if (next == zoom_) return;
+  zoom_ = next;
+  touch();
+}
+
 std::optional<int> ChartViewModel::hover_bar(const GameState& g) const {
   if (!hover_) return std::nullopt;
   return static_cast<int>(first_bar(g)) + *hover_;

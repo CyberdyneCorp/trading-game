@@ -44,10 +44,13 @@ void resume_line(const AppViewModel& vm, ScreenModel& m) {
   m.show(names::kMenuResumeRow, vm.resumable());
   if (!vm.resumable()) return;
   if (const auto& saved = vm.saved_run()) {
-    m.text(names::kMenuResumeText, mission_title(vm, saved->mission) + std::string(kSep) + "seed " + std::to_string(saved->seed));
+    std::string tag = saved->campaign ? "[" + vm.tr("journal.mode.campaign") + "] " : std::string();
+    if (saved->assisted) tag += "[" + vm.tr("assist.tag") + "] ";
+    m.text(names::kMenuResumeText, tag + mission_title(vm, saved->mission) + std::string(kSep) + "seed " + std::to_string(saved->seed));
   } else {
     const ShellState& s = vm.shell();
-    const std::string tag = s.run_campaign ? "[" + vm.tr("journal.mode.campaign") + "] " : std::string();
+    std::string tag = s.run_campaign ? "[" + vm.tr("journal.mode.campaign") + "] " : std::string();
+    if (s.run_assisted) tag += "[" + vm.tr("assist.tag") + "] ";
     m.text(names::kMenuResumeText,
            tag + mission_title(vm, s.run_mission) + std::string(kSep) + "seed " + std::to_string(vm.snapshot()->seed));
   }
@@ -156,6 +159,10 @@ ScreenModel menu(const AppViewModel& vm) {
   m.text(names::kMenuCurriculum, "\xE2\x96\xA6 " + vm.tr("curriculum.open"));  // ▦
   m.text(names::kMenuJournal, "\xE2\x9C\x8E " + vm.tr("journal.open"));        // ✎
   m.text(names::kMenuSettings, "\xE2\x9A\x99 " + vm.tr("menu.settings"));      // ⚙
+  m.text(names::kMenuCatalog, "\xE2\x87\xA9 " + vm.tr("catalog.open"));         // ⇩
+  m.text(names::kMenuImport, vm.tr("menu.importCsv"));
+  m.text(names::kMenuNotice, vm.notice());
+  m.show(names::kMenuNotice, !vm.notice().empty());
   m.name(names::kMenuLanguage, vm.tr("settings.language") + ": " + vm.tr("desktop.language"));
   m.enable(names::kMenuStart, !vm.waiting());
   m.enable(names::kMenuResume, !vm.waiting());
