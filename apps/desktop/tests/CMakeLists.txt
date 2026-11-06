@@ -106,10 +106,12 @@ if(RAVEN_BACKEND_VULKAN)
     ENVIRONMENT "TRADELAB_CAPTURE_DIR=${CMAKE_BINARY_DIR}/captures;RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0;TRADELAB_AUDIO=null;TRADELAB_DATA_DIR=${CMAKE_BINARY_DIR}/test-data/windowed")
 
   # Playtest: the twelve missions to the debrief with captures and text reports (README "Playtest").
-  add_executable(tradelab_desktop_playtest_tests main.cpp windowed/test_playtest.cpp support/png.cpp)
+  add_executable(tradelab_desktop_playtest_tests main.cpp windowed/test_playtest.cpp windowed/test_playtest_strategies.cpp
+    support/png.cpp)
   target_include_directories(tradelab_desktop_playtest_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
   target_include_directories(tradelab_desktop_playtest_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(tradelab_desktop_playtest_tests PRIVATE tradelab_desktop_view)
+  target_compile_definitions(tradelab_desktop_playtest_tests PRIVATE TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog")
   if(ZLIB_FOUND)
     target_compile_definitions(tradelab_desktop_playtest_tests PRIVATE TRADELAB_HAVE_ZLIB)
     target_link_libraries(tradelab_desktop_playtest_tests PRIVATE ZLIB::ZLIB)
