@@ -273,3 +273,55 @@ TEST_CASE("rail and panels: liquidation warning, funding, orders, feed and news 
   CHECK(nv.items[0].tone == Tone::Up);
   CHECK(top_bar(x.t, g).turn == "Barra 1 de 79 \xC2\xB7 1h");
 }
+
+TEST_CASE("chart: after the reveal the ended run's chart shows its regimes as named bands") {
+  Texted x;
+  GameState g = base_state();
+  g.status = "finished";
+  ChartViewModel c;
+  const auto count_bands = [](const ChartScene& s) {
+    return std::count_if(s.rects.begin(), s.rects.end(), [](const SceneRect& r) { return r.alpha == 0.6f && r.h == 6; });
+  };
+  CHECK(count_bands(c.build(x.t, g, std::nullopt, false, 1600, 420)) == 0);  // nothing before the reveal
+  const auto spans = json::parse(R"([{"label":"range","direction":0,"start":0,"bars":40},
+                                     {"label":"trend","direction":1,"start":40,"bars":21},
+                                     {"label":"shock","direction":-1,"start":200,"bars":5}])");
+  REQUIRE(spans);
+  c.set_regimes(regime_spans(*spans));
+  REQUIRE(c.regimes().size() == 3);
+  const ChartScene s = c.build(x.t, g, std::nullopt, false, 1600, 420);
+  CHECK(count_bands(s) == 2);  // the third span lies after the last bar
+  const auto has_text = [&](const std::string& t) {
+    return std::any_of(s.texts.begin(), s.texts.end(), [&](const SceneText& st) { return st.text == t; });
+  };
+  CHECK(has_text("Lateral"));
+  CHECK(has_text("Tendência de alta"));
+  // The trend band starts where bar 40 starts.
+  const float slot = c.frame().slot_w;
+  CHECK(std::any_of(s.rects.begin(), s.rects.end(),
+                    [&](const SceneRect& r) { return r.h == 6 && r.ink == Ink::Info && r.x == std::round(40 * slot); }));
+}
+
+TEST_CASE("chart: a branch-mode market marks its first generated bar and tints what follows") {
+  Texted x;
+  GameState g = base_state();
+  ChartViewModel c;
+  const auto marked = [&](const ChartScene& s) {
+    return std::any_of(s.texts.begin(), s.texts.end(), [&](const SceneText& t) { return t.text == x.t.tr("top.branch"); });
+  };
+  for (auto& b : g.bars) b.synthetic = false;
+  g.market_mode = "branch";
+  CHECK_FALSE(marked(c.build(x.t, g, std::nullopt, false, 1600, 420)));  // not branched yet
+  CHECK_FALSE(branch_turn(g));
+  for (std::size_t i = 50; i < g.bars.size(); ++i) g.bars[i].synthetic = true;
+  const ChartScene s = c.build(x.t, g, std::nullopt, false, 1600, 420);
+  CHECK(marked(s));
+  CHECK(std::any_of(s.lines.begin(), s.lines.end(),
+                    [](const SceneLine& l) { return l.ink == Ink::Attention && l.dash == 4 && l.x0 == l.x1; }));
+  REQUIRE(branch_turn(g));
+  CHECK(*branch_turn(g) == 50 - g.warmup_bars + 1);
+  CHECK(top_bar(x.t, g).market == "Mercado K2A RAMO SINTÉTICO");
+  g.market_mode = "synthetic";  // a synthetic mission: every bar is generated, nothing to mark
+  CHECK_FALSE(marked(c.build(x.t, g, std::nullopt, false, 1600, 420)));
+  CHECK(top_bar(x.t, g).market == "Mercado K2A SINTÉTICO");
+}

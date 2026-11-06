@@ -9,6 +9,14 @@ namespace tradelab::desktop::game {
 
 namespace {
 
+// The regime band colours of the debrief (shell_view regime_colour), as palette tokens.
+Ink regime_ink(const std::string& label) {
+  if (label == "trend") return Ink::Info;
+  if (label == "high_vol" || label == "shock") return Ink::Down;
+  if (label == "crowded" || label == "low_liquidity") return Ink::Attention;
+  return Ink::Muted;
+}
+
 struct Level {
   double price = 0;
   std::string label;
@@ -156,6 +164,40 @@ class Builder {
         rect(bx - 0.5f, top - 0.5f, body_w + 1, bh + 1, ink);
       }
     }
+  }
+
+  // Revealed regimes: a tinted band behind the candles over each span, a solid strip at the foot of the
+  // price pane, and the regime's name where the band is wide enough to hold it.
+  void regimes(const std::vector<RegimeSpan>& spans, const Texts& t) {
+    for (const auto& sp : spans) {
+      const long lo = std::max<long>(sp.start - static_cast<long>(first_), 0);
+      const long hi = std::min<long>(sp.start + sp.bars - static_cast<long>(first_), static_cast<long>(count_));
+      if (hi <= lo) continue;
+      const float x0 = std::round(static_cast<float>(lo) * slot_w_);
+      const float w = std::round(static_cast<float>(hi - lo) * slot_w_);
+      const Ink ink = regime_ink(sp.label);
+      rect(x0, 0, w, lay_.price_h, ink, 0.07f);
+      rect(x0, lay_.price_h - 6, w, 6, ink, 0.6f);
+      std::string name = t.tr("regime." + sp.label);
+      if (sp.direction != 0) name += " " + t.tr(sp.direction > 0 ? "regime.up" : "regime.down");
+      if (static_cast<float>(name.size()) * 7 < w - 8) text(x0 + 4, lay_.price_h - 22, name, ink, 11);
+    }
+  }
+
+  // A branch-mode market (packs.ts branchTurn): recorded bars up to the branch, generated after it. A
+  // dashed line at the first generated bar, a light tint over the generated part and its tag.
+  void branch(const std::string& label) {
+    if (g_.market_mode != "branch") return;
+    const auto first = std::find_if(g_.bars.begin(), g_.bars.end(), [](const GameBar& b) { return b.synthetic; });
+    if (first == g_.bars.end()) return;
+    const long at = static_cast<long>(first - g_.bars.begin()) - static_cast<long>(first_);
+    if (at >= static_cast<long>(count_)) return;
+    const float x0 = std::round(static_cast<float>(std::max<long>(at, 0)) * slot_w_) + 0.5f;
+    const float x1 = static_cast<float>(count_) * slot_w_;
+    rect(x0, 0, x1 - x0, lay_.price_h, Ink::Attention, 0.04f);
+    if (at < 0) return;  // the branch point is scrolled off: only the tint shows
+    line(x0, 0, x0, lay_.price_h, Ink::Attention, 0.9f, 4, 3);
+    text(x0 + 4, 4, label, Ink::Attention, 11);
   }
 
   // Continuity bars (no trading): a shaded slot with a dashed line at the carried close.
@@ -421,6 +463,20 @@ void apply_drag(std::vector<Level>& lv, const GameState& g, const DragTarget& ta
 
 }  // namespace
 
+std::vector<RegimeSpan> regime_spans(const json::Value& spans) {
+  std::vector<RegimeSpan> out;
+  for (const auto& sp : spans.items()) {
+    out.push_back({sp["label"].as_string(), static_cast<int>(sp["direction"].as_int()), static_cast<int>(sp["start"].as_int()),
+                   static_cast<int>(sp["bars"].as_int())});
+  }
+  return out;
+}
+
+void ChartViewModel::set_regimes(std::vector<RegimeSpan> spans) {
+  regimes_ = std::move(spans);
+  touch();
+}
+
 std::size_t ChartViewModel::first_bar(const GameState& g) const {
   return g.bars.size() > static_cast<std::size_t>(zoom_) ? g.bars.size() - static_cast<std::size_t>(zoom_) : 0;
 }
@@ -457,6 +513,8 @@ ChartScene ChartViewModel::build(const Texts& t, const GameState& g, const std::
   frame_.slot_w = b.slot_w();
 
   b.grid(b.tag_positions(lv), L);
+  b.regimes(regimes_, t);
+  b.branch(t.tr("top.branch"));
   b.warmup();
   b.future(t.tr("chart.future"));
   b.volume();

@@ -130,6 +130,8 @@ void GameViewModel::reset_run(const GameState& g) {
 
 void GameViewModel::on_run_end(const Snapshot& s) {
   autoplay.stop(PauseReason::Finished);
+  // The reveal: the chart of the ended run shows the regimes the market went through.
+  if (chart.regimes().empty()) chart.set_regimes(regime_spans(s.debrief->reveal["spans"]));
   if (run_settled_) return;
   run_settled_ = true;
   const GameState& g = *state_;
