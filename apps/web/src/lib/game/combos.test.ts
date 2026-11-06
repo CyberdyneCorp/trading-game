@@ -5,6 +5,8 @@ import {
 	comboOrderIds,
 	comboStatus,
 	combosFromLog,
+	comboContracts,
+	comboR,
 	groupTrades,
 	netPremium,
 	nextComboId,
@@ -165,5 +167,22 @@ describe('debrief grouping', () => {
 		expect(g.combos[0].trades.map((t) => t.n)).toEqual([2, 3]);
 		expect(g.combos[0].net).toBeCloseTo(3.5, 9);
 		expect(g.rest.map((t) => t.n)).toEqual([1, 4]);
+	});
+
+	it('Regression: a combo shows one R, its net over the whole plan risk, not ±50R per leg', () => {
+		// A condor planned at 1.22 risk: 0.305 per leg; the legs' own R were +43.77R and -50.70R.
+		const legs = [
+			{ n: 1, net: '13.13', rBp: 430492 },
+			{ n: 2, net: '-0.66', rBp: -21639 },
+			{ n: 3, net: '-15.21', rBp: -498689 },
+			{ n: 4, net: '1.39', rBp: 45574 }
+		] as EngineTrade[];
+		expect(comboR(legs, -1.35)).toBeCloseTo(-1.35 / 1.22, 2);
+		expect(comboR([{ n: 1, net: '2', rBp: null }] as unknown as EngineTrade[], 2)).toBeNull(); // no plan, no R
+	});
+
+	it('Regression: the combo plan names its contracts (40), not a hard-coded 1', () => {
+		expect(comboContracts([{ series: 0, side: 'buy', qty: '48.2' }, { series: 3, side: 'sell', qty: '40' }])).toBe('40');
+		expect(comboContracts([{ series: 0, side: 'buy', qty: '2' }])).toBe('2');
 	});
 });

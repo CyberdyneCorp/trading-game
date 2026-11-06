@@ -163,6 +163,24 @@ export interface ComboTrades {
 	trades: EngineTrade[];
 	/** Sum of the trades' net results (fees and funding included). */
 	net: number;
+	/** The combo's net over its planned risk; null without a plan. Its legs' own R mean little. */
+	r: number | null;
+}
+
+/** The contracts a combo's plan headline names: its first option leg's (all legs share it), else the first leg's. */
+export function comboContracts(orders: readonly OrderLeg[]): string {
+	return (orders.find((o) => o.series !== 0) ?? orders[0])?.qty ?? '0';
+}
+
+/**
+ * The combo's R: its plan's risk is split evenly over the legs (one engine plan per leg), so each leg's
+ * planned risk is its net over its R, and the combo's risk is that share times the legs.
+ */
+export function comboR(trades: readonly EngineTrade[], net: number): number | null {
+	const leg = trades.find((t) => t.rBp != null && t.rBp !== 0 && Number(t.net) !== 0);
+	if (!leg) return null;
+	const share = Number(leg.net) / (leg.rBp! / 10000);
+	return share > 0 ? net / (share * trades.length) : null;
 }
 
 function tradeOfLeg(trades: readonly EngineTrade[], l: LegStatus): EngineTrade | undefined {
@@ -183,7 +201,8 @@ export function groupTrades(trades: readonly EngineTrade[], statuses: readonly C
 			return t && !used.has(t.n) ? [t] : [];
 		});
 		mine.forEach((t) => used.add(t.n));
-		if (mine.length) combos.push({ status, trades: mine, net: mine.reduce((s, t) => s + Number(t.net), 0) });
+		const net = mine.reduce((s, t) => s + Number(t.net), 0);
+		if (mine.length) combos.push({ status, trades: mine, net, r: comboR(mine, net) });
 	}
 	return { combos, rest: trades.filter((t) => !used.has(t.n)) };
 }

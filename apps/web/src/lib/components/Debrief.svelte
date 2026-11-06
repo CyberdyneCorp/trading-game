@@ -109,7 +109,7 @@
 		<td class="num">{fmtPrice(tr.entryAvg, L)} <span class="muted">@{tr.entryStep}</span></td>
 		<td class="num">{tr.exitStep != null ? fmtPrice(tr.exitAvg, L) : '—'}</td>
 		<td class="num {net >= 0 ? 'up' : 'down'}">{signMark(net)} {fmtMoney(net, L, true)}</td>
-		<td class="num">{r != null ? `${fmtNum(r, L, 2, true)}R` : '—'}</td>
+		<td class="num">{r != null && !inCombo ? `${fmtNum(r, L, 2, true)}R` : '—'}</td>
 		<td class="num">{tr.bars}</td>
 		<td>{t(`trade.${tr.reason}`)}</td>
 		<td class={tr.planRespected === false ? 'down' : tr.planRespected ? 'up' : 'muted'}>
@@ -260,7 +260,8 @@
 								{t('combo.premium', { amount: fmtMoney(netPremium(c.status, num(s.options.multiplier)), L, true) })}
 							</td>
 							<td class="num {c.net >= 0 ? 'up' : 'down'}" data-testid="debrief-combo-net">{signMark(c.net)} {fmtMoney(c.net, L, true)}</td>
-							<td colspan={cols - 5}></td>
+							<td class="num" data-testid="debrief-combo-r">{c.r != null ? `${fmtNum(c.r, L, 2, true)}R` : '—'}</td>
+							<td colspan={cols - 6}></td>
 						</tr>
 						{#each c.trades as tr (tr.n)}{@render tradeRow(tr, true)}{/each}
 					{/each}

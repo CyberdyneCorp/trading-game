@@ -7,6 +7,8 @@ import {
 	legsProblem,
 	orderLegs,
 	positionLegs,
+	COVERS_LONG,
+	coverContracts,
 	sameExpiry,
 	strategyOf,
 	strikesOf,
@@ -131,5 +133,15 @@ describe('submission order and leg checks', () => {
 			{ series: 5, side: 'sell', qty: '1', entry: '2.5' },
 			{ kind: 'perp', side: 'sell', qty: '2', entry: '101' }
 		]);
+	});
+
+	it('Regression: a covered call or protective put on a held long covers all of it (48.2 units, not 1 contract)', () => {
+		const g = game([], {
+			contract: { ...game([]).contract, multiplier: '1' },
+			options: { ...game([]).options, multiplier: '1', lotSize: '0.1' }
+		});
+		expect(coverContracts(g, { qty: '48.20000000' })).toBe(48.2);
+		expect(coverContracts(g, { qty: '48.27' })).toBe(48.2); // down to the option lot, never more than held
+		expect([...COVERS_LONG].sort()).toEqual(['covered_call', 'protective_put']);
 	});
 });

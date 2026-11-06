@@ -40,7 +40,7 @@
 	import ComboNotice from './ComboNotice.svelte';
 	import WhatIfLab from './WhatIfLab.svelte';
 	import type { WhatIfLegInput } from '#lib/engine/types.ts';
-	import { comboStatus, netPremium, submitCombo } from '#lib/game/combos.ts';
+	import { comboContracts, comboStatus, netPremium, submitCombo } from '#lib/game/combos.ts';
 	import { runMaxBars } from '#lib/game/whatifLab.ts';
 
 	let { session }: { session: GameSession } = $props();
@@ -212,16 +212,16 @@
 	let labLegs = $state<WhatIfLegInput[] | null>(null);
 	let dismissed = $state<string[]>([]);
 	const comboPlanDraft = $derived<OrderDraft | null>(
-		comboDraft ? optPlanDraftOf(comboDraft.orders[0]?.side ?? 'buy', comboDraft.risk) : null
+		comboDraft ? optPlanDraftOf(comboDraft.orders[0]?.side ?? 'buy', comboDraft.risk, comboContracts(comboDraft.orders)) : null
 	);
 	const statuses = $derived(session.state ? session.combos.map((r) => comboStatus(session.state!.events, r)) : []);
 	const incomplete = $derived(statuses.findLast((st) => st.state === 'incomplete' && !dismissed.includes(st.record.id)) ?? null);
 
-	function optPlanDraftOf(side: 'buy' | 'sell', risk: number | null): OrderDraft {
+	function optPlanDraftOf(side: 'buy' | 'sell', risk: number | null, qty = '1'): OrderDraft {
 		return {
 			side,
 			type: 'market',
-			qty: '1',
+			qty,
 			price: null,
 			leverage: 1,
 			stop: null,
@@ -420,7 +420,14 @@
 	<PlanDialog {draft} step={session.state.step} onConfirm={onPlan} onCancel={() => (draft = null)} />
 {/if}
 {#if comboDraft && comboPlanDraft && session.state}
-	<PlanDialog draft={comboPlanDraft} step={session.state.step} optionLabel={comboDraft.label} onConfirm={onComboPlan} onCancel={() => (comboDraft = null)} />
+	<PlanDialog
+		draft={comboPlanDraft}
+		step={session.state.step}
+		optionLabel={comboDraft.label}
+		riskUnbounded={comboDraft.unbounded}
+		onConfirm={onComboPlan}
+		onCancel={() => (comboDraft = null)}
+	/>
 {/if}
 {#if labLegs && session.state}
 	<div class="modal-backdrop" role="presentation">

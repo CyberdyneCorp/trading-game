@@ -8,6 +8,8 @@
 		tag: ComboTag;
 		label: string;
 		risk: number | null;
+		/** No maximum loss at expiry: `risk` is then the margin required, not a worst case. */
+		unbounded: boolean;
 	}
 </script>
 
@@ -18,15 +20,17 @@
 	import type { ComboPreview, WhatIfLegInput, WhatIfResult } from '#lib/engine/types.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { Analysis } from '#lib/engine/protocol.ts';
-	import { fmtMoney, fmtPrice, parseDecimal } from '#lib/game/format.ts';
+	import { fmtMoney, fmtNum, fmtPrice, parseDecimal } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import { nextComboId } from '#lib/game/combos.ts';
 	import { rejectionText } from '#lib/game/rejections.ts';
 	import {
+		COVERS_LONG,
 		MAX_OPTION_LEGS,
 		TEMPLATES,
 		comboLegs,
+		coverContracts,
 		expiriesOf,
 		heldLong,
 		legsProblem,
@@ -115,8 +119,10 @@
 	function pick(id: TemplateId) {
 		template = id;
 		strategy = strategyOf(id, short);
+		// A covered call or protective put on a held long covers that long, all of it, by default.
+		useLong = held != null && COVERS_LONG.has(id);
+		if (useLong && held) nInput = fmtNum(coverContracts(game, held), L, 1);
 		legs = templateLegs(id, strikes, f, n || 1, short) ?? [];
-		useLong = false;
 	}
 
 	function toggleShort() {
@@ -155,7 +161,8 @@
 			orders,
 			tag: { combo: nextComboId(session.combos), strategy },
 			label: t('combo.label', { name, n: orders.length }),
-			risk: risk()
+			risk: risk(),
+			unbounded: whatif?.ok === true && whatif.value.expiry != null && whatif.value.expiry.maxLoss == null
 		});
 	}
 
@@ -237,7 +244,7 @@
 		<div class="row">
 			<button onclick={addLeg} disabled={legs.filter((l) => l.kind !== 'perp').length >= MAX_OPTION_LEGS} data-testid="builder-add-leg">+ {t('builder.addLeg')}</button>
 			{#if held && legs.some((l) => l.kind === 'perp' && l.side === 'buy')}
-				<label class="check"><input type="checkbox" bind:checked={useLong} data-testid="builder-use-long" /> {t('builder.useLong', { qty: held.qty })}</label>
+				<label class="check"><input type="checkbox" bind:checked={useLong} data-testid="builder-use-long" /> {t('builder.useLong', { qty: fmtNum(Number(held.qty), L, 1) })}</label>
 			{/if}
 		</div>
 

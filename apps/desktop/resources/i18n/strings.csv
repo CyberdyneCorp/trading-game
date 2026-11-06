@@ -1026,7 +1026,10 @@ lab.pnl,P&L,P&L
 lab.net,Posição,Position
 lab.deltaHint,Delta: quanto o valor muda quando o ativo sobe 1,Delta: how much the value moves when the underlying rises by 1
 lab.gammaHint,Gama: quanto o delta muda quando o ativo sobe 1,Gamma: how much delta moves when the underlying rises by 1
-lab.thetaHint,"Theta: quanto o valor muda a cada barra que passa, com o resto parado","Theta: how much the value moves per bar that passes, everything else unchanged"
+lab.thetaHint,"Theta: quanto o valor muda a cada {unit} que passa, com o resto parado","Theta: how much the value moves per {unit} that passes, everything else unchanged"
+lab.perDay,dia,day
+lab.perBar,barra,bar
+lab.perPoint,ponto,point
 lab.vegaHint,Vega: quanto o valor muda por 1 ponto de volatilidade implícita,Vega: how much the value moves per implied volatility point
 lab.ivFloored,"A volatilidade ficou no piso do modelo, 5%.",The volatility hit the model's 5% floor.
 lab.legsCaption,Pernas (edite à vontade),Legs (edit freely)
@@ -1060,7 +1063,8 @@ builder.order,Ordem de envio e simulação (nada é enviado),Submission order an
 builder.accepted,aceita,accepted
 builder.credit,Crédito líquido (prêmios),Net credit (premiums)
 builder.debit,Débito líquido (prêmios),Net debit (premiums)
-builder.marginSpread,Margem exigida (spread de risco definido),Margin required (defined-risk spread)
+builder.marginSpread,Margem exigida (venda coberta paga só a perda máxima do par),Margin required (a covered sale pays only the pair's maximum loss)
+plan.riskUnbounded,"A perda máxima desta estrutura é ilimitada: o risco acima é só a margem exigida, não o pior caso.","This structure has no maximum loss: the risk above is only the margin required, not the worst case."
 builder.marginPerLeg,Margem exigida (cada venda separada),Margin required (each sale on its own)
 builder.availableAfter,Disponível depois das execuções,Available after the fills
 builder.openLab,Abrir no laboratório,Open in the lab

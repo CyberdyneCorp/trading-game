@@ -196,6 +196,19 @@ export function whatifLegs(orders: readonly OrderLeg[], held: { qty: string; ent
 	return legs;
 }
 
+/** Templates whose perpetual leg is the long they protect or write against. */
+export const COVERS_LONG: ReadonlySet<TemplateId> = new Set(['covered_call', 'protective_put']);
+
+/**
+ * Option contracts that cover a held long perpetual: its underlying units over the option multiplier,
+ * down to the option lot. A covered call or protective put on a held long uses this many by default,
+ * so one contract never "covers" a long of 48 units.
+ */
+export function coverContracts(game: GameState, held: { qty: string }): number {
+	const units = Number(held.qty) * Number(game.contract.multiplier);
+	return Number(qtyToLot(units / Number(game.options.multiplier), Number(game.options.lotSize)));
+}
+
 /** The player's long perpetual, when "use my long" can cover a template's perpetual leg. */
 export function heldLong(game: GameState): { qty: string; entry: string } | null {
 	return Number(game.position.qty) > 0 ? { qty: game.position.qty, entry: game.position.entry } : null;
