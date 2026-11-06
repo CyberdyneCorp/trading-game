@@ -17,7 +17,9 @@
    "missions": [
     "m06-thin-book"
    ],
-   "lessons": [],
+   "lessons": [
+    "structure-zones"
+   ],
    "unlocks": []
   },
   {
@@ -28,7 +30,9 @@
    "missions": [
     "m06-thin-book"
    ],
-   "lessons": [],
+   "lessons": [
+    "orders-execution"
+   ],
    "unlocks": []
   },
   {
@@ -39,7 +43,9 @@
    "missions": [
     "m01-false-breakout"
    ],
-   "lessons": [],
+   "lessons": [
+    "futures-pnl"
+   ],
    "unlocks": [
     "short"
    ]
@@ -52,7 +58,9 @@
    "missions": [
     "m03-volatility-shock"
    ],
-   "lessons": [],
+   "lessons": [
+    "futures-margin"
+   ],
    "unlocks": [
     "leverage"
    ]
@@ -65,7 +73,9 @@
    "missions": [
     "m02-funding-squeeze"
    ],
-   "lessons": [],
+   "lessons": [
+    "futures-funding"
+   ],
    "unlocks": []
   },
   {
@@ -76,7 +86,10 @@
    "missions": [
     "m07-trend-trailing"
    ],
-   "lessons": [],
+   "lessons": [
+    "risk-sizing",
+    "risk-expectancy"
+   ],
    "unlocks": []
   },
   {
@@ -87,7 +100,9 @@
    "missions": [
     "m04-options-buyer"
    ],
-   "lessons": [],
+   "lessons": [
+    "options-payoff"
+   ],
    "unlocks": [
     "optionsBuy"
    ]
@@ -101,7 +116,10 @@
     "m04-options-buyer",
     "m09-event-straddle"
    ],
-   "lessons": [],
+   "lessons": [
+    "options-greeks",
+    "options-iv"
+   ],
    "unlocks": []
   },
   {
@@ -113,20 +131,35 @@
     "m05-options-writer",
     "m10-hedged-book"
    ],
-   "lessons": [],
+   "lessons": [
+    "options-writing"
+   ],
    "unlocks": [
     "optionsWrite"
    ]
   },
   {
-   "id": "patterns",
+   "id": "strategies",
    "requires": [
     "options3"
+   ],
+   "missions": [],
+   "lessons": [
+    "strategies-shapes"
+   ],
+   "unlocks": []
+  },
+  {
+   "id": "patterns",
+   "requires": [
+    "strategies"
    ],
    "missions": [
     "m08-regime-switch"
    ],
-   "lessons": [],
+   "lessons": [
+    "patterns-lag"
+   ],
    "unlocks": []
   },
   {
@@ -137,7 +170,9 @@
    "missions": [
     "m11-news-calendar"
    ],
-   "lessons": [],
+   "lessons": [
+    "events-surprise"
+   ],
    "unlocks": []
   },
   {
@@ -148,7 +183,9 @@
    "missions": [
     "m12-capstone"
    ],
-   "lessons": [],
+   "lessons": [
+    "mind-plan"
+   ],
    "unlocks": []
   }
  ],
@@ -279,6 +316,7 @@
      "chart": {
       "market": "X",
       "interval": "1h",
+      "highlight": 2,
       "candles": [
        {
         "o": 100,
@@ -336,8 +374,7 @@
         "c": 102,
         "v": 130
        }
-      ],
-      "highlight": 2
+      ]
      }
     },
     {
@@ -433,6 +470,7 @@
      "chart": {
       "market": "X",
       "interval": "1h",
+      "highlight": 5,
       "candles": [
        {
         "o": 100,
@@ -490,8 +528,7 @@
         "c": 102,
         "v": 130
        }
-      ],
-      "highlight": 5
+      ]
      },
      "question": {
       "choices": [
@@ -521,6 +558,7 @@
      "chart": {
       "market": "X",
       "interval": "1h",
+      "known": 6,
       "candles": [
        {
         "o": 100,
@@ -578,8 +616,7 @@
         "c": 102,
         "v": 130
        }
-      ],
-      "known": 6
+      ]
      },
      "question": {
       "choices": [
@@ -682,6 +719,7 @@
      "chart": {
       "market": "Y",
       "interval": "4h",
+      "highlight": 4,
       "candles": [
        {
         "o": 2410,
@@ -725,8 +763,7 @@
         "c": 2378,
         "v": 49
        }
-      ],
-      "highlight": 4
+      ]
      },
      "question": {
       "choices": [
@@ -745,6 +782,2958 @@
        {
         "kind": "pct",
         "value": -12.78
+       }
+      ],
+      "answer": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "structure-zones",
+   "stage": "structure",
+   "steps": [
+    {
+     "id": "zones",
+     "phase": "concept",
+     "chart": {
+      "market": "S",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 101.2,
+        "l": 99.6,
+        "c": 100.8,
+        "v": 110
+       },
+       {
+        "o": 100.8,
+        "h": 101.8,
+        "l": 100.2,
+        "c": 100.4,
+        "v": 140
+       },
+       {
+        "o": 100.4,
+        "h": 100.6,
+        "l": 98.4,
+        "c": 98.9,
+        "v": 190
+       },
+       {
+        "o": 98.9,
+        "h": 100.3,
+        "l": 98.7,
+        "c": 100.1,
+        "v": 150
+       },
+       {
+        "o": 100.1,
+        "h": 101.7,
+        "l": 99.9,
+        "c": 101.3,
+        "v": 160
+       },
+       {
+        "o": 101.3,
+        "h": 101.5,
+        "l": 99.5,
+        "c": 99.8,
+        "v": 170
+       },
+       {
+        "o": 99.8,
+        "h": 100,
+        "l": 98.1,
+        "c": 99.6,
+        "v": 210
+       },
+       {
+        "o": 99.6,
+        "h": 101,
+        "l": 99.4,
+        "c": 100.7,
+        "v": 130
+       },
+       {
+        "o": 100.7,
+        "h": 102.6,
+        "l": 100.5,
+        "c": 102.4,
+        "v": 260
+       },
+       {
+        "o": 102.4,
+        "h": 102.5,
+        "l": 101.6,
+        "c": 102,
+        "v": 150
+       }
+      ]
+     }
+    },
+    {
+     "id": "trend",
+     "phase": "concept",
+     "chart": {
+      "market": "S",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 100.8,
+        "l": 99.2,
+        "c": 100.5,
+        "v": 120
+       },
+       {
+        "o": 100.5,
+        "h": 101.6,
+        "l": 100.1,
+        "c": 101.3,
+        "v": 150
+       },
+       {
+        "o": 101.3,
+        "h": 101.5,
+        "l": 100.4,
+        "c": 100.7,
+        "v": 110
+       },
+       {
+        "o": 100.7,
+        "h": 102.4,
+        "l": 100.6,
+        "c": 102.1,
+        "v": 170
+       },
+       {
+        "o": 102.1,
+        "h": 102.3,
+        "l": 101.2,
+        "c": 101.5,
+        "v": 120
+       },
+       {
+        "o": 101.5,
+        "h": 103.1,
+        "l": 101.4,
+        "c": 102.9,
+        "v": 180
+       },
+       {
+        "o": 102.9,
+        "h": 103,
+        "l": 101.9,
+        "c": 102.1,
+        "v": 140
+       },
+       {
+        "o": 102.1,
+        "h": 102.4,
+        "l": 100.8,
+        "c": 101,
+        "v": 230
+       },
+       {
+        "o": 101,
+        "h": 101.6,
+        "l": 100.6,
+        "c": 101.4,
+        "v": 130
+       },
+       {
+        "o": 101.4,
+        "h": 101.8,
+        "l": 100.7,
+        "c": 100.9,
+        "v": 120
+       }
+      ],
+      "known": 7
+     }
+    },
+    {
+     "id": "retest",
+     "phase": "demo",
+     "chart": {
+      "market": "S",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 101.2,
+        "l": 99.6,
+        "c": 100.8,
+        "v": 110
+       },
+       {
+        "o": 100.8,
+        "h": 101.8,
+        "l": 100.2,
+        "c": 100.4,
+        "v": 140
+       },
+       {
+        "o": 100.4,
+        "h": 100.6,
+        "l": 98.4,
+        "c": 98.9,
+        "v": 190
+       },
+       {
+        "o": 98.9,
+        "h": 100.3,
+        "l": 98.7,
+        "c": 100.1,
+        "v": 150
+       },
+       {
+        "o": 100.1,
+        "h": 101.7,
+        "l": 99.9,
+        "c": 101.3,
+        "v": 160
+       },
+       {
+        "o": 101.3,
+        "h": 101.5,
+        "l": 99.5,
+        "c": 99.8,
+        "v": 170
+       },
+       {
+        "o": 99.8,
+        "h": 100,
+        "l": 98.1,
+        "c": 99.6,
+        "v": 210
+       },
+       {
+        "o": 99.6,
+        "h": 101,
+        "l": 99.4,
+        "c": 100.7,
+        "v": 130
+       },
+       {
+        "o": 100.7,
+        "h": 102.6,
+        "l": 100.5,
+        "c": 102.4,
+        "v": 260
+       },
+       {
+        "o": 102.4,
+        "h": 102.5,
+        "l": 101.6,
+        "c": 102,
+        "v": 150
+       }
+      ],
+      "highlight": 10
+     }
+    },
+    {
+     "id": "held",
+     "phase": "decision",
+     "chart": {
+      "market": "S",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 101.2,
+        "l": 99.6,
+        "c": 100.8,
+        "v": 110
+       },
+       {
+        "o": 100.8,
+        "h": 101.8,
+        "l": 100.2,
+        "c": 100.4,
+        "v": 140
+       },
+       {
+        "o": 100.4,
+        "h": 100.6,
+        "l": 98.4,
+        "c": 98.9,
+        "v": 190
+       },
+       {
+        "o": 98.9,
+        "h": 100.3,
+        "l": 98.7,
+        "c": 100.1,
+        "v": 150
+       },
+       {
+        "o": 100.1,
+        "h": 101.7,
+        "l": 99.9,
+        "c": 101.3,
+        "v": 160
+       },
+       {
+        "o": 101.3,
+        "h": 101.5,
+        "l": 99.5,
+        "c": 99.8,
+        "v": 170
+       },
+       {
+        "o": 99.8,
+        "h": 100,
+        "l": 98.1,
+        "c": 99.6,
+        "v": 210
+       },
+       {
+        "o": 99.6,
+        "h": 101,
+        "l": 99.4,
+        "c": 100.7,
+        "v": 130
+       },
+       {
+        "o": 100.7,
+        "h": 102.6,
+        "l": 100.5,
+        "c": 102.4,
+        "v": 260
+       },
+       {
+        "o": 102.4,
+        "h": 102.5,
+        "l": 101.6,
+        "c": 102,
+        "v": 150
+       }
+      ],
+      "known": 8
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "z98"
+       },
+       {
+        "kind": "text",
+        "id": "z99"
+       },
+       {
+        "kind": "text",
+        "id": "z100"
+       },
+       {
+        "kind": "text",
+        "id": "z102"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "broke",
+     "phase": "decision",
+     "chart": {
+      "market": "S",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100,
+        "h": 100.8,
+        "l": 99.2,
+        "c": 100.5,
+        "v": 120
+       },
+       {
+        "o": 100.5,
+        "h": 101.6,
+        "l": 100.1,
+        "c": 101.3,
+        "v": 150
+       },
+       {
+        "o": 101.3,
+        "h": 101.5,
+        "l": 100.4,
+        "c": 100.7,
+        "v": 110
+       },
+       {
+        "o": 100.7,
+        "h": 102.4,
+        "l": 100.6,
+        "c": 102.1,
+        "v": 170
+       },
+       {
+        "o": 102.1,
+        "h": 102.3,
+        "l": 101.2,
+        "c": 101.5,
+        "v": 120
+       },
+       {
+        "o": 101.5,
+        "h": 103.1,
+        "l": 101.4,
+        "c": 102.9,
+        "v": 180
+       },
+       {
+        "o": 102.9,
+        "h": 103,
+        "l": 101.9,
+        "c": 102.1,
+        "v": 140
+       },
+       {
+        "o": 102.1,
+        "h": 102.4,
+        "l": 100.8,
+        "c": 101,
+        "v": 230
+       },
+       {
+        "o": 101,
+        "h": 101.6,
+        "l": 100.6,
+        "c": 101.4,
+        "v": 130
+       },
+       {
+        "o": 101.4,
+        "h": 101.8,
+        "l": 100.7,
+        "c": 100.9,
+        "v": 120
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "bar",
+        "bar": 5
+       },
+       {
+        "kind": "bar",
+        "bar": 7
+       },
+       {
+        "kind": "bar",
+        "bar": 8
+       },
+       {
+        "kind": "bar",
+        "bar": 9
+       }
+      ],
+      "answer": 2
+     }
+    },
+    {
+     "id": "transfer-break",
+     "phase": "transfer",
+     "chart": {
+      "market": "T",
+      "interval": "4h",
+      "candles": [
+       {
+        "o": 2450,
+        "h": 2462,
+        "l": 2420,
+        "c": 2428,
+        "v": 40
+       },
+       {
+        "o": 2428,
+        "h": 2440,
+        "l": 2391,
+        "c": 2398,
+        "v": 55
+       },
+       {
+        "o": 2398,
+        "h": 2431,
+        "l": 2392,
+        "c": 2425,
+        "v": 38
+       },
+       {
+        "o": 2425,
+        "h": 2427,
+        "l": 2370,
+        "c": 2376,
+        "v": 61
+       },
+       {
+        "o": 2376,
+        "h": 2412,
+        "l": 2368,
+        "c": 2405,
+        "v": 44
+       },
+       {
+        "o": 2405,
+        "h": 2409,
+        "l": 2381,
+        "c": 2388,
+        "v": 36
+       },
+       {
+        "o": 2388,
+        "h": 2426,
+        "l": 2385,
+        "c": 2421,
+        "v": 58
+       },
+       {
+        "o": 2421,
+        "h": 2433,
+        "l": 2410,
+        "c": 2428,
+        "v": 41
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "bar",
+        "bar": 3
+       },
+       {
+        "kind": "bar",
+        "bar": 5
+       },
+       {
+        "kind": "bar",
+        "bar": 6
+       },
+       {
+        "kind": "bar",
+        "bar": 7
+       }
+      ],
+      "answer": 3
+     }
+    }
+   ]
+  },
+  {
+   "id": "orders-execution",
+   "stage": "orders",
+   "steps": [
+    {
+     "id": "types",
+     "phase": "concept"
+    },
+    {
+     "id": "spread",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "K",
+      "columns": [
+       {
+        "id": "bid",
+        "digits": 2
+       },
+       {
+        "id": "ask",
+        "digits": 2
+       },
+       {
+        "id": "spread",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        99.9,
+        100.1,
+        0.2
+       ]
+      ]
+     }
+    },
+    {
+     "id": "roundtrip",
+     "phase": "decision",
+     "widget": {
+      "kind": "table",
+      "market": "K",
+      "columns": [
+       {
+        "id": "bid",
+        "digits": 2
+       },
+       {
+        "id": "ask",
+        "digits": 2
+       },
+       {
+        "id": "spread",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        99.9,
+        100.1,
+        0.2
+       ]
+      ]
+     },
+     "question": {
+      "type": "number",
+      "answer": 2,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    },
+    {
+     "id": "guarantee",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "limit"
+       },
+       {
+        "kind": "text",
+        "id": "market"
+       },
+       {
+        "kind": "text",
+        "id": "stop"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "slip",
+     "phase": "transfer",
+     "chart": {
+      "market": "Q",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 48.6,
+        "h": 48.9,
+        "l": 48.1,
+        "c": 48.4,
+        "v": 30
+       },
+       {
+        "o": 48.4,
+        "h": 48.7,
+        "l": 47.9,
+        "c": 48,
+        "v": 26
+       },
+       {
+        "o": 48,
+        "h": 48.3,
+        "l": 47.7,
+        "c": 47.9,
+        "v": 34
+       },
+       {
+        "o": 46.2,
+        "h": 46.6,
+        "l": 45.8,
+        "c": 46.4,
+        "v": 80
+       }
+      ],
+      "levels": [
+       {
+        "kind": "stop",
+        "price": 47.5
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "open"
+       },
+       {
+        "kind": "text",
+        "id": "trigger"
+       },
+       {
+        "kind": "text",
+        "id": "none"
+       }
+      ],
+      "answer": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "futures-pnl",
+   "stage": "futures1",
+   "steps": [
+    {
+     "id": "linear",
+     "phase": "concept"
+    },
+    {
+     "id": "long",
+     "phase": "demo",
+     "chart": {
+      "market": "F",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 99.6,
+        "h": 100.4,
+        "l": 99.3,
+        "c": 100,
+        "v": 90
+       },
+       {
+        "o": 100,
+        "h": 101.8,
+        "l": 99.8,
+        "c": 101.5,
+        "v": 120
+       },
+       {
+        "o": 101.5,
+        "h": 103.2,
+        "l": 101.2,
+        "c": 102.9,
+        "v": 140
+       },
+       {
+        "o": 102.9,
+        "h": 104.1,
+        "l": 102.3,
+        "c": 103.8,
+        "v": 110
+       },
+       {
+        "o": 103.8,
+        "h": 106.3,
+        "l": 103.5,
+        "c": 106,
+        "v": 160
+       }
+      ],
+      "levels": [
+       {
+        "kind": "entry",
+        "price": 100
+       },
+       {
+        "kind": "target",
+        "price": 106
+       }
+      ]
+     }
+    },
+    {
+     "id": "short",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 18,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    },
+    {
+     "id": "fees",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "both"
+       },
+       {
+        "kind": "text",
+        "id": "entry"
+       },
+       {
+        "kind": "text",
+        "id": "profit"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "level",
+     "phase": "transfer",
+     "chart": {
+      "market": "G",
+      "interval": "4h",
+      "candles": [
+       {
+        "o": 2395,
+        "h": 2412,
+        "l": 2388,
+        "c": 2400,
+        "v": 30
+       },
+       {
+        "o": 2400,
+        "h": 2431,
+        "l": 2396,
+        "c": 2427,
+        "v": 41
+       },
+       {
+        "o": 2427,
+        "h": 2448,
+        "l": 2419,
+        "c": 2441,
+        "v": 37
+       },
+       {
+        "o": 2441,
+        "h": 2466,
+        "l": 2436,
+        "c": 2460,
+        "v": 45
+       }
+      ],
+      "levels": [
+       {
+        "kind": "entry",
+        "price": 2400
+       },
+       {
+        "kind": "last",
+        "price": 2460
+       }
+      ]
+     },
+     "question": {
+      "type": "number",
+      "answer": -30,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    }
+   ]
+  },
+  {
+   "id": "futures-margin",
+   "stage": "futures2",
+   "steps": [
+    {
+     "id": "margin",
+     "phase": "concept"
+    },
+    {
+     "id": "liq",
+     "phase": "demo",
+     "widget": {
+      "kind": "ticket",
+      "market": "V",
+      "equity": 10000,
+      "entry": 100,
+      "side": "buy",
+      "qty": 10,
+      "leverage": 10,
+      "maxLeverage": 25,
+      "stop": null,
+      "target": null,
+      "mmr": 0.01,
+      "lot": 1,
+      "edit": [
+       "leverage",
+       "side"
+      ]
+     }
+    },
+    {
+     "id": "mark",
+     "phase": "demo",
+     "chart": {
+      "market": "V",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 98.6,
+        "h": 99,
+        "l": 98.1,
+        "c": 98.4,
+        "v": 80
+       },
+       {
+        "o": 98.4,
+        "h": 98.6,
+        "l": 97.6,
+        "c": 97.9,
+        "v": 95
+       },
+       {
+        "o": 97.9,
+        "h": 98.2,
+        "l": 94.8,
+        "c": 97.7,
+        "v": 140
+       },
+       {
+        "o": 97.7,
+        "h": 98.5,
+        "l": 97.4,
+        "c": 98.3,
+        "v": 90
+       }
+      ],
+      "levels": [
+       {
+        "kind": "liquidation",
+        "price": 95.5
+       },
+       {
+        "kind": "mark",
+        "price": 97.1
+       }
+      ]
+     }
+    },
+    {
+     "id": "set-lev",
+     "phase": "decision",
+     "widget": {
+      "kind": "ticket",
+      "market": "V",
+      "equity": 10000,
+      "entry": 100,
+      "side": "buy",
+      "qty": 10,
+      "leverage": 5,
+      "maxLeverage": 25,
+      "stop": 96,
+      "target": null,
+      "mmr": 0.01,
+      "lot": 1,
+      "edit": [
+       "leverage"
+      ]
+     },
+     "question": {
+      "type": "set",
+      "field": "leverage",
+      "target": 20,
+      "tolerance": 0
+     }
+    },
+    {
+     "id": "wick",
+     "phase": "decision",
+     "chart": {
+      "market": "V",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 98.6,
+        "h": 99,
+        "l": 98.1,
+        "c": 98.4,
+        "v": 80
+       },
+       {
+        "o": 98.4,
+        "h": 98.6,
+        "l": 97.6,
+        "c": 97.9,
+        "v": 95
+       },
+       {
+        "o": 97.9,
+        "h": 98.2,
+        "l": 94.8,
+        "c": 97.7,
+        "v": 140
+       },
+       {
+        "o": 97.7,
+        "h": 98.5,
+        "l": 97.4,
+        "c": 98.3,
+        "v": 90
+       }
+      ],
+      "levels": [
+       {
+        "kind": "liquidation",
+        "price": 95.5
+       },
+       {
+        "kind": "mark",
+        "price": 97.1
+       },
+       {
+        "kind": "stop",
+        "price": 96
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "stopOnly"
+       },
+       {
+        "kind": "text",
+        "id": "liquidated"
+       },
+       {
+        "kind": "text",
+        "id": "nothing"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "ten",
+     "phase": "transfer",
+     "chart": {
+      "market": "W",
+      "interval": "4h",
+      "candles": [
+       {
+        "o": 49.2,
+        "h": 50.1,
+        "l": 48.9,
+        "c": 49.8,
+        "v": 60
+       },
+       {
+        "o": 49.8,
+        "h": 50.4,
+        "l": 49.5,
+        "c": 50,
+        "v": 55
+       }
+      ],
+      "levels": [
+       {
+        "kind": "entry",
+        "price": 50
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "l5446"
+       },
+       {
+        "kind": "text",
+        "id": "l4545"
+       },
+       {
+        "kind": "text",
+        "id": "l55"
+       }
+      ],
+      "answer": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "futures-funding",
+   "stage": "futures3",
+   "steps": [
+    {
+     "id": "funding",
+     "phase": "concept"
+    },
+    {
+     "id": "carry",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "N",
+      "columns": [
+       {
+        "id": "interval"
+       },
+       {
+        "id": "rate",
+        "digits": 2,
+        "suffix": "%"
+       },
+       {
+        "id": "paid",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        1,
+        0.05,
+        5
+       ],
+       [
+        2,
+        0.05,
+        5
+       ],
+       [
+        3,
+        0.05,
+        5
+       ]
+      ]
+     }
+    },
+    {
+     "id": "pay",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 5,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    },
+    {
+     "id": "crowded",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "longs"
+       },
+       {
+        "kind": "text",
+        "id": "shorts"
+       },
+       {
+        "kind": "text",
+        "id": "up"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "negative",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "P",
+      "columns": [
+       {
+        "id": "interval"
+       },
+       {
+        "id": "rate",
+        "digits": 2,
+        "suffix": "%"
+       }
+      ],
+      "rows": [
+       [
+        1,
+        -0.03
+       ],
+       [
+        2,
+        -0.03
+       ]
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "pay06"
+       },
+       {
+        "kind": "text",
+        "id": "get06"
+       },
+       {
+        "kind": "text",
+        "id": "pay6"
+       }
+      ],
+      "answer": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "risk-sizing",
+   "stage": "risk",
+   "steps": [
+    {
+     "id": "size",
+     "phase": "concept"
+    },
+    {
+     "id": "leverage",
+     "phase": "demo",
+     "widget": {
+      "kind": "ticket",
+      "market": "R",
+      "equity": 10000,
+      "entry": 100,
+      "side": "buy",
+      "qty": 25,
+      "leverage": 5,
+      "maxLeverage": 10,
+      "stop": 96,
+      "target": null,
+      "mmr": 0.01,
+      "lot": 1,
+      "edit": [
+       "leverage"
+      ]
+     }
+    },
+    {
+     "id": "set-size",
+     "phase": "decision",
+     "widget": {
+      "kind": "ticket",
+      "market": "R",
+      "equity": 10000,
+      "entry": 100,
+      "side": "buy",
+      "qty": 10,
+      "leverage": 3,
+      "maxLeverage": 10,
+      "stop": 96,
+      "target": null,
+      "mmr": 0.01,
+      "lot": 1,
+      "edit": [
+       "qty"
+      ]
+     },
+     "question": {
+      "type": "set",
+      "field": "riskAtStop",
+      "target": 100,
+      "tolerance": 4
+     }
+    },
+    {
+     "id": "r",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 2,
+      "tolerance": 0.001,
+      "unit": "R"
+     }
+    },
+    {
+     "id": "short",
+     "phase": "transfer",
+     "widget": {
+      "kind": "ticket",
+      "market": "J",
+      "equity": 10000,
+      "entry": 250,
+      "side": "sell",
+      "qty": 30,
+      "leverage": 3,
+      "maxLeverage": 10,
+      "stop": 260,
+      "target": null,
+      "mmr": 0.01,
+      "lot": 1,
+      "edit": [
+       "qty"
+      ]
+     },
+     "question": {
+      "type": "set",
+      "field": "riskAtStop",
+      "target": 100,
+      "tolerance": 10
+     }
+    }
+   ]
+  },
+  {
+   "id": "risk-expectancy",
+   "stage": "risk",
+   "steps": [
+    {
+     "id": "expectancy",
+     "phase": "concept"
+    },
+    {
+     "id": "table",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "D",
+      "columns": [
+       {
+        "id": "trade"
+       },
+       {
+        "id": "r",
+        "digits": 0,
+        "suffix": "R"
+       }
+      ],
+      "rows": [
+       [
+        1,
+        2
+       ],
+       [
+        2,
+        -1
+       ],
+       [
+        3,
+        -1
+       ],
+       [
+        4,
+        2
+       ],
+       [
+        5,
+        -1
+       ],
+       [
+        6,
+        -1
+       ],
+       [
+        7,
+        2
+       ],
+       [
+        8,
+        -1
+       ],
+       [
+        9,
+        2
+       ],
+       [
+        10,
+        -1
+       ]
+      ]
+     }
+    },
+    {
+     "id": "e",
+     "phase": "decision",
+     "widget": {
+      "kind": "table",
+      "market": "D",
+      "columns": [
+       {
+        "id": "trade"
+       },
+       {
+        "id": "r",
+        "digits": 0,
+        "suffix": "R"
+       }
+      ],
+      "rows": [
+       [
+        1,
+        2
+       ],
+       [
+        2,
+        -1
+       ],
+       [
+        3,
+        -1
+       ],
+       [
+        4,
+        2
+       ],
+       [
+        5,
+        -1
+       ],
+       [
+        6,
+        -1
+       ],
+       [
+        7,
+        2
+       ],
+       [
+        8,
+        -1
+       ],
+       [
+        9,
+        2
+       ],
+       [
+        10,
+        -1
+       ]
+      ]
+     },
+     "question": {
+      "type": "number",
+      "answer": 0.2,
+      "tolerance": 0.001,
+      "unit": "R"
+     }
+    },
+    {
+     "id": "streak",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "s78"
+       },
+       {
+        "kind": "text",
+        "id": "s60"
+       },
+       {
+        "kind": "text",
+        "id": "rare"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "recover",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "pct",
+        "value": 50
+       },
+       {
+        "kind": "pct",
+        "value": 100
+       },
+       {
+        "kind": "pct",
+        "value": 75
+       }
+      ],
+      "answer": 1
+     }
+    },
+    {
+     "id": "sample",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "N",
+      "columns": [
+       {
+        "id": "trades"
+       },
+       {
+        "id": "win",
+        "digits": 0,
+        "suffix": "%"
+       },
+       {
+        "id": "avgWin",
+        "digits": 1,
+        "suffix": "R"
+       },
+       {
+        "id": "avgLoss",
+        "digits": 1,
+        "suffix": "R"
+       }
+      ],
+      "rows": [
+       [
+        30,
+        37,
+        2,
+        1
+       ]
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "few"
+       },
+       {
+        "kind": "text",
+        "id": "proven"
+       },
+       {
+        "kind": "text",
+        "id": "doubleSize"
+       }
+      ],
+      "answer": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "options-payoff",
+   "stage": "options1",
+   "steps": [
+    {
+     "id": "rights",
+     "phase": "concept"
+    },
+    {
+     "id": "value",
+     "phase": "concept"
+    },
+    {
+     "id": "payoff",
+     "phase": "demo",
+     "widget": {
+      "kind": "payoff",
+      "market": "O",
+      "legs": [
+       {
+        "kind": "call",
+        "side": "buy",
+        "qty": 1,
+        "strike": 100,
+        "price": 4
+       }
+      ],
+      "lo": 85,
+      "hi": 115
+     }
+    },
+    {
+     "id": "be",
+     "phase": "decision",
+     "widget": {
+      "kind": "payoff",
+      "market": "O",
+      "legs": [
+       {
+        "kind": "call",
+        "side": "buy",
+        "qty": 1,
+        "strike": 100,
+        "price": 4
+       }
+      ],
+      "lo": 85,
+      "hi": 115,
+      "hideAnalytics": true
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "b104"
+       },
+       {
+        "kind": "text",
+        "id": "b100"
+       },
+       {
+        "kind": "text",
+        "id": "b96"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "pnl110",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 6,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    },
+    {
+     "id": "loss",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "premium"
+       },
+       {
+        "kind": "text",
+        "id": "strike"
+       },
+       {
+        "kind": "text",
+        "id": "unbounded"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "put",
+     "phase": "transfer",
+     "widget": {
+      "kind": "payoff",
+      "market": "U",
+      "legs": [
+       {
+        "kind": "put",
+        "side": "buy",
+        "qty": 1,
+        "strike": 2400,
+        "price": 60
+       }
+      ],
+      "lo": 2200,
+      "hi": 2600,
+      "hideAnalytics": true
+     },
+     "question": {
+      "type": "number",
+      "answer": 2340,
+      "tolerance": 0.01
+     }
+    }
+   ]
+  },
+  {
+   "id": "options-greeks",
+   "stage": "options2",
+   "steps": [
+    {
+     "id": "delta",
+     "phase": "concept"
+    },
+    {
+     "id": "others",
+     "phase": "concept"
+    },
+    {
+     "id": "move",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "A",
+      "columns": [
+       {
+        "id": "value",
+        "digits": 2
+       },
+       {
+        "id": "delta",
+        "digits": 2
+       },
+       {
+        "id": "gamma",
+        "digits": 2
+       },
+       {
+        "id": "theta",
+        "digits": 2
+       },
+       {
+        "id": "vega",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        3.2,
+        0.5,
+        0.04,
+        -0.08,
+        0.15
+       ]
+      ]
+     }
+    },
+    {
+     "id": "which",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "theta"
+       },
+       {
+        "kind": "text",
+        "id": "delta"
+       },
+       {
+        "kind": "text",
+        "id": "vega"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "estimate",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": -1.2,
+      "tolerance": 0.001
+     }
+    },
+    {
+     "id": "gamma",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "atmNear"
+       },
+       {
+        "kind": "text",
+        "id": "otmFar"
+       },
+       {
+        "kind": "text",
+        "id": "itmFar"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "vega",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "B",
+      "columns": [
+       {
+        "id": "delta",
+        "digits": 2
+       },
+       {
+        "id": "theta",
+        "digits": 2
+       },
+       {
+        "id": "vega",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        -0.3,
+        -0.05,
+        0.25
+       ]
+      ]
+     },
+     "question": {
+      "type": "number",
+      "answer": 1,
+      "tolerance": 0.001
+     }
+    }
+   ]
+  },
+  {
+   "id": "options-iv",
+   "stage": "options2",
+   "steps": [
+    {
+     "id": "iv",
+     "phase": "concept"
+    },
+    {
+     "id": "decay",
+     "phase": "concept"
+    },
+    {
+     "id": "straddle",
+     "phase": "demo",
+     "widget": {
+      "kind": "payoff",
+      "market": "E",
+      "legs": [
+       {
+        "kind": "call",
+        "side": "buy",
+        "qty": 1,
+        "strike": 100,
+        "price": 4
+       },
+       {
+        "kind": "put",
+        "side": "buy",
+        "qty": 1,
+        "strike": 100,
+        "price": 4
+       }
+      ],
+      "lo": 80,
+      "hi": 120
+     }
+    },
+    {
+     "id": "crush",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "crush"
+       },
+       {
+        "kind": "text",
+        "id": "delta"
+       },
+       {
+        "kind": "text",
+        "id": "wrongSide"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "crushNumber",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": -3,
+      "tolerance": 0.001
+     }
+    },
+    {
+     "id": "event",
+     "phase": "transfer",
+     "widget": {
+      "kind": "payoff",
+      "market": "H",
+      "legs": [
+       {
+        "kind": "call",
+        "side": "buy",
+        "qty": 1,
+        "strike": 2400,
+        "price": 75
+       },
+       {
+        "kind": "put",
+        "side": "buy",
+        "qty": 1,
+        "strike": 2400,
+        "price": 75
+       }
+      ],
+      "lo": 2100,
+      "hi": 2700,
+      "hideAnalytics": true
+     },
+     "question": {
+      "type": "number",
+      "answer": 6.25,
+      "tolerance": 0.05,
+      "unit": "%"
+     }
+    }
+   ]
+  },
+  {
+   "id": "options-writing",
+   "stage": "options3",
+   "steps": [
+    {
+     "id": "writing",
+     "phase": "concept"
+    },
+    {
+     "id": "settle",
+     "phase": "concept"
+    },
+    {
+     "id": "covered",
+     "phase": "demo",
+     "widget": {
+      "kind": "payoff",
+      "market": "C",
+      "legs": [
+       {
+        "kind": "perp",
+        "side": "buy",
+        "qty": 1,
+        "price": 100
+       },
+       {
+        "kind": "call",
+        "side": "sell",
+        "qty": 1,
+        "strike": 105,
+        "price": 2
+       }
+      ],
+      "lo": 80,
+      "hi": 120
+     }
+    },
+    {
+     "id": "ccMax",
+     "phase": "decision",
+     "widget": {
+      "kind": "payoff",
+      "market": "C",
+      "legs": [
+       {
+        "kind": "perp",
+        "side": "buy",
+        "qty": 1,
+        "price": 100
+       },
+       {
+        "kind": "call",
+        "side": "sell",
+        "qty": 1,
+        "strike": 105,
+        "price": 2
+       }
+      ],
+      "lo": 80,
+      "hi": 120,
+      "hideAnalytics": true
+     },
+     "question": {
+      "type": "number",
+      "answer": 7,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    },
+    {
+     "id": "protective",
+     "phase": "decision",
+     "widget": {
+      "kind": "payoff",
+      "market": "C",
+      "legs": [
+       {
+        "kind": "perp",
+        "side": "buy",
+        "qty": 1,
+        "price": 100
+       },
+       {
+        "kind": "put",
+        "side": "buy",
+        "qty": 1,
+        "strike": 95,
+        "price": 2
+       }
+      ],
+      "lo": 80,
+      "hi": 120,
+      "hideAnalytics": true
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "l7"
+       },
+       {
+        "kind": "text",
+        "id": "l2"
+       },
+       {
+        "kind": "text",
+        "id": "l5"
+       },
+       {
+        "kind": "text",
+        "id": "none"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "settleQ",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "twap"
+       },
+       {
+        "kind": "text",
+        "id": "early"
+       },
+       {
+        "kind": "text",
+        "id": "delivery"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "spread",
+     "phase": "transfer",
+     "widget": {
+      "kind": "payoff",
+      "market": "B",
+      "legs": [
+       {
+        "kind": "call",
+        "side": "buy",
+        "qty": 1,
+        "strike": 100,
+        "price": 5.5
+       },
+       {
+        "kind": "call",
+        "side": "sell",
+        "qty": 1,
+        "strike": 110,
+        "price": 1.5
+       }
+      ],
+      "lo": 85,
+      "hi": 125,
+      "hideAnalytics": true
+     },
+     "question": {
+      "type": "number",
+      "answer": 6,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    }
+   ]
+  },
+  {
+   "id": "strategies-shapes",
+   "stage": "strategies",
+   "steps": [
+    {
+     "id": "shapes",
+     "phase": "concept"
+    },
+    {
+     "id": "condor",
+     "phase": "demo",
+     "widget": {
+      "kind": "payoff",
+      "market": "Z",
+      "legs": [
+       {
+        "kind": "put",
+        "side": "buy",
+        "qty": 1,
+        "strike": 90,
+        "price": 0.8
+       },
+       {
+        "kind": "put",
+        "side": "sell",
+        "qty": 1,
+        "strike": 95,
+        "price": 2.3
+       },
+       {
+        "kind": "call",
+        "side": "sell",
+        "qty": 1,
+        "strike": 105,
+        "price": 2.3
+       },
+       {
+        "kind": "call",
+        "side": "buy",
+        "qty": 1,
+        "strike": 110,
+        "price": 0.8
+       }
+      ],
+      "lo": 80,
+      "hi": 120
+     }
+    },
+    {
+     "id": "condorLoss",
+     "phase": "decision",
+     "widget": {
+      "kind": "payoff",
+      "market": "Z",
+      "legs": [
+       {
+        "kind": "put",
+        "side": "buy",
+        "qty": 1,
+        "strike": 90,
+        "price": 0.8
+       },
+       {
+        "kind": "put",
+        "side": "sell",
+        "qty": 1,
+        "strike": 95,
+        "price": 2.3
+       },
+       {
+        "kind": "call",
+        "side": "sell",
+        "qty": 1,
+        "strike": 105,
+        "price": 2.3
+       },
+       {
+        "kind": "call",
+        "side": "buy",
+        "qty": 1,
+        "strike": 110,
+        "price": 0.8
+       }
+      ],
+      "lo": 80,
+      "hi": 120,
+      "hideAnalytics": true
+     },
+     "question": {
+      "type": "number",
+      "answer": 2,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    },
+    {
+     "id": "strangle",
+     "phase": "decision",
+     "widget": {
+      "kind": "payoff",
+      "market": "Z",
+      "legs": [
+       {
+        "kind": "put",
+        "side": "sell",
+        "qty": 1,
+        "strike": 95,
+        "price": 2
+       },
+       {
+        "kind": "call",
+        "side": "sell",
+        "qty": 1,
+        "strike": 105,
+        "price": 2
+       }
+      ],
+      "lo": 80,
+      "hi": 120,
+      "hideAnalytics": true
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "above"
+       },
+       {
+        "kind": "text",
+        "id": "below"
+       },
+       {
+        "kind": "text",
+        "id": "nowhere"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "legging",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "naked"
+       },
+       {
+        "kind": "text",
+        "id": "condor"
+       },
+       {
+        "kind": "text",
+        "id": "flat"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "view",
+     "phase": "transfer",
+     "chart": {
+      "market": "Y",
+      "interval": "1d",
+      "candles": [
+       {
+        "o": 612,
+        "h": 618,
+        "l": 606,
+        "c": 615,
+        "v": 40
+       },
+       {
+        "o": 615,
+        "h": 624,
+        "l": 611,
+        "c": 621,
+        "v": 44
+       },
+       {
+        "o": 621,
+        "h": 626,
+        "l": 615,
+        "c": 618,
+        "v": 37
+       },
+       {
+        "o": 618,
+        "h": 629,
+        "l": 616,
+        "c": 627,
+        "v": 46
+       },
+       {
+        "o": 627,
+        "h": 633,
+        "l": 622,
+        "c": 630,
+        "v": 41
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "bull"
+       },
+       {
+        "kind": "text",
+        "id": "shortStrangle"
+       },
+       {
+        "kind": "text",
+        "id": "straddle"
+       }
+      ],
+      "answer": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "patterns-lag",
+   "stage": "patterns",
+   "steps": [
+    {
+     "id": "lag",
+     "phase": "concept"
+    },
+    {
+     "id": "failure",
+     "phase": "demo",
+     "chart": {
+      "market": "L",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100.2,
+        "h": 100.6,
+        "l": 99.4,
+        "c": 99.6,
+        "v": 110
+       },
+       {
+        "o": 99.6,
+        "h": 99.9,
+        "l": 98.8,
+        "c": 99,
+        "v": 130
+       },
+       {
+        "o": 99,
+        "h": 99.3,
+        "l": 98.2,
+        "c": 98.5,
+        "v": 120
+       },
+       {
+        "o": 98.5,
+        "h": 98.7,
+        "l": 98,
+        "c": 98.2,
+        "v": 100
+       },
+       {
+        "o": 98.1,
+        "h": 100.6,
+        "l": 98,
+        "c": 100.4,
+        "v": 240
+       },
+       {
+        "o": 100.4,
+        "h": 100.5,
+        "l": 98.9,
+        "c": 99.1,
+        "v": 150
+       },
+       {
+        "o": 99.1,
+        "h": 99.2,
+        "l": 97.7,
+        "c": 97.9,
+        "v": 190
+       },
+       {
+        "o": 97.9,
+        "h": 98.3,
+        "l": 97.1,
+        "c": 97.4,
+        "v": 160
+       }
+      ],
+      "highlight": 5
+     }
+    },
+    {
+     "id": "spot",
+     "phase": "decision",
+     "chart": {
+      "market": "L",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100.2,
+        "h": 100.6,
+        "l": 99.4,
+        "c": 99.6,
+        "v": 110
+       },
+       {
+        "o": 99.6,
+        "h": 99.9,
+        "l": 98.8,
+        "c": 99,
+        "v": 130
+       },
+       {
+        "o": 99,
+        "h": 99.3,
+        "l": 98.2,
+        "c": 98.5,
+        "v": 120
+       },
+       {
+        "o": 98.5,
+        "h": 98.7,
+        "l": 98,
+        "c": 98.2,
+        "v": 100
+       },
+       {
+        "o": 98.1,
+        "h": 100.6,
+        "l": 98,
+        "c": 100.4,
+        "v": 240
+       },
+       {
+        "o": 100.4,
+        "h": 100.5,
+        "l": 98.9,
+        "c": 99.1,
+        "v": 150
+       },
+       {
+        "o": 99.1,
+        "h": 99.2,
+        "l": 97.7,
+        "c": 97.9,
+        "v": 190
+       },
+       {
+        "o": 97.9,
+        "h": 98.3,
+        "l": 97.1,
+        "c": 97.4,
+        "v": 160
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "bar",
+        "bar": 6
+       },
+       {
+        "kind": "bar",
+        "bar": 7
+       },
+       {
+        "kind": "bar",
+        "bar": 8
+       }
+      ],
+      "answer": 1
+     }
+    },
+    {
+     "id": "tool",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "edges"
+       },
+       {
+        "kind": "text",
+        "id": "cross"
+       },
+       {
+        "kind": "text",
+        "id": "any"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "trend",
+     "phase": "transfer",
+     "chart": {
+      "market": "M",
+      "interval": "4h",
+      "candles": [
+       {
+        "o": 610,
+        "h": 622,
+        "l": 606,
+        "c": 620,
+        "v": 50
+       },
+       {
+        "o": 620,
+        "h": 634,
+        "l": 617,
+        "c": 631,
+        "v": 58
+       },
+       {
+        "o": 631,
+        "h": 645,
+        "l": 628,
+        "c": 642,
+        "v": 61
+       },
+       {
+        "o": 642,
+        "h": 655,
+        "l": 638,
+        "c": 652,
+        "v": 66
+       },
+       {
+        "o": 652,
+        "h": 660,
+        "l": 646,
+        "c": 657,
+        "v": 54
+       },
+       {
+        "o": 657,
+        "h": 671,
+        "l": 653,
+        "c": 668,
+        "v": 63
+       }
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "canStay"
+       },
+       {
+        "kind": "text",
+        "id": "sell"
+       },
+       {
+        "kind": "text",
+        "id": "broken"
+       }
+      ],
+      "answer": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "events-surprise",
+   "stage": "events",
+   "steps": [
+    {
+     "id": "consensus",
+     "phase": "concept"
+    },
+    {
+     "id": "table",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "R",
+      "columns": [
+       {
+        "id": "consensus",
+        "digits": 1
+       },
+       {
+        "id": "actual",
+        "digits": 1
+       },
+       {
+        "id": "surprise",
+        "digits": 1
+       },
+       {
+        "id": "reaction"
+       }
+      ],
+      "rows": [
+       [
+        2,
+        2,
+        0,
+        "flat"
+       ],
+       [
+        2,
+        3,
+        1,
+        "up"
+       ],
+       [
+        2,
+        1,
+        -1,
+        "down"
+       ]
+      ]
+     }
+    },
+    {
+     "id": "goodNews",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "surprise"
+       },
+       {
+        "kind": "text",
+        "id": "random"
+       },
+       {
+        "kind": "text",
+        "id": "manipulated"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "gapFill",
+     "phase": "decision",
+     "chart": {
+      "market": "R",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 100.2,
+        "h": 100.7,
+        "l": 99.8,
+        "c": 100.4,
+        "v": 70
+       },
+       {
+        "o": 100.4,
+        "h": 100.6,
+        "l": 99.9,
+        "c": 100.1,
+        "v": 65
+       },
+       {
+        "o": 100.1,
+        "h": 100.3,
+        "l": 99.6,
+        "c": 99.8,
+        "v": 72
+       },
+       {
+        "o": 96.4,
+        "h": 97.2,
+        "l": 95.9,
+        "c": 96.8,
+        "v": 210
+       }
+      ],
+      "levels": [
+       {
+        "kind": "entry",
+        "price": 100.4
+       },
+       {
+        "kind": "stop",
+        "price": 99
+       }
+      ]
+     },
+     "question": {
+      "type": "number",
+      "answer": 2.6,
+      "tolerance": 0.001
+     }
+    },
+    {
+     "id": "position",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "reduce"
+       },
+       {
+        "kind": "text",
+        "id": "stopOnly"
+       },
+       {
+        "kind": "text",
+        "id": "double"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "other",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "D",
+      "columns": [
+       {
+        "id": "consensus",
+        "digits": 1
+       },
+       {
+        "id": "actual",
+        "digits": 1
+       }
+      ],
+      "rows": [
+       [
+        0.3,
+        0.3
+       ]
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "little"
+       },
+       {
+        "kind": "text",
+        "id": "big"
+       },
+       {
+        "kind": "text",
+        "id": "down"
+       }
+      ],
+      "answer": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "mind-plan",
+   "stage": "evaluation",
+   "steps": [
+    {
+     "id": "plan",
+     "phase": "concept"
+    },
+    {
+     "id": "biases",
+     "phase": "concept"
+    },
+    {
+     "id": "journal",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "J",
+      "columns": [
+       {
+        "id": "trade"
+       },
+       {
+        "id": "r",
+        "digits": 0,
+        "suffix": "R"
+       },
+       {
+        "id": "note"
+       }
+      ],
+      "rows": [
+       [
+        1,
+        -1,
+        "planned"
+       ],
+       [
+        2,
+        -1,
+        "planned"
+       ],
+       [
+        3,
+        -3,
+        "tripled"
+       ],
+       [
+        4,
+        2,
+        "planned"
+       ]
+      ]
+     }
+    },
+    {
+     "id": "revenge",
+     "phase": "decision",
+     "widget": {
+      "kind": "table",
+      "market": "J",
+      "columns": [
+       {
+        "id": "trade"
+       },
+       {
+        "id": "r",
+        "digits": 0,
+        "suffix": "R"
+       },
+       {
+        "id": "note"
+       }
+      ],
+      "rows": [
+       [
+        1,
+        -1,
+        "planned"
+       ],
+       [
+        2,
+        -1,
+        "planned"
+       ],
+       [
+        3,
+        -3,
+        "tripled"
+       ],
+       [
+        4,
+        2,
+        "planned"
+       ]
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "t2"
+       },
+       {
+        "kind": "text",
+        "id": "t3"
+       },
+       {
+        "kind": "text",
+        "id": "t4"
+       }
+      ],
+      "answer": 1
+     }
+    },
+    {
+     "id": "calibration",
+     "phase": "decision",
+     "widget": {
+      "kind": "table",
+      "market": "J",
+      "columns": [
+       {
+        "id": "confidence",
+        "digits": 0,
+        "suffix": "%"
+       },
+       {
+        "id": "forecasts"
+       },
+       {
+        "id": "right"
+       }
+      ],
+      "rows": [
+       [
+        70,
+        10,
+        4
+       ]
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "over"
+       },
+       {
+        "kind": "text",
+        "id": "calibrated"
+       },
+       {
+        "kind": "text",
+        "id": "under"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "sample",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "oneSample"
+       },
+       {
+        "kind": "text",
+        "id": "proven"
+       },
+       {
+        "kind": "text",
+        "id": "lucky"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "fomo",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "K",
+      "columns": [
+       {
+        "id": "trade"
+       },
+       {
+        "id": "note"
+       }
+      ],
+      "rows": [
+       [
+        1,
+        "chase"
+       ],
+       [
+        2,
+        "planned"
+       ],
+       [
+        3,
+        "waited"
+       ]
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "t1"
+       },
+       {
+        "kind": "text",
+        "id": "t2"
+       },
+       {
+        "kind": "text",
+        "id": "t3"
        }
       ],
       "answer": 0

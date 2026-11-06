@@ -664,7 +664,7 @@ unlock.optionsWrite,venda de opções,writing options
 unlock.after,{what} (libera ao aprovar {stage}),{what} (unlocks when {stage} is passed)
 curriculum.open,Currículo e progresso,Curriculum and progress
 curriculum.title,Currículo,Curriculum
-curriculum.note,"Um estágio é aprovado ao concluir sua missão de avaliação em uma campanha. Falência, liquidação ou uma campanha encerrada nunca removem um estágio aprovado nem um desbloqueio. Desbloqueios não se compram.","A stage is passed by finishing its assessment mission in a campaign run. Bankruptcy, liquidation or an ended campaign run never remove a passed stage or an unlock. Unlocks cannot be bought."
+curriculum.note,"Um estágio é aprovado ao concluir sua missão de avaliação em uma campanha; as lições da Academia preparam, mas não bloqueiam. Falência, liquidação ou uma campanha encerrada nunca removem um estágio aprovado nem um desbloqueio. Desbloqueios não se compram.","A stage is passed by finishing its assessment mission in a campaign run; Academy lessons prepare for it but never block it. Bankruptcy, liquidation or an ended campaign run never remove a passed stage or an unlock. Unlocks cannot be bought."
 curriculum.status.passed,APROVADO,PASSED
 curriculum.status.open,DISPONÍVEL,OPEN
 curriculum.status.locked,BLOQUEADO,LOCKED
@@ -685,6 +685,7 @@ stage.risk,Dimensionamento de risco,Risk sizing
 stage.options1,Opções I · payoffs,Options I · payoffs
 stage.options2,Opções II · IV e gregas,Options II · IV and Greeks
 stage.options3,Opções III · venda e margem,Options III · writing and margin
+stage.strategies,Estratégias · estruturas com várias pernas,Strategies · multi-leg structures
 stage.patterns,Padrões e indicadores,Patterns and indicators
 stage.evaluation,Avaliação de resultados,Evaluating results
 stage.events,Eventos,Events
@@ -811,6 +812,76 @@ academy.doneTitle,Lição concluída,Lesson complete
 academy.doneScore,{right} de {total} respostas certas na primeira tentativa,{right} of {total} answers right on the first try
 academy.doneNote,Os gráficos da lição são exemplos ilustrativos: não indicam uma frequência real de acerto.,The lesson charts are illustrative examples: they do not imply a real success frequency.
 academy.finish,Voltar ao currículo,Back to the curriculum
+academy.open,Academia,Academy
+academy.title,Academia,Academy
+academy.intro,"Lições curtas para cada estágio: conceito, demonstração, decisão e um exercício em outro mercado. Elas preparam para as missões e nunca bloqueiam a campanha.","Short lessons for every stage: concept, demonstration, decision and an exercise on another market. They prepare for the missions and never block the campaign."
+academy.dueTitle,Revisões de hoje ({n}),Today's reviews ({n})
+academy.reviewStart,Revisar,Review
+academy.status.new,NOVA,NEW
+academy.status.done,CONCLUÍDA,DONE
+academy.status.due,REVISAR,REVIEW
+academy.retired,revisões concluídas,reviews complete
+academy.review,revisão,review
+academy.reviewDoneTitle,Revisão concluída,Review complete
+academy.reviewUp,Tudo certo na primeira tentativa: a próxima revisão fica mais espaçada.,All right on the first try: the next review comes later.
+academy.reviewReset,Houve erro na primeira tentativa: esta lição volta a ser revisada amanhã.,A first try was wrong: this lesson comes back for review tomorrow.
+academy.reviewNext,As perguntas de decisão e transferência voltam para revisão amanhã.,The decision and transfer questions come back for review tomorrow.
+academy.backToAcademy,Voltar à Academia,Back to the Academy
+academy.reviewPrompt,{n} lições para revisar hoje,{n} lessons to review today
+academy.reviewPromptOne,{n} lição para revisar hoje,{n} lesson to review today
+academy.reviewOpen,Ver revisões,See reviews
+academy.reviewDismiss,Hoje não,Not today
+academy.answer,Sua resposta,Your answer
+academy.check,Conferir,Check
+academy.setHint,Ajuste a boleta acima e confira.,Adjust the ticket above and check.
+academy.sandbox,boleta de treino,practice ticket
+academy.data,dados,data
+academy.ticket.equity,Capital,Capital
+academy.ticket.entry,Entrada,Entry
+academy.ticket.side,Lado,Side
+academy.ticket.r,Alvo em R,Target in R
+academy.ticket.beyondLiq,O stop está além da liquidação: a liquidação viria primeiro.,The stop is beyond liquidation: liquidation would come first.
+academy.ticket.noCosts,"Boleta de treino: nada é enviado, e taxas, spread e slippage ficam de fora.","Practice ticket: nothing is sent, and fees, spread and slippage are left out."
+academy.payoff.atExpiry,resultado no vencimento,result at expiry
+academy.payoff.aria,Gráfico do resultado no vencimento: {legs},Chart of the result at expiry: {legs}
+academy.payoff.buy,compra,buy
+academy.payoff.sell,venda,sell
+academy.payoff.option,{side} {qty} {kind} {strike} por {price},{side} {qty} {kind} {strike} for {price}
+academy.payoff.perp,{side} {qty} perpétuo a {price},{side} {qty} perpetual at {price}
+academy.payoff.breakeven,Equilíbrio,Breakeven
+academy.payoff.maxProfit,Ganho máximo,Max profit
+academy.payoff.maxLoss,Perda máxima,Max loss
+academy.payoff.unbounded,sem limite,unbounded
+academy.payoff.note,"Resultado no vencimento, com prêmios e sem taxas.","Result at expiry, premiums included, fees left out."
+academy.level.entry,entrada,entry
+academy.level.stop,stop,stop
+academy.level.target,alvo,target
+academy.level.liquidation,liquidação,liquidation
+academy.level.mark,marcação,mark
+academy.level.last,último,last
+academy.level.strike,strike,strike
+curriculum.lessons,Lições da Academia: {done} de {total} concluídas,Academy lessons: {done} of {total} done
+debrief.openLesson,Abrir a lição: {title},Open the lesson: {title}
+glossary.open,Glossário,Glossary
+glossary.title,Glossário,Glossary
+glossary.note,"Termos do jogo com definição curta, explicação e exemplos. A busca ignora acentos e maiúsculas.","The game’s terms with a short definition, an explanation and examples. Search ignores accents and case."
+glossary.search,Buscar termo,Search a term
+glossary.count,{n} termos,{n} terms
+glossary.new,novo,new
+glossary.example,Exemplo,Example
+glossary.aliases,Também,Also
+glossary.related,Relacionados,Related
+glossary.pick,Escolha um termo da lista.,Pick a term from the list.
+glossary.back,Voltar,Back
+glossary.close,Fechar,Close
+glossary.more,Clique ou Enter: mais no glossário,Click or Enter: more in the glossary
+coach.title,Primeiro trade guiado,Guided first trade
+coach.stepOf,Passo {n} de {total},Step {n} of {total}
+coach.next,Próximo,Next
+coach.done,Concluir,Done
+coach.skip,Pular tour,Skip tour
+coach.skipped,Tour encerrado,Tour ended
+coach.replay,Tour guiado,Guided tour
 catalog.open,Catálogo de pacotes,Pack catalog
 catalog.title,Catálogo de pacotes,Pack catalog
 catalog.note,"Mercados publicados e assinados pela editora. Cada download é conferido (tamanho, SHA-256 e assinatura) antes de ser instalado; depois de instalado, o pacote joga sem conexão. São cenários conhecidos, para praticar o processo.","Markets published and signed by the publisher. Every download is checked (size, SHA-256 and signature) before it is installed; once installed, the pack plays with no connection. They are known scenarios, for practicing your process."
@@ -1458,6 +1529,504 @@ academyLesson.foundations-bar.move.title,Transferência: retorno em outro nível
 academyLesson.foundations-bar.move.body,"Do fechamento da barra 1 (2.425) ao fechamento da barra 4 (2.394), qual foi o retorno?","From the close of bar 1 (2,425) to the close of bar 4 (2,394), what was the return?"
 academyLesson.foundations-bar.move.right,"−31 / 2.425 = −1,28%. No mercado X, 31 pontos seriam cerca de 30%: por isso se compara em retorno.","−31 / 2,425 = −1.28%. In market X, 31 points would be about 30%: that is why moves are compared as returns."
 academyLesson.foundations-bar.move.wrong,Use os fechamentos: (2.394 − 2.425) / 2.425.,"Use the closes: (2,394 − 2,425) / 2,425."
+academyLesson.structure-zones.title,Zonas e estrutura,Zones and structure
+academyLesson.structure-zones.summary,Suporte e resistência são zonas; topos e fundos ascendentes; rompimento contra reteste; quando a estrutura quebra.,Support and resistance are zones; higher highs and higher lows; breakout against retest; when the structure breaks.
+academyLesson.structure-zones.zones.title,"Zonas, não linhas","Zones, not lines"
+academyLesson.structure-zones.zones.body,"Suporte é uma faixa de preço onde compradores apareceram antes; resistência, onde vendedores apareceram. São faixas porque o preço raramente para no mesmo centavo: aqui a queda parou duas vezes entre 98,10 e 98,40, e a alta parou entre 101,70 e 101,80.","Support is a price band where buyers showed up before; resistance, where sellers did. They are bands because price rarely stops at the same cent: here the fall stopped twice between 98.10 and 98.40, and the rise stopped between 101.70 and 101.80."
+academyLesson.structure-zones.trend.title,Topos e fundos,Highs and lows
+academyLesson.structure-zones.trend.body,"Numa tendência de alta cada topo passa o anterior e cada fundo fica acima do anterior: topos 101,60, 102,40, 103,10; fundos 100,40, 101,20. Enquanto essa sequência continua, a estrutura é de alta. Ela quebra quando um fechamento fica abaixo do último fundo ascendente.","In an up trend each high passes the previous one and each low stays above the previous one: highs 101.60, 102.40, 103.10; lows 100.40, 101.20. While that sequence goes on, the structure is up. It breaks when a close falls below the last higher low."
+academyLesson.structure-zones.retest.title,Rompimento e reteste,Breakout and retest
+academyLesson.structure-zones.retest.body,"A barra 9 fechou em 102,40, acima da resistência: um rompimento. A barra 10 voltou até 101,60, a antiga resistência, e fechou acima dela: um reteste que segurou. A zona trocou de papel. Mesmo assim, é informação sobre o passado, não garantia sobre a próxima barra.","Bar 9 closed at 102.40, above resistance: a breakout. Bar 10 came back to 101.60, the old resistance, and closed above it: a retest that held. The zone switched roles. Still, this is information about the past, not a guarantee about the next bar."
+academyLesson.structure-zones.held.title,Decisão: qual zona segurou?,Decision: which zone held?
+academyLesson.structure-zones.held.body,"Olhando só as barras fechadas, qual faixa segurou a queda duas vezes?","Looking only at the closed bars, which band held the fall twice?"
+academyLesson.structure-zones.held.right,"Isso: as barras 3 e 7 desceram até 98,40 e 98,10 e voltaram. Dois toques parecidos, não idênticos: por isso é uma zona.","Bars 3 and 7 went down to 98.40 and 98.10 and came back. Two similar touches, not identical: that is why it is a zone."
+academyLesson.structure-zones.held.wrong,Procure as mínimas parecidas em que o preço parou de cair e voltou.,Look for similar lows where price stopped falling and came back.
+academyLesson.structure-zones.held.choice.z98,"98,10 a 98,40",98.10 to 98.40
+academyLesson.structure-zones.held.choice.z99,"99,50 a 99,90",99.50 to 99.90
+academyLesson.structure-zones.held.choice.z100,"100,20 a 100,60",100.20 to 100.60
+academyLesson.structure-zones.held.choice.z102,"102,40 a 102,60",102.40 to 102.60
+academyLesson.structure-zones.held.feedback.z102,Essa faixa ainda não existe: as barras 9 e 10 são futuro nesta etapa. Use só o que já fechou.,That band does not exist yet: bars 9 and 10 are the future at this step. Use only what has closed.
+academyLesson.structure-zones.broke.title,Decisão: onde a estrutura quebrou?,Decision: where did the structure break?
+academyLesson.structure-zones.broke.body,Qual barra foi a primeira a fechar abaixo do último fundo ascendente?,Which bar was the first to close below the last higher low?
+academyLesson.structure-zones.broke.right,"A barra 8 fechou em 101,00, abaixo do último fundo ascendente (101,20, barra 5): a sequência de fundos ascendentes acabou. Isso não diz que vai cair, só que a tendência anterior parou de se confirmar.","Bar 8 closed at 101.00, below the last higher low (101.20, bar 5): the sequence of higher lows ended. That does not say it will fall, only that the previous trend stopped confirming."
+academyLesson.structure-zones.broke.wrong,"O último fundo ascendente é 101,20 (barra 5). Procure o primeiro fechamento abaixo dele.",The last higher low is 101.20 (bar 5). Look for the first close below it.
+academyLesson.structure-zones.transfer-break.title,Transferência: uma tendência de baixa,Transfer: a downtrend
+academyLesson.structure-zones.transfer-break.body,"Mercado T, barras de 4 horas, preço entre 2.368 e 2.462, em tendência de baixa (topos e fundos descendentes). Qual barra foi a primeira a fechar acima do último topo descendente?","Market T, 4-hour bars, price between 2,368 and 2,462, in a downtrend (lower highs and lower lows). Which bar was the first to close above the last lower high?"
+academyLesson.structure-zones.transfer-break.right,"A barra 7 fechou em 2.421, acima do último topo descendente (2.412, barra 5): a sequência de topos descendentes acabou. A mesma regra vale invertida, em qualquer nível de preço.","Bar 7 closed at 2,421, above the last lower high (2,412, bar 5): the sequence of lower highs ended. The same rule holds upside down, at any price level."
+academyLesson.structure-zones.transfer-break.wrong,"Os topos descendentes são 2.440, 2.431 e 2.412. Procure o primeiro fechamento acima do último deles.","The lower highs are 2,440, 2,431 and 2,412. Look for the first close above the last of them."
+academyLesson.orders-execution.title,Ordens e execução,Orders and execution
+academyLesson.orders-execution.summary,"Mercado, limitada e stop; aceita não é executada; spread, slippage e capacidade; um stop que escorregou num gap.","Market, limit and stop; accepted is not filled; spread, slippage and capacity; a stop that slipped in a gap."
+academyLesson.orders-execution.types.title,Três tipos de ordem,Three order types
+academyLesson.orders-execution.types.body,"Uma ordem a mercado executa no próximo preço disponível: garante a execução, não o preço. Uma limitada executa só no seu preço ou melhor: garante o preço, não a execução. Uma ordem stop dorme até o gatilho e então vira ordem a mercado. Aqui toda ordem é aceita agora e só executa na próxima barra: aceita não é executada.","A market order fills at the next available price: it guarantees the fill, not the price. A limit order fills only at your price or better: it guarantees the price, not the fill. A stop order sleeps until its trigger and then becomes a market order. Here every order is accepted now and fills only on the next bar: accepted is not filled."
+academyLesson.orders-execution.spread.title,O spread é um custo,The spread is a cost
+academyLesson.orders-execution.spread.body,"Quem quer vender agora encontra a melhor compra (bid, 99,90); quem quer comprar agora encontra a melhor venda (ask, 100,10). A diferença, 0,20, é o spread. Uma ordem a mercado paga o spread; ordens grandes ou mercados rápidos ainda pagam slippage, e uma barra só executa até a sua capacidade: o resto espera as próximas barras.","Whoever wants to sell now meets the best bid (99.90); whoever wants to buy now meets the best ask (100.10). The difference, 0.20, is the spread. A market order pays the spread; large orders or fast markets also pay slippage, and a bar fills only up to its capacity: the rest waits for the next bars."
+academyLesson.orders-execution.spread.column.0,Compra (bid),Bid
+academyLesson.orders-execution.spread.column.1,Venda (ask),Ask
+academyLesson.orders-execution.spread.column.2,Spread,Spread
+academyLesson.orders-execution.roundtrip.title,Decisão: o custo de ir e voltar,Decision: the cost of a round trip
+academyLesson.orders-execution.roundtrip.body,"Você compra 10 unidades a mercado e vende as 10 logo em seguida, sem o preço mudar. Quanto perdeu, sem contar taxas?","You buy 10 units at market and sell the 10 right after, with no change in price. How much did you lose, before fees?"
+academyLesson.orders-execution.roundtrip.right,"Compra a 100,10 e venda a 99,90: 0,20 × 10 = 2,00. Cada entrada e saída a mercado paga o spread; uma limitada pode evitá-lo, mas pode não executar.","Bought at 100.10 and sold at 99.90: 0.20 × 10 = 2.00. Every market entry and exit pays the spread; a limit order can avoid it, but may not fill."
+academyLesson.orders-execution.roundtrip.wrong,"Compra na venda (ask), vende na compra (bid). Multiplique a diferença pela quantidade.",You buy at the ask and sell at the bid. Multiply the difference by the quantity.
+academyLesson.orders-execution.roundtrip.column.0,Compra (bid),Bid
+academyLesson.orders-execution.roundtrip.column.1,Venda (ask),Ask
+academyLesson.orders-execution.roundtrip.column.2,Spread,Spread
+academyLesson.orders-execution.guarantee.title,Decisão: preço ou execução?,Decision: price or fill?
+academyLesson.orders-execution.guarantee.body,"Qual ordem garante o preço, mas não garante que vai executar?",Which order guarantees the price but not that it fills?
+academyLesson.orders-execution.guarantee.right,"Isso. A limitada nunca executa pior que o seu preço, e por isso pode ficar sem executar se o mercado não vier até ela.","A limit order never fills worse than its price, and that is why it can stay unfilled if the market does not come to it."
+academyLesson.orders-execution.guarantee.wrong,"Pense no que cada ordem promete: uma promete executar, outra promete o preço.","Think about what each order promises: one promises to fill, another promises the price."
+academyLesson.orders-execution.guarantee.choice.limit,A limitada,The limit order
+academyLesson.orders-execution.guarantee.choice.market,A ordem a mercado,The market order
+academyLesson.orders-execution.guarantee.choice.stop,A ordem stop,The stop order
+academyLesson.orders-execution.guarantee.feedback.market,"A ordem a mercado garante a execução (havendo liquidez), não o preço: ela paga o spread e o slippage.","A market order guarantees the fill (given liquidity), not the price: it pays the spread and slippage."
+academyLesson.orders-execution.guarantee.feedback.stop,O stop só dispara no gatilho e então executa a mercado: não garante o preço.,A stop only fires at its trigger and then fills at market: it does not guarantee the price.
+academyLesson.orders-execution.slip.title,Transferência: um mercado fino,Transfer: a thin market
+academyLesson.orders-execution.slip.body,"Mercado Q, fino. Você está comprado em 20 unidades com stop em 47,50. Depois de uma manchete, a barra 4 abre em 46,20, abaixo do stop. Onde o stop executa?","Market Q, thin. You are long 20 units with a stop at 47.50. After a headline, bar 4 opens at 46.20, below the stop. Where does the stop fill?"
+academyLesson.orders-execution.slip.right,"Na abertura, perto de 46,20 ou pior: o preço saltou o gatilho. Foram 1,30 de slippage por unidade, 26,00 nas 20 unidades além do risco planejado. Um stop limita o risco quase sempre, não sempre.","At the open, near 46.20 or worse: price jumped the trigger. That is 1.30 of slippage per unit, 26.00 on the 20 units beyond the planned risk. A stop bounds risk almost always, not always."
+academyLesson.orders-execution.slip.wrong,"O gatilho só faz a ordem virar mercado. Num gap não há negócio entre 47,90 e 46,20.",The trigger only turns the order into a market order. In a gap there are no trades between 47.90 and 46.20.
+academyLesson.orders-execution.slip.choice.open,"Perto de 46,20, a abertura (ou pior)","Near 46.20, the open (or worse)"
+academyLesson.orders-execution.slip.choice.trigger,"Em 47,50, o gatilho","At 47.50, the trigger"
+academyLesson.orders-execution.slip.choice.none,Não executa: o preço pulou o stop,It does not fill: price jumped the stop
+academyLesson.orders-execution.slip.feedback.trigger,"Não houve negócio em 47,50: a barra já abriu em 46,20. O gatilho não é o preço de execução.",There was no trade at 47.50: the bar already opened at 46.20. The trigger is not the fill price.
+academyLesson.orders-execution.slip.feedback.none,"O stop dispara quando o preço passa do gatilho, mesmo num salto, e então executa a mercado.","A stop fires when price passes its trigger, even in a jump, and then fills at market."
+academyLesson.futures-pnl.title,"Long, short e resultado","Long, short and P&L"
+academyLesson.futures-pnl.summary,"Um contrato linear: resultado de long e short, nocional e taxas na entrada e na saída.","A linear contract: long and short P&L, notional, and fees on entry and exit."
+academyLesson.futures-pnl.linear.title,Um contrato linear,A linear contract
+academyLesson.futures-pnl.linear.body,"Um perpétuo acompanha o preço. Long ganha quando o preço sobe: (saída − entrada) × quantidade. Short ganha quando cai: (entrada − saída) × quantidade. O nocional é preço × quantidade: 5 unidades a 120 são 600. As taxas são uma fração do nocional, pagas na entrada e na saída.","A perpetual tracks the price. A long gains when the price rises: (exit − entry) × quantity. A short gains when it falls: (entry − exit) × quantity. Notional is price × quantity: 5 units at 120 are 600. Fees are a fraction of notional, paid on entry and on exit."
+academyLesson.futures-pnl.long.title,Um long de 100 a 106,A long from 100 to 106
+academyLesson.futures-pnl.long.body,"Comprado em 2 unidades a 100, fechado a 106: (106 − 100) × 2 = +12 antes das taxas. O mesmo movimento num short de 2 unidades daria −12. Cada ponto vale o mesmo, para cima ou para baixo.","Long 2 units at 100, closed at 106: (106 − 100) × 2 = +12 before fees. The same move on a short of 2 units would be −12. Each point is worth the same, up or down."
+academyLesson.futures-pnl.short.title,Decisão: um short,Decision: a short
+academyLesson.futures-pnl.short.body,Você vende 3 unidades a 100 e recompra a 94. Qual o resultado antes das taxas?,You sell 3 units at 100 and buy them back at 94. What is the result before fees?
+academyLesson.futures-pnl.short.right,(100 − 94) × 3 = +18. O short ganha com a queda.,(100 − 94) × 3 = +18. The short gains from the fall.
+academyLesson.futures-pnl.short.wrong,"Num short o resultado é (entrada − saída) × quantidade. Se você calculou −18, usou a fórmula do long.","For a short the result is (entry − exit) × quantity. If you got −18, you used the long formula."
+academyLesson.futures-pnl.fees.title,Decisão: quando se paga taxa?,Decision: when are fees paid?
+academyLesson.futures-pnl.fees.body,"Num trade completo, quando as taxas são cobradas?","In a complete trade, when are fees charged?"
+academyLesson.futures-pnl.fees.right,"Na entrada e na saída, cada vez sobre o nocional executado. Um trade que empata no preço termina negativo pelas taxas.","On entry and on exit, each time on the notional filled. A trade that breaks even on price ends negative because of fees."
+academyLesson.futures-pnl.fees.wrong,"Cada execução paga taxa, e um trade tem pelo menos duas.","Every fill pays a fee, and a trade has at least two."
+academyLesson.futures-pnl.fees.choice.both,"Na entrada e na saída, sobre o nocional","On entry and on exit, on the notional"
+academyLesson.futures-pnl.fees.choice.entry,Só na entrada,Only on entry
+academyLesson.futures-pnl.fees.choice.profit,Só sobre o lucro,Only on the profit
+academyLesson.futures-pnl.fees.feedback.profit,"A taxa não depende do resultado: incide sobre o nocional de cada execução, com lucro ou prejuízo.","The fee does not depend on the result: it is charged on the notional of each fill, profit or loss."
+academyLesson.futures-pnl.level.title,Transferência: outro nível de preço,Transfer: another price level
+academyLesson.futures-pnl.level.body,"Mercado G, perto de 2.400. Você vende 0,5 unidade a 2.400 (nocional de 1.200) e o preço vai a 2.460. Qual o resultado aberto antes das taxas?","Market G, near 2,400. You sell 0.5 unit at 2,400 (1,200 notional) and price goes to 2,460. What is the open result before fees?"
+academyLesson.futures-pnl.level.right,"(2.400 − 2.460) × 0,5 = −30. A mesma regra, em outro nível de preço e com quantidade fracionária.","(2,400 − 2,460) × 0.5 = −30. The same rule, at another price level and with a fractional quantity."
+academyLesson.futures-pnl.level.wrong,"Short: (entrada − saída) × quantidade. O preço subiu, então o resultado é negativo.","Short: (entry − exit) × quantity. Price went up, so the result is negative."
+academyLesson.futures-margin.title,"Margem, alavancagem e liquidação","Margin, leverage and liquidation"
+academyLesson.futures-margin.summary,"Margem inicial e de manutenção, alavancagem, preço de liquidação, margem isolada e marcação contra último preço.","Initial and maintenance margin, leverage, liquidation price, isolated margin and mark against last price."
+academyLesson.futures-margin.margin.title,Margem e alavancagem,Margin and leverage
+academyLesson.futures-margin.margin.body,"Para abrir uma posição você reserva a margem inicial = nocional / alavancagem: 1.000 de nocional a 10× pede 100. A margem de manutenção é o mínimo que a posição precisa manter (aqui, 1% do nocional). Quando as perdas levam a margem até esse mínimo, a posição é liquidada. Com margem isolada você perde só a margem daquela posição.","To open a position you reserve the initial margin = notional / leverage: 1,000 notional at 10× needs 100. The maintenance margin is the minimum the position must keep (here, 1% of notional). When losses bring the margin down to that minimum, the position is liquidated. With isolated margin you lose only that position's margin."
+academyLesson.futures-margin.liq.title,Onde fica a liquidação,Where liquidation sits
+academyLesson.futures-margin.liq.body,"Num long, o preço de liquidação fica perto de entrada × (1 − 1/alavancagem) / (1 − manutenção); num short, entrada × (1 + 1/alavancagem) / (1 + manutenção). Com 10 unidades a 100, a 10× a margem é 100 e a liquidação fica perto de 90,91; a 5×, a margem é 200 e ela vai para 80,81. Mude a alavancagem e o lado e veja a liquidação andar.","For a long, the liquidation price sits near entry × (1 − 1/leverage) / (1 − maintenance); for a short, entry × (1 + 1/leverage) / (1 + maintenance). With 10 units at 100, at 10× the margin is 100 and liquidation sits near 90.91; at 5× the margin is 200 and it moves to 80.81. Change the leverage and the side and watch liquidation move."
+academyLesson.futures-margin.mark.title,Marcação contra último preço,Mark against last price
+academyLesson.futures-margin.mark.body,"O gráfico desenha o último preço. A margem, a liquidação e o funding usam o preço de marcação, uma referência mais estável. Na barra 3 o último preço furou até 94,80, abaixo da liquidação deste long (95,50), mas a marcação só desceu até 97,10: a posição não foi liquidada. Quando um cenário não tem marcação, o jogo usa o último preço e o briefing avisa.","The chart draws the last price. Margin, liquidation and funding use the mark price, a steadier reference. In bar 3 the last price wicked down to 94.80, below this long's liquidation (95.50), but the mark only fell to 97.10: the position was not liquidated. When a scenario has no mark, the game uses the last price and the briefing says so."
+academyLesson.futures-margin.set-lev.title,Decisão: o stop antes da liquidação,Decision: the stop before liquidation
+academyLesson.futures-margin.set-lev.body,Long a 100 com stop em 96. Qual a maior alavancagem que ainda deixa a liquidação abaixo do stop? Ajuste a alavancagem e confira.,Long at 100 with a stop at 96. What is the highest leverage that still keeps liquidation below the stop? Adjust the leverage and check.
+academyLesson.futures-margin.set-lev.right,"A 20× a liquidação fica em 95,96, logo abaixo do stop: o stop executa antes. A 21× ela sobe para 96,20 e passaria na frente dele. Na prática deixe folga: o stop pode escorregar e a marcação pode andar diferente do último preço.","At 20× liquidation sits at 95.96, just below the stop: the stop fills first. At 21× it rises to 96.20 and would sit in front of it. In practice leave a buffer: the stop can slip and the mark can move differently from the last price."
+academyLesson.futures-margin.set-lev.wrong,"Leia a liquidação estimada enquanto muda a alavancagem: ela precisa ficar abaixo de 96, e a resposta é a maior alavancagem em que isso ainda vale.","Read the liquidation estimate while you change the leverage: it must stay below 96, and the answer is the highest leverage where that still holds."
+academyLesson.futures-margin.wick.title,Decisão: o pavio,Decision: the wick
+academyLesson.futures-margin.wick.body,"Agora o long tem stop em 96,00 e a mesma liquidação (95,50). O último preço furou até 94,80 na barra 3; a marcação, até 97,10. O que aconteceu?","Now the long has a stop at 96.00 and the same liquidation (95.50). The last price wicked to 94.80 in bar 3; the mark, to 97.10. What happened?"
+academyLesson.futures-margin.wick.right,"O stop executa pelo último preço, e o último preço passou de 96,00: a posição saiu pelo stop. A liquidação usa a marcação, que não chegou a 95,50. Stops e liquidação olham preços diferentes.","The stop fills on the last price, and the last price went past 96.00: the position exited at the stop. Liquidation uses the mark, which never reached 95.50. Stops and liquidation watch different prices."
+academyLesson.futures-margin.wick.wrong,Separe os dois preços: ordens e stops executam pelo último preço; a liquidação olha a marcação.,Keep the two prices apart: orders and stops fill on the last price; liquidation watches the mark.
+academyLesson.futures-margin.wick.choice.stopOnly,O stop executou; não houve liquidação,The stop filled; there was no liquidation
+academyLesson.futures-margin.wick.choice.liquidated,A posição foi liquidada,The position was liquidated
+academyLesson.futures-margin.wick.choice.nothing,Nada: nenhum dos dois preços chegou lá,Nothing: neither price got there
+academyLesson.futures-margin.wick.feedback.liquidated,"A liquidação usa a marcação, que só desceu até 97,10, acima de 95,50.","Liquidation uses the mark, which only fell to 97.10, above 95.50."
+academyLesson.futures-margin.wick.feedback.nothing,"O último preço chegou a 94,80, abaixo do stop em 96,00, e o stop executa pelo último preço.","The last price reached 94.80, below the stop at 96.00, and the stop fills on the last price."
+academyLesson.futures-margin.ten.title,Transferência: um short a 10×,Transfer: a short at 10×
+academyLesson.futures-margin.ten.body,"Mercado W, perto de 50. Você vende 4 unidades a 50 com 10× e manutenção de 1%. Onde fica a liquidação, aproximadamente?","Market W, near 50. You sell 4 units at 50 with 10× and 1% maintenance. Where is liquidation, roughly?"
+academyLesson.futures-margin.ten.right,"50 × (1 + 1/10) / (1 + 0,01) ≈ 54,46. Num short a liquidação fica acima da entrada: é a alta que consome a margem.","50 × (1 + 1/10) / (1 + 0.01) ≈ 54.46. For a short, liquidation sits above the entry: it is the rise that eats the margin."
+academyLesson.futures-margin.ten.wrong,"Num short, use entrada × (1 + 1/alavancagem) / (1 + manutenção).","For a short, use entry × (1 + 1/leverage) / (1 + maintenance)."
+academyLesson.futures-margin.ten.choice.l5446,"≈ 54,46",≈ 54.46
+academyLesson.futures-margin.ten.choice.l4545,"≈ 45,45",≈ 45.45
+academyLesson.futures-margin.ten.choice.l55,"55,00",55.00
+academyLesson.futures-margin.ten.feedback.l4545,"45,45 seria a liquidação de um long: abaixo da entrada. Um short perde com a alta.",45.45 would be a long's liquidation: below the entry. A short loses on a rise.
+academyLesson.futures-margin.ten.feedback.l55,"55,00 = 50 × 1,1 ignora a margem de manutenção: a liquidação vem um pouco antes, quando sobra só o mínimo.","55.00 = 50 × 1.1 ignores the maintenance margin: liquidation comes a bit earlier, when only the minimum is left."
+academyLesson.futures-funding.title,Funding,Funding
+academyLesson.futures-funding.summary,"Quem paga quem a cada intervalo, quanto, o que uma taxa persistente diz e o custo de carregar a posição.","Who pays whom every interval, how much, what a persistent rate says and the cost of carrying a position."
+academyLesson.futures-funding.funding.title,Quem paga quem,Who pays whom
+academyLesson.futures-funding.funding.body,"Um perpétuo não vence. Para mantê-lo perto do preço do ativo, a cada intervalo longs e shorts trocam o funding: nocional × taxa. Taxa positiva: longs pagam shorts. Taxa negativa: shorts pagam longs. Ele é cobrado sobre a posição aberta naquele momento, ganhando ou perdendo.","A perpetual never expires. To keep it close to the asset's price, every interval longs and shorts exchange funding: notional × rate. A positive rate: longs pay shorts. A negative rate: shorts pay longs. It is charged on the position open at that moment, winning or losing."
+academyLesson.futures-funding.carry.title,O custo de carregar,The cost of carry
+academyLesson.futures-funding.carry.body,"Um long de 10.000 de nocional com funding de +0,05% paga 5 por intervalo: 15 em três intervalos. Mantido por 9 intervalos, são 45, e o preço precisa subir 0,45% só para cobrir esse custo. Funding positivo por muito tempo mostra longs lotados: muita gente do mesmo lado.","A long of 10,000 notional with +0.05% funding pays 5 per interval: 15 over three intervals. Held for 9 intervals, that is 45, and the price must rise 0.45% just to cover the cost. Funding that stays positive shows crowded longs: many people on the same side."
+academyLesson.futures-funding.carry.column.0,Intervalo,Interval
+academyLesson.futures-funding.carry.column.1,Taxa,Rate
+academyLesson.futures-funding.carry.column.2,Pago pelo long,Paid by the long
+academyLesson.futures-funding.pay.title,Decisão: quanto se paga?,Decision: how much is paid?
+academyLesson.futures-funding.pay.body,"Você está long com 10.000 de nocional e o funding é +0,05%. Quanto você paga neste intervalo?","You are long 10,000 notional and funding is +0.05%. How much do you pay this interval?"
+academyLesson.futures-funding.pay.right,"10.000 × 0,05% = 5. Positivo: o long paga.","10,000 × 0.05% = 5. Positive: the long pays."
+academyLesson.futures-funding.pay.wrong,"Funding = nocional × taxa. Cuidado com a porcentagem: 0,05% é 0,0005.",Funding = notional × rate. Mind the percent: 0.05% is 0.0005.
+academyLesson.futures-funding.crowded.title,Decisão: o que a taxa diz?,Decision: what does the rate say?
+academyLesson.futures-funding.crowded.body,O funding ficou positivo e alto por muitos intervalos seguidos. O que isso indica?,Funding stayed positive and high for many intervals in a row. What does that show?
+academyLesson.futures-funding.crowded.right,"Muitos longs dispostos a pagar para ficar comprados: o lado long está lotado. Isso é um custo para eles, não uma previsão de direção.","Many longs willing to pay to stay long: the long side is crowded. It is a cost for them, not a forecast of direction."
+academyLesson.futures-funding.crowded.wrong,Quem paga é quem está do lado mais procurado.,The side that pays is the side more people want.
+academyLesson.futures-funding.crowded.choice.longs,O lado long está lotado e paga para ficar,The long side is crowded and pays to stay
+academyLesson.futures-funding.crowded.choice.shorts,O lado short está lotado,The short side is crowded
+academyLesson.futures-funding.crowded.choice.up,Que o preço vai subir,That the price will rise
+academyLesson.futures-funding.crowded.feedback.up,"O funding mede o desequilíbrio entre longs e shorts, não prevê o preço. Lados lotados podem até virar de repente.",Funding measures the imbalance between longs and shorts; it does not forecast price. Crowded sides can even turn suddenly.
+academyLesson.futures-funding.negative.title,Transferência: taxa negativa,Transfer: a negative rate
+academyLesson.futures-funding.negative.body,"Mercado P: o funding está em −0,03%. Você está short com 2.000 de nocional. O que acontece no próximo intervalo?","Market P: funding is at −0.03%. You are short 2,000 notional. What happens at the next interval?"
+academyLesson.futures-funding.negative.right,"Taxa negativa: shorts pagam longs. 2.000 × 0,03% = 0,60 saem da sua conta.","A negative rate: shorts pay longs. 2,000 × 0.03% = 0.60 leaves your account."
+academyLesson.futures-funding.negative.wrong,O sinal da taxa diz quem paga; o nocional × a taxa diz quanto.,The sign of the rate says who pays; notional × rate says how much.
+academyLesson.futures-funding.negative.choice.pay06,"Você paga 0,60",You pay 0.60
+academyLesson.futures-funding.negative.choice.get06,"Você recebe 0,60",You receive 0.60
+academyLesson.futures-funding.negative.choice.pay6,"Você paga 6,00",You pay 6.00
+academyLesson.futures-funding.negative.feedback.get06,Com taxa positiva o short receberia. Aqui ela é negativa: o short paga.,With a positive rate the short would receive. Here it is negative: the short pays.
+academyLesson.futures-funding.negative.feedback.pay6,"6,00 seria uma taxa de 0,3%. Confira as casas decimais: 0,03% de 2.000 é 0,60.","6.00 would be a 0.3% rate. Check the decimals: 0.03% of 2,000 is 0.60."
+academyLesson.futures-funding.negative.column.0,Intervalo,Interval
+academyLesson.futures-funding.negative.column.1,Taxa,Rate
+academyLesson.risk-sizing.title,Dimensionar pelo stop,Sizing from the stop
+academyLesson.risk-sizing.summary,Quantidade = orçamento de risco / distância até o stop; a alavancagem não muda esse risco; múltiplos de R.,Quantity = risk budget / distance to the stop; leverage does not change that risk; R multiples.
+academyLesson.risk-sizing.size.title,"Primeiro o risco, depois a quantidade","Risk first, then quantity"
+academyLesson.risk-sizing.size.body,"Decida quanto aceita perder se o stop executar: o orçamento de risco, por exemplo 1% de 10.000 = 100. Depois, quantidade = orçamento / distância até o stop. Com entrada 100 e stop 96, a distância é 4 e a quantidade é 25. A ordem é essa: risco, stop, quantidade.","Decide how much you accept to lose if the stop fills: the risk budget, for example 1% of 10,000 = 100. Then quantity = budget / distance to the stop. With entry 100 and stop 96 the distance is 4 and the quantity is 25. The order is: risk, stop, quantity."
+academyLesson.risk-sizing.leverage.title,A alavancagem não muda o risco,Leverage does not change the risk
+academyLesson.risk-sizing.leverage.body,"25 unidades a 100 são 2.500 de nocional. A 5× a margem é 500; a 10×, 250. Mude a alavancagem: o risco até o stop continua 100, porque ele só depende da quantidade e da distância. O que muda é a margem presa e a distância até a liquidação.","25 units at 100 are 2,500 notional. At 5× the margin is 500; at 10×, 250. Change the leverage: the risk to the stop stays 100, because it depends only on quantity and distance. What changes is the margin tied up and the distance to liquidation."
+academyLesson.risk-sizing.set-size.title,Decisão: dimensione o trade,Decision: size the trade
+academyLesson.risk-sizing.set-size.body,"Capital de 10.000, risco de 1%, entrada 100, stop 96. Ajuste a quantidade até o risco no stop ser 1% do capital.","Capital 10,000, 1% risk, entry 100, stop 96. Adjust the quantity until the risk at the stop is 1% of capital."
+academyLesson.risk-sizing.set-size.right,"25 unidades × 4 de distância = 100, exatamente 1% de 10.000. Custos (taxas, spread) somam um pouco: o ticket do jogo já os inclui e arredonda para baixo.","25 units × a distance of 4 = 100, exactly 1% of 10,000. Costs (fees, spread) add a little: the game's ticket includes them and rounds down."
+academyLesson.risk-sizing.set-size.wrong,O risco no stop ainda não é 100. Quantidade = 100 / (100 − 96).,The risk at the stop is not 100 yet. Quantity = 100 / (100 − 96).
+academyLesson.risk-sizing.r.title,Decisão: quantos R?,Decision: how many R?
+academyLesson.risk-sizing.r.body,"No mesmo trade (entrada 100, stop 96), o alvo é 108. Quantos R vale o alvo?","In the same trade (entry 100, stop 96), the target is 108. How many R is the target worth?"
+academyLesson.risk-sizing.r.right,R é a distância até o stop (4). O alvo está a 8: 8 / 4 = 2R. Medir em R compara trades de tamanhos diferentes.,R is the distance to the stop (4). The target is 8 away: 8 / 4 = 2R. Measuring in R compares trades of different sizes.
+academyLesson.risk-sizing.r.wrong,R = (alvo − entrada) / (entrada − stop).,R = (target − entry) / (entry − stop).
+academyLesson.risk-sizing.short.title,Transferência: um short,Transfer: a short
+academyLesson.risk-sizing.short.body,"Mercado J, perto de 250. Um short a 250 com stop em 260, capital de 10.000 e risco de 1%. Ajuste a quantidade.","Market J, near 250. A short at 250 with a stop at 260, capital 10,000 and 1% risk. Adjust the quantity."
+academyLesson.risk-sizing.short.right,"100 / 10 = 10 unidades. Num short o stop fica acima da entrada, mas a conta é a mesma.","100 / 10 = 10 units. For a short the stop sits above the entry, but the arithmetic is the same."
+academyLesson.risk-sizing.short.wrong,A distância até o stop agora é 260 − 250. Divida o orçamento de 100 por ela.,The distance to the stop is now 260 − 250. Divide the budget of 100 by it.
+academyLesson.risk-expectancy.title,Expectativa e drawdown,Expectancy and drawdown
+academyLesson.risk-expectancy.summary,"Expectativa em R, sequências de perdas, a matemática da recuperação e por que poucas amostras enganam.","Expectancy in R, losing streaks, the arithmetic of recovery and why small samples mislead."
+academyLesson.risk-expectancy.expectancy.title,Expectativa,Expectancy
+academyLesson.risk-expectancy.expectancy.body,"A expectativa é o resultado médio por trade: % de acertos × ganho médio − % de erros × perda média. Em R, ela não depende do tamanho: acertar 40% com ganhos de 2R e perdas de 1R dá +0,2R por trade. Acertar pouco pode ser bom; acertar muito pode ser ruim.",Expectancy is the average result per trade: win rate × average win − loss rate × average loss. In R it does not depend on size: winning 40% with wins of 2R and losses of 1R gives +0.2R per trade. Winning rarely can be good; winning often can be bad.
+academyLesson.risk-expectancy.table.title,Um diário de 10 trades,A journal of 10 trades
+academyLesson.risk-expectancy.table.body,"Quatro ganhos de 2R e seis perdas de 1R. Repare nas perdas seguidas: elas acontecem mesmo numa estratégia com expectativa positiva. Um drawdown é a queda desde o pico, e recuperar exige mais do que caiu: −20% pede +25%; −50% pede +100%.","Four wins of 2R and six losses of 1R. Notice the losses in a row: they happen even in a strategy with positive expectancy. A drawdown is the fall from the peak, and recovering needs more than the fall: −20% needs +25%; −50% needs +100%."
+academyLesson.risk-expectancy.table.column.0,Trade,Trade
+academyLesson.risk-expectancy.table.column.1,Resultado,Result
+academyLesson.risk-expectancy.e.title,Decisão: a expectativa da tabela,Decision: the table's expectancy
+academyLesson.risk-expectancy.e.body,"Qual a expectativa por trade desta tabela, em R?","What is this table's expectancy per trade, in R?"
+academyLesson.risk-expectancy.e.right,"40% × 2R − 60% × 1R = +0,2R. A média dos 10 resultados dá o mesmo.",40% × 2R − 60% × 1R = +0.2R. The mean of the 10 results gives the same.
+academyLesson.risk-expectancy.e.wrong,"Conte acertos e erros: 4 de 10 ganham 2R, 6 de 10 perdem 1R.","Count wins and losses: 4 out of 10 gain 2R, 6 out of 10 lose 1R."
+academyLesson.risk-expectancy.e.column.0,Trade,Trade
+academyLesson.risk-expectancy.e.column.1,Resultado,Result
+academyLesson.risk-expectancy.streak.title,Decisão: cinco perdas seguidas,Decision: five losses in a row
+academyLesson.risk-expectancy.streak.body,"Numa estratégia em que 60% dos trades perdem, qual a chance de os próximos 5 trades perderem todos?","In a strategy where 60% of trades lose, what is the chance that the next 5 trades all lose?"
+academyLesson.risk-expectancy.streak.right,"0,6⁵ ≈ 7,8%: cerca de uma vez a cada 13 sequências de 5. É normal; por isso o risco por trade precisa ser pequeno.",0.6⁵ ≈ 7.8%: about once in every 13 runs of 5. It is normal; that is why the risk per trade must be small.
+academyLesson.risk-expectancy.streak.wrong,Cada trade perde com 60% de chance; cinco seguidos multiplicam as chances.,Each trade loses with a 60% chance; five in a row multiply the chances.
+academyLesson.risk-expectancy.streak.choice.s78,"≈ 7,8%",≈ 7.8%
+academyLesson.risk-expectancy.streak.choice.s60,60%,60%
+academyLesson.risk-expectancy.streak.choice.rare,Quase zero: não acontece,Almost zero: it does not happen
+academyLesson.risk-expectancy.streak.feedback.s60,"60% é a chance de uma perda. Cinco seguidas: 0,6 × 0,6 × 0,6 × 0,6 × 0,6.",60% is the chance of one loss. Five in a row: 0.6 × 0.6 × 0.6 × 0.6 × 0.6.
+academyLesson.risk-expectancy.streak.feedback.rare,"Acontece com frequência: cerca de 7,8% das vezes. Planejar como se não acontecesse é o que quebra contas.",It happens often: about 7.8% of the time. Planning as if it never happens is what breaks accounts.
+academyLesson.risk-expectancy.recover.title,Decisão: recuperar uma queda,Decision: recovering a fall
+academyLesson.risk-expectancy.recover.body,O capital caiu 50% desde o pico. Quanto ele precisa subir para voltar ao pico?,Capital fell 50% from its peak. How much must it rise to get back to the peak?
+academyLesson.risk-expectancy.recover.right,De 100 para 50 e de volta: 50 / 50 = +100%. Quedas grandes são muito mais difíceis de desfazer do que de sofrer.,From 100 to 50 and back: 50 / 50 = +100%. Large falls are much harder to undo than to suffer.
+academyLesson.risk-expectancy.recover.wrong,"A alta é calculada sobre o capital que sobrou, que é menor.","The rise is computed on the capital that is left, which is smaller."
+academyLesson.risk-expectancy.sample.title,Transferência: uma amostra pequena,Transfer: a small sample
+academyLesson.risk-expectancy.sample.body,"Outro mercado, outra estratégia: 30 trades com 37% de acertos, ganho médio de 2R e perda média de 1R, ou +0,11R por trade. O que você conclui?","Another market, another strategy: 30 trades with 37% wins, an average win of 2R and an average loss of 1R, or +0.11R per trade. What do you conclude?"
+academyLesson.risk-expectancy.sample.right,30 trades são poucos: o acaso produz resultados assim com facilidade. A expectativa medida é uma estimativa ruidosa; continue com risco pequeno e mais amostras.,30 trades are few: chance produces results like this easily. The measured expectancy is a noisy estimate; keep risk small and collect more samples.
+academyLesson.risk-expectancy.sample.wrong,Pergunte quanto o resultado poderia mudar com mais 30 trades.,Ask how much the result could change with 30 more trades.
+academyLesson.risk-expectancy.sample.choice.few,Ainda é cedo: 30 trades são poucos para concluir,Too early: 30 trades are too few to conclude
+academyLesson.risk-expectancy.sample.choice.proven,Está provado que a estratégia tem vantagem,It is proven the strategy has an edge
+academyLesson.risk-expectancy.sample.choice.doubleSize,Dobrar o risco por trade para ganhar mais rápido,Double the risk per trade to win faster
+academyLesson.risk-expectancy.sample.feedback.doubleSize,Dobrar o risco antes de saber se a vantagem existe aumenta muito o risco de ruína.,Doubling the risk before knowing whether the edge exists raises the risk of ruin a lot.
+academyLesson.risk-expectancy.sample.feedback.proven,"Com 30 trades, uma estratégia sem vantagem pode mostrar +0,11R por sorte.","With 30 trades, a strategy with no edge can show +0.11R by luck."
+academyLesson.risk-expectancy.sample.column.0,Trades,Trades
+academyLesson.risk-expectancy.sample.column.1,Acertos,Wins
+academyLesson.risk-expectancy.sample.column.2,Ganho médio,Average win
+academyLesson.risk-expectancy.sample.column.3,Perda média,Average loss
+academyLesson.options-payoff.title,"Calls, puts e payoff","Calls, puts and payoff"
+academyLesson.options-payoff.summary,O direito de comprar ou vender; prêmio; valor intrínseco e de tempo; payoff no vencimento; ponto de equilíbrio.,The right to buy or sell; premium; intrinsic and time value; payoff at expiry; breakeven.
+academyLesson.options-payoff.rights.title,"Um direito, não uma obrigação","A right, not an obligation"
+academyLesson.options-payoff.rights.body,"Uma call dá o direito de comprar ao strike; uma put, o direito de vender. Quem compra paga o prêmio e não pode perder mais que ele. Aqui as opções são europeias e liquidadas em dinheiro no vencimento: no fim, uma call vale max(0, preço − strike) e uma put, max(0, strike − preço).","A call gives the right to buy at the strike; a put, the right to sell. The buyer pays the premium and cannot lose more than it. Here options are European and settled in cash at expiry: at the end a call is worth max(0, price − strike) and a put, max(0, strike − price)."
+academyLesson.options-payoff.value.title,Valor intrínseco e de tempo,Intrinsic and time value
+academyLesson.options-payoff.value.body,"Com o preço em 103, uma call de strike 100 tem 3 de valor intrínseco: o que valeria se vencesse agora. Se ela custa 5, os outros 2 são valor de tempo, o preço da chance de o preço ainda subir mais. O valor de tempo vai a zero no vencimento.","With the price at 103, a 100-strike call has 3 of intrinsic value: what it would be worth if it expired now. If it costs 5, the other 2 are time value, the price of the chance that the price rises further. Time value goes to zero at expiry."
+academyLesson.options-payoff.payoff.title,O payoff de uma call comprada,The payoff of a bought call
+academyLesson.options-payoff.payoff.body,"Call de strike 100 comprada por 4. Abaixo de 100 ela vence sem valor e a perda é o prêmio, 4. Acima de 100 cada ponto vale um ponto. Ela empata em 104 (strike + prêmio): o ponto de equilíbrio. A 110, ganha 6; a 95, perde 4.","A 100-strike call bought for 4. Below 100 it expires worthless and the loss is the premium, 4. Above 100 each point is worth a point. It breaks even at 104 (strike + premium): the breakeven. At 110 it gains 6; at 95 it loses 4."
+academyLesson.options-payoff.be.title,Decisão: o ponto de equilíbrio,Decision: the breakeven
+academyLesson.options-payoff.be.body,"Onde esta call de strike 100, comprada por 4, empata no vencimento?","Where does this 100-strike call, bought for 4, break even at expiry?"
+academyLesson.options-payoff.be.right,104 = 100 + 4. O preço precisa passar do strike pelo valor do prêmio para pagar a opção.,104 = 100 + 4. The price must pass the strike by the premium to pay for the option.
+academyLesson.options-payoff.be.wrong,No equilíbrio o valor da call no vencimento é igual ao prêmio pago.,At breakeven the call's value at expiry equals the premium paid.
+academyLesson.options-payoff.be.choice.b104,104,104
+academyLesson.options-payoff.be.choice.b100,100,100
+academyLesson.options-payoff.be.choice.b96,96,96
+academyLesson.options-payoff.be.feedback.b100,A 100 a call vence valendo 0: você perde os 4 do prêmio. O strike não é o ponto de equilíbrio.,At 100 the call expires worth 0: you lose the 4 of premium. The strike is not the breakeven.
+academyLesson.options-payoff.be.feedback.b96,96 = 100 − 4 seria o ponto de equilíbrio de uma put com o mesmo prêmio. A call precisa de alta.,96 = 100 − 4 would be the breakeven of a put with the same premium. The call needs a rise.
+academyLesson.options-payoff.pnl110.title,Decisão: o resultado a 110,Decision: the result at 110
+academyLesson.options-payoff.pnl110.body,"O preço vence a 110. Qual o resultado da call de strike 100 comprada por 4, por unidade?","The price expires at 110. What is the result of the 100-strike call bought for 4, per unit?"
+academyLesson.options-payoff.pnl110.right,"Valor no vencimento 110 − 100 = 10, menos o prêmio 4: +6.","Value at expiry 110 − 100 = 10, minus the premium 4: +6."
+academyLesson.options-payoff.pnl110.wrong,"Resultado = max(0, preço − strike) − prêmio.","Result = max(0, price − strike) − premium."
+academyLesson.options-payoff.loss.title,Decisão: a perda máxima do comprador,Decision: the buyer's largest loss
+academyLesson.options-payoff.loss.body,Qual a maior perda possível de quem comprou essa call?,What is the largest possible loss for whoever bought this call?
+academyLesson.options-payoff.loss.right,"O prêmio, 4: é tudo o que o comprador pagou, mesmo se o preço desabar. Opções compradas têm risco definido.","The premium, 4: it is all the buyer paid, even if the price collapses. Bought options have defined risk."
+academyLesson.options-payoff.loss.wrong,No pior caso a call vence sem valor. O que se perdeu então?,In the worst case the call expires worthless. What was lost then?
+academyLesson.options-payoff.loss.choice.premium,O prêmio pago (4),The premium paid (4)
+academyLesson.options-payoff.loss.choice.strike,O valor do strike (100),The strike's value (100)
+academyLesson.options-payoff.loss.choice.unbounded,Não tem limite,There is no limit
+academyLesson.options-payoff.loss.feedback.unbounded,"Perda sem limite é de quem vende uma call, não de quem compra.","An unbounded loss belongs to whoever sells a call, not whoever buys it."
+academyLesson.options-payoff.put.title,Transferência: uma put em outro mercado,Transfer: a put on another market
+academyLesson.options-payoff.put.body,"Mercado U, perto de 2.400. Você compra uma put de strike 2.400 por 60. Em que preço ela empata no vencimento?","Market U, near 2,400. You buy a 2,400-strike put for 60. At what price does it break even at expiry?"
+academyLesson.options-payoff.put.right,"2.400 − 60 = 2.340. A put ganha com a queda: a 2.300 ela ganha 40; acima de 2.400 perde o prêmio inteiro, 60.","2,400 − 60 = 2,340. The put gains from a fall: at 2,300 it gains 40; above 2,400 it loses the whole premium, 60."
+academyLesson.options-payoff.put.wrong,Numa put o equilíbrio é strike − prêmio: ela precisa de queda.,For a put the breakeven is strike − premium: it needs a fall.
+academyLesson.options-greeks.title,As gregas,The Greeks
+academyLesson.options-greeks.summary,"Delta, gamma, theta e vega: o que cada uma mede e qual delas explica um ganho ou uma perda.","Delta, gamma, theta and vega: what each one measures and which one explains a gain or a loss."
+academyLesson.options-greeks.delta.title,Delta,Delta
+academyLesson.options-greeks.delta.body,"O delta diz quanto o valor da opção muda quando o preço do ativo sobe 1. Calls vão de 0 a 1; puts, de −1 a 0. Uma call no dinheiro tem delta perto de 0,5: ela se move como meia unidade do ativo. Por isso o delta também serve como razão de hedge.","Delta says how much the option's value changes when the asset's price rises by 1. Calls go from 0 to 1; puts, from −1 to 0. An at-the-money call has a delta near 0.5: it moves like half a unit of the asset. That is why delta also works as a hedge ratio."
+academyLesson.options-greeks.others.title,"Gamma, theta e vega","Gamma, theta and vega"
+academyLesson.options-greeks.others.body,"O gamma diz quanto o delta muda quando o preço anda 1; ele é maior no dinheiro e perto do vencimento. O theta é o valor que a opção perde por barra quando nada mais muda. O vega é quanto o valor muda por 1 ponto de volatilidade implícita. Cada grega isola uma causa: preço, curvatura, tempo e volatilidade.","Gamma says how much delta changes when the price moves by 1; it is largest at the money and near expiry. Theta is the value the option loses per bar when nothing else changes. Vega is how much the value changes per 1 point of implied volatility. Each Greek isolates one cause: price, curvature, time and volatility."
+academyLesson.options-greeks.move.title,Lendo as gregas de uma call,Reading a call's Greeks
+academyLesson.options-greeks.move.body,"Valores hipotéticos de uma call ilustrativa, dados como ponto de partida. Se o ativo sobe 2, a call ganha cerca de 0,50 × 2 = 1,00 e vai para perto de 4,20; o gamma faz o delta crescer no caminho, então o ganho real é um pouco maior. Se o preço fica parado 5 barras, o theta tira cerca de 0,08 × 5 = 0,40.","Hypothetical values of an illustrative call, given as a starting point. If the asset rises 2, the call gains about 0.50 × 2 = 1.00 and goes to near 4.20; gamma makes the delta grow along the way, so the real gain is a little larger. If the price stands still for 5 bars, theta takes about 0.08 × 5 = 0.40."
+academyLesson.options-greeks.move.column.0,Valor,Value
+academyLesson.options-greeks.move.column.1,Delta,Delta
+academyLesson.options-greeks.move.column.2,Gamma,Gamma
+academyLesson.options-greeks.move.column.3,Theta/barra,Theta/bar
+academyLesson.options-greeks.move.column.4,Vega/ponto,Vega/point
+academyLesson.options-greeks.which.title,Decisão: qual grega explica a perda?,Decision: which Greek explains the loss?
+academyLesson.options-greeks.which.body,"Você comprou uma call. O preço ficou parado e a volatilidade implícita não mudou, mas a call perdeu valor. Qual grega explica isso?","You bought a call. The price stood still and implied volatility did not change, but the call lost value. Which Greek explains it?"
+academyLesson.options-greeks.which.right,"O theta: o valor de tempo diminui a cada barra, mesmo sem nada acontecer. É o custo de esperar com uma opção comprada.","Theta: time value shrinks every bar, even when nothing happens. It is the cost of waiting with a bought option."
+academyLesson.options-greeks.which.wrong,Elimine as causas que não aconteceram: o preço não andou e a IV não mudou.,Rule out the causes that did not happen: the price did not move and IV did not change.
+academyLesson.options-greeks.which.choice.theta,Theta,Theta
+academyLesson.options-greeks.which.choice.delta,Delta,Delta
+academyLesson.options-greeks.which.choice.vega,Vega,Vega
+academyLesson.options-greeks.which.feedback.delta,"O delta explica ganhos e perdas por movimento de preço, e o preço não se mexeu.","Delta explains gains and losses from price moves, and the price did not move."
+academyLesson.options-greeks.which.feedback.vega,"O vega precisaria de uma mudança na volatilidade implícita, que ficou igual.","Vega would need a change in implied volatility, which stayed the same."
+academyLesson.options-greeks.estimate.title,"Decisão: uma put com delta −0,40",Decision: a put with a −0.40 delta
+academyLesson.options-greeks.estimate.body,"Uma put tem delta −0,40. O ativo sobe 3. Aproximadamente quanto muda o valor da put?",A put has a delta of −0.40. The asset rises 3. Roughly how much does the put's value change?
+academyLesson.options-greeks.estimate.right,"−0,40 × 3 = −1,20: a put perde com a alta. É uma aproximação, porque o gamma muda o delta enquanto o preço anda.","−0.40 × 3 = −1.20: the put loses on the rise. It is an approximation, because gamma changes the delta as the price moves."
+academyLesson.options-greeks.estimate.wrong,Variação ≈ delta × movimento do preço. O delta da put é negativo.,Change ≈ delta × price move. The put's delta is negative.
+academyLesson.options-greeks.gamma.title,Decisão: onde o gamma é maior?,Decision: where is gamma largest?
+academyLesson.options-greeks.gamma.body,Em qual opção o delta muda mais rápido quando o preço anda?,In which option does delta change fastest when the price moves?
+academyLesson.options-greeks.gamma.right,"No dinheiro e perto do vencimento: ali um movimento pequeno decide se a opção termina com valor ou sem, e o delta salta entre perto de 0 e perto de 1.","At the money and near expiry: there a small move decides whether the option ends with or without value, and delta jumps between near 0 and near 1."
+academyLesson.options-greeks.gamma.wrong,"Pense em qual opção está mais indecisa entre terminar com ou sem valor, com pouco tempo para decidir.","Think of which option is most undecided between ending with or without value, with little time left to decide."
+academyLesson.options-greeks.gamma.choice.atmNear,"No dinheiro, perto do vencimento","At the money, near expiry"
+academyLesson.options-greeks.gamma.choice.otmFar,"Fora do dinheiro, longe do vencimento","Out of the money, far from expiry"
+academyLesson.options-greeks.gamma.choice.itmFar,"Dentro do dinheiro, longe do vencimento","In the money, far from expiry"
+academyLesson.options-greeks.vega.title,"Transferência: outra opção, outro vencimento","Transfer: another option, another expiry"
+academyLesson.options-greeks.vega.body,"Mercado B: uma put mais longa, com os valores hipotéticos da tabela. O preço não anda e a volatilidade implícita sobe 4 pontos. Aproximadamente quanto a put ganha?","Market B: a longer put, with the hypothetical values in the table. The price does not move and implied volatility rises 4 points. Roughly how much does the put gain?"
+academyLesson.options-greeks.vega.right,"0,25 × 4 = +1,00. Vega é positivo para quem compra, seja call ou put: as duas ficam mais caras quando a IV sobe.","0.25 × 4 = +1.00. Vega is positive for the buyer, call or put: both get more expensive when IV rises."
+academyLesson.options-greeks.vega.wrong,"Variação ≈ vega × pontos de IV. O delta não entra, porque o preço não andou.","Change ≈ vega × IV points. Delta does not enter, because the price did not move."
+academyLesson.options-greeks.vega.column.0,Delta,Delta
+academyLesson.options-greeks.vega.column.1,Theta/barra,Theta/bar
+academyLesson.options-greeks.vega.column.2,Vega/ponto,Vega/point
+academyLesson.options-iv.title,Volatilidade implícita,Implied volatility
+academyLesson.options-iv.summary,"IV contra volatilidade realizada, o movimento que o preço da opção embute, o decaimento e a queda da IV depois de eventos.","IV against realized volatility, the move an option's price implies, time decay and IV crush after events."
+academyLesson.options-iv.iv.title,Implícita contra realizada,Implied against realized
+academyLesson.options-iv.iv.body,"A volatilidade implícita (IV) é a volatilidade que o preço da opção embute: quanto movimento o mercado está cobrando. A volatilidade realizada é quanto o preço de fato andou. Quem compra opções ganha quando o movimento realizado supera o que pagou; quem vende, quando fica abaixo. Aqui as opções são precificadas por Black-76 com juros zero.","Implied volatility (IV) is the volatility an option's price implies: how much movement the market is charging for. Realized volatility is how much the price actually moved. Option buyers gain when the realized move beats what they paid; sellers, when it falls short. Here options are priced with Black-76 at a zero rate."
+academyLesson.options-iv.decay.title,Tempo e eventos,Time and events
+academyLesson.options-iv.decay.body,"O valor de tempo cai devagar no começo e cada vez mais rápido perto do vencimento. Antes de um evento esperado, a IV sobe porque embute o movimento da notícia; depois que ele sai, a incerteza some e a IV cai: a queda da IV. Opções compradas perdem valor nessa queda mesmo que o preço ande um pouco.","Time value falls slowly at first and faster and faster near expiry. Before an expected event IV rises, because it holds the news move; once the news is out the uncertainty is gone and IV falls: the IV crush. Bought options lose value in that fall even if the price moves a little."
+academyLesson.options-iv.straddle.title,O movimento que o preço embute,The move the price implies
+academyLesson.options-iv.straddle.body,"Um straddle no dinheiro (call e put de strike 100, cada uma por 4) custa 8. Ele empata em 92 e 108 no vencimento: o mercado está cobrando um movimento de cerca de 8% para qualquer lado. O preço de um straddle no dinheiro é uma leitura rápida do movimento esperado.","An at-the-money straddle (a call and a put at strike 100, each for 4) costs 8. It breaks even at 92 and 108 at expiry: the market is charging for a move of about 8% either way. The price of an at-the-money straddle is a quick read of the expected move."
+academyLesson.options-iv.crush.title,Decisão: comprou antes da notícia,Decision: bought before the news
+academyLesson.options-iv.crush.body,"Você comprou um straddle antes de uma divulgação, com a IV em 80%. A notícia saiu, o preço andou 3 e a IV caiu para 50%. O straddle perdeu valor. Por quê?","You bought a straddle before a release, with IV at 80%. The news came out, the price moved 3 and IV fell to 50%. The straddle lost value. Why?"
+academyLesson.options-iv.crush.right,A IV caiu 30 pontos: o vega das duas opções tirou mais do que o movimento de 3 trouxe. O movimento realizado foi menor que o já cobrado no preço.,IV fell 30 points: the vega of both options took away more than the move of 3 brought. The realized move was smaller than the one already in the price.
+academyLesson.options-iv.crush.wrong,Compare o que mudou: o preço andou pouco e a IV caiu muito.,Compare what changed: the price moved a little and IV fell a lot.
+academyLesson.options-iv.crush.choice.crush,A queda da IV pesou mais que o movimento,The IV drop outweighed the move
+academyLesson.options-iv.crush.choice.delta,O delta do straddle era negativo,The straddle's delta was negative
+academyLesson.options-iv.crush.choice.wrongSide,O preço andou para o lado errado,The price moved the wrong way
+academyLesson.options-iv.crush.feedback.wrongSide,"Um straddle não tem lado: ele ganha com movimento para cima ou para baixo, se for grande o bastante.","A straddle has no side: it gains from a move up or down, if it is large enough."
+academyLesson.options-iv.crush.feedback.delta,"No dinheiro, o delta da call e o da put quase se anulam: o straddle começa quase neutro ao preço.","At the money, the call's and the put's deltas nearly cancel: the straddle starts almost neutral to price."
+academyLesson.options-iv.crushNumber.title,Decisão: o tamanho da queda,Decision: the size of the drop
+academyLesson.options-iv.crushNumber.body,"Uma opção tem vega de 0,20 por ponto de volatilidade. Depois da notícia a IV cai 15 pontos e o preço não anda. Aproximadamente quanto ela muda?",An option has a vega of 0.20 per volatility point. After the news IV falls 15 points and the price does not move. Roughly how much does it change?
+academyLesson.options-iv.crushNumber.right,"0,20 × −15 = −3,00. Por isso comprar opções caras antes de eventos exige um movimento maior que o já cobrado.",0.20 × −15 = −3.00. That is why buying expensive options before events needs a move larger than the one already priced.
+academyLesson.options-iv.crushNumber.wrong,Variação ≈ vega × pontos de IV. A IV caiu: o sinal é negativo.,Change ≈ vega × IV points. IV fell: the sign is negative.
+academyLesson.options-iv.event.title,Transferência: outro evento,Transfer: another event
+academyLesson.options-iv.event.body,"Mercado H, perto de 2.400, véspera de outra divulgação. A call e a put de strike 2.400 custam 75 cada. Que movimento, em %, o preço do straddle embute para cada lado?","Market H, near 2,400, the eve of another release. The call and the put at strike 2,400 cost 75 each. What move, in %, does the straddle's price imply each way?"
+academyLesson.options-iv.event.right,"75 + 75 = 150, e 150 / 2.400 = 6,25%: o straddle empata em 2.250 e 2.550. Um movimento menor que isso, mais a queda da IV, deixa o comprador no prejuízo.","75 + 75 = 150, and 150 / 2,400 = 6.25%: the straddle breaks even at 2,250 and 2,550. A smaller move, plus the IV drop, leaves the buyer at a loss."
+academyLesson.options-iv.event.wrong,Some os dois prêmios e divida pelo preço do ativo.,Add the two premiums and divide by the asset's price.
+academyLesson.options-writing.title,Vender opções,Writing options
+academyLesson.options-writing.summary,"Prêmio recebido e obrigação; margem e chamada de margem; liquidação em dinheiro; venda coberta, put de proteção e travas.","Premium received and obligation; margin and margin calls; cash settlement; covered call, protective put and spreads."
+academyLesson.options-writing.writing.title,Do outro lado do contrato,On the other side of the contract
+academyLesson.options-writing.writing.body,"Vender uma opção (lançar) é receber o prêmio e assumir a obrigação. O ganho máximo é o prêmio; a perda de uma call vendida sozinha não tem teto. Por isso vender exige margem, conferida a cada barra: abaixo da manutenção, a opção é recomprada à força, a chamada de margem. Na maioria das missões cada perna vendida tem margem própria; quando uma missão aceita margem de trava, o briefing diz.","Selling an option (writing) means receiving the premium and taking on the obligation. The largest gain is the premium; a call sold on its own has no ceiling on its loss. That is why writing needs margin, checked every bar: below maintenance the option is bought back by force, a margin call. In most missions each short leg has its own margin; when a mission accepts spread margin, the briefing says so."
+academyLesson.options-writing.settle.title,Como as opções terminam aqui,How options end here
+academyLesson.options-writing.settle.body,"As opções do jogo são europeias e liquidadas em dinheiro: no vencimento cada uma paga o seu valor intrínseco, calculado pelo TWAP (a média de preço) das últimas barras. Ninguém exerce antes da data e ninguém entrega o ativo.","The game's options are European and settled in cash: at expiry each one pays its intrinsic value, computed from the TWAP (the average price) of the last bars. Nobody exercises before the date and nobody delivers the asset."
+academyLesson.options-writing.covered.title,Venda coberta,Covered call
+academyLesson.options-writing.covered.body,"Comprado a 100 e vendido numa call 105 por 2: uma venda coberta. O prêmio baixa o equilíbrio para 98, mas acima de 105 a alta é da call: o ganho máximo é 5 + 2 = 7. Na queda a posição perde quase tudo como o ativo sozinho: a 80, −18. O prêmio é um colchão, não uma proteção.","Long at 100 and short a 105 call for 2: a covered call. The premium lowers the breakeven to 98, but above 105 the rise belongs to the call: the largest gain is 5 + 2 = 7. On a fall the position loses almost as much as the asset alone: at 80, −18. The premium is a cushion, not protection."
+academyLesson.options-writing.ccMax.title,Decisão: o teto da venda coberta,Decision: the covered call's ceiling
+academyLesson.options-writing.ccMax.body,"Por unidade, qual o ganho máximo desta venda coberta no vencimento?","Per unit, what is this covered call's largest gain at expiry?"
+academyLesson.options-writing.ccMax.right,"Do 100 até o strike 105 são 5, mais os 2 do prêmio: 7. Acima de 105 o que o ativo ganha a call vendida perde.","From 100 up to the 105 strike is 5, plus the 2 of premium: 7. Above 105 whatever the asset gains the short call loses."
+academyLesson.options-writing.ccMax.wrong,Some o caminho até o strike e o prêmio recebido.,Add the way up to the strike and the premium received.
+academyLesson.options-writing.protective.title,Decisão: o piso da put de proteção,Decision: the protective put's floor
+academyLesson.options-writing.protective.body,Comprado a 100 com uma put 95 comprada por 2: uma put de proteção. Qual a perda máxima por unidade?,Long at 100 with a 95 put bought for 2: a protective put. What is the largest loss per unit?
+academyLesson.options-writing.protective.right,"De 100 até 95 são 5, mais os 2 do prêmio: 7, por mais que o preço caia. O strike é a franquia do seguro.","From 100 down to 95 is 5, plus the 2 of premium: 7, however far the price falls. The strike is the insurance deductible."
+academyLesson.options-writing.protective.wrong,Abaixo de 95 a put compensa cada ponto de queda. Quanto já se perdeu até ali?,Below 95 the put offsets each point of the fall. How much was lost up to there?
+academyLesson.options-writing.protective.choice.l7,7,7
+academyLesson.options-writing.protective.choice.l2,2,2
+academyLesson.options-writing.protective.choice.l5,5,5
+academyLesson.options-writing.protective.choice.none,Não há perda possível,No loss is possible
+academyLesson.options-writing.protective.feedback.l2,"2 é só o prêmio. A put começa a proteger em 95, e de 100 a 95 a perda é sua.","2 is only the premium. The put starts protecting at 95, and from 100 to 95 the loss is yours."
+academyLesson.options-writing.protective.feedback.l5,5 é a queda até o strike. Falta o prêmio pago pela put.,5 is the fall to the strike. The premium paid for the put is missing.
+academyLesson.options-writing.protective.feedback.none,"A put limita a perda, não a elimina: a queda até o strike e o prêmio continuam sendo seus.",The put bounds the loss; it does not remove it: the fall to the strike and the premium are still yours.
+academyLesson.options-writing.settleQ.title,Decisão: o vencimento,Decision: expiry
+academyLesson.options-writing.settleQ.body,Você vendeu uma call que está dentro do dinheiro dois dias antes do vencimento. O que pode acontecer com ela no jogo?,You sold a call that is in the money two days before expiry. What can happen to it in the game?
+academyLesson.options-writing.settleQ.right,"Ela continua aberta até o vencimento, a menos que você a recompre ou uma chamada de margem a recompre. No vencimento paga o valor intrínseco pelo TWAP, em dinheiro.","It stays open until expiry, unless you buy it back or a margin call does. At expiry it pays its intrinsic value from the TWAP, in cash."
+academyLesson.options-writing.settleQ.wrong,As opções aqui são europeias e liquidadas em dinheiro.,Options here are European and settled in cash.
+academyLesson.options-writing.settleQ.choice.twap,Fica aberta e é liquidada em dinheiro pelo TWAP no vencimento,It stays open and settles in cash at the TWAP at expiry
+academyLesson.options-writing.settleQ.choice.early,Pode ser exercida hoje pelo comprador,The buyer can exercise it today
+academyLesson.options-writing.settleQ.choice.delivery,No vencimento você entrega o ativo,At expiry you deliver the asset
+academyLesson.options-writing.spread.title,Transferência: uma trava de alta,Transfer: a bull call spread
+academyLesson.options-writing.spread.body,"Mercado B: compre a call 100 por 5,50 e venda a call 110 por 1,50, um débito de 4. Qual o ganho máximo por unidade no vencimento?","Market B: buy the 100 call for 5.50 and sell the 110 call for 1.50, a debit of 4. What is the largest gain per unit at expiry?"
+academyLesson.options-writing.spread.right,"A largura entre os strikes (10) menos o débito (4): 6. A perda máxima é o débito, 4, e o equilíbrio fica em 104. Uma trava limita os dois lados.","The width between the strikes (10) minus the debit (4): 6. The largest loss is the debit, 4, and the breakeven is 104. A vertical spread bounds both sides."
+academyLesson.options-writing.spread.wrong,Acima de 110 as duas calls valem e o ganho para de crescer. Compare a largura com o que você pagou.,Above 110 both calls are worth something and the gain stops growing. Compare the width with what you paid.
+academyLesson.strategies-shapes.title,Estruturas e formas de payoff,Structures and payoff shapes
+academyLesson.strategies-shapes.summary,"Travas, straddle, strangle e iron condor; risco definido contra indefinido; risco de perna e custo de várias pernas.","Verticals, straddle, strangle and iron condor; defined against undefined risk; legging risk and the cost of several legs."
+academyLesson.strategies-shapes.shapes.title,Estruturas são formas,Structures are shapes
+academyLesson.strategies-shapes.shapes.body,"Combinar opções muda a forma do payoff. Uma trava limita ganho e perda. Um straddle ou um strangle comprados ganham com movimento grande; vendidos, com o preço parado. Um iron condor é um strangle vendido com asas compradas. A pergunta central é se a perda tem teto: risco definido contra indefinido. Cada perna paga o seu spread e a sua taxa.","Combining options changes the payoff's shape. A vertical spread bounds gain and loss. A bought straddle or strangle gains from a large move; sold, from a still price. An iron condor is a short strangle with bought wings. The central question is whether the loss has a ceiling: defined against undefined risk. Each leg pays its own spread and fee."
+academyLesson.strategies-shapes.condor.title,Um iron condor,An iron condor
+academyLesson.strategies-shapes.condor.body,"Vende a put 95 e a call 105, compra a put 90 e a call 110: um crédito de 3. Entre 95 e 105 no vencimento, o ganho é o crédito inteiro. Ele empata em 92 e 108. Além das asas, a perda para de crescer: a largura de uma asa (5) menos o crédito (3) dá uma perda máxima de 2.","Sell the 95 put and the 105 call, buy the 90 put and the 110 call: a credit of 3. Between 95 and 105 at expiry, the gain is the whole credit. It breaks even at 92 and 108. Beyond the wings the loss stops growing: one wing's width (5) minus the credit (3) gives a largest loss of 2."
+academyLesson.strategies-shapes.condorLoss.title,Decisão: o pior caso do condor,Decision: the condor's worst case
+academyLesson.strategies-shapes.condorLoss.body,"Por unidade, qual a perda máxima deste condor no vencimento?","Per unit, what is this condor's largest loss at expiry?"
+academyLesson.strategies-shapes.condorLoss.right,"Largura 5 − crédito 3 = 2. Com o pior caso conhecido, dá para dimensionar pela perda máxima.","Width 5 − credit 3 = 2. With a known worst case, you can size by the largest loss."
+academyLesson.strategies-shapes.condorLoss.wrong,Além de 110 (ou abaixo de 90) as duas calls (ou as duas puts) se compensam. Compare a largura da asa com o crédito recebido.,Beyond 110 (or below 90) the two calls (or the two puts) offset each other. Compare the wing's width with the credit received.
+academyLesson.strategies-shapes.strangle.title,Decisão: o strangle vendido,Decision: the short strangle
+academyLesson.strategies-shapes.strangle.body,"Agora sem as asas: put 95 e call 105 vendidas por 2 cada, um crédito de 4. Onde a perda não tem teto?","Now without the wings: the 95 put and the 105 call sold for 2 each, a credit of 4. Where does the loss have no ceiling?"
+academyLesson.strategies-shapes.strangle.right,"Acima de 109 a call vendida perde um ponto por ponto, sem limite. Abaixo de 91 a perda é grande, mas para num preço de 0 (−91). Vender as asas troca crédito por um teto.","Above 109 the short call loses a point per point, without limit. Below 91 the loss is large but stops at a price of 0 (−91). Buying the wings trades credit for a ceiling."
+academyLesson.strategies-shapes.strangle.wrong,Siga a linha do payoff para os dois lados: um deles nunca para de cair.,Follow the payoff line both ways: one of them never stops falling.
+academyLesson.strategies-shapes.strangle.choice.above,"Na alta, acima de 109","On a rise, above 109"
+academyLesson.strategies-shapes.strangle.choice.below,"Na queda, abaixo de 91","On a fall, below 91"
+academyLesson.strategies-shapes.strangle.choice.nowhere,Em nenhum lugar: o crédito cobre,Nowhere: the credit covers it
+academyLesson.strategies-shapes.strangle.feedback.below,"Na queda a perda é grande, mas o preço não fica negativo: ela para em −91 por unidade. Na alta não há esse limite.","On a fall the loss is large, but the price cannot go negative: it stops at −91 per unit. On a rise there is no such limit."
+academyLesson.strategies-shapes.strangle.feedback.nowhere,O crédito de 4 só cobre os primeiros 4 pontos além de cada strike.,The credit of 4 only covers the first 4 points beyond each strike.
+academyLesson.strategies-shapes.legging.title,Decisão: uma perna que não executou,Decision: a leg that did not fill
+academyLesson.strategies-shapes.legging.body,Você manda um condor de quatro pernas. As duas vendidas executam; as duas asas compradas não. O que você tem agora?,You send a four-leg condor. Both short legs fill; both bought wings do not. What do you hold now?
+academyLesson.strategies-shapes.legging.right,"Um strangle vendido, com perda sem teto na alta: esse é o risco de perna. Mande as proteções primeiro e confira o que ficou aberto depois de avançar.","A short strangle, with an unbounded loss on a rise: that is legging risk. Send the protection first and check what is open after advancing."
+academyLesson.strategies-shapes.legging.wrong,Tire as pernas que não executaram da estrutura e veja o que sobra.,Remove the legs that did not fill from the structure and see what is left.
+academyLesson.strategies-shapes.legging.choice.naked,"Um strangle vendido, com risco indefinido","A short strangle, with undefined risk"
+academyLesson.strategies-shapes.legging.choice.condor,"O mesmo condor, só que mais barato","The same condor, only cheaper"
+academyLesson.strategies-shapes.legging.choice.flat,Nada: a estrutura é cancelada sozinha,Nothing: the structure cancels itself
+academyLesson.strategies-shapes.legging.feedback.condor,Sem as asas não há condor: a perda volta a ser sem teto.,Without the wings there is no condor: the loss has no ceiling again.
+academyLesson.strategies-shapes.legging.feedback.flat,Ordens executadas não se desfazem sozinhas. Só você pode fechar o que ficou aberto.,Filled orders do not undo themselves. Only you can close what is left open.
+academyLesson.strategies-shapes.view.title,Transferência: escolha a estrutura,Transfer: pick the structure
+academyLesson.strategies-shapes.view.body,"Mercado Y, entre 606 e 633, sobe devagar. Sua visão: alta moderada até o vencimento, e você quer saber a perda máxima antes de entrar. Qual estrutura combina com essa visão?","Market Y, between 606 and 633, rises slowly. Your view: a moderate rise by expiry, and you want to know the largest loss before entering. Which structure fits that view?"
+academyLesson.strategies-shapes.view.right,"Uma trava de alta com calls: ganha com a alta até o strike de cima, custa menos que a call sozinha e a perda máxima é o débito. A estrutura vem da visão, não o contrário.","A bull call spread: it gains from the rise up to the upper strike, costs less than the call alone and its largest loss is the debit. The structure follows from the view, not the other way round."
+academyLesson.strategies-shapes.view.wrong,Procure a forma que ganha com alta moderada e tem perda máxima conhecida.,Look for the shape that gains from a moderate rise and has a known largest loss.
+academyLesson.strategies-shapes.view.choice.bull,Trava de alta com calls,Bull call spread
+academyLesson.strategies-shapes.view.choice.shortStrangle,Strangle vendido,Short strangle
+academyLesson.strategies-shapes.view.choice.straddle,Straddle comprado,Long straddle
+academyLesson.strategies-shapes.view.feedback.shortStrangle,O strangle vendido aposta em preço parado e tem perda sem teto: não combina com nenhum dos dois pedidos.,A short strangle bets on a still price and has an unbounded loss: it fits neither request.
+academyLesson.strategies-shapes.view.feedback.straddle,"O straddle precisa de um movimento grande, para qualquer lado. Uma alta moderada pode não pagar os dois prêmios.","A straddle needs a large move, either way. A moderate rise may not pay both premiums."
+academyLesson.patterns-lag.title,Indicadores e regime,Indicators and regime
+academyLesson.patterns-lag.summary,Indicadores resumem o passado; primeiro o regime; um padrão que falhou e quanto ele custou.,Indicators summarize the past; regime first; a pattern that failed and what it cost.
+academyLesson.patterns-lag.lag.title,Indicadores olham para trás,Indicators look back
+academyLesson.patterns-lag.lag.body,"Um indicador é um resumo das barras que já fecharam: uma média móvel segue o preço com atraso; o RSI compara altas e quedas recentes. Nenhum deles sabe algo que as barras não mostrem. Primeiro identifique o regime: tendência, lateral ou agitado. Ferramentas de tendência dão sinais falsos em ranges, e as de reversão sofrem em tendências.","An indicator is a summary of the bars that have closed: a moving average follows the price with a lag; RSI compares recent rises and falls. None of them knows anything the bars do not show. First identify the regime: trending, ranging or choppy. Trend tools give false signals in ranges, and mean-reversion tools suffer in trends."
+academyLesson.patterns-lag.failure.title,Um padrão que falhou,A pattern that failed
+academyLesson.patterns-lag.failure.body,"A barra 5 é um engolfo de alta: abriu abaixo do fechamento da barra 4 e fechou em 100,40, acima da abertura dela. Quem comprou no fechamento, com stop abaixo da mínima do engolfo (98,00), arriscou 2,40 por unidade. Duas barras depois o preço fechou abaixo dessa mínima e o stop executou; na barra 8 o preço já estava 3,00 abaixo da entrada. Padrões falham com frequência: o que importa é o tamanho da perda quando falham.","Bar 5 is a bullish engulfing: it opened below bar 4's close and closed at 100.40, above bar 4's open. Whoever bought at the close, with a stop below the engulfing's low (98.00), risked 2.40 per unit. Two bars later the price closed below that low and the stop filled; by bar 8 the price was already 3.00 below the entry. Patterns fail often: what matters is the size of the loss when they do."
+academyLesson.patterns-lag.spot.title,Decisão: quando o padrão falhou?,Decision: when did the pattern fail?
+academyLesson.patterns-lag.spot.body,"Qual barra foi a primeira a fechar abaixo da mínima do engolfo (98,00)?",Which bar was the first to close below the engulfing's low (98.00)?
+academyLesson.patterns-lag.spot.right,"A barra 7 fechou em 97,90. O sinal de alta deixou de valer, e o stop planejado já tinha limitado a perda.","Bar 7 closed at 97.90. The bullish signal stopped holding, and the planned stop had already bounded the loss."
+academyLesson.patterns-lag.spot.wrong,"Compare cada fechamento depois da barra 5 com 98,00.",Compare each close after bar 5 with 98.00.
+academyLesson.patterns-lag.tool.title,Decisão: ferramenta e regime,Decision: tool and regime
+academyLesson.patterns-lag.tool.body,"O mercado oscila há dias entre um suporte e uma resistência, sem tendência. Qual abordagem combina com esse regime?","The market has swung for days between a support and a resistance, with no trend. Which approach fits that regime?"
+academyLesson.patterns-lag.tool.right,"Trabalhar as bordas do range com stop além delas. Cruzamentos de médias seriam sinais falsos aqui, comprando no topo e vendendo no fundo.","Working the range's edges with a stop beyond them. Moving-average crosses would be false signals here, buying the top and selling the bottom."
+academyLesson.patterns-lag.tool.wrong,Num range o preço volta para o meio. Qual ferramenta sofre com isso?,In a range the price returns to the middle. Which tool suffers from that?
+academyLesson.patterns-lag.tool.choice.edges,"Operar as bordas do range, com stop além delas","Trade the range's edges, with a stop beyond them"
+academyLesson.patterns-lag.tool.choice.cross,Seguir cruzamentos de médias móveis,Follow moving-average crosses
+academyLesson.patterns-lag.tool.choice.any,Qualquer uma: indicadores funcionam sempre,Any: indicators always work
+academyLesson.patterns-lag.tool.feedback.cross,"Médias atrasadas cruzam depois que o preço já andou; num range, ele volta logo em seguida.",Lagging averages cross after the price has already moved; in a range it comes right back.
+academyLesson.patterns-lag.tool.feedback.any,Cada ferramenta funciona num regime e falha em outro.,Each tool works in one regime and fails in another.
+academyLesson.patterns-lag.trend.title,Transferência: outro regime,Transfer: another regime
+academyLesson.patterns-lag.trend.body,"Mercado M, barras de 4 horas, em tendência de alta firme. O RSI está acima de 70 (sobrecomprado) há várias barras. O que isso diz?","Market M, 4-hour bars, in a firm uptrend. RSI has been above 70 (overbought) for several bars. What does that say?"
+academyLesson.patterns-lag.trend.right,"Numa tendência forte o RSI pode ficar sobrecomprado por muito tempo: é a força da alta, não um sinal de venda por si só. A leitura depende do regime.","In a strong trend RSI can stay overbought for a long time: it shows the strength of the rise, not a sell signal by itself. The reading depends on the regime."
+academyLesson.patterns-lag.trend.wrong,Pense em como o RSI se comporta quando quase toda barra fecha em alta.,Think about how RSI behaves when almost every bar closes up.
+academyLesson.patterns-lag.trend.choice.canStay,Pode ficar assim enquanto a tendência durar; não é sinal de venda sozinho,It can stay there while the trend lasts; it is not a sell signal alone
+academyLesson.patterns-lag.trend.choice.sell,É hora de vender: o preço vai cair,Time to sell: the price will fall
+academyLesson.patterns-lag.trend.choice.broken,O indicador está errado,The indicator is wrong
+academyLesson.patterns-lag.trend.feedback.sell,Vender contra uma tendência firme só porque o RSI passou de 70 é usar uma regra de range no regime errado.,Selling against a firm trend just because RSI passed 70 is using a range rule in the wrong regime.
+academyLesson.events-surprise.title,"Consenso, surpresa e gaps","Consensus, surprise and gaps"
+academyLesson.events-surprise.summary,O consenso já está no preço; só a surpresa move; gaps saltam stops; notícia boa pode cair.,The consensus is priced; only the surprise moves it; gaps jump stops; good news can sell off.
+academyLesson.events-surprise.consensus.title,O esperado já está no preço,The expected is already priced
+academyLesson.events-surprise.consensus.body,"Antes de uma divulgação, o mercado tem um consenso: o número que espera. Esse número já está no preço. O que move o preço é a surpresa, a diferença entre o divulgado e o consenso. Uma notícia boa pode derrubar o preço se veio menos boa que o esperado.","Before a release the market has a consensus: the number it expects. That number is already in the price. What moves the price is the surprise, the difference between the released number and the consensus. Good news can sell off if it is less good than expected."
+academyLesson.events-surprise.table.title,Três divulgações,Three releases
+academyLesson.events-surprise.table.body,"O mesmo consenso, três resultados. Quando o número sai igual ao esperado, quase nada muda: a informação já era conhecida. A direção da reação acompanha o sinal da surpresa, não o número em si. Surpresas grandes costumam vir com um gap: a barra seguinte abre longe do fechamento anterior.","The same consensus, three results. When the number matches the expectation, little changes: the information was already known. The reaction's direction follows the surprise's sign, not the number itself. Large surprises often come with a gap: the next bar opens far from the previous close."
+academyLesson.events-surprise.table.cell.flat,quase nada,little
+academyLesson.events-surprise.table.cell.up,alta,rise
+academyLesson.events-surprise.table.cell.down,queda,fall
+academyLesson.events-surprise.table.column.0,Consenso,Consensus
+academyLesson.events-surprise.table.column.1,Divulgado,Actual
+academyLesson.events-surprise.table.column.2,Surpresa,Surprise
+academyLesson.events-surprise.table.column.3,Reação,Reaction
+academyLesson.events-surprise.goodNews.title,"Decisão: notícia boa, preço em queda","Decision: good news, falling price"
+academyLesson.events-surprise.goodNews.body,"O consenso era +2,5 e o número saiu +1,5, um resultado positivo. O preço caiu. Por quê?","The consensus was +2.5 and the number came out at +1.5, a positive result. The price fell. Why?"
+academyLesson.events-surprise.goodNews.right,"A surpresa foi −1,0: o número veio pior que o esperado, e o esperado já estava no preço.","The surprise was −1.0: the number came in worse than expected, and the expected was already in the price."
+academyLesson.events-surprise.goodNews.wrong,"Compare o número com o consenso, não com zero.","Compare the number with the consensus, not with zero."
+academyLesson.events-surprise.goodNews.choice.surprise,A surpresa foi negativa: veio abaixo do esperado,The surprise was negative: it came in below expectations
+academyLesson.events-surprise.goodNews.choice.random,Foi acaso: notícias boas sempre sobem o preço,Chance: good news always lifts the price
+academyLesson.events-surprise.goodNews.choice.manipulated,Alguém manipulou o preço,Someone manipulated the price
+academyLesson.events-surprise.goodNews.feedback.random,O preço reage ao que é novo. Um número positivo que veio abaixo do consenso é uma notícia ruim para quem esperava mais.,Price reacts to what is new. A positive number below the consensus is bad news for those who expected more.
+academyLesson.events-surprise.gapFill.title,Decisão: o stop no gap,Decision: the stop in the gap
+academyLesson.events-surprise.gapFill.body,"Você estava comprado desde 100,40 com stop em 99,00. A divulgação saiu entre a barra 3 e a 4, e a barra 4 abriu em 96,40. Quanto o stop escorregou por unidade além do gatilho?","You were long from 100.40 with a stop at 99.00. The release came out between bar 3 and bar 4, and bar 4 opened at 96.40. How much did the stop slip per unit beyond its trigger?"
+academyLesson.events-surprise.gapFill.right,"99,00 − 96,40 = 2,60 por unidade: com 15 unidades, 39,00 a mais do que o planejado. Nenhum stop executa dentro de um gap.","99.00 − 96.40 = 2.60 per unit: with 15 units, 39.00 more than planned. No stop fills inside a gap."
+academyLesson.events-surprise.gapFill.wrong,O stop executa na abertura depois do gap. Compare a abertura com o gatilho.,The stop fills at the open after the gap. Compare the open with the trigger.
+academyLesson.events-surprise.position.title,Decisão: entrando na divulgação,Decision: holding into the release
+academyLesson.events-surprise.position.body,Você tem um long grande e uma divulgação importante sai na próxima barra. O que limita a perda se vier um gap contra você?,You hold a large long and an important release comes out on the next bar. What bounds the loss if a gap goes against you?
+academyLesson.events-surprise.position.right,"Ficar menor, ficar de fora ou se proteger com uma put. O stop sozinho não limita um gap; o tamanho e a proteção sim.","Being smaller, being flat or hedging with a put. A stop alone does not bound a gap; size and protection do."
+academyLesson.events-surprise.position.wrong,Pense no que acontece com cada opção se a barra abrir muito abaixo do stop.,Think about what happens to each choice if the bar opens far below the stop.
+academyLesson.events-surprise.position.choice.reduce,"Reduzir o tamanho, zerar ou comprar uma put de proteção","Reduce the size, go flat or buy a protective put"
+academyLesson.events-surprise.position.choice.stopOnly,Só manter o stop: ele garante a saída no preço,Just keep the stop: it guarantees the exit price
+academyLesson.events-surprise.position.choice.double,Dobrar a posição para aproveitar o movimento,Double the position to ride the move
+academyLesson.events-surprise.position.feedback.stopOnly,"O stop garante uma saída, não o preço: num gap ele executa na abertura, que pode estar muito além.","A stop guarantees an exit, not the price: in a gap it fills at the open, which can be far beyond."
+academyLesson.events-surprise.position.feedback.double,Dobrar a posição dobra também a perda no gap. A direção da surpresa não é conhecida antes.,Doubling the position doubles the loss in the gap too. The surprise's direction is not known in advance.
+academyLesson.events-surprise.other.title,Transferência: outra divulgação,Transfer: another release
+academyLesson.events-surprise.other.body,"Mercado D, outro tipo de divulgação: consenso de 0,3 e o número saiu 0,3. O que é mais provável?","Market D, another kind of release: a 0.3 consensus and the number came out at 0.3. What is most likely?"
+academyLesson.events-surprise.other.right,"Pouca reação: a surpresa é zero, o número já estava no preço. A volatilidade implícita também tende a cair depois da divulgação.","Little reaction: the surprise is zero, the number was already priced. Implied volatility also tends to fall after the release."
+academyLesson.events-surprise.other.wrong,Calcule a surpresa antes de pensar na direção.,Work out the surprise before thinking about direction.
+academyLesson.events-surprise.other.choice.little,Pouca reação: a surpresa é zero,Little reaction: the surprise is zero
+academyLesson.events-surprise.other.choice.big,Um movimento grande: saiu a notícia,A large move: the news is out
+academyLesson.events-surprise.other.choice.down,Uma queda: nada de novo é ruim,A fall: nothing new is bad
+academyLesson.events-surprise.other.column.0,Consenso,Consensus
+academyLesson.events-surprise.other.column.1,Divulgado,Actual
+academyLesson.mind-plan.title,"Plano, diário e vieses","Plan, journal and biases"
+academyLesson.mind-plan.summary,"Hipótese, invalidação e tamanho antes da entrada; o diário; FOMO, vingança e excesso de confiança; calibração.","Thesis, invalidation and size before the entry; the journal; FOMO, revenge and overconfidence; calibration."
+academyLesson.mind-plan.plan.title,Antes de entrar,Before entering
+academyLesson.mind-plan.plan.body,"Um plano tem três partes, escritas antes da entrada: a hipótese (por que deve funcionar), a invalidação (o que mostra que está errada, onde fica o stop) e o tamanho (pelo orçamento de risco). O diário guarda o plano e o resultado, para separar processo de sorte.","A plan has three parts, written before the entry: the thesis (why it should work), the invalidation (what shows it is wrong, where the stop goes) and the size (from the risk budget). The journal keeps the plan and the result, to tell process apart from luck."
+academyLesson.mind-plan.biases.title,Os vieses que custam caro,The expensive biases
+academyLesson.mind-plan.biases.body,"FOMO: entrar porque o preço já andou, sem plano. Vingança: aumentar o tamanho logo depois de perdas para recuperar rápido. Excesso de confiança: achar que suas previsões acertam mais do que acertam. Os três aparecem no diário, se você o escreve com honestidade.","FOMO: entering because the price already moved, with no plan. Revenge: raising the size right after losses to win it back quickly. Overconfidence: thinking your forecasts are right more often than they are. All three show up in the journal, if you write it honestly."
+academyLesson.mind-plan.journal.title,Um diário,A journal
+academyLesson.mind-plan.journal.body,"Quatro trades com as anotações feitas na hora. Os resultados sozinhos não dizem o que foi bom: um trade com plano pode perder, e um sem plano pode ganhar. Leia as anotações.","Four trades with the notes written at the time. Results alone do not say what was good: a planned trade can lose, and an unplanned one can win. Read the notes."
+academyLesson.mind-plan.journal.cell.planned,"plano escrito, stop, risco de 1%","written plan, stop, 1% risk"
+academyLesson.mind-plan.journal.cell.tripled,"sem plano, tamanho triplo, logo após duas perdas","no plan, triple size, right after two losses"
+academyLesson.mind-plan.journal.column.0,Trade,Trade
+academyLesson.mind-plan.journal.column.1,Resultado,Result
+academyLesson.mind-plan.journal.column.2,Anotação,Note
+academyLesson.mind-plan.revenge.title,Decisão: o trade de vingança,Decision: the revenge trade
+academyLesson.mind-plan.revenge.body,Qual trade foi de vingança?,Which trade was a revenge trade?
+academyLesson.mind-plan.revenge.right,"O trade 3: depois de duas perdas normais, tamanho triplo e sem plano. Ele custou mais que as duas perdas juntas. As perdas 1 e 2 seguiram o plano: não foram erros.","Trade 3: after two normal losses, triple size and no plan. It cost more than both losses together. Losses 1 and 2 followed the plan: they were not mistakes."
+academyLesson.mind-plan.revenge.wrong,Procure o trade em que o tamanho e o plano mudaram por causa das perdas anteriores.,Look for the trade where size and plan changed because of the earlier losses.
+academyLesson.mind-plan.revenge.choice.t2,O trade 2,Trade 2
+academyLesson.mind-plan.revenge.choice.t3,O trade 3,Trade 3
+academyLesson.mind-plan.revenge.choice.t4,O trade 4,Trade 4
+academyLesson.mind-plan.revenge.feedback.t2,"O trade 2 perdeu, mas seguiu o plano com risco de 1%: perder faz parte.","Trade 2 lost, but it followed the plan with 1% risk: losing is part of it."
+academyLesson.mind-plan.revenge.feedback.t4,O trade 4 ganhou e seguiu o plano. O resultado não define se foi um bom trade.,Trade 4 won and followed the plan. The result does not decide whether it was a good trade.
+academyLesson.mind-plan.revenge.cell.planned,"plano escrito, stop, risco de 1%","written plan, stop, 1% risk"
+academyLesson.mind-plan.revenge.cell.tripled,"sem plano, tamanho triplo, logo após duas perdas","no plan, triple size, right after two losses"
+academyLesson.mind-plan.revenge.column.0,Trade,Trade
+academyLesson.mind-plan.revenge.column.1,Resultado,Result
+academyLesson.mind-plan.revenge.column.2,Anotação,Note
+academyLesson.mind-plan.calibration.title,Decisão: calibração,Decision: calibration
+academyLesson.mind-plan.calibration.body,"Você fez 10 previsões, todas com 70% de confiança, e 4 se confirmaram. Como está a sua calibração?","You made 10 forecasts, all at 70% confidence, and 4 came true. How is your calibration?"
+academyLesson.mind-plan.calibration.right,"Acertou 40% com 70% de confiança declarada: 30 pontos de excesso de confiança. Com tão poucas previsões é um sinal, não uma prova; continue medindo.","You were right 40% of the time with 70% stated confidence: 30 points of overconfidence. With so few forecasts it is a signal, not proof; keep measuring."
+academyLesson.mind-plan.calibration.wrong,Compare a confiança declarada com a frequência real de acerto.,Compare the stated confidence with how often you were actually right.
+academyLesson.mind-plan.calibration.choice.over,Confiante demais,Overconfident
+academyLesson.mind-plan.calibration.choice.calibrated,Bem calibrada,Well calibrated
+academyLesson.mind-plan.calibration.choice.under,Confiante de menos,Underconfident
+academyLesson.mind-plan.calibration.feedback.under,Confiança de menos seria acertar mais do que os 70% declarados. Aqui foram 40%.,Underconfidence would be being right more often than the 70% stated. Here it was 40%.
+academyLesson.mind-plan.calibration.column.0,Confiança,Confidence
+academyLesson.mind-plan.calibration.column.1,Previsões,Forecasts
+academyLesson.mind-plan.calibration.column.2,Acertos,Right
+academyLesson.mind-plan.sample.title,Decisão: uma partida,Decision: one run
+academyLesson.mind-plan.sample.body,Você terminou uma missão com lucro. O que isso prova sobre a sua estratégia?,You finished a mission at a profit. What does that prove about your strategy?
+academyLesson.mind-plan.sample.right,"Pouco: uma partida é uma amostra. Repita em mercados novos e julgue o processo (plano, stop, tamanho) antes do resultado.","Little: one run is one sample. Repeat on new markets and judge the process (plan, stop, size) before the result."
+academyLesson.mind-plan.sample.wrong,Pergunte quantas vezes a mesma estratégia precisaria se repetir para você confiar nela.,Ask how many times the same strategy would have to repeat before you trust it.
+academyLesson.mind-plan.sample.choice.oneSample,Pouco: é uma amostra só; repita em mercados novos,Little: it is a single sample; repeat on new markets
+academyLesson.mind-plan.sample.choice.proven,Que a estratégia funciona,That the strategy works
+academyLesson.mind-plan.sample.choice.lucky,"Que foi sorte, com certeza","That it was luck, for sure"
+academyLesson.mind-plan.sample.feedback.lucky,Também não dá para afirmar que foi sorte: uma amostra não prova nada em nenhuma direção.,You cannot claim it was luck either: one sample proves nothing in either direction.
+academyLesson.mind-plan.fomo.title,Transferência: um diário novo,Transfer: a new journal
+academyLesson.mind-plan.fomo.body,"Outro mercado, outro diário. Qual entrada foi por FOMO?","Another market, another journal. Which entry was FOMO?"
+academyLesson.mind-plan.fomo.right,"A entrada 1: comprou depois de uma barra de alta forte, sem stop, com medo de perder o resto. Esperar, como no trade 3, também é uma decisão válida.","Entry 1: bought after a strong up bar, with no stop, afraid of missing the rest. Waiting, as in trade 3, is a valid decision too."
+academyLesson.mind-plan.fomo.wrong,"FOMO é entrar porque o preço já andou, sem plano.","FOMO is entering because the price already moved, with no plan."
+academyLesson.mind-plan.fomo.choice.t1,Trade 1,Trade 1
+academyLesson.mind-plan.fomo.choice.t2,Trade 2,Trade 2
+academyLesson.mind-plan.fomo.choice.t3,Trade 3,Trade 3
+academyLesson.mind-plan.fomo.cell.chase,"comprei depois de uma barra de alta forte, sem stop: não queria ficar de fora","bought after a strong up bar, no stop: did not want to miss out"
+academyLesson.mind-plan.fomo.cell.planned,"plano escrito, stop abaixo do suporte","written plan, stop below the support"
+academyLesson.mind-plan.fomo.cell.waited,sem sinal claro: esperei,no clear signal: waited
+academyLesson.mind-plan.fomo.column.0,Trade,Trade
+academyLesson.mind-plan.fomo.column.1,Anotação,Note
 desktop.vulkanMissing.title,TradeLab: driver Vulkan não encontrado,TradeLab: no Vulkan driver found
 desktop.vulkanMissing.body,O TradeLab precisa de um driver Vulkan para desenhar a janela e nenhum foi encontrado.,TradeLab needs a Vulkan driver to draw its window and none was found.
 desktop.vulkanMissing.linux,Instale `libvulkan1` e o driver Vulkan da sua placa de vídeo (por exemplo `mesa-vulkan-drivers`) e abra o TradeLab de novo.,Install `libvulkan1` and your graphics card's Vulkan driver (for example `mesa-vulkan-drivers`) and open TradeLab again.

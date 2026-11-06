@@ -1,0 +1,234 @@
+{
+	"id": "strategies-shapes",
+	"stage": "strategies",
+	"checks": [
+		{ "kind": "breakeven", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 90, "price": 0.8 }, { "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2.3 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2.3 }, { "kind": "call", "side": "buy", "qty": 1, "strike": 110, "price": 0.8 }], "expect": [92, 108] },
+		{ "kind": "maxLoss", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 90, "price": 0.8 }, { "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2.3 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2.3 }, { "kind": "call", "side": "buy", "qty": 1, "strike": 110, "price": 0.8 }], "expect": 2 },
+		{ "kind": "maxProfit", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 90, "price": 0.8 }, { "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2.3 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2.3 }, { "kind": "call", "side": "buy", "qty": 1, "strike": 110, "price": 0.8 }], "expect": 3 },
+		{ "kind": "diff", "a": 95, "b": 90, "expect": 5 },
+		{ "kind": "breakeven", "legs": [{ "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }], "expect": [91, 109] },
+		{ "kind": "maxLoss", "legs": [{ "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }], "expect": null },
+		{ "kind": "payoff", "legs": [{ "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }], "at": 0, "expect": -91 },
+		{ "kind": "product", "a": 2, "b": 2, "expect": 4 }
+	],
+	"steps": [
+		{
+			"id": "shapes",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Estruturas são formas",
+					"body": "Combinar opções muda a forma do payoff. Uma [[vertical-spread|trava]] limita ganho e perda. Um [[straddle]] ou um [[strangle]] comprados ganham com movimento grande; vendidos, com o preço parado. Um [[iron-condor|iron condor]] é um strangle vendido com asas compradas. A pergunta central é se a perda tem teto: [[defined-risk|risco definido]] contra indefinido. Cada perna paga o seu spread e a sua taxa."
+				},
+				"en": {
+					"title": "Structures are shapes",
+					"body": "Combining options changes the payoff's shape. A [[vertical-spread|vertical spread]] bounds gain and loss. A bought [[straddle]] or [[strangle]] gains from a large move; sold, from a still price. An [[iron-condor|iron condor]] is a short strangle with bought wings. The central question is whether the loss has a ceiling: [[defined-risk|defined]] against undefined risk. Each leg pays its own spread and fee."
+				}
+			}
+		},
+		{
+			"id": "condor",
+			"phase": "demo",
+			"widget": {
+				"kind": "payoff",
+				"market": "Z",
+				"legs": [
+					{ "kind": "put", "side": "buy", "qty": 1, "strike": 90, "price": 0.8 },
+					{ "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2.3 },
+					{ "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2.3 },
+					{ "kind": "call", "side": "buy", "qty": 1, "strike": 110, "price": 0.8 }
+				],
+				"lo": 80,
+				"hi": 120
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Um iron condor",
+					"body": "Vende a put 95 e a call 105, compra a put 90 e a call 110: um crédito de 3. Entre 95 e 105 no vencimento, o ganho é o crédito inteiro. Ele empata em 92 e 108. Além das asas, a perda para de crescer: a largura de uma asa (5) menos o crédito (3) dá uma perda máxima de 2."
+				},
+				"en": {
+					"title": "An iron condor",
+					"body": "Sell the 95 put and the 105 call, buy the 90 put and the 110 call: a credit of 3. Between 95 and 105 at expiry, the gain is the whole credit. It breaks even at 92 and 108. Beyond the wings the loss stops growing: one wing's width (5) minus the credit (3) gives a largest loss of 2."
+				}
+			}
+		},
+		{
+			"id": "condorLoss",
+			"phase": "decision",
+			"widget": {
+				"kind": "payoff",
+				"market": "Z",
+				"legs": [
+					{ "kind": "put", "side": "buy", "qty": 1, "strike": 90, "price": 0.8 },
+					{ "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2.3 },
+					{ "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2.3 },
+					{ "kind": "call", "side": "buy", "qty": 1, "strike": 110, "price": 0.8 }
+				],
+				"lo": 80,
+				"hi": 120,
+				"hideAnalytics": true
+			},
+			"question": { "type": "number", "answer": 2, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o pior caso do condor",
+					"body": "Por unidade, qual a perda máxima deste condor no vencimento?",
+					"right": "Largura 5 − crédito 3 = 2. Com o pior caso conhecido, dá para dimensionar pela perda máxima.",
+					"wrong": "Além de 110 (ou abaixo de 90) as duas calls (ou as duas puts) se compensam. Compare a largura da asa com o crédito recebido."
+				},
+				"en": {
+					"title": "Decision: the condor's worst case",
+					"body": "Per unit, what is this condor's largest loss at expiry?",
+					"right": "Width 5 − credit 3 = 2. With a known worst case, you can size by the largest loss.",
+					"wrong": "Beyond 110 (or below 90) the two calls (or the two puts) offset each other. Compare the wing's width with the credit received."
+				}
+			}
+		},
+		{
+			"id": "strangle",
+			"phase": "decision",
+			"widget": {
+				"kind": "payoff",
+				"market": "Z",
+				"legs": [
+					{ "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2 },
+					{ "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }
+				],
+				"lo": 80,
+				"hi": 120,
+				"hideAnalytics": true
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "above" },
+					{ "kind": "text", "id": "below" },
+					{ "kind": "text", "id": "nowhere" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o strangle vendido",
+					"body": "Agora sem as asas: put 95 e call 105 vendidas por 2 cada, um crédito de 4. Onde a perda não tem teto?",
+					"right": "Acima de 109 a call vendida perde um ponto por ponto, sem limite. Abaixo de 91 a perda é grande, mas para num preço de 0 (−91). Vender as asas troca crédito por um teto.",
+					"wrong": "Siga a linha do payoff para os dois lados: um deles nunca para de cair.",
+					"choices": { "above": "Na alta, acima de 109", "below": "Na queda, abaixo de 91", "nowhere": "Em nenhum lugar: o crédito cobre" },
+					"feedback": {
+						"below": "Na queda a perda é grande, mas o preço não fica negativo: ela para em −91 por unidade. Na alta não há esse limite.",
+						"nowhere": "O crédito de 4 só cobre os primeiros 4 pontos além de cada strike."
+					}
+				},
+				"en": {
+					"title": "Decision: the short strangle",
+					"body": "Now without the wings: the 95 put and the 105 call sold for 2 each, a credit of 4. Where does the loss have no ceiling?",
+					"right": "Above 109 the short call loses a point per point, without limit. Below 91 the loss is large but stops at a price of 0 (−91). Buying the wings trades credit for a ceiling.",
+					"wrong": "Follow the payoff line both ways: one of them never stops falling.",
+					"choices": { "above": "On a rise, above 109", "below": "On a fall, below 91", "nowhere": "Nowhere: the credit covers it" },
+					"feedback": {
+						"below": "On a fall the loss is large, but the price cannot go negative: it stops at −91 per unit. On a rise there is no such limit.",
+						"nowhere": "The credit of 4 only covers the first 4 points beyond each strike."
+					}
+				}
+			}
+		},
+		{
+			"id": "legging",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "naked" },
+					{ "kind": "text", "id": "condor" },
+					{ "kind": "text", "id": "flat" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: uma perna que não executou",
+					"body": "Você manda um condor de quatro pernas. As duas vendidas executam; as duas asas compradas não. O que você tem agora?",
+					"right": "Um strangle vendido, com perda sem teto na alta: esse é o [[legging-risk|risco de perna]]. Mande as proteções primeiro e confira o que ficou aberto depois de avançar.",
+					"wrong": "Tire as pernas que não executaram da estrutura e veja o que sobra.",
+					"choices": {
+						"naked": "Um strangle vendido, com risco indefinido",
+						"condor": "O mesmo condor, só que mais barato",
+						"flat": "Nada: a estrutura é cancelada sozinha"
+					},
+					"feedback": {
+						"condor": "Sem as asas não há condor: a perda volta a ser sem teto.",
+						"flat": "Ordens executadas não se desfazem sozinhas. Só você pode fechar o que ficou aberto."
+					}
+				},
+				"en": {
+					"title": "Decision: a leg that did not fill",
+					"body": "You send a four-leg condor. Both short legs fill; both bought wings do not. What do you hold now?",
+					"right": "A short strangle, with an unbounded loss on a rise: that is [[legging-risk|legging risk]]. Send the protection first and check what is open after advancing.",
+					"wrong": "Remove the legs that did not fill from the structure and see what is left.",
+					"choices": {
+						"naked": "A short strangle, with undefined risk",
+						"condor": "The same condor, only cheaper",
+						"flat": "Nothing: the structure cancels itself"
+					},
+					"feedback": {
+						"condor": "Without the wings there is no condor: the loss has no ceiling again.",
+						"flat": "Filled orders do not undo themselves. Only you can close what is left open."
+					}
+				}
+			}
+		},
+		{
+			"id": "view",
+			"phase": "transfer",
+			"chart": {
+				"market": "Y",
+				"interval": "1d",
+				"candles": [
+					{ "o": 612, "h": 618, "l": 606, "c": 615, "v": 40 },
+					{ "o": 615, "h": 624, "l": 611, "c": 621, "v": 44 },
+					{ "o": 621, "h": 626, "l": 615, "c": 618, "v": 37 },
+					{ "o": 618, "h": 629, "l": 616, "c": 627, "v": 46 },
+					{ "o": 627, "h": 633, "l": 622, "c": 630, "v": 41 }
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "bull" },
+					{ "kind": "text", "id": "shortStrangle" },
+					{ "kind": "text", "id": "straddle" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: escolha a estrutura",
+					"body": "Mercado Y, entre 606 e 633, sobe devagar. Sua visão: alta moderada até o vencimento, e você quer saber a perda máxima antes de entrar. Qual estrutura combina com essa visão?",
+					"right": "Uma trava de alta com calls: ganha com a alta até o strike de cima, custa menos que a call sozinha e a perda máxima é o débito. A estrutura vem da visão, não o contrário.",
+					"wrong": "Procure a forma que ganha com alta moderada e tem perda máxima conhecida.",
+					"choices": {
+						"bull": "Trava de alta com calls",
+						"shortStrangle": "Strangle vendido",
+						"straddle": "Straddle comprado"
+					},
+					"feedback": {
+						"shortStrangle": "O strangle vendido aposta em preço parado e tem perda sem teto: não combina com nenhum dos dois pedidos.",
+						"straddle": "O straddle precisa de um movimento grande, para qualquer lado. Uma alta moderada pode não pagar os dois prêmios."
+					}
+				},
+				"en": {
+					"title": "Transfer: pick the structure",
+					"body": "Market Y, between 606 and 633, rises slowly. Your view: a moderate rise by expiry, and you want to know the largest loss before entering. Which structure fits that view?",
+					"right": "A bull call spread: it gains from the rise up to the upper strike, costs less than the call alone and its largest loss is the debit. The structure follows from the view, not the other way round.",
+					"wrong": "Look for the shape that gains from a moderate rise and has a known largest loss.",
+					"choices": {
+						"bull": "Bull call spread",
+						"shortStrangle": "Short strangle",
+						"straddle": "Long straddle"
+					},
+					"feedback": {
+						"shortStrangle": "A short strangle bets on a still price and has an unbounded loss: it fits neither request.",
+						"straddle": "A straddle needs a large move, either way. A moderate rise may not pay both premiums."
+					}
+				}
+			}
+		}
+	]
+}

@@ -1,0 +1,181 @@
+{
+	"id": "patterns-lag",
+	"stage": "patterns",
+	"givens": [70],
+	"checks": [
+		{ "kind": "diff", "a": 100.4, "b": 97.4, "expect": 3, "digits": 2 },
+		{ "kind": "diff", "a": 100.4, "b": 98.0, "expect": 2.4, "digits": 2 }
+	],
+	"charts": {
+		"failed": {
+			"market": "L",
+			"interval": "1h",
+			"candles": [
+				{ "o": 100.2, "h": 100.6, "l": 99.4, "c": 99.6, "v": 110 },
+				{ "o": 99.6, "h": 99.9, "l": 98.8, "c": 99.0, "v": 130 },
+				{ "o": 99.0, "h": 99.3, "l": 98.2, "c": 98.5, "v": 120 },
+				{ "o": 98.5, "h": 98.7, "l": 98.0, "c": 98.2, "v": 100 },
+				{ "o": 98.1, "h": 100.6, "l": 98.0, "c": 100.4, "v": 240 },
+				{ "o": 100.4, "h": 100.5, "l": 98.9, "c": 99.1, "v": 150 },
+				{ "o": 99.1, "h": 99.2, "l": 97.7, "c": 97.9, "v": 190 },
+				{ "o": 97.9, "h": 98.3, "l": 97.1, "c": 97.4, "v": 160 }
+			]
+		}
+	},
+	"steps": [
+		{
+			"id": "lag",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Indicadores olham para trás",
+					"body": "Um [[indicator|indicador]] é um resumo das barras que já fecharam: uma [[moving-average|média móvel]] segue o preço com atraso; o [[rsi|RSI]] compara altas e quedas recentes. Nenhum deles sabe algo que as barras não mostrem. Primeiro identifique o [[regime]]: tendência, lateral ou agitado. Ferramentas de tendência dão sinais falsos em [[range|ranges]], e as de reversão sofrem em tendências."
+				},
+				"en": {
+					"title": "Indicators look back",
+					"body": "An [[indicator]] is a summary of the bars that have closed: a [[moving-average|moving average]] follows the price with a lag; [[rsi|RSI]] compares recent rises and falls. None of them knows anything the bars do not show. First identify the [[regime]]: trending, ranging or choppy. Trend tools give false signals in [[range|ranges]], and mean-reversion tools suffer in trends."
+				}
+			}
+		},
+		{
+			"id": "failure",
+			"phase": "demo",
+			"chart": { "ref": "failed", "highlight": 5 },
+			"text": {
+				"pt-BR": {
+					"title": "Um padrão que falhou",
+					"body": "A barra 5 é um engolfo de alta: abriu abaixo do fechamento da barra 4 e fechou em 100,40, acima da abertura dela. Quem comprou no fechamento, com stop abaixo da mínima do engolfo (98,00), arriscou 2,40 por unidade. Duas barras depois o preço fechou abaixo dessa mínima e o stop executou; na barra 8 o preço já estava 3,00 abaixo da entrada. Padrões falham com frequência: o que importa é o tamanho da perda quando falham."
+				},
+				"en": {
+					"title": "A pattern that failed",
+					"body": "Bar 5 is a bullish engulfing: it opened below bar 4's close and closed at 100.40, above bar 4's open. Whoever bought at the close, with a stop below the engulfing's low (98.00), risked 2.40 per unit. Two bars later the price closed below that low and the stop filled; by bar 8 the price was already 3.00 below the entry. Patterns fail often: what matters is the size of the loss when they do."
+				}
+			}
+		},
+		{
+			"id": "spot",
+			"phase": "decision",
+			"chart": { "ref": "failed" },
+			"question": {
+				"choices": [
+					{ "kind": "bar", "bar": 6 },
+					{ "kind": "bar", "bar": 7 },
+					{ "kind": "bar", "bar": 8 }
+				],
+				"answer": 1
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: quando o padrão falhou?",
+					"body": "Qual barra foi a primeira a fechar abaixo da mínima do engolfo (98,00)?",
+					"right": "A barra 7 fechou em 97,90. O sinal de alta deixou de valer, e o stop planejado já tinha limitado a perda.",
+					"wrong": "Compare cada fechamento depois da barra 5 com 98,00."
+				},
+				"en": {
+					"title": "Decision: when did the pattern fail?",
+					"body": "Which bar was the first to close below the engulfing's low (98.00)?",
+					"right": "Bar 7 closed at 97.90. The bullish signal stopped holding, and the planned stop had already bounded the loss.",
+					"wrong": "Compare each close after bar 5 with 98.00."
+				}
+			}
+		},
+		{
+			"id": "tool",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "edges" },
+					{ "kind": "text", "id": "cross" },
+					{ "kind": "text", "id": "any" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: ferramenta e regime",
+					"body": "O mercado oscila há dias entre um suporte e uma resistência, sem tendência. Qual abordagem combina com esse regime?",
+					"right": "Trabalhar as bordas do range com stop além delas. Cruzamentos de médias seriam sinais falsos aqui, comprando no topo e vendendo no fundo.",
+					"wrong": "Num range o preço volta para o meio. Qual ferramenta sofre com isso?",
+					"choices": {
+						"edges": "Operar as bordas do range, com stop além delas",
+						"cross": "Seguir cruzamentos de médias móveis",
+						"any": "Qualquer uma: indicadores funcionam sempre"
+					},
+					"feedback": {
+						"cross": "Médias atrasadas cruzam depois que o preço já andou; num range, ele volta logo em seguida.",
+						"any": "Cada ferramenta funciona num regime e falha em outro."
+					}
+				},
+				"en": {
+					"title": "Decision: tool and regime",
+					"body": "The market has swung for days between a support and a resistance, with no trend. Which approach fits that regime?",
+					"right": "Working the range's edges with a stop beyond them. Moving-average crosses would be false signals here, buying the top and selling the bottom.",
+					"wrong": "In a range the price returns to the middle. Which tool suffers from that?",
+					"choices": {
+						"edges": "Trade the range's edges, with a stop beyond them",
+						"cross": "Follow moving-average crosses",
+						"any": "Any: indicators always work"
+					},
+					"feedback": {
+						"cross": "Lagging averages cross after the price has already moved; in a range it comes right back.",
+						"any": "Each tool works in one regime and fails in another."
+					}
+				}
+			}
+		},
+		{
+			"id": "trend",
+			"phase": "transfer",
+			"chart": {
+				"market": "M",
+				"interval": "4h",
+				"candles": [
+					{ "o": 610, "h": 622, "l": 606, "c": 620, "v": 50 },
+					{ "o": 620, "h": 634, "l": 617, "c": 631, "v": 58 },
+					{ "o": 631, "h": 645, "l": 628, "c": 642, "v": 61 },
+					{ "o": 642, "h": 655, "l": 638, "c": 652, "v": 66 },
+					{ "o": 652, "h": 660, "l": 646, "c": 657, "v": 54 },
+					{ "o": 657, "h": 671, "l": 653, "c": 668, "v": 63 }
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "canStay" },
+					{ "kind": "text", "id": "sell" },
+					{ "kind": "text", "id": "broken" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: outro regime",
+					"body": "Mercado M, barras de 4 horas, em tendência de alta firme. O RSI está acima de 70 (sobrecomprado) há várias barras. O que isso diz?",
+					"right": "Numa tendência forte o RSI pode ficar sobrecomprado por muito tempo: é a força da alta, não um sinal de venda por si só. A leitura depende do regime.",
+					"wrong": "Pense em como o RSI se comporta quando quase toda barra fecha em alta.",
+					"choices": {
+						"canStay": "Pode ficar assim enquanto a tendência durar; não é sinal de venda sozinho",
+						"sell": "É hora de vender: o preço vai cair",
+						"broken": "O indicador está errado"
+					},
+					"feedback": {
+						"sell": "Vender contra uma tendência firme só porque o RSI passou de 70 é usar uma regra de range no regime errado."
+					}
+				},
+				"en": {
+					"title": "Transfer: another regime",
+					"body": "Market M, 4-hour bars, in a firm uptrend. RSI has been above 70 (overbought) for several bars. What does that say?",
+					"right": "In a strong trend RSI can stay overbought for a long time: it shows the strength of the rise, not a sell signal by itself. The reading depends on the regime.",
+					"wrong": "Think about how RSI behaves when almost every bar closes up.",
+					"choices": {
+						"canStay": "It can stay there while the trend lasts; it is not a sell signal alone",
+						"sell": "Time to sell: the price will fall",
+						"broken": "The indicator is wrong"
+					},
+					"feedback": {
+						"sell": "Selling against a firm trend just because RSI passed 70 is using a range rule in the wrong regime."
+					}
+				}
+			}
+		}
+	]
+}

@@ -3,6 +3,8 @@ import {
 	campaignMissions,
 	campaignPermissions,
 	curriculumSummary,
+	lessonProgress,
+	recommendedLesson,
 	LOCKED_LEVERAGE_CAP,
 	STAGES,
 	stagePassed,
@@ -43,10 +45,10 @@ const missionUses: Record<string, Unlock[]> = {
 };
 
 describe('curriculum graph', () => {
-	it('lists the 13 stages in the spec dependency order, each requiring the one before it', () => {
+	it('lists the 14 stages in the spec dependency order, Strategies after Options III, each requiring the one before it', () => {
 		expect(STAGES.map((s) => s.id)).toEqual([
 			'foundations', 'structure', 'orders', 'futures1', 'futures2', 'futures3', 'risk',
-			'options1', 'options2', 'options3', 'patterns', 'events', 'evaluation'
+			'options1', 'options2', 'options3', 'strategies', 'patterns', 'events', 'evaluation'
 		]);
 		STAGES.forEach((s, i) => expect(s.requires).toEqual(i === 0 ? [] : [STAGES[i - 1].id]));
 	});
@@ -68,6 +70,7 @@ describe('curriculum graph', () => {
 			options1: [M04],
 			options2: [M04, M09],
 			options3: [M05, M10],
+			strategies: [], // m13–m17 join with the missions (task W10)
 			patterns: [M08],
 			events: [M11],
 			evaluation: [M12]
@@ -89,6 +92,24 @@ describe('gating', () => {
 		expect(stageStatus('futures1', [])).toBe('locked');
 		expect(stageStatus('evaluation', [])).toBe('locked');
 		expect(stageStatus('events', [])).toBe('locked');
+	});
+
+	it('Lesson not done: m03 passes Futures II and unlocks leverage without its lesson', () => {
+		expect(STAGES.find((s) => s.id === 'futures2')!.lessons).toEqual(['futures-margin']);
+		expect(stagePassed('futures2', [M03], [])).toBe(true);
+		expect(campaignPermissions(M02, [M01, M03]).leverageCap).toBeNull();
+		// No lesson, done or not, ever passes a stage with missions or locks one.
+		for (const s of STAGES.filter((x) => x.missions.length)) {
+			expect(stagePassed(s.id, [], s.lessons)).toBe(false);
+			expect(stagePassed(s.id, s.missions, [])).toBe(true);
+		}
+	});
+
+	it('lessons x/y and the recommended lesson of a stage', () => {
+		expect(lessonProgress('risk', ['risk-expectancy'])).toEqual({ done: 1, total: 2 });
+		expect(recommendedLesson('risk', [])).toBe('risk-sizing');
+		expect(recommendedLesson('risk', ['risk-sizing'])).toBe('risk-expectancy');
+		expect(recommendedLesson('risk', ['risk-sizing', 'risk-expectancy'])).toBe('risk-sizing');
 	});
 
 	it('Foundations passes with its lesson; the lesson never gates the stages after it', () => {
@@ -175,12 +196,12 @@ describe('gating', () => {
 
 describe('summary', () => {
 	it('counts passed stages among the stages that have content', () => {
-		expect(curriculumSummary([])).toEqual({ passed: 0, withContent: 13 });
-		expect(curriculumSummary([M01, M03])).toEqual({ passed: 2, withContent: 13 });
-		expect(curriculumSummary([M04])).toEqual({ passed: 1, withContent: 13 }); // Options I; Options II needs m09
-		expect(curriculumSummary([M04, M09])).toEqual({ passed: 2, withContent: 13 }); // Options I and II
-		expect(curriculumSummary([M06])).toEqual({ passed: 2, withContent: 13 }); // Structure and Orders
-		expect(curriculumSummary([M11, M12])).toEqual({ passed: 2, withContent: 13 }); // Events and Evaluation
-		expect(curriculumSummary([M06], ['foundations-bar'])).toEqual({ passed: 3, withContent: 13 }); // + Foundations by its lesson
+		expect(curriculumSummary([])).toEqual({ passed: 0, withContent: 14 });
+		expect(curriculumSummary([M01, M03])).toEqual({ passed: 2, withContent: 14 });
+		expect(curriculumSummary([M04])).toEqual({ passed: 1, withContent: 14 }); // Options I; Options II needs m09
+		expect(curriculumSummary([M04, M09])).toEqual({ passed: 2, withContent: 14 }); // Options I and II
+		expect(curriculumSummary([M06])).toEqual({ passed: 2, withContent: 14 }); // Structure and Orders
+		expect(curriculumSummary([M11, M12])).toEqual({ passed: 2, withContent: 14 }); // Events and Evaluation
+		expect(curriculumSummary([M06], ['foundations-bar'])).toEqual({ passed: 3, withContent: 14 }); // + Foundations by its lesson
 	});
 });

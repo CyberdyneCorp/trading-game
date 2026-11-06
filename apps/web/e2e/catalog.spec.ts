@@ -163,7 +163,7 @@ test('Academy: the Foundations lesson runs from the curriculum map and passes it
 	const foundations = page.locator('[data-stage=foundations]');
 	await expect(foundations).toHaveAttribute('data-status', 'open');
 	await expect(page.locator('[data-stage=structure]')).toHaveAttribute('data-status', 'open'); // the lesson never blocks
-	await expect(page.getByTestId('curriculum-summary')).toHaveText('0 de 13 estágios com conteúdo aprovados');
+	await expect(page.getByTestId('curriculum-summary')).toHaveText('0 de 14 estágios com conteúdo aprovados');
 	await foundations.getByTestId('lesson-start').click();
 
 	await expect(page.getByTestId('lesson-phase')).toHaveText('CONCEITO');
@@ -202,7 +202,7 @@ test('Academy: the Foundations lesson runs from the curriculum map and passes it
 	await page.getByTestId('lesson-finish').click();
 	await expect(foundations).toHaveAttribute('data-status', 'passed');
 	await expect(foundations.getByTestId('stage-lesson')).toContainText('concluída');
-	await expect(page.getByTestId('curriculum-summary')).toHaveText('1 de 13 estágios com conteúdo aprovados');
+	await expect(page.getByTestId('curriculum-summary')).toHaveText('1 de 14 estágios com conteúdo aprovados');
 
 	// Progress is local and survives a reload, even one right after the map shows the stage passed
 	// (playtest: the write was not awaited and a quick reload lost it).

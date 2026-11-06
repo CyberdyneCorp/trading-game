@@ -1,13 +1,14 @@
 <script lang="ts">
 	// Curriculum map and progress (spec curriculum; web-client task 4.4): every stage in dependency
-	// order with its status, assessment missions and unlocks, plus the player's progress.
+	// order with its status, assessment missions, Academy lessons (x/y done, start or retake) and
+	// unlocks, plus the player's progress. Lessons never gate a stage that has missions (design D9).
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { bestCompletedCapital } from '#lib/game/campaign.ts';
-	import { curriculumSummary, LOCKED_LEVERAGE_CAP, STAGES, stageStatus, type Unlock } from '#lib/game/curriculum.ts';
+	import { curriculumSummary, lessonProgress, LOCKED_LEVERAGE_CAP, STAGES, stageStatus, type Unlock } from '#lib/game/curriculum.ts';
 	import { fmtMoney } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
-	import { lessonText } from '#lib/game/academy.ts';
+	import { lessonMeta } from '#lib/content/academy.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const L = $derived(i18n.locale);
@@ -23,7 +24,10 @@
 <main class="curriculum">
 	<header>
 		<h1>{t('curriculum.title')}</h1>
-		<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
+		<span class="actions">
+			<button onclick={() => session.openAcademy()} data-testid="curriculum-academy">🎓 {t('academy.open')}</button>
+			<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
+		</span>
 	</header>
 	<p class="muted">{t('curriculum.note')}</p>
 
@@ -52,10 +56,14 @@
 				{:else}
 					<p class="muted small">{t('curriculum.soonNote')}</p>
 				{/if}
+				{#if st.lessons.length}
+					{@const lp = lessonProgress(st.id, lessonsDone)}
+					<p class="muted small" data-testid="stage-lessons">{t('curriculum.lessons', { done: lp.done, total: lp.total })}</p>
+				{/if}
 				{#each st.lessons as id (id)}
 					{@const done = lessonsDone.includes(id)}
 					<p class="lesson-row" data-testid="stage-lesson" data-lesson={id}>
-						<span>{t('curriculum.lesson', { title: lessonText(id, L).title })}{#if done}{' '}<span class="up">✓ {t('curriculum.lessonDone')}</span>{/if}</span>
+						<span>{t('curriculum.lesson', { title: lessonMeta(id)?.title[L] ?? id })}{#if done}{' '}<span class="up">✓ {t('curriculum.lessonDone')}</span>{/if}</span>
 						<button class:primary={!done} onclick={() => session.openLesson(id)} data-testid="lesson-start">
 							{done ? t('curriculum.lessonRepeat') : t('curriculum.lessonStart')}
 						</button>
@@ -77,6 +85,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.8rem;
+	}
+	.actions {
+		display: flex;
+		gap: 0.4rem;
 	}
 	header {
 		display: flex;

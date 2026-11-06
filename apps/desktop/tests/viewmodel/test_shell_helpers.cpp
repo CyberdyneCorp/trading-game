@@ -33,7 +33,7 @@ Catalog en() {
 }  // namespace
 
 TEST_CASE("web content: stages, lessons, shortcuts and constants come from the web sources") {
-  CHECK(C().stages.size() == 13);
+  CHECK(C().stages.size() == 14);
   CHECK(C().stages.front().id == "foundations");
   CHECK(C().locked_leverage_cap == 2);
   CHECK(C().campaign_capital == "10000");
@@ -60,7 +60,8 @@ TEST_CASE("curriculum: statuses, campaign order and the leverage gate") {
   CHECK(order.front() == "m06-thin-book");
   CHECK(order[1] == "m01-false-breakout");
   CHECK(order.back() == "m12-capstone");
-  CHECK(stage_passed(C(), "orders", {"m06-thin-book"}));
+  CHECK(stage_passed(C(), "orders", {"m06-thin-book"}));  // its lesson never gates it
+  CHECK_FALSE(stage_passed(C(), "orders", {}, {"orders-execution"}));
   CHECK(stage_status(C(), "futures1", {"m06-thin-book"}) == StageStatus::Open);
 
   const Permissions first = campaign_permissions(C(), "m06-thin-book", none);
@@ -71,7 +72,7 @@ TEST_CASE("curriculum: statuses, campaign order and the leverage gate") {
   CHECK_FALSE(campaign_permissions(C(), "m02-funding-squeeze", {"m03-volatility-shock"}).leverage_cap.has_value());
   const CurriculumSummary s = curriculum_summary(C(), {"m06-thin-book"}, {"foundations-bar"});
   CHECK(s.passed == 3);
-  CHECK(s.with_content == 13);
+  CHECK(s.with_content == 14);
 }
 
 TEST_CASE("campaign: capital carries on, bankruptcy and the minimum end it, settling is idempotent") {

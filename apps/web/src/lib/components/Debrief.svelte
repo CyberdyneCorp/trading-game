@@ -1,5 +1,10 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
+	import Term from './Term.svelte';
+	import CoachMarks from './CoachMarks.svelte';
+	import { FINDING_TERMS, termById } from '#lib/content/glossary.ts';
+	import { lessonMeta } from '#lib/content/academy.ts';
+	import { lessonCodeStage, recommendedLesson } from '#lib/game/curriculum.ts';
 	import { describeFindings, describeLesson } from '#lib/game/analysis.ts';
 	import { pctFromBp } from '#lib/game/advisor.ts';
 	import RegimeReveal from './RegimeReveal.svelte';
@@ -27,6 +32,11 @@
 	const trades = $derived(d.trades);
 	const greeks = $derived(greekRows(d.greeks));
 	const findingTexts = $derived(describeFindings(a.findings, L, s.missionRules));
+	// The recommended stage's first lesson not completed yet, or its first (design D9).
+	const nextLesson = $derived.by(() => {
+		const stage = lessonCodeStage(a.lesson);
+		return stage ? recommendedLesson(stage, session.progress.lessonsDone) : null;
+	});
 	// Depends on L so the texts follow a language switch.
 	const reveal = $derived(d.reveal && L ? revealTexts(d.reveal, d.alias, s.marketMode, session.runPackOrigin) : null);
 	// The run can end (game over) before the scenario does; the market line and buy-and-hold stop with it.
@@ -163,16 +173,24 @@
 		</section>
 	</div>
 
-	<section class="panel findings">
+	<section class="panel findings" data-coach="debrief">
 		<h2 class="panel-title">{t('debrief.findings')}</h2>
 		<ul>
 			{#each a.findings as f, i (i)}
 				<li class={f.tone === 'bad' ? 'down' : f.tone === 'good' ? 'up' : f.tone === 'warn' ? 'attention' : 'info'}>
 					{f.tone === 'good' ? '✔' : f.tone === 'bad' ? '✖' : f.tone === 'warn' ? '⚠' : 'ℹ'} {findingTexts[i]}
+					{#if FINDING_TERMS[f.code]}{@const term = FINDING_TERMS[f.code]!}<span class="muted small"> · <Term id={term}>{termById(term)?.text[L].term}</Term></span>{/if}
 				</li>
 			{/each}
 		</ul>
 		<p><strong>{t('debrief.nextLesson')}:</strong> <span class="info">{describeLesson(a.lesson, L)}</span></p>
+		{#if nextLesson}
+			<p>
+				<button onclick={() => session.openLesson(nextLesson, 'debrief')} data-testid="debrief-lesson">
+					🎓 {t('debrief.openLesson', { title: lessonMeta(nextLesson)?.title[L] ?? nextLesson })}
+				</button>
+			</p>
+		{/if}
 		<p class="muted small">{t('debrief.disclaimer')}</p>
 	</section>
 
@@ -301,6 +319,7 @@
 		{/if}
 	</div>
 </main>
+<CoachMarks {session} place="debrief" />
 
 <style>
 	.debrief {

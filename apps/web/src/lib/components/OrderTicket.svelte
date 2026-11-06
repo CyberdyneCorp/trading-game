@@ -30,6 +30,7 @@
 
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
+	import Term from './Term.svelte';
 	import { costsOf, estimate, estimatedMarketEntry, marginTier, opposingEffect, releveredLiquidation, requiredMargin, shockFactors, sizedQty, type SizeBy } from '#lib/game/sizing.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseAmount, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
@@ -289,7 +290,7 @@
 	}
 </script>
 
-<section class="panel ticket" aria-label={t('ticket.title')}>
+<section class="panel ticket" aria-label={t('ticket.title')} data-coach="ticket">
 	<h2 class="panel-title">{t('ticket.title')}</h2>
 	<div class="sides" role="radiogroup">
 		<button class="buy" class:active={side === 'buy'} onclick={() => (side = 'buy')} role="radio" aria-checked={side === 'buy'}>
@@ -303,7 +304,7 @@
 
 	<div class="grid">
 		<label>
-			{t('ticket.type')}
+			<Term id="market-order">{t('ticket.type')}</Term>
 			<select bind:value={orderType}>
 				<option value="market">{t('ticket.market')}</option>
 				<option value="limit">{t('ticket.limit')}</option>
@@ -311,7 +312,7 @@
 			</select>
 		</label>
 		<label>
-			{t('ticket.leverage')} (≤ {cap}x)
+			<Term id="leverage">{t('ticket.leverage')}</Term> (≤ {cap}x)
 			<input type="number" min="1" max={cap} step="1" bind:value={leverage} onchange={() => (leverage = lev)} />
 		</label>
 		{#if needsPrice}
@@ -331,7 +332,7 @@
 		</label>
 		{#if sizeBy === 'risk'}
 			<label>
-				{t('ticket.riskPct')}
+				<Term id="risk-budget">{t('ticket.riskPct')}</Term>
 				<input inputmode="decimal" bind:value={riskInput} data-testid="ticket-risk" />
 			</label>
 		{:else if sizeBy === 'notional'}
@@ -384,12 +385,12 @@
 
 	<dl class="kv est">
 		<dt>{t('ticket.qty')}</dt><dd data-testid="ticket-est-qty">{fmtQty(qtyStr, L)}</dd>
-		<dt>{t('ticket.estNotional')}</dt><dd data-testid="ticket-est-notional">{fmtMoney(est.notional, L)}</dd>
+		<dt><Term id="notional">{t('ticket.estNotional')}</Term></dt><dd data-testid="ticket-est-notional">{fmtMoney(est.notional, L)}</dd>
 		<dt>{t('ticket.estEntry')}</dt><dd data-testid="ticket-est-entry">{fmtPrice(String(entry), L)}</dd>
-		<dt>{t('ticket.estMargin')}</dt><dd>{fmtMoney(est.margin, L)}</dd>
-		<dt>{t('ticket.estFee')}</dt><dd>{fmtMoney(est.fee, L)}</dd>
-		<dt>{t('ticket.estLiq')}</dt><dd class="down" data-testid="ticket-est-liq">{est.liquidation ? fmtPrice(String(est.liquidation), L) : '—'}</dd>
-		<dt>{t('ticket.estRisk')}</dt><dd>{est.plannedRisk != null ? fmtMoney(est.plannedRisk, L) : '—'}</dd>
+		<dt><Term id="initial-margin">{t('ticket.estMargin')}</Term></dt><dd>{fmtMoney(est.margin, L)}</dd>
+		<dt><Term id="fee">{t('ticket.estFee')}</Term></dt><dd>{fmtMoney(est.fee, L)}</dd>
+		<dt><Term id="liquidation-price">{t('ticket.estLiq')}</Term></dt><dd class="down" data-testid="ticket-est-liq">{est.liquidation ? fmtPrice(String(est.liquidation), L) : '—'}</dd>
+		<dt data-coach="risk"><Term id="stop-loss">{t('ticket.estRisk')}</Term></dt><dd>{est.plannedRisk != null ? fmtMoney(est.plannedRisk, L) : '—'}</dd>
 	</dl>
 	{#if relever}
 		<p class={relever.closer ? 'warnbox' : 'small info'} role="status" data-testid="relever-note">
@@ -499,8 +500,9 @@
 	.sides button.active.sell {
 		background: rgba(255, 95, 122, 0.15);
 	}
+	/* The side not chosen is dashed, not faded: a faded label failed WCAG AA contrast (axe, coach-mark e2e). */
 	.sides button:not(.active) {
-		opacity: 0.55;
+		border-style: dashed;
 	}
 	.grid {
 		display: grid;

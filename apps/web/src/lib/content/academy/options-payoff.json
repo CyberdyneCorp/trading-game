@@ -1,0 +1,193 @@
+{
+	"id": "options-payoff",
+	"stage": "options1",
+	"checks": [
+		{ "kind": "diff", "a": 103, "b": 100, "expect": 3 },
+		{ "kind": "diff", "a": 5, "b": 3, "expect": 2 },
+		{ "kind": "breakeven", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 4 }], "expect": [104] },
+		{ "kind": "payoff", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 4 }], "at": 110, "expect": 6 },
+		{ "kind": "payoff", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 4 }], "at": 95, "expect": -4 },
+		{ "kind": "maxLoss", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 4 }], "expect": 4 },
+		{ "kind": "breakeven", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 100, "price": 4 }], "expect": [96] },
+		{ "kind": "breakeven", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 100, "price": 3 }], "expect": [97] },
+		{ "kind": "diff", "a": 110, "b": 100, "expect": 10 },
+		{ "kind": "breakeven", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 2400, "price": 60 }], "expect": [2340] },
+		{ "kind": "payoff", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 2400, "price": 60 }], "at": 2300, "expect": 40 },
+		{ "kind": "payoff", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 2400, "price": 60 }], "at": 2500, "expect": -60 }
+	],
+	"steps": [
+		{
+			"id": "rights",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Um direito, não uma obrigação",
+					"body": "Uma [[call]] dá o direito de comprar ao [[strike]]; uma [[put]], o direito de vender. Quem compra paga o [[premium|prêmio]] e não pode perder mais que ele. Aqui as opções são europeias e liquidadas em dinheiro no [[expiry|vencimento]]: no fim, uma call vale max(0, preço − strike) e uma put, max(0, strike − preço)."
+				},
+				"en": {
+					"title": "A right, not an obligation",
+					"body": "A [[call]] gives the right to buy at the [[strike]]; a [[put]], the right to sell. The buyer pays the [[premium]] and cannot lose more than it. Here options are European and settled in cash at [[expiry]]: at the end a call is worth max(0, price − strike) and a put, max(0, strike − price)."
+				}
+			}
+		},
+		{
+			"id": "value",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Valor intrínseco e de tempo",
+					"body": "Com o preço em 103, uma call de strike 100 tem 3 de [[intrinsic-value|valor intrínseco]]: o que valeria se vencesse agora. Se ela custa 5, os outros 2 são [[time-value|valor de tempo]], o preço da chance de o preço ainda subir mais. O valor de tempo vai a zero no vencimento."
+				},
+				"en": {
+					"title": "Intrinsic and time value",
+					"body": "With the price at 103, a 100-strike call has 3 of [[intrinsic-value|intrinsic value]]: what it would be worth if it expired now. If it costs 5, the other 2 are [[time-value|time value]], the price of the chance that the price rises further. Time value goes to zero at expiry."
+				}
+			}
+		},
+		{
+			"id": "payoff",
+			"phase": "demo",
+			"widget": {
+				"kind": "payoff",
+				"market": "O",
+				"legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 4 }],
+				"lo": 85,
+				"hi": 115
+			},
+			"text": {
+				"pt-BR": {
+					"title": "O payoff de uma call comprada",
+					"body": "Call de strike 100 comprada por 4. Abaixo de 100 ela vence sem valor e a perda é o prêmio, 4. Acima de 100 cada ponto vale um ponto. Ela empata em 104 (strike + prêmio): o [[breakeven|ponto de equilíbrio]]. A 110, ganha 6; a 95, perde 4."
+				},
+				"en": {
+					"title": "The payoff of a bought call",
+					"body": "A 100-strike call bought for 4. Below 100 it expires worthless and the loss is the premium, 4. Above 100 each point is worth a point. It breaks even at 104 (strike + premium): the [[breakeven]]. At 110 it gains 6; at 95 it loses 4."
+				}
+			}
+		},
+		{
+			"id": "be",
+			"phase": "decision",
+			"widget": {
+				"kind": "payoff",
+				"market": "O",
+				"legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 4 }],
+				"lo": 85,
+				"hi": 115,
+				"hideAnalytics": true
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "b104" },
+					{ "kind": "text", "id": "b100" },
+					{ "kind": "text", "id": "b96" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o ponto de equilíbrio",
+					"body": "Onde esta call de strike 100, comprada por 4, empata no vencimento?",
+					"right": "104 = 100 + 4. O preço precisa passar do strike pelo valor do prêmio para pagar a opção.",
+					"wrong": "No equilíbrio o valor da call no vencimento é igual ao prêmio pago.",
+					"choices": { "b104": "104", "b100": "100", "b96": "96" },
+					"feedback": {
+						"b100": "A 100 a call vence valendo 0: você perde os 4 do prêmio. O strike não é o ponto de equilíbrio.",
+						"b96": "96 = 100 − 4 seria o ponto de equilíbrio de uma put com o mesmo prêmio. A call precisa de alta."
+					}
+				},
+				"en": {
+					"title": "Decision: the breakeven",
+					"body": "Where does this 100-strike call, bought for 4, break even at expiry?",
+					"right": "104 = 100 + 4. The price must pass the strike by the premium to pay for the option.",
+					"wrong": "At breakeven the call's value at expiry equals the premium paid.",
+					"choices": { "b104": "104", "b100": "100", "b96": "96" },
+					"feedback": {
+						"b100": "At 100 the call expires worth 0: you lose the 4 of premium. The strike is not the breakeven.",
+						"b96": "96 = 100 − 4 would be the breakeven of a put with the same premium. The call needs a rise."
+					}
+				}
+			}
+		},
+		{
+			"id": "pnl110",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 6, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o resultado a 110",
+					"body": "O preço vence a 110. Qual o resultado da call de strike 100 comprada por 4, por unidade?",
+					"right": "Valor no vencimento 110 − 100 = 10, menos o prêmio 4: +6.",
+					"wrong": "Resultado = max(0, preço − strike) − prêmio."
+				},
+				"en": {
+					"title": "Decision: the result at 110",
+					"body": "The price expires at 110. What is the result of the 100-strike call bought for 4, per unit?",
+					"right": "Value at expiry 110 − 100 = 10, minus the premium 4: +6.",
+					"wrong": "Result = max(0, price − strike) − premium."
+				}
+			}
+		},
+		{
+			"id": "loss",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "premium" },
+					{ "kind": "text", "id": "strike" },
+					{ "kind": "text", "id": "unbounded" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: a perda máxima do comprador",
+					"body": "Qual a maior perda possível de quem comprou essa call?",
+					"right": "O prêmio, 4: é tudo o que o comprador pagou, mesmo se o preço desabar. Opções compradas têm risco definido.",
+					"wrong": "No pior caso a call vence sem valor. O que se perdeu então?",
+					"choices": { "premium": "O prêmio pago (4)", "strike": "O valor do strike (100)", "unbounded": "Não tem limite" },
+					"feedback": {
+						"unbounded": "Perda sem limite é de quem vende uma call, não de quem compra."
+					}
+				},
+				"en": {
+					"title": "Decision: the buyer's largest loss",
+					"body": "What is the largest possible loss for whoever bought this call?",
+					"right": "The premium, 4: it is all the buyer paid, even if the price collapses. Bought options have defined risk.",
+					"wrong": "In the worst case the call expires worthless. What was lost then?",
+					"choices": { "premium": "The premium paid (4)", "strike": "The strike's value (100)", "unbounded": "There is no limit" },
+					"feedback": {
+						"unbounded": "An unbounded loss belongs to whoever sells a call, not whoever buys it."
+					}
+				}
+			}
+		},
+		{
+			"id": "put",
+			"phase": "transfer",
+			"widget": {
+				"kind": "payoff",
+				"market": "U",
+				"legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 2400, "price": 60 }],
+				"lo": 2200,
+				"hi": 2600,
+				"hideAnalytics": true
+			},
+			"question": { "type": "number", "answer": 2340, "tolerance": 0.01 },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: uma put em outro mercado",
+					"body": "Mercado U, perto de 2.400. Você compra uma put de strike 2.400 por 60. Em que preço ela empata no vencimento?",
+					"right": "2.400 − 60 = 2.340. A put ganha com a queda: a 2.300 ela ganha 40; acima de 2.400 perde o prêmio inteiro, 60.",
+					"wrong": "Numa put o equilíbrio é strike − prêmio: ela precisa de queda."
+				},
+				"en": {
+					"title": "Transfer: a put on another market",
+					"body": "Market U, near 2,400. You buy a 2,400-strike put for 60. At what price does it break even at expiry?",
+					"right": "2,400 − 60 = 2,340. The put gains from a fall: at 2,300 it gains 40; above 2,400 it loses the whole premium, 60.",
+					"wrong": "For a put the breakeven is strike − premium: it needs a fall."
+				}
+			}
+		}
+	]
+}

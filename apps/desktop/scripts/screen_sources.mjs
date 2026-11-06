@@ -1,8 +1,9 @@
 // The desktop screens' texts and data that the web keeps outside i18n.svelte.ts (objectives, debrief
 // findings, news names, Academy lessons) and the web's screen rules as data (curriculum stages,
 // campaign constants, default shortcuts, lesson steps). Read with the web's TypeScript toolchain, like
-// the rest of the catalog: never retyped. Every source path is optional (absent = skipped), so the
-// small fixtures of the script tests keep working.
+// the rest of the catalog, and the Academy lessons straight from the web's JSON content files
+// (apps/web/src/lib/content/academy, add-academy-and-strategies design D1): never retyped. Every
+// source path is optional (absent = skipped), so the small fixtures of the script tests keep working.
 
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -10,10 +11,11 @@ import { fileURLToPath } from 'node:url';
 
 const DESKTOP_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WEB_GAME = path.resolve(DESKTOP_DIR, '../web/src/lib/game');
+const WEB_CONTENT = path.resolve(DESKTOP_DIR, '../web/src/lib/content');
 
 export const SCREEN_PATHS = {
 	webAnalysis: path.join(WEB_GAME, 'analysis.ts'),
-	webAcademy: path.join(WEB_GAME, 'academy.ts'),
+	webAcademy: path.join(WEB_CONTENT, 'academy'),
 	webCurriculum: path.join(WEB_GAME, 'curriculum.ts'),
 	webCampaign: path.join(WEB_GAME, 'campaign.ts'),
 	webCampaignReport: path.join(WEB_GAME, 'campaignReport.ts'),
@@ -43,23 +45,48 @@ function analysisRows(ts, file, readConsts, out) {
 	return c.duplicates;
 }
 
-function academyRows(ts, file, readConsts, out) {
-	const c = readConsts(ts, file);
-	for (const [id, byLocale] of Object.entries(c.get('TEXTS'))) {
-		const [pt, en] = LOCALES.map((l) => byLocale[l] ?? { steps: {} });
-		const base = `academyLesson.${id}`;
-		out.push([`${base}.title`, pt.title, en.title, 'web academy'], [`${base}.summary`, pt.summary, en.summary, 'web academy']);
-		for (const [step, text] of Object.entries(pt.steps)) {
-			const other = en.steps[step] ?? {};
-			for (const field of ['title', 'body', 'right', 'wrong']) {
-				if (text[field] !== undefined) out.push([`${base}.${step}.${field}`, text[field], other[field] ?? '', 'web academy']);
-			}
-			for (const [choice, label] of Object.entries(text.choices ?? {})) {
-				out.push([`${base}.${step}.choice.${choice}`, label, other.choices?.[choice] ?? '', 'web academy']);
-			}
+/** Lesson and tutorial texts link glossary terms as [[id|text]]; the desktop shows the plain text. */
+export const stripLinks = (text) =>
+	typeof text === 'string' ? text.replace(/\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]/g, (_, id, shown) => shown ?? id) : text;
+
+const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
+
+/** The Academy lessons in index order, with chart references (`{"ref": …}`) resolved like the web's loader. */
+function academyLessons(dir) {
+	return readJson(path.join(dir, 'index.json')).lessons.map((meta) => {
+		const file = readJson(path.join(dir, `${meta.id}.json`));
+		const steps = file.steps.map((s) => {
+			if (!s.chart) return s;
+			const { ref, ...own } = s.chart;
+			return { ...s, chart: { ...(ref ? file.charts?.[ref] : {}), ...own } };
+		});
+		return { meta, lesson: { id: file.id, stage: file.stage, steps } };
+	});
+}
+
+const STEP_FIELDS = ['title', 'body', 'right', 'wrong'];
+const STEP_MAPS = { choices: 'choice', feedback: 'feedback', cells: 'cell' };
+
+function stepRows(base, step, out) {
+	const [pt, en] = LOCALES.map((l) => step.text[l] ?? {});
+	for (const field of STEP_FIELDS) {
+		if (pt[field] !== undefined) out.push([`${base}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? ''), 'web academy']);
+	}
+	for (const [map, key] of Object.entries(STEP_MAPS)) {
+		for (const [id, label] of Object.entries(pt[map] ?? {})) {
+			out.push([`${base}.${key}.${id}`, stripLinks(label), stripLinks(en[map]?.[id] ?? ''), 'web academy']);
 		}
 	}
-	return c.duplicates;
+	(pt.columns ?? []).forEach((label, i) => out.push([`${base}.column.${i}`, label, en.columns?.[i] ?? '', 'web academy']));
+}
+
+function academyRows(_ts, dir, _readConsts, out) {
+	for (const { meta, lesson } of academyLessons(dir)) {
+		const base = `academyLesson.${meta.id}`;
+		out.push([`${base}.title`, meta.title['pt-BR'], meta.title.en, 'web academy'], [`${base}.summary`, meta.summary['pt-BR'], meta.summary.en, 'web academy']);
+		for (const step of lesson.steps) stepRows(`${base}.${step.id}`, step, out);
+	}
+	return [];
 }
 
 // objectives.ts (objective.*) and news.ts (news.kind.*, news.level.*) are read once, by i18n_game.mjs.
@@ -78,21 +105,6 @@ export function screenRows(ts, paths, readConsts) {
 	return { rows, problems };
 }
 
-/**
- * academy.ts LESSONS is built with helpers (x(), .map()), not a literal: transpile the module and run
- * it (it only imports types, which transpiling removes) to read the data it exports.
- */
-function evaluateModule(ts, file) {
-	const js = ts.transpileModule(readFileSync(file, 'utf8'), {
-		compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
-	}).outputText;
-	const module = { exports: {} };
-	new Function('module', 'exports', 'require', js)(module, module.exports, (name) => {
-		throw new Error(`${path.basename(file)}: runtime import of ${name} is not supported`);
-	});
-	return module.exports;
-}
-
 function contentOf(ts, paths, readConsts) {
 	const curriculum = readConsts(ts, paths.webCurriculum);
 	const campaign = readConsts(ts, paths.webCampaign);
@@ -107,7 +119,11 @@ function contentOf(ts, paths, readConsts) {
 		afterReleaseBars: readConsts(ts, paths.webDebrief).get('AFTER_RELEASE_BARS'),
 		shortcutActions: shortcuts.get('SHORTCUT_ACTIONS'),
 		defaultKeymap: shortcuts.get('DEFAULT_KEYMAP'),
-		lessons: evaluateModule(ts, paths.webAcademy).LESSONS
+		// Structure only: the texts are the academyLesson.* rows.
+		lessons: academyLessons(paths.webAcademy).map(({ lesson }) => ({
+			...lesson,
+			steps: lesson.steps.map(({ text: _text, ...step }) => step)
+		}))
 	};
 }
 

@@ -41,11 +41,14 @@ Ids campaign_missions(const WebContent& c) {
   return out;
 }
 
+// A stage with missions is passed by its missions only (its Academy lessons prepare for it and never
+// gate it); a lesson-only stage when its lessons are done (add-academy-and-strategies design D9).
 bool stage_passed(const WebContent& c, std::string_view id, const Ids& assessed, const Ids& lessons_done) {
   const Stage* s = c.stage(id);
   if (s == nullptr || !has_content(*s)) return false;
   const auto in = [](const Ids& ids) { return [&ids](const std::string& x) { return contains(ids, x); }; };
-  return std::ranges::all_of(s->missions, in(assessed)) && std::ranges::all_of(s->lessons, in(lessons_done));
+  if (!s->missions.empty()) return std::ranges::all_of(s->missions, in(assessed));
+  return std::ranges::all_of(s->lessons, in(lessons_done));
 }
 
 StageStatus stage_status(const WebContent& c, std::string_view id, const Ids& assessed, const Ids& lessons_done) {

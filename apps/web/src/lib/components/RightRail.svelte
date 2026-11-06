@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { GameState } from '#lib/engine/types.ts';
+	import Term from './Term.svelte';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseAmount, signMark } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { bpPct, objectiveTexts } from '#lib/game/objectives.ts';
@@ -39,17 +40,17 @@
 
 <aside class="rail">
 	<section class="panel">
-		<h2 class="panel-title">{t('rail.equity')}</h2>
+		<h2 class="panel-title"><Term id="equity">{t('rail.equity')}</Term></h2>
 		<div class="big num">{fmtMoney(a.equity, L)}</div>
 		<div class="num {pnlTotal >= 0 ? 'up' : 'down'}">
 			{signMark(pnlTotal)} {fmtMoney(pnlTotal, L, true)} ({fmtPct(pnlTotal / num(game.initialBalance), L, 2, true)})
 		</div>
 		<dl class="kv">
 			<dt>{t('rail.wallet')}</dt><dd>{fmtMoney(a.wallet, L)}</dd>
-			<dt>{t('rail.available')}</dt><dd>{fmtMoney(a.available, L)}</dd>
-			<dt>{t('rail.realized')}</dt><dd>{fmtMoney(game.totals.realizedPnl, L, true)}</dd>
-			<dt>{t('rail.fees')}</dt><dd>{fmtMoney(game.totals.feesPaid, L)}</dd>
-			<dt>{t('rail.funding')}</dt><dd>{fmtMoney(game.totals.fundingNet, L, true)}</dd>
+			<dt><Term id="equity">{t('rail.available')}</Term></dt><dd>{fmtMoney(a.available, L)}</dd>
+			<dt><Term id="pnl">{t('rail.realized')}</Term></dt><dd>{fmtMoney(game.totals.realizedPnl, L, true)}</dd>
+			<dt><Term id="fee">{t('rail.fees')}</Term></dt><dd>{fmtMoney(game.totals.feesPaid, L)}</dd>
+			<dt><Term id="funding-rate">{t('rail.funding')}</Term></dt><dd>{fmtMoney(game.totals.fundingNet, L, true)}</dd>
 		</dl>
 	</section>
 
@@ -63,14 +64,14 @@
 			</p>
 			<dl class="kv">
 				<dt>{t('rail.entry')}</dt><dd>{fmtPrice(game.position.entry, L)}</dd>
-				<dt>{t('rail.unrealized')}</dt>
+				<dt><Term id="pnl">{t('rail.unrealized')}</Term></dt>
 				<dd class={unreal >= 0 ? 'up' : 'down'}>{signMark(unreal)} {fmtMoney(unreal, L, true)}</dd>
-				<dt>{t('rail.margin')}</dt><dd>{fmtMoney(game.position.margin, L)}</dd>
-				<dt>{t('rail.notional')}</dt><dd>{fmtMoney(a.notional, L)}</dd>
-				<dt>{t('rail.leverage')}</dt><dd>{game.leverage}x <span class="muted" title={t('rail.effective')}>({fmtNum(levEff, L, 1)}x {t('rail.effective')})</span></dd>
+				<dt><Term id="isolated-margin">{t('rail.margin')}</Term></dt><dd>{fmtMoney(game.position.margin, L)}</dd>
+				<dt><Term id="notional">{t('rail.notional')}</Term></dt><dd>{fmtMoney(a.notional, L)}</dd>
+				<dt><Term id="leverage">{t('rail.leverage')}</Term></dt><dd>{game.leverage}x <span class="muted" title={t('rail.effective')}>({fmtNum(levEff, L, 1)}x {t('rail.effective')})</span></dd>
 			</dl>
 			<div class="liq" class:danger={liqDanger} role={liqDanger ? 'alert' : undefined}>
-				<div class="muted">{t('rail.liq')}</div>
+				<div class="muted"><Term id="liquidation-price">{t('rail.liq')}</Term></div>
 				<div class="liq-price num">{liq != null ? fmtPrice(String(liq), L) : '—'}</div>
 				<!-- The label may wrap in a narrow rail; the value stays on one line (PT-BR overflowed the box). -->
 				<div data-testid="rail-liq-distance">{t('rail.liqDistance')}: <span class="num">{liqDist != null ? fmtPct(liqDist, L) : '—'}</span></div>

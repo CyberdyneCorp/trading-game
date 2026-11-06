@@ -1,0 +1,148 @@
+{
+	"id": "futures-pnl",
+	"stage": "futures1",
+	"checks": [
+		{ "kind": "pnl", "side": "buy", "entry": 100, "exit": 106, "qty": 2, "expect": 12 },
+		{ "kind": "pnl", "side": "sell", "entry": 100, "exit": 106, "qty": 2, "expect": -12 },
+		{ "kind": "pnl", "side": "sell", "entry": 100, "exit": 94, "qty": 3, "expect": 18 },
+		{ "kind": "pnl", "side": "buy", "entry": 100, "exit": 94, "qty": 3, "expect": -18 },
+		{ "kind": "product", "a": 5, "b": 120, "expect": 600 },
+		{ "kind": "pnl", "side": "sell", "entry": 2400, "exit": 2460, "qty": 0.5, "expect": -30 },
+		{ "kind": "product", "a": 2400, "b": 0.5, "expect": 1200 }
+	],
+	"charts": {
+		"long": {
+			"market": "F",
+			"interval": "1h",
+			"candles": [
+				{ "o": 99.6, "h": 100.4, "l": 99.3, "c": 100.0, "v": 90 },
+				{ "o": 100.0, "h": 101.8, "l": 99.8, "c": 101.5, "v": 120 },
+				{ "o": 101.5, "h": 103.2, "l": 101.2, "c": 102.9, "v": 140 },
+				{ "o": 102.9, "h": 104.1, "l": 102.3, "c": 103.8, "v": 110 },
+				{ "o": 103.8, "h": 106.3, "l": 103.5, "c": 106.0, "v": 160 }
+			],
+			"levels": [
+				{ "kind": "entry", "price": 100 },
+				{ "kind": "target", "price": 106 }
+			]
+		},
+		"short": {
+			"market": "G",
+			"interval": "4h",
+			"candles": [
+				{ "o": 2395, "h": 2412, "l": 2388, "c": 2400, "v": 30 },
+				{ "o": 2400, "h": 2431, "l": 2396, "c": 2427, "v": 41 },
+				{ "o": 2427, "h": 2448, "l": 2419, "c": 2441, "v": 37 },
+				{ "o": 2441, "h": 2466, "l": 2436, "c": 2460, "v": 45 }
+			],
+			"levels": [
+				{ "kind": "entry", "price": 2400 },
+				{ "kind": "last", "price": 2460 }
+			]
+		}
+	},
+	"steps": [
+		{
+			"id": "linear",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Um contrato linear",
+					"body": "Um [[perpetual|perpétuo]] acompanha o preço. [[long|Long]] ganha quando o preço sobe: (saída − entrada) × quantidade. [[short|Short]] ganha quando cai: (entrada − saída) × quantidade. O [[notional|nocional]] é preço × quantidade: 5 unidades a 120 são 600. As [[fee|taxas]] são uma fração do nocional, pagas na entrada e na saída."
+				},
+				"en": {
+					"title": "A linear contract",
+					"body": "A [[perpetual]] tracks the price. A [[long]] gains when the price rises: (exit − entry) × quantity. A [[short]] gains when it falls: (entry − exit) × quantity. [[notional|Notional]] is price × quantity: 5 units at 120 are 600. [[fee|Fees]] are a fraction of notional, paid on entry and on exit."
+				}
+			}
+		},
+		{
+			"id": "long",
+			"phase": "demo",
+			"chart": { "ref": "long" },
+			"text": {
+				"pt-BR": {
+					"title": "Um long de 100 a 106",
+					"body": "Comprado em 2 unidades a 100, fechado a 106: (106 − 100) × 2 = +12 antes das taxas. O mesmo movimento num short de 2 unidades daria −12. Cada ponto vale o mesmo, para cima ou para baixo."
+				},
+				"en": {
+					"title": "A long from 100 to 106",
+					"body": "Long 2 units at 100, closed at 106: (106 − 100) × 2 = +12 before fees. The same move on a short of 2 units would be −12. Each point is worth the same, up or down."
+				}
+			}
+		},
+		{
+			"id": "short",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 18, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: um short",
+					"body": "Você vende 3 unidades a 100 e recompra a 94. Qual o resultado antes das taxas?",
+					"right": "(100 − 94) × 3 = +18. O short ganha com a queda.",
+					"wrong": "Num short o resultado é (entrada − saída) × quantidade. Se você calculou −18, usou a fórmula do long."
+				},
+				"en": {
+					"title": "Decision: a short",
+					"body": "You sell 3 units at 100 and buy them back at 94. What is the result before fees?",
+					"right": "(100 − 94) × 3 = +18. The short gains from the fall.",
+					"wrong": "For a short the result is (entry − exit) × quantity. If you got −18, you used the long formula."
+				}
+			}
+		},
+		{
+			"id": "fees",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "both" },
+					{ "kind": "text", "id": "entry" },
+					{ "kind": "text", "id": "profit" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: quando se paga taxa?",
+					"body": "Num trade completo, quando as taxas são cobradas?",
+					"right": "Na entrada e na saída, cada vez sobre o nocional executado. Um trade que empata no preço termina negativo pelas taxas.",
+					"wrong": "Cada execução paga taxa, e um trade tem pelo menos duas.",
+					"choices": { "both": "Na entrada e na saída, sobre o nocional", "entry": "Só na entrada", "profit": "Só sobre o lucro" },
+					"feedback": {
+						"profit": "A taxa não depende do resultado: incide sobre o nocional de cada execução, com lucro ou prejuízo."
+					}
+				},
+				"en": {
+					"title": "Decision: when are fees paid?",
+					"body": "In a complete trade, when are fees charged?",
+					"right": "On entry and on exit, each time on the notional filled. A trade that breaks even on price ends negative because of fees.",
+					"wrong": "Every fill pays a fee, and a trade has at least two.",
+					"choices": { "both": "On entry and on exit, on the notional", "entry": "Only on entry", "profit": "Only on the profit" },
+					"feedback": {
+						"profit": "The fee does not depend on the result: it is charged on the notional of each fill, profit or loss."
+					}
+				}
+			}
+		},
+		{
+			"id": "level",
+			"phase": "transfer",
+			"chart": { "ref": "short" },
+			"question": { "type": "number", "answer": -30, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: outro nível de preço",
+					"body": "Mercado G, perto de 2.400. Você vende 0,5 unidade a 2.400 (nocional de 1.200) e o preço vai a 2.460. Qual o resultado aberto antes das taxas?",
+					"right": "(2.400 − 2.460) × 0,5 = −30. A mesma regra, em outro nível de preço e com quantidade fracionária.",
+					"wrong": "Short: (entrada − saída) × quantidade. O preço subiu, então o resultado é negativo."
+				},
+				"en": {
+					"title": "Transfer: another price level",
+					"body": "Market G, near 2,400. You sell 0.5 unit at 2,400 (1,200 notional) and price goes to 2,460. What is the open result before fees?",
+					"right": "(2,400 − 2,460) × 0.5 = −30. The same rule, at another price level and with a fractional quantity.",
+					"wrong": "Short: (entry − exit) × quantity. Price went up, so the result is negative."
+				}
+			}
+		}
+	]
+}

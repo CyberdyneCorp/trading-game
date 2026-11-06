@@ -38,6 +38,7 @@ import {
 import { legReport } from './campaignReport.ts';
 import { CatalogModel, type CatalogHost, type CatalogStore } from './catalog.svelte.ts';
 import { campaignPermissions } from './curriculum.ts';
+import { applyReview, localDay, scheduleOnComplete } from './review.ts';
 import { i18n, t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
 import { distinctFinished, newPerks, perkOptions, perksUsed, unlockedPerks, type PerkId } from './perks.ts';
@@ -61,6 +62,8 @@ export type Screen =
 	| 'curriculum'
 	| 'journal'
 	| 'lesson'
+	| 'academy'
+	| 'glossary'
 	| 'catalog';
 
 type Action =
@@ -204,6 +207,12 @@ export class GameSession implements CatalogHost {
 	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
 	/** The Academy lesson open on the 'lesson' screen. */
 	lessonId = $state('');
+	/** A full lesson, or a spaced review of its decision and transfer questions. */
+	lessonMode = $state<'lesson' | 'review'>('lesson');
+	/** Where leaving the lesson goes (the curriculum map, the Academy or the debrief). */
+	lessonReturn = $state<Screen>('curriculum');
+	/** Where leaving the glossary screen goes. */
+	glossaryReturn = $state<Screen>('menu');
 	/** Pack catalog and downloads (catalog screen). */
 	readonly catalog: CatalogModel = new CatalogModel(this);
 
@@ -529,23 +538,67 @@ export class GameSession implements CatalogHost {
 		this.screen = 'curriculum';
 	}
 
-	// ---- Academy lessons (curriculum stages without a mission; web-client task 4.4) ----
+	// ---- Academy (web-client task 4.4; add-academy-and-strategies design D2, D9) ----
 
-	openLesson(id: string): void {
+	openLesson(id: string, from: Screen = 'curriculum', mode: 'lesson' | 'review' = 'lesson'): void {
 		this.lessonId = id;
+		this.lessonMode = mode;
+		this.lessonReturn = from;
 		this.screen = 'lesson';
 	}
 
+	leaveLesson(): void {
+		this.screen = this.lessonReturn;
+	}
+
+	openAcademy(): void {
+		this.screen = 'academy';
+	}
+
+	openGlossary(from: Screen = this.screen): void {
+		this.glossaryReturn = from === 'glossary' ? this.glossaryReturn : from;
+		this.screen = 'glossary';
+	}
+
+	leaveGlossary(): void {
+		this.screen = this.glossaryReturn;
+	}
+
+	/** Today's local calendar day (the review schedule uses the device clock, never a run's). */
+	today(): string {
+		return localDay(Date.now());
+	}
+
 	/**
-	 * Records a completed lesson in local progress (passes its stage) and returns to the map once the
-	 * write is committed, so a reload right after the map shows the stage passed cannot lose it.
+	 * Records a finished lesson and returns where it was opened once the write is committed, so a
+	 * reload right after the map shows the stage passed cannot lose it. A full lesson is completed
+	 * (passing a lesson-only stage) and scheduled for review; a review moves the schedule by its
+	 * first-try answers.
 	 */
-	async finishLesson(id: string): Promise<void> {
-		if (!this.progress.lessonsDone.includes(id)) {
-			this.progress = { ...this.progress, lessonsDone: [...this.progress.lessonsDone, id] };
-			await this.store?.saveProgress($state.snapshot(this.progress)).catch(() => (this.durable = false));
-		}
-		this.screen = 'curriculum';
+	async finishLesson(id: string, allRightFirstTry = true): Promise<void> {
+		const p = this.progress;
+		const today = this.today();
+		const next =
+			this.lessonMode === 'review'
+				? { ...p, lessonReviews: applyReview(p.lessonReviews, id, allRightFirstTry, today) }
+				: {
+						...p,
+						lessonsDone: p.lessonsDone.includes(id) ? p.lessonsDone : [...p.lessonsDone, id],
+						lessonReviews: scheduleOnComplete(p.lessonReviews, id, today)
+					};
+		this.progress = next;
+		await this.store?.saveProgress($state.snapshot(this.progress)).catch(() => (this.durable = false));
+		this.screen = this.lessonReturn;
+	}
+
+	/** A guided tour finished or skipped on this device (guided-first-trade spec). */
+	markCoachDone(id: string): void {
+		if (!this.progress.coachDone.includes(id)) this.saveProgress({ ...this.progress, coachDone: [...this.progress.coachDone, id] });
+	}
+
+	/** A glossary term opened (only for the "new" mark). */
+	markGlossarySeen(id: string): void {
+		if (!this.progress.glossarySeen.includes(id)) this.saveProgress({ ...this.progress, glossarySeen: [...this.progress.glossarySeen, id] });
 	}
 
 	// ---- pack catalog (web-client tasks 4.4, 5.3, 5.5) ----

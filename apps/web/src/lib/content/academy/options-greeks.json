@@ -1,0 +1,191 @@
+{
+	"id": "options-greeks",
+	"stage": "options2",
+	"checks": [
+		{ "kind": "product", "a": 0.5, "b": 2, "expect": 1 },
+		{ "kind": "diff", "a": 4.2, "b": 3.2, "expect": 1, "digits": 2 },
+		{ "kind": "product", "a": 0.08, "b": 5, "expect": 0.4, "digits": 2 },
+		{ "kind": "product", "a": -0.4, "b": 3, "expect": -1.2, "digits": 2 },
+		{ "kind": "product", "a": 0.25, "b": 4, "expect": 1, "digits": 2 }
+	],
+	"steps": [
+		{
+			"id": "delta",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Delta",
+					"body": "O [[delta]] diz quanto o valor da opção muda quando o preço do ativo sobe 1. Calls vão de 0 a 1; puts, de −1 a 0. Uma call no dinheiro tem delta perto de 0,5: ela se move como meia unidade do ativo. Por isso o delta também serve como razão de hedge."
+				},
+				"en": {
+					"title": "Delta",
+					"body": "[[delta|Delta]] says how much the option's value changes when the asset's price rises by 1. Calls go from 0 to 1; puts, from −1 to 0. An at-the-money call has a delta near 0.5: it moves like half a unit of the asset. That is why delta also works as a hedge ratio."
+				}
+			}
+		},
+		{
+			"id": "others",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Gamma, theta e vega",
+					"body": "O [[gamma]] diz quanto o delta muda quando o preço anda 1; ele é maior no dinheiro e perto do vencimento. O [[theta]] é o valor que a opção perde por barra quando nada mais muda. O [[vega]] é quanto o valor muda por 1 ponto de [[implied-volatility|volatilidade implícita]]. Cada grega isola uma causa: preço, curvatura, tempo e volatilidade."
+				},
+				"en": {
+					"title": "Gamma, theta and vega",
+					"body": "[[gamma|Gamma]] says how much delta changes when the price moves by 1; it is largest at the money and near expiry. [[theta|Theta]] is the value the option loses per bar when nothing else changes. [[vega|Vega]] is how much the value changes per 1 point of [[implied-volatility|implied volatility]]. Each Greek isolates one cause: price, curvature, time and volatility."
+				}
+			}
+		},
+		{
+			"id": "move",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "A",
+				"columns": [
+					{ "id": "value", "digits": 2 },
+					{ "id": "delta", "digits": 2 },
+					{ "id": "gamma", "digits": 2 },
+					{ "id": "theta", "digits": 2 },
+					{ "id": "vega", "digits": 2 }
+				],
+				"rows": [[3.2, 0.5, 0.04, -0.08, 0.15]]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Lendo as gregas de uma call",
+					"body": "Valores hipotéticos de uma call ilustrativa, dados como ponto de partida. Se o ativo sobe 2, a call ganha cerca de 0,50 × 2 = 1,00 e vai para perto de 4,20; o gamma faz o delta crescer no caminho, então o ganho real é um pouco maior. Se o preço fica parado 5 barras, o theta tira cerca de 0,08 × 5 = 0,40.",
+					"columns": ["Valor", "Delta", "Gamma", "Theta/barra", "Vega/ponto"]
+				},
+				"en": {
+					"title": "Reading a call's Greeks",
+					"body": "Hypothetical values of an illustrative call, given as a starting point. If the asset rises 2, the call gains about 0.50 × 2 = 1.00 and goes to near 4.20; gamma makes the delta grow along the way, so the real gain is a little larger. If the price stands still for 5 bars, theta takes about 0.08 × 5 = 0.40.",
+					"columns": ["Value", "Delta", "Gamma", "Theta/bar", "Vega/point"]
+				}
+			}
+		},
+		{
+			"id": "which",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "theta" },
+					{ "kind": "text", "id": "delta" },
+					{ "kind": "text", "id": "vega" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: qual grega explica a perda?",
+					"body": "Você comprou uma call. O preço ficou parado e a volatilidade implícita não mudou, mas a call perdeu valor. Qual grega explica isso?",
+					"right": "O theta: o valor de tempo diminui a cada barra, mesmo sem nada acontecer. É o custo de esperar com uma opção comprada.",
+					"wrong": "Elimine as causas que não aconteceram: o preço não andou e a IV não mudou.",
+					"choices": { "theta": "Theta", "delta": "Delta", "vega": "Vega" },
+					"feedback": {
+						"delta": "O delta explica ganhos e perdas por movimento de preço, e o preço não se mexeu.",
+						"vega": "O vega precisaria de uma mudança na volatilidade implícita, que ficou igual."
+					}
+				},
+				"en": {
+					"title": "Decision: which Greek explains the loss?",
+					"body": "You bought a call. The price stood still and implied volatility did not change, but the call lost value. Which Greek explains it?",
+					"right": "Theta: time value shrinks every bar, even when nothing happens. It is the cost of waiting with a bought option.",
+					"wrong": "Rule out the causes that did not happen: the price did not move and IV did not change.",
+					"choices": { "theta": "Theta", "delta": "Delta", "vega": "Vega" },
+					"feedback": {
+						"delta": "Delta explains gains and losses from price moves, and the price did not move.",
+						"vega": "Vega would need a change in implied volatility, which stayed the same."
+					}
+				}
+			}
+		},
+		{
+			"id": "estimate",
+			"phase": "decision",
+			"question": { "type": "number", "answer": -1.2, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: uma put com delta −0,40",
+					"body": "Uma put tem delta −0,40. O ativo sobe 3. Aproximadamente quanto muda o valor da put?",
+					"right": "−0,40 × 3 = −1,20: a put perde com a alta. É uma aproximação, porque o gamma muda o delta enquanto o preço anda.",
+					"wrong": "Variação ≈ delta × movimento do preço. O delta da put é negativo."
+				},
+				"en": {
+					"title": "Decision: a put with a −0.40 delta",
+					"body": "A put has a delta of −0.40. The asset rises 3. Roughly how much does the put's value change?",
+					"right": "−0.40 × 3 = −1.20: the put loses on the rise. It is an approximation, because gamma changes the delta as the price moves.",
+					"wrong": "Change ≈ delta × price move. The put's delta is negative."
+				}
+			}
+		},
+		{
+			"id": "gamma",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "atmNear" },
+					{ "kind": "text", "id": "otmFar" },
+					{ "kind": "text", "id": "itmFar" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: onde o gamma é maior?",
+					"body": "Em qual opção o delta muda mais rápido quando o preço anda?",
+					"right": "No dinheiro e perto do vencimento: ali um movimento pequeno decide se a opção termina com valor ou sem, e o delta salta entre perto de 0 e perto de 1.",
+					"wrong": "Pense em qual opção está mais indecisa entre terminar com ou sem valor, com pouco tempo para decidir.",
+					"choices": {
+						"atmNear": "No dinheiro, perto do vencimento",
+						"otmFar": "Fora do dinheiro, longe do vencimento",
+						"itmFar": "Dentro do dinheiro, longe do vencimento"
+					}
+				},
+				"en": {
+					"title": "Decision: where is gamma largest?",
+					"body": "In which option does delta change fastest when the price moves?",
+					"right": "At the money and near expiry: there a small move decides whether the option ends with or without value, and delta jumps between near 0 and near 1.",
+					"wrong": "Think of which option is most undecided between ending with or without value, with little time left to decide.",
+					"choices": {
+						"atmNear": "At the money, near expiry",
+						"otmFar": "Out of the money, far from expiry",
+						"itmFar": "In the money, far from expiry"
+					}
+				}
+			}
+		},
+		{
+			"id": "vega",
+			"phase": "transfer",
+			"widget": {
+				"kind": "table",
+				"market": "B",
+				"columns": [
+					{ "id": "delta", "digits": 2 },
+					{ "id": "theta", "digits": 2 },
+					{ "id": "vega", "digits": 2 }
+				],
+				"rows": [[-0.3, -0.05, 0.25]]
+			},
+			"question": { "type": "number", "answer": 1, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: outra opção, outro vencimento",
+					"body": "Mercado B: uma put mais longa, com os valores hipotéticos da tabela. O preço não anda e a volatilidade implícita sobe 4 pontos. Aproximadamente quanto a put ganha?",
+					"right": "0,25 × 4 = +1,00. Vega é positivo para quem compra, seja call ou put: as duas ficam mais caras quando a IV sobe.",
+					"wrong": "Variação ≈ vega × pontos de IV. O delta não entra, porque o preço não andou.",
+					"columns": ["Delta", "Theta/barra", "Vega/ponto"]
+				},
+				"en": {
+					"title": "Transfer: another option, another expiry",
+					"body": "Market B: a longer put, with the hypothetical values in the table. The price does not move and implied volatility rises 4 points. Roughly how much does the put gain?",
+					"right": "0.25 × 4 = +1.00. Vega is positive for the buyer, call or put: both get more expensive when IV rises.",
+					"wrong": "Change ≈ vega × IV points. Delta does not enter, because the price did not move.",
+					"columns": ["Delta", "Theta/bar", "Vega/point"]
+				}
+			}
+		}
+	]
+}

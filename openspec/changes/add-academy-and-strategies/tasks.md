@@ -77,26 +77,26 @@ Suggested PRs, in order:
 
 ## W. Web (owns the shared content)
 
-- [ ] W1 Content source (design D1):
+- [x] W1 Content source (design D1):
   - `src/lib/content/` with `academy/index.json`, `academy/<id>.json`, `glossary.json` and `coach.json`, plus a typed loader and validator (`content/academy.ts`);
   - Foundations moves to `academy/foundations-bar.json` with identical texts, and its existing unit and e2e tests pass unchanged;
   - lessons load lazily per file;
   - `budget:size` passes.
 
   Schema tests: both locales for every text, unique ids, valid widget and question shapes, no mission id in a lesson.
-- [ ] W2 Lesson runner (design D2), needs W1:
+- [x] W2 Lesson runner (design D2), needs W1:
   - question types `choice`, `number` (tolerance, either decimal mark) and `set` (widget target), with per-choice feedback;
   - widgets `chart` (levels: entry, stop, target, liquidation, mark and last, strike), `ticket` (sandbox on `sizing.ts`/`stops.ts`), `table`; `payoff`, `whatif` and `builder` come in W5 (needs E6);
   - keyboard and screen-reader support like the existing runner;
   - unit tests for each widget's viewmodel and e2e for a `set` question.
-- [ ] W3 Lessons, part 1 (perpetual, orders, risk, evaluation), needs W2:
+- [x] W3 Lessons, part 1 (perpetual, orders, risk, evaluation), needs W2:
   - `structure-zones`, `orders-execution`, `futures-pnl`, `futures-margin`, `futures-funding`, `risk-sizing`, `risk-expectancy`, `patterns-lag` (with its failure example), `events-surprise`, `mind-plan`;
   - PT-BR and en, with `checks` for every stated number and Vitest verifying the arithmetic kinds.
-- [ ] W4 Glossary (design D7), needs W1:
+- [x] W4 Glossary (design D7), needs W1:
   - `glossary.json` (≈ 70 terms, both locales, stage, related, examples with checks);
   - a `Term` component (hover, focus and tap; `aria-describedby`; "more");
   - the Glossary screen (search ignoring accents and case);
-  - marked terms in the ticket, rail, option chain, builder outputs and debrief findings;
+  - marked terms in the ticket, rail, option chain and debrief findings (the builder's outputs are marked with W7);
   - `[[id|text]]` links in lesson and tutorial texts.
 
   Tests: every linked or marked term exists; search; e2e tooltip on focus; axe.
@@ -106,7 +106,7 @@ Suggested PRs, in order:
   - lesson widgets `payoff`, `whatif` and `builder`;
   - unit tests with a fake worker;
   - e2e: zero shift equals the chain, sliders change engine numbers.
-- [ ] W6 Lessons, part 2 (options and strategies), needs W5: `options-payoff`, `options-greeks`, `options-iv`, `options-writing`, `strategies-shapes`, with checks verified by `bindings/python/tests/test_academy_numbers.py` (needs E6).
+- [ ] W6 Lessons, part 2 (options and strategies), needs W5. As built so far: the five lessons exist with the `payoff` widget and expiry-arithmetic checks (Vitest); left: the `whatif` and `builder` widgets and the engine-checked numbers below: `options-payoff`, `options-greeks`, `options-iv`, `options-writing`, `strategies-shapes`, with checks verified by `bindings/python/tests/test_academy_numbers.py` (needs E6).
 - [ ] W7 Strategy builder (design D3, strategy-builder spec), needs E3, E4 and E6:
   - templates from the chain, the short toggle, free legs on one expiry, "use my long";
   - writing-locked templates disabled with the reason;
@@ -114,11 +114,12 @@ Suggested PRs, in order:
   - submission order (long options, perpetual, short options) with `combo` tags;
   - cancel on refusal at placement;
   - incomplete-combo detection after the advance, with a notice, "close open legs" (confirmed) and "keep";
-  - journal and debrief grouping.
+  - journal and debrief grouping;
+  - its outputs marked as glossary terms (W4's `Term`).
 
   Unit tests (ordering, cancel on refusal, incomplete detection) with a fake worker. e2e: a condor previewed, submitted and filled; a refused leg cancels the others; a forced no-bid leg gives the incomplete notice. Update `optionsMath.ts`'s comment: its mirrors stay for single-leg display only.
-- [ ] W8 Curriculum, Academy screen and review (design D9), needs W3:
-  - the `strategies` stage and campaign order in `curriculum.ts`;
+- [x] W8 Curriculum, Academy screen and review (design D9), needs W3:
+  - the `strategies` stage in `curriculum.ts` (lesson-only until W10 adds m13–m17 to it and to the campaign order);
   - `stagePassed` by missions for stages with missions;
   - the map shows lessons x/y;
   - the Academy screen (by stage, status, retake, glossary link);
@@ -127,7 +128,7 @@ Suggested PRs, in order:
   - review scheduling (1/3/7/21 days, reset, retire) and the dismissable menu prompt.
 
   Unit tests: unlocks never depend on lessons, migration, scheduling with a fake clock. e2e: review prompt with a mocked clock.
-- [ ] W9 Guided first trade (design D6), needs W1:
+- [x] W9 Guided first trade (design D6), needs W1:
   - `CoachMarks` (non-modal callout, target outline, `aria-describedby`, live region, focus moves, reduced motion);
   - steps from `coach.json`, started on the first campaign terminal, the debrief step on that run's debrief;
   - skip and `Esc`; replay from the help overlay and the briefing; `progress.coachDone`;
@@ -135,6 +136,7 @@ Suggested PRs, in order:
 
   e2e: shown once, skip, replay, keyboard only, axe.
 - [ ] W10 Missions m13–m17 on the web, needs E7 and E9:
+  - m13–m17 as the Strategies stage's missions in `curriculum.ts` (campaign order m06, m01, m03, m02, m07, m04, m09, m05, m10, m13–m17, m08, m11, m12);
   - `missions.ts` texts (PT-BR, en), tutorial cards in `tutorials.ts` with the new art (`spread`, `covered`, `insurance`, `condor`, `roll`) and margin-rule cards (mission-tutorial spec);
   - `lessons.ts` question texts (checked against the rubrics);
   - the briefing's margin rule;

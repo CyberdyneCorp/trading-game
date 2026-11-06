@@ -261,7 +261,7 @@ TEST_CASE("shell: curriculum map statuses, Academy lesson to completion, stage p
   ScreenModel m = f.vm.screen_model();
   const WidgetTable* stages = m.table_of(names::kCurriculumStages);
   REQUIRE(stages != nullptr);
-  REQUIRE(stages->rows.size() == 13);
+  REQUIRE(stages->rows.size() == 14);
   CHECK(stages->rows[0][1] == "Fundamentos");
   CHECK(stages->rows[0][2] == "DISPONÍVEL");
   CHECK(stages->rows[3][2] == "BLOQUEADO");

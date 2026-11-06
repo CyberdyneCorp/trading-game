@@ -1,0 +1,226 @@
+{
+	"id": "futures-margin",
+	"stage": "futures2",
+	"checks": [
+		{ "kind": "leverage", "notional": 1000, "margin": 100, "expect": 10 },
+		{ "kind": "leverage", "notional": 1000, "margin": 200, "expect": 5 },
+		{ "kind": "liquidation", "side": "buy", "entry": 100, "leverage": 10, "mmr": 0.01, "expect": 90.91, "digits": 2 },
+		{ "kind": "liquidation", "side": "buy", "entry": 100, "leverage": 5, "mmr": 0.01, "expect": 80.81, "digits": 2 },
+		{ "kind": "liquidation", "side": "buy", "entry": 100, "leverage": 20, "mmr": 0.01, "expect": 95.96, "digits": 2 },
+		{ "kind": "liquidation", "side": "buy", "entry": 100, "leverage": 21, "mmr": 0.01, "expect": 96.2, "digits": 2 },
+		{ "kind": "liquidation", "side": "sell", "entry": 50, "leverage": 10, "mmr": 0.01, "expect": 54.46, "digits": 2 },
+		{ "kind": "liquidation", "side": "buy", "entry": 50, "leverage": 10, "mmr": 0.01, "expect": 45.45, "digits": 2 },
+		{ "kind": "product", "a": 50, "b": 1.1, "expect": 55, "digits": 2 }
+	],
+	"steps": [
+		{
+			"id": "margin",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Margem e alavancagem",
+					"body": "Para abrir uma posição você reserva a [[initial-margin|margem inicial]] = nocional / [[leverage|alavancagem]]: 1.000 de nocional a 10× pede 100. A [[maintenance-margin|margem de manutenção]] é o mínimo que a posição precisa manter (aqui, 1% do nocional). Quando as perdas levam a margem até esse mínimo, a posição é liquidada. Com [[isolated-margin|margem isolada]] você perde só a margem daquela posição."
+				},
+				"en": {
+					"title": "Margin and leverage",
+					"body": "To open a position you reserve the [[initial-margin|initial margin]] = notional / [[leverage]]: 1,000 notional at 10× needs 100. The [[maintenance-margin|maintenance margin]] is the minimum the position must keep (here, 1% of notional). When losses bring the margin down to that minimum, the position is liquidated. With [[isolated-margin|isolated margin]] you lose only that position's margin."
+				}
+			}
+		},
+		{
+			"id": "liq",
+			"phase": "demo",
+			"widget": {
+				"kind": "ticket",
+				"market": "V",
+				"equity": 10000,
+				"entry": 100,
+				"side": "buy",
+				"qty": 10,
+				"leverage": 10,
+				"maxLeverage": 25,
+				"stop": null,
+				"target": null,
+				"mmr": 0.01,
+				"lot": 1,
+				"edit": ["leverage", "side"]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Onde fica a liquidação",
+					"body": "Num long, o [[liquidation-price|preço de liquidação]] fica perto de entrada × (1 − 1/alavancagem) / (1 − manutenção); num short, entrada × (1 + 1/alavancagem) / (1 + manutenção). Com 10 unidades a 100, a 10× a margem é 100 e a liquidação fica perto de 90,91; a 5×, a margem é 200 e ela vai para 80,81. Mude a alavancagem e o lado e veja a liquidação andar."
+				},
+				"en": {
+					"title": "Where liquidation sits",
+					"body": "For a long, the [[liquidation-price|liquidation price]] sits near entry × (1 − 1/leverage) / (1 − maintenance); for a short, entry × (1 + 1/leverage) / (1 + maintenance). With 10 units at 100, at 10× the margin is 100 and liquidation sits near 90.91; at 5× the margin is 200 and it moves to 80.81. Change the leverage and the side and watch liquidation move."
+				}
+			}
+		},
+		{
+			"id": "mark",
+			"phase": "demo",
+			"chart": {
+				"market": "V",
+				"interval": "1h",
+				"candles": [
+					{ "o": 98.6, "h": 99.0, "l": 98.1, "c": 98.4, "v": 80 },
+					{ "o": 98.4, "h": 98.6, "l": 97.6, "c": 97.9, "v": 95 },
+					{ "o": 97.9, "h": 98.2, "l": 94.8, "c": 97.7, "v": 140 },
+					{ "o": 97.7, "h": 98.5, "l": 97.4, "c": 98.3, "v": 90 }
+				],
+				"levels": [
+					{ "kind": "liquidation", "price": 95.5 },
+					{ "kind": "mark", "price": 97.1 }
+				]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Marcação contra último preço",
+					"body": "O gráfico desenha o [[last-price|último preço]]. A margem, a liquidação e o funding usam o [[mark-price|preço de marcação]], uma referência mais estável. Na barra 3 o último preço furou até 94,80, abaixo da liquidação deste long (95,50), mas a marcação só desceu até 97,10: a posição não foi liquidada. Quando um cenário não tem marcação, o jogo usa o último preço e o briefing avisa."
+				},
+				"en": {
+					"title": "Mark against last price",
+					"body": "The chart draws the [[last-price|last price]]. Margin, liquidation and funding use the [[mark-price|mark price]], a steadier reference. In bar 3 the last price wicked down to 94.80, below this long's liquidation (95.50), but the mark only fell to 97.10: the position was not liquidated. When a scenario has no mark, the game uses the last price and the briefing says so."
+				}
+			}
+		},
+		{
+			"id": "set-lev",
+			"phase": "decision",
+			"widget": {
+				"kind": "ticket",
+				"market": "V",
+				"equity": 10000,
+				"entry": 100,
+				"side": "buy",
+				"qty": 10,
+				"leverage": 5,
+				"maxLeverage": 25,
+				"stop": 96,
+				"target": null,
+				"mmr": 0.01,
+				"lot": 1,
+				"edit": ["leverage"]
+			},
+			"question": { "type": "set", "field": "leverage", "target": 20, "tolerance": 0 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o stop antes da liquidação",
+					"body": "Long a 100 com stop em 96. Qual a maior alavancagem que ainda deixa a liquidação abaixo do stop? Ajuste a alavancagem e confira.",
+					"right": "A 20× a liquidação fica em 95,96, logo abaixo do stop: o stop executa antes. A 21× ela sobe para 96,20 e passaria na frente dele. Na prática deixe folga: o stop pode escorregar e a marcação pode andar diferente do último preço.",
+					"wrong": "Leia a liquidação estimada enquanto muda a alavancagem: ela precisa ficar abaixo de 96, e a resposta é a maior alavancagem em que isso ainda vale."
+				},
+				"en": {
+					"title": "Decision: the stop before liquidation",
+					"body": "Long at 100 with a stop at 96. What is the highest leverage that still keeps liquidation below the stop? Adjust the leverage and check.",
+					"right": "At 20× liquidation sits at 95.96, just below the stop: the stop fills first. At 21× it rises to 96.20 and would sit in front of it. In practice leave a buffer: the stop can slip and the mark can move differently from the last price.",
+					"wrong": "Read the liquidation estimate while you change the leverage: it must stay below 96, and the answer is the highest leverage where that still holds."
+				}
+			}
+		},
+		{
+			"id": "wick",
+			"phase": "decision",
+			"chart": {
+				"market": "V",
+				"interval": "1h",
+				"candles": [
+					{ "o": 98.6, "h": 99.0, "l": 98.1, "c": 98.4, "v": 80 },
+					{ "o": 98.4, "h": 98.6, "l": 97.6, "c": 97.9, "v": 95 },
+					{ "o": 97.9, "h": 98.2, "l": 94.8, "c": 97.7, "v": 140 },
+					{ "o": 97.7, "h": 98.5, "l": 97.4, "c": 98.3, "v": 90 }
+				],
+				"levels": [
+					{ "kind": "liquidation", "price": 95.5 },
+					{ "kind": "mark", "price": 97.1 },
+					{ "kind": "stop", "price": 96 }
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "stopOnly" },
+					{ "kind": "text", "id": "liquidated" },
+					{ "kind": "text", "id": "nothing" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o pavio",
+					"body": "Agora o long tem stop em 96,00 e a mesma liquidação (95,50). O último preço furou até 94,80 na barra 3; a marcação, até 97,10. O que aconteceu?",
+					"right": "O stop executa pelo último preço, e o último preço passou de 96,00: a posição saiu pelo stop. A liquidação usa a marcação, que não chegou a 95,50. Stops e liquidação olham preços diferentes.",
+					"wrong": "Separe os dois preços: ordens e stops executam pelo último preço; a liquidação olha a marcação.",
+					"choices": {
+						"stopOnly": "O stop executou; não houve liquidação",
+						"liquidated": "A posição foi liquidada",
+						"nothing": "Nada: nenhum dos dois preços chegou lá"
+					},
+					"feedback": {
+						"liquidated": "A liquidação usa a marcação, que só desceu até 97,10, acima de 95,50.",
+						"nothing": "O último preço chegou a 94,80, abaixo do stop em 96,00, e o stop executa pelo último preço."
+					}
+				},
+				"en": {
+					"title": "Decision: the wick",
+					"body": "Now the long has a stop at 96.00 and the same liquidation (95.50). The last price wicked to 94.80 in bar 3; the mark, to 97.10. What happened?",
+					"right": "The stop fills on the last price, and the last price went past 96.00: the position exited at the stop. Liquidation uses the mark, which never reached 95.50. Stops and liquidation watch different prices.",
+					"wrong": "Keep the two prices apart: orders and stops fill on the last price; liquidation watches the mark.",
+					"choices": {
+						"stopOnly": "The stop filled; there was no liquidation",
+						"liquidated": "The position was liquidated",
+						"nothing": "Nothing: neither price got there"
+					},
+					"feedback": {
+						"liquidated": "Liquidation uses the mark, which only fell to 97.10, above 95.50.",
+						"nothing": "The last price reached 94.80, below the stop at 96.00, and the stop fills on the last price."
+					}
+				}
+			}
+		},
+		{
+			"id": "ten",
+			"phase": "transfer",
+			"chart": {
+				"market": "W",
+				"interval": "4h",
+				"candles": [
+					{ "o": 49.2, "h": 50.1, "l": 48.9, "c": 49.8, "v": 60 },
+					{ "o": 49.8, "h": 50.4, "l": 49.5, "c": 50.0, "v": 55 }
+				],
+				"levels": [{ "kind": "entry", "price": 50 }]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "l5446" },
+					{ "kind": "text", "id": "l4545" },
+					{ "kind": "text", "id": "l55" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: um short a 10×",
+					"body": "Mercado W, perto de 50. Você vende 4 unidades a 50 com 10× e manutenção de 1%. Onde fica a liquidação, aproximadamente?",
+					"right": "50 × (1 + 1/10) / (1 + 0,01) ≈ 54,46. Num short a liquidação fica acima da entrada: é a alta que consome a margem.",
+					"wrong": "Num short, use entrada × (1 + 1/alavancagem) / (1 + manutenção).",
+					"choices": { "l5446": "≈ 54,46", "l4545": "≈ 45,45", "l55": "55,00" },
+					"feedback": {
+						"l4545": "45,45 seria a liquidação de um long: abaixo da entrada. Um short perde com a alta.",
+						"l55": "55,00 = 50 × 1,1 ignora a margem de manutenção: a liquidação vem um pouco antes, quando sobra só o mínimo."
+					}
+				},
+				"en": {
+					"title": "Transfer: a short at 10×",
+					"body": "Market W, near 50. You sell 4 units at 50 with 10× and 1% maintenance. Where is liquidation, roughly?",
+					"right": "50 × (1 + 1/10) / (1 + 0.01) ≈ 54.46. For a short, liquidation sits above the entry: it is the rise that eats the margin.",
+					"wrong": "For a short, use entry × (1 + 1/leverage) / (1 + maintenance).",
+					"choices": { "l5446": "≈ 54.46", "l4545": "≈ 45.45", "l55": "55.00" },
+					"feedback": {
+						"l4545": "45.45 would be a long's liquidation: below the entry. A short loses on a rise.",
+						"l55": "55.00 = 50 × 1.1 ignores the maintenance margin: liquidation comes a bit earlier, when only the minimum is left."
+					}
+				}
+			}
+		}
+	]
+}

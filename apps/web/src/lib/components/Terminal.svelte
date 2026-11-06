@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { sound } from '#lib/game/sound.svelte.ts';
+	import CoachMarks from './CoachMarks.svelte';
+	import { coach } from '#lib/game/coach.svelte.ts';
+	import { glossaryUi } from '#lib/game/glossaryUi.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { AdviceView, OrderSideName, OrderView } from '#lib/engine/types.ts';
@@ -52,7 +55,7 @@
 	// Auto-advance: same advance as Space; waits while any dialog is open, pauses on notable bars.
 	const auto = new AutoPlay({
 		ready: () =>
-			!draft && !optDraft && !pick && !patterns && !help && !journalOpen && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
+			!draft && !optDraft && !pick && !patterns && !help && !journalOpen && !glossaryUi.open && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
 		finished: () => session.state?.status !== 'active',
 		advance: () => session.advance(1),
 		notable: () => {
@@ -265,7 +268,9 @@
 	}
 
 	function onKey(e: KeyboardEvent) {
-		if (keymap.capturing || draft || optDraft || session.pendingQuestion || pick) return;
+		if (keymap.capturing || draft || optDraft || session.pendingQuestion || pick || glossaryUi.open) return;
+		// The coach mark's buttons keep Space and Enter (the market never advances from the callout).
+		if ((e.target as HTMLElement | null)?.closest?.('[data-own-keys]')) return;
 		const action = actionFor(keymap.map, keyName(e));
 		if (modalKey(e, action)) return;
 		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey || !action) return;
@@ -280,7 +285,7 @@
 	<div class="terminal">
 		<TopBar {session} {auto} onHelp={() => (help = true)} onPatterns={() => openPattern(null)} />
 		<div class="main">
-			<section class="panel chart"><Chart
+			<section class="panel chart" data-coach="chart"><Chart
 					game={session.state}
 					preview={tab === 'perp' ? preview : null}
 					picking={pick != null}
@@ -361,8 +366,15 @@
 	/>
 {/if}
 {#if help}
-	<HelpOverlay onClose={() => (help = false)} />
+	<HelpOverlay
+		onClose={() => (help = false)}
+		onTour={() => {
+			help = false;
+			coach.start(session.currentRunId);
+		}}
+	/>
 {/if}
+<CoachMarks {session} place="terminal" />
 {#if journalOpen}
 	<RunJournal entries={session.journal} onClose={() => (journalOpen = false)} />
 {/if}

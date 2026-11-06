@@ -1,0 +1,192 @@
+{
+	"id": "risk-expectancy",
+	"stage": "risk",
+	"checks": [
+		{ "kind": "expectancy", "winPct": 40, "avgWin": 2, "avgLoss": 1, "expect": 0.2, "digits": 4 },
+		{ "kind": "mean", "values": [2, -1, -1, 2, -1, -1, 2, -1, 2, -1], "expect": 0.2, "digits": 4 },
+		{ "kind": "streak", "lossPct": 60, "n": 5, "expect": 7.8, "digits": 1 },
+		{ "kind": "ratio", "a": 60, "b": 100, "expect": 0.6 },
+		{ "kind": "recovery", "drawdownPct": 20, "expect": 25, "digits": 4 },
+		{ "kind": "recovery", "drawdownPct": 50, "expect": 100, "digits": 4 },
+		{ "kind": "expectancy", "winPct": 37, "avgWin": 2, "avgLoss": 1, "expect": 0.11, "digits": 4 }
+	],
+	"steps": [
+		{
+			"id": "expectancy",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Expectativa",
+					"body": "A [[expectancy|expectativa]] é o resultado médio por trade: % de acertos × ganho médio − % de erros × perda média. Em [[r-multiple|R]], ela não depende do tamanho: acertar 40% com ganhos de 2R e perdas de 1R dá +0,2R por trade. Acertar pouco pode ser bom; acertar muito pode ser ruim."
+				},
+				"en": {
+					"title": "Expectancy",
+					"body": "[[expectancy|Expectancy]] is the average result per trade: win rate × average win − loss rate × average loss. In [[r-multiple|R]] it does not depend on size: winning 40% with wins of 2R and losses of 1R gives +0.2R per trade. Winning rarely can be good; winning often can be bad."
+				}
+			}
+		},
+		{
+			"id": "table",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "D",
+				"columns": [{ "id": "trade" }, { "id": "r", "digits": 0, "suffix": "R" }],
+				"rows": [[1, 2], [2, -1], [3, -1], [4, 2], [5, -1], [6, -1], [7, 2], [8, -1], [9, 2], [10, -1]]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Um diário de 10 trades",
+					"body": "Quatro ganhos de 2R e seis perdas de 1R. Repare nas perdas seguidas: elas acontecem mesmo numa estratégia com expectativa positiva. Um [[drawdown]] é a queda desde o pico, e recuperar exige mais do que caiu: −20% pede +25%; −50% pede +100%.",
+					"columns": ["Trade", "Resultado"]
+				},
+				"en": {
+					"title": "A journal of 10 trades",
+					"body": "Four wins of 2R and six losses of 1R. Notice the losses in a row: they happen even in a strategy with positive expectancy. A [[drawdown]] is the fall from the peak, and recovering needs more than the fall: −20% needs +25%; −50% needs +100%.",
+					"columns": ["Trade", "Result"]
+				}
+			}
+		},
+		{
+			"id": "e",
+			"phase": "decision",
+			"widget": {
+				"kind": "table",
+				"market": "D",
+				"columns": [{ "id": "trade" }, { "id": "r", "digits": 0, "suffix": "R" }],
+				"rows": [[1, 2], [2, -1], [3, -1], [4, 2], [5, -1], [6, -1], [7, 2], [8, -1], [9, 2], [10, -1]]
+			},
+			"question": { "type": "number", "answer": 0.2, "tolerance": 0.001, "unit": "R" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: a expectativa da tabela",
+					"body": "Qual a expectativa por trade desta tabela, em R?",
+					"right": "40% × 2R − 60% × 1R = +0,2R. A média dos 10 resultados dá o mesmo.",
+					"wrong": "Conte acertos e erros: 4 de 10 ganham 2R, 6 de 10 perdem 1R.",
+					"columns": ["Trade", "Resultado"]
+				},
+				"en": {
+					"title": "Decision: the table's expectancy",
+					"body": "What is this table's expectancy per trade, in R?",
+					"right": "40% × 2R − 60% × 1R = +0.2R. The mean of the 10 results gives the same.",
+					"wrong": "Count wins and losses: 4 out of 10 gain 2R, 6 out of 10 lose 1R.",
+					"columns": ["Trade", "Result"]
+				}
+			}
+		},
+		{
+			"id": "streak",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "s78" },
+					{ "kind": "text", "id": "s60" },
+					{ "kind": "text", "id": "rare" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: cinco perdas seguidas",
+					"body": "Numa estratégia em que 60% dos trades perdem, qual a chance de os próximos 5 trades perderem todos?",
+					"right": "0,6⁵ ≈ 7,8%: cerca de uma vez a cada 13 sequências de 5. É normal; por isso o [[risk-budget|risco por trade]] precisa ser pequeno.",
+					"wrong": "Cada trade perde com 60% de chance; cinco seguidos multiplicam as chances.",
+					"choices": { "s78": "≈ 7,8%", "s60": "60%", "rare": "Quase zero: não acontece" },
+					"feedback": {
+						"s60": "60% é a chance de uma perda. Cinco seguidas: 0,6 × 0,6 × 0,6 × 0,6 × 0,6.",
+						"rare": "Acontece com frequência: cerca de 7,8% das vezes. Planejar como se não acontecesse é o que quebra contas."
+					}
+				},
+				"en": {
+					"title": "Decision: five losses in a row",
+					"body": "In a strategy where 60% of trades lose, what is the chance that the next 5 trades all lose?",
+					"right": "0.6⁵ ≈ 7.8%: about once in every 13 runs of 5. It is normal; that is why the [[risk-budget|risk per trade]] must be small.",
+					"wrong": "Each trade loses with a 60% chance; five in a row multiply the chances.",
+					"choices": { "s78": "≈ 7.8%", "s60": "60%", "rare": "Almost zero: it does not happen" },
+					"feedback": {
+						"s60": "60% is the chance of one loss. Five in a row: 0.6 × 0.6 × 0.6 × 0.6 × 0.6.",
+						"rare": "It happens often: about 7.8% of the time. Planning as if it never happens is what breaks accounts."
+					}
+				}
+			}
+		},
+		{
+			"id": "recover",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "pct", "value": 50 },
+					{ "kind": "pct", "value": 100 },
+					{ "kind": "pct", "value": 75 }
+				],
+				"answer": 1
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: recuperar uma queda",
+					"body": "O capital caiu 50% desde o pico. Quanto ele precisa subir para voltar ao pico?",
+					"right": "De 100 para 50 e de volta: 50 / 50 = +100%. Quedas grandes são muito mais difíceis de desfazer do que de sofrer.",
+					"wrong": "A alta é calculada sobre o capital que sobrou, que é menor."
+				},
+				"en": {
+					"title": "Decision: recovering a fall",
+					"body": "Capital fell 50% from its peak. How much must it rise to get back to the peak?",
+					"right": "From 100 to 50 and back: 50 / 50 = +100%. Large falls are much harder to undo than to suffer.",
+					"wrong": "The rise is computed on the capital that is left, which is smaller."
+				}
+			}
+		},
+		{
+			"id": "sample",
+			"phase": "transfer",
+			"widget": {
+				"kind": "table",
+				"market": "N",
+				"columns": [{ "id": "trades" }, { "id": "win", "digits": 0, "suffix": "%" }, { "id": "avgWin", "digits": 1, "suffix": "R" }, { "id": "avgLoss", "digits": 1, "suffix": "R" }],
+				"rows": [[30, 37, 2, 1]]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "few" },
+					{ "kind": "text", "id": "proven" },
+					{ "kind": "text", "id": "doubleSize" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: uma amostra pequena",
+					"body": "Outro mercado, outra estratégia: 30 trades com 37% de acertos, ganho médio de 2R e perda média de 1R, ou +0,11R por trade. O que você conclui?",
+					"right": "30 trades são poucos: o acaso produz resultados assim com facilidade. A expectativa medida é uma estimativa ruidosa; continue com risco pequeno e mais amostras.",
+					"wrong": "Pergunte quanto o resultado poderia mudar com mais 30 trades.",
+					"choices": {
+						"few": "Ainda é cedo: 30 trades são poucos para concluir",
+						"proven": "Está provado que a estratégia tem vantagem",
+						"doubleSize": "Dobrar o risco por trade para ganhar mais rápido"
+					},
+					"feedback": {
+						"doubleSize": "Dobrar o risco antes de saber se a vantagem existe aumenta muito o risco de ruína.",
+						"proven": "Com 30 trades, uma estratégia sem vantagem pode mostrar +0,11R por sorte."
+					},
+					"columns": ["Trades", "Acertos", "Ganho médio", "Perda média"]
+				},
+				"en": {
+					"title": "Transfer: a small sample",
+					"body": "Another market, another strategy: 30 trades with 37% wins, an average win of 2R and an average loss of 1R, or +0.11R per trade. What do you conclude?",
+					"right": "30 trades are few: chance produces results like this easily. The measured expectancy is a noisy estimate; keep risk small and collect more samples.",
+					"wrong": "Ask how much the result could change with 30 more trades.",
+					"choices": {
+						"few": "Too early: 30 trades are too few to conclude",
+						"proven": "It is proven the strategy has an edge",
+						"doubleSize": "Double the risk per trade to win faster"
+					},
+					"feedback": {
+						"doubleSize": "Doubling the risk before knowing whether the edge exists raises the risk of ruin a lot.",
+						"proven": "With 30 trades, a strategy with no edge can show +0.11R by luck."
+					},
+					"columns": ["Trades", "Wins", "Average win", "Average loss"]
+				}
+			}
+		}
+	]
+}

@@ -30,7 +30,8 @@ export type TutorialArt =
 export interface TutorialCard {
 	art: TutorialArt;
 	title: string;
-	body: string; // at most three sentences
+	/** At most three sentences; [[id|text]] links a glossary term (content/glossary.ts). */
+	body: string;
 }
 
 type Cards = Record<Locale, TutorialCard[]>;
@@ -201,7 +202,7 @@ const m04: Cards = {
 		{
 			art: 'decay',
 			title: 'O tempo corre contra o comprador',
-			body: 'A cada barra a opção perde um pouco de valor (theta). Você precisa do movimento e precisa dele a tempo. Delta diz quanto a opção anda quando o preço anda 1.'
+			body: 'A cada barra a opção perde um pouco de valor ([[theta|theta]]). Você precisa do movimento e precisa dele a tempo. [[delta|Delta]] diz quanto a opção anda quando o preço anda 1.'
 		},
 		{
 			art: 'risk',
@@ -223,7 +224,7 @@ const m04: Cards = {
 		{
 			art: 'decay',
 			title: 'Time works against the buyer',
-			body: 'Every bar the option loses a little value (theta). You need the move, and you need it in time. Delta says how much the option moves when price moves by 1.'
+			body: 'Every bar the option loses a little value ([[theta|theta]]). You need the move, and you need it in time. [[delta|Delta]] says how much the option moves when price moves by 1.'
 		},
 		{
 			art: 'risk',
@@ -243,7 +244,7 @@ const m05: Cards = {
 		{
 			art: 'margin',
 			title: 'Margem e chamada de margem',
-			body: 'Opção vendida exige margem, e ela cresce quando a opção anda contra você. Se a margem não cobre, há chamada de margem e recompra forçada, no pior momento.'
+			body: 'Opção vendida exige margem, e ela cresce quando a opção anda contra você. Se a margem não cobre, há [[margin-call|chamada de margem]] e recompra forçada, no pior momento.'
 		},
 		{
 			art: 'chain',
@@ -265,7 +266,7 @@ const m05: Cards = {
 		{
 			art: 'margin',
 			title: 'Margin and margin calls',
-			body: 'A sold option needs margin, and it grows when the option moves against you. If the margin does not cover it, there is a margin call and a forced buyback, at the worst moment.'
+			body: 'A sold option needs margin, and it grows when the option moves against you. If the margin does not cover it, there is a [[margin-call|margin call]] and a forced buyback, at the worst moment.'
 		},
 		{
 			art: 'chain',

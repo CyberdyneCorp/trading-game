@@ -125,7 +125,7 @@ TEST_CASE("headless shell: curriculum map, an Academy lesson played by clicks, t
   REQUIRE(d.click(names::kMenuCurriculum));
   REQUIRE(app.vm().screen() == Screen::Curriculum);
   const Rid stages = d.widget(names::kCurriculumStages);
-  CHECK(Rtable_get_row_count(stages) == 13);
+  CHECK(Rtable_get_row_count(stages) == 14);
   CHECK(std::string(Rtable_get_cell(stages, 0, 2)) == "DISPONÍVEL");
   REQUIRE(d.click(names::kCurriculumLessonStart));
   REQUIRE(app.vm().screen() == Screen::Lesson);

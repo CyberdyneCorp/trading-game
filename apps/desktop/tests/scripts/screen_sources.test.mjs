@@ -33,7 +33,9 @@ test('the real sources give objectives, findings, news names, Academy texts and 
 	assert.match(csv, /^news\.level\.4,muito positivo,very positive$/m);
 	assert.match(csv, /^academyLesson\.foundations-bar\.known\.choice\.close6,O fechamento da barra 6,/m);
 	const data = JSON.parse(content);
-	assert.equal(data.stages.length, 13);
+	assert.equal(data.stages.length, 14);
+	assert.equal(data.lessons.length, 16);
+	assert.doesNotMatch(csv, /\[\[/); // glossary links become plain text
 	assert.equal(data.lessons[0].steps.length, 8);
 	assert.equal(data.defaultKeymap.advance, 'Space');
 	assert.equal(data.campaignCapital, '10000');

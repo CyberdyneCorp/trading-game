@@ -1,0 +1,222 @@
+{
+	"id": "events-surprise",
+	"stage": "events",
+	"checks": [
+		{ "kind": "diff", "a": 2, "b": 2, "expect": 0 },
+		{ "kind": "diff", "a": 3, "b": 2, "expect": 1 },
+		{ "kind": "diff", "a": 1, "b": 2, "expect": -1 },
+		{ "kind": "diff", "a": 1.5, "b": 2.5, "expect": -1, "digits": 2 },
+		{ "kind": "diff", "a": 99, "b": 96.4, "expect": 2.6, "digits": 2 },
+		{ "kind": "product", "a": 2.6, "b": 15, "expect": 39, "digits": 2 }
+	],
+	"charts": {
+		"gap": {
+			"market": "R",
+			"interval": "1h",
+			"candles": [
+				{ "o": 100.2, "h": 100.7, "l": 99.8, "c": 100.4, "v": 70 },
+				{ "o": 100.4, "h": 100.6, "l": 99.9, "c": 100.1, "v": 65 },
+				{ "o": 100.1, "h": 100.3, "l": 99.6, "c": 99.8, "v": 72 },
+				{ "o": 96.4, "h": 97.2, "l": 95.9, "c": 96.8, "v": 210 }
+			],
+			"levels": [
+				{ "kind": "entry", "price": 100.4 },
+				{ "kind": "stop", "price": 99 }
+			]
+		}
+	},
+	"steps": [
+		{
+			"id": "consensus",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "O esperado já está no preço",
+					"body": "Antes de uma divulgação, o mercado tem um [[consensus|consenso]]: o número que espera. Esse número já está no preço. O que move o preço é a [[surprise|surpresa]], a diferença entre o divulgado e o consenso. Uma notícia boa pode derrubar o preço se veio menos boa que o esperado."
+				},
+				"en": {
+					"title": "The expected is already priced",
+					"body": "Before a release the market has a [[consensus]]: the number it expects. That number is already in the price. What moves the price is the [[surprise]], the difference between the released number and the consensus. Good news can sell off if it is less good than expected."
+				}
+			}
+		},
+		{
+			"id": "table",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "R",
+				"columns": [{ "id": "consensus", "digits": 1 }, { "id": "actual", "digits": 1 }, { "id": "surprise", "digits": 1 }, { "id": "reaction" }],
+				"rows": [
+					[2, 2, 0, "flat"],
+					[2, 3, 1, "up"],
+					[2, 1, -1, "down"]
+				]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Três divulgações",
+					"body": "O mesmo consenso, três resultados. Quando o número sai igual ao esperado, quase nada muda: a informação já era conhecida. A direção da reação acompanha o sinal da surpresa, não o número em si. Surpresas grandes costumam vir com um [[gap]]: a barra seguinte abre longe do fechamento anterior.",
+					"columns": ["Consenso", "Divulgado", "Surpresa", "Reação"],
+					"cells": { "flat": "quase nada", "up": "alta", "down": "queda" }
+				},
+				"en": {
+					"title": "Three releases",
+					"body": "The same consensus, three results. When the number matches the expectation, little changes: the information was already known. The reaction's direction follows the surprise's sign, not the number itself. Large surprises often come with a [[gap]]: the next bar opens far from the previous close.",
+					"columns": ["Consensus", "Actual", "Surprise", "Reaction"],
+					"cells": { "flat": "little", "up": "rise", "down": "fall" }
+				}
+			}
+		},
+		{
+			"id": "goodNews",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "surprise" },
+					{ "kind": "text", "id": "random" },
+					{ "kind": "text", "id": "manipulated" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: notícia boa, preço em queda",
+					"body": "O consenso era +2,5 e o número saiu +1,5, um resultado positivo. O preço caiu. Por quê?",
+					"right": "A surpresa foi −1,0: o número veio pior que o esperado, e o esperado já estava no preço.",
+					"wrong": "Compare o número com o consenso, não com zero.",
+					"choices": {
+						"surprise": "A surpresa foi negativa: veio abaixo do esperado",
+						"random": "Foi acaso: notícias boas sempre sobem o preço",
+						"manipulated": "Alguém manipulou o preço"
+					},
+					"feedback": {
+						"random": "O preço reage ao que é novo. Um número positivo que veio abaixo do consenso é uma notícia ruim para quem esperava mais."
+					}
+				},
+				"en": {
+					"title": "Decision: good news, falling price",
+					"body": "The consensus was +2.5 and the number came out at +1.5, a positive result. The price fell. Why?",
+					"right": "The surprise was −1.0: the number came in worse than expected, and the expected was already in the price.",
+					"wrong": "Compare the number with the consensus, not with zero.",
+					"choices": {
+						"surprise": "The surprise was negative: it came in below expectations",
+						"random": "Chance: good news always lifts the price",
+						"manipulated": "Someone manipulated the price"
+					},
+					"feedback": {
+						"random": "Price reacts to what is new. A positive number below the consensus is bad news for those who expected more."
+					}
+				}
+			}
+		},
+		{
+			"id": "gapFill",
+			"phase": "decision",
+			"chart": { "ref": "gap" },
+			"question": { "type": "number", "answer": 2.6, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o stop no gap",
+					"body": "Você estava comprado desde 100,40 com stop em 99,00. A divulgação saiu entre a barra 3 e a 4, e a barra 4 abriu em 96,40. Quanto o stop escorregou por unidade além do gatilho?",
+					"right": "99,00 − 96,40 = 2,60 por unidade: com 15 unidades, 39,00 a mais do que o planejado. Nenhum stop executa dentro de um gap.",
+					"wrong": "O stop executa na abertura depois do gap. Compare a abertura com o gatilho."
+				},
+				"en": {
+					"title": "Decision: the stop in the gap",
+					"body": "You were long from 100.40 with a stop at 99.00. The release came out between bar 3 and bar 4, and bar 4 opened at 96.40. How much did the stop slip per unit beyond its trigger?",
+					"right": "99.00 − 96.40 = 2.60 per unit: with 15 units, 39.00 more than planned. No stop fills inside a gap.",
+					"wrong": "The stop fills at the open after the gap. Compare the open with the trigger."
+				}
+			}
+		},
+		{
+			"id": "position",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "reduce" },
+					{ "kind": "text", "id": "stopOnly" },
+					{ "kind": "text", "id": "double" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: entrando na divulgação",
+					"body": "Você tem um long grande e uma divulgação importante sai na próxima barra. O que limita a perda se vier um gap contra você?",
+					"right": "Ficar menor, ficar de fora ou se proteger com uma put. O stop sozinho não limita um gap; o tamanho e a proteção sim.",
+					"wrong": "Pense no que acontece com cada opção se a barra abrir muito abaixo do stop.",
+					"choices": {
+						"reduce": "Reduzir o tamanho, zerar ou comprar uma put de proteção",
+						"stopOnly": "Só manter o stop: ele garante a saída no preço",
+						"double": "Dobrar a posição para aproveitar o movimento"
+					},
+					"feedback": {
+						"stopOnly": "O stop garante uma saída, não o preço: num gap ele executa na abertura, que pode estar muito além.",
+						"double": "Dobrar a posição dobra também a perda no gap. A direção da surpresa não é conhecida antes."
+					}
+				},
+				"en": {
+					"title": "Decision: holding into the release",
+					"body": "You hold a large long and an important release comes out on the next bar. What bounds the loss if a gap goes against you?",
+					"right": "Being smaller, being flat or hedging with a put. A stop alone does not bound a gap; size and protection do.",
+					"wrong": "Think about what happens to each choice if the bar opens far below the stop.",
+					"choices": {
+						"reduce": "Reduce the size, go flat or buy a protective put",
+						"stopOnly": "Just keep the stop: it guarantees the exit price",
+						"double": "Double the position to ride the move"
+					},
+					"feedback": {
+						"stopOnly": "A stop guarantees an exit, not the price: in a gap it fills at the open, which can be far beyond.",
+						"double": "Doubling the position doubles the loss in the gap too. The surprise's direction is not known in advance."
+					}
+				}
+			}
+		},
+		{
+			"id": "other",
+			"phase": "transfer",
+			"widget": {
+				"kind": "table",
+				"market": "D",
+				"columns": [{ "id": "consensus", "digits": 1 }, { "id": "actual", "digits": 1 }],
+				"rows": [[0.3, 0.3]]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "little" },
+					{ "kind": "text", "id": "big" },
+					{ "kind": "text", "id": "down" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: outra divulgação",
+					"body": "Mercado D, outro tipo de divulgação: consenso de 0,3 e o número saiu 0,3. O que é mais provável?",
+					"right": "Pouca reação: a surpresa é zero, o número já estava no preço. A volatilidade implícita também tende a cair depois da divulgação.",
+					"wrong": "Calcule a surpresa antes de pensar na direção.",
+					"choices": {
+						"little": "Pouca reação: a surpresa é zero",
+						"big": "Um movimento grande: saiu a notícia",
+						"down": "Uma queda: nada de novo é ruim"
+					},
+					"columns": ["Consenso", "Divulgado"]
+				},
+				"en": {
+					"title": "Transfer: another release",
+					"body": "Market D, another kind of release: a 0.3 consensus and the number came out at 0.3. What is most likely?",
+					"right": "Little reaction: the surprise is zero, the number was already priced. Implied volatility also tends to fall after the release.",
+					"wrong": "Work out the surprise before thinking about direction.",
+					"choices": {
+						"little": "Little reaction: the surprise is zero",
+						"big": "A large move: the news is out",
+						"down": "A fall: nothing new is bad"
+					},
+					"columns": ["Consensus", "Actual"]
+				}
+			}
+		}
+	]
+}

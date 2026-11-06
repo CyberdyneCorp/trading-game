@@ -1,0 +1,162 @@
+{
+	"id": "options-iv",
+	"stage": "options2",
+	"givens": [76],
+	"checks": [
+		{ "kind": "breakeven", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 4 }, { "kind": "put", "side": "buy", "qty": 1, "strike": 100, "price": 4 }], "expect": [92, 108] },
+		{ "kind": "product", "a": 4, "b": 2, "expect": 8 },
+		{ "kind": "return", "from": 100, "to": 108, "expect": 8 },
+		{ "kind": "diff", "a": 80, "b": 50, "expect": 30 },
+		{ "kind": "product", "a": 0.2, "b": -15, "expect": -3, "digits": 2 },
+		{ "kind": "product", "a": 75, "b": 2, "expect": 150 },
+		{ "kind": "breakeven", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 2400, "price": 75 }, { "kind": "put", "side": "buy", "qty": 1, "strike": 2400, "price": 75 }], "expect": [2250, 2550] },
+		{ "kind": "return", "from": 2400, "to": 2550, "expect": 6.25 }
+	],
+	"steps": [
+		{
+			"id": "iv",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Implícita contra realizada",
+					"body": "A [[implied-volatility|volatilidade implícita]] (IV) é a volatilidade que o preço da opção embute: quanto movimento o mercado está cobrando. A [[realized-volatility|volatilidade realizada]] é quanto o preço de fato andou. Quem compra opções ganha quando o movimento realizado supera o que pagou; quem vende, quando fica abaixo. Aqui as opções são precificadas por Black-76 com juros zero."
+				},
+				"en": {
+					"title": "Implied against realized",
+					"body": "[[implied-volatility|Implied volatility]] (IV) is the volatility an option's price implies: how much movement the market is charging for. [[realized-volatility|Realized volatility]] is how much the price actually moved. Option buyers gain when the realized move beats what they paid; sellers, when it falls short. Here options are priced with Black-76 at a zero rate."
+				}
+			}
+		},
+		{
+			"id": "decay",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Tempo e eventos",
+					"body": "O [[time-value|valor de tempo]] cai devagar no começo e cada vez mais rápido perto do vencimento. Antes de um evento esperado, a IV sobe porque embute o movimento da notícia; depois que ele sai, a incerteza some e a IV cai: a [[iv-crush|queda da IV]]. Opções compradas perdem valor nessa queda mesmo que o preço ande um pouco."
+				},
+				"en": {
+					"title": "Time and events",
+					"body": "[[time-value|Time value]] falls slowly at first and faster and faster near expiry. Before an expected event IV rises, because it holds the news move; once the news is out the uncertainty is gone and IV falls: the [[iv-crush|IV crush]]. Bought options lose value in that fall even if the price moves a little."
+				}
+			}
+		},
+		{
+			"id": "straddle",
+			"phase": "demo",
+			"widget": {
+				"kind": "payoff",
+				"market": "E",
+				"legs": [
+					{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 4 },
+					{ "kind": "put", "side": "buy", "qty": 1, "strike": 100, "price": 4 }
+				],
+				"lo": 80,
+				"hi": 120
+			},
+			"text": {
+				"pt-BR": {
+					"title": "O movimento que o preço embute",
+					"body": "Um [[straddle]] no dinheiro (call e put de strike 100, cada uma por 4) custa 8. Ele empata em 92 e 108 no vencimento: o mercado está cobrando um movimento de cerca de 8% para qualquer lado. O preço de um straddle no dinheiro é uma leitura rápida do movimento esperado."
+				},
+				"en": {
+					"title": "The move the price implies",
+					"body": "An at-the-money [[straddle]] (a call and a put at strike 100, each for 4) costs 8. It breaks even at 92 and 108 at expiry: the market is charging for a move of about 8% either way. The price of an at-the-money straddle is a quick read of the expected move."
+				}
+			}
+		},
+		{
+			"id": "crush",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "crush" },
+					{ "kind": "text", "id": "delta" },
+					{ "kind": "text", "id": "wrongSide" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: comprou antes da notícia",
+					"body": "Você comprou um straddle antes de uma divulgação, com a IV em 80%. A notícia saiu, o preço andou 3 e a IV caiu para 50%. O straddle perdeu valor. Por quê?",
+					"right": "A IV caiu 30 pontos: o vega das duas opções tirou mais do que o movimento de 3 trouxe. O movimento realizado foi menor que o já cobrado no preço.",
+					"wrong": "Compare o que mudou: o preço andou pouco e a IV caiu muito.",
+					"choices": {
+						"crush": "A queda da IV pesou mais que o movimento",
+						"delta": "O delta do straddle era negativo",
+						"wrongSide": "O preço andou para o lado errado"
+					},
+					"feedback": {
+						"wrongSide": "Um straddle não tem lado: ele ganha com movimento para cima ou para baixo, se for grande o bastante.",
+						"delta": "No dinheiro, o delta da call e o da put quase se anulam: o straddle começa quase neutro ao preço."
+					}
+				},
+				"en": {
+					"title": "Decision: bought before the news",
+					"body": "You bought a straddle before a release, with IV at 80%. The news came out, the price moved 3 and IV fell to 50%. The straddle lost value. Why?",
+					"right": "IV fell 30 points: the vega of both options took away more than the move of 3 brought. The realized move was smaller than the one already in the price.",
+					"wrong": "Compare what changed: the price moved a little and IV fell a lot.",
+					"choices": {
+						"crush": "The IV drop outweighed the move",
+						"delta": "The straddle's delta was negative",
+						"wrongSide": "The price moved the wrong way"
+					},
+					"feedback": {
+						"wrongSide": "A straddle has no side: it gains from a move up or down, if it is large enough.",
+						"delta": "At the money, the call's and the put's deltas nearly cancel: the straddle starts almost neutral to price."
+					}
+				}
+			}
+		},
+		{
+			"id": "crushNumber",
+			"phase": "decision",
+			"question": { "type": "number", "answer": -3, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o tamanho da queda",
+					"body": "Uma opção tem vega de 0,20 por ponto de volatilidade. Depois da notícia a IV cai 15 pontos e o preço não anda. Aproximadamente quanto ela muda?",
+					"right": "0,20 × −15 = −3,00. Por isso comprar opções caras antes de eventos exige um movimento maior que o já cobrado.",
+					"wrong": "Variação ≈ vega × pontos de IV. A IV caiu: o sinal é negativo."
+				},
+				"en": {
+					"title": "Decision: the size of the drop",
+					"body": "An option has a vega of 0.20 per volatility point. After the news IV falls 15 points and the price does not move. Roughly how much does it change?",
+					"right": "0.20 × −15 = −3.00. That is why buying expensive options before events needs a move larger than the one already priced.",
+					"wrong": "Change ≈ vega × IV points. IV fell: the sign is negative."
+				}
+			}
+		},
+		{
+			"id": "event",
+			"phase": "transfer",
+			"widget": {
+				"kind": "payoff",
+				"market": "H",
+				"legs": [
+					{ "kind": "call", "side": "buy", "qty": 1, "strike": 2400, "price": 75 },
+					{ "kind": "put", "side": "buy", "qty": 1, "strike": 2400, "price": 75 }
+				],
+				"lo": 2100,
+				"hi": 2700,
+				"hideAnalytics": true
+			},
+			"question": { "type": "number", "answer": 6.25, "tolerance": 0.05, "unit": "%" },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: outro evento",
+					"body": "Mercado H, perto de 2.400, véspera de outra divulgação. A call e a put de strike 2.400 custam 75 cada. Que movimento, em %, o preço do straddle embute para cada lado?",
+					"right": "75 + 75 = 150, e 150 / 2.400 = 6,25%: o straddle empata em 2.250 e 2.550. Um movimento menor que isso, mais a queda da IV, deixa o comprador no prejuízo.",
+					"wrong": "Some os dois prêmios e divida pelo preço do ativo."
+				},
+				"en": {
+					"title": "Transfer: another event",
+					"body": "Market H, near 2,400, the eve of another release. The call and the put at strike 2,400 cost 75 each. What move, in %, does the straddle's price imply each way?",
+					"right": "75 + 75 = 150, and 150 / 2,400 = 6.25%: the straddle breaks even at 2,250 and 2,550. A smaller move, plus the IV drop, leaves the buyer at a loss.",
+					"wrong": "Add the two premiums and divide by the asset's price."
+				}
+			}
+		}
+	]
+}

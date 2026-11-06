@@ -1,0 +1,265 @@
+{
+	"id": "mind-plan",
+	"stage": "evaluation",
+	"checks": [
+		{ "kind": "share", "a": 4, "b": 10, "expect": 40 },
+		{ "kind": "diff", "a": 70, "b": 40, "expect": 30 }
+	],
+	"givens": [70],
+	"steps": [
+		{
+			"id": "plan",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Antes de entrar",
+					"body": "Um plano tem três partes, escritas antes da entrada: a [[thesis|hipótese]] (por que deve funcionar), a [[invalidation|invalidação]] (o que mostra que está errada, onde fica o stop) e o tamanho (pelo orçamento de risco). O [[journal|diário]] guarda o plano e o resultado, para separar processo de sorte."
+				},
+				"en": {
+					"title": "Before entering",
+					"body": "A plan has three parts, written before the entry: the [[thesis]] (why it should work), the [[invalidation]] (what shows it is wrong, where the stop goes) and the size (from the risk budget). The [[journal]] keeps the plan and the result, to tell process apart from luck."
+				}
+			}
+		},
+		{
+			"id": "biases",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Os vieses que custam caro",
+					"body": "[[fomo|FOMO]]: entrar porque o preço já andou, sem plano. [[revenge-trading|Vingança]]: aumentar o tamanho logo depois de perdas para recuperar rápido. [[overconfidence|Excesso de confiança]]: achar que suas previsões acertam mais do que acertam. Os três aparecem no diário, se você o escreve com honestidade."
+				},
+				"en": {
+					"title": "The expensive biases",
+					"body": "[[fomo|FOMO]]: entering because the price already moved, with no plan. [[revenge-trading|Revenge]]: raising the size right after losses to win it back quickly. [[overconfidence|Overconfidence]]: thinking your forecasts are right more often than they are. All three show up in the journal, if you write it honestly."
+				}
+			}
+		},
+		{
+			"id": "journal",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "J",
+				"columns": [{ "id": "trade" }, { "id": "r", "digits": 0, "suffix": "R" }, { "id": "note" }],
+				"rows": [
+					[1, -1, "planned"],
+					[2, -1, "planned"],
+					[3, -3, "tripled"],
+					[4, 2, "planned"]
+				]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Um diário",
+					"body": "Quatro trades com as anotações feitas na hora. Os resultados sozinhos não dizem o que foi bom: um trade com plano pode perder, e um sem plano pode ganhar. Leia as anotações.",
+					"columns": ["Trade", "Resultado", "Anotação"],
+					"cells": {
+						"planned": "plano escrito, stop, risco de 1%",
+						"tripled": "sem plano, tamanho triplo, logo após duas perdas"
+					}
+				},
+				"en": {
+					"title": "A journal",
+					"body": "Four trades with the notes written at the time. Results alone do not say what was good: a planned trade can lose, and an unplanned one can win. Read the notes.",
+					"columns": ["Trade", "Result", "Note"],
+					"cells": {
+						"planned": "written plan, stop, 1% risk",
+						"tripled": "no plan, triple size, right after two losses"
+					}
+				}
+			}
+		},
+		{
+			"id": "revenge",
+			"phase": "decision",
+			"widget": {
+				"kind": "table",
+				"market": "J",
+				"columns": [{ "id": "trade" }, { "id": "r", "digits": 0, "suffix": "R" }, { "id": "note" }],
+				"rows": [
+					[1, -1, "planned"],
+					[2, -1, "planned"],
+					[3, -3, "tripled"],
+					[4, 2, "planned"]
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "t2" },
+					{ "kind": "text", "id": "t3" },
+					{ "kind": "text", "id": "t4" }
+				],
+				"answer": 1
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o trade de vingança",
+					"body": "Qual trade foi de vingança?",
+					"right": "O trade 3: depois de duas perdas normais, tamanho triplo e sem plano. Ele custou mais que as duas perdas juntas. As perdas 1 e 2 seguiram o plano: não foram erros.",
+					"wrong": "Procure o trade em que o tamanho e o plano mudaram por causa das perdas anteriores.",
+					"choices": { "t2": "O trade 2", "t3": "O trade 3", "t4": "O trade 4" },
+					"feedback": {
+						"t2": "O trade 2 perdeu, mas seguiu o plano com risco de 1%: perder faz parte.",
+						"t4": "O trade 4 ganhou e seguiu o plano. O resultado não define se foi um bom trade."
+					},
+					"columns": ["Trade", "Resultado", "Anotação"],
+					"cells": {
+						"planned": "plano escrito, stop, risco de 1%",
+						"tripled": "sem plano, tamanho triplo, logo após duas perdas"
+					}
+				},
+				"en": {
+					"title": "Decision: the revenge trade",
+					"body": "Which trade was a revenge trade?",
+					"right": "Trade 3: after two normal losses, triple size and no plan. It cost more than both losses together. Losses 1 and 2 followed the plan: they were not mistakes.",
+					"wrong": "Look for the trade where size and plan changed because of the earlier losses.",
+					"choices": { "t2": "Trade 2", "t3": "Trade 3", "t4": "Trade 4" },
+					"feedback": {
+						"t2": "Trade 2 lost, but it followed the plan with 1% risk: losing is part of it.",
+						"t4": "Trade 4 won and followed the plan. The result does not decide whether it was a good trade."
+					},
+					"columns": ["Trade", "Result", "Note"],
+					"cells": {
+						"planned": "written plan, stop, 1% risk",
+						"tripled": "no plan, triple size, right after two losses"
+					}
+				}
+			}
+		},
+		{
+			"id": "calibration",
+			"phase": "decision",
+			"widget": {
+				"kind": "table",
+				"market": "J",
+				"columns": [{ "id": "confidence", "digits": 0, "suffix": "%" }, { "id": "forecasts" }, { "id": "right" }],
+				"rows": [[70, 10, 4]]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "over" },
+					{ "kind": "text", "id": "calibrated" },
+					{ "kind": "text", "id": "under" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: calibração",
+					"body": "Você fez 10 previsões, todas com 70% de confiança, e 4 se confirmaram. Como está a sua [[calibration|calibração]]?",
+					"right": "Acertou 40% com 70% de confiança declarada: 30 pontos de excesso de confiança. Com tão poucas previsões é um sinal, não uma prova; continue medindo.",
+					"wrong": "Compare a confiança declarada com a frequência real de acerto.",
+					"choices": { "over": "Confiante demais", "calibrated": "Bem calibrada", "under": "Confiante de menos" },
+					"feedback": {
+						"under": "Confiança de menos seria acertar mais do que os 70% declarados. Aqui foram 40%."
+					},
+					"columns": ["Confiança", "Previsões", "Acertos"]
+				},
+				"en": {
+					"title": "Decision: calibration",
+					"body": "You made 10 forecasts, all at 70% confidence, and 4 came true. How is your [[calibration]]?",
+					"right": "You were right 40% of the time with 70% stated confidence: 30 points of overconfidence. With so few forecasts it is a signal, not proof; keep measuring.",
+					"wrong": "Compare the stated confidence with how often you were actually right.",
+					"choices": { "over": "Overconfident", "calibrated": "Well calibrated", "under": "Underconfident" },
+					"feedback": {
+						"under": "Underconfidence would be being right more often than the 70% stated. Here it was 40%."
+					},
+					"columns": ["Confidence", "Forecasts", "Right"]
+				}
+			}
+		},
+		{
+			"id": "sample",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "oneSample" },
+					{ "kind": "text", "id": "proven" },
+					{ "kind": "text", "id": "lucky" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: uma partida",
+					"body": "Você terminou uma missão com lucro. O que isso prova sobre a sua estratégia?",
+					"right": "Pouco: uma partida é uma amostra. Repita em mercados novos e julgue o processo (plano, stop, tamanho) antes do resultado.",
+					"wrong": "Pergunte quantas vezes a mesma estratégia precisaria se repetir para você confiar nela.",
+					"choices": {
+						"oneSample": "Pouco: é uma amostra só; repita em mercados novos",
+						"proven": "Que a estratégia funciona",
+						"lucky": "Que foi sorte, com certeza"
+					},
+					"feedback": {
+						"lucky": "Também não dá para afirmar que foi sorte: uma amostra não prova nada em nenhuma direção."
+					}
+				},
+				"en": {
+					"title": "Decision: one run",
+					"body": "You finished a mission at a profit. What does that prove about your strategy?",
+					"right": "Little: one run is one sample. Repeat on new markets and judge the process (plan, stop, size) before the result.",
+					"wrong": "Ask how many times the same strategy would have to repeat before you trust it.",
+					"choices": {
+						"oneSample": "Little: it is a single sample; repeat on new markets",
+						"proven": "That the strategy works",
+						"lucky": "That it was luck, for sure"
+					},
+					"feedback": {
+						"lucky": "You cannot claim it was luck either: one sample proves nothing in either direction."
+					}
+				}
+			}
+		},
+		{
+			"id": "fomo",
+			"phase": "transfer",
+			"widget": {
+				"kind": "table",
+				"market": "K",
+				"columns": [{ "id": "trade" }, { "id": "note" }],
+				"rows": [
+					[1, "chase"],
+					[2, "planned"],
+					[3, "waited"]
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "t1" },
+					{ "kind": "text", "id": "t2" },
+					{ "kind": "text", "id": "t3" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: um diário novo",
+					"body": "Outro mercado, outro diário. Qual entrada foi por FOMO?",
+					"right": "A entrada 1: comprou depois de uma barra de alta forte, sem stop, com medo de perder o resto. Esperar, como no trade 3, também é uma decisão válida.",
+					"wrong": "FOMO é entrar porque o preço já andou, sem plano.",
+					"choices": { "t1": "Trade 1", "t2": "Trade 2", "t3": "Trade 3" },
+					"columns": ["Trade", "Anotação"],
+					"cells": {
+						"chase": "comprei depois de uma barra de alta forte, sem stop: não queria ficar de fora",
+						"planned": "plano escrito, stop abaixo do suporte",
+						"waited": "sem sinal claro: esperei"
+					}
+				},
+				"en": {
+					"title": "Transfer: a new journal",
+					"body": "Another market, another journal. Which entry was FOMO?",
+					"right": "Entry 1: bought after a strong up bar, with no stop, afraid of missing the rest. Waiting, as in trade 3, is a valid decision too.",
+					"wrong": "FOMO is entering because the price already moved, with no plan.",
+					"choices": { "t1": "Trade 1", "t2": "Trade 2", "t3": "Trade 3" },
+					"columns": ["Trade", "Note"],
+					"cells": {
+						"chase": "bought after a strong up bar, no stop: did not want to miss out",
+						"planned": "written plan, stop below the support",
+						"waited": "no clear signal: waited"
+					}
+				}
+			}
+		}
+	]
+}
