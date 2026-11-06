@@ -23,6 +23,10 @@ include(Dependencies)
 include(EmbedResources)
 
 set(TRADELAB_DESKTOP_WARNINGS -Wall -Wextra -Wpedantic -Wshadow)
+# The web helpers' ports must compute what JavaScript computes: no fused multiply-add (Clang contracts
+# `a * b - c` by default on arm64, which turned a web "no liquidation" into 6e-15). Parity fixtures
+# (tests/fixtures/web) catch any difference.
+set(TRADELAB_DESKTOP_FLOAT_FLAGS -ffp-contract=off)
 
 # Resources embedded in the binary (views, generated catalogs).
 set(TRADELAB_DESKTOP_RESOURCES
@@ -45,6 +49,7 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/dialogs_vm.cpp
   src/viewmodel/game/game_keys.cpp
   src/viewmodel/game/game_viewmodel.cpp
+  src/viewmodel/game/hotkeys.cpp
   src/viewmodel/game/options_math.cpp
   src/viewmodel/game/options_vm.cpp
   src/viewmodel/game/panels_vm.cpp
@@ -76,7 +81,7 @@ add_library(tradelab_desktop_model STATIC
 target_include_directories(tradelab_desktop_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 find_package(Threads REQUIRED)
 target_link_libraries(tradelab_desktop_model PUBLIC tradelab::engine Threads::Threads)
-target_compile_options(tradelab_desktop_model PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
+target_compile_options(tradelab_desktop_model PRIVATE ${TRADELAB_DESKTOP_WARNINGS} ${TRADELAB_DESKTOP_FLOAT_FLAGS})
 
 # ---- Storage and packs (src/model/storage, src/model/packs), part of the model layer. ----
 # Vendored SQLite (third_party/README.md): its own warnings off, no floating-point flags.
@@ -133,9 +138,11 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/screens/lesson.cpp
   src/viewmodel/screens/settings.cpp
   src/viewmodel/updates.cpp
+  src/viewmodel/audio/audio_director.cpp
+  src/viewmodel/audio/audio_rules.cpp
   ${TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES})
 target_link_libraries(tradelab_desktop_viewmodel PUBLIC tradelab_desktop_model)
-target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
+target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS} ${TRADELAB_DESKTOP_FLOAT_FLAGS})
 
 add_library(tradelab_desktop_platform STATIC src/platform/platform.cpp)
 target_include_directories(tradelab_desktop_platform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -155,7 +162,7 @@ add_library(tradelab_desktop_view STATIC
   src/view/raven/raven_ui.cpp
   ${TRADELAB_DESKTOP_GAME_VIEW_SOURCES})
 target_link_libraries(tradelab_desktop_view PUBLIC tradelab_desktop_viewmodel tradelab_desktop_platform raven::raven)
-target_compile_options(tradelab_desktop_view PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
+target_compile_options(tradelab_desktop_view PRIVATE ${TRADELAB_DESKTOP_WARNINGS} ${TRADELAB_DESKTOP_FLOAT_FLAGS})
 
 # Updates (src/model/update): the release public key (64 hex) is set by the release build only; without it
 # the app never checks. The key's custody and the signing of manifests are human tasks (tasks.md 1.21).

@@ -54,6 +54,8 @@ jobs:
           node apps/desktop/scripts/check_i18n.mjs
           node --test apps/desktop/tests/scripts/check_i18n.test.mjs apps/desktop/tests/scripts/i18n_game.test.mjs \
             apps/desktop/tests/scripts/screen_sources.test.mjs
+      - name: Web parity fixtures in sync with the web helpers
+        run: node apps/desktop/scripts/gen_web_fixtures.mjs --check
       - name: Build
         working-directory: apps/desktop
         run: |
