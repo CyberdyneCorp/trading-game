@@ -308,6 +308,28 @@ ApplyResult apply_action(EngineRun& run, const json::Value& action) {
   return out;
 }
 
+std::vector<std::string> rewind_prefix(const std::vector<std::string>& log, int start_step, int to_step) {
+  std::vector<std::string> out;
+  int step = start_step;
+  for (const std::string& text : log) {
+    const auto parsed = json::parse(text);
+    const json::Value a = parsed ? *parsed : json::Value{};
+    const std::string kind = a["k"].as_string();
+    if (step >= to_step) {
+      if (kind == "lesson") out.push_back(text);
+      continue;
+    }
+    if (kind != "adv") {
+      out.push_back(text);
+      continue;
+    }
+    const int n = static_cast<int>(a["n"].as_int(1));
+    out.push_back(step + n > to_step ? actions::advance(to_step - step).json : text);
+    step += n;
+  }
+  return out;
+}
+
 ApplyResult apply_action(EngineRun& run, const Action& action) {
   const auto parsed = json::parse(action.json);
   if (!parsed) return ApplyResult{false, false, {}, false, "invalid"};

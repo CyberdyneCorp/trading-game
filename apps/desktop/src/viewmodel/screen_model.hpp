@@ -47,6 +47,11 @@ struct WidgetFlag {
   bool on = false;
 };
 
+struct WidgetValue {
+  std::string_view widget;  // ProgressBar: 0..1
+  float value = 0;
+};
+
 struct ScreenModel {
   std::vector<WidgetText> texts;
   std::vector<WidgetText> names;  // accessible names (what a screen reader says)
@@ -56,6 +61,7 @@ struct ScreenModel {
   std::vector<WidgetFlag> visible;
   std::vector<WidgetFlag> enabled;
   std::vector<WidgetFlag> checked;
+  std::vector<WidgetValue> values;
 
   void text(std::string_view w, std::string t) { texts.push_back({w, std::move(t)}); }
   void name(std::string_view w, std::string t) { names.push_back({w, std::move(t)}); }
@@ -67,6 +73,8 @@ struct ScreenModel {
   [[nodiscard]] const WidgetLines* lines_of(std::string_view w) const;
   [[nodiscard]] const WidgetTable* table_of(std::string_view w) const;
   [[nodiscard]] bool is_visible(std::string_view w, bool fallback = true) const;
+  [[nodiscard]] bool is_enabled(std::string_view w, bool fallback = true) const;
+  [[nodiscard]] const WidgetItems* items_of(std::string_view w) const;
 };
 
 }  // namespace tradelab::desktop

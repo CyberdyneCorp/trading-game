@@ -133,8 +133,11 @@ DownloadResult PackDownloader::install(const CatalogEntry& entry, const std::str
   return finish(entry, label);
 }
 
-std::optional<Catalog> PackDownloader::fetch_catalog(const std::string& url) {
-  const HttpResponse r = http_.get(url, std::nullopt);
+std::optional<Catalog> PackDownloader::fetch_catalog(const std::string& url) { return read_catalog(url).catalog; }
+
+PackDownloader::CatalogRead PackDownloader::read_catalog(const std::string& url) {
+  CatalogRead out;
+  const HttpResponse r = url.empty() ? HttpResponse{} : http_.get(url, std::nullopt);
   if (r.status == 200) {
     const std::string text(r.body.begin(), r.body.end());
     if (auto c = parse_catalog(text, url)) {
@@ -143,13 +146,16 @@ std::optional<Catalog> PackDownloader::fetch_catalog(const std::string& url) {
         store_.set_meta("catalog.json", text);
       } catch (const storage::Error&) {  // shown now; just not cached for offline use
       }
-      return c;
+      out.catalog = std::move(c);
+      out.fresh = true;
+      return out;
     }
   }
+  out.offline = r.status == 0 && !url.empty();
   const auto cached_url = store_.meta("catalog.url");
   const auto cached = store_.meta("catalog.json");
-  if (!cached_url || !cached) return std::nullopt;
-  return parse_catalog(*cached, *cached_url);
+  if (cached_url && cached) out.catalog = parse_catalog(*cached, *cached_url);
+  return out;
 }
 
 }  // namespace tradelab::desktop::packs

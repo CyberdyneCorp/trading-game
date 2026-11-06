@@ -13,10 +13,13 @@
 
 #include "model/engine_host.hpp"
 #include "model/i18n.hpp"
+#include "model/packs/pack_service.hpp"
 #include "model/snapshot.hpp"
 #include "model/update/update_service.hpp"
 #include "viewmodel/chart_geometry.hpp"
+#include "viewmodel/audio/audio_director.hpp"
 #include "viewmodel/game/game_viewmodel.hpp"
+#include "viewmodel/pack_screens.hpp"
 #include "viewmodel/screen_model.hpp"
 #include "viewmodel/shell_state.hpp"
 
@@ -31,17 +34,27 @@ enum class Screen : std::uint8_t {
   Curriculum = 4,
   Journal = 5,
   Lesson = 6,
-  Settings = 7
+  Settings = 7,
+  Tutorial = 8,  // a mission's tutorial cards, before its briefing (the first time only)
+  Catalog = 9,
+  Import = 10
 };
 
-// Keys the terminal reacts to (web defaults, shortcuts.ts): Space advances one bar, Shift+Space five.
-enum class Key : std::uint8_t { Space, ShiftSpace, Other };
-
-// A run left unfinished in an earlier launch (the active run of the store), offered by the menu.
+// A run left unfinished in an earlier launch (the active run of the store), offered by the menu: a
+// mission (free play or a campaign mission), a pack run or an assisted attempt.
 struct SavedRun {
-  std::string mission;
+  std::string mission;  // built-in mission id, or the pack's scenario id
   std::uint32_t seed = 0;
+  std::string run_id;
+  std::optional<CampaignLink> campaign;
+  std::string pack_digest;
+  std::optional<AssistedLink> assisted;
+  std::string equity;  // last known equity (a left campaign mission carries it)
 };
+
+// The CSV wizard's text fields and choices (web CsvImport.svelte).
+enum class ImportField : std::uint8_t { Path, Asset, Pair, Venue, Leverage, Label };
+enum class ImportChoice : std::uint8_t { Interval, TimestampUnit, VolumeUnit, GapFill };
 
 struct Binding {
   std::string_view widget;
@@ -83,8 +96,9 @@ class AppViewModel {
   [[nodiscard]] game::GameViewModel& game() { return *game_; }
   [[nodiscard]] const game::GameViewModel& game() const { return *game_; }
   [[nodiscard]] const Catalog& catalog() const { return catalog_; }
-  // Returns true when the key was used. Shortcuts are ignored while the player types in a field.
-  bool handle_key(Key key, bool typing);
+  // A key press by its web name ("Space", "Shift+Space", "b"...), through the terminal's remappable key
+  // map. Returns true when the key was used. Shortcuts are ignored while the player types in a field.
+  bool handle_key(const std::string& name, bool typing);
 
   // Debrief
   void play_again();
@@ -151,6 +165,67 @@ class AppViewModel {
   bool capture_key(const std::string& key);
   void reset_keys();
 
+  // ---- Tutorial before the briefing (web Tutorial.svelte; viewmodel/assisted.cpp) ----
+  // Shown automatically the first time a mission with tutorial cards starts on this device.
+  [[nodiscard]] int tutorial_index() const { return shell_.tutorial_index; }
+  void tutorial_step(int delta);  // past the last card: on to the briefing
+  void tutorial_finish();         // done or skipped: remembered as seen, then the briefing
+  void show_tutorial();           // from the briefing (replay)
+
+  // ---- Assisted practice (web assisted.ts + AssistPanel.svelte; viewmodel/assisted.cpp) ----
+  [[nodiscard]] bool assist_allowed() const;
+  // Decision steps the run can rewind to, [min, max]; none before the second decision.
+  [[nodiscard]] std::optional<std::pair<int, int>> rewind_range() const;
+  [[nodiscard]] const std::string& assist_turn() const { return shell_.assist_turn; }
+  void set_assist_turn(std::string text);
+  // The turn the rewind goes to (1 = first decision), brought into the range.
+  [[nodiscard]] int assist_target_turn() const;
+  void rewind();
+  void practice_new_seed();
+  [[nodiscard]] const std::optional<AssistedLink>& run_assisted() const { return shell_.run_assisted; }
+
+  // ---- Debrief chart (the terminal's chart, read only, with the trades' entries and exits) ----
+  [[nodiscard]] game::ChartScene debrief_scene(float width, float height);
+  void debrief_page(int delta);
+  [[nodiscard]] game::BarPage debrief_bar_page() const;
+
+  // ---- Packs: catalog and CSV-import screens (viewmodel/packs.cpp) ----
+  void attach_packs(packs::PackCommands* packs);
+  void on_pack_event(const packs::PackEvent& e);  // UI thread
+  [[nodiscard]] const PackScreens& packs() const { return packs_; }
+  [[nodiscard]] bool packs_available() const { return pack_commands_ != nullptr; }
+  void open_catalog();
+  void catalog_select(int index);
+  void catalog_download();  // the selected entry: download, or resume what arrived
+  void catalog_pause();
+  void catalog_play();
+  void catalog_retry();
+  void library_select(int index);
+  void library_play();
+  void library_remove();
+  void start_pack(const std::string& digest);
+  // The label of the pack a run plays ("" for a built-in mission).
+  [[nodiscard]] std::string pack_label_of(const std::string& mission) const;
+  [[nodiscard]] const std::string& run_pack() const { return shell_.run_pack; }
+
+  void open_import();
+  void import_set(ImportField field, std::string value);
+  void import_choose(ImportChoice choice, int index);
+  void import_open_file();  // reads the file at the typed path
+  void import_validate();
+  void import_back();
+  void import_create();
+  void import_cancel();
+
+  // ---- Sound (viewmodel/audio): the web's soundtrack; mute and volumes live in the terminal's prefs ----
+  void attach_audio(audio::AudioOut* out) { soundtrack_ = audio::Soundtrack(out); }
+  // Once per frame: music by screen and danger, stings of trades that closed, fades.
+  void tick_audio(double dt);
+  [[nodiscard]] const audio::AudioDirector& audio() const { return soundtrack_.director(); }
+  void set_sound_on(bool on);
+  void set_music_volume(double v);
+  void set_sfx_volume(double v);
+
   // ---- Updates (viewmodel/updates.cpp): offered in the menu only, installed only on the click ----
   void attach_updates(update::UpdateCommands* commands) { updates_ = commands; }
   void on_update(const update::UpdateState& state);  // UI thread
@@ -181,10 +256,19 @@ class AppViewModel {
   void init_shell();
   void start_mission(const std::string& id, const RunOptions& options, std::optional<CampaignLink> link);
   void leave_active_run();
+  void leave_saved_run();
   void record_started_run();
   void settle_ended_run();
   void save_progress();
   void save_settings();
+  void enter_briefing();
+  void run_started(const CommandResult& r);
+  void apply_rewind(const CommandResult& r);
+  void apply_pack_result(const CommandResult& r);
+  void library_event(const packs::PackEvent& e);
+  void pause_downloads();
+  void csv_report(const packs::PackEvent& e);
+  void csv_imported(const packs::PackEvent& e);
 
   Catalog catalog_;
   std::vector<MissionInfo> missions_;
@@ -203,8 +287,12 @@ class AppViewModel {
   std::shared_ptr<const Snapshot> snap_;
   std::unique_ptr<game::GameViewModel> game_;
   ShellState shell_;
+  PackScreens packs_;
+  packs::PackCommands* pack_commands_ = nullptr;
+  game::ChartViewModel debrief_chart_;
   update::UpdateCommands* updates_ = nullptr;
   update::UpdateState update_;
+  audio::Soundtrack soundtrack_;
 };
 
 }  // namespace tradelab::desktop

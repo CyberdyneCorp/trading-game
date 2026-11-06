@@ -1,0 +1,24 @@
+<!-- Mission tutorial before the briefing (web Tutorial.svelte): one card at a time. Texts from
+     screens::tutorial(); Enter / Right next, Left previous, Esc skips (AppView key hook). -->
+<ScrollBox Name="tutorial-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="20" MaxWidth="760" Slot.HAlign="Center">
+            <VBox Spacing="12">
+                <HBox Spacing="12">
+                    <Label Name="tut-head" Class="muted" Slot.Fill="1"/>
+                    <Label Name="tut-step" Class="muted"/>
+                </HBox>
+                <Label Name="tut-title" TextSize="37.5" Class="title" Wrap="true" AccessibleRole="Heading"/>
+                <Label Name="tut-body" Wrap="true"/>
+                <HBox Spacing="8">
+                    <Button Name="tut-skip" Style="Flat" OnClicked="tl.tut.skip"/>
+                    <Spacer Slot.Fill="1"/>
+                    <Button Name="tut-prev" OnClicked="tl.tut.prev"/>
+                    <Button Name="tut-next" Style="Primary" OnClicked="tl.tut.next"/>
+                </HBox>
+            </VBox>
+        </Border>
+    </VBox>
+</Border>
+</ScrollBox>

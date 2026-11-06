@@ -388,3 +388,19 @@ TEST_CASE("game vm: tutorial cards step through and are remembered as seen") {
   CHECK(f.vm.modal() == Modal::None);
   CHECK(f.vm.prefs().tutorials_seen == std::vector<std::string>{"m01-false-breakout"});
 }
+
+TEST_CASE("game vm: the run's end reveals its regimes on the chart; a new run starts without them") {
+  Fixture f;
+  CHECK(f.vm.chart.regimes().empty());
+  f.g.status = "finished";
+  Snapshot ended = *snapshot_of(f.g, CommandResult{CommandKind::Advance, true, "none"});
+  ended.debrief = Debrief{};
+  ended.debrief->reveal = *json::parse(R"({"spans":[{"label":"trend","direction":-1,"start":10,"bars":30}]})");
+  f.vm.on_snapshot(ended);
+  REQUIRE(f.vm.chart.regimes().size() == 1);
+  CHECK(f.vm.chart.regimes()[0].label == "trend");
+  CHECK(f.vm.chart.regimes()[0].direction == -1);
+  f.g.status = "active";
+  f.vm.on_snapshot(*snapshot_of(f.g, CommandResult{CommandKind::Start, true, "none"}));
+  CHECK(f.vm.chart.regimes().empty());
+}

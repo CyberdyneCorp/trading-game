@@ -89,7 +89,7 @@ TEST_CASE("windowed: mission 01 to the debrief on the Vulkan renderer, with capt
   CHECK(menu.up_pixels > 0);  // the green TRADELAB title is on screen
 
   REQUIRE(d.click(names::kMenuStart));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   CHECK(capture(window, "02-briefing").saved);
 
   REQUIRE(d.click(names::kBriefGo));
@@ -123,7 +123,7 @@ TEST_CASE("windowed: 1024x768 still shows the account line and the ticket") {
   Driver d(app);
   d.frames(2);
   REQUIRE(d.click(names::kMenuStart));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   REQUIRE(d.click(names::kBriefGo));
   d.frames(2);
   for (std::string_view name : {names::kGameAccount, names::kGameBuy, names::kGameAdvance, names::kGameChart}) {

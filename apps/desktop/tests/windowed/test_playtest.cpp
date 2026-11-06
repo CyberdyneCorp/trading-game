@@ -21,6 +21,7 @@
 #include "support/game_flows.hpp"
 #include "support/png.hpp"
 #include "support/text_dump.hpp"
+#include "support/window_size.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -50,10 +51,11 @@ struct RavenSession {
   ~RavenSession() { Rshutdown(); }
 };
 
-// One mission played by a script: its captures and report carry `name`.
+// One mission played by a script in a `width` x `height` window: its captures and report carry `name`.
 class Run {
  public:
-  Run(App& app, Driver& d, std::string name) : app_(app), d_(d), t_(app, d), name_(std::move(name)) {}
+  Run(App& app, Driver& d, std::string name, int width, int height)
+      : app_(app), d_(d), t_(app, d), name_(std::move(name)), exact_size_(testing::window_has_size(d.window(), width, height)) {}
 
   Terminal& t() { return t_; }
   Driver& d() { return d_; }
@@ -138,12 +140,13 @@ class Run {
     std::ofstream(out_dir() / (name_ + ".txt")) << report_.str();
   }
 
-  // No text of the current screen is cut by its own box or by the panel holding it.
+  // No text of the current screen is cut by its own box or by the panel holding it. Asserted only in a
+  // window of the requested size (support/window_size.hpp); reported in any case.
   void clipping(const std::string& when) {
     d_.frames(3);
     const std::string cut = testing::overflow_report(app_.view().screen_root(app_.vm().screen()));
     report_ << "---- clipped (" << when << ")\n" << cut;
-    CHECK_MESSAGE(cut.empty(), name_ << " " << when << ":\n" << cut);
+    if (exact_size_) CHECK_MESSAGE(cut.empty(), name_ << " " << when << ":\n" << cut);
   }
 
   std::ostringstream& report() { return report_; }
@@ -164,6 +167,7 @@ class Run {
   Driver& d_;
   Terminal t_;
   std::string name_;
+  bool exact_size_;
   std::string last_account_;
   int chains_ = 0;
   std::ostringstream report_;
@@ -188,7 +192,7 @@ void play(const Mission& m) {
   d.frames(4);
   app.vm().set_locale(m.locale);
   d.frames(2);
-  Run run(app, d, m.name);
+  Run run(app, d, m.name, m.width, m.height);
   run.t().open(m.index);
   run.report() << m.name << " seed " << m.seed << " " << m.width << "x" << m.height << "\n";
   run.note("open");
@@ -339,7 +343,7 @@ namespace {
 
 // Opens the campaign's mission from its briefing and plays it to the debrief.
 void play_campaign_leg(Run& run, int leg) {
-  REQUIRE(run.d().until([&] { return run.app().vm().screen() == Screen::Briefing; }));
+  REQUIRE(run.d().to_briefing());
   CHECK(run.d().text(names::kBriefMode).find(std::to_string(leg) + " de 17") != std::string::npos);
   REQUIRE(run.d().click(names::kBriefGo));
   run.order(true, "1,5", 4, 1, "campanha: entrada com stop");
@@ -358,7 +362,7 @@ TEST_CASE("playtest: a campaign through three missions (pt-BR)") {
   REQUIRE(app.build(1280, 800));
   Driver d(app);
   d.frames(4);
-  Run run(app, d, "campaign");
+  Run run(app, d, "campaign", 1280, 800);
   REQUIRE(d.click(names::kCampaignStart));
   play_campaign_leg(run, 1);
   for (int leg = 2; leg <= 3; ++leg) {
@@ -379,7 +383,7 @@ TEST_CASE("playtest: advance remapped to N with the CRT off, then an Academy les
   app.vm().set_reduce_motion(false);
   d.frames(4);
   app.vm().set_locale(Locale::En);
-  Run run(app, d, "session");
+  Run run(app, d, "session", 1024, 768);
   REQUIRE(d.click(names::kMenuSettings));
   REQUIRE(d.click(names::kSettingsCrt));
   CHECK_FALSE(app.vm().crt_state().overlay);

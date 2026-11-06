@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "model/game_state.hpp"
+#include "viewmodel/game/shortcuts.hpp"
 #include "viewmodel/game/texts.hpp"
 
 namespace tradelab::desktop::game {
@@ -75,5 +76,16 @@ struct TopBarView {
   std::string market, mission, turn;
 };
 TopBarView top_bar(const Texts& t, const GameState& g);
+
+// packs.ts branchTurn: the first generated turn of a branch-mode market (null otherwise).
+std::optional<int> branch_turn(const GameState& g);
+
+// The terminal's buttons name the key that does the same thing, from the player's (remapped) key map:
+// the web's <kbd> hints (TopBar, OrderTicket) and the tooltips of the icon buttons.
+struct KeyHints {
+  std::string patterns;  // button text: "Padrões [P]"
+  std::string patterns_tip, sound_tip, help_tip, journal_tip, options_tip, buy_tip, sell_tip;
+};
+KeyHints key_hints(const Texts& t, const Keymap& map, bool muted);
 
 }  // namespace tradelab::desktop::game

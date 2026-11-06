@@ -58,6 +58,15 @@ class PackDownloader {
   // The catalog manifest at `url`, cached in meta for offline reading; nullopt when neither is available.
   std::optional<Catalog> fetch_catalog(const std::string& url);
 
+  // The same, saying where it came from: `fresh` from the network, else the cached copy (if any) with
+  // `offline` when no server answered at all (an HTTP error or a bad manifest is "unavailable").
+  struct CatalogRead {
+    std::optional<Catalog> catalog;
+    bool fresh = false;
+    bool offline = false;
+  };
+  CatalogRead read_catalog(const std::string& url);
+
  private:
   std::int64_t prepare(const CatalogEntry& entry);
   DownloadFailure step(const CatalogEntry& entry, std::int64_t& received);
