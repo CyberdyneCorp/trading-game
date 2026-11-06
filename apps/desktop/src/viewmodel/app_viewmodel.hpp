@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -35,6 +36,12 @@ enum class Screen : std::uint8_t {
 
 // Keys the terminal reacts to (web defaults, shortcuts.ts): Space advances one bar, Shift+Space five.
 enum class Key : std::uint8_t { Space, ShiftSpace, Other };
+
+// A run left unfinished in an earlier launch (the active run of the store), offered by the menu.
+struct SavedRun {
+  std::string mission;
+  std::uint32_t seed = 0;
+};
 
 struct Binding {
   std::string_view widget;
@@ -103,9 +110,12 @@ class AppViewModel {
   // Everything the current screen shows (texts, names, lines, tables, flags).
   [[nodiscard]] ScreenModel screen_model() const;
 
-  // A run left from the terminal (still active in the engine) can be resumed from the menu.
+  // A run left from the terminal (still active in the engine), or one saved in an earlier launch
+  // (offer_saved_run, before any other run starts), can be resumed from the menu.
   [[nodiscard]] bool resumable() const;
   void resume();
+  void offer_saved_run(std::optional<SavedRun> run);
+  [[nodiscard]] const std::optional<SavedRun>& saved_run() const { return saved_run_; }
   void open_curriculum();
   void open_journal();
   void open_settings();
@@ -152,6 +162,7 @@ class AppViewModel {
   bool send(const std::function<void()>& command);
   void apply_results(const Snapshot& s);
   void apply_result(const CommandResult& r);
+  void resumed(const CommandResult& r);
   [[nodiscard]] std::string mission_text(const std::string& id, std::string_view field) const;
   [[nodiscard]] std::string reason_text(const std::string& code) const;
 
@@ -182,6 +193,8 @@ class AppViewModel {
   int selected_ = 0;
   int in_flight_ = 0;
   bool start_pending_ = false;
+  bool resume_pending_ = false;
+  std::optional<SavedRun> saved_run_;
   std::string notice_;
   std::string run_mission_;
   std::shared_ptr<const Snapshot> snap_;

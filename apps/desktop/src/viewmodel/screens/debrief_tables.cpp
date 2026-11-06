@@ -4,7 +4,10 @@
 #include <cmath>
 
 #include "model/content.hpp"
+#include "model/game_state.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/game_viewmodel.hpp"
+#include "viewmodel/game/texts.hpp"
 #include "viewmodel/report_texts.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/screens/screens.hpp"
@@ -93,7 +96,7 @@ void advisor_panel(const AppViewModel& vm, const Snapshot& s, const json::Value&
                          Tone::Muted});
   }
   const long used = static_cast<long>(s.state["advisor"]["advice"].size());
-  out.lines.push_back({vm.tr("debrief.points", {{"used", str(used)}, {"earned", d["advisorPointsEarned"].as_string("0")}, {"balance", kDash.data()}})});
+  out.lines.push_back({vm.tr("debrief.points", {{"used", str(used)}, {"earned", d["advisorPointsEarned"].as_string("0")}, {"balance", str(vm.game().prefs().advisor_points)}})});
   out.lines.push_back({vm.tr("debrief.pointsHow"), Tone::Muted});
   m.lines.push_back(std::move(out));
 }
@@ -119,7 +122,8 @@ void regime_tables(const AppViewModel& vm, const Snapshot& s, const json::Value&
     t.rows.push_back(std::move(row));
   }
   m.tables.push_back(std::move(t));
-  m.text(names::kDebriefRegimesNote, vm.tr("debrief.regimesTitle") + " \xC2\xB7 " + vm.tr("debrief.regimesNote"));
+  m.text(names::kDebriefRegimesTitle, vm.tr("debrief.regimesTitle"));
+  m.text(names::kDebriefRegimesNote, vm.tr("debrief.regimesNote"));
 }
 
 std::string reaction_text(const AppViewModel& vm, long r) {
@@ -147,6 +151,7 @@ std::vector<std::string> release_cells(const AppViewModel& vm, const ReleaseRow&
 void release_table(const AppViewModel& vm, const Snapshot& s, const json::Value& d, const json::Value& reveal, ScreenModel& m) {
   const auto rows = release_rows(reveal["events"], d["trades"], s.step, web_content().after_release_bars);
   m.show(names::kDebriefReleasesPanel, !rows.empty());
+  m.text(names::kDebriefReleasesTitle, vm.tr("debrief.releasesTitle"));
   WidgetTable t{names::kDebriefReleases, {}, {}};
   for (auto k : {"bar", "event", "consensus", "actual", "weighted", "size", "gap", "reaction", "you"}) {
     t.columns.push_back(vm.tr("release.col." + std::string(k)));
@@ -168,20 +173,30 @@ std::string plan_level(const AppViewModel& vm, const std::optional<double>& v) {
   return v && std::isfinite(*v) ? fmt::fmt_price(fmt::number(*v, Locale::En, 8), vm.locale()) : std::string(kDash);
 }
 
-// The timeline: trades opened and closed (engine trade rows), the plans of this run's journal and the
-// released headlines, by bar.
+// The timeline (Debrief.svelte): the run's engine events as the event feed words them (orders only when
+// moved, not when merely accepted), the plans of this run's journal and the released headlines, by bar.
 using TimelineRows = std::vector<std::pair<long, Line>>;
 
-void trade_rows(const AppViewModel& vm, const json::Value& d, TimelineRows& rows) {
-  for (const auto& tr : d["trades"].items()) {
-    rows.push_back({as_long(tr["entryStep"]), {trade_label(vm.catalog(), tr) + " \xC3\x97 " + fmt::fmt_qty(tr["qty"].as_string(), vm.locale()) +
-                                                    " @ " + fmt::fmt_price(tr["entryAvg"].as_string(), vm.locale()),
-                                                tr["side"].as_string() == "long" ? Tone::Up : Tone::Down}});
-    if (tr["exitStep"].is_null()) continue;
-    rows.push_back({as_long(tr["exitStep"]), {"\xE2\x96\xA0 " + vm.tr("trade." + tr["reason"].as_string()) + " @ " +
-                                                  fmt::fmt_price(tr["exitAvg"].as_string(), vm.locale()) + " \xC2\xB7 " +
-                                                  fmt::fmt_money(tr["net"].as_string(), vm.locale(), true),
-                                              Tone::Info}});
+Tone screen_tone(game::Tone t) {
+  switch (t) {
+    case game::Tone::Up:
+    case game::Tone::Ok: return Tone::Up;
+    case game::Tone::Down:
+    case game::Tone::Error: return Tone::Down;
+    case game::Tone::Warn:
+    case game::Tone::Attention: return Tone::Attention;
+    case game::Tone::Info: return Tone::Info;
+    case game::Tone::Muted: return Tone::Muted;
+    case game::Tone::Plain: break;
+  }
+  return Tone::Normal;
+}
+
+void event_rows(const AppViewModel& vm, const GameState& g, TimelineRows& rows) {
+  const game::Texts t = vm.game().texts();
+  for (const auto& e : g.events) {
+    if (e.type == "order" && e.status == "accepted" && e.reason != "order_moved") continue;
+    if (auto line = game::describe_event(t, e, vm.game().series_names())) rows.push_back({e.step, {line->text, screen_tone(line->tone)}});
   }
 }
 
@@ -197,20 +212,20 @@ void plan_rows(const AppViewModel& vm, TimelineRows& rows) {
   }
 }
 
-void news_rows(const AppViewModel& vm, const Snapshot& s, TimelineRows& rows) {
-  for (const auto& n : s.state["news"].items()) {
-    if (n["early"].as_bool(false)) continue;
-    const long tone = as_long(n["tone"]);
-    rows.push_back({as_long(n["step"]), {"\xF0\x9F\x93\xB0 " + vm.tr("news.kind." + n["kind"].as_string()),
-                                         tone > 0 ? Tone::Up : tone < 0 ? Tone::Down : Tone::Info}});
+void news_rows(const AppViewModel& vm, const GameState& g, TimelineRows& rows) {
+  const game::Texts t = vm.game().texts();
+  for (const auto& n : g.news) {
+    if (n.early) continue;
+    rows.push_back({n.step, {"\xF0\x9F\x93\xB0 " + game::news_headline(t, n), n.tone > 0 ? Tone::Up : n.tone < 0 ? Tone::Down : Tone::Info}});
   }
 }
 
-void timeline(const AppViewModel& vm, const json::Value& d, const Snapshot& s, ScreenModel& m) {
+void timeline(const AppViewModel& vm, const Snapshot& s, ScreenModel& m) {
+  const GameState g = game_state_from_json(s.state);
   TimelineRows rows;
-  trade_rows(vm, d, rows);
+  event_rows(vm, g, rows);
   plan_rows(vm, rows);
-  news_rows(vm, s, rows);
+  news_rows(vm, g, rows);
   std::ranges::stable_sort(rows, [](const auto& a, const auto& b) { return a.first < b.first; });
   WidgetLines out{names::kDebriefTimeline, {{vm.tr("debrief.timeline"), Tone::Title}}};
   for (auto& [step, line] : rows) out.lines.push_back({"[" + str(step) + "] " + line.text, line.tone});
@@ -243,7 +258,7 @@ void debrief_reveal_tables(const AppViewModel& vm, const Snapshot& s, const json
   release_table(vm, s, d, reveal, m);
   m.name(names::kDebriefRegimes, vm.tr("debrief.regimesTitle"));
   m.name(names::kDebriefReleases, vm.tr("debrief.releasesTitle"));
-  timeline(vm, d, s, m);
+  timeline(vm, s, m);
 }
 
 }  // namespace tradelab::desktop::screens

@@ -58,13 +58,13 @@
                 <ScrollBox>
                     <VBox Spacing="4">
                         <Label Name="game-account" Color="#8FB3A1" Wrap="true" TextSize="12"/>
-                        <Label Name="game-rail-equity" Color="#E3F5EA" TextSize="20"/>
-                        <Label Name="game-rail-pnl"/>
-                        <Label Name="game-rail-account" Color="#E3F5EA" TextSize="12"/>
+                        <Label Name="game-rail-equity" Color="#E3F5EA" TextSize="20" Wrap="true"/>
+                        <Label Name="game-rail-pnl" Wrap="true"/>
+                        <Label Name="game-rail-account" Color="#E3F5EA" TextSize="12" Wrap="true"/>
                         <Separator/>
-                        <Label Name="game-rail-position"/>
-                        <Label Name="game-rail-details" Color="#E3F5EA" TextSize="12"/>
-                        <Label Name="game-rail-liq" Color="#FF5F7A" TextSize="12"/>
+                        <Label Name="game-rail-position" Wrap="true"/>
+                        <Label Name="game-rail-details" Color="#E3F5EA" TextSize="12" Wrap="true"/>
+                        <Label Name="game-rail-liq" Color="#FF5F7A" TextSize="12" Wrap="true"/>
                         <Label Name="game-rail-liq-warning" Color="#FFC857" Wrap="true" TextSize="12"/>
                         <HBox Name="game-margin-box" Spacing="4">
                             <TextInput Name="game-margin-amount" Width="70"/>
@@ -171,14 +171,14 @@
                                     <Label Name="game-trail-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
                                     <Label Name="game-pbeyond" Color="#FF5F7A" Wrap="true" TextSize="12"/>
                                     <Checkbox Name="game-pbeyond-confirm"/>
-                                    <HBox Spacing="4">
-                                        <Button Name="game-protect-submit" Slot.Fill="1"/>
-                                        <Button Name="game-close" Slot.Fill="1"/>
-                                    </HBox>
+                                    <WrapBox Spacing="4">
+                                        <Button Name="game-protect-submit"/>
+                                        <Button Name="game-close"/>
+                                    </WrapBox>
                                 </VBox>
                             </VBox>
                             <VBox Spacing="4">
-                                <Label Name="game-opt-series" Color="#FFC857"/>
+                                <Label Name="game-opt-series" Color="#FFC857" Wrap="true"/>
                                 <HBox Spacing="4">
                                     <Button Name="game-opt-buy" Slot.Fill="1"/>
                                     <Button Name="game-opt-sell" Slot.Fill="1"/>
@@ -188,7 +188,7 @@
                                     <ComboBox Name="game-opt-type" Slot.Fill="1"/>
                                 </HBox>
                                 <TextInput Name="game-opt-limit"/>
-                                <Label Name="game-opt-estimate" Color="#E3F5EA" TextSize="12"/>
+                                <Label Name="game-opt-estimate" Color="#E3F5EA" TextSize="12" Wrap="true"/>
                                 <VBox Name="game-opt-notes" Spacing="2"/>
                                 <Custom Name="game-opt-payoff" Height="90"/>
                                 <Button Name="game-opt-submit" Style="Primary"/>
@@ -216,15 +216,15 @@
                 <Label Name="game-notice" Color="#FFC857" Wrap="true"/>
             </VBox>
 
-            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6" Width="360">
+            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6" Width="300">
                 <ScrollBox>
                     <VBox Spacing="4">
                         <VBox Name="game-advisor" Spacing="3">
                             <HBox Spacing="6">
                                 <Label Name="game-adv-title" Color="#8FB3A1" Slot.VAlign="Center"/>
                                 <Label Name="game-adv-points" Color="#4FD8FF" Slot.VAlign="Center" Slot.Fill="1"/>
-                                <Button Name="game-adv-ask"/>
                             </HBox>
+                            <Button Name="game-adv-ask"/>
                             <VBox Name="game-adv-read" Spacing="2"/>
                             <Button Name="game-adv-apply"/>
                             <VBox Name="game-adv-reasons" Spacing="1"/>

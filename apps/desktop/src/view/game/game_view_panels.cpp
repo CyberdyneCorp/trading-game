@@ -159,7 +159,7 @@ void GameView::apply_table(const game::Texts& t, const GameState& g) {
 void GameView::apply_rail(const game::Texts& t, const GameState& g) {
   game::GameViewModel& m = vm();
   const game::RailView r = game::rail_view(t, g, m.planned_risk());
-  set_label(find(n::kRailEquity), t.tr("rail.equity") + "  " + r.equity);
+  set_label(find(n::kRailEquity), t.tr("rail.equity") + "\n" + r.equity);
   set_label(find(n::kRailPnl), r.pnl.text);
   set_color(find(n::kRailPnl), r.pnl.tone);
   set_label(find(n::kRailAccount), kv_text(r.account));
@@ -198,6 +198,7 @@ void GameView::apply_orders(const game::Texts& t, const GameState& g) {
       const Rid row = Rwidget_create(R_WIDGET_HBOX);
       const Rid label = Rlabel_create("");
       Rlabel_set_text_size(label, 12);
+      Rlabel_set_wrap(label, R_TRUE);  // the middle column is narrow at 1024x768
       Rwidget_add_child(row, label);
       Rslot_set_fill(label, 1);
       const Rid cancel = Rbutton_create(t.tr("orders.cancel").c_str());

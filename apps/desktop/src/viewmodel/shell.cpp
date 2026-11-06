@@ -127,13 +127,44 @@ void AppViewModel::settle_ended_run() {
 }
 
 bool AppViewModel::resumable() const {
-  return snap_ && snap_->active() && !shell_.run_settled && !shell_.run_id.empty() && !waiting();
+  if (waiting()) return false;
+  return saved_run_.has_value() || (snap_ && snap_->active() && !shell_.run_settled && !shell_.run_id.empty());
 }
 
 void AppViewModel::resume() {
   if (screen_ != Screen::Menu || !resumable()) return;
-  screen_ = Screen::Game;
+  if (!saved_run_) {
+    screen_ = Screen::Game;
+    touch();
+    return;
+  }
+  // The engine replays the saved log (checkpoint + tail); the terminal opens when it answers.
+  if (send([&] { engine_.resume(); })) {
+    resume_pending_ = true;
+    run_mission_ = saved_run_->mission;
+    shell_.run_campaign.reset();
+    notice_.clear();
+  }
+}
+
+void AppViewModel::offer_saved_run(std::optional<SavedRun> run) {
+  saved_run_ = std::move(run);
   touch();
+}
+
+// The answer to resume(): the run in play again (as a new session run of the shell), or the reason it
+// could not be restored. Either way the offer is gone.
+void AppViewModel::resumed(const CommandResult& r) {
+  if (!resume_pending_) return;
+  resume_pending_ = false;
+  saved_run_.reset();
+  if (!r.accepted || !snap_ || !snap_->active()) {
+    notice_ = reason_text(r.reason);
+    return;
+  }
+  if (screen_ != Screen::Menu) return;
+  record_started_run();
+  screen_ = Screen::Game;
 }
 
 void AppViewModel::add_journal_entry(PlanEntry entry) {

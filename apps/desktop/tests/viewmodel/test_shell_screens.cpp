@@ -157,12 +157,24 @@ TEST_CASE("shell: the full debrief from a real run, and the mission marked compl
   REQUIRE(releases != nullptr);
   REQUIRE(releases->rows.size() == 2);
   CHECK(releases->rows[0][0] == "81");
-  CHECK(has_line(m, names::kDebriefTimeline, "[61] ▲ LONG × 1,5 @ 101,46"));
+  // The web's timeline (playtest): engine events as the feed words them, not trade summaries, and the
+  // released headlines rather than the kind of news.
+  CHECK(has_line(m, names::kDebriefTimeline, "[61] Execução #1: BUY 1,5 @ 101,46"));
+  CHECK_FALSE(has_line(m, names::kDebriefTimeline, "▲ LONG"));
+  CHECK_FALSE(has_line(m, names::kDebriefTimeline, "Ordem #1 aceita"));  // accepted orders stay in the feed
+  CHECK_FALSE(has_line(m, names::kDebriefTimeline, "📰 Adoção institucional"));
+  CHECK(has_line(m, names::kDebriefTimeline, "Fim da missão"));
+  // The point balance after the run (the web's progress.advisorPoints), never a dash.
+  CHECK(has_line(m, names::kDebriefAdvisor, "Saldo: " + std::to_string(f.vm.game().prefs().advisor_points) + "."));
+  CHECK_FALSE(has_line(m, names::kDebriefAdvisor, "Saldo: —"));
+  // The reveal panels carry their titles, as RegimeReveal/ReleaseReveal.svelte.
+  CHECK(m.text_of(names::kDebriefRegimesTitle) == "Regimes revelados e sinais");
+  CHECK(m.text_of(names::kDebriefReleasesTitle) == "Divulgações: esperado × surpresa");
   CHECK(m.text_of(names::kDebriefCalibration).find("Menos de 3") != std::string::npos);
 
   f.vm.back_to_menu();
   const ScreenModel menu = f.vm.screen_model();
-  CHECK(menu.items[0].items[0] == "Missão 01 · Range  ✓ Concluída");
+  CHECK(menu.items[0].items[0] == "Missão 01 · Range  ✓");
   CHECK(menu.text_of(names::kMenuDetailDone) == "✓ Concluída");
   CHECK(f.vm.progress().runs.size() == 1);
   CHECK(f.vm.progress().runs[0].status == RunStatus::Finished);

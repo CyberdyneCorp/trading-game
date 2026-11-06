@@ -69,7 +69,8 @@ std::optional<double> GameViewModel::planned_risk() const {
 void GameViewModel::on_snapshot(const Snapshot& s) {
   bool started = false;
   for (const auto& r : s.results) {
-    if (r.kind == CommandKind::Start && r.accepted) started = true;
+    // A resumed run (saved in an earlier launch) is a new run for the terminal, as a started one.
+    if ((r.kind == CommandKind::Start || r.kind == CommandKind::Resume) && r.accepted) started = true;
   }
   if (s.game) {
     if (started) {

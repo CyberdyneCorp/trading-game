@@ -71,6 +71,14 @@ The desktop client SHALL implement every `terminal-ui` requirement with the web 
 - **WHEN** the window is 1024×768 with an open perpetual position
 - **THEN** the liquidation price and distance SHALL be visible in the rail without scrolling
 
+#### Scenario: Same run, same numbers
+- **WHEN** a mission is played on desktop and on the web with the same seed and the same actions
+- **THEN** the account line after each step and every number of the debrief SHALL be the same
+
+#### Scenario: No text cut at minimum size
+- **WHEN** the window is 1024×768 (or larger) on any screen, including the option chain
+- **THEN** no text SHALL be cut by its panel or its control: it wraps, or the layout gives it room
+
 ### Requirement: Rendering and effects
 The desktop client SHALL use a Raven theme file carrying the `terminal-ui` color tokens, the monospace font for numbers and tables and the pixel font for titles only (both bundled with their licenses), drawn at integer multiples of the pixel font's design size. The chart SHALL be a custom-painted widget following the web chart's rules. The CRT look (scanlines, bloom, noise; never flicker) SHALL be a shader post-process with a master toggle and one toggle per effect, all off when the OS requests reduced motion or the user turns them off. Text SHALL stay crisp on high-DPI displays.
 
@@ -106,6 +114,10 @@ The desktop client SHALL store runs, actions, checkpoints, progress, settings an
 #### Scenario: Killed during write (OFF02)
 - **WHEN** the process is killed while persisting a command
 - **THEN** on restart the run SHALL resume from the last committed command with no duplicated fill
+
+#### Scenario: Reopened mid-mission
+- **WHEN** the app is closed or killed in the middle of a free-play mission and opened again
+- **THEN** the menu SHALL offer that run (mission and seed) and resuming it SHALL restore it at its last committed command
 
 #### Scenario: Airplane mode (OFF01)
 - **WHEN** the machine has no network and a pack is installed
