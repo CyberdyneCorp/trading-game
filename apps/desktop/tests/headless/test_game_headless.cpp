@@ -38,6 +38,18 @@ TEST_CASE("headless terminal: place, move the attached stop by dragging it, canc
   testing::flow_place_move_cancel(app, d, t);
 }
 
+// The window the hosted macOS runners give (their 1024x768 screen shrinks every window to 1024x645): a
+// short chart, where a drag of a fixed 12 pixels carried the stop past the market and was refused.
+TEST_CASE("headless terminal: the stop drag lands on its price in a short chart (1024x645)") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 1u; });
+  REQUIRE(app.build(1024, 645));
+  Driver d(app);
+  d.frames(2);
+  Terminal t(app, d);
+  testing::flow_place_move_cancel(app, d, t);
+}
+
 // The amount field's label follows the sizing mode (OrderTicket.svelte), also after the shell redraws its
 // own texts (a screen change): the shell's bindings once wrote "Quantity" over it whatever the mode.
 TEST_CASE("headless terminal: the amount label follows the sizing mode across a trip to the menu") {

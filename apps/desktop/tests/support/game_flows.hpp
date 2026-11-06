@@ -84,6 +84,18 @@ class Terminal {
     return true;
   }
 
+  // Drags a level of the chart to `price`, through the chart's own price scale: the same move whatever
+  // the chart's height (a fixed pixel offset crosses the market on a short chart).
+  bool drag_level_to(const std::function<bool(const game::DragZone&)>& which, double price) {
+    const auto& zones = vm().chart.frame().zones;
+    const auto z = std::find_if(zones.begin(), zones.end(), which);
+    if (z == zones.end()) return false;
+    float x = 0, y = 0, w = 0, h = 0;
+    Rwidget_get_rect(d_.widget(names::kGameChart), &x, &y, &w, &h);
+    d_.drag(x + 60, y + z->line_y, x + 60, chart_y(price));
+    return true;
+  }
+
   float chart_y(double price) {
     float x = 0, y = 0, w = 0, h = 0;
     Rwidget_get_rect(d_.widget(names::kGameChart), &x, &y, &w, &h);
@@ -125,14 +137,18 @@ inline void flow_place_move_cancel(App& app, Driver& d, Terminal& t) {
   const Order* stop = find_order(t.g(), "stop_market");
   REQUIRE(stop != nullptr);
   const double before = stop->price;
+  const double last = t.g().last_price();
   const int stop_id = stop->id;
   d.frames(2);
-  REQUIRE(t.drag_level([&](const game::DragZone& z) { return !z.target.draft && z.target.order_id == stop_id; }, -12));
+  // Halfway to the market: still on the losing side of the long, at any chart height.
+  REQUIRE(t.drag_level_to([&](const game::DragZone& z) { return !z.target.draft && z.target.order_id == stop_id; },
+                          before + (last - before) / 2));
   REQUIRE(d.idle());
   const Order* moved = find_order(t.g(), "stop_market");
   REQUIRE(moved != nullptr);
   CHECK(moved->id == stop_id);
   CHECK(moved->price > before);
+  CHECK(moved->price < last);
   CHECK(d.text(names::kGameNotice).find(std::to_string(stop_id)) != std::string::npos);
   t.shot("11-stop-moved");
 
