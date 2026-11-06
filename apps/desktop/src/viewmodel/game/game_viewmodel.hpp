@@ -112,6 +112,8 @@ class GameViewModel {
   void mark_tutorial_seen(const std::string& mission);
   // The run in play is an assisted practice attempt: it settles no points and finishes no mission.
   [[nodiscard]] bool assisted() const { return assisted_; }
+  // Terminal.svelte: practice packs and assisted attempts start without the advisor, so it is not offered.
+  [[nodiscard]] bool advisor_offered() const { return state_ && !state_->known_scenario && !assisted_; }
   [[nodiscard]] int tutorial_index() const { return tutorial_index_; }
   void open_perks();
   void set_perk(Perk id, bool on);

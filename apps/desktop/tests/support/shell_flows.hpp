@@ -77,6 +77,7 @@ inline void flow_assisted(App& app, Driver& d, Terminal& t, const Shot& shot = {
   for (int i = 0; i < 6; ++i) t.advance();
   const int warmup = t.g().warmup_bars;
   REQUIRE(shown(d, names::kGameAssist.panel));
+  CHECK(shown(d, names::game::kAdvisorBox));
   CHECK(d.text(names::kGameAssist.turn_label) == "Voltar à barra (1–6)");
   d.type_into(names::kGameAssist.turn, "3");
   REQUIRE(d.click(names::kGameAssist.rewind));
@@ -85,6 +86,8 @@ inline void flow_assisted(App& app, Driver& d, Terminal& t, const Shot& shot = {
   CHECK(t.g().step == warmup + 2);
   REQUIRE(shown(d, names::kGameAssistedTag));
   CHECK(d.text(names::kGameAssistedTag) == "ASSISTIDA");
+  CHECK_FALSE(app.vm().game().advisor_offered());  // started without the advisor (Terminal.svelte)
+  CHECK_FALSE(shown(d, names::game::kAdvisorBox));
   if (shot) shot("flow-assisted-terminal");
   const int points = app.vm().game().prefs().advisor_points;
   play_to_debrief(app, d, t);

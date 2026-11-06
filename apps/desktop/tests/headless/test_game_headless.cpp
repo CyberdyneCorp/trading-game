@@ -11,6 +11,7 @@
 #include "support/storage_fixtures.hpp"
 #include "view/app.hpp"
 #include "viewmodel/game/dock_layout.hpp"
+#include "viewmodel/screen_names.hpp"
 
 using namespace tradelab::desktop;
 namespace names = tradelab::desktop::names;
@@ -35,6 +36,30 @@ TEST_CASE("headless terminal: place, move the attached stop by dragging it, canc
   d.frames(2);
   Terminal t(app, d);
   testing::flow_place_move_cancel(app, d, t);
+}
+
+// The amount field's label follows the sizing mode (OrderTicket.svelte), also after the shell redraws its
+// own texts (a screen change): the shell's bindings once wrote "Quantity" over it whatever the mode.
+TEST_CASE("headless terminal: the amount label follows the sizing mode across a trip to the menu") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 1u; });
+  REQUIRE(app.build(1280, 800));
+  Driver d(app);
+  d.frames(2);
+  Terminal t(app, d);
+  t.open(0);
+  t.skip_question();
+  d.frames(3);
+  REQUIRE(app.vm().game().ticket.size_by == game::SizeBy::Risk);
+  CHECK(d.text(names::kGameQtyLabel) == "Risco (% patrimônio)");
+  REQUIRE(d.click(names::kGameMenu));
+  REQUIRE(d.click(names::kMenuResume));
+  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Game; }));
+  d.frames(3);
+  CHECK(d.text(names::kGameQtyLabel) == "Risco (% patrimônio)");
+  d.choose(gn::kSizeBy, 1);
+  d.frames(3);
+  CHECK(d.text(names::kGameQtyLabel) == "Quantidade (contratos)");
 }
 
 TEST_CASE("headless terminal: a stop dragged past liquidation is confirmed, then the long is liquidated") {

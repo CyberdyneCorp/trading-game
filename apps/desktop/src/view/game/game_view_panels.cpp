@@ -236,8 +236,7 @@ void GameView::apply_orders(const game::Texts& t, const GameState& g) {
 
 void GameView::apply_advisor(const game::Texts& t, const GameState& g) {
   game::GameViewModel& m = vm();
-  // Practice packs start without the advisor, so it is not offered.
-  set_visible(find(n::kAdvisorBox), !g.known_scenario);
+  set_visible(find(n::kAdvisorBox), m.advisor_offered());
   const game::AdvisorView a = game::advisor_view(t, g, m.busy());
   set_label(find(n::kAdvPoints), a.points);
   set_enabled(find(n::kAdvAsk), a.can_ask);

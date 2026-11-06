@@ -278,7 +278,7 @@ TEST_CASE("windowed: the menu, a briefing and the terminal match their reference
   d.frames(4);
   reference(d, "menu");
   REQUIRE(d.click(names::kMenuStart));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());  // past the first-start tutorial
   reference(d, "briefing-m01");
   REQUIRE(d.click(names::kBriefGo));
   Terminal t(app, d);

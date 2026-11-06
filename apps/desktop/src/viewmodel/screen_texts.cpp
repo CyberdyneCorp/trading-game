@@ -113,7 +113,6 @@ std::vector<Binding> AppViewModel::game_bindings() const {
       {names::kGameMission, mission_text(s.mission, "title")},
       {names::kGameTurn, tr("top.step") + " " + str(turn) + " " + tr("top.of") + " " + str(playable)},
       {names::kGameAccount, account_line()},
-      {names::kGameQtyLabel, tr("ticket.qty")},
       {names::kGameBuy, "\xE2\x96\xB2 " + tr("ticket.buy")},   // ▲
       {names::kGameSell, "\xE2\x96\xBC " + tr("ticket.sell")},  // ▼
       {names::kGameAdvance, "\xE2\x96\xB6 " + tr("top.advance") + " [" +
