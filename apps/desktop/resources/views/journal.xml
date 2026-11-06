@@ -1,0 +1,18 @@
+<!-- Journal (web Journal.svelte + JournalEntries.svelte). Texts and lines from screens::journal(). -->
+<ScrollBox Name="journal-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="journal-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="journal-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Label Name="journal-note" Wrap="true" Class="muted"/>
+        <HBox Name="journal-filter-row" Spacing="8">
+            <Label Name="journal-filter-label" Slot.VAlign="Center"/>
+            <ComboBox Name="journal-filter" Width="360"/>
+        </HBox>
+        <Label Name="journal-empty" Wrap="true" Class="muted"/>
+        <VBox Name="journal-runs" Spacing="3"/>
+    </VBox>
+</Border>
+</ScrollBox>

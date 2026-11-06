@@ -1,0 +1,126 @@
+{
+  "desktop.vulkanMissing.title": {
+    "pt-BR": "TradeLab: driver Vulkan não encontrado",
+    "en": "TradeLab: no Vulkan driver found"
+  },
+  "desktop.vulkanMissing.body": {
+    "pt-BR": "O TradeLab precisa de um driver Vulkan para desenhar a janela e nenhum foi encontrado.",
+    "en": "TradeLab needs a Vulkan driver to draw its window and none was found."
+  },
+  "desktop.vulkanMissing.linux": {
+    "pt-BR": "Instale `libvulkan1` e o driver Vulkan da sua placa de vídeo (por exemplo `mesa-vulkan-drivers`) e abra o TradeLab de novo.",
+    "en": "Install `libvulkan1` and your graphics card's Vulkan driver (for example `mesa-vulkan-drivers`) and open TradeLab again."
+  },
+  "desktop.vulkanMissing.macos": {
+    "pt-BR": "A instalação parece incompleta: baixe o TradeLab de novo.",
+    "en": "The installation looks incomplete: download TradeLab again."
+  },
+  "desktop.vulkanMissing.detail": {
+    "pt-BR": "Detalhe: {detail}",
+    "en": "Detail: {detail}"
+  },
+  "desktop.language": {
+    "pt-BR": "English",
+    "en": "Português (Brasil)"
+  },
+  "desktop.waiting": {
+    "pt-BR": "Calculando…",
+    "en": "Working…"
+  },
+  "desktop.progress": {
+    "pt-BR": "Avançando {done} de {total}",
+    "en": "Advancing {done} of {total}"
+  },
+  "desktop.qtyInvalid": {
+    "pt-BR": "Digite uma quantidade válida (ex.: 1,5).",
+    "en": "Type a valid quantity (e.g. 1.5)."
+  },
+  "desktop.perksFixed": {
+    "pt-BR": "As informações extras valem desde o início da partida: mude antes da primeira ação.",
+    "en": "Intel applies from the start of a run: change it before your first action."
+  },
+  "desktop.crt.scanlines": {
+    "pt-BR": "Linhas de varredura",
+    "en": "Scanlines"
+  },
+  "desktop.crt.bloom": {
+    "pt-BR": "Brilho (bloom)",
+    "en": "Glow (bloom)"
+  },
+  "desktop.crt.noise": {
+    "pt-BR": "Ruído",
+    "en": "Noise"
+  },
+  "desktop.crt.reducedMotion": {
+    "pt-BR": "O sistema pede movimento reduzido: o efeito CRT fica desligado.",
+    "en": "The system asks for reduced motion: the CRT effect stays off."
+  },
+  "desktop.textScale": {
+    "pt-BR": "Tamanho do texto {pct}",
+    "en": "Text size {pct}"
+  },
+  "desktop.keys.colKey": {
+    "pt-BR": "Tecla",
+    "en": "Key"
+  },
+  "desktop.about.fonts": {
+    "pt-BR": "Fontes: VT323 (títulos) e IBM Plex Mono (texto e números), ambas sob a SIL Open Font License 1.1.",
+    "en": "Fonts: VT323 (titles) and IBM Plex Mono (text and numbers), both under the SIL Open Font License 1.1."
+  },
+  "desktop.curriculum.colStage": {
+    "pt-BR": "Estágio",
+    "en": "Stage"
+  },
+  "desktop.curriculum.colStatus": {
+    "pt-BR": "Situação",
+    "en": "Status"
+  },
+  "desktop.curriculum.colContent": {
+    "pt-BR": "Conteúdo",
+    "en": "Content"
+  },
+  "desktop.curriculum.colUnlocks": {
+    "pt-BR": "Libera",
+    "en": "Unlocks"
+  },
+  "desktop.chart.debrief": {
+    "pt-BR": "Gráfico da partida, da primeira decisão ao fim",
+    "en": "Chart of the run, from the first decision to the end"
+  },
+  "desktop.update.version": {
+    "pt-BR": "Versão {version}.",
+    "en": "Version {version}."
+  },
+  "desktop.update.install": {
+    "pt-BR": "Baixar e instalar ao reabrir",
+    "en": "Download and install on restart"
+  },
+  "desktop.update.downloading": {
+    "pt-BR": "Baixando a versão {version}…",
+    "en": "Downloading version {version}…"
+  },
+  "desktop.update.scheduled": {
+    "pt-BR": "A versão {version} será instalada quando o TradeLab for reaberto.",
+    "en": "Version {version} will be installed when TradeLab is reopened."
+  },
+  "desktop.update.failed": {
+    "pt-BR": "A atualização {version} foi recusada ({reason}); esta versão continua instalada.",
+    "en": "Update {version} was refused ({reason}); this version stays installed."
+  },
+  "desktop.update.applyFailed": {
+    "pt-BR": "Não foi possível instalar a versão {version} ({reason}); esta versão continua.",
+    "en": "Version {version} could not be installed ({reason}); this version goes on."
+  },
+  "desktop.alreadyRunning.title": {
+    "pt-BR": "O TradeLab já está aberto",
+    "en": "TradeLab is already open"
+  },
+  "desktop.alreadyRunning.body": {
+    "pt-BR": "Outra janela do TradeLab está usando os dados salvos deste usuário. Use essa janela ou feche-a antes de abrir o TradeLab de novo.",
+    "en": "Another TradeLab window is using this user's saved data. Use that window, or close it before opening TradeLab again."
+  },
+  "desktop.storageUnavailable": {
+    "pt-BR": "Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.",
+    "en": "The saved data could not be opened ({detail}): this session will not be saved."
+  }
+}

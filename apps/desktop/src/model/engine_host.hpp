@@ -1,0 +1,143 @@
+// Simulation worker (design "Threading"): one std::thread owns the EngineRun and every engine call.
+// Commands go through a mutex-guarded FIFO queue; after each command (and while a batch advance runs)
+// the worker publishes an immutable Snapshot. Snapshots are coalesced: while one delivery is pending
+// on the UI thread, newer snapshots replace it instead of queueing more tasks, so at most one hand-off
+// per UI frame. The hand-off itself is the `Post` function (Rtask_post in the app, a test queue in
+// tests), which keeps this layer free of Raven.
+//
+// Persistence (model/storage, optional: tests may run without it): every command that changes the run is
+// a storage::Action committed to SQLite BEFORE the engine applies it, and the acknowledgement is published
+// only after the run header (and every 20 actions a checkpoint) is written. New commands follow the same
+// path: build the Action, recorder_->perform(), settle(), publish.
+#pragma once
+
+#include <condition_variable>
+#include <cstdint>
+#include <deque>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
+
+#include "model/engine_run.hpp"
+#include "model/snapshot.hpp"
+#include "model/storage/storage.hpp"
+
+namespace tradelab::desktop {
+
+namespace storage {
+class RunRecorder;
+}  // namespace storage
+
+// What viewmodels may ask of the engine (EngineHost in the app, fakes in viewmodel tests).
+class EngineCommands {
+ public:
+  virtual ~EngineCommands() = default;
+  virtual void start(const std::string& mission, std::uint32_t seed) = 0;
+  virtual void advance(int steps) = 0;
+  virtual void market(Side side, const std::string& qty) = 0;
+  // Terminal commands and start options (perks, campaign capital, leverage gate); the defaults keep
+  // simple fakes compiling.
+  virtual void game(const GameCommand& /*command*/) {}
+  virtual void start_with(const std::string& mission, std::uint32_t seed, const RunOptions& /*options*/) {
+    start(mission, seed);
+  }
+  // Storage (no-ops where there is none): the active saved run, or a new run on an installed pack.
+  virtual void resume() {}
+  virtual void start_pack(const std::string& /*digest*/, std::uint32_t /*seed*/) {}
+};
+
+class EngineHost final : public EngineCommands {
+ public:
+  using Task = std::function<void()>;
+  // Runs a task on the UI thread later; must be callable from the worker thread.
+  using Post = std::function<void(Task)>;
+  using Sink = std::function<void(std::shared_ptr<const Snapshot>)>;
+
+  using StorageJob = std::function<void(storage::Storage&)>;
+
+  // With `storage`, runs are persisted and resumable (it is used on the worker only from then on).
+  EngineHost(Post post, Sink sink, std::unique_ptr<storage::Storage> storage = nullptr);
+  ~EngineHost() override;
+  EngineHost(const EngineHost&) = delete;
+  EngineHost& operator=(const EngineHost&) = delete;
+
+  // Read once at construction, before the worker exists (tl_missions uses a shared static buffer).
+  [[nodiscard]] const std::vector<MissionInfo>& missions() const { return missions_; }
+
+  void start(const std::string& mission, std::uint32_t seed) override;
+  void advance(int steps) override;
+  void market(Side side, const std::string& qty) override;
+  void game(const GameCommand& command) override;
+  void start_with(const std::string& mission, std::uint32_t seed, const RunOptions& options) override;
+  void resume() override;
+  void start_pack(const std::string& digest, std::uint32_t seed) override;
+  // Runs `job` on the worker, in queue order, with the storage (pack install/import, catalog downloads:
+  // the engine's run-less calls must stay on this thread). Not run when the host has no storage.
+  void post_storage_job(StorageJob job);
+
+  // Blocks until every queued command has run (tests and shutdown only; the UI never waits).
+  void wait_idle();
+  [[nodiscard]] std::thread::id worker_id() const { return worker_.get_id(); }
+
+ private:
+  struct Command {
+    CommandKind kind = CommandKind::Start;
+    std::string mission;
+    std::uint32_t seed = 0;
+    int steps = 0;
+    Side side = Side::Buy;
+    std::string qty;
+    GameCommand game;
+    RunOptions options;
+    std::string digest;
+    StorageJob job;
+  };
+
+  // Shared with posted tasks so a task that runs after the host is gone does nothing.
+  struct Mailbox {
+    std::mutex mu;
+    std::shared_ptr<const Snapshot> pending;
+    bool posted = false;
+    bool closed = false;
+    Sink sink;
+  };
+
+  void enqueue(Command c);
+  void worker_loop();
+  void execute(const Command& c);
+  void run_start(const Command& c);
+  void run_advance(int steps);
+  void run_market(const Command& c);
+  void run_game(const Command& c);
+  void run_resume();
+  void run_start_pack(const Command& c);
+  void settle(Snapshot& s);
+  void publish_refusal(CommandKind kind, const std::string& reason);
+  [[nodiscard]] bool delivery_pending() const;
+  void publish(Snapshot s);
+  static void deliver(const std::shared_ptr<Mailbox>& box);
+
+  std::vector<MissionInfo> missions_;
+  Post post_;
+  std::shared_ptr<Mailbox> mailbox_;
+
+  std::mutex mu_;
+  std::condition_variable cv_;
+  std::condition_variable idle_cv_;
+  std::deque<Command> queue_;
+  bool busy_ = false;
+  bool quit_ = false;
+
+  // Worker-only state.
+  std::unique_ptr<EngineRun> run_;
+  std::unique_ptr<storage::Storage> storage_;
+  std::unique_ptr<storage::RunRecorder> recorder_;
+  std::uint64_t seq_ = 0;
+
+  std::thread worker_;
+};
+
+}  // namespace tradelab::desktop

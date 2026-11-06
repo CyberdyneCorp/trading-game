@@ -1,0 +1,40 @@
+<!-- Briefing (web Briefing.svelte): the engine's mission rules and contract. Texts from screens::briefing(). -->
+<VBox Spacing="0">
+<ScrollBox Name="brief-scroll" Slot.Fill="1">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="8">
+        <Label Name="brief-title" Class="muted"/>
+        <Label Name="brief-mission" TextSize="50" Class="title" AccessibleRole="Heading"/>
+        <Label Name="brief-tagline" Wrap="true"/>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="16">
+            <VBox Spacing="6">
+                <Label Name="brief-mode" Wrap="true" Class="attention"/>
+                <Label Name="brief-capital"/>
+                <Label Name="brief-instrument"/>
+                <Label Name="brief-permissions" Wrap="true"/>
+                <Label Name="brief-not-allowed" Wrap="true" Class="muted"/>
+                <Label Name="brief-leverage"/>
+                <Label Name="brief-limits" Wrap="true"/>
+                <Label Name="brief-mmr"/>
+                <Label Name="brief-tiers" Wrap="true"/>
+                <Label Name="brief-mark" Wrap="true"/>
+                <Label Name="brief-costs" Wrap="true"/>
+                <Label Name="brief-shocks" Wrap="true" Class="attention"/>
+            </VBox>
+        </Border>
+        <Label Name="brief-objectives-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+        <VBox Name="brief-objectives" Spacing="4"/>
+        <Label Name="brief-locked" Wrap="true" Class="attention"/>
+        <Label Name="brief-rules" Wrap="true" Class="info"/>
+        <Label Name="brief-topic" Wrap="true" Class="muted"/>
+    </VBox>
+</Border>
+</ScrollBox>
+<Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="10">
+    <HBox Spacing="12">
+        <Button Name="brief-back" OnClicked="tl.brief.back"/>
+        <Spacer Slot.Fill="1"/>
+        <Button Name="brief-go" Style="Primary" OnClicked="tl.brief.go"/>
+    </HBox>
+</Border>
+</VBox>

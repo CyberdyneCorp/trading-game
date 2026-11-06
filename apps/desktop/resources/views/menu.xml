@@ -1,0 +1,70 @@
+<!-- Mission menu (web MissionMenu.svelte + CampaignPanel.svelte). Texts, screen-reader names, lines and
+     flags come from screens::menu(); widget and action names are in widget_names.hpp / screen_names.hpp.
+     Titles are VT323 at integer multiples of its 12.5 px grid (Class="title": 25 or 50). Missions on
+     the left and the campaign on the right keep Start on screen at 1024x768. -->
+<ScrollBox Name="menu-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Text="TRADELAB" TextSize="50" Class="title" AccessibleRole="Heading"/>
+            <Label Name="menu-subtitle" Class="muted" Slot.Fill="1" Slot.VAlign="Center"/>
+            <Button Name="menu-language" Style="Flat" OnClicked="tl.menu.language" Slot.VAlign="Center"/>
+        </HBox>
+        <HBox Name="menu-update-row" Spacing="12">
+            <Label Name="menu-update-text" Wrap="true" Class="info" Slot.Fill="1" Slot.VAlign="Center"/>
+            <Button Name="menu-update-install" OnClicked="tl.menu.updateInstall"/>
+        </HBox>
+        <HBox Name="menu-resume-row" Spacing="12">
+            <Label Name="menu-resume-text" Slot.Fill="1" Slot.VAlign="Center"/>
+            <Button Name="menu-resume" Style="Primary" OnClicked="tl.menu.resume"/>
+        </HBox>
+        <HBox Spacing="8">
+            <Button Name="menu-curriculum" OnClicked="tl.menu.curriculum"/>
+            <Button Name="menu-journal" OnClicked="tl.menu.journal"/>
+            <Button Name="menu-settings" OnClicked="tl.menu.settings"/>
+        </HBox>
+        <HBox Spacing="16">
+            <VBox Spacing="8" Slot.Fill="3">
+                <Label Name="menu-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Label Name="menu-note" Wrap="true" Class="muted"/>
+                <HBox Spacing="12">
+                    <ListView Name="menu-list" Width="300" Height="330"/>
+                    <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12" Slot.Fill="1">
+                        <VBox Spacing="8">
+                            <Label Name="menu-detail-title" TextSize="25" Class="title"/>
+                            <Label Name="menu-detail-done" Class="up"/>
+                            <Label Name="menu-detail-tagline" Wrap="true"/>
+                            <Label Name="menu-detail-topic" Wrap="true" Class="muted"/>
+                            <Label Name="menu-detail-tags" Wrap="true" Class="info"/>
+                            <Button Name="menu-start" Style="Primary" OnClicked="tl.menu.start" Slot.HAlign="Left"/>
+                        </VBox>
+                    </Border>
+                </HBox>
+            </VBox>
+            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12" Slot.Fill="2">
+                <VBox Spacing="6">
+                    <Label Name="campaign-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                    <Label Name="campaign-note" Wrap="true" Class="muted"/>
+                    <VBox Name="campaign-steps" Spacing="1"/>
+                    <Label Name="campaign-progress" Wrap="true"/>
+                    <Label Name="campaign-ended" Wrap="true"/>
+                    <HBox Spacing="8">
+                        <Button Name="campaign-continue" Style="Primary" OnClicked="tl.campaign.continue"/>
+                        <Button Name="campaign-end" OnClicked="tl.campaign.end"/>
+                        <Button Name="campaign-start" Style="Primary" OnClicked="tl.campaign.start"/>
+                    </HBox>
+                    <VBox Name="campaign-confirm-row" Spacing="6">
+                        <Label Name="campaign-end-confirm" Wrap="true" Class="down"/>
+                        <HBox Spacing="8">
+                            <Button Name="campaign-end-yes" OnClicked="tl.campaign.endYes"/>
+                            <Button Name="campaign-end-no" OnClicked="tl.campaign.endNo"/>
+                        </HBox>
+                    </VBox>
+                    <Label Name="campaign-played" Wrap="true" Class="muted"/>
+                </VBox>
+            </Border>
+        </HBox>
+        <Label Name="menu-disclaimer" Wrap="true" Class="muted"/>
+    </VBox>
+</Border>
+</ScrollBox>
