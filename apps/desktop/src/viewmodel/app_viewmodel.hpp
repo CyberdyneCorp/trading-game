@@ -164,7 +164,10 @@ class AppViewModel {
   void apply_result(const CommandResult& r);
   void resumed(const CommandResult& r);
   [[nodiscard]] std::string mission_text(const std::string& id, std::string_view field) const;
+  // The run's title or tagline: a schema-v2 pack's own texts in the shown locale, else mission_text.
+  [[nodiscard]] std::string run_text(const Snapshot& s, std::string_view field) const;
   [[nodiscard]] std::string reason_text(const std::string& code) const;
+  [[nodiscard]] std::string abi_refusal(const std::string& detail) const;
 
   [[nodiscard]] std::vector<Binding> menu_bindings() const;
   [[nodiscard]] std::vector<Binding> briefing_bindings() const;

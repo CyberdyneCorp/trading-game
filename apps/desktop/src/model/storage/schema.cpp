@@ -78,6 +78,10 @@ CREATE TABLE downloads (
   received INTEGER NOT NULL DEFAULT 0
 ) WITHOUT ROWID;
 )sql",
+    // 5: the engine C ABI each run was recorded under (a run with another ABI does not resume).
+    R"sql(
+ALTER TABLE runs ADD COLUMN engine_abi INTEGER;
+)sql",
 };
 
 }  // namespace

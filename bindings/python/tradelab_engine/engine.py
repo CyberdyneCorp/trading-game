@@ -43,6 +43,7 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
     c_char_p, c_void_p, u32, i32 = ctypes.c_char_p, ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int32
     signatures: dict[str, tuple[Any, list[Any]]] = {
         "tl_version": (c_char_p, []),
+        "tl_abi_version": (u32, []),
         "tl_missions": (c_char_p, []),
         "tl_run_create": (c_void_p, [c_char_p, u32]),
         "tl_run_create_ex": (c_void_p, [c_char_p, u32, u32, u32, i32, c_char_p, i32]),
@@ -97,6 +98,11 @@ def _s(value: str | None) -> bytes | None:
 
 def engine_version() -> dict[str, Any]:
     return _json(load_library().tl_version())
+
+
+def abi_version() -> int:
+    """The engine's C ABI version (tl_abi_version)."""
+    return int(load_library().tl_abi_version())
 
 
 def missions() -> list[dict[str, Any]]:

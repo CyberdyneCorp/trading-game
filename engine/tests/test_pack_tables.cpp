@@ -207,10 +207,15 @@ TEST_CASE("Pack tables: the manifest and the files must agree on events and opti
   p = open(build(no_events));
   CHECK(p.reason == "missing_file");
   CHECK(p.detail == "events.bin");
-  // mission.json and i18n.json stay reserved.
+  // i18n.json stays reserved; mission.json is read (schema v2) and must hold the texts.
   PackSource reserved = src;
-  reserved.files.push_back({"mission.json", {'{', '}'}, 2});
+  reserved.files.push_back({"i18n.json", {'{', '}'}, 2});
   CHECK(open(build(reserved)).reason == "unsupported_feature");
+  PackSource empty_texts = src;
+  empty_texts.files.push_back({"mission.json", {'{', '}'}, 2});
+  p = open(build(empty_texts));
+  CHECK(p.reason == "malformed_data");
+  CHECK(p.detail == "mission.json");
 }
 
 TEST_CASE("Pack tables: liquidity shocks travel in events.bin and reach execution") {

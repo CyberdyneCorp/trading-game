@@ -212,3 +212,34 @@ export async function buildLongPack(page: Page): Promise<Buffer> {
 	);
 	return Buffer.from(bytes);
 }
+
+/** The device seed the e2e fixture packs are signed with (e2e/fixtures: branch, synthetic-m09, mark-v2). */
+export const FIXTURE_DEVICE_SEED = '0e2e'.repeat(16);
+
+/** Makes FIXTURE_DEVICE_SEED the browser's device seed, so packs signed with its device key install. */
+export async function useDeviceSeed(page: Page) {
+	await page.goto('/?seed=11');
+	await expect(page.getByTestId('pack-file')).toBeAttached(); // the menu is up: the app has created its database
+	await page.evaluate(
+		(hex) =>
+			new Promise<void>((resolve, reject) => {
+				const open = indexedDB.open('tradelab');
+				open.onerror = () => reject(open.error);
+				open.onsuccess = () => {
+					try {
+						const tx = open.result.transaction('meta', 'readwrite');
+						tx.objectStore('meta').put({ key: 'deviceSeed', hex });
+						tx.oncomplete = () => {
+							open.result.close();
+							resolve();
+						};
+						tx.onerror = () => reject(tx.error);
+					} catch (e) {
+						reject(e);
+					}
+				};
+			}),
+		FIXTURE_DEVICE_SEED
+	);
+	await page.reload();
+}

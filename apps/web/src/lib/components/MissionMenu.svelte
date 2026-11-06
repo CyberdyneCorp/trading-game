@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { marketTagKey, missionText, packOriginOf } from '#lib/game/missions.ts';
+	import { marketTagKey, missionText, packOriginOf, packTextsOf } from '#lib/game/missions.ts';
 	import { settings } from '#lib/game/settings.svelte.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, packReasonText, t, type Locale } from '#lib/game/i18n.svelte.ts';
@@ -83,7 +83,7 @@
 		<section class="panel resume">
 			<span>
 				{#if session.saved.campaign}<span class="tag info">{t('journal.mode.campaign')}</span>{/if}
-				{missionText(session.saved.missionId, i18n.locale, packOriginOf(session.packs, session.saved.packDigest)).title} · seed {session.saved.seed}
+				{missionText(session.saved.missionId, i18n.locale, packOriginOf(session.packs, session.saved.packDigest), packTextsOf(session.packs, session.saved.packDigest)).title} · seed {session.saved.seed}
 			</span>
 			<button class="primary" onclick={() => session.resume()} disabled={session.busy}>▶ {t('menu.resume')}</button>
 		</section>

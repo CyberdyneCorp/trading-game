@@ -35,6 +35,7 @@ constexpr std::int64_t kCheckpointEvery = 20;
 struct EngineVersion {
   std::string engine;
   int policy = 0;
+  int abi = 0;  // tl_abi_version
 };
 // This build's engine (tl_version).
 EngineVersion current_engine_version();
@@ -45,10 +46,12 @@ enum class ResumeNoticeKind : std::uint8_t {
   PolicyChanged,   // recorded under another execution policy (detail: that policy number)
   DigestMismatch,  // the replayed state differs from the recorded digest (detail: its first 8 hex)
   PackMissing,     // the run's pack file is gone: nothing resumed
+  AbiChanged,      // recorded under another engine C ABI: nothing resumed (detail: "<engine>/<abi>")
   Damaged,         // the run could not be rebuilt (unknown mission, refused pack): nothing resumed
 };
 
-// "" for None, else "engine_changed", "policy_changed", "digest_mismatch", "pack_missing", "damaged".
+// "" for None, else "engine_changed", "policy_changed", "digest_mismatch", "pack_missing", "abi_changed",
+// "damaged".
 std::string resume_notice_name(ResumeNoticeKind kind);
 
 struct ResumeNotice {

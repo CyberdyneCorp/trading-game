@@ -87,6 +87,10 @@ A new app version SHALL be installed by the service worker in the background and
 - **WHEN** an unfinished run recorded with engine 1.2 is resumed after the app updated to engine 1.3
 - **THEN** it SHALL resume on engine 1.2 and produce the same digest
 
+#### Scenario: Pinned build with another C ABI
+- **WHEN** the pinned build of an unfinished run reports another engine C ABI than the worker's (or none)
+- **THEN** the run SHALL NOT resume, the menu SHALL say why, the run SHALL be stored as left so it is not offered again, and the next run SHALL start on this version's engine
+
 ### Requirement: Journal and curriculum screens
 The client SHALL offer, from the menu, a journal screen listing the plans the player recorded (thesis, invalidation, target, confidence, planned risk, option loss scenario), grouped by run with the mission, mode (campaign, free play, practice), date and status (in progress, finished, bankrupt, or left when another run replaced it before its end), newest first and filterable by mission; and a curriculum map showing every stage in order with its status, assessment missions and unlocks, plus progress (stages passed, missions completed, campaign runs). Journal text SHALL stay on the device. Progress SHALL be kept in a versioned local record that the client migrates from older versions without losing tutorials seen or advisor points.
 

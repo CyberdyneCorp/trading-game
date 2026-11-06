@@ -27,6 +27,15 @@ Signing seeds are 32 random bytes in hex in a file (`--seed-file`); a missing fi
 
 A pack source directory holds `manifest.json` (pretty-printed; edit the license, provenance or rules before `build`; `files` and `signingKeyId` are filled in when the pack is written) and the uncompressed data files. Builds are deterministic for a given source, zstd level, `zstandard` version and key.
 
+Pack schema 2 (format in `engine/README.md` "Scenario packs"): a source may add `mission.json` (the pack's own title and briefing in PT-BR and en: `{"texts": [{"locale": "pt-BR", "title", "briefing"}, {"locale": "en", ...}]}`), `mark.bin` and `subbars.bin`, and the manifest may name `marginModel.tiers` and `missionRules.objectives` (and the other v2 rules); `build` then writes `"schemaVersion": 2`. `generate` already writes schema 2, since a built-in mission carries margin tiers and objectives. A source may also tell a story in `events.json` instead of `events.bin`, which `build` encodes and counts in the manifest:
+
+```json
+{"news": [{"step": 74, "kind": "liquidity_outflow", "tone": -1, "credibility": 90, "expectation": 0, "actual": -1}],
+ "liquidityShocks": [{"start": 75, "bars": 6, "spreadPct": 400, "capacityPct": 25}]}
+```
+
+`kind` is a `NewsKind` name (or its number); omitted fields take the engine defaults (tone 0, credibility 100, expectation and actual 0, `announceLead` 0, spread and capacity 100%). The engine checks the values when the pack is validated (a shock starts the bar after its headline to be shown in the ticket from that headline on). `inspect` lists the schema version, the margin tiers, the v2 mission rules and each locale's title.
+
 ```bash
 packer generate m09-event-straddle --seed 7 -o /tmp/m09
 packer build /tmp/m09 --seed-file publisher.seed --publish -o m09-s7.tlpack

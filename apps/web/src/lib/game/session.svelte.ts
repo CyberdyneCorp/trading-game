@@ -4,6 +4,7 @@
 
 import { EventNames } from './eventNames.ts';
 import { currentEnginePath, engineBuildLabel } from '#lib/engine/build.ts';
+import { abiMismatch, ENGINE_ABI } from '#lib/engine/abi.ts';
 import { EngineClient } from '#lib/engine/client.ts';
 import type { CsvBuildResult, EngineRequest } from '#lib/engine/protocol.ts';
 import { DEFAULT_RUN_OPTIONS } from '#lib/engine/defaults.ts';
@@ -46,7 +47,8 @@ import { enginesToKeep, gcEngines, pinEngine } from './engineCache.ts';
 import { formatBytes, MemoryPackIndex, opfsPackDir, PackLibrary, playableDigests, quotaShortfall, storageQuota, type PackEntry, type Quota } from './packStore.ts';
 import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type PackOrigin, type Progress, type RunRecord } from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
-import { packOriginOf } from './missions.ts';
+import { packOriginOf, packTextsOf } from './missions.ts';
+import type { PackText } from '#lib/engine/types.ts';
 
 export type Screen =
 	| 'loading'
@@ -412,17 +414,21 @@ export class GameSession implements CatalogHost {
 	/**
 	 * An unfinished run resumes on the engine build it started on (spec web-client "Old run after
 	 * update"). A run recorded before pinning, or whose build is gone, resumes on this version's
-	 * build; the returned notice says so.
+	 * build; the returned notice says so. A pinned build with another C ABI cannot be driven by this
+	 * worker: `refused` explains why the run cannot resume (the current build is loaded again).
 	 */
-	private async useRunEngine(path: string | undefined): Promise<Notice | null> {
+	private async useRunEngine(path: string | undefined): Promise<{ notice: Notice | null; refused?: string }> {
 		const target = path || this.enginePath;
-		if (target === this.loadedEngine) return null;
+		if (target === this.loadedEngine) return { notice: null };
+		const build = engineBuildLabel(target);
 		try {
 			await this.switchEngine(target);
-			return target === this.enginePath ? null : { tone: 'ok', text: t('engine.pinned', { build: engineBuildLabel(target) }) };
-		} catch {
+			return { notice: target === this.enginePath ? null : { tone: 'ok', text: t('engine.pinned', { build }) } };
+		} catch (err) {
 			await this.switchEngine(this.enginePath);
-			return { tone: 'warn', text: t('engine.pinMissing', { build: engineBuildLabel(target) }) };
+			const abi = abiMismatch(err);
+			if (abi !== null) return { notice: null, refused: t('engine.abiMismatch', { build, abi, expected: ENGINE_ABI }) };
+			return { notice: { tone: 'warn', text: t('engine.pinMissing', { build }) } };
 		}
 	}
 
@@ -653,6 +659,11 @@ export class GameSession implements CatalogHost {
 		return packOriginOf(this.packs, this.runPack);
 	}
 
+	/** The current run's pack texts (a schema-v2 pack's own title and briefing), if it has them. */
+	get runPackTexts(): PackText[] | undefined {
+		return packTextsOf(this.packs, this.runPack);
+	}
+
 	/**
 	 * Verify-then-install: only bytes the engine accepted are stored (by digest), and only when they
 	 * fit in the storage quota (spec web-client "Quota exceeded": the space missing is reported).
@@ -675,7 +686,8 @@ export class GameSession implements CatalogHost {
 			leverageCap: s.leverageCap,
 			gaps: s.gaps,
 			addedAt: Date.now(),
-			origin
+			origin,
+			...(s.texts.length ? { texts: s.texts } : {})
 		};
 		const entry = await this.library.install(meta, bytes).catch(() => null);
 		if (!entry) {
@@ -730,8 +742,13 @@ export class GameSession implements CatalogHost {
 			this.saved = null;
 			return;
 		}
+		const engine = await this.useRunEngine(r.engine);
+		if (engine.refused) {
+			this.menuAlert = engine.refused;
+			await this.leaveUnresumable(r.runId);
+			return;
+		}
 		this.options = { ...DEFAULT_RUN_OPTIONS, ...r.options };
-		const engineNotice = await this.useRunEngine(r.engine);
 		this.resetRun(r.missionId, r.seed);
 		this.runId = r.runId;
 		this.runCampaign = r.campaign ?? null;
@@ -746,7 +763,7 @@ export class GameSession implements CatalogHost {
 		this.log = [...run.actions];
 		this.journal = r.journal;
 		this.stopWarnings = r.stopWarnings;
-		this.notice = engineNotice ?? this.replayNotice(r, run.actions.length);
+		this.notice = engine.notice ?? this.replayNotice(r, run.actions.length);
 		this.screen = this.state?.status === 'active' ? 'terminal' : 'debrief';
 		if (this.screen === 'debrief') await this.loadDebrief();
 		this.saved = null;
@@ -1090,6 +1107,15 @@ export class GameSession implements CatalogHost {
 			next = settleCampaignRun(next, run.campaign, { runId: run.runId, missionId: run.missionId, result: 'left', equity: run.equity });
 		}
 		this.saveProgress(next);
+	}
+
+	// A run no engine of this version can drive (another C ABI) is left as a new run would leave it
+	// (advice charged, a campaign mission keeps its equity), so the menu stops offering a resume that
+	// can only be refused again, and its pinned build is collected.
+	private async leaveUnresumable(runId: string): Promise<void> {
+		await this.settleAbandoned();
+		await this.store?.updateRun(runId, { status: 'left' }).catch(() => (this.durable = false));
+		await this.refreshSaved();
 	}
 
 	// The stored active run (also after a reload), else the one in memory when nothing is stored.

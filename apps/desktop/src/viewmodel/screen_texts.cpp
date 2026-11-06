@@ -59,8 +59,8 @@ std::vector<Binding> AppViewModel::briefing_bindings() const {
   const std::string instrument = tr(s.allow_short ? "brief.instrumentValue" : "brief.instrumentValueLong");
   return {
       {names::kBriefTitle, tr("brief.title")},
-      {names::kBriefMission, mission_text(s.mission, "title")},
-      {names::kBriefTagline, mission_text(s.mission, "tagline")},
+      {names::kBriefMission, run_text(s, "title")},
+      {names::kBriefTagline, run_text(s, "tagline")},
       {names::kBriefCapital, tr("brief.capital") + ": " + fmt::fmt_money(s.initial_balance, locale())},
       {names::kBriefInstrument, tr("brief.instrument") + ": " + instrument},
       {names::kBriefLeverage, tr("brief.leverage") + ": " + str(s.leverage_cap) + "x"},
@@ -99,7 +99,7 @@ std::vector<Binding> AppViewModel::game_bindings() const {
   const int playable = s.last_decision_step - s.warmup_bars + 1;
   return {
       {names::kGameMarket, tr("top.market") + " " + s.alias + " " + tr("top.synthetic")},
-      {names::kGameMission, mission_text(s.mission, "title")},
+      {names::kGameMission, run_text(s, "title")},
       {names::kGameTurn, tr("top.step") + " " + str(turn) + " " + tr("top.of") + " " + str(playable)},
       {names::kGameAccount, account_line()},
       {names::kGameQtyLabel, tr("ticket.qty")},
@@ -121,7 +121,7 @@ std::vector<Binding> AppViewModel::debrief_bindings() const {
   const std::string score = d.score_total < 0 ? std::string("\xE2\x80\x94") : str(d.score_total);  // —
   return {
       {names::kDebriefTitle, tr(bankrupt ? "debrief.gameOver" : "debrief.finished")},
-      {names::kDebriefText, bankrupt ? tr("debrief.gameOverText") : mission_text(s.mission, "title")},
+      {names::kDebriefText, bankrupt ? tr("debrief.gameOverText") : run_text(s, "title")},
       {names::kDebriefOutcome, tr("debrief.outcome")},
       {names::kDebriefPnl, std::string(fmt::sign_mark(pnl)) + " " + fmt::fmt_money(pnl, locale(), true)},
       {names::kDebriefPnlPct,

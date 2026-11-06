@@ -19,6 +19,7 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/game/test_ticket_chart.cpp
   viewmodel/test_shell_helpers.cpp
   viewmodel/test_shell_screens.cpp
+  viewmodel/test_pack_runs.cpp
   viewmodel/test_theme.cpp)
 target_include_directories(tradelab_desktop_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

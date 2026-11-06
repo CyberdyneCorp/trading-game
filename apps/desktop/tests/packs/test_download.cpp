@@ -197,7 +197,7 @@ TEST_CASE("packs catalog: fetched online, then read from the cache offline") {
   PackDownloader dl(s.packs(), s.store(), online, kChunk);
   const auto c = dl.fetch_catalog("https://cdn.example/catalog/catalog.json");
   REQUIRE(c);
-  CHECK(c->entries.size() == 2);
+  CHECK(c->entries.size() == 3);
   FakeHttp offline(*manifest);
   offline.drop_from = 0;
   PackDownloader off(s.packs(), s.store(), offline, kChunk);

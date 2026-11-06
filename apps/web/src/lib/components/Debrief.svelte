@@ -94,7 +94,7 @@
 	{:else}
 		<h1>{t('debrief.finished')}</h1>
 	{/if}
-	<p class="muted">{missionText(s.mission, L, session.runPackOrigin).title}</p>
+	<p class="muted">{missionText(s.mission, L, session.runPackOrigin, session.runPackTexts).title}</p>
 	{#if session.runAssisted}
 		<p class="assisted" data-testid="debrief-assisted"><span class="tag attention">{t('assist.tag')}</span> {t('assist.banner')}</p>
 	{/if}
@@ -154,7 +154,7 @@
 			{:else}
 				<p>{t('debrief.revealSynthetic', { alias: d.alias, seed: d.seed })}</p>
 				<h3>{t('debrief.scenario')}</h3>
-				<p class="reveal">{missionText(s.mission, L, session.runPackOrigin).reveal}</p>
+				<p class="reveal">{missionText(s.mission, L, session.runPackOrigin, session.runPackTexts).reveal}</p>
 			{/if}
 			<p class="muted small" data-testid="market-span">{t('debrief.marketSpan', { from: fmtPrice(d.startPrice, L), to: fmtPrice(d.endPrice, L) })}</p>
 			{#if endedEarly}

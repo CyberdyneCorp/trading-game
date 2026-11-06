@@ -1,6 +1,7 @@
 #include "pack_manifest.hpp"
 
 #include <algorithm>
+#include <optional>
 
 namespace tradelab::detail {
 namespace {
@@ -147,6 +148,80 @@ void read_instrument(Fields& f, const JsonValue& r, Manifest* m) {
   f.integer(*perp, "maxLeverage", "instruments.perpetual.maxLeverage", &c.max_leverage, 1, 125);
 }
 
+// Notes a schema-v2 field: a v1 manifest naming one is refused (parse_manifest).
+void saw_v2(Manifest* m, std::string_view path) {
+  if (m->first_v2_field.empty()) m->first_v2_field = path;
+}
+
+// An optional array of 1..max objects; nullptr when absent (or after a failure).
+const JsonValue* opt_array(Fields& f, const JsonValue& p, std::string_view key, std::string_view path, std::size_t max) {
+  if (p.find(key) == nullptr) return nullptr;
+  const JsonValue* a = f.get(p, key, path, Kind::Array);
+  if (a == nullptr) return nullptr;
+  const bool objects = std::all_of(a->items.begin(), a->items.end(), [](const JsonValue& e) { return e.is(Kind::Object); });
+  if (a->items.empty() || a->items.size() > max || !objects) {
+    f.fail("invalid_field", path);
+    return nullptr;
+  }
+  return a;
+}
+
+// marginModel.tiers (v2): maintenance-margin tiers above the base rate, by notional at entry
+// (policy v16). Order and leverage are checked by validate(Scenario).
+void read_tiers(Fields& f, const JsonValue& margin, Manifest* m) {
+  const JsonValue* tiers = opt_array(f, margin, "tiers", "marginModel.tiers", kMaxManifestTiers);
+  if (tiers == nullptr) return;
+  saw_v2(m, "marginModel.tiers");
+  for (const JsonValue& e : tiers->items) {
+    MarginTier t;
+    f.dec(e, "notionalFloor", "marginModel.tiers.notionalFloor", &t.notional_floor, 1, kMaxI64);
+    f.dec(e, "maintenanceMargin", "marginModel.tiers.maintenanceMargin", &t.maintenance_margin, 1, kRateOne - 1);
+    f.integer(e, "maxLeverage", "marginModel.tiers.maxLeverage", &t.max_leverage, 1, 125);
+    m->contract.margin_tiers.push_back(t);
+  }
+}
+
+std::optional<ObjectiveCode> objective_code(const std::string& name) {
+  for (int v = 0; v <= static_cast<int>(ObjectiveCode::ReadCampaignReport); ++v) {
+    const auto code = static_cast<ObjectiveCode>(v);
+    if (name == json_name(code)) return code;
+  }
+  return std::nullopt;
+}
+
+// missionRules.objectives (v2): the pack's own objectives ({code, valueBp}), replacing the common three.
+void read_objectives(Fields& f, const JsonValue& rules, Manifest* m) {
+  const JsonValue* list = opt_array(f, rules, "objectives", "missionRules.objectives", kMaxManifestObjectives);
+  if (list == nullptr) return;
+  saw_v2(m, "missionRules.objectives");
+  std::vector<Objective> out;
+  for (const JsonValue& e : list->items) {
+    std::string name;
+    Objective o;
+    f.str(e, "code", "missionRules.objectives.code", &name);
+    const auto code = objective_code(name);
+    if (!f.failed() && !code) f.fail("invalid_field", "missionRules.objectives.code");
+    f.integer(e, "valueBp", "missionRules.objectives.valueBp", &o.value_bp, 0, 10'000);
+    if (f.failed() || !code) return;
+    o.code = *code;
+    out.push_back(o);
+  }
+  m->mission.objectives = std::move(out);
+}
+
+// The v2 mission limits (each optional; absent keeps the engine default).
+void read_limits(Fields& f, const JsonValue& rules, Manifest* m) {
+  MissionRules& mr = m->mission;
+  for (const std::string_view key : {"liqWarningBp", "drawdownBudgetBp", "confirmStopBeyondLiq"}) {
+    if (rules.find(key) != nullptr) saw_v2(m, "missionRules." + std::string(key));
+  }
+  f.opt_integer(rules, "liqWarningBp", "missionRules.liqWarningBp", &mr.liq_warning_bp, 0, 10'000);
+  f.opt_integer(rules, "drawdownBudgetBp", "missionRules.drawdownBudgetBp", &mr.drawdown_budget_bp, 1, 10'000);
+  if (rules.find("confirmStopBeyondLiq") != nullptr) {
+    f.boolean(rules, "confirmStopBeyondLiq", "missionRules.confirmStopBeyondLiq", &mr.confirm_stop_beyond_liq);
+  }
+}
+
 void read_models(Fields& f, const JsonValue& r, Manifest* m) {
   const JsonValue* cost = f.get(r, "costModel", "costModel", Kind::Object);
   if (cost != nullptr) {
@@ -167,6 +242,7 @@ void read_models(Fields& f, const JsonValue& r, Manifest* m) {
   const JsonValue* margin = f.get(r, "marginModel", "marginModel", Kind::Object);
   if (margin != nullptr) {
     f.dec(*margin, "maintenanceMargin", "marginModel.maintenanceMargin", &m->contract.maintenance_margin, 1, kRateOne - 1);
+    read_tiers(f, *margin, m);
   }
 }
 
@@ -181,6 +257,18 @@ void read_branch(Fields& f, const JsonValue& data, Manifest* m) {
   m->branch_step = step;
 }
 
+// data.markBars and data.subBars (v2): mark.bin and subbars.bin.
+void read_v2_data(Fields& f, const JsonValue& data, Manifest* m) {
+  if (data.find("markBars") != nullptr) {
+    saw_v2(m, "data.markBars");
+    f.boolean(data, "markBars", "data.markBars", &m->mark_bars);
+  }
+  if (data.find("subBars") != nullptr) {
+    saw_v2(m, "data.subBars");
+    f.integer(data, "subBars", "data.subBars", &m->sub_bars, 0, kMaxTableRows);
+  }
+}
+
 void read_mission(Fields& f, const JsonValue& r, Manifest* m) {
   const JsonValue* rules = f.get(r, "missionRules", "missionRules", Kind::Object);
   if (rules != nullptr) {
@@ -189,6 +277,8 @@ void read_mission(Fields& f, const JsonValue& r, Manifest* m) {
     f.integer(*rules, "leverageCap", "missionRules.leverageCap", &mr.leverage_cap, 1, 125);
     f.integer(*rules, "warmupBars", "missionRules.warmupBars", &mr.warmup_bars, 0, 100'000);
     f.boolean(*rules, "allowShort", "missionRules.allowShort", &mr.allow_short);
+    read_objectives(f, *rules, m);
+    read_limits(f, *rules, m);
   }
   const JsonValue* data = f.get(r, "data", "data", Kind::Object);
   if (data != nullptr) {
@@ -201,6 +291,7 @@ void read_mission(Fields& f, const JsonValue& r, Manifest* m) {
     f.opt_integer(*data, "liquidityShocks", "data.liquidityShocks", &m->liquidity_shocks, 0, kMaxTableRows);
     f.opt_integer(*data, "optionSeries", "data.optionSeries", &m->option_series, 0, kMaxTableRows);
     read_branch(f, *data, m);
+    read_v2_data(f, *data, m);
   }
 }
 
@@ -255,6 +346,7 @@ bool parse_manifest(const JsonValue& root, Manifest* out, ManifestError* err) {
   read_mission(f, root, &m);
   read_files(f, root, &m);
   read_rights(f, root, &m);
+  if (!f.failed() && m.schema_version < 2 && !m.first_v2_field.empty()) f.fail("invalid_field", m.first_v2_field);
   if (f.failed()) return false;
   *out = std::move(m);
   return true;

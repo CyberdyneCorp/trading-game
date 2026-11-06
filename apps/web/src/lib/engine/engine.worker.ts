@@ -5,6 +5,7 @@
 import type { TradelabModule } from './wasm/tradelab.mjs';
 import type { CsvBuildResult, EngineRequest, WorkerEnvelope, WorkerReply } from './protocol';
 import { revealAllowed } from './reveal';
+import { abiError, ENGINE_ABI, moduleAbi } from './abi';
 import { DEFAULT_RUN_OPTIONS } from './defaults';
 import { ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
 
@@ -57,7 +58,11 @@ async function load(): Promise<Api> {
 	if (api) return api;
 	if (!engineUrl) throw new Error('engine build not set');
 	const factory = ((await import(/* @vite-ignore */ engineUrl)) as { default: () => Promise<TradelabModule> }).default;
-	mod = await factory();
+	const loaded = await factory();
+	// A build with another C ABI is never driven (a pinned older build: its run cannot resume here).
+	const abi = moduleAbi(loaded);
+	if (abi !== ENGINE_ABI) throw abiError(abi);
+	mod = loaded;
 	const w = mod.cwrap.bind(mod);
 	api = {
 		version: w('tl_version', 'number', []),

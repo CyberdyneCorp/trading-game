@@ -14,7 +14,7 @@
 	const s = $derived(session.state!);
 	const L = $derived(i18n.locale);
 	const c = $derived(s.contract);
-	const txt = $derived(missionText(s.mission, L, session.runPackOrigin));
+	const txt = $derived(missionText(s.mission, L, session.runPackOrigin, session.runPackTexts));
 	// Engine MissionRules (task 4.1): objectives, instrument permissions and the mission's risk limits.
 	const rules = $derived(s.missionRules);
 	const PERMS = ['long', 'short', 'optionsBuy', 'optionsWrite'] as const;

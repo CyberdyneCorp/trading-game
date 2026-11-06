@@ -3,6 +3,7 @@
 	import type { GameState, OptionQuoteView } from '#lib/engine/types.ts';
 	import { fmtNum, fmtPct, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
+	import { lastPrice } from '#lib/game/lastPrice.ts';
 
 	let {
 		game,
@@ -12,7 +13,7 @@
 
 	const L = $derived(i18n.locale);
 	const expiries = $derived([...new Set(game.options.chain.map((q) => q.expiryStep))].sort((a, b) => a - b));
-	const mark = $derived(Number(game.account.mark));
+	const mark = $derived(lastPrice(game)); // the underlying options are priced on
 
 	function rows(expiry: number) {
 		const strikes = [...new Set(game.options.chain.filter((q) => q.expiryStep === expiry).map((q) => q.strike))].sort(

@@ -185,6 +185,43 @@ TEST_CASE("storage recorder: engine pinning - a run from another engine or polic
   CHECK(resumed->notice.kind == ResumeNoticeKind::PolicyChanged);
 }
 
+// Regression (engine C ABI, tl_abi_version): a run recorded under another ABI (here a fake old build's
+// 0) was replayed as if this build spoke it. It is refused with the web's engine.abiMismatch; a run
+// recorded before schema v5 (no ABI stored) is ABI 1 and resumes.
+TEST_CASE("storage recorder: a run recorded under another engine C ABI is refused, not replayed") {
+  TempDir dir;
+  const auto acts = script(4);
+  {
+    Storage storage(dir.path());
+    RunRecorder rec(storage);
+    auto run = rec.start(kM01, kSeed);
+    play(rec, *run, acts, 0, acts.size());
+    CHECK(storage.store().active_run()->record.engine_abi == current_engine_version().abi);
+  }
+  {
+    Storage storage(dir.path());
+    storage.store().db().exec("UPDATE runs SET engine_abi = 0");
+    RunRecorder rec(storage);
+    auto resumed = rec.resume();
+    REQUIRE(resumed);
+    CHECK_FALSE(resumed->run);
+    CHECK(resumed->notice.kind == ResumeNoticeKind::AbiChanged);
+    CHECK(resumed->notice.detail == current_engine_version().engine + "/0");
+    CHECK(resume_notice_name(resumed->notice.kind) == "abi_changed");
+    CHECK(resumed->notice.i18n_key() == "engine.abiMismatch");
+    // Regression: the refused run stayed active, so every launch offered a resume it could only
+    // refuse again. It is stored as left.
+    CHECK(storage.store().active_run()->record.status == "left");
+  }
+  Storage storage(dir.path());
+  storage.store().db().exec("UPDATE runs SET engine_abi = NULL, status = 'active'");
+  RunRecorder rec(storage);
+  auto resumed = rec.resume();
+  REQUIRE(resumed->run);
+  CHECK(resumed->notice.kind == ResumeNoticeKind::None);
+  CHECK(resumed->run->snapshot().digest == expected_digest(acts, acts.size()));
+}
+
 TEST_CASE("storage recorder: a recorded digest the replay does not reach is reported") {
   TempDir dir;
   {

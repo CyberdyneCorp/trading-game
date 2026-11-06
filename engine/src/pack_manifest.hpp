@@ -1,7 +1,8 @@
 #pragma once
 
-// Pack manifest schema v1 (spec scenario-packs "Pack manifest"). Field reference: engine/README.md
-// "Scenario packs". Decimals are strings of scaled integers; counts are JSON integers.
+// Pack manifest schema v1 and v2 (spec scenario-packs "Pack manifest"). Field reference: engine/README.md
+// "Scenario packs". v2 adds margin tiers, mission objectives and limits, mark-price bars and settlement
+// sub-bars; a v1 manifest that names any of them is refused (invalid_field on the first one). Decimals are strings of scaled integers; counts are JSON integers.
 
 #include <array>
 #include <cstdint>
@@ -59,6 +60,12 @@ struct Manifest {
   std::uint32_t liquidity_shocks = 0;  // rows of the liquidity table in events.bin
   std::uint32_t option_series = 0;     // rows of the series table in options.bin
   std::optional<std::uint32_t> branch_step;  // mode "branch": bars after it are synthetic
+  // Schema v2: contract.margin_tiers (marginModel.tiers) and the mission's objectives and limits are
+  // read into `contract` and `mission`; mark.bin holds one mark bar per bar when `mark_bars`, and
+  // subbars.bin `sub_bars` rows of settlement sub-bar closes.
+  bool mark_bars = false;
+  std::uint32_t sub_bars = 0;
+  std::string first_v2_field;  // dotted path of the first v2-only field present, empty when none
   std::vector<ManifestFile> files;
   std::string signing_key_id;
   ManifestLicense license;
@@ -69,6 +76,9 @@ struct ManifestError {
   std::string reason;  // missing_field | invalid_field
   std::string field;   // dotted path
 };
+
+constexpr std::size_t kMaxManifestTiers = 16;
+constexpr std::size_t kMaxManifestObjectives = 8;
 
 // Reads and checks every required field; the first problem wins.
 bool parse_manifest(const JsonValue& root, Manifest* out, ManifestError* err);

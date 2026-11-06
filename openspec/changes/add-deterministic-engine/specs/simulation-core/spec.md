@@ -86,6 +86,13 @@ The engine SHALL report its semantic version and an execution-policy version. A 
 - **WHEN** a checkpoint from another execution-policy version is loaded
 - **THEN** loading SHALL fail with `IncompatiblePolicy` (the C ABI restore returns no run) and no state SHALL be produced
 
+### Requirement: C ABI version
+The engine SHALL report the version of its C ABI (`tl_abi_version`), bumped whenever a change breaks a caller of an existing function. A client SHALL drive only engine builds whose ABI it speaks, treating a build without `tl_abi_version` as ABI 0, and SHALL refuse to resume a run on (or recorded under) another ABI with a message instead of calling into it.
+
+#### Scenario: Pinned build with another ABI
+- **WHEN** an unfinished run's pinned engine build reports an ABI the client does not speak
+- **THEN** the resume SHALL be refused with a message naming the build and both ABI versions, and the current engine SHALL stay loaded
+
 ### Requirement: Interface definition
 The enumerations shared by state, commands, events and the debrief, and every JSON shape the C ABI returns, SHALL be declared once in an IDL (`engine/idl/tradelab.idl`). The engine's C++ enumerations with their JSON names, and the TypeScript types of the web client, SHALL be generated from it, and CI SHALL fail when a generated file differs from what the IDL produces. The C ABI's output SHALL conform to the IDL: exactly the declared keys (optional ones may be absent), the declared value types, only declared enumeration names and decimal strings for fixed-point values.
 

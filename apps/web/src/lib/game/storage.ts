@@ -5,6 +5,7 @@
 // so anything the UI showed as accepted survives a crash or a closed tab. Resume replays the log
 // through the deterministic engine; the stored digest only verifies the replay.
 
+import type { PackText } from '#lib/engine/types.ts';
 import type { AssistedLink } from './assisted.ts';
 import type { CampaignLink, CampaignProgress, CampaignRun } from './campaign.ts';
 import type { PartialStore } from './download.ts';
@@ -90,6 +91,8 @@ export interface StoredPack {
 	origin?: PackOrigin;
 	/** The pack's market mode ('historical', 'synthetic', 'branch'); absent on packs stored before it was kept. */
 	mode?: string;
+	/** A schema-v2 pack's own mission texts (title and briefing per locale); absent without them. */
+	texts?: PackText[];
 }
 
 export interface StoredRun<A, J, Q> {

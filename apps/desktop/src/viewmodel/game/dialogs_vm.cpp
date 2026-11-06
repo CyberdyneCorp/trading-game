@@ -121,7 +121,7 @@ GameCommand PlanDialog::command(const PlanEntry& e) const {
 
 std::string CalibrationDialog::question(const Texts& t, const GameState& g) const {
   return t.tr("cal.question",
-              {{"h", std::to_string(g.calibration.horizon)}, {"price", fmt::fmt_num(g.account.mark, t.locale(), 2)}});
+              {{"h", std::to_string(g.calibration.horizon)}, {"price", fmt::fmt_num(g.last_price(), t.locale(), 2)}});
 }
 
 GameCommand CalibrationDialog::answer(std::optional<int> pct) {

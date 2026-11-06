@@ -6,8 +6,8 @@
 // missing_file, unlisted_file, unknown_file, unsupported_feature, manifest_too_large,
 // manifest_invalid, missing_field, invalid_field, unsupported_schema, untrusted_key,
 // bad_signature, incompatible_engine, too_many_bars, too_many_events, too_many_series,
-// size_mismatch, hash_mismatch, decompression_limit, malformed_data, invalid_scenario,
-// private_pack, license_incomplete.
+// too_many_sub_bars, size_mismatch, hash_mismatch, decompression_limit, mission_too_large,
+// malformed_data, invalid_scenario, private_pack, license_incomplete.
 
 #include <algorithm>
 #include <array>
@@ -15,6 +15,7 @@
 #include <optional>
 
 #include "json_in.hpp"
+#include "json_out.hpp"
 #include "pack_codec.hpp"
 #include "pack_manifest.hpp"
 #include "tradelab/engine.hpp"
@@ -30,13 +31,17 @@ using detail::TarEntry;
 
 constexpr std::string_view kManifestName = "manifest.json";
 constexpr std::string_view kSignatureName = "manifest.sig";
-constexpr std::array<std::string_view, 5> kDataFiles = {"bars.bin", "funding.bin", "events.bin", "options.bin", "reveal.json"};
-constexpr std::array<std::string_view, 2> kReservedFiles = {"mission.json", "i18n.json"};
+constexpr std::array<std::string_view, 8> kDataFiles = {"bars.bin",    "funding.bin", "events.bin",  "options.bin",
+                                                        "reveal.json", "mark.bin",    "subbars.bin", "mission.json"};
+constexpr std::array<std::string_view, 3> kV2Files = {"mark.bin", "subbars.bin", "mission.json"};  // schema v2 only
+constexpr std::array<std::string_view, 1> kReservedFiles = {"i18n.json"};
 constexpr std::size_t kColumnHeader = 16;
 constexpr std::uint32_t kBarColumns = 5;
 constexpr std::uint32_t kNewsColumns = 7;       // release_step, kind, tone, credibility, expectation, actual, announce_lead
 constexpr std::uint32_t kLiquidityColumns = 4;  // start, bars, spread_pct, capacity_pct
 constexpr std::uint32_t kSeriesColumns = 5;     // id, kind, strike, list_step, expiry_step
+constexpr std::uint32_t kMarkColumns = 4;       // open, high, low, close
+constexpr std::uint32_t kSubBarColumns = 3;     // bar, minutes, close
 
 // Inclusive range of each column of a table, so narrowing to the scenario's types never wraps;
 // semantic checks (steps inside the market, kinds, ids) are validate(Scenario)'s.
@@ -44,16 +49,46 @@ struct ColumnRange {
   std::int64_t lo;
   std::int64_t hi;
 };
+bool listed_in(std::string_view name, std::span<const std::string_view> names) {
+  return std::find(names.begin(), names.end(), name) != names.end();
+}
+
 constexpr std::int64_t kU32 = 0xFFFF'FFFF;
 constexpr std::int64_t kMaxRaw = std::numeric_limits<std::int64_t>::max();
 constexpr std::array<ColumnRange, kNewsColumns> kNewsRanges = {{{0, kU32}, {0, 255}, {-1, 1}, {0, 100}, {-2, 2}, {-2, 2}, {0, kU32}}};
 constexpr std::array<ColumnRange, kLiquidityColumns> kLiquidityRanges = {{{0, kU32}, {0, kU32}, {0, kU32}, {0, kU32}}};
 constexpr std::array<ColumnRange, kSeriesColumns> kSeriesRanges = {{{0, kU32}, {0, 1}, {1, kMaxRaw}, {0, kU32}, {0, kU32}}};
+constexpr std::array<ColumnRange, kSubBarColumns> kSubBarRanges = {{{0, kU32}, {1, std::int64_t{7} * 1440}, {1, kMaxRaw}}};
 constexpr std::int64_t kMaxIvRaw = std::int64_t{10} * Vol::kScale;  // 1,000% annualized
+constexpr std::array<std::string_view, 2> kTextLocales = {"pt-BR", "en"};
 
-bool listed_in(std::string_view name, std::span<const std::string_view> names) {
-  return std::find(names.begin(), names.end(), name) != names.end();
+std::string json_text(const JsonValue& obj, std::string_view key) {
+  const JsonValue* v = obj.find(key);
+  return v != nullptr && v->is(JsonValue::Kind::String) ? v->text : std::string();
 }
+
+// One mission.json entry: exactly locale, title and briefing, each a non-empty string within its limit.
+bool text_entry(const JsonValue& e, PackText* out) {
+  if (!e.is(JsonValue::Kind::Object) || e.members.size() != 3) return false;
+  *out = {json_text(e, "locale"), json_text(e, "title"), json_text(e, "briefing")};
+  const bool sized = !out->title.empty() && out->title.size() <= kPackTitleMax && !out->briefing.empty() &&
+                     out->briefing.size() <= kPackBriefingMax;
+  return sized && listed_in(out->locale, kTextLocales);
+}
+
+// mission.json: {"texts": [...]}, one entry for each supported locale (pt-BR and en), in any order.
+bool parse_texts(std::span<const std::uint8_t> bytes, std::vector<PackText>* out) {
+  const auto parsed = detail::parse_json({reinterpret_cast<const char*>(bytes.data()), bytes.size()}, {bytes.size() + 1, 4, 4096, 8});
+  if (!parsed.ok || !parsed.value.is(JsonValue::Kind::Object) || parsed.value.members.size() != 1) return false;
+  const JsonValue* texts = parsed.value.find("texts");
+  if (texts == nullptr || !texts->is(JsonValue::Kind::Array) || texts->items.size() != kTextLocales.size()) return false;
+  out->resize(texts->items.size());
+  for (std::size_t i = 0; i < out->size(); ++i) {
+    if (!text_entry(texts->items[i], &(*out)[i])) return false;
+  }
+  return (*out)[0].locale != (*out)[1].locale;
+}
+
 
 void put_u32(std::vector<std::uint8_t>& out, std::uint32_t v) {
   for (unsigned k = 0; k < 4; ++k) out.push_back(static_cast<std::uint8_t>(v >> (8U * k)));
@@ -195,7 +230,8 @@ class Opener {
   }
 
   bool compatible() {
-    if (m_.schema_version != kPackSchemaVersion) return fail("unsupported_schema");
+    if (m_.schema_version < kPackMinSchemaVersion || m_.schema_version > kPackSchemaVersion) return fail("unsupported_schema");
+    out_.info.schema_version = m_.schema_version;
     std::array<std::uint32_t, 3> lo{};
     std::array<std::uint32_t, 3> hi{};
     std::array<std::uint32_t, 3> self{};
@@ -208,6 +244,7 @@ class Opener {
 
   bool file_ok(const detail::ManifestFile& f) {
     if (listed_in(f.name, kReservedFiles)) return fail("unsupported_feature", f.name);
+    if (m_.schema_version < 2 && listed_in(f.name, kV2Files)) return fail("unsupported_feature", f.name);
     if (!listed_in(f.name, kDataFiles)) return fail("unknown_file", f.name);
     const TarEntry* e = entry(f.name);
     if (e == nullptr) return fail("missing_file", f.name);
@@ -350,6 +387,53 @@ class Opener {
     return ok || fail("malformed_data", "options.bin");
   }
 
+  // mark.bin (v2): one mark bar per bar, present exactly when data.markBars says so.
+  bool mark() {
+    const bool present = entry("mark.bin") != nullptr;
+    if (!m_.mark_bars) return !present || fail("invalid_field", "data.markBars");
+    if (!present) return fail("missing_file", "mark.bin");
+    std::vector<std::uint8_t> raw;
+    std::vector<std::int64_t> c;
+    if (!inflate("mark.bin", &raw)) return false;
+    if (!decode_columns(raw, "TLM1", m_.bars, kMarkColumns, &c)) return fail("malformed_data", "mark.bin");
+    if (std::any_of(c.begin(), c.end(), [](std::int64_t v) { return v <= 0; })) return fail("malformed_data", "mark.bin");
+    const std::size_t n = m_.bars;
+    mark_.resize(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      mark_[i] = Bar{Price::from_raw(c[i]), Price::from_raw(c[n + i]), Price::from_raw(c[2 * n + i]), Price::from_raw(c[3 * n + i]), Qty{}};
+    }
+    return true;
+  }
+
+  // subbars.bin (v2): sub-bar closes; consecutive rows of the same bar and spacing form one window.
+  bool sub_bars() {
+    const bool present = entry("subbars.bin") != nullptr;
+    if (m_.sub_bars == 0) return !present || fail("invalid_field", "data.subBars");
+    if (!present) return fail("missing_file", "subbars.bin");
+    std::vector<std::uint8_t> raw;
+    std::vector<std::int64_t> c;
+    if (!inflate("subbars.bin", &raw)) return false;
+    const std::size_t n = m_.sub_bars;
+    if (!decode_columns(raw, "TLS1", m_.sub_bars, kSubBarColumns, &c) || !in_ranges(c, n, kSubBarRanges)) {
+      return fail("malformed_data", "subbars.bin");
+    }
+    for (std::size_t i = 0; i < n; ++i) {
+      const auto bar = static_cast<std::uint32_t>(c[i]);
+      const auto minutes = static_cast<std::uint32_t>(c[n + i]);
+      if (sub_bars_.empty() || sub_bars_.back().bar != bar || sub_bars_.back().minutes != minutes) sub_bars_.push_back({bar, minutes, {}});
+      sub_bars_.back().closes.push_back(Price::from_raw(c[2 * n + i]));
+    }
+    return true;
+  }
+
+  // mission.json (v2): the pack's mission texts, stored as is (not compressed) within its own limit.
+  bool texts() {
+    const TarEntry* e = entry("mission.json");
+    if (e == nullptr) return true;
+    if (e->data.size() > lim_.max_mission_bytes) return fail("mission_too_large");
+    return parse_texts(e->data, &out_.info.texts) || fail("malformed_data", "mission.json");
+  }
+
   bool reveal() {
     const TarEntry* e = entry("reveal.json");
     if (e == nullptr) return true;
@@ -381,7 +465,8 @@ class Opener {
     if (m_.bars > lim_.max_bars) return fail("too_many_bars");
     if (m_.events > lim_.max_events || m_.liquidity_shocks > lim_.max_events) return fail("too_many_events");
     if (m_.option_series > lim_.max_option_series) return fail("too_many_series");
-    return bars() && funding() && events() && options() && reveal() && label_bars();
+    if (m_.sub_bars > lim_.max_sub_bars) return fail("too_many_sub_bars");
+    return bars() && funding() && events() && options() && mark() && sub_bars() && texts() && reveal() && label_bars();
   }
 
   bool scenario() {
@@ -395,6 +480,8 @@ class Opener {
     sc.funding_rate = std::move(funding_);
     sc.news = std::move(news_);
     sc.liquidity = std::move(liquidity_);
+    sc.mark = std::move(mark_);
+    sc.sub_bars = std::move(sub_bars_);
     if (m_.has_options) {
       sc.options = m_.options;
       sc.options.series = std::move(series_);
@@ -438,6 +525,8 @@ class Opener {
   std::vector<LiquidityShock> liquidity_;
   std::vector<OptionSeries> series_;
   std::vector<Vol> iv_;
+  std::vector<Bar> mark_;
+  std::vector<SubBars> sub_bars_;
 };
 
 }  // namespace
@@ -489,6 +578,38 @@ std::vector<std::uint8_t> encode_options(const OptionSpec& options) {
   const std::span<const Vol> iv = options.iv_base;
   put_table(out, "TLI1", static_cast<std::uint32_t>(iv.size()), {column(iv, [](const Vol& v) { return v.raw; })});
   return out;
+}
+
+std::vector<std::uint8_t> encode_mark(std::span<const Bar> mark) {
+  std::vector<std::uint8_t> out;
+  put_table(out, "TLM1", static_cast<std::uint32_t>(mark.size()),
+            {column(mark, [](const Bar& b) { return b.open.raw; }), column(mark, [](const Bar& b) { return b.high.raw; }),
+             column(mark, [](const Bar& b) { return b.low.raw; }), column(mark, [](const Bar& b) { return b.close.raw; })});
+  return out;
+}
+
+std::vector<std::uint8_t> encode_sub_bars(std::span<const SubBars> sub_bars) {
+  std::vector<std::int64_t> bar;
+  std::vector<std::int64_t> minutes;
+  std::vector<std::int64_t> close;
+  for (const SubBars& x : sub_bars) {
+    for (const Price p : x.closes) {
+      bar.push_back(x.bar);
+      minutes.push_back(x.minutes);
+      close.push_back(p.raw);
+    }
+  }
+  std::vector<std::uint8_t> out;
+  put_table(out, "TLS1", static_cast<std::uint32_t>(close.size()), {bar, minutes, close});
+  return out;
+}
+
+std::string encode_texts(std::span<const PackText> texts) {
+  detail::JsonOut j;
+  j.begin_obj().key("texts").begin_arr();
+  for (const PackText& t : texts) j.begin_obj().field("locale", t.locale).field("title", t.title).field("briefing", t.briefing).end_obj();
+  j.end_arr().end_obj();
+  return j.text();
 }
 
 PackOpen open_pack(std::span<const std::uint8_t> bytes, std::span<const TrustedKey> trusted, PackIntent intent,

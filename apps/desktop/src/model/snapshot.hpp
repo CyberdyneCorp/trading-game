@@ -14,6 +14,13 @@
 
 namespace tradelab::desktop {
 
+// One locale's entry of a pack's mission texts (tl_pack_validate "pack.texts").
+struct PackText {
+  std::string locale;  // "pt-BR" or "en"
+  std::string title;
+  std::string briefing;
+};
+
 struct MissionInfo {
   std::string id;
   int total_bars = 0;
@@ -129,6 +136,9 @@ struct Snapshot {
   // "policy_changed", "digest_mismatch", "pack_missing", "damaged"; "" = none) and detail.
   std::string resume_notice;
   std::string resume_detail;
+  // A schema-v2 pack's own mission texts (mission.json, checked by the engine; one per locale), shown
+  // in place of the generic pack texts. Empty for missions and packs without them.
+  std::vector<PackText> pack_texts;
   bool durable = true;  // false once a storage write failed: play goes on but may not resume
 
   [[nodiscard]] bool active() const { return status == "active"; }

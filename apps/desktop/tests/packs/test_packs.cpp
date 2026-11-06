@@ -8,6 +8,7 @@
 #include "model/packs/catalog.hpp"
 #include "model/packs/files.hpp"
 #include "model/packs/pack_library.hpp"
+#include "model/storage/run_recorder.hpp"
 #include "model/storage/storage.hpp"
 #include "support/storage_fixtures.hpp"
 
@@ -27,6 +28,7 @@ std::vector<std::uint8_t> sample_pack(const std::string& digest) {
 }
 
 constexpr const char* kSampleA = "ec9140b18db6c1997d9ebefa494be5d040fc91052236045d2a6336d2263602ee";
+constexpr const char* kSampleC = "3090a1aae3e3416923ad8dafa72f0c21bbad9f5d3558116356a8f9f37fed82c7";
 
 std::string read_text(const std::filesystem::path& p) {
   const auto bytes = read_file(p);
@@ -52,6 +54,34 @@ TEST_CASE("packs: a catalog pack signed by the pinned publisher key installs ato
   CHECK(s.store().pack(kSampleA)->size == static_cast<std::int64_t>(bytes.size()));
   CHECK(s.packs().bytes(kSampleA) == bytes);
   CHECK(s.packs().missing().empty());
+}
+
+// Market C of the web catalog is a schema-v2 pack: its own mission texts and objectives, and a
+// liquidity shock in its story. The loader reports the texts and every run on it carries them.
+TEST_CASE("packs: a schema-v2 catalog pack installs with its mission texts and its runs carry them") {
+  TempDir dir;
+  storage::Storage s(dir.path());
+  const auto bytes = sample_pack(kSampleC);
+  const PackCheck check = s.packs().install(bytes, "Mercado C", "catalog");
+  REQUIRE(check.ok);
+  REQUIRE(check.texts.size() == 2);
+  CHECK(check.texts[0].locale == "pt-BR");
+  CHECK(check.texts[0].title == "Treino · choque de liquidez");
+  CHECK(check.texts[1].title == "Practice · liquidity shock");
+  storage::RunRecorder rec(s);
+  {
+    auto run = rec.start_pack(kSampleC, 9);
+    REQUIRE(run);
+    const Snapshot snap = run->snapshot();
+    REQUIRE(snap.pack_texts.size() == 2);
+    CHECK(snap.pack_texts[1].briefing.starts_with("A market maker is about to leave the book."));
+    CHECK(snap.state["contract"]["liquidityShocks"].as_bool(false));
+    CHECK(snap.state["missionRules"]["objectives"].items().size() == 3);
+  }
+  auto resumed = rec.resume();
+  REQUIRE(resumed);
+  REQUIRE(resumed->run);
+  CHECK(resumed->run->snapshot().pack_texts.size() == 2);
 }
 
 TEST_CASE("packs: tampered, truncated and oversized packs are refused with the engine's reason") {
@@ -142,7 +172,7 @@ TEST_CASE("packs catalog: the web's static catalog parses with URLs resolved aga
   const std::string text = read_text(web_catalog_dir() / "catalog.json");
   const auto c = parse_catalog(text, "https://tradelab.example/catalog/catalog.json");
   REQUIRE(c);
-  REQUIRE(c->entries.size() == 2);
+  REQUIRE(c->entries.size() == 3);
   const CatalogEntry& a = c->entries[0];
   CHECK(a.id == "sample-a-1h");
   CHECK(a.url == "https://tradelab.example/catalog/packs/" + std::string(kSampleA) + ".tlpack");

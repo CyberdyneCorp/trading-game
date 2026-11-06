@@ -135,6 +135,7 @@ Snapshot EngineRun::snapshot() const {
   const json::Value state = parse_or_null(tl_state(run_));
   Snapshot s = snapshot_from_state(state);
   s.seed = seed_;
+  s.pack_texts = pack_texts_;
   auto game = std::make_shared<GameState>(game_state_from_json(state));
   game->lesson = lesson_;
   s.game = std::move(game);

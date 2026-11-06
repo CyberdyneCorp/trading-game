@@ -101,7 +101,21 @@ PackCheck PackLibrary::install(std::span<const std::uint8_t> bytes, const std::s
   } catch (const storage::Error& e) {
     return refused("storage_failed", e.what());
   }
-  return PackCheck{true, "none", {}, entry};
+  return PackCheck{true, "none", {}, entry, pack_texts_from_summary(check["pack"])};
+}
+
+std::vector<PackText> pack_texts_from_summary(const json::Value& pack) {
+  std::vector<PackText> out;
+  for (const json::Value& t : pack["texts"].items()) {
+    out.push_back({t["locale"].as_string(), t["title"].as_string(), t["briefing"].as_string()});
+  }
+  return out;
+}
+
+std::vector<PackText> PackLibrary::texts(std::span<const std::uint8_t> bytes) {
+  const std::string keys = trusted_keys_json();
+  const json::Value check = parse_or_null(tl_pack_validate(bytes.data(), static_cast<uint32_t>(bytes.size()), keys.c_str(), 0));
+  return check["ok"].as_bool(false) ? pack_texts_from_summary(check["pack"]) : std::vector<PackText>{};
 }
 
 std::optional<std::vector<std::uint8_t>> PackLibrary::bytes(const std::string& digest) {
