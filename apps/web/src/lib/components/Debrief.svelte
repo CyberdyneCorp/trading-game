@@ -255,7 +255,7 @@
 					{#each grouped.combos as c (c.status.record.id)}
 						<tr class="combo" data-testid="debrief-combo">
 							<td colspan="4">
-								◆ {t('combo.label', { name: t(`strategy.${c.status.record.strategy}`), n: c.status.record.legs.length })} ·
+								◆ {tCount('combo.label', c.status.record.legs.length, { name: t(`strategy.${c.status.record.strategy}`) })} ·
 								<span class:attention={c.status.state === 'incomplete'}>{t(`combo.state.${c.status.state}`)}</span> ·
 								{t('combo.premium', { amount: fmtMoney(netPremium(c.status, num(s.options.multiplier)), L, true) })}
 							</td>

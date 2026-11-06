@@ -21,7 +21,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { Analysis } from '#lib/engine/protocol.ts';
 	import { fmtMoney, fmtNum, fmtPrice, parseDecimal } from '#lib/game/format.ts';
-	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import { nextComboId } from '#lib/game/combos.ts';
 	import { rejectionText } from '#lib/game/rejections.ts';
@@ -160,7 +160,7 @@
 		onSubmit({
 			orders,
 			tag: { combo: nextComboId(session.combos), strategy },
-			label: t('combo.label', { name, n: orders.length }),
+			label: tCount('combo.label', orders.length, { name }),
 			risk: risk(),
 			unbounded: whatif?.ok === true && whatif.value.expiry != null && whatif.value.expiry.maxLoss == null
 		});

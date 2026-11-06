@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// Strategy missions m13-m17 (add-academy-and-strategies W10): each one played to its debrief. The legs
-// of every structure are placed one by one through the single-leg option ticket, so these tests do not
-// depend on the strategy builder. What the seed drew appears only in the debrief.
+// Strategy missions m13-m17 (add-academy-and-strategies W10): each one played to its debrief, first with
+// the legs placed one by one through the single-leg option ticket, then m13, m14 and m16 again through
+// the strategy builder. What the seed drew appears only in the debrief.
 
 const INDEX = { m13: 12, m14: 13, m15: 14, m16: 15, m17: 16 } as const;
 
@@ -141,4 +141,72 @@ test('m17 expiry: a written put rolled before its last bars into the next expiry
 	await expect(page.getByText(/GESTÃO ANTES DO VENCIMENTO/)).toBeVisible();
 	await expect(page.getByTestId('debrief-regimes')).toBeVisible();
 	await expect(page.getByTestId('debrief-releases')).toHaveCount(0);
+});
+
+// The same missions with the strategy builder (the terminal's "Estratégias" tab): the template's legs,
+// the engine's analysis, one plan for the combo and the debrief's grouped row.
+
+async function submitTemplate(page: Page, id: string, thesis: string) {
+	await page.getByTestId('tab-builder').click();
+	await page.getByTestId(`template-${id}`).click();
+	await expect(page.getByTestId('builder-preview')).toBeVisible();
+	await expect(page.getByTestId('builder-refused')).toHaveCount(0);
+	await page.getByTestId('builder-submit').click();
+	await page.locator('textarea').first().fill(thesis);
+	await page.getByRole('button', { name: /Registrar plano/ }).click();
+	await expect(page.getByText(/pernas? enviadas/)).toBeVisible();
+}
+
+test('m13 through the builder: a bull call spread is defined risk, so the debrief credits the process and never calls it naked', async ({ page }) => {
+	await startMission(page, 1313, INDEX.m13, /Missão 13 · Trava/, 'spread');
+	await page.getByTestId('tab-builder').click();
+	await page.getByTestId('template-bull_call').click();
+	await expect(page.getByTestId('builder-margin')).toHaveText('0,00 cr'); // a debit spread needs no margin under the spread rule
+	await expect(page.getByTestId('builder-max-loss')).not.toHaveText(/ilimitada/);
+	await submitTemplate(page, 'bull_call', 'Alta modesta depois da manchete');
+	await advance(page);
+	await expect(page.getByText(/OPÇÕES EM CARTEIRA/i)).toBeVisible();
+	await expect(page.getByTestId('combo-incomplete')).toHaveCount(0);
+	await playToEnd(page);
+
+	await expect(page.getByTestId('debrief-combo')).toContainText(/Trava de alta com calls · 2 pernas · completo/);
+	await expect(page.getByTestId('debrief-combo-r')).toHaveText(/^[+-]\d+,\d{2}R$/);
+	await expect(page.getByText(/vendeu opções a descoberto/)).toHaveCount(0); // scoring v13: the short call is covered
+	await expect(page.getByText(/processo bom/).first()).toBeVisible();
+});
+
+test('m14 through the builder: the covered call writes against the held long, all of it, as one leg', async ({ page }) => {
+	await startMission(page, 1414, INDEX.m14, /Missão 14 · Renda/, 'covered');
+	await buyPerpWithPlan(page, 'Long com venda coberta');
+	await advance(page);
+	await page.getByTestId('tab-builder').click();
+	await page.getByTestId('template-covered_call').click();
+	await expect(page.getByTestId('builder-use-long')).toBeChecked();
+	const label = await page.getByText(/Usar minha posição comprada \(\d+,\d\)/).innerText();
+	await expect(page.getByTestId('builder-qty')).toHaveValue(label.match(/\((\d+,\d)\)/)![1]);
+	await expect(page.getByTestId('builder-preview').locator('li')).toHaveCount(1); // only the call: the long is already held
+	await submitTemplate(page, 'covered_call', 'Renda sobre o long');
+	await advance(page);
+	await playToEnd(page);
+	await expect(page.getByTestId('debrief-combo')).toContainText(/Venda coberta de call · 1 perna · completo/);
+	await expect(page.getByText(/vendeu opções a descoberto/)).toHaveCount(0);
+});
+
+test('m16 through the builder: an iron condor fills complete; a short strangle warns that its loss has no ceiling', async ({ page }) => {
+	await startMission(page, 1616, INDEX.m16, /Missão 16 · Prêmio/, 'condor');
+	await page.getByTestId('tab-builder').click();
+	await page.getByTestId('builder-short').check();
+	await page.getByTestId('template-strangle').click();
+	await expect(page.getByTestId('builder-max-loss')).toHaveText(/ilimitada acima de \d+,\d{2}/);
+	await page.getByTestId('builder-submit').click();
+	await expect(page.getByTestId('plan-risk-unbounded')).toBeVisible(); // the planned risk shown is only the margin
+	await page.getByRole('button', { name: /^Voltar$/ }).click();
+	await page.getByTestId('builder-short').uncheck();
+	await submitTemplate(page, 'iron_condor', 'Range até o vencimento');
+	await advance(page);
+	await expect(page.getByTestId('combo-incomplete')).toHaveCount(0);
+	await playToEnd(page);
+	await expect(page.getByTestId('debrief-combo')).toContainText(/Iron condor · 4 pernas · completo/);
+	await expect(page.getByText(/vendeu opções a descoberto/)).toHaveCount(0);
+	await expect(page.getByTestId('release-row')).toContainText(/Rumor regulatório · sem aviso/);
 });

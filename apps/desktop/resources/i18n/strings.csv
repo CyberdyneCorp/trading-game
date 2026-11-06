@@ -1083,6 +1083,7 @@ strategy.short_straddle,Straddle vendido,Short straddle
 strategy.short_strangle,Strangle vendido,Short strangle
 strategy.custom,Pernas livres,Free legs
 combo.label,{name} · {n} pernas,{name} · {n} legs
+combo.labelOne,{name} · 1 perna,{name} · 1 leg
 combo.sent,✓ {name}: pernas enviadas (executam na próxima abertura),✓ {name}: legs sent (they execute at the next open)
 combo.refused,Perna {n} recusada: {reason}. As pernas já aceitas foram canceladas; nada do combo vai executar.,Leg {n} refused: {reason}. The legs already accepted were cancelled; nothing of the combo will execute.
 combo.long,compra,long
