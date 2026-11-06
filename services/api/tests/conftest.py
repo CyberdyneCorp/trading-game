@@ -14,12 +14,13 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 from jwt.algorithms import RSAAlgorithm
 
-from tradelab_api.adapters.engine_replayer import ACTION_KINDS, EngineReplayer
+from tradelab_api.adapters.engine_replayer import ACTION_KINDS, EngineCsvValidator, EngineReplayer
 from tradelab_api.adapters.oidc import OidcVerifier
 from tradelab_api.config import Settings
 from tradelab_api.http.app import create_app
 
 ISSUER = "https://auth.test.local"
+WEBHOOK_SECRET = "whsec_" + "dGVzdC13ZWJob29rLXNlY3JldC0zMi1ieXRlcy0hISE="  # base64 of a 32-byte test key
 DISCOVERY = f"{ISSUER}/.well-known/openid-configuration"
 
 
@@ -64,14 +65,21 @@ def idp() -> FakeIdP:
     return FakeIdP()
 
 
-def build_client(idp: FakeIdP, **settings: Any) -> TestClient:
-    http = httpx.Client(transport=httpx.MockTransport(idp.handler))
-    verifier = OidcVerifier(DISCOVERY, "tradelab-api", client=http)
-    # TRADELAB_TEST_DATABASE_URL runs the same suite against PostgreSQL (CI does); default: SQLite.
+def database_url_for_tests() -> str:
+    """TRADELAB_TEST_DATABASE_URL runs the same suite against PostgreSQL (CI does); default: SQLite.
+    A PostgreSQL database is emptied first."""
     url = os.environ.get("TRADELAB_TEST_DATABASE_URL", "sqlite+pysqlite:///:memory:")
     if not url.startswith("sqlite"):
         _reset(url)
-    app = create_app(Settings(database_url=url, **settings), verifier, EngineReplayer(), ACTION_KINDS)
+    return url
+
+
+def build_client(idp: FakeIdP, *, app_options: dict[str, Any] | None = None, **settings: Any) -> TestClient:
+    http = httpx.Client(transport=httpx.MockTransport(idp.handler))
+    verifier = OidcVerifier(DISCOVERY, "tradelab-api", client=http)
+    settings.setdefault("webhook_secret", WEBHOOK_SECRET)
+    app = create_app(Settings(database_url=database_url_for_tests(), **settings), verifier, EngineReplayer(), ACTION_KINDS,
+                     csv_validator=EngineCsvValidator(), **(app_options or {}))
     return TestClient(app)
 
 
@@ -86,10 +94,14 @@ def client_with(idp: FakeIdP) -> Callable[..., TestClient]:
 
 
 def _reset(url: str) -> None:
+    from sqlalchemy import text
+
     from tradelab_api.adapters.db import Base, make_engine
 
     engine = make_engine(url)
     Base.metadata.drop_all(engine)
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
     engine.dispose()
 
 

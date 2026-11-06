@@ -73,3 +73,14 @@ class MissionProgress:
 class Player:
     sub: str
     runs: list[Run] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ErasureEntry:
+    """One erasure in the audit log: whose (SHA-256 of the `sub`), why, how much, when."""
+
+    subject_sha256: str
+    source: str  # "player" (DELETE /me/data) | "webhook" (CyberdyneAuth user.deleted)
+    reference: str | None  # the webhook id for upstream deletions
+    deleted_runs: int
+    erased_at: datetime

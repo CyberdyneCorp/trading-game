@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, Protocol
 
-from .domain.models import Action, Run
+from .domain.models import Action, ErasureEntry, Run
 
 
 class RunRepository(Protocol):
@@ -27,6 +27,18 @@ class Replayer(Protocol):
     def supported_policy(self) -> int: ...
     def replay(self, mission_id: str, seed: int, actions: Sequence[Action],
                options: Mapping[str, Any] | None = None) -> dict[str, Any]: ...
+
+
+class ErasureLog(Protocol):
+    def record(self, entry: ErasureEntry) -> None: ...
+
+
+class WebhookReceipts(Protocol):
+    def claim(self, webhook_id: str, event_type: str, at: Any) -> bool: ...
+
+
+class CsvValidator(Protocol):
+    def validate(self, csv: str, meta: Mapping[str, Any]) -> dict[str, Any]: ...
 
 
 class TokenVerifier(Protocol):

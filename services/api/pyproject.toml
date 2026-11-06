@@ -12,10 +12,15 @@ dependencies = [
     "httpx>=0.27",
     "pydantic-settings>=2.4",
     "tradelab-engine",
+    "alembic>=1.13",
 ]
 
 [dependency-groups]
-dev = ["pytest>=8", "cryptography>=43"]
+dev = [
+    "pytest>=8",
+    "cryptography>=43",
+    "jsonschema>=4.23",
+]
 
 [tool.uv.sources]
 tradelab-engine = { path = "../../bindings/python", editable = true }

@@ -10,9 +10,10 @@ from typing import Any
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, create_engine, delete, select
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
-from ..domain.models import Action, Run
+from ..domain.models import Action, ErasureEntry, Run
 
 
 class Base(DeclarativeBase):
@@ -53,6 +54,27 @@ class IdempotencyRow(Base):
     response: Mapped[str] = mapped_column(Text)
 
 
+class WebhookReceiptRow(Base):
+    """One row per processed CyberdyneAuth webhook (`webhook-id`): retries and replays are no-ops."""
+
+    __tablename__ = "webhook_receipts"
+    webhook_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(64))
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ErasureLogRow(Base):
+    """Audit trail of erasures. Holds the SHA-256 of the erased `sub`, never the `sub` itself."""
+
+    __tablename__ = "erasure_log"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject_sha256: Mapped[str] = mapped_column(String(64), index=True)
+    source: Mapped[str] = mapped_column(String(16))  # "player" (DELETE /me/data) | "webhook"
+    reference: Mapped[str | None] = mapped_column(String(128), nullable=True)  # webhook-id
+    deleted_runs: Mapped[int] = mapped_column(Integer)
+    erased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 _FIELDS = (
     "run_id", "owner", "mission_id", "seed", "execution_policy", "device_id", "created_at", "actions", "status",
     "server_digest", "client_digest", "digest_mismatch", "score_total", "report", "options",
@@ -71,9 +93,7 @@ def make_engine(url: str) -> Engine:
             from sqlalchemy.pool import StaticPool
 
             kwargs["poolclass"] = StaticPool
-    engine = create_engine(url, **kwargs)
-    Base.metadata.create_all(engine)
-    return engine
+    return create_engine(url, **kwargs)  # the schema comes from the Alembic migrations
 
 
 class SqlRunRepository:
@@ -131,6 +151,37 @@ class SqlIdempotencyStore:
     def put(self, owner: str, key: str, request_hash: str, response: Any) -> None:
         self._s.add(IdempotencyRow(owner=owner, key=key, request_hash=request_hash, response=json.dumps(response)))
         self._s.flush()
+
+
+class SqlWebhookReceipts:
+    def __init__(self, session: Session) -> None:
+        self._s = session
+
+    def claim(self, webhook_id: str, event_type: str, at: datetime) -> bool:
+        """Records the receipt; False when this webhook id was already processed."""
+        if self._s.get(WebhookReceiptRow, webhook_id) is not None:
+            return False
+        try:
+            with self._s.begin_nested():
+                self._s.add(WebhookReceiptRow(webhook_id=webhook_id, event_type=event_type, received_at=at))
+        except IntegrityError:
+            return False  # a concurrent delivery of the same event won the race
+        return True
+
+
+class SqlErasureLog:
+    def __init__(self, session: Session) -> None:
+        self._s = session
+
+    def record(self, entry: ErasureEntry) -> None:
+        self._s.add(ErasureLogRow(subject_sha256=entry.subject_sha256, source=entry.source,
+                                  reference=entry.reference, deleted_runs=entry.deleted_runs,
+                                  erased_at=entry.erased_at))
+        self._s.flush()
+
+    def entries(self) -> list[ErasureEntry]:
+        rows = self._s.scalars(select(ErasureLogRow).order_by(ErasureLogRow.id))
+        return [ErasureEntry(r.subject_sha256, r.source, r.reference, r.deleted_runs, r.erased_at) for r in rows]
 
 
 def request_hash(body: bytes) -> str:

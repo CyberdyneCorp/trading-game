@@ -33,6 +33,16 @@ jobs:
         run: |
           cmake --preset native-release -DTRADELAB_BUILD_TESTS=OFF
           cmake --build --preset native-release --target tradelab_capi
+      - name: Migrations apply and match the models (alembic check on a fresh PostgreSQL)
+        working-directory: services/api
+        env:
+          TRADELAB_DATABASE_URL: postgresql+psycopg://postgres:pw@localhost:5432/tradelab
+        run: |
+          uv run --python 3.12 alembic upgrade head
+          uv run --python 3.12 alembic check
+      - name: OpenAPI snapshot is current
+        working-directory: services/api
+        run: uv run --python 3.12 python -m tradelab_api.openapi_snapshot | diff -u openapi.json -
       - name: Tests (SQLite)
         working-directory: services/api
         run: uv run --python 3.12 pytest -q

@@ -1,4 +1,5 @@
-"""Use cases: sync runs (idempotent, server-side replay), list runs, progress, export, erase.
+"""Use cases: sync runs (idempotent, server-side replay), list runs, progress, export (erasure lives in
+`erasure.py`).
 
 The server never trusts client balances or scores: every sync replays the full action log through
 the same deterministic engine and stores its own digest, status and score (spec game-api).
@@ -143,9 +144,6 @@ class GameService:
         for run in self.runs(owner):
             runs.append({**_run_view(run), "actions": [a for _, a in self._runs.actions(run.run_id)], "report": run.report})
         return {"player": owner, "runs": runs}
-
-    def erase(self, owner: str) -> int:
-        return self._runs.delete_owner(owner)
 
 
 def _run_view(run: Run) -> dict[str, Any]:

@@ -22,3 +22,9 @@ class UnsupportedPolicy(DomainError):
 
 class InvalidLog(DomainError):
     code = "invalid_log"
+
+
+class TooLarge(DomainError):
+    """An upload above its configured size limit (413)."""
+
+    code = "too_large"

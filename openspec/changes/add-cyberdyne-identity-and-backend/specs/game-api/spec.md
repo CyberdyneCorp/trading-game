@@ -18,7 +18,7 @@ The API SHALL expose under `/api/v1`: `GET /health`, `GET /missions`, `POST /syn
 - **THEN** the API SHALL respond 200 with the engine's execution-policy version or the mission list
 
 ### Requirement: Idempotent mutations
-Every mutating request SHALL carry an `Idempotency-Key` header, scoped to the calling player; a missing key SHALL return 400. Repeating a request with the same key and an identical body SHALL return the stored original response without side effects; reusing a key with a different body SHALL return 409.
+Every mutating player request (sync batches, data deletion) SHALL carry an `Idempotency-Key` header, scoped to the calling player; a missing key SHALL return 400. The CyberdyneAuth webhook SHALL be deduplicated on its `webhook-id` instead, and CSV validation changes no state. Repeating a request with the same key and an identical body SHALL return the stored original response without side effects; reusing a key with a different body SHALL return 409.
 
 #### Scenario: Retried sync batch
 - **WHEN** `POST /sync/batches` is retried with the same idempotency key and body
@@ -78,6 +78,14 @@ The API SHALL enforce a request size limit (`TRADELAB_MAX_BODY_BYTES`, default 4
 #### Scenario: Oversized body
 - **WHEN** a request declares a `Content-Length` above the configured limit
 - **THEN** the API SHALL respond 413 without reading it
+
+#### Scenario: Rate-limited player
+- **WHEN** an authenticated player exceeds the configured per-player request rate
+- **THEN** the API SHALL respond 429 with a `Retry-After` header, keyed by the verified `sub`, without affecting other players
+
+#### Scenario: Private CSV validation
+- **WHEN** a player posts a CSV and its import metadata to `POST /scenario-imports/validate`
+- **THEN** the API SHALL return the engine's import report with the same reason codes the clients show, and SHALL store nothing
 
 ### Requirement: Privacy-minimal telemetry
 The API SHALL record only the telemetry events defined in the product spec, SHALL NOT store real-portfolio data, and SHALL treat private imports as private to their owner.

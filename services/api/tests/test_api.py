@@ -67,6 +67,29 @@ def test_sync_replays_on_the_server_and_scores_it(client, auth):
     assert out["scoreTotal"] == expected.debrief["score"]["total"]  # server score, never the client's
 
 
+def test_client_sent_score_and_balance_are_ignored(client, auth):
+    # Spec game-api "Server re-simulation": client-reported balances or scores are never accepted.
+    expected = te.replay("m01-false-breakout", 5, LOG)
+    forged = run_body(scoreTotal=999_999, score={"total": 999_999}, balance="1000000000.00", equity="1e12",
+                      netPnl="999999.00", status="finished", serverDigest="f" * 64, report={"score": {"total": 1}},
+                      digestMismatch=False)
+    res = client.post("/api/v1/sync/batches", headers=auth(key="forged"),
+                      json={"deviceId": "ipad-1", "runs": [forged], "scoreTotal": 999_999, "balance": "1e9"})
+    assert res.status_code == 200
+    out = res.json()[0]
+    assert out["scoreTotal"] == expected.debrief["score"]["total"]
+    assert out["serverDigest"] == expected.digest
+    detail = client.get("/api/v1/runs/run-0001-abcd", headers=auth()).json()
+    assert detail["scoreTotal"] == expected.debrief["score"]["total"]
+    assert detail["report"] == expected.debrief
+    assert detail["serverDigest"] == expected.digest
+    progress = client.get("/api/v1/progress", headers=auth()).json()[0]
+    assert progress["bestScore"] == expected.debrief["score"]["total"]
+    assert progress["bestNetPnl"] == expected.debrief["netPnl"]
+    export = client.get("/api/v1/me/export", headers=auth()).json()
+    assert "999999" not in str(export) and "1000000000" not in str(export)
+
+
 def test_digest_mismatch_is_flagged_and_server_result_kept(client, auth):
     body = run_body(clientDigest="0" * 64, clientActionCount=len(LOG))
     out = sync(client, auth, [body]).json()[0]
