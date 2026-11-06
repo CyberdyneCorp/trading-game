@@ -23,6 +23,10 @@ include(Dependencies)
 include(EmbedResources)
 
 set(TRADELAB_DESKTOP_WARNINGS -Wall -Wextra -Wpedantic -Wshadow)
+# The web helpers' ports must compute what JavaScript computes: no fused multiply-add (Clang contracts
+# `a * b - c` by default on arm64, which turned a web "no liquidation" into 6e-15). Parity fixtures
+# (tests/fixtures/web) catch any difference.
+set(TRADELAB_DESKTOP_FLOAT_FLAGS -ffp-contract=off)
 
 # Resources embedded in the binary (views, generated catalogs).
 set(TRADELAB_DESKTOP_RESOURCES
@@ -31,6 +35,7 @@ set(TRADELAB_DESKTOP_RESOURCES
 # Shell screens, retro look and the web's screen data (README "Retro look").
 list(APPEND TRADELAB_DESKTOP_RESOURCES
   views/curriculum.xml views/journal.xml views/lesson.xml views/settings.xml
+  views/tutorial.xml views/catalog.xml views/import.xml
   theme/tradelab.theme.xml theme/tradelab-cb.theme.xml
   fonts/VT323-Regular.ttf fonts/IBMPlexMono-Regular.ttf shaders/crt.spv
   web/content.json)
@@ -43,8 +48,10 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/chart_scale.cpp
   src/viewmodel/game/chart_vm.cpp
   src/viewmodel/game/dialogs_vm.cpp
+  src/viewmodel/game/dock_layout.cpp
   src/viewmodel/game/game_keys.cpp
   src/viewmodel/game/game_viewmodel.cpp
+  src/viewmodel/game/hotkeys.cpp
   src/viewmodel/game/options_math.cpp
   src/viewmodel/game/options_vm.cpp
   src/viewmodel/game/panels_vm.cpp
@@ -72,11 +79,12 @@ add_library(tradelab_desktop_model STATIC
   src/model/i18n.cpp
   src/model/json.cpp
   src/model/content.cpp
+  src/model/progress_json.cpp
   ${CMAKE_BINARY_DIR}/generated/resources.cpp)
 target_include_directories(tradelab_desktop_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 find_package(Threads REQUIRED)
 target_link_libraries(tradelab_desktop_model PUBLIC tradelab::engine Threads::Threads)
-target_compile_options(tradelab_desktop_model PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
+target_compile_options(tradelab_desktop_model PRIVATE ${TRADELAB_DESKTOP_WARNINGS} ${TRADELAB_DESKTOP_FLOAT_FLAGS})
 
 # ---- Storage and packs (src/model/storage, src/model/packs), part of the model layer. ----
 # Vendored SQLite (third_party/README.md): its own warnings off, no floating-point flags.
@@ -94,6 +102,7 @@ target_sources(tradelab_desktop_model PRIVATE
   src/model/storage/fault.cpp
   src/model/storage/json_writer.cpp
   src/model/storage/paths.cpp
+  src/model/storage/profile_store.cpp
   src/model/storage/progress.cpp
   src/model/storage/run_recorder.cpp
   src/model/storage/run_store.cpp
@@ -104,6 +113,7 @@ target_sources(tradelab_desktop_model PRIVATE
   src/model/packs/files.cpp
   src/model/packs/http_curl.cpp
   src/model/packs/pack_library.cpp
+  src/model/packs/pack_service.cpp
   src/model/update/manifest.cpp
   src/model/update/updater.cpp
   src/model/update/update_service.cpp)
@@ -112,7 +122,10 @@ target_link_libraries(tradelab_desktop_model PRIVATE tradelab_sqlite ${CMAKE_DL_
 
 add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/app_viewmodel.cpp
+  src/viewmodel/assisted.cpp
   src/viewmodel/chart_geometry.cpp
+  src/viewmodel/pack_screens.cpp
+  src/viewmodel/packs.cpp
   src/viewmodel/format.cpp
   src/viewmodel/screen_texts.cpp
   src/viewmodel/vulkan_message.cpp
@@ -132,14 +145,31 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/screens/journal.cpp
   src/viewmodel/screens/lesson.cpp
   src/viewmodel/screens/settings.cpp
+  src/viewmodel/screens/tutorial.cpp
+  src/viewmodel/screens/catalog.cpp
+  src/viewmodel/screens/import.cpp
+  src/viewmodel/screens/assist.cpp
   src/viewmodel/updates.cpp
+  src/viewmodel/audio/audio_director.cpp
+  src/viewmodel/audio/audio_rules.cpp
   ${TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES})
 target_link_libraries(tradelab_desktop_viewmodel PUBLIC tradelab_desktop_model)
-target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
+target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS} ${TRADELAB_DESKTOP_FLOAT_FLAGS})
 
-add_library(tradelab_desktop_platform STATIC src/platform/platform.cpp)
+# Vendored miniaudio (third_party/README.md): playback of the web's soundtrack. Its own warnings off.
+add_library(tradelab_miniaudio STATIC third_party/miniaudio/miniaudio.c)
+target_include_directories(tradelab_miniaudio SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/miniaudio)
+target_compile_options(tradelab_miniaudio PRIVATE -w)
+target_link_libraries(tradelab_miniaudio PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_link_libraries(tradelab_miniaudio PUBLIC m)
+endif()
+
+add_library(tradelab_desktop_platform STATIC src/platform/platform.cpp src/platform/audio_out.cpp)
 target_include_directories(tradelab_desktop_platform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_options(tradelab_desktop_platform PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
+# Platform services: the soundtrack's player implements the viewmodel's AudioOut interface.
+target_link_libraries(tradelab_desktop_platform PUBLIC tradelab_desktop_viewmodel PRIVATE tradelab_miniaudio)
 if(APPLE)
   find_library(TRADELAB_COREFOUNDATION CoreFoundation REQUIRED)
   target_link_libraries(tradelab_desktop_platform PUBLIC ${TRADELAB_COREFOUNDATION})
@@ -152,10 +182,11 @@ add_library(tradelab_desktop_view STATIC
   src/view/chart_painter.cpp
   src/view/screens/retro_look.cpp
   src/view/screens/shell_view.cpp
+  src/view/screens/shell_view_flows.cpp
   src/view/raven/raven_ui.cpp
   ${TRADELAB_DESKTOP_GAME_VIEW_SOURCES})
 target_link_libraries(tradelab_desktop_view PUBLIC tradelab_desktop_viewmodel tradelab_desktop_platform raven::raven)
-target_compile_options(tradelab_desktop_view PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
+target_compile_options(tradelab_desktop_view PRIVATE ${TRADELAB_DESKTOP_WARNINGS} ${TRADELAB_DESKTOP_FLOAT_FLAGS})
 
 # Updates (src/model/update): the release public key (64 hex) is set by the release build only; without it
 # the app never checks. The key's custody and the signing of manifests are human tasks (tasks.md 1.21).
@@ -163,10 +194,17 @@ set(TRADELAB_UPDATE_PUBLIC_KEY "" CACHE STRING "Ed25519 public key (hex) that si
 set(TRADELAB_UPDATE_MANIFEST_URL
   "https://github.com/CyberdyneCorp/trading-game/releases/latest/download/desktop-manifest.json"
   CACHE STRING "Signed desktop update manifest")
+# Pack catalog (web catalog.ts manifest): the web's static catalog in this public repository by default;
+# $TRADELAB_CATALOG_URL overrides it at run time (tests use a loopback server).
+set(TRADELAB_CATALOG_URL
+  "https://raw.githubusercontent.com/CyberdyneCorp/trading-game/main/apps/web/static/catalog/catalog.json"
+  CACHE STRING "Pack catalog manifest (schema 1)")
 target_compile_definitions(tradelab_desktop_view PRIVATE
+  TRADELAB_CATALOG_URL="${TRADELAB_CATALOG_URL}"
   TRADELAB_UPDATE_PUBLIC_KEY="${TRADELAB_UPDATE_PUBLIC_KEY}"
   TRADELAB_UPDATE_MANIFEST_URL="${TRADELAB_UPDATE_MANIFEST_URL}"
-  TRADELAB_DESKTOP_VERSION="${PROJECT_VERSION}")
+  TRADELAB_DESKTOP_VERSION="${PROJECT_VERSION}"
+  TRADELAB_AUDIO_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../web/static/audio")
 
 add_executable(tradelab_desktop src/main.cpp)
 target_link_libraries(tradelab_desktop PRIVATE tradelab_desktop_view)

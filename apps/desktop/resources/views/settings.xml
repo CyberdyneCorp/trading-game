@@ -1,4 +1,4 @@
-<!-- Settings (web menu settings + ShortcutSettings.svelte; desktop: CRT effects, text scale). -->
+<!-- Settings (web menu settings incl. sound + ShortcutSettings.svelte; desktop: CRT effects, text scale). -->
 <ScrollBox Name="settings-scroll">
 <Border Background="#0B1010" Padding="16">
     <VBox Spacing="10">
@@ -25,6 +25,15 @@
                     <Slider Name="settings-text-scale" Min="1" Max="2" Step="0.25" Value="1" Width="240"/>
                 </HBox>
                 <Checkbox Name="settings-palette" Style="Switch"/>
+                <Checkbox Name="settings-sound" Style="Switch"/>
+                <HBox Spacing="8">
+                    <Label Name="settings-music-label" Width="220" Slot.VAlign="Center"/>
+                    <Slider Name="settings-music" Min="0" Max="1" Step="0.05" Value="0.35" Width="240"/>
+                </HBox>
+                <HBox Spacing="8">
+                    <Label Name="settings-sfx-label" Width="220" Slot.VAlign="Center"/>
+                    <Slider Name="settings-sfx" Min="0" Max="1" Step="0.05" Value="0.7" Width="240"/>
+                </HBox>
             </VBox>
         </Border>
         <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">

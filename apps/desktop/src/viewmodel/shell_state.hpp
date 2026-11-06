@@ -44,8 +44,18 @@ struct ShellState {
   std::string run_id;
   std::string run_mission;
   std::optional<CampaignLink> run_campaign;
+  std::optional<AssistedLink> run_assisted;  // an assisted practice attempt: never counts for progress
+  std::string run_pack;                      // digest of the pack it plays ("" = built-in mission)
   bool run_settled = false;
   int run_counter = 0;
+  // A start or rewind on its way to the engine: the links and journal of the attempt it makes.
+  std::optional<AssistedLink> pending_assisted;
+  std::string pending_pack;
+  std::vector<PlanEntry> pending_journal;
+  bool rewind_pending = false;
+
+  int tutorial_index = 0;
+  std::string assist_turn = "1";
 
   bool confirming_end = false;  // campaign: the second, explicit click
   int journal_filter = 0;       // 0 = every mission, else journal_missions()[i - 1]

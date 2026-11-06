@@ -3,6 +3,7 @@
 // Disabled text is exempt (WCAG 1.4.3 "inactive components").
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <map>
 #include <regex>

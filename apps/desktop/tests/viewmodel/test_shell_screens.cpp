@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "model/engine_run.hpp"
+#include "support/shell_helpers.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -60,6 +61,7 @@ struct Fixture {
   Fixture() {
     std::int64_t t = 1'700'000'000'000;
     vm.set_clock([t]() mutable { return t += 1000; });
+    testing::tutorials_seen(vm);  // the tutorial screen has its own tests
   }
   // Menu -> briefing -> terminal of `run`.
   void enter(RealRun& run) {
@@ -347,7 +349,7 @@ TEST_CASE("shell: journal lists the plans of the runs, newest first, with a miss
   CHECK(m.lines_of(names::kJournalRuns)->lines[0].text.starts_with("Missão 01 · Range"));
 }
 
-TEST_CASE("shell: settings toggle CRT effects, palette, text scale, language and remap shortcuts") {
+TEST_CASE("shell: settings toggle CRT effects, palette, text scale, sound, language and remap shortcuts") {
   Fixture f;
   MemorySettingsRepository repo;
   f.vm.attach_repositories(nullptr, &repo);
@@ -386,6 +388,18 @@ TEST_CASE("shell: settings toggle CRT effects, palette, text scale, language and
   f.vm.reset_keys();
   CHECK(f.vm.shell().keymap.at("buy") == "b");
   CHECK(f.vm.game().keymap().key(game::Action::Buy) == "b");
+
+  // Sound (the web menu's block): on/off and the two volumes, shared with the terminal's mute key.
+  m = f.vm.screen_model();
+  CHECK(m.text_of(names::kSettingsSound) == "Som (música e efeitos)");
+  CHECK(m.text_of(names::kSettingsMusicLabel) == "Música 35%");
+  f.vm.set_sound_on(false);
+  f.vm.set_music_volume(0.6);
+  f.vm.set_sfx_volume(2);
+  CHECK(f.vm.game().muted());
+  m = f.vm.screen_model();
+  CHECK(m.text_of(names::kSettingsMusicLabel) == "Música 60%");
+  CHECK(m.text_of(names::kSettingsSfxLabel) == "Efeitos 100%");
 
   f.vm.set_locale(Locale::En);
   CHECK(repo.load()->locale == Locale::En);

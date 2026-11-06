@@ -57,6 +57,8 @@ class GameView {
   void add_chain_row(Rid box, const game::ChainRow& r);
   void add_lesson(Rid box, const game::Texts& t, const game::LessonQuestionView& q);
 
+  void bind_dock();
+  void apply_dock();
   void apply_labels();
   void apply_top(const game::Texts& t, const GameState& g);
   void apply_chart(const game::Texts& t, const GameState& g);
@@ -79,6 +81,7 @@ class GameView {
   void set_chips(std::string_view field, const std::vector<game::LevelChip>& chips);
   void clear_rows(Rid box, std::vector<Rid>& rows);
 
+  static void on_dock_changed(Rid area, void* self);
   static void on_chart_paint(Rid widget, RPainter* painter, float width, float height, void* self);
   static void on_payoff_paint(Rid widget, RPainter* painter, float width, float height, void* self);
   static int on_chart_event(Rid widget, const REvent* e, void* self);

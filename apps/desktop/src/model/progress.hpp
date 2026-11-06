@@ -3,8 +3,8 @@
 // the rules that change them are ported in viewmodel/ (campaign, curriculum, journal, keymap).
 //
 // Repositories: the interfaces below are what viewmodels read and write. The in-memory ones keep
-// the data for the session; the SQLite-backed ones of task 1.9 (meta store) replace them without
-// touching the viewmodels.
+// the data for the session (tests, or no saved-data folder); the app uses the SQLite-backed ones
+// (model/storage/profile_store.hpp).
 #pragma once
 
 #include <cstdint>
@@ -61,6 +61,15 @@ struct CampaignLink {
   std::string id;
   int index = 0;
   bool operator==(const CampaignLink&) const = default;
+};
+
+// How an assisted practice attempt was made (web assisted.ts AssistedLink): rewound to a decision of
+// the run `from`, or the same mission on another market ("seed").
+struct AssistedLink {
+  std::string from;
+  std::string kind = "rewind";  // rewind | seed
+  std::optional<int> step;      // rewind: the decision step the attempt resumes at
+  bool operator==(const AssistedLink&) const = default;
 };
 
 // ---- Runs and their journal (analysis.ts PlanEntry, storage.ts RunRecord) ----

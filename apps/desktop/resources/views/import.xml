@@ -1,0 +1,70 @@
+<!-- CSV import wizard (web CsvImport.svelte): file -> declared metadata -> the engine's report -> a
+     private practice pack. Texts, items and flags from screens::csv_import(). -->
+<ScrollBox Name="csv-scroll">
+<Border Background="#0B1010" Padding="16">
+    <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="16" MaxWidth="900" Slot.HAlign="Center">
+        <VBox Spacing="8">
+            <Label Name="csv-title" TextSize="37.5" Class="title" AccessibleRole="Heading"/>
+            <Label Name="csv-intro" Wrap="true"/>
+            <Label Name="csv-privacy" Wrap="true" Class="muted"/>
+            <Label Name="csv-file-label"/>
+            <HBox Spacing="8">
+                <TextInput Name="csv-path" Slot.Fill="1"/>
+                <Button Name="csv-open" OnClicked="tl.csv.open"/>
+            </HBox>
+            <Label Name="csv-file-name" Class="muted"/>
+            <VBox Name="csv-meta" Spacing="6">
+                <UniformGrid Columns="2" Spacing="8">
+                    <VBox Spacing="2">
+                        <Label Name="csv-asset-label"/>
+                        <TextInput Name="csv-asset"/>
+                    </VBox>
+                    <VBox Spacing="2">
+                        <Label Name="csv-pair-label"/>
+                        <TextInput Name="csv-pair"/>
+                    </VBox>
+                    <VBox Spacing="2">
+                        <Label Name="csv-venue-label"/>
+                        <TextInput Name="csv-venue"/>
+                    </VBox>
+                    <VBox Spacing="2">
+                        <Label Name="csv-interval-label"/>
+                        <ComboBox Name="csv-interval"/>
+                    </VBox>
+                    <VBox Spacing="2">
+                        <Label Name="csv-unit-label"/>
+                        <ComboBox Name="csv-unit"/>
+                    </VBox>
+                    <VBox Spacing="2">
+                        <Label Name="csv-volume-label"/>
+                        <ComboBox Name="csv-volume"/>
+                    </VBox>
+                    <VBox Spacing="2">
+                        <Label Name="csv-leverage-label"/>
+                        <TextInput Name="csv-leverage"/>
+                    </VBox>
+                    <VBox Spacing="2">
+                        <Label Name="csv-label-label" Wrap="true"/>
+                        <TextInput Name="csv-label"/>
+                    </VBox>
+                </UniformGrid>
+            </VBox>
+            <VBox Name="csv-report" Spacing="2"/>
+            <VBox Name="csv-gap-row" Spacing="4">
+                <Label Name="csv-gap-label"/>
+                <ComboBox Name="csv-gap-fill"/>
+                <Label Name="csv-gap-hint" Wrap="true" Class="muted"/>
+            </VBox>
+            <Label Name="csv-error" Wrap="true" Class="down"/>
+            <Label Name="csv-working" Class="muted"/>
+            <HBox Spacing="8">
+                <Button Name="csv-cancel" OnClicked="tl.csv.cancel"/>
+                <Button Name="csv-back" OnClicked="tl.csv.back"/>
+                <Spacer Slot.Fill="1"/>
+                <Button Name="csv-validate" Style="Primary" OnClicked="tl.csv.validate"/>
+                <Button Name="csv-create" Style="Primary" OnClicked="tl.csv.create"/>
+            </HBox>
+        </VBox>
+    </Border>
+</Border>
+</ScrollBox>

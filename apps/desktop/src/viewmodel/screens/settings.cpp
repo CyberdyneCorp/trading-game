@@ -32,6 +32,18 @@ void crt(const AppViewModel& vm, ScreenModel& m) {
   m.text(names::kSettingsCrtNote, vm.tr("desktop.crt.reducedMotion"));
 }
 
+// The web menu's sound block: on/off, music and effects volumes (stored with the terminal's prefs).
+void sound(const AppViewModel& vm, ScreenModel& m) {
+  const AudioPrefs& a = vm.game().prefs().audio;
+  m.text(names::kSettingsSound, vm.tr("sound.on"));
+  m.check(names::kSettingsSound, !a.muted);
+  const auto pct = [&](double v) { return fmt::fmt_num(std::round(v * 100.0), vm.locale(), 0) + "%"; };
+  m.text(names::kSettingsMusicLabel, vm.tr("sound.music") + " " + pct(a.music));
+  m.text(names::kSettingsSfxLabel, vm.tr("sound.effects") + " " + pct(a.sfx));
+  m.name(names::kSettingsMusic, vm.tr("sound.music"));
+  m.name(names::kSettingsSfx, vm.tr("sound.effects"));
+}
+
 void keys(const AppViewModel& vm, ScreenModel& m) {
   const ShellState& s = vm.shell();
   m.text(names::kSettingsKeysTitle, vm.tr("keys.title"));
@@ -68,6 +80,7 @@ ScreenModel settings(const AppViewModel& vm) {
   m.name(names::kSettingsTextScale, vm.tr("desktop.textScale", {{"pct", ""}}));
   m.text(names::kSettingsPalette, vm.tr("settings.palette"));
   m.check(names::kSettingsPalette, s.colorblind);
+  sound(vm, m);
   keys(vm, m);
   m.text(names::kSettingsAbout, vm.tr("desktop.about.fonts"));
   return m;

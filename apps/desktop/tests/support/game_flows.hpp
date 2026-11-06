@@ -6,14 +6,18 @@
 #include <doctest/doctest.h>
 
 #include <raven/raven_widget.h>
+#include <raven/raven_window.h>
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
+#include <optional>
 #include <string>
 
 #include "support/driver.hpp"
 #include "view/app.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/game_widgets.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -37,7 +41,7 @@ class Terminal {
     app_.vm().select(index);
     d_.frames(2);
     REQUIRE(d_.click(names::kMenuStart));
-    REQUIRE(d_.until([&] { return app_.vm().screen() == Screen::Briefing; }));
+    REQUIRE(d_.to_briefing());
     REQUIRE(d_.click(names::kBriefGo));
     REQUIRE(app_.vm().screen() == Screen::Game);
     d_.frames(3);
@@ -84,6 +88,79 @@ class Terminal {
     return true;
   }
 
+  // Drags a level of the chart to `price`, aimed as a player aims: at the line as it is drawn now. The
+  // chart lays out again under the pointer: hovering shows the bar readout and grabbing focuses the chart,
+  // which shows the focused candle's text under it; in a 1024-wide window those texts wrap and the chart
+  // gets shorter (16 px when grabbed). So the line is read after the hover and the target after the press,
+  // from the frame drawn with the drag's frozen price range. A level under kAimPx from its target first
+  // gets a taller chart (enlarge_chart): in the hosted macOS runners' 1024x645 window the price pane is
+  // a few pixels tall and no drag there can land on a chosen price.
+  bool drag_level_to(const std::function<bool(const game::DragZone&)>& which, double price) {
+    float x = 0;
+    auto line = hover_level(which, x);
+    if (line && std::abs(chart_y(price) - *line) < kAimPx) {
+      enlarge_chart();
+      line = hover_level(which, x);
+    }
+    if (!line) return false;
+    const Rid window = d_.window();
+    Rwindow_inject_mouse_button(window, R_MOUSE_LEFT, R_TRUE);
+    d_.settle(d_.widget(names::kGameChart));
+    REQUIRE_MESSAGE(vm().chart.dragging(), "the press at y " << *line << " did not grab the level");
+    const float to = chart_y(price);
+    REQUIRE_MESSAGE(std::abs(to - *line) >= kAimPx, "the chart is too short to aim the drag: " << std::abs(to - *line) << " px");
+    aim_price_per_pixel_ = price_per_pixel();
+    for (int i = 1; i <= 6; ++i) {
+      Rwindow_inject_mouse_move(window, x + 60, *line + (to - *line) * static_cast<float>(i) / 6);
+      d_.frames(1);
+    }
+    Rwindow_inject_mouse_button(window, R_MOUSE_LEFT, R_FALSE);
+    d_.frames(2);
+    return true;
+  }
+
+  // The price of one pixel when the last drag_level_to was aimed (the scale fits the levels again after
+  // the drop).
+  [[nodiscard]] double aim_price_per_pixel() const { return aim_price_per_pixel_; }
+
+  // The pointer rests on a level's line, followed when the layout moves it; its window y once the chart
+  // settled (none without the level).
+  std::optional<float> hover_level(const std::function<bool(const game::DragZone&)>& which, float& x) {
+    auto line = level_y(which, x);
+    for (int i = 0; i < 3 && line; ++i) {
+      Rwindow_inject_mouse_move(d_.window(), x + 60, *line);
+      d_.settle(d_.widget(names::kGameChart));
+      const auto now = level_y(which, x);
+      if (now == line) break;
+      line = now;
+    }
+    return line;
+  }
+
+  // The bottom row of panels (ticket, book, feed) made shorter, as a player drags the splitter under
+  // the chart: the docked layout for the dock's size with a 120 px bottom row.
+  void enlarge_chart() {
+    float x = 0, y = 0, w = 0, h = 0;
+    Rwidget_get_rect(d_.widget(gn::kDock), &x, &y, &w, &h);
+    game::DockMetrics m;
+    m.bottom = 120;
+    vm().set_layout(game::default_layout(w, h, m));
+    d_.settle(d_.widget(names::kGameChart));
+  }
+
+  // Window y of a level's line in the last frame (and the chart's left edge in `x`); none without it.
+  std::optional<float> level_y(const std::function<bool(const game::DragZone&)>& which, float& x) {
+    const auto& zones = vm().chart.frame().zones;
+    const auto z = std::find_if(zones.begin(), zones.end(), which);
+    if (z == zones.end()) return std::nullopt;
+    float y = 0, w = 0, h = 0;
+    Rwidget_get_rect(d_.widget(names::kGameChart), &x, &y, &w, &h);
+    return y + z->line_y;
+  }
+
+  // Price covered by one pixel of the chart's price pane.
+  double price_per_pixel() { return std::abs(vm().chart.price_at(1) - vm().chart.price_at(0)); }
+
   float chart_y(double price) {
     float x = 0, y = 0, w = 0, h = 0;
     Rwidget_get_rect(d_.widget(names::kGameChart), &x, &y, &w, &h);
@@ -91,9 +168,12 @@ class Terminal {
   }
 
  private:
+  static constexpr float kAimPx = 12;  // the least distance a drag is aimed over
+
   App& app_;
   Driver& d_;
   Capture capture_;
+  double aim_price_per_pixel_ = 0;
 };
 
 inline bool has_event(const GameState& g, std::string_view type) {
@@ -125,14 +205,20 @@ inline void flow_place_move_cancel(App& app, Driver& d, Terminal& t) {
   const Order* stop = find_order(t.g(), "stop_market");
   REQUIRE(stop != nullptr);
   const double before = stop->price;
+  const double last = t.g().last_price();
   const int stop_id = stop->id;
   d.frames(2);
-  REQUIRE(t.drag_level([&](const game::DragZone& z) { return !z.target.draft && z.target.order_id == stop_id; }, -12));
+  // Halfway to the market: still on the losing side of the long, at any chart height.
+  const double target = before + (last - before) / 2;
+  REQUIRE(t.drag_level_to([&](const game::DragZone& z) { return !z.target.draft && z.target.order_id == stop_id; }, target));
   REQUIRE(d.idle());
   const Order* moved = find_order(t.g(), "stop_market");
   REQUIRE(moved != nullptr);
   CHECK(moved->id == stop_id);
   CHECK(moved->price > before);
+  CHECK(moved->price < last);
+  // Where it was dropped: within two pixels of the chart's scale (and the tick rounding).
+  CHECK(std::abs(moved->price - target) <= 2 * t.aim_price_per_pixel() + t.g().contract.tick);
   CHECK(d.text(names::kGameNotice).find(std::to_string(stop_id)) != std::string::npos);
   t.shot("11-stop-moved");
 
