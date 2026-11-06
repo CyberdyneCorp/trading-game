@@ -98,6 +98,14 @@ void EngineHost::rewind(int to_step, const RunLinks& links) {
   enqueue(std::move(c));
 }
 
+void EngineHost::analyze(AnalysisKind kind, const std::string& request, AnalysisReply reply) {
+  Command c;
+  c.analysis = kind;
+  c.qty = request;
+  c.reply = std::move(reply);
+  enqueue(std::move(c));
+}
+
 void EngineHost::post_storage_job(StorageJob job) {
   // Not a run command: execute() runs the job instead.
   Command c;
@@ -143,6 +151,7 @@ void EngineHost::execute(const Command& c) {
     if (storage_) c.job(*storage_);
     return;
   }
+  if (c.reply) return run_analysis(c);
   switch (c.kind) {
     case CommandKind::Start: run_start(c); break;
     case CommandKind::Advance: run_advance(c.steps); break;
@@ -190,9 +199,17 @@ storage::ApplyResult EngineHost::perform(const storage::Action& a) {
   return recorder_ ? recorder_->perform(*run_, a) : storage::apply_action(*run_, a);
 }
 
-void EngineHost::stamp(Snapshot& s) const {
+void EngineHost::stamp(Snapshot& s) {
   if (recorder_) s.run_id = recorder_->run_id();
   s.assisted = current_.assisted;
+  // One copy per change of the log (a command, an advance batch), shared by the snapshots after it.
+  const auto& log = current_.log;
+  const bool same = shared_log_ && shared_log_->size() == log.size() && (log.empty() || shared_log_->back() == log.back()) &&
+                    (log.empty() || shared_log_->front() == log.front());
+  if (!same) {
+    shared_log_ = std::make_shared<const std::vector<std::string>>(current_.log);
+  }
+  s.log = shared_log_;
 }
 
 void EngineHost::run_start(const Command& c) {
@@ -324,6 +341,22 @@ void EngineHost::run_rewind(const Command& c) {
   settle(s);
   s.results.push_back(CommandResult{CommandKind::Rewind, true, "none"});
   publish(std::move(s));
+}
+
+// Report-only: nothing is logged or published. The answer goes to the UI thread like a snapshot, and is
+// dropped when the host is gone by then.
+void EngineHost::run_analysis(const Command& c) {
+  std::string out = R"({"error":"no_run"})";
+  if (c.analysis == AnalysisKind::WhatIf) out = EngineRun::option_whatif(c.qty);
+  else if (run_ && c.analysis == AnalysisKind::RunWhatIf) out = run_->run_whatif(c.qty);
+  else if (run_) out = run_->combo_preview(c.qty);
+  post_([box = mailbox_, reply = c.reply, text = std::move(out)] {
+    {
+      std::lock_guard lock(box->mu);
+      if (box->closed) return;
+    }
+    reply(text);
+  });
 }
 
 bool EngineHost::delivery_pending() const {

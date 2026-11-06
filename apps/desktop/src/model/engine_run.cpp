@@ -131,6 +131,16 @@ CommandResult EngineRun::place_market(Side side, const std::string& qty) {
   return CommandResult{CommandKind::Market, r["accepted"].as_bool(false), r["reason"].as_string("invalid")};
 }
 
+std::string EngineRun::option_whatif(const std::string& request_json) { return tl_option_whatif(request_json.c_str()); }
+
+std::string EngineRun::run_whatif(const std::string& request_json) const {
+  return tl_run_option_whatif(run_, request_json.c_str());
+}
+
+std::string EngineRun::combo_preview(const std::string& legs_json) const {
+  return tl_combo_preview(run_, legs_json.c_str());
+}
+
 Snapshot EngineRun::snapshot() const {
   const json::Value state = parse_or_null(tl_state(run_));
   Snapshot s = snapshot_from_state(state);

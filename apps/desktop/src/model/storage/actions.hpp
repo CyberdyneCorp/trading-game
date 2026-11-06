@@ -8,6 +8,8 @@
 //   {"k":"plan","side","skipped","option","lose","inv","target","conf","risk"}  {"k":"ans","pBp","skipped"}
 //   {"k":"lesson","q","choice","value","skipped"}  {"k":"cancel","id"}  {"k":"move","id","price"}
 //   {"k":"close"}  {"k":"advice"}
+// Strategy-builder legs (orders, option orders, the cancels of a withdrawn combo) add "combo" and
+// "strategy" as the web does; replay ignores them, so a tagged log reaches the untagged log's digest.
 #pragma once
 
 #include <cstdint>

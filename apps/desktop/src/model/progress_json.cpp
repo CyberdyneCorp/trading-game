@@ -158,6 +158,7 @@ std::string journal(const std::vector<PlanEntry>& entries) {
     w.field("skipped", e.skipped);
     if (!e.lose_scenario.empty()) w.field("loseScenario", e.lose_scenario);
     if (!e.instrument.empty()) w.field("instrument", e.instrument);
+    if (!e.combo.empty()) w.field("combo", e.combo);
     w.end_object();
   }
   return w.end_array().text();
@@ -178,6 +179,7 @@ std::vector<PlanEntry> journal_from(const json::Value& v) {
     p.skipped = e["skipped"].as_bool(false);
     p.lose_scenario = e["loseScenario"].as_string();
     p.instrument = e["instrument"].as_string();
+    p.combo = e["combo"].as_string();
     out.push_back(std::move(p));
   }
   return out;
