@@ -8,6 +8,7 @@
 
 #include <raven/raven_widget.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>

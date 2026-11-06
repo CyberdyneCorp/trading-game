@@ -3,6 +3,7 @@
 // compared with a 1e-9 relative tolerance, texts and flags exactly; JSON null is "none" (or NaN).
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <functional>

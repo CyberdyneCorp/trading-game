@@ -4,6 +4,7 @@
 // verified and installed; CSV validation and import.
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstddef>
 #include <functional>
