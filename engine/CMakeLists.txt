@@ -178,6 +178,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_mission_realism.cpp
     tests/test_mission_learnability.cpp
     tests/test_mission_learnability_b.cpp
+    tests/test_mission_learnability_c.cpp
     tests/test_options.cpp
     tests/test_spread_margin.cpp
     tests/test_whatif.cpp

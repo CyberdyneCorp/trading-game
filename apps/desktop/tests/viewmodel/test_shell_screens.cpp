@@ -92,16 +92,16 @@ TEST_CASE("shell: menu lists the missions, the campaign and no resume line at st
   Fixture f;
   const ScreenModel m = f.vm.screen_model();
   REQUIRE(m.items.size() == 1);
-  CHECK(m.items[0].items.size() == 12);
+  CHECK(m.items[0].items.size() == 17);
   CHECK(m.items[0].items[0] == "Missão 01 · Range");
   CHECK_FALSE(m.is_visible(names::kMenuResumeRow));
   CHECK(m.text_of(names::kCampaignStart) == "▶ Começar campanha");
   CHECK(m.text_of(names::kMenuCurriculum) == "▦ Currículo e progresso");
   const WidgetLines* steps = m.lines_of(names::kCampaignSteps);
   REQUIRE(steps != nullptr);
-  CHECK(steps->lines.size() == 12);
+  CHECK(steps->lines.size() == 17);
   CHECK(steps->lines[0].text == "· Missão 06 · Livro fino");
-  // Twelve identical buttons on the web: the screen-reader name says which mission.
+  // Identical buttons on the web: the screen-reader name says which mission.
   bool named = false;
   for (const auto& n : m.names) named = named || (n.widget == names::kMenuStart && n.text == "Iniciar missão: Missão 01 · Range");
   CHECK(named);
@@ -212,7 +212,7 @@ TEST_CASE("shell: a campaign starts its first mission with the campaign capital 
   f.enter(run);
   f.vm.back_to_menu();  // from the terminal, back to the menu: the campaign panel offers Continue
   ScreenModel m = f.vm.screen_model();
-  CHECK(m.text_of(names::kCampaignProgress).starts_with("Missão 1 de 12: Missão 06 · Livro fino"));
+  CHECK(m.text_of(names::kCampaignProgress).starts_with("Missão 1 de 17: Missão 06 · Livro fino"));
   CHECK(m.is_visible(names::kCampaignContinue, false));
   f.vm.campaign_continue();  // resumes the mission in play
   CHECK(f.vm.screen() == Screen::Game);
@@ -221,7 +221,7 @@ TEST_CASE("shell: a campaign starts its first mission with the campaign capital 
   REQUIRE(f.vm.screen() == Screen::Debrief);
   const ScreenModel d = f.vm.screen_model();
   CHECK(d.is_visible(names::kDebriefCampaignPanel, false));
-  CHECK(has_line(d, names::kDebriefCampaign, "CAMPANHA 1/12"));
+  CHECK(has_line(d, names::kDebriefCampaign, "CAMPANHA 1/17"));
   CHECK(has_line(d, names::kDebriefCampaign, "Estágios aprovados: Estrutura de mercado, Ordens"));
   CHECK(d.is_visible(names::kDebriefCampaignNext, false));
   CHECK_FALSE(d.is_visible(names::kDebriefAgain));

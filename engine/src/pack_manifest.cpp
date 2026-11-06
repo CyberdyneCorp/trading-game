@@ -182,7 +182,7 @@ void read_tiers(Fields& f, const JsonValue& margin, Manifest* m) {
 }
 
 std::optional<ObjectiveCode> objective_code(const std::string& name) {
-  for (int v = 0; v <= static_cast<int>(ObjectiveCode::ReadCampaignReport); ++v) {
+  for (int v = 0; v <= static_cast<int>(kLastObjectiveCode); ++v) {
     const auto code = static_cast<ObjectiveCode>(v);
     if (name == json_name(code)) return code;
   }

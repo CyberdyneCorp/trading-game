@@ -207,7 +207,7 @@ def main():
     for name, t in sorted(advisor.items(), key=lambda kv: kv[0] == "all missions"):
         print(t.row(name))
     print(f"\n| News (mission, headline, surprise) | Gap at the next open | Follow it from the next open, {NEWS_HORIZON} bars: right, average move |\n|---|---|---|")
-    # Drawn outcomes (m09-m12) give one row per surprise drawn; the sample count follows the kind.
+    # Drawn outcomes (m09-m12, m14-m16) give one row per surprise drawn; the sample count follows the kind.
     for (mission, kind, surprise), v in sorted(news_table.items()):
         print(f"| {mission} {kind}, surprise {surprise:+d} ({len(v['gap'])}) | {100 * statistics.fmean(v['gap']):+.2f}% | {v['follow'].cell()} |")
     print(f"\n| News, followed for {NEWS_HORIZON} bars after release | Public (next open) | Fast wire I (1 bar early) | Fast wire II (2 bars early) |\n|---|---|---|---|")

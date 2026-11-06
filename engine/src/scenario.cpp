@@ -45,7 +45,7 @@ bool mission_valid(const Scenario& s) {
   if (m.initial_balance.raw <= 0 || m.leverage_cap < 1) return false;
   if (m.liq_warning_bp > 10'000 || m.drawdown_budget_bp == 0 || m.drawdown_budget_bp > 10'000) return false;
   const bool codes_ok = std::all_of(m.objectives.begin(), m.objectives.end(),
-                                    [](const Objective& o) { return o.code <= ObjectiveCode::ReadCampaignReport && o.value_bp <= 10'000; });
+                                    [](const Objective& o) { return o.code <= kLastObjectiveCode && o.value_bp <= 10'000; });
   return codes_ok && m.warmup_bars + 2 <= s.bars.size();
 }
 

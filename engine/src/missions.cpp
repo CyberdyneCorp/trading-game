@@ -35,6 +35,9 @@ struct MissionDef {
   std::vector<Objective> objectives = common_objectives();
   std::uint32_t liq_warning_bp = 300;
   std::uint32_t drawdown_budget_bp = 2000;
+  // Defined-risk spread margin (add-academy-and-strategies design D5): declared by m13, m14, m16 and
+  // m17 only, so every earlier mission keeps per-leg margin.
+  bool spread_margin = false;
 };
 
 ContractSpec default_contract() {
@@ -443,9 +446,166 @@ MissionDef capstone() {
   return m;
 }
 
+// ---- Strategies (add-academy-and-strategies design D8): m13-m17 --------------------------------
+// Common: hourly synthetic bars, warm-up 60, the perpetual at 3x, the default option spec with
+// defined-risk spread margin where the mission writes (m13, m14, m16, m17), the chain listed at the
+// first decision with 2.5 strike steps. Existing generator capabilities only (generator v5).
+
+MissionDef strategy_base(const char* id, std::uint32_t bars) {
+  MissionDef m;
+  m.info = {id, bars, 60, 3, true};
+  m.options = true;
+  m.allow_short_options = true;
+  m.spread_margin = true;
+  return m;
+}
+
+// m13 Spread: options priced rich in a quiet range; a credible adoption headline of drawn strength
+// tilts a drift of drawn direction (up in most seeds), then a range. Bull call spread against a
+// naked call. The headline lands on bars 67-77, the first expiry on bar 100.
+MissionDef call_spread() {
+  MissionDef m = strategy_base("m13-call-spread", 151);
+  m.gen.lead_jitter_min = -4;
+  m.gen.lead_jitter_max = 6;
+  m.gen.segments = {
+      {.bars = 72, .vol = 0.0045, .iv_mult = 1.3, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.02, .label = Range},
+      {.bars = 26, .drift = 0.0006, .vol = 0.0055, .jump_prob = 0.03, .jump_mean = 0.01, .volume_mult = 1.4, .momentum = 0.05,
+       .random_direction = true, .label = Trend},
+      {.bars = 53, .vol = 0.0055, .jump_prob = 0.02, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03, .label = Range},
+  };
+  m.gen.events = {{.item = {71, NewsKind::InstitutionalAdoption, 1, 70, 0, 1},
+                   .p_none = 0.3,
+                   .p_align = 0.55,
+                   .drift = 0.0015,
+                   .duration = 6,
+                   .vol_mult = 1.3,
+                   .iv_mult = 1.0,
+                   .fair_impact = 0.02,
+                   .intensity_min = 0.4,
+                   .intensity_max = 1.8}};
+  m.objectives = {{ObjectiveCode::SpreadBreakevens, 0}, {ObjectiveCode::PremiumBudget, 200}, {ObjectiveCode::CoverShortLeg, 0}};
+  m.chain = {0, {40, 90}, 4, 2.5};
+  return m;
+}
+
+// m14 Income: a market that mostly grinds up and ranges; in about a third of the seeds an
+// unannounced adoption headline sets off a strong rally (G2: actual 0 in 65%, +2 in 35%), on a bar
+// drawn per seed. Short expiries every 24 bars: a covered call against long only.
+MissionDef covered_call() {
+  MissionDef m = strategy_base("m14-covered-call", 181);
+  m.gen.lead_jitter_min = -24;
+  m.gen.lead_jitter_max = 24;
+  m.gen.segments = {
+      {.bars = 96, .drift = 0.00003, .vol = 0.0050, .funding_bias = 0.0002, .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.03,
+       .label = Trend},
+      // No anchor right after the headline: a rally keeps the level the news gave it.
+      {.bars = 24, .vol = 0.0050, .momentum = 0.03, .label = Range},
+      {.bars = 61, .vol = 0.0050, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03, .label = Range},
+  };
+  // A reaction without surprise has no side: half of the non-neutral ones go each way.
+  m.gen.events = {{.item = {95, NewsKind::InstitutionalAdoption, 1, 85, 0, 0},
+                   .p_none = 0.5,
+                   .p_align = 0.5,
+                   .drift = 0.0015,
+                   .duration = 12,
+                   .vol_mult = 2.0,
+                   .iv_mult = 0.6,
+                   .fair_impact = 0.05,
+                   .actual_weights = Weights{0, 0, 650, 0, 350},
+                   .intensity_min = 0.8,
+                   .intensity_max = 1.3}};
+  m.objectives = {{ObjectiveCode::CappedMaxProfit, 0}, {ObjectiveCode::PremiumVsFunding, 0}, {ObjectiveCode::RiskFromStop, 100}};
+  // Six strikes each side (not three): calls about 5% out of the money stay listed for every roll.
+  m.chain = {0, {24, 48, 72, 96, 120}, 6, 2.5};
+  return m;
+}
+
+// m15 Insurance: a rising market, then a range; an unannounced exchange incident of drawn severity
+// (G2: severe 30%, mild 30%, harmless 40%) on a bar drawn per seed, always before the second expiry.
+// Buying options only: the lesson is the buyer's.
+MissionDef protective_put() {
+  MissionDef m = strategy_base("m15-protective-put", 161);
+  m.allow_short_options = false;
+  m.spread_margin = false;
+  m.gen.iv_premium = 0.25;  // insurance is priced above what the market usually realizes
+  m.gen.lead_jitter_min = -22;
+  m.gen.lead_jitter_max = 22;
+  m.gen.segments = {
+      {.bars = 100, .drift = 0.0009, .vol = 0.0055, .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.04, .label = Trend},
+      {.bars = 12, .vol = 0.0090, .volume_mult = 1.5, .label = HighVol},
+      {.bars = 49, .vol = 0.0060, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03, .label = Range},
+  };
+  m.gen.events = {{.item = {99, NewsKind::ExchangeIncident, -1, 90, 0, -2},
+                   .p_none = 0.1,
+                   .p_align = 0.8,
+                   .drift = 0.003,
+                   .duration = 6,
+                   .vol_mult = 1.8,
+                   .iv_mult = 1.5,
+                   .fair_impact = 0.04,
+                   .actual_weights = Weights{300, 300, 400, 0, 0},
+                   .intensity_min = 0.8,
+                   .intensity_max = 1.3}};
+  m.objectives = {{ObjectiveCode::FloorBeforeBuying, 0}, {ObjectiveCode::PremiumBudget, 200}, {ObjectiveCode::RecordTenor, 0}};
+  m.chain = {0, {40, 100}, 4, 2.5};
+  return m;
+}
+
+// m16 Premium: a long quiet range with implied volatility priced above what it realizes, then a
+// breakout of drawn direction whose bar (78-103) falls before or after the first expiry (bar 90);
+// half the seeds see an unannounced regulation rumor at the break (G2: harmless in the others).
+MissionDef range_condor() {
+  MissionDef m = strategy_base("m16-range-condor", 131);
+  m.gen.lead_jitter_min = -10;
+  m.gen.lead_jitter_max = 15;
+  // The rumor lands as the breakout starts: a weak tilt keeps its direction from being a free read of the headline.
+  m.gen.tilt = 8.0;
+  m.gen.iv_premium = 0.35;  // options priced well above what the range realizes
+  m.gen.segments = {
+      {.bars = 88, .vol = 0.0040, .iv_mult = 1.35, .anchor = Anchor::Level, .reversion = 0.008, .band = 0.02, .label = Range},
+      {.bars = 18, .drift = 0.0070, .vol = 0.0120, .jump_prob = 0.12, .jump_mean = 0.03, .volume_mult = 2.0, .iv_mult = 1.3,
+       .momentum = 0.03, .random_direction = true, .label = Trend},
+      {.bars = 25, .vol = 0.0070, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03, .label = Range},
+  };
+  m.gen.events = {{.item = {87, NewsKind::RegulationRumor, -1, 80, 0, -1},
+                   .p_none = 0.3,
+                   .p_align = 0.5,
+                   .drift = 0.002,
+                   .duration = 5,
+                   .vol_mult = 1.5,
+                   .iv_mult = 1.3,
+                   .fair_impact = 0.04,
+                   .actual_weights = Weights{200, 300, 500, 0, 0},
+                   .intensity_min = 0.8,
+                   .intensity_max = 1.2}};
+  m.objectives = {{ObjectiveCode::SizeByMaxLoss, 200}, {ObjectiveCode::BreakoutExitRule, 0}, {ObjectiveCode::MaintenanceBuffer, 0}};
+  m.chain = {0, {30, 70}, 5, 2.5};
+  return m;
+}
+
+// m17 Expiry: a drawn path (G1) of ranges, trends and chop, with an expiry every 25 bars so a
+// position always has a near and a next expiry: managing before expiry (close, roll or hold).
+MissionDef before_expiry() {
+  MissionDef m = strategy_base("m17-before-expiry", 156);
+  RegimeChain c;
+  c.states = {range_state(), trend_state(), chop_state()};
+  c.transitions = {{0, 600, 400}, {550, 0, 450}, {550, 450, 0}};
+  c.initial = {500, 300, 200};
+  c.min_dwell = 20;
+  c.max_dwell = 40;
+  c.bars = 156;
+  m.gen.chain = c;
+  m.objectives = {{ObjectiveCode::DecideBeforeExpiry, 0}, {ObjectiveCode::NoRollWithoutThesis, 0}, {ObjectiveCode::RiskPerIdea, 100}};
+  // Six strikes each side (not three): the drawn path can trend away from the listing price, and the
+  // next expiry still needs a strike at the money for a roll.
+  m.chain = {0, {20, 45, 70, 95}, 6, 2.5};
+  return m;
+}
+
 std::vector<MissionDef> all_missions() {
   return {false_breakout(), funding_squeeze(), volatility_shock(), options_buyer(), options_writer(), thin_book(),
-          trend_trailing(), regime_switch(),   event_straddle(),   hedged_book(),   news_calendar(),  capstone()};
+          trend_trailing(), regime_switch(),   event_straddle(),   hedged_book(),   news_calendar(),  capstone(),
+          call_spread(),    covered_call(),    protective_put(),   range_condor(),  before_expiry()};
 }
 
 OptionSpec default_option_spec(bool allow_short) {
@@ -463,6 +623,14 @@ OptionSpec default_option_spec(bool allow_short) {
   o.mm_base = Rate::from_raw(750'000'000);          // 7.5%
   o.allow_short = allow_short;
   return o;
+}
+
+// Sets OptionSpec::spread_margin when this engine has it (design D5, task E4). The missions declare
+// the rule as data (MissionDef::spread_margin); the margin engine that reads it is built separately,
+// so the declaration compiles with and without it.
+template <class Spec>
+void declare_spread_margin(Spec& o, bool on) {
+  if constexpr (requires { o.spread_margin = on; }) o.spread_margin = on;
 }
 
 // Strike grid centered on the close at the listing step (known at listing: no lookahead).
@@ -520,7 +688,10 @@ bool build_mission(const std::string& id, std::uint64_t seed, Scenario& out) {
   out.mission.objectives = it->objectives;
   out.mission.liq_warning_bp = it->liq_warning_bp;
   out.mission.drawdown_budget_bp = it->drawdown_budget_bp;
-  if (it->options) out.options = default_option_spec(it->allow_short_options);
+  if (it->options) {
+    out.options = default_option_spec(it->allow_short_options);
+    declare_spread_margin(out.options, it->spread_margin);
+  }
   generate_market(it->gen, seed, out);
   if (it->options) add_chain(out, it->chain, it->info.warmup_bars);
   else out.options.iv_base.clear();

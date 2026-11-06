@@ -224,6 +224,94 @@ texts['m12-capstone'] = {
 	}
 };
 
+// Strategies (add-academy-and-strategies design D8): option structures after Options III, before the
+// capstone. Titles stay neutral; the reveal says what the seeds drew and what each structure did over
+// the learnability seeds (engine/tests/test_mission_learnability_c.cpp).
+texts['m13-call-spread'] = {
+	'pt-BR': {
+		title: 'Missão 13 · Trava',
+		tagline: 'As opções estão caras depois de um período quieto. Comprar a call inteira ou montar uma trava?',
+		topic: 'Estratégias · trava de alta com calls contra a call a seco',
+		reveal:
+			'Este cenário foi desenhado como TRAVA contra CALL A SECO: depois de um range com volatilidade implícita alta, uma manchete crível de adoção, de força sorteada, inclinou para cima uma tendência de direção sorteada — para cima na maioria das partidas, nunca em todas, e quase sempre modesta. A trava (call comprada no dinheiro e call vendida um strike acima) custou pouco mais da metade da call e rendeu pelo menos o mesmo que ela quase sempre que a alta ficou abaixo da largura da trava; quando as duas perderam, a trava perdeu menos. Nas partidas de alta grande, a call a seco ganhou mais: vender a call de cima abriu mão da alta além dela. A faixa e a tabela abaixo mostram o regime e a manchete desta partida.'
+	},
+	en: {
+		title: 'Mission 13 · Spread',
+		tagline: 'Options are expensive after a quiet spell. Buy the whole call or build a spread?',
+		topic: 'Strategies · a bull call spread against a naked call',
+		reveal:
+			'This scenario was designed as a SPREAD against a NAKED CALL: after a range with high implied volatility, a credible adoption headline of drawn strength tilted a trend of drawn direction upward — up in most runs, never in all, and usually modest. The spread (an at-the-money call bought and a call one strike up written) cost a little over half the call and returned at least as much as the call almost every time the rally stayed below the spread’s width; when both lost, the spread lost less. In runs with a large rally, the naked call made more: writing the upper call gave away the upside beyond it. The band and the table below show this run’s regime and headline.'
+	}
+};
+
+texts['m14-covered-call'] = {
+	'pt-BR': {
+		title: 'Missão 14 · Renda',
+		tagline: 'Um mercado que anda devagar, com um vencimento a cada 24 barras. Dá para tirar renda da posição?',
+		topic: 'Estratégias · venda coberta: renda contra alta limitada',
+		reveal:
+			'Este cenário foi desenhado como RENDA com risco de ALTA FORTE: o mercado andou devagar e, em cerca de 1 a cada 3 partidas, uma manchete de adoção sem aviso, numa barra sorteada, disparou uma alta forte. Sem a alta, vender uma call cerca de 5% acima a cada vencimento rendeu mais que o long sozinho em quase 9 de cada 10 partidas; com a alta, o long sozinho ganhou mais em 8 de cada 10, porque a call vendida limitou o ganho. Nas quedas o prêmio amorteceu pouco: a pior partida da venda coberta perdeu quase tanto quanto a do long. A call vendida teve margem própria a missão inteira, e o long pagou ou recebeu funding. A tabela abaixo mostra se esta partida sorteou a alta.'
+	},
+	en: {
+		title: 'Mission 14 · Income',
+		tagline: 'A slow market, with an expiry every 24 bars. Can the position earn an income?',
+		topic: 'Strategies · covered calls: income against a capped upside',
+		reveal:
+			'This scenario was designed as INCOME with the risk of a STRONG RALLY: the market moved slowly and, in about 1 run in 3, an unannounced adoption headline on a drawn bar set off a strong rally. Without the rally, writing a call about 5% above the price at each expiry earned more than the long alone in almost 9 runs in 10; with the rally, the long alone made more in 8 in 10, because the written call capped the gain. In falls the premium cushioned little: the covered call’s worst run lost almost as much as the long’s. The written call carried its own margin throughout, and the long paid or earned funding. The table below shows whether this run drew the rally.'
+	}
+};
+
+texts['m15-protective-put'] = {
+	'pt-BR': {
+		title: 'Missão 15 · Seguro',
+		tagline: 'Uma alta firme. Proteger a posição custa um prêmio — vale a pena pagar?',
+		topic: 'Estratégias · put de proteção: piso, franquia, prazo e custo',
+		reveal:
+			'Este cenário foi desenhado como um SEGURO: uma alta firme e, sem aviso, um incidente na corretora numa barra sorteada — grave em cerca de 3 de cada 10 partidas, leve em 3 e inofensivo em 4. O long com uma put no dinheiro do segundo vencimento nunca perdeu mais que o piso (entrada − strike + prêmio + custos). Sem incidente, a proteção foi só custo em quase todas as partidas, e na média das partidas a put perdeu dinheiro: seguro custa, na média. Um stop de 2×ATR não custou nada até o incidente grave, quando executou mais de 2% além do gatilho no gap. Uma put 5% fora do dinheiro custou cerca de 40% da put no dinheiro, com um piso mais baixo. A tabela abaixo mostra o incidente desta partida.'
+	},
+	en: {
+		title: 'Mission 15 · Insurance',
+		tagline: 'A steady rally. Protecting the position costs a premium — is it worth paying?',
+		topic: 'Strategies · protective puts: floor, deductible, tenor and cost',
+		reveal:
+			'This scenario was designed as INSURANCE: a steady rally and, unannounced, an exchange incident on a drawn bar — severe in about 3 runs in 10, mild in 3 and harmless in 4. The long with an at-the-money put of the second expiry never lost more than its floor (entry − strike + premium + costs). With no incident the hedge was only a cost in almost every run, and on average over the runs the put lost money: insurance costs, on average. A 2×ATR stop cost nothing until the severe incident, when it filled more than 2% beyond its trigger in the gap. A put 5% out of the money cost about 40% of the at-the-money put, with a lower floor. The table below shows this run’s incident.'
+	}
+};
+
+texts['m16-range-condor'] = {
+	'pt-BR': {
+		title: 'Missão 16 · Prêmio',
+		tagline: 'Um range longo e opções caras. Vender prêmio — com ou sem asas?',
+		topic: 'Estratégias · iron condor contra strangle vendido: risco definido e risco aberto',
+		reveal:
+			'Este cenário foi desenhado como um RANGE seguido de um ROMPIMENTO: as opções ficaram caras em relação ao que o range realizou, e depois o mercado rompeu numa direção sorteada, antes ou depois do primeiro vencimento conforme a partida; um rumor regulatório sem aviso saiu no rompimento e, em metade das partidas, não mudou nada. Vender prêmio ganhou na maioria das partidas (o strangle e o condor, cerca de 2 em cada 3) e perdeu muito em algumas: a pior perda do strangle foi mais de 3 vezes a do condor na mesma quantidade, e a do condor nunca passou de largura − crédito. Um strangle grande demais levou chamada de margem em mais de 1 de cada 3 partidas em que o rompimento veio antes do vencimento. A faixa e a tabela abaixo mostram quando e como esta partida rompeu.'
+	},
+	en: {
+		title: 'Mission 16 · Premium',
+		tagline: 'A long range and expensive options. Sell premium — with or without wings?',
+		topic: 'Strategies · an iron condor against a short strangle: defined against open risk',
+		reveal:
+			'This scenario was designed as a RANGE followed by a BREAKOUT: options were priced above what the range realized, then the market broke out in a drawn direction, before or after the first expiry depending on the run; an unannounced regulation rumor came out at the break and, in half the runs, changed nothing. Selling premium won in most runs (the strangle and the condor, about 2 in 3) and lost big in some: the strangle’s worst loss was more than 3 times the condor’s at the same quantity, and the condor’s never exceeded width − credit. An oversized strangle was margin-called in more than 1 in 3 runs where the breakout came before expiry. The band and the table below show when and how this run broke out.'
+	}
+};
+
+texts['m17-before-expiry'] = {
+	'pt-BR': {
+		title: 'Missão 17 · Vencimento',
+		tagline: 'Um vencimento a cada 25 barras. Quando o relógio aperta: fechar, rolar ou segurar?',
+		topic: 'Estratégias · gestão antes do vencimento: theta, gama e rolagem',
+		reveal:
+			'Este cenário foi desenhado para a GESTÃO ANTES DO VENCIMENTO: o mercado alternou lateral, tendência e volatilidade alta num caminho sorteado, sem manchetes. Perto do vencimento, o theta por barra e o gama de uma opção no dinheiro quase sempre mais que dobraram entre 20 e 3 barras antes. 5 barras antes, restava só cerca de 12% do prêmio de uma put vendida no dinheiro para ganhar, enquanto uma barra ainda podia mexer nela tanto quanto no começo. Rolar 5 barras antes custou cerca de 3 vezes os custos de segurar: são duas operações a mais. Uma call fora do dinheiro segurada até o vencimento terminou sem valor em cerca de 7 de cada 10 partidas. A faixa abaixo mostra o caminho de regimes desta partida.'
+	},
+	en: {
+		title: 'Mission 17 · Expiry',
+		tagline: 'An expiry every 25 bars. When the clock runs down: close, roll or hold?',
+		topic: 'Strategies · managing before expiry: theta, gamma and rolling',
+		reveal:
+			'This scenario was designed for MANAGING BEFORE EXPIRY: the market moved between ranges, trends and high volatility on a drawn path, with no headlines. Near expiry, the theta per bar and the gamma of an at-the-money option almost always more than doubled from 20 to 3 bars before. 5 bars before, only about 12% of a written at-the-money put’s premium was left to earn, while one bar could still move it as much as at the start. Rolling 5 bars before cost about 3 times the costs of holding: it is two more trades. An out-of-the-money call held to expiry ended worthless in about 7 runs in 10. The band below shows this run’s path of regimes.'
+	}
+};
+
 /** The capstone: its debrief carries the campaign report (design D8.2 m12). */
 export const CAPSTONE_MISSION = 'm12-capstone';
 

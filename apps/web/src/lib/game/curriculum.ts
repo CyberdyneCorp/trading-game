@@ -50,9 +50,15 @@ export const STAGES: readonly Stage[] = [
 	{ id: 'options1', requires: ['risk'], missions: ['m04-options-buyer'], lessons: ['options-payoff'], unlocks: ['optionsBuy'] },
 	{ id: 'options2', requires: ['options1'], missions: ['m04-options-buyer', 'm09-event-straddle'], lessons: ['options-greeks', 'options-iv'], unlocks: [] },
 	{ id: 'options3', requires: ['options2'], missions: ['m05-options-writer', 'm10-hedged-book'], lessons: ['options-writing'], unlocks: ['optionsWrite'] },
-	// Strategies (add-academy-and-strategies design D8): its assessment missions m13–m17 join `missions`
-	// with the missions themselves (task W10); until then it is taught by its lesson only.
-	{ id: 'strategies', requires: ['options3'], missions: [], lessons: ['strategies-shapes'], unlocks: [] },
+	// Strategies (add-academy-and-strategies design D8): option structures after Options III, which
+	// already unlocks writing; m15 buys only. The capstone stays last.
+	{
+		id: 'strategies',
+		requires: ['options3'],
+		missions: ['m13-call-spread', 'm14-covered-call', 'm15-protective-put', 'm16-range-condor', 'm17-before-expiry'],
+		lessons: ['strategies-shapes'],
+		unlocks: []
+	},
 	{ id: 'patterns', requires: ['strategies'], missions: ['m08-regime-switch'], lessons: ['patterns-lag'], unlocks: [] },
 	// Events before Evaluation (design D8.4): the capstone builds on the news lesson and comes last.
 	{ id: 'events', requires: ['patterns'], missions: ['m11-news-calendar'], lessons: ['events-surprise'], unlocks: [] },
