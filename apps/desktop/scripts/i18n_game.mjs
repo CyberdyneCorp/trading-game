@@ -53,7 +53,7 @@ function tutorialRows(ts, file, rows) {
 		cards[PT].forEach((card, i) => {
 			const en = cards.en[i] ?? {};
 			rows.push([`tutorial.${mission}.${i}.title`, card.title, en.title]);
-			rows.push([`tutorial.${mission}.${i}.body`, stripLinks(card.body), stripLinks(en.body)]); // glossary links as plain text
+			rows.push([`tutorial.${mission}.${i}.body`, stripLinks(card.body), stripLinks(en.body, 'en')]); // glossary links as plain text
 			rows.push([`tutorial.${mission}.${i}.art`, card.art, en.art]);
 		});
 	}

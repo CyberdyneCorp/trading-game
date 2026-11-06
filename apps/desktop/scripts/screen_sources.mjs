@@ -57,9 +57,23 @@ export function stepTerms(step) {
 	return [...new Set(texts.flatMap((t) => (typeof t === 'string' ? [...t.matchAll(LINK)].map((m) => m[1]) : [])))];
 }
 
-/** Lesson and tutorial texts link glossary terms as [[id|text]]; the desktop shows the plain text. */
-export const stripLinks = (text) =>
-	typeof text === 'string' ? text.replace(/\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]/g, (_, id, shown) => shown ?? id) : text;
+let headwords; // locale -> Map(id -> the term's name), read once from the web's glossary
+function headword(id, locale) {
+	if (!headwords) {
+		const terms = existsSync(SCREEN_PATHS.webGlossary) ? JSON.parse(readFileSync(SCREEN_PATHS.webGlossary, 'utf8')).terms : [];
+		headwords = Object.fromEntries(LOCALES.map((l) => [l, new Map(terms.map((t) => [t.id, t.text[l]?.term]))]));
+	}
+	return headwords[locale]?.get(id);
+}
+
+/**
+ * Lesson and tutorial texts link glossary terms as [[id|text]], or [[id]] for the term's own name; the
+ * desktop shows the plain text, as the web's glossary.ts plainText does (the name in `locale`).
+ */
+export const stripLinks = (text, locale = 'pt-BR') =>
+	typeof text === 'string'
+		? text.replace(/\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]/g, (_, id, shown) => shown ?? headword(id, locale) ?? id)
+		: text;
 
 const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
 
@@ -82,11 +96,11 @@ const STEP_MAPS = { choices: 'choice', feedback: 'feedback', cells: 'cell' };
 function stepRows(base, step, out) {
 	const [pt, en] = LOCALES.map((l) => step.text[l] ?? {});
 	for (const field of STEP_FIELDS) {
-		if (pt[field] !== undefined) out.push([`${base}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? ''), 'web academy']);
+		if (pt[field] !== undefined) out.push([`${base}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? '', 'en'), 'web academy']);
 	}
 	for (const [map, key] of Object.entries(STEP_MAPS)) {
 		for (const [id, label] of Object.entries(pt[map] ?? {})) {
-			out.push([`${base}.${key}.${id}`, stripLinks(label), stripLinks(en[map]?.[id] ?? ''), 'web academy']);
+			out.push([`${base}.${key}.${id}`, stripLinks(label), stripLinks(en[map]?.[id] ?? '', 'en'), 'web academy']);
 		}
 	}
 	(pt.columns ?? []).forEach((label, i) => out.push([`${base}.column.${i}`, label, en.columns?.[i] ?? '', 'web academy']));
@@ -109,7 +123,7 @@ function glossaryRows(_ts, file, _readConsts, out) {
 		const [pt, en] = LOCALES.map((l) => term.text[l] ?? {});
 		const base = `glossary.${term.id}`;
 		for (const field of TERM_FIELDS) {
-			if (pt[field] !== undefined) out.push([`${base}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? ''), 'web glossary']);
+			if (pt[field] !== undefined) out.push([`${base}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? '', 'en'), 'web glossary']);
 		}
 		out.push([`${base}.aliases`, (pt.aliases ?? []).join('; '), (en.aliases ?? []).join('; '), 'web glossary']);
 	}
@@ -120,7 +134,7 @@ function glossaryRows(_ts, file, _readConsts, out) {
 function coachRows(_ts, file, _readConsts, out) {
 	for (const step of readJson(file).steps) {
 		const [pt, en] = LOCALES.map((l) => step.text[l] ?? {});
-		for (const field of ['title', 'body']) out.push([`coach.${step.id}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? ''), 'web coach']);
+		for (const field of ['title', 'body']) out.push([`coach.${step.id}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? '', 'en'), 'web coach']);
 	}
 	return [];
 }

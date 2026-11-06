@@ -61,7 +61,11 @@ test('the glossary, the guided first trade and the finding terms reach the catal
 });
 
 test('glossary links: plain text for the catalog, linked ids for the step', () => {
-	assert.equal(stripLinks('a [[leverage|alavancagem]] e o [[strike]].'), 'a alavancagem e o strike.');
+	assert.equal(stripLinks('a [[leverage|alavancagem]] e o [[strike|strike]].'), 'a alavancagem e o strike.');
+	// [[id]] alone shows the term's name in that locale (web glossary.ts plainText), never the bare id.
+	assert.equal(stripLinks('a [[margin-call]].'), 'a Chamada de margem.');
+	assert.equal(stripLinks('a [[margin-call]].', 'en'), 'a Margin call.');
+	assert.equal(stripLinks('[[no-such-term]]'), 'no-such-term');
 	const step = { text: { 'pt-BR': { body: '[[margin-call|chamada]] e [[leverage|x]]', right: '[[leverage|y]]', choices: { a: '[[gap]]' } } } };
 	assert.deepEqual(stepTerms(step), ['margin-call', 'leverage', 'gap']);
 });
