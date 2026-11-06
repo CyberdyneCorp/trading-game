@@ -175,7 +175,7 @@ jobs:
         env:
           TRADELAB_SMALL_SCREEN: "1"
         run: |
-          system_profiler SPDisplaysDataType | grep -E 'Resolution|Display Type' || true
+          system_profiler SPDisplaysDataType || true
           ctest --test-dir build/macos-universal -L windowed --output-on-failure
       - name: TradeLab.app (pinned MoltenVK, ad-hoc signed)
         working-directory: apps/desktop

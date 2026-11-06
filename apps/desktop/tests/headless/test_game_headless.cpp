@@ -39,7 +39,8 @@ TEST_CASE("headless terminal: place, move the attached stop by dragging it, canc
 }
 
 // The window the hosted macOS runners give (their 1024x768 screen shrinks every window to 1024x645): a
-// short chart, where a drag of a fixed 12 pixels carried the stop past the market and was refused.
+// short chart, where a drag of a fixed 12 pixels carried the stop past the market, and a drag aimed
+// before the press landed 1.1 below its price (grabbing makes the chart 16 px shorter there).
 TEST_CASE("headless terminal: the stop drag lands on its price in a short chart (1024x645)") {
   RavenSession raven;
   App app(builtin_catalog(), [] { return 1u; });

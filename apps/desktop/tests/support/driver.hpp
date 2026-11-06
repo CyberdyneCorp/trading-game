@@ -7,7 +7,9 @@
 #include <raven/raven_widget.h>
 #include <raven/raven_window.h>
 
+#include <array>
 #include <chrono>
+#include <cstdint>
 #include <string>
 #include <string_view>
 
@@ -127,9 +129,34 @@ class Driver {
     frames(2);
   }
 
+  // Runs frames until `widget` kept its rectangle over three drawn frames: a layout that changes under
+  // the pointer (a text that appears and wraps) has settled. A busy machine draws frames late, so they
+  // are counted by RFrameStats, not by calls.
+  void settle(Rid widget) {
+    std::array<float, 4> last{-1, -1, -1, -1};
+    std::uint64_t seen = frame_index();
+    int stable = 0;
+    for (int i = 0; i < 300 && stable < 3; ++i) {
+      frames(1);
+      const std::uint64_t now = frame_index();
+      if (now == seen) continue;
+      seen = now;
+      std::array<float, 4> r{};
+      Rwidget_get_rect(widget, &r[0], &r[1], &r[2], &r[3]);
+      stable = r == last ? stable + 1 : 0;
+      last = r;
+    }
+  }
+
   [[nodiscard]] Rid window() const { return window_; }
 
  private:
+  [[nodiscard]] std::uint64_t frame_index() const {
+    RFrameStats s{};
+    Rwindow_get_frame_stats(window_, &s);
+    return s.frame_index;
+  }
+
   App& app_;
   Rid window_;
 };
