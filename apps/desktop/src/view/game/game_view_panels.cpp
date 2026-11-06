@@ -2,11 +2,14 @@
 #include <algorithm>
 #include <raven/raven_accessibility.h>
 #include <raven/raven_controls.h>
+#include <raven/raven_shell.h>
 #include <raven/raven_widget.h>
 
 #include "view/game/game_view.hpp"
+
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/game_widgets.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -45,10 +48,15 @@ void GameView::apply_labels() {
   const game::Texts t = vm().texts();
   const auto label = [&](std::string_view name, const std::string& text) { set_label(find(name), text); };
   ui::set_text(find(n::kShowPatterns), t.tr("chart.patterns"));
+  const Rid dock = find(n::kDock);
+  for (std::string_view panel : game::kPanels) {
+    Rdock_area_set_panel_title(dock, find(panel), t.tr(game::panel_title_key(panel)).c_str());
+  }
+  ui::set_text(find(n::kLayoutReset), t.tr("desktop.layout.reset"));
+  Rwidget_set_tooltip(find(n::kLayoutReset), t.tr("desktop.layout.resetHint").c_str());
   ui::set_text(find(n::kTableToggle), "\xE2\x96\xA6 " + t.tr("chart.tableToggle"));
   ui::set_text(find(n::kTableLast), t.tr("chart.lastPage"));
   ui::set_text(find(n::kAutoEvents), t.tr("auto.pauseOnEvents"));
-  ui::set_text(find(n::kPatterns), t.tr("patterns.open"));
   ui::set_text(find(n::kJournal), t.tr("journal.open"));
   ui::set_text(find(n::kLessons), t.tr("lesson.title"));
   ui::set_text(find(n::kTutorial), t.tr("tut.title"));
@@ -71,7 +79,6 @@ void GameView::apply_labels() {
   items(find(n::kOsc), {"RSI", "MACD", "ADX", t.tr("chart.oscNone")});
   Rwidget_set_tooltip(find(n::kAutoSpeed), t.tr("auto.speed").c_str());
   Rwidget_set_tooltip(find(n::kAutoEvents), t.tr("auto.pauseOnEventsHint").c_str());
-  Rwidget_set_tooltip(find(n::kHelp), t.tr("top.help").c_str());
   Rwidget_set_accessible_name(find(names::kGameChart), t.tr("chart.focusHint").c_str());
   Rwidget_set_accessible_name(find(n::kTable), t.tr("chart.table").c_str());
   // Dialog titles and buttons.
@@ -113,7 +120,16 @@ void GameView::apply_top(const game::Texts& t, const GameState& g) {
                                    " [" + game::key_label(m.keymap().key(game::Action::Auto)) + "]");
   set_enabled(find(names::kGameAdvance), !m.busy() && g.active());
   ui::set_text(find(n::kSound), m.muted() ? "\xE2\x99\xAA\xE2\x9C\x95" : "\xE2\x99\xAA");  // ♪✕ / ♪
-  Rwidget_set_tooltip(find(n::kSound), t.tr(m.muted() ? "sound.unmute" : "sound.mute").c_str());
+  // Every hint names the player's key, remapped or not (web TopBar/OrderTicket <kbd>).
+  const game::KeyHints keys = game::key_hints(t, m.keymap(), m.muted());
+  ui::set_text(find(n::kPatterns), keys.patterns);
+  Rwidget_set_tooltip(find(n::kPatterns), keys.patterns_tip.c_str());
+  Rwidget_set_tooltip(find(n::kSound), keys.sound_tip.c_str());
+  Rwidget_set_tooltip(find(n::kHelp), keys.help_tip.c_str());
+  Rwidget_set_tooltip(find(n::kJournal), keys.journal_tip.c_str());
+  Rwidget_set_tooltip(find(n::kTabOptions), keys.options_tip.c_str());
+  Rwidget_set_tooltip(find(names::kGameBuy), keys.buy_tip.c_str());
+  Rwidget_set_tooltip(find(names::kGameSell), keys.sell_tip.c_str());
   set_visible(find(n::kLessons), !game::LessonDialog{}.questions(t, g.lesson).empty());
   set_visible(find(n::kTutorial), !game::tutorial_cards(t, g.mission).empty());
   set_visible(find(n::kPerks), !g.known_scenario);
@@ -220,8 +236,7 @@ void GameView::apply_orders(const game::Texts& t, const GameState& g) {
 
 void GameView::apply_advisor(const game::Texts& t, const GameState& g) {
   game::GameViewModel& m = vm();
-  // Practice packs start without the advisor, so it is not offered.
-  set_visible(find(n::kAdvisorBox), !g.known_scenario);
+  set_visible(find(n::kAdvisorBox), m.advisor_offered());
   const game::AdvisorView a = game::advisor_view(t, g, m.busy());
   set_label(find(n::kAdvPoints), a.points);
   set_enabled(find(n::kAdvAsk), a.can_ask);

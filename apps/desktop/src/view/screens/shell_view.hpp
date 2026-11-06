@@ -29,6 +29,9 @@ class ShellView {
 
   // While Settings waits for a new shortcut key, the key press goes there. True when consumed.
   static bool capture_key(AppViewModel& vm, const REvent* e);
+  // The tutorial's keys (Tutorial.svelte): Enter / Right next, Left previous, Esc skips. A key pressed
+  // on a focused button is the button's (it activates it), so Enter there is left alone.
+  static bool tutorial_key(AppViewModel& vm, Rid window, const REvent* e);
 
  private:
   [[nodiscard]] Rid find(std::string_view name) const;
@@ -37,6 +40,10 @@ class ShellView {
   void apply_items(const WidgetItems& it);
   void apply_flags(const ScreenModel& m);
   void bind_callbacks();
+  // Tutorial, catalog, CSV import, assisted practice and the debrief chart (shell_view_flows.cpp).
+  void bind_flows();
+  void bind_flow_callbacks();
+  void apply_values(const ScreenModel& m);
 
   AppViewModel& vm_;
   Rid scope_;

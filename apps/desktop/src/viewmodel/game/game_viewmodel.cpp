@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <cstdio>
 #include <utility>
 
@@ -21,14 +22,14 @@ std::string two_decimals(double v) {
 
 }  // namespace
 
-GameViewModel::GameViewModel(const Catalog& catalog, EngineCommands& engine, PrefsFile* prefs,
+GameViewModel::GameViewModel(const Catalog& catalog, EngineCommands& engine, PrefsStore* prefs,
                              std::vector<std::string> built_in)
     : catalog_(&catalog), engine_(engine), prefs_file_(prefs), built_in_(std::move(built_in)) {
   if (prefs_file_ != nullptr) prefs_ = prefs_file_->load();
   keymap_ = Keymap::sanitized(prefs_.keymap);
 }
 
-void GameViewModel::attach_prefs(PrefsFile* file) {
+void GameViewModel::attach_prefs(PrefsStore* file) {
   prefs_file_ = file;
   if (file != nullptr) prefs_ = file->load();
   keymap_ = Keymap::sanitized(prefs_.keymap);
@@ -45,6 +46,25 @@ void GameViewModel::set_keymap(const std::map<std::string, std::string>& map) {
   if (next == keymap_) return;
   keymap_ = next;
   save_prefs();
+  touch();
+}
+
+void GameViewModel::set_audio(const AudioPrefs& a) {
+  if (a == prefs_.audio) return;
+  prefs_.audio = a;
+  save_prefs();
+  touch();
+}
+
+void GameViewModel::set_layout(std::string layout) {
+  if (layout == prefs_.layout) return;
+  prefs_.layout = std::move(layout);
+  save_prefs();
+}
+
+void GameViewModel::reset_layout() {
+  set_layout({});
+  dock.reset();
   touch();
 }
 
@@ -66,17 +86,29 @@ std::optional<double> GameViewModel::planned_risk() const {
 
 // ---- snapshots and the command pipeline ----
 
+namespace {
+
+bool starts_run(const CommandResult& r) {
+  switch (r.kind) {
+    case CommandKind::Start:
+    case CommandKind::StartPack:
+    case CommandKind::Resume:  // a run saved in an earlier launch is a new run for the terminal
+    case CommandKind::Rewind: return r.accepted;
+    default: return false;
+  }
+}
+
+}  // namespace
+
 void GameViewModel::on_snapshot(const Snapshot& s) {
   bool started = false;
+  bool rewound = false;
   for (const auto& r : s.results) {
-    // A resumed run (saved in an earlier launch) is a new run for the terminal, as a started one.
-    if ((r.kind == CommandKind::Start || r.kind == CommandKind::Resume) && r.accepted) started = true;
+    started = started || starts_run(r);
+    rewound = rewound || (r.kind == CommandKind::Rewind && r.accepted);
   }
   if (s.game) {
-    if (started) {
-      seed_ = s.seed;
-      reset_run(*s.game);
-    }
+    if (started) begin_run(s, rewound);
     state_ = s.game;
     names_.observe(*state_);
     ticket.sync(*state_);
@@ -86,9 +118,22 @@ void GameViewModel::on_snapshot(const Snapshot& s) {
   touch();
 }
 
+// A started, resumed or rewound run: a new run for the terminal. A rewound attempt keeps the plans
+// made before the decision it resumes at.
+void GameViewModel::begin_run(const Snapshot& s, bool rewound) {
+  std::vector<PlanEntry> kept;
+  if (rewound) std::ranges::copy_if(journal_, std::back_inserter(kept), [&](const PlanEntry& e) { return e.step < s.step; });
+  seed_ = s.seed;
+  reset_run(*s.game);
+  assisted_ = s.assisted;
+  if (!s.run_id.empty()) run_id_ = s.run_id;
+  if (rewound) journal_ = std::move(kept);
+}
+
 void GameViewModel::reset_run(const GameState& g) {
-  // A run left behind by starting another is settled with the advice it used and nothing earned.
-  if (state_ && !run_settled_ && !relaunching_) {
+  // A run left behind by starting another is settled with the advice it used and nothing earned
+  // (assisted practice settles nothing).
+  if (state_ && !run_settled_ && !relaunching_ && !assisted_) {
     settle_run(prefs_, run_id_, state_->advisor.allowance - state_->advisor.left, 0);
     save_prefs();
   }
@@ -117,8 +162,11 @@ void GameViewModel::reset_run(const GameState& g) {
 
 void GameViewModel::on_run_end(const Snapshot& s) {
   autoplay.stop(PauseReason::Finished);
+  // The reveal: the chart of the ended run shows the regimes the market went through.
+  if (chart.regimes().empty()) chart.set_regimes(regime_spans(s.debrief->reveal["spans"]));
   if (run_settled_) return;
   run_settled_ = true;
+  if (assisted_) return;  // no points, no finished mission (web: an assisted run is never settled)
   const GameState& g = *state_;
   settle_run(prefs_, run_id_, g.advisor.allowance - g.advisor.left, s.debrief->advisor_points_earned);
   const bool counts = g.status == "finished" && !g.known_scenario;

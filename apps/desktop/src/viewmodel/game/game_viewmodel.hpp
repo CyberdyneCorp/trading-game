@@ -20,6 +20,7 @@
 #include "model/snapshot.hpp"
 #include "viewmodel/game/chart_vm.hpp"
 #include "viewmodel/game/dialogs_vm.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/options_vm.hpp"
 #include "viewmodel/game/panels_vm.hpp"
 #include "viewmodel/game/progress.hpp"
@@ -52,10 +53,10 @@ struct PerkRow {
 class GameViewModel {
  public:
   // `prefs` may be null (no persistence: tests). `built_in` lists the built-in mission ids.
-  GameViewModel(const Catalog& catalog, EngineCommands& engine, PrefsFile* prefs, std::vector<std::string> built_in);
+  GameViewModel(const Catalog& catalog, EngineCommands& engine, PrefsStore* prefs, std::vector<std::string> built_in);
 
-  // Loads the shortcut map and progress from `file` and saves there from now on (null: none).
-  void attach_prefs(PrefsFile* file);
+  // Loads the shortcut map and progress from `store` and saves there from now on (null: none).
+  void attach_prefs(PrefsStore* store);
   // Called with each plan the player records (AppViewModel keeps it in the run's journal).
   void set_plan_sink(std::function<void(const PlanEntry&)> sink) { plan_sink_ = std::move(sink); }
 
@@ -107,6 +108,12 @@ class GameViewModel {
   void lesson_skip(int question);
   void open_tutorial();
   void tutorial_step(int delta);  // past the last card closes it and marks it seen
+  [[nodiscard]] bool tutorial_seen(const std::string& mission) const;
+  void mark_tutorial_seen(const std::string& mission);
+  // The run in play is an assisted practice attempt: it settles no points and finishes no mission.
+  [[nodiscard]] bool assisted() const { return assisted_; }
+  // Terminal.svelte: practice packs and assisted attempts start without the advisor, so it is not offered.
+  [[nodiscard]] bool advisor_offered() const { return state_ && !state_->known_scenario && !assisted_; }
   [[nodiscard]] int tutorial_index() const { return tutorial_index_; }
   void open_perks();
   void set_perk(Perk id, bool on);
@@ -131,8 +138,13 @@ class GameViewModel {
   void set_keymap(const std::map<std::string, std::string>& map);
   // Frame time for auto-advance.
   void tick(double dt);
-  [[nodiscard]] bool muted() const { return muted_; }
+  [[nodiscard]] bool muted() const { return prefs_.audio.muted; }
   void toggle_mute() { run_action(Action::Mute); }
+  // Sound settings (Settings screen) and the terminal's panel layout, kept with the prefs.
+  void set_audio(const AudioPrefs& a);
+  void set_layout(std::string layout);
+  // "Reset layout": forgets the player's arrangement; the default for the window shows again.
+  void reset_layout();
   void toggle_auto() { run_action(Action::Auto); }
 
   // Panel viewmodels and dialog state, edited by the view (text fields) and read back.
@@ -144,12 +156,14 @@ class GameViewModel {
   LessonDialog lessons;
   Remap remap;
   AutoPlay autoplay;
+  DockLayout dock;
   std::string margin_amount = "100";
   void touch() { ++revision_; }
 
   [[nodiscard]] const SeriesNames& series_names() const { return names_; }
   [[nodiscard]] std::optional<double> planned_risk() const;
   [[nodiscard]] const GamePrefs& prefs() const { return prefs_; }
+  [[nodiscard]] const std::string& run_id() const { return run_id_; }
 
  private:
   enum class InFlight : std::uint8_t { None, Advance, Game, Start };
@@ -181,7 +195,7 @@ class GameViewModel {
 
   const Catalog* catalog_;
   EngineCommands& engine_;
-  PrefsFile* prefs_file_;
+  PrefsStore* prefs_file_;
   GamePrefs prefs_;
   std::vector<std::string> built_in_;
   Keymap keymap_;
@@ -193,6 +207,8 @@ class GameViewModel {
   RunOptions next_options_;
   std::string run_id_;
   bool run_settled_ = false;
+  bool assisted_ = false;
+  void begin_run(const Snapshot& s, bool rewound);
   int run_counter_ = 0;
   int actions_ = 0;  // non-lesson commands this run (perks can change only before the first)
 
@@ -214,7 +230,6 @@ class GameViewModel {
   std::vector<PlanEntry> journal_;
   std::function<void(const PlanEntry&)> plan_sink_;
   SeriesNames names_;
-  bool muted_ = false;
   std::uint64_t revision_ = 1;
 };
 

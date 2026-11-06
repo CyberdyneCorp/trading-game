@@ -1,5 +1,7 @@
 #include "view/app_view.hpp"
 
+#include <chrono>
+
 #include <raven/raven_accessibility.h>
 #include <raven/raven_controls.h>
 #include <raven/raven_draw.h>
@@ -123,6 +125,7 @@ bool AppView::build(int width, int height) {
 
 bool AppView::on_key(const REvent* e) {
   if (ShellView::capture_key(vm_, e)) return true;  // Settings waits for a new shortcut key
+  if (ShellView::tutorial_key(vm_, window_, e)) return true;
   if (vm_.screen() != Screen::Game || !game_view_) return false;
   return game_view_->on_key(e);
 }
@@ -160,6 +163,9 @@ void AppView::apply_bindings() {
 }
 
 void AppView::refresh() {
+  const auto now = std::chrono::steady_clock::now();
+  vm_.tick_audio(std::chrono::duration<double>(now - last_frame_).count());
+  last_frame_ = now;
   if (game_view_) game_view_->refresh();
   if (vm_.revision() == shown_revision_) return;
   shown_revision_ = vm_.revision();
@@ -168,6 +174,7 @@ void AppView::refresh() {
   apply_bindings();
   Rwidget_set_enabled(find(names::kMenuStart), vm_.waiting() ? R_FALSE : R_TRUE);
   Rwidget_invalidate(find(names::kGameChart));
+  if (vm_.screen() == Screen::Debrief) Rwidget_invalidate(find(names::kDebriefChart));
 }
 
 void AppView::missing_actions(std::span<const std::string_view> actions, std::vector<std::string>& missing) {
@@ -187,9 +194,11 @@ std::vector<std::string> AppView::missing_names() const {
   std::vector<std::string> missing;
   missing_widgets(names::kWidgets, missing);
   missing_widgets(names::kShellWidgets, missing);
+  missing_widgets(names::kFlowWidgets, missing);
   if (shell_->look().overlay() == R_INVALID_ID) missing.push_back("widget " + std::string(names::kCrtOverlay));
   missing_actions(names::kActions, missing);
   missing_actions(names::kShellActions, missing);
+  missing_actions(names::kFlowActions, missing);
   if (game_view_) {
     for (auto& m : game_view_->missing_names()) missing.push_back(std::move(m));
   }
