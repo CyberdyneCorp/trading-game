@@ -18,7 +18,8 @@
             <Label Name="menu-resume-text" Slot.Fill="1" Slot.VAlign="Center"/>
             <Button Name="menu-resume" Style="Primary" OnClicked="tl.menu.resume"/>
         </HBox>
-        <HBox Spacing="8">
+        <!-- Eight screens: wraps onto a second line in a narrow window (web MissionMenu's flex-wrap). -->
+        <WrapBox Spacing="8">
             <Button Name="menu-curriculum" OnClicked="tl.menu.curriculum"/>
             <Button Name="menu-journal" OnClicked="tl.menu.journal"/>
             <Button Name="menu-settings" OnClicked="tl.menu.settings"/>
@@ -27,7 +28,7 @@
             <Button Name="menu-academy" OnClicked="tl.academy.open"/>
             <Button Name="menu-glossary" OnClicked="tl.glossary.open"/>
             <Button Name="menu-lab" OnClicked="tl.menu.lab"/>
-        </HBox>
+        </WrapBox>
         <!-- Spaced review (web ReviewPrompt.svelte): never blocks play; dismissed until tomorrow. -->
         <HBox Name="menu-review-row" Spacing="12">
             <Label Name="menu-review-text" Wrap="true" Class="attention" Slot.Fill="1" Slot.VAlign="Center"/>
