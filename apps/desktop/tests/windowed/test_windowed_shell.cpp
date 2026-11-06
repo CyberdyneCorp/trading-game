@@ -118,7 +118,7 @@ TEST_CASE("windowed shell: a campaign mission from the menu to its debrief, then
   REQUIRE(d.click(names::kDebriefCampaignNext));
   REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
   CHECK(app.vm().snapshot()->mission == "m01-false-breakout");
-  CHECK(d.text(names::kBriefMode).find("2 de 12") != std::string::npos);
+  CHECK(d.text(names::kBriefMode).find("2 de 17") != std::string::npos);
   REQUIRE(d.click(names::kBriefBack));
   CHECK(capture(d, window, "shell-03-menu-campaign").saved);
   CHECK(d.text(names::kMenuDetailDone).empty() == false);

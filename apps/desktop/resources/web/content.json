@@ -119,9 +119,24 @@
    ]
   },
   {
-   "id": "patterns",
+   "id": "strategies",
    "requires": [
     "options3"
+   ],
+   "missions": [
+    "m13-call-spread",
+    "m14-covered-call",
+    "m15-protective-put",
+    "m16-range-condor",
+    "m17-before-expiry"
+   ],
+   "lessons": [],
+   "unlocks": []
+  },
+  {
+   "id": "patterns",
+   "requires": [
+    "strategies"
    ],
    "missions": [
     "m08-regime-switch"

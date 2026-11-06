@@ -59,13 +59,17 @@ Suggested PRs, in order:
   - Python `option_whatif`, `Run.option_whatif` and `Run.combo_preview`;
   - parity tests;
   - an optional `combo` field on option actions, ignored by the adapters, with a test that a tagged log replays to the same digest as the untagged one (Python and WASM).
-- [ ] E7 Missions m13–m17 (design D8) in `missions.cpp`:
+- [x] E7 Missions m13–m17 (design D8) in `missions.cpp`:
   - generator specs from existing capabilities only (`kGeneratorVersion` stays 5);
   - chains, `spread_margin` (m13, m14, m16, m17), m15 buy-only, objectives, liquidation warning and drawdown budget;
   - `tl_mission_reveal` labels;
   - one golden per mission (default options), with existing goldens byte-identical;
   - rubrics in `engine/rubrics/lessons.json` (two questions each, `reviewed: false`).
+
+  Done: the missions declare `spread_margin` (`MissionDef`), copied into `OptionSpec` once E4 adds the field; liquidation warning and drawdown budget keep the defaults (3%, 20%); the reveal reports spans and events like every mission. As built: design D8.
 - [ ] E8 Learnability and realism, needs E7: `tests/test_mission_learnability_c.cpp` with the D8 bands (reference players in `tests/learnability.hpp`), the realism bands pooled over 17 missions, and `tools/market_study.py` rows for m13–m17. Record any tuning as "As built" in design D8; bands are never widened silently.
+
+  Progress: the test, the realism bands over 17 missions and the market-study rows are in, with the as-built bands in design D8 (m13 one-strike spread; m16 quantities; m17 kernel and swing bands). Open: m16's "condor at a 20%-of-equity size is never margin-called" runs only once E4's `spread_margin` exists (`kSpreadMargin` in the test) and has not been measured yet.
 - [ ] E9 Strategy comparison, scoring v13 (design D8):
   - per-mission comparison declarations;
   - `debrief.strategyComparison` (name code, entry and exit bar, net P&L, max drawdown, margin calls) computed after the run with the engine's quotes and fees;
@@ -141,6 +145,8 @@ Suggested PRs, in order:
   - the debrief's strategy comparison;
   - unit tests (cards: 3–5, no spoiler words);
   - e2e: each mission played to the debrief (`e2e/missions-batch-c.spec.ts`).
+
+  Progress: texts, cards with the new art and the margin-rule cards, lesson texts, objectives, the Strategies stage and campaign order (with W8's curriculum), unit tests and the e2e (legs placed one by one through the option ticket) are in. Open: the briefing's margin rule (needs E4's `missionRules.spreadMargin`) and the debrief's strategy comparison (needs E9).
 - [ ] W11 Web README: content layout, Academy, glossary, lab, builder, tour, progress v3, e2e list.
 
 ## D. Desktop

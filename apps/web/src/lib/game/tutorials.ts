@@ -25,7 +25,12 @@ export type TutorialArt =
 	| 'trail'
 	| 'regime'
 	| 'straddle'
-	| 'report';
+	| 'report'
+	| 'spread'
+	| 'covered'
+	| 'insurance'
+	| 'condor'
+	| 'roll';
 
 export interface TutorialCard {
 	art: TutorialArt;
@@ -645,6 +650,253 @@ const m12: Cards = {
 	]
 };
 
+// Strategies (add-academy-and-strategies design D8). Every mission that writes options states its margin
+// rule (spec mission-tutorial "Strategy tutorials state the margin rule"); none says what the seed drew.
+const m13: Cards = {
+	'pt-BR': [
+		{
+			art: 'spread',
+			title: 'Trava de alta',
+			body: 'Compre uma call e venda outra de strike maior, no mesmo vencimento. O prêmio da vendida paga parte da comprada: você arrisca menos, mas o ganho para no strike de cima. Lucro máximo = largura − débito; perda máxima = o débito.'
+		},
+		{
+			art: 'payoff',
+			title: 'Dois pontos de equilíbrio',
+			body: 'A call sozinha empata em strike + prêmio; a trava, em strike de baixo + débito, mais perto do preço. Calcule os dois antes de entrar, com os prêmios da cadeia. Num movimento modesto a trava rende mais pelo que arrisca; num movimento grande, a call sozinha.'
+		},
+		{
+			art: 'volatility',
+			title: 'Opções caras',
+			body: 'Quando a volatilidade implícita está alta, toda opção está cara. Na trava você compra uma opção cara e vende outra também cara: delta, vega e theta ficam menores que os da call sozinha. Compare a IV da cadeia com o tamanho das barras recentes.'
+		},
+		{
+			art: 'margin',
+			title: 'Margem da trava',
+			body: 'Nesta missão, uma opção vendida coberta por uma comprada do mesmo tipo e vencimento pede margem só do que o par ainda pode perder. A trava de alta comprada por um débito não pede margem; uma call vendida sozinha pede a margem inteira. Feche a vendida antes ou junto com a comprada.'
+		}
+	],
+	en: [
+		{
+			art: 'spread',
+			title: 'Bull call spread',
+			body: 'Buy a call and sell another with a higher strike, same expiry. The written call’s premium pays for part of the bought one: you risk less, but the gain stops at the upper strike. Maximum profit = width − debit; maximum loss = the debit.'
+		},
+		{
+			art: 'payoff',
+			title: 'Two breakevens',
+			body: 'The call alone breaks even at strike + premium; the spread at the lower strike + debit, closer to the price. Work out both before entering, with the chain’s premiums. In a modest move the spread earns more for what it risks; in a large move, the call alone does.'
+		},
+		{
+			art: 'volatility',
+			title: 'Expensive options',
+			body: 'When implied volatility is high, every option is expensive. In the spread you buy an expensive option and sell another expensive one: delta, vega and theta are smaller than the call’s alone. Compare the chain’s IV with the size of recent bars.'
+		},
+		{
+			art: 'margin',
+			title: 'The spread’s margin',
+			body: 'In this mission, a written option covered by a bought one of the same kind and expiry needs margin only for what the pair can still lose. A bull call spread bought for a debit needs no margin; a call written alone needs the full margin. Close the written leg before or with the bought one.'
+		}
+	]
+};
+
+const m14: Cards = {
+	'pt-BR': [
+		{
+			art: 'covered',
+			title: 'Venda coberta',
+			body: 'Comprado no perpétuo, venda uma call acima do preço e receba o prêmio. O ponto de equilíbrio cai pelo prêmio, mas o ganho para no strike: lucro máximo = strike − entrada + prêmio. O desenho é o mesmo de uma put vendida.'
+		},
+		{
+			art: 'payoff',
+			title: 'O que o prêmio cobre',
+			body: 'Numa queda, o prêmio amortece só o valor dele: o long continua perdendo. Escreva o lucro máximo antes de vender a call. Cada vencimento é uma decisão nova: vender outra call ou não.'
+		},
+		{
+			art: 'margin',
+			title: 'Coberta no resultado, não na margem',
+			body: 'Aqui a call vendida tem margem própria mesmo com o long cobrindo o resultado, porque o perpétuo tem margem separada. Só um par de opções do mesmo tipo e vencimento pede menos margem, e a venda coberta não é um par de opções. Deixe folga para as duas margens.'
+		},
+		{
+			art: 'funding',
+			title: 'Prêmio contra funding',
+			body: 'O long no perpétuo paga ou recebe funding a cada intervalo. Compare o prêmio que você recebe com o funding que você paga. Os vencimentos vêm a cada 24 barras.'
+		}
+	],
+	en: [
+		{
+			art: 'covered',
+			title: 'Covered call',
+			body: 'Long the perpetual, sell a call above the price and collect the premium. The breakeven drops by the premium, but the gain stops at the strike: maximum profit = strike − entry + premium. The shape is the same as a written put.'
+		},
+		{
+			art: 'payoff',
+			title: 'What the premium covers',
+			body: 'In a fall, the premium cushions only its own amount: the long keeps losing. Write the maximum profit before selling the call. Each expiry is a new decision: sell another call or not.'
+		},
+		{
+			art: 'margin',
+			title: 'Covered in P&L, not in margin',
+			body: 'Here the written call needs its own margin even while the long covers it in P&L, because the perpetual is margined separately. Only a pair of options of the same kind and expiry needs less margin, and a covered call is not a pair of options. Keep a buffer for both margins.'
+		},
+		{
+			art: 'funding',
+			title: 'Premium against funding',
+			body: 'The perpetual long pays or earns funding at each interval. Compare the premium you collect with the funding you pay. Expiries come every 24 bars.'
+		}
+	]
+};
+
+const m15: Cards = {
+	'pt-BR': [
+		{
+			art: 'insurance',
+			title: 'Put de proteção',
+			body: 'Comprado no perpétuo, uma put compra um piso: abaixo do strike, a put ganha o que a posição perde. Perda máxima = entrada − strike + prêmio + custos. Escreva o piso antes de comprar.'
+		},
+		{
+			art: 'risk',
+			title: 'Stop ou seguro',
+			body: 'Um stop não custa nada antes, mas executa no próximo preço disponível: depois de um gap, bem além do gatilho. A put custa o prêmio e garante o strike até o vencimento. Uma queda forte pode vir ou não; a escolha é quanto pagar para não depender do gap.'
+		},
+		{
+			art: 'chain',
+			title: 'Strike e prazo',
+			body: 'O strike é a franquia: uma put mais abaixo custa menos e põe o piso mais baixo. O prazo precisa cobrir a janela de risco: uma put que vence antes não protege depois. Nesta missão você só compra opções.'
+		},
+		{
+			art: 'decay',
+			title: 'O custo de esperar',
+			body: 'Enquanto nada acontece, a put perde valor de tempo a cada barra (theta). Na maior parte do tempo um seguro não é usado: o prêmio é o preço da proteção. Compare esse custo com a perda que ele evita.'
+		}
+	],
+	en: [
+		{
+			art: 'insurance',
+			title: 'Protective put',
+			body: 'Long the perpetual, a put buys a floor: below the strike, the put gains what the position loses. Maximum loss = entry − strike + premium + costs. Write the floor before buying.'
+		},
+		{
+			art: 'risk',
+			title: 'Stop or insurance',
+			body: 'A stop costs nothing up front, but it fills at the next available price: after a gap, far beyond its trigger. The put costs its premium and guarantees the strike until expiry. A sharp fall may or may not come; the choice is how much to pay so as not to depend on the gap.'
+		},
+		{
+			art: 'chain',
+			title: 'Strike and tenor',
+			body: 'The strike is the deductible: a lower put costs less and sets a lower floor. The tenor must cover the risk window: a put that expires first protects nothing after. In this mission you only buy options.'
+		},
+		{
+			art: 'decay',
+			title: 'The cost of waiting',
+			body: 'While nothing happens, the put loses time value every bar (theta). Most of the time insurance goes unused: the premium is the price of protection. Compare that cost with the loss it prevents.'
+		}
+	]
+};
+
+const m16: Cards = {
+	'pt-BR': [
+		{
+			art: 'condor',
+			title: 'Iron condor e strangle',
+			body: 'Vender uma put e uma call fora do dinheiro (strangle) recebe prêmio, com perda aberta além dos pontos de equilíbrio. O iron condor compra asas mais longe: recebe menos, mas a perda máxima é largura − crédito. Risco definido contra risco aberto.'
+		},
+		{
+			art: 'volatility',
+			title: 'Implícita e realizada',
+			body: 'Quem vende prêmio ganha quando a volatilidade implícita paga mais do que o mercado realiza. Compare a IV da cadeia com o tamanho das barras recentes. Vender prêmio ganha pouco muitas vezes e às vezes perde muito.'
+		},
+		{
+			art: 'margin',
+			title: 'Margem por perna e margem do par',
+			body: 'Aqui cada vendida coberta por uma comprada do mesmo tipo e vencimento pede só o que o par pode perder: o condor pede a largura. O strangle não tem asas: cada perna tem margem própria, que cresce quando o preço se aproxima do strike. Abaixo da manutenção há recompra forçada.'
+		},
+		{
+			art: 'risk',
+			title: 'Dimensione pelo pior caso',
+			body: 'Numa estrutura de risco definido, a perda máxima é conhecida: arrisque até 2% do patrimônio nela. Escreva antes o que fará se o preço romper o range. Quatro pernas pagam quatro spreads.'
+		},
+		{
+			art: 'decay',
+			title: 'Theta e gama',
+			body: 'Theta trabalha para quem vende enquanto o preço fica longe dos strikes. Perto de um strike vendido o gama cresce: o delta muda rápido e o prejuízo acelera. Theta paga o tempo; gama cobra o movimento.'
+		}
+	],
+	en: [
+		{
+			art: 'condor',
+			title: 'Iron condor and strangle',
+			body: 'Selling an out-of-the-money put and call (a strangle) collects premium, with an open loss beyond its breakevens. An iron condor buys wings further out: it collects less, but its maximum loss is width − credit. Defined against open risk.'
+		},
+		{
+			art: 'volatility',
+			title: 'Implied and realized',
+			body: 'Premium sellers win when implied volatility pays more than the market realizes. Compare the chain’s IV with the size of recent bars. Selling premium wins a little often and sometimes loses a lot.'
+		},
+		{
+			art: 'margin',
+			title: 'Per-leg margin and pair margin',
+			body: 'Here each written option covered by a bought one of the same kind and expiry needs only what the pair can lose: the condor needs its width. The strangle has no wings: each leg is margined on its own, and its margin grows as the price nears the strike. Below maintenance there is a forced buy-back.'
+		},
+		{
+			art: 'risk',
+			title: 'Size by the worst case',
+			body: 'In a defined-risk structure the maximum loss is known: risk at most 2% of equity on it. Write beforehand what you will do if the price breaks out of the range. Four legs pay four spreads.'
+		},
+		{
+			art: 'decay',
+			title: 'Theta and gamma',
+			body: 'Theta works for the seller while the price stays away from the strikes. Near a written strike gamma grows: delta changes fast and the loss accelerates. Theta pays for time; gamma charges for movement.'
+		}
+	]
+};
+
+const m17: Cards = {
+	'pt-BR': [
+		{
+			art: 'roll',
+			title: 'Rolar',
+			body: 'Rolar é fechar a opção do vencimento próximo e abrir outra num vencimento seguinte: duas operações, dois spreads. Julgue a rolagem como uma entrada nova. Rolar uma posição perdedora só para esperar que ela volte soma tempo e custo.'
+		},
+		{
+			art: 'decay',
+			title: 'O relógio acelera',
+			body: 'O theta por barra de uma opção no dinheiro cresce perto do vencimento, e o gama também: nas últimas barras um movimento pequeno leva o delta de perto de 0 a perto de 1. O prêmio que falta ganhar fica pequeno diante do que uma barra pode mexer.'
+		},
+		{
+			art: 'chain',
+			title: 'O próximo vencimento',
+			body: 'Os vencimentos vêm a cada 25 barras: sempre há um próximo e um seguinte. Um prazo mais longo custa mais e tem theta menor por barra. Escolha o vencimento pela sua tese, não por hábito.'
+		},
+		{
+			art: 'plan',
+			title: 'Decida antes',
+			body: 'Antes das 5 últimas barras de um vencimento, decida fechar, rolar ou segurar até a liquidação, e registre por quê. Sem tese nova, não role. Na margem, cada vendida coberta por uma comprada do mesmo tipo e vencimento pede só o que o par pode perder.'
+		}
+	],
+	en: [
+		{
+			art: 'roll',
+			title: 'Rolling',
+			body: 'Rolling is closing the near expiry’s option and opening another in a later expiry: two trades, two spreads. Judge the roll as a fresh entry. Rolling a loser just to wait for it to come back adds time and cost.'
+		},
+		{
+			art: 'decay',
+			title: 'The clock speeds up',
+			body: 'An at-the-money option’s theta per bar grows near expiry, and so does its gamma: in the last bars a small move swings delta from near 0 to near 1. The premium left to earn becomes small against what one bar can move.'
+		},
+		{
+			art: 'chain',
+			title: 'The next expiry',
+			body: 'Expiries come every 25 bars: there is always a near one and a later one. A longer tenor costs more and has a smaller theta per bar. Choose the expiry by your thesis, not by habit.'
+		},
+		{
+			art: 'plan',
+			title: 'Decide beforehand',
+			body: 'Before an expiry’s last 5 bars, decide to close, roll or hold to settlement, and record why. Without a new thesis, do not roll. For margin, each written option covered by a bought one of the same kind and expiry needs only what the pair can lose.'
+		}
+	]
+};
+
 const TUTORIALS: Record<string, Cards> = {
 	'm01-false-breakout': m01,
 	'm02-funding-squeeze': m02,
@@ -657,7 +909,12 @@ const TUTORIALS: Record<string, Cards> = {
 	'm09-event-straddle': m09,
 	'm10-hedged-book': m10,
 	'm11-news-calendar': m11,
-	'm12-capstone': m12
+	'm12-capstone': m12,
+	'm13-call-spread': m13,
+	'm14-covered-call': m14,
+	'm15-protective-put': m15,
+	'm16-range-condor': m16,
+	'm17-before-expiry': m17
 };
 
 export function tutorialFor(missionId: string, locale: Locale): TutorialCard[] {

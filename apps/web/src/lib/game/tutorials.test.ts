@@ -6,7 +6,7 @@ import { campaignMissions } from './curriculum.ts';
 const MISSIONS = [
 	'm01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer',
 	'm06-thin-book', 'm07-trend-trailing', 'm08-regime-switch', 'm09-event-straddle', 'm10-hedged-book', 'm11-news-calendar',
-	'm12-capstone'
+	'm12-capstone', 'm13-call-spread', 'm14-covered-call', 'm15-protective-put', 'm16-range-condor', 'm17-before-expiry'
 ];
 // What the scenarios were built to do is revealed only in the debrief: no outcome, no direction, no
 // timing (m06 leaves its range, m07's trend direction, m08's switches, m09's drawn decision, m10's
@@ -68,6 +68,32 @@ describe('mission tutorials', () => {
 		// m11's advisor card explains the EventAhead wait, not the m01 points intro.
 		expect(tutorialFor('m11-news-calendar', 'en').find((c) => c.art === 'advisor')?.body).toMatch(/3 bars.*wait/s);
 		expect(tutorialFor('m11-news-calendar', 'pt-BR').find((c) => c.art === 'advisor')?.body).toMatch(/3 barras.*esperar/s);
+	});
+
+	it('strategy cards (m13-m17): the new art first, the spec card list, never what the seed drew', () => {
+		const arts = (id: string) => tutorialFor(id, 'en').map((c) => c.art);
+		expect(arts('m13-call-spread')).toEqual(['spread', 'payoff', 'volatility', 'margin']);
+		expect(arts('m14-covered-call')).toEqual(['covered', 'payoff', 'margin', 'funding']);
+		expect(arts('m15-protective-put')).toEqual(['insurance', 'risk', 'chain', 'decay']);
+		expect(arts('m16-range-condor')).toEqual(['condor', 'volatility', 'margin', 'risk', 'decay']);
+		expect(arts('m17-before-expiry')).toEqual(['roll', 'decay', 'chain', 'plan']);
+		// m15's insurance may or may not be needed: the cards never say a fall will come.
+		for (const loc of ['pt-BR', 'en'] as const) {
+			for (const c of tutorialFor('m15-protective-put', loc)) expect(c.body).not.toMatch(/will (fall|drop)|vai cair|haverá (uma )?queda/i);
+		}
+		expect(tutorialFor('m15-protective-put', 'en').find((c) => c.art === 'risk')?.body).toMatch(/may or may not/);
+		expect(tutorialFor('m15-protective-put', 'pt-BR').find((c) => c.art === 'risk')?.body).toMatch(/pode vir ou não/);
+	});
+
+	it('every mission that writes options states its margin rule; the covered call is margined on its own (spec mission-tutorial)', () => {
+		const card = (id: string, loc: 'pt-BR' | 'en') => tutorialFor(id, loc).map((c) => c.body).join(' ');
+		for (const id of ['m05-options-writer', 'm10-hedged-book']) expect(card(id, 'en'), id).toMatch(/margin/);
+		for (const id of ['m13-call-spread', 'm16-range-condor', 'm17-before-expiry']) {
+			expect(card(id, 'en'), id).toMatch(/covered by a bought one of the same kind and expiry needs (margin )?only/);
+			expect(card(id, 'pt-BR'), id).toMatch(/coberta por uma comprada do mesmo tipo e vencimento pede (margem )?só/);
+		}
+		expect(card('m14-covered-call', 'en')).toMatch(/written call needs its own margin even while the long covers it in P&L/);
+		expect(card('m14-covered-call', 'pt-BR')).toMatch(/call vendida tem margem própria mesmo com o long cobrindo o resultado/);
 	});
 
 	it('an unknown mission has no tutorial', () => {

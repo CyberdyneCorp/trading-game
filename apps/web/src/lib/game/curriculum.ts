@@ -19,6 +19,7 @@ export type StageId =
 	| 'options1'
 	| 'options2'
 	| 'options3'
+	| 'strategies'
 	| 'patterns'
 	| 'events'
 	| 'evaluation';
@@ -48,7 +49,16 @@ export const STAGES: readonly Stage[] = [
 	{ id: 'options1', requires: ['risk'], missions: ['m04-options-buyer'], lessons: [], unlocks: ['optionsBuy'] },
 	{ id: 'options2', requires: ['options1'], missions: ['m04-options-buyer', 'm09-event-straddle'], lessons: [], unlocks: [] },
 	{ id: 'options3', requires: ['options2'], missions: ['m05-options-writer', 'm10-hedged-book'], lessons: [], unlocks: ['optionsWrite'] },
-	{ id: 'patterns', requires: ['options3'], missions: ['m08-regime-switch'], lessons: [], unlocks: [] },
+	// Strategies (add-academy-and-strategies design D8): option structures after Options III, which
+	// already unlocks writing; m15 buys only. The capstone stays last.
+	{
+		id: 'strategies',
+		requires: ['options3'],
+		missions: ['m13-call-spread', 'm14-covered-call', 'm15-protective-put', 'm16-range-condor', 'm17-before-expiry'],
+		lessons: [],
+		unlocks: []
+	},
+	{ id: 'patterns', requires: ['strategies'], missions: ['m08-regime-switch'], lessons: [], unlocks: [] },
 	// Events before Evaluation (design D8.4): the capstone builds on the news lesson and comes last.
 	{ id: 'events', requires: ['patterns'], missions: ['m11-news-calendar'], lessons: [], unlocks: [] },
 	{ id: 'evaluation', requires: ['events'], missions: ['m12-capstone'], lessons: [], unlocks: [] }

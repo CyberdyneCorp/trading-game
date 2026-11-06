@@ -180,6 +180,59 @@
 		<text x="150" y="44" class="small attention" text-anchor="end">E[R]</text>
 		<text x="150" y="14" class="small attention" text-anchor="end">n = 7 &lt; 30</text>
 		<text x="12" y="94" class="small muted">R · {t('tut.art.trades')}</text>
+	{:else if art === 'spread'}
+		<!-- Bull call spread at expiry: the debit below the lower strike, a capped gain above the upper one. -->
+		<line class="axis" x1="8" x2="152" y1="58" y2="58" />
+		<path class="payoff" d="M8,72 L62,72 L102,30 L152,30" />
+		<line class="strike" x1="62" x2="62" y1="8" y2="92" />
+		<line class="strike" x1="102" x2="102" y1="8" y2="92" />
+		<circle class="be" cx="75" cy="58" r="3" />
+		<text x="75" y="52" class="small info" text-anchor="end">BE</text>
+		<text x="150" y="24" class="small up-fill" text-anchor="end">{t('tut.art.cap')}</text>
+		<text x="10" y="84" class="small down-fill">−{t('tut.art.premium')}</text>
+		<text x="82" y="98" class="small muted" text-anchor="middle">K1 · K2</text>
+	{:else if art === 'covered'}
+		<!-- Long + written call at expiry: the long's line (dashed) bent flat at the strike, lifted by the premium. -->
+		<line class="axis" x1="8" x2="152" y1="56" y2="56" />
+		<path class="strike" d="M8,88 L152,14" />
+		<path class="payoff" d="M8,80 L96,34 L152,34" />
+		<line class="strike" x1="96" x2="96" y1="8" y2="92" />
+		<text x="150" y="28" class="small up-fill" text-anchor="end">{t('tut.art.cap')}</text>
+		<text x="150" y="12" class="small muted" text-anchor="end">long</text>
+		<text x="12" y="96" class="small down-fill">+{t('tut.art.premium')}</text>
+	{:else if art === 'insurance'}
+		<!-- Long + put at expiry: a floor below the strike, the long's open loss (dashed) without it. -->
+		<line class="axis" x1="8" x2="152" y1="50" y2="50" />
+		<path class="strike" d="M8,92 L152,16" />
+		<path class="payoff" d="M8,70 L64,70 L152,24" />
+		<line class="strike" x1="64" x2="64" y1="8" y2="92" />
+		<text x="10" y="64" class="small attention">{t('tut.art.floor')}</text>
+		<text x="68" y="96" class="small muted">strike</text>
+		<text x="150" y="44" class="small down-fill" text-anchor="end">−{t('tut.art.premium')}</text>
+	{:else if art === 'condor'}
+		<!-- Iron condor (solid, flat wings) against a short strangle (dashed, open on both sides). -->
+		<line class="axis" x1="8" x2="152" y1="44" y2="44" />
+		<path class="liq" d="M8,96 L52,30 L108,30 L152,96" />
+		<path class="payoff" d="M8,66 L30,66 L49,38 L111,38 L130,66 L152,66" />
+		<text x="80" y="24" class="small up-fill" text-anchor="middle">+{t('tut.art.premium')}</text>
+		<text x="10" y="60" class="small attention">{t('tut.art.condor')}</text>
+		<text x="150" y="92" class="small danger" text-anchor="end">{t('tut.art.strangle')} · {t('tut.art.open')}</text>
+		<line class="bracket" x1="140" x2="140" y1="44" y2="66" />
+	{:else if art === 'roll'}
+		<!-- A roll: close the near expiry's option, open the next one's — two trades. -->
+		<line class="axis" x1="8" x2="152" y1="70" y2="70" />
+		<line class="strike" x1="62" x2="62" y1="20" y2="76" />
+		<line class="strike" x1="134" x2="134" y1="20" y2="76" />
+		<text x="62" y="88" class="small muted" text-anchor="middle">{t('tut.art.near')}</text>
+		<text x="134" y="88" class="small muted" text-anchor="middle">{t('tut.art.next')}</text>
+		<rect class="box" x="20" y="40" width="34" height="18" />
+		<text x="37" y="53" class="small danger" text-anchor="middle">✗</text>
+		<rect class="box info-stroke" x="90" y="40" width="34" height="18" />
+		<text x="107" y="53" class="small info" text-anchor="middle">+</text>
+		<line class="arrow" x1="56" x2="84" y1="49" y2="49" />
+		<path class="arrow-head" d="M84,45 L90,49 L84,53 Z" />
+		<text x="72" y="34" class="small attention" text-anchor="middle">2 × {t('tut.art.spread')}</text>
+		<text x="150" y="14" class="small muted" text-anchor="end">{t('tut.art.expiry')}</text>
 	{/if}
 </svg>
 

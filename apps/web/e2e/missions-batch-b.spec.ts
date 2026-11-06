@@ -8,7 +8,7 @@ const INDEX = { m09: 8, m10: 9, m11: 10, m12: 11 } as const;
 const ALL_MISSIONS = [
 	'm01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer',
 	'm06-thin-book', 'm07-trend-trailing', 'm08-regime-switch', 'm09-event-straddle', 'm10-hedged-book', 'm11-news-calendar',
-	'm12-capstone'
+	'm12-capstone', 'm13-call-spread', 'm14-covered-call', 'm15-protective-put', 'm16-range-condor', 'm17-before-expiry'
 ];
 
 async function answerIfAsked(page: Page) {
@@ -157,22 +157,23 @@ async function seedProgress(page: Page, progress: Record<string, unknown>) {
 
 test('the capstone closes the campaign run with its report: too few trades to conclude', async ({ page }) => {
 	await page.goto('/?seed=1213');
-	// Eleven settled missions, two trades each (one win, one loss), with the engine facts each debrief stored.
+	// Sixteen settled missions, one trade each (a win, then a loss, alternately: fewer than 30 trades in
+	// all), with the engine facts each debrief stored.
 	const before = ALL_MISSIONS.filter((m) => m !== 'm12-capstone');
 	const order = ['m06-thin-book', 'm01-false-breakout', 'm03-volatility-shock', 'm02-funding-squeeze', 'm07-trend-trailing',
-		'm04-options-buyer', 'm09-event-straddle', 'm05-options-writer', 'm10-hedged-book', 'm08-regime-switch', 'm11-news-calendar'];
-	const report = {
-		trades: [{ net: '120', rBp: 15000, regime: 'trend' }, { net: '-60', rBp: -10000, regime: 'range' }],
-		netPnl: '50', fees: '6', spreadSlippage: '4', funding: '-0.5'
-	};
+		'm04-options-buyer', 'm09-event-straddle', 'm05-options-writer', 'm10-hedged-book', 'm13-call-spread', 'm14-covered-call',
+		'm15-protective-put', 'm16-range-condor', 'm17-before-expiry', 'm08-regime-switch', 'm11-news-calendar'];
+	const win = { net: '120', rBp: 15000, regime: 'trend' };
+	const loss = { net: '-60', rBp: -10000, regime: 'range' };
 	const legs = order.map((missionId, i) => ({
-		runId: `r${i}`, missionId, startCapital: String(10000 + 50 * i), endCapital: String(10050 + 50 * i), result: 'finished', report
+		runId: `r${i}`, missionId, startCapital: String(10000 + 50 * i), endCapital: String(10050 + 50 * i), result: 'finished',
+		report: { trades: [i % 2 === 0 ? win : loss], netPnl: '50', fees: '6', spreadSlippage: '4', funding: '-0.5' }
 	}));
 	await seedProgress(page, {
 		version: 2, tutorialsSeen: ALL_MISSIONS, advisorPoints: 3, settledRuns: [], assessed: before, campaignHistory: [],
-		campaign: { id: 'camp-final', startedAt: 1, capital: '10550', index: 11, status: 'active', legs }
+		campaign: { id: 'camp-final', startedAt: 1, capital: '10800', index: 16, status: 'active', legs }
 	});
-	await expect(page.getByTestId('campaign-progress')).toContainText('Missão 12 de 12');
+	await expect(page.getByTestId('campaign-progress')).toContainText('Missão 17 de 17');
 	await page.getByTestId('campaign-continue').click();
 	await expect(page.getByRole('heading', { name: /Missão 12 · Prova final/ })).toBeVisible();
 	await page.getByRole('button', { name: /Abrir terminal/ }).click();
@@ -182,12 +183,12 @@ test('the capstone closes the campaign run with its report: too few trades to co
 
 	const r = page.getByTestId('campaign-report');
 	await expect(r).toBeVisible();
-	await expect(r).toContainText('12 missões desta campanha'); // the eleven seeded legs and this run
+	await expect(r).toContainText('17 missões desta campanha'); // the sixteen seeded legs and this run
 	await expect(r.getByTestId('report-sample')).toContainText(/Só \d+ trades: poucos demais para concluir/);
 	await expect(r.getByTestId('report-expectancy')).toHaveText(/^[+-]\d+,\d{2}R$/);
 	await expect(r.getByTestId('report-cost-share')).toHaveText(/\d+,\d%|P&L bruto negativo/);
 	await expect(r).toContainText('Por regime revelado');
-	await expect(page.getByTestId('campaign-outcome')).toContainText('CAMPANHA 12/12');
+	await expect(page.getByTestId('campaign-outcome')).toContainText('CAMPANHA 17/17');
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
 	await page.getByTestId('open-curriculum').click();
 	await expect(page.locator('[data-stage=evaluation]')).toHaveAttribute('data-status', 'passed');

@@ -202,6 +202,102 @@ const TEXTS: Record<string, MissionQuestions> = {
 			{ prompt: '10 trades: 4 ganharam 2R cada e 6 perderam 1R cada. Qual é a expectativa, em R por trade?', choices: [] },
 			{ prompt: '10 trades: 4 won 2R each and 6 lost 1R each. What is the expectancy, in R per trade?', choices: [] }
 		)
+	},
+	// Strategies (add-academy-and-strategies design D8): rubrics shipped reviewed: false.
+	'm13-call-spread': {
+		'spread-breakeven': q(
+			{
+				prompt: 'Trava de alta: call de strike 100 comprada e call de strike 105 vendida, com débito líquido de 2,10. Qual é o ponto de equilíbrio no vencimento?',
+				choices: []
+			},
+			{
+				prompt: 'Bull call spread: a 100-strike call bought and a 105-strike call written, for a net debit of 2.10. What is its breakeven at expiry?',
+				choices: []
+			}
+		),
+		'spread-max-profit': q(
+			{
+				prompt: 'Na mesma trava 100/105 com débito de 2,10, qual é o lucro máximo por unidade no vencimento?',
+				choices: ['Ilimitado, como o de uma call comprada', '2,10: o débito pago', '2,90: a largura (5) menos o débito']
+			},
+			{
+				prompt: 'In the same 100/105 spread for a 2.10 debit, what is the maximum profit per unit at expiry?',
+				choices: ['Unlimited, like a bought call', '2.10: the debit paid', '2.90: the width (5) minus the debit']
+			}
+		)
+	},
+	'm14-covered-call': {
+		'covered-max-profit': q(
+			{ prompt: 'Long de 1 unidade a 100 e call de strike 105 vendida por 2. Qual é o lucro máximo por unidade no vencimento, sem custos?', choices: [] },
+			{ prompt: 'Long 1 unit at 100 and a 105-strike call written for 2. What is the maximum profit per unit at expiry, without costs?', choices: [] }
+		),
+		'covered-fall': q(
+			{
+				prompt: 'Numa venda coberta, o que protege a posição se o preço cair 20%?',
+				choices: ['Só o prêmio recebido: o long sofre quase toda a queda', 'A call vendida, que ganha o que o long perde', 'A margem da call, que é devolvida']
+			},
+			{
+				prompt: 'In a covered call, what protects the position if the price falls 20%?',
+				choices: ['Only the premium collected: the long takes almost the whole fall', 'The written call, which gains what the long loses', 'The call’s margin, which is returned']
+			}
+		)
+	},
+	'm15-protective-put': {
+		'put-floor': q(
+			{ prompt: 'Long de 1 unidade a 100 com put de strike 95 comprada por 2. Perda máxima por unidade até o vencimento, sem custos?', choices: [] },
+			{ prompt: 'Long 1 unit at 100 with a 95-strike put bought for 2. Maximum loss per unit to expiry, without costs?', choices: [] }
+		),
+		'calm-put-loss': q(
+			{
+				prompt: 'Numa partida calma, a put de proteção terminou com prejuízo. Por quê?',
+				choices: ['A put estava com o strike errado', 'O prêmio pago era valor de tempo, que o theta consumiu até o vencimento', 'A corretora cobrou margem da put']
+			},
+			{
+				prompt: 'In a calm run, the protective put ended at a loss. Why?',
+				choices: ['The put had the wrong strike', 'The premium paid was time value, which theta ate away by expiry', 'The exchange charged margin on the put']
+			}
+		)
+	},
+	'm16-range-condor': {
+		'condor-max-loss': q(
+			{
+				prompt: 'Iron condor 90/95/105/110 (puts 90 comprada e 95 vendida, calls 105 vendida e 110 comprada) com crédito líquido de 3. Perda máxima por unidade no vencimento, sem custos?',
+				choices: []
+			},
+			{
+				prompt: 'Iron condor 90/95/105/110 (puts: 90 bought, 95 written; calls: 105 written, 110 bought) for a net credit of 3. Maximum loss per unit at expiry, without costs?',
+				choices: []
+			}
+		),
+		'unbounded-structure': q(
+			{
+				prompt: 'Qual destas estruturas tem perda sem limite definido?',
+				choices: ['O iron condor', 'A trava de alta com calls', 'O strangle vendido']
+			},
+			{ prompt: 'Which of these structures has a loss with no defined limit?', choices: ['The iron condor', 'The bull call spread', 'The short strangle'] }
+		)
+	},
+	'm17-before-expiry': {
+		'theta-near-expiry': q(
+			{
+				prompt: 'O que acontece com o theta por barra de uma opção no dinheiro nas últimas barras antes do vencimento?',
+				choices: ['Cresce: o valor de tempo restante cai cada vez mais rápido', 'Diminui até zero de forma constante', 'Não muda: o theta só depende da volatilidade']
+			},
+			{
+				prompt: 'What happens to an at-the-money option’s theta per bar in the last bars before expiry?',
+				choices: ['It grows: the time value left falls faster and faster', 'It shrinks steadily to zero', 'It does not change: theta depends only on volatility']
+			}
+		),
+		'what-is-roll': q(
+			{
+				prompt: 'O que é rolar uma opção?',
+				choices: ['Adiar o vencimento da mesma opção sem custo', 'Fechar a posição de um vencimento e abrir outra num vencimento seguinte: duas operações', 'Trocar a call por uma put do mesmo strike']
+			},
+			{
+				prompt: 'What is rolling an option?',
+				choices: ['Postponing the same option’s expiry at no cost', 'Closing the position in one expiry and opening another in a later one: two trades', 'Swapping the call for a put at the same strike']
+			}
+		)
 	}
 };
 

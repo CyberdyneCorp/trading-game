@@ -33,7 +33,7 @@ Catalog en() {
 }  // namespace
 
 TEST_CASE("web content: stages, lessons, shortcuts and constants come from the web sources") {
-  CHECK(C().stages.size() == 13);
+  CHECK(C().stages.size() == 14);
   CHECK(C().stages.front().id == "foundations");
   CHECK(C().locked_leverage_cap == 2);
   CHECK(C().campaign_capital == "10000");
@@ -56,7 +56,7 @@ TEST_CASE("curriculum: statuses, campaign order and the leverage gate") {
   CHECK(stage_status(C(), "futures1", none) == StageStatus::Locked);
   CHECK(stage_status(C(), "foundations", none, {"foundations-bar"}) == StageStatus::Passed);
   const Ids order = campaign_missions(C());
-  REQUIRE(order.size() == 12);
+  REQUIRE(order.size() == 17);
   CHECK(order.front() == "m06-thin-book");
   CHECK(order[1] == "m01-false-breakout");
   CHECK(order.back() == "m12-capstone");
@@ -71,7 +71,7 @@ TEST_CASE("curriculum: statuses, campaign order and the leverage gate") {
   CHECK_FALSE(campaign_permissions(C(), "m02-funding-squeeze", {"m03-volatility-shock"}).leverage_cap.has_value());
   const CurriculumSummary s = curriculum_summary(C(), {"m06-thin-book"}, {"foundations-bar"});
   CHECK(s.passed == 3);
-  CHECK(s.with_content == 13);
+  CHECK(s.with_content == 14);
 }
 
 TEST_CASE("campaign: capital carries on, bankruptcy and the minimum end it, settling is idempotent") {
@@ -120,20 +120,20 @@ TEST_CASE("campaign: completing every mission, best capital and the report") {
                              std::to_string(10000 + i), r});
   }
   CHECK(p.campaign->status == CampaignStatus::Complete);
-  CHECK(best_completed_capital(p.campaign_history) == "10011");
+  CHECK(best_completed_capital(p.campaign_history) == "10016");
   const CampaignReport r = campaign_report(C(), p.campaign->legs);
-  CHECK(r.missions == 12);
-  CHECK(r.trades == 36);
-  CHECK(r.wins == 24);
-  CHECK(r.without_r == 12);
+  CHECK(r.missions == 17);
+  CHECK(r.trades == 51);
+  CHECK(r.wins == 34);
+  CHECK(r.without_r == 17);
   CHECK(r.avg_win_r.value() == doctest::Approx(0.5));
   CHECK(r.avg_loss_r.value() == doctest::Approx(-1.0));
   CHECK(r.expectancy_r.value() == doctest::Approx(-0.25));
-  CHECK(r.costs == doctest::Approx(12 * 2.0));  // fees + spread + funding paid
-  CHECK(r.cost_share.value() == doctest::Approx(24.0 / (96 + 24)));
+  CHECK(r.costs == doctest::Approx(17 * 2.0));  // fees + spread + funding paid
+  CHECK(r.cost_share.value() == doctest::Approx(34.0 / (136 + 34)));
   CHECK_FALSE(r.too_few);
   REQUIRE(r.by_regime.size() == 3);
-  CHECK(r.by_regime[0].trades == 12);
+  CHECK(r.by_regime[0].trades == 17);
   CHECK(r.by_regime[2].regime == "unlabeled");
 }
 
