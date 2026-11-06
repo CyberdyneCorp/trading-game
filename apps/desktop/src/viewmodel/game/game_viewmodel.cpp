@@ -370,7 +370,7 @@ void GameViewModel::move_order(int order_id, double price) {
   if (it == state_->orders.end()) return;
   const std::string to = fmt::price_to_tick(price, state_->contract.tick);
   if (to == it->price_text || fmt::num(to) == it->price) return;
-  if (!exit_on_valid_side(it->side, it->type, fmt::num(to), state_->account.mark)) {
+  if (!exit_on_valid_side(it->side, it->type, fmt::num(to), state_->last_price())) {
     return set_notice({"\xE2\x9C\x96 " + texts().tr(it->type == "stop_market" ? "chart.dragStopSide" : "chart.dragTpSide"), Tone::Error});
   }
   if (state_->rules.confirm_stop_beyond_liq &&

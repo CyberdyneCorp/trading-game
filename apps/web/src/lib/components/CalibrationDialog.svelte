@@ -2,6 +2,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { lastPrice } from '#lib/game/lastPrice.ts';
 
 	let { session }: { session: GameSession } = $props();
 	let pct = $state(50);
@@ -22,7 +23,7 @@
 	<div class="modal" role="dialog" aria-modal="true" aria-labelledby="cal-title" tabindex="-1" bind:this={modal} onkeydown={keepFocus}>
 		<h2 id="cal-title">{t('cal.title')}</h2>
 		<p class="q" id="cal-q">
-			{t('cal.question', { h: session.state?.calibration.horizon ?? 5, price: fmtPrice(session.state?.account.mark, i18n.locale) })}
+			{t('cal.question', { h: session.state?.calibration.horizon ?? 5, price: session.state ? fmtPrice(String(lastPrice(session.state)), i18n.locale) : '' })}
 		</p>
 		<label>
 			<span class="big">{pct}%</span>

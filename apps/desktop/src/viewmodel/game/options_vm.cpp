@@ -39,7 +39,7 @@ bool held(const GameState& g, const OptionQuote* q) {
 ChainRow chain_row(const Texts& t, const GameState& g, int expiry, double strike, std::optional<int> selected) {
   const OptionQuote* call = find_quote(g, expiry, strike, "call");
   const OptionQuote* put = find_quote(g, expiry, strike, "put");
-  ChainRow row{fmt::fmt_num(strike, t.locale(), 2), g.account.mark > strike, held(g, call) || held(g, put), std::nullopt,
+  ChainRow row{fmt::fmt_num(strike, t.locale(), 2), g.last_price() > strike, held(g, call) || held(g, put), std::nullopt,
                std::nullopt};
   if (call != nullptr) row.call = cell(t, *call, selected);
   if (put != nullptr) row.put = cell(t, *put, selected);
@@ -103,7 +103,7 @@ std::optional<OptionTicketViewModel::Calc> OptionTicketViewModel::calc(const Gam
   const Options& o = g.options;
   c.mult = o.multiplier;
   c.lot = o.lot;
-  c.f = g.account.mark;
+  c.f = g.last_price();  // the underlying options are priced on
   const double typed = fmt::parse_decimal(qty);
   c.qty = std::floor((std::isfinite(typed) ? typed : 0) / c.lot + 1e-9) * c.lot;
   for (const auto& p : o.positions) {

@@ -745,7 +745,7 @@ export class GameSession implements CatalogHost {
 		const engine = await this.useRunEngine(r.engine);
 		if (engine.refused) {
 			this.menuAlert = engine.refused;
-			this.saved = null;
+			await this.leaveUnresumable(r.runId);
 			return;
 		}
 		this.options = { ...DEFAULT_RUN_OPTIONS, ...r.options };
@@ -1107,6 +1107,15 @@ export class GameSession implements CatalogHost {
 			next = settleCampaignRun(next, run.campaign, { runId: run.runId, missionId: run.missionId, result: 'left', equity: run.equity });
 		}
 		this.saveProgress(next);
+	}
+
+	// A run no engine of this version can drive (another C ABI) is left as a new run would leave it
+	// (advice charged, a campaign mission keeps its equity), so the menu stops offering a resume that
+	// can only be refused again, and its pinned build is collected.
+	private async leaveUnresumable(runId: string): Promise<void> {
+		await this.settleAbandoned();
+		await this.store?.updateRun(runId, { status: 'left' }).catch(() => (this.durable = false));
+		await this.refreshSaved();
 	}
 
 	// The stored active run (also after a reload), else the one in memory when nothing is stored.

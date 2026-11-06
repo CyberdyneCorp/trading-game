@@ -125,7 +125,7 @@ The desktop client SHALL store runs, actions, checkpoints, progress, settings an
 
 #### Scenario: Run recorded under another engine C ABI
 - **WHEN** the saved run was recorded under another engine C ABI than this build's
-- **THEN** it SHALL NOT be replayed and the menu SHALL say why (the web's `engine.abiMismatch`)
+- **THEN** it SHALL NOT be replayed, it SHALL be stored as left so later launches do not offer it, and the menu SHALL say why (the web's `engine.abiMismatch`)
 
 ### Requirement: Pack installation through the engine
 Downloaded and imported packs SHALL be installed only after size and SHA-256 checks and the engine's signature and content validation against the pinned publisher keys (and the device key for private packs), with an atomic move into the packs directory. Downloads SHALL resume from the stored offset.

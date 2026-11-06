@@ -213,6 +213,13 @@ for (const fake of [
 		expect(used.map((r) => new URL(r.engineUrl).pathname)).toEqual([OLD_ENGINE, run.engine]);
 		expect(requestKinds(log)).not.toContain('restore');
 		expect(requestKinds(log)).not.toContain('advance');
+		// Regression: the refused run stayed active, so every reopening offered a resume that could
+		// only be refused again. It is left (as a new run would leave it) and its build collected.
+		await expect.poll(async () => ((await dumpDb(page)).runs[0] as { status: string }).status).toBe('left');
+		await expect.poll(() => engineCacheEntries(page)).toEqual([run.engine]);
+		await page.reload();
+		await expect(page.getByTestId('open-catalog')).toBeVisible();
+		await expect(page.getByRole('button', { name: /Continuar partida/ })).toHaveCount(0);
 		// A new run still starts on this version's engine.
 		await startFirstMission(page);
 		await step(page);

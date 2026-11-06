@@ -230,8 +230,10 @@ std::optional<Resumed> RunRecorder::resume() {
     }
   }
   // A run recorded under another C ABI is never driven by this build (its log may mean something else).
+  // It is stored as left (like the web), so the next launch does not offer a resume it can only refuse.
   if (const int abi = r.engine_abi.value_or(1); abi != engine_.abi) {
     out.notice = {ResumeNoticeKind::AbiChanged, r.engine + "/" + std::to_string(abi)};
+    guarded([&] { storage_.store().leave_active_run(); });
     return out;
   }
   std::int64_t restored = 0;

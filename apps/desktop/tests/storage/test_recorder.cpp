@@ -209,9 +209,12 @@ TEST_CASE("storage recorder: a run recorded under another engine C ABI is refuse
     CHECK(resumed->notice.detail == current_engine_version().engine + "/0");
     CHECK(resume_notice_name(resumed->notice.kind) == "abi_changed");
     CHECK(resumed->notice.i18n_key() == "engine.abiMismatch");
+    // Regression: the refused run stayed active, so every launch offered a resume it could only
+    // refuse again. It is stored as left.
+    CHECK(storage.store().active_run()->record.status == "left");
   }
   Storage storage(dir.path());
-  storage.store().db().exec("UPDATE runs SET engine_abi = NULL");
+  storage.store().db().exec("UPDATE runs SET engine_abi = NULL, status = 'active'");
   RunRecorder rec(storage);
   auto resumed = rec.resume();
   REQUIRE(resumed->run);

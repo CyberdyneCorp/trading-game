@@ -24,6 +24,10 @@ The engine SHALL read every pack schema version from 1 up to the newest it knows
 - **WHEN** a schema-2 pack carries mission texts and objectives
 - **THEN** the briefing SHALL show its title, briefing and objectives in the shown locale, and the engine's mission rules SHALL list those objectives
 
+#### Scenario: Pack with a mark-price series
+- **WHEN** a run is on a schema-2 pack whose mark price differs from the last price
+- **THEN** the briefing SHALL say that margin, liquidation and funding use the mark, and the clients SHALL estimate and side-check orders at the last price, as the engine places and fills them
+
 #### Scenario: Schema-2 feature in a schema-1 manifest
 - **WHEN** a manifest declaring schema 1 lists margin tiers or a `mission.json`
 - **THEN** validation SHALL fail (`invalid_field` naming the field, `unsupported_feature` naming the file)
