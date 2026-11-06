@@ -167,9 +167,16 @@ jobs:
           arch -x86_64 /usr/bin/true 2>/dev/null || sudo softwareupdate --install-rosetta --agree-to-license
           arch -x86_64 build/macos-universal/tests/tradelab_desktop_golden_tests
       # Windowed tests on the hosted runner's Metal device through MoltenVK: they pass there, so they block.
+      # The runner's display is 1024x768, so macOS shrinks every window to 1024x645: the checks that need
+      # the requested window size (reference images, text cut by its panel) are reported and skipped here
+      # (TRADELAB_SMALL_SCREEN=1, tests/support/window_size.hpp) and asserted by the Linux job (Xvfb 1920x1080).
       - name: Windowed tests (MoltenVK)
         working-directory: apps/desktop
-        run: ctest --test-dir build/macos-universal -L windowed --output-on-failure
+        env:
+          TRADELAB_SMALL_SCREEN: "1"
+        run: |
+          system_profiler SPDisplaysDataType | grep -E 'Resolution|Display Type' || true
+          ctest --test-dir build/macos-universal -L windowed --output-on-failure
       - name: TradeLab.app (pinned MoltenVK, ad-hoc signed)
         working-directory: apps/desktop
         run: packaging/package_macos.sh build/macos-universal dist

@@ -7,6 +7,7 @@
 #include <raven/raven_resources.h>
 #include <raven/raven_window.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <string>
@@ -102,6 +103,10 @@ TEST_CASE("windowed flows: the debrief chart is drawn, with its candle table and
   RavenSession raven;
   App app(builtin_catalog(), [] { return 3u; });
   REQUIRE(app.build(1280, 800));
+  // CRT off: its scanlines, bloom and vignette tint every pixel, so the candles' phosphor green is only
+  // found when the system asks for reduced motion (which turns the CRT off, as on the hosted macOS
+  // runners) and the check depended on that setting.
+  app.vm().set_crt(CrtSettings{false, false, false, false});
   Driver d(app);
   d.frames(4);
   Terminal t(app, d);
