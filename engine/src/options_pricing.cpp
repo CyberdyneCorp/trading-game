@@ -3,9 +3,13 @@
 
 #include "tradelab/det_math.hpp"
 #include "tradelab/options.hpp"
+#include "options_kernel.hpp"
 
 namespace tradelab {
 namespace {
+
+using detail::KernelInputs;
+using detail::UnitValuation;
 
 constexpr double kMinutesPerYear = 365.0 * 24.0 * 60.0;
 constexpr double kRefYears = 30.0 / 365.0;  // term-structure reference maturity
@@ -49,26 +53,7 @@ double realized_vol(const Scenario& sc, std::uint32_t step, double step_years) {
   return det::sqrt(var / step_years);
 }
 
-struct Inputs {
-  double f;
-  double k;
-  double t;      // years to expiry
-  double sigma;  // annualized implied volatility
-  double step_years;
-  bool realized;
-};
-
-Inputs make_inputs(const Scenario& sc, const OptionSeries& s, std::uint32_t step, Price forward) {
-  const OptionSpec& o = sc.options;
-  const double step_years = o.minutes_per_step / kMinutesPerYear;
-  Inputs in{to_d(forward), to_d(s.strike), (s.expiry_step - step) * step_years, 0.0, step_years, o.iv_base.empty()};
-  const double base = in.realized ? realized_vol(sc, step, step_years) : to_d(o.iv_base[step]);
-  const double lm = det::log(in.k / in.f);
-  const double term = 1.0 + to_d(o.term_slope) * (det::sqrt(kRefYears / std::max(in.t, kTermFloorYears)) - 1.0);
-  in.sigma = std::max(kMinVol, base * term + to_d(o.skew) * lm + to_d(o.smile) * lm * lm);
-  return in;
-}
-
+// Black-76 output in doubles (never stored: quantized by `price_unit`).
 struct Model {
   double price;
   double delta;
@@ -77,7 +62,7 @@ struct Model {
   double vega;  // per 1.00 of volatility
 };
 
-Model black76(const Inputs& in, OptionKind kind) {
+Model black76(const KernelInputs& in, OptionKind kind) {
   const double sq = det::sqrt(in.t);
   const double d1 = (det::log(in.f / in.k) + 0.5 * in.sigma * in.sigma * in.t) / (in.sigma * sq);
   const double d2 = d1 - in.sigma * sq;
@@ -92,6 +77,19 @@ Model black76(const Inputs& in, OptionKind kind) {
   return m;
 }
 
+// At (or past) expiry: intrinsic value; delta is 1 (call) or -1 (put) in the money, else 0.
+UnitValuation expired(const KernelInputs& in, OptionKind kind) {
+  const bool call = kind == OptionKind::Call;
+  const double v = std::max(0.0, call ? in.f - in.k : in.k - in.f);
+  UnitValuation u;
+  u.model = v;
+  u.value = quantize<Price>(v);
+  u.iv = quantize<Vol>(in.sigma);
+  const bool itm = call ? in.f > in.k : in.f < in.k;
+  u.delta = itm ? Rate::from_raw(call ? Rate::kScale : -Rate::kScale) : Rate{};
+  return u;
+}
+
 // Bid/ask around the model mid: half-spread = max(spread * mid, one tick); bid may be zero.
 void fill_book(const Scenario& sc, double mid, OptionQuote& q) {
   const Price tick = sc.options.premium_tick;
@@ -102,6 +100,47 @@ void fill_book(const Scenario& sc, double mid, OptionQuote& q) {
 }
 
 }  // namespace
+
+namespace detail {
+
+double raw_model_vol(const Scenario& sc, const OptionSeries& s, std::uint32_t base_step, Price forward, double t_years) {
+  const OptionSpec& o = sc.options;
+  const double step_years = o.minutes_per_step / kMinutesPerYear;
+  const double base = o.iv_base.empty() ? realized_vol(sc, base_step, step_years) : to_d(o.iv_base[base_step]);
+  const double lm = det::log(to_d(s.strike) / to_d(forward));
+  const double term = 1.0 + to_d(o.term_slope) * (det::sqrt(kRefYears / std::max(t_years, kTermFloorYears)) - 1.0);
+  return base * term + to_d(o.skew) * lm + to_d(o.smile) * lm * lm;
+}
+
+double step_years(const Scenario& sc) { return sc.options.minutes_per_step / kMinutesPerYear; }
+
+double minutes_to_years(double minutes) { return minutes / kMinutesPerYear; }
+
+double floor_vol(double sigma) { return std::max(kMinVol, sigma); }
+
+double to_double(Price p) { return to_d(p); }
+
+UnitValuation price_unit(const KernelInputs& in, OptionKind kind) {
+  if (in.t <= 0.0) return expired(in, kind);
+  const Model m = black76(in, kind);
+  UnitValuation u;
+  u.model = std::max(0.0, m.price);
+  u.value = quantize<Price>(u.model);
+  u.iv = quantize<Vol>(in.sigma);
+  u.delta = quantize<Rate>(m.delta);
+  u.gamma = quantize<Rate>(m.gamma);
+  u.theta = quantize<Price>(m.theta_year * in.step_years);
+  u.vega = quantize<Price>(m.vega / 100.0);
+  return u;
+}
+
+KernelInputs series_inputs(const Scenario& sc, const OptionSeries& s, std::uint32_t step, Price forward) {
+  const double sy = step_years(sc);
+  const double t = (s.expiry_step - step) * sy;
+  return {to_d(forward), to_d(s.strike), t, floor_vol(raw_model_vol(sc, s, step, forward, t)), sy};
+}
+
+}  // namespace detail
 
 const OptionSeries* find_series(const Scenario& sc, std::uint32_t id) {
   for (const OptionSeries& s : sc.options.series) {
@@ -120,15 +159,14 @@ OptionQuote quote(const Scenario& sc, const OptionSeries& series, std::uint32_t 
   q.series_id = series.id;
   q.listed = step >= series.list_step && step < series.expiry_step && forward.raw > 0;
   if (!q.listed) return q;
-  const Inputs in = make_inputs(sc, series, step, forward);
-  const Model m = black76(in, series.kind);
-  fill_book(sc, std::max(0.0, m.price), q);
-  q.iv = quantize<Vol>(in.sigma);
-  q.delta = quantize<Rate>(m.delta);
-  q.gamma = quantize<Rate>(m.gamma);
-  q.theta = quantize<Price>(m.theta_year * in.step_years);
-  q.vega = quantize<Price>(m.vega / 100.0);
-  q.iv_from_realized = in.realized;
+  const detail::UnitValuation u = detail::price_unit(detail::series_inputs(sc, series, step, forward), series.kind);
+  fill_book(sc, u.model, q);
+  q.iv = u.iv;
+  q.delta = u.delta;
+  q.gamma = u.gamma;
+  q.theta = u.theta;
+  q.vega = u.vega;
+  q.iv_from_realized = sc.options.iv_base.empty();
   return q;
 }
 

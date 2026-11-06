@@ -16,8 +16,29 @@ struct OptionBook {
   Money maintenance_margin;  // short positions
 };
 
+// Short-option margin of one position on its own (spec: options "Writing options").
+struct ShortMargin {
+  Money initial;
+  Money maintenance;
+};
+
+// |contracts| x multiplier x per_unit, rounded per mode.
+Money units_value(const Scenario& sc, Qty contracts, Price per_unit, Rounding mode);
+// Per-leg margin of `contracts` short at quote q (forward f).
+ShortMargin short_margin(const Scenario& sc, const OptionSeries& s, Qty contracts, const OptionQuote& q, Price f);
+// Taker fee of an option trade: a rate of the underlying notional, capped at 12.5% of the premium.
+Money option_fee(const Scenario& sc, Qty contracts, Price premium, Price underlying);
+
 // Valuation and margin of all option positions at decision step `step` (quotes at that close).
 OptionBook option_book(const Scenario& sc, const RunState& st, std::uint32_t step);
+
+// What placing this option order now would be checked against (premium + fee to buy, the margin a
+// sale adds), as place_option_order computes it.
+Money option_order_requirement(const Scenario& sc, const RunState& st, const OptionSeries& s, OrderSide side, Qty qty);
+
+// Applies a trade at the current step's quote (ask to buy, bid to sell): the combo dry run's
+// after-fill estimate, on a copy of the state.
+void fill_option_at_quote(const Scenario& sc, RunState& st, const OptionSeries& s, OrderSide side, Qty qty);
 
 CommandResult place_option_order(const Scenario& sc, RunState& st, const Command& c, Money available);
 

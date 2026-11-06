@@ -13,6 +13,9 @@
     "m12-capstone",
     "csv-pack",
     "reveal-m08",
-    "reveal-m11"
+    "reveal-m11",
+    "whatif-call",
+    "whatif-condor",
+    "whatif-covered-call"
   ]
 }

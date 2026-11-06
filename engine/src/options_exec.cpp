@@ -3,35 +3,15 @@
 #include <algorithm>
 
 #include "accounting.hpp"
+#include "spread_margin.hpp"
 
 namespace tradelab::detail {
-namespace {
-
 Money units_value(const Scenario& sc, Qty contracts, Price per_unit, Rounding mode) {
   const Qty u = unwrap(mul<Qty>(abs_qty(contracts), sc.options.multiplier, Rounding::TowardZero));
   return unwrap(mul<Money>(u, per_unit, mode));
 }
 
-OptionPosition* find_position(RunState& st, std::uint32_t series) {
-  for (OptionPosition& p : st.option_positions) {
-    if (p.series == series) return &p;
-  }
-  return nullptr;
-}
-
-const OptionPosition* find_position(const RunState& st, std::uint32_t series) {
-  for (const OptionPosition& p : st.option_positions) {
-    if (p.series == series) return &p;
-  }
-  return nullptr;
-}
-
 // Short-option margin per position (spec: options "Writing options"), quotes at step.
-struct ShortMargin {
-  Money initial;
-  Money maintenance;
-};
-
 ShortMargin short_margin(const Scenario& sc, const OptionSeries& s, Qty contracts, const OptionQuote& q, Price f) {
   const OptionSpec& o = sc.options;
   const Price otm = Price::from_raw(std::max<std::int64_t>(0, s.kind == OptionKind::Call ? s.strike.raw - f.raw
@@ -48,6 +28,22 @@ Money option_fee(const Scenario& sc, Qty contracts, Price premium, Price underly
   const Money cap = unwrap(mul<Money>(units_value(sc, contracts, premium, Rounding::Ceil),
                                       Rate::from_raw(Rate::kScale / 8), Rounding::Ceil));  // 12.5% of premium
   return std::min(by_notional, cap);
+}
+
+namespace {
+
+OptionPosition* find_position(RunState& st, std::uint32_t series) {
+  for (OptionPosition& p : st.option_positions) {
+    if (p.series == series) return &p;
+  }
+  return nullptr;
+}
+
+const OptionPosition* find_position(const RunState& st, std::uint32_t series) {
+  for (const OptionPosition& p : st.option_positions) {
+    if (p.series == series) return &p;
+  }
+  return nullptr;
 }
 
 void add(Money& m, Money d) { m = Money::from_raw(m.raw + d.raw); }
@@ -103,12 +99,24 @@ Qty opening_short_qty(const RunState& st, std::uint32_t series, OrderSide side, 
   return Qty::from_raw(std::max<std::int64_t>(0, q.raw - held_long));
 }
 
-// Cash or margin a new option order needs at quote `q` (forward f).
+// Margin a sell adds under spread margin: the requirement of the holdings with the sale minus
+// without it (working buys of this step count as longs at acceptance, design D5).
+Money spread_sell_requirement(const Scenario& sc, const RunState& st, const OptionSeries& s, Qty qty, std::uint32_t step,
+                              Price f, bool at_acceptance) {
+  std::vector<Holding> h = holdings_of(st, at_acceptance);
+  const Money before = total_initial(short_requirements(sc, h, step, f));
+  add_holding(h, s.id, Qty::from_raw(-qty.raw));
+  const Money after = total_initial(short_requirements(sc, h, step, f));
+  return Money::from_raw(std::max<std::int64_t>(0, after.raw - before.raw));
+}
+
+// Cash or margin a new option order needs at quote `q` (published at `step`, forward f).
 Money required_for(const Scenario& sc, const RunState& st, const OptionSeries& s, OrderSide side, Qty qty,
-                   const OptionQuote& q, Price f) {
+                   const OptionQuote& q, Price f, std::uint32_t step, bool at_acceptance) {
   if (side == OrderSide::Buy) {
     return Money::from_raw(units_value(sc, qty, q.ask, Rounding::Ceil).raw + option_fee(sc, qty, q.ask, f).raw);
   }
+  if (sc.options.spread_margin) return spread_sell_requirement(sc, st, s, qty, step, f, at_acceptance);
   const Qty short_q = opening_short_qty(st, s.id, side, qty);
   return short_q.raw > 0 ? short_margin(sc, s, short_q, q, f).initial : Money{};
 }
@@ -156,7 +164,7 @@ void execute_option_order(const Scenario& sc, RunState& st, Order& o, std::uint3
     if (o.type == OrderType::Market) cancel_order(st, o, q.listed ? Reason::NoBid : Reason::SeriesNotListed);
     return;
   }
-  if (required_for(sc, st, *s, o.side, o.remaining(), q, f) > available_now(sc, st, o.id)) {
+  if (required_for(sc, st, *s, o.side, o.remaining(), q, f, bar - 1, false) > available_now(sc, st, o.id)) {
     cancel_order(st, o, Reason::InsufficientMargin);
     return;
   }
@@ -204,18 +212,20 @@ std::int64_t option_account_equity(const RunState& st, const OptionBook& b) {
   return st.wallet.raw - st.position.margin.raw + b.long_value.raw - b.short_value.raw;
 }
 
+// Maintenance of each short at `bar`'s close: per leg, or paired under spread margin.
+std::vector<ShortRequirement> short_maintenance(const Scenario& sc, const RunState& st, std::uint32_t bar) {
+  return short_requirements(sc, holdings_of(st, false), bar, sc.bars[bar].close);
+}
+
 // Buys back the short with the largest maintenance margin at the ask (taker), then re-checks.
 bool buy_back_largest_short(const Scenario& sc, RunState& st, std::uint32_t bar) {
   const Price f = sc.bars[bar].close;
   const OptionPosition* worst = nullptr;
   Money worst_mm{};
-  for (const OptionPosition& p : st.option_positions) {
-    if (p.qty.raw >= 0) continue;
-    const OptionSeries* s = find_series(sc, p.series);
-    const ShortMargin m = short_margin(sc, *s, p.qty, quote(sc, *s, bar, f), f);
-    if (worst == nullptr || m.maintenance > worst_mm) {
-      worst = &p;
-      worst_mm = m.maintenance;
+  for (const ShortRequirement& r : short_maintenance(sc, st, bar)) {
+    if (worst == nullptr || r.maintenance > worst_mm) {
+      worst = find_position(st, r.series);
+      worst_mm = r.maintenance;
     }
   }
   if (worst == nullptr) return false;
@@ -252,16 +262,25 @@ OptionBook option_book(const Scenario& sc, const RunState& st, std::uint32_t ste
   for (const OptionPosition& p : st.option_positions) {
     const OptionSeries* s = find_series(sc, p.series);
     const OptionQuote q = quote(sc, *s, step, f);
-    if (p.qty.raw > 0) {
-      add(b.long_value, units_value(sc, p.qty, q.bid, Rounding::Floor));
-      continue;
-    }
-    add(b.short_value, units_value(sc, p.qty, q.ask, Rounding::Ceil));
-    const ShortMargin m = short_margin(sc, *s, p.qty, q, f);
-    add(b.initial_margin, m.initial);
-    add(b.maintenance_margin, m.maintenance);
+    if (p.qty.raw > 0) add(b.long_value, units_value(sc, p.qty, q.bid, Rounding::Floor));
+    else add(b.short_value, units_value(sc, p.qty, q.ask, Rounding::Ceil));
+  }
+  for (const ShortRequirement& r : short_requirements(sc, holdings_of(st, false), step, f)) {
+    add(b.initial_margin, r.initial);
+    add(b.maintenance_margin, r.maintenance);
   }
   return b;
+}
+
+Money option_order_requirement(const Scenario& sc, const RunState& st, const OptionSeries& s, OrderSide side, Qty qty) {
+  const Price f = sc.bars[st.step].close;
+  return required_for(sc, st, s, side, qty, quote(sc, s, st.step, f), f, st.step, true);
+}
+
+void fill_option_at_quote(const Scenario& sc, RunState& st, const OptionSeries& s, OrderSide side, Qty qty) {
+  const Price f = sc.bars[st.step].close;
+  const OptionQuote q = quote(sc, s, st.step, f);
+  apply_option_trade(sc, st, s.id, side, qty, side == OrderSide::Buy ? q.ask : q.bid, f, 0);
 }
 
 CommandResult place_option_order(const Scenario& sc, RunState& st, const Command& c, Money available) {
@@ -269,7 +288,7 @@ CommandResult place_option_order(const Scenario& sc, RunState& st, const Command
   if (const Reason r = validate_option(sc, st, c, s); r != Reason::None) return reject(r);
   const Price f = sc.bars[st.step].close;
   const OptionQuote q = quote(sc, *s, st.step, f);
-  if (required_for(sc, st, *s, c.side, c.qty, q, f) > available) return reject(Reason::InsufficientMargin);
+  if (required_for(sc, st, *s, c.side, c.qty, q, f, st.step, true) > available) return reject(Reason::InsufficientMargin);
   Order o;
   o.id = st.next_order_id++;
   o.seq = c.seq;

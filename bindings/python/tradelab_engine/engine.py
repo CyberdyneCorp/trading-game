@@ -67,6 +67,9 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_state": (c_char_p, [c_void_p]),
         "tl_debrief": (c_char_p, [c_void_p]),
         "tl_mission_reveal": (c_char_p, [c_char_p, u32]),
+        "tl_option_whatif": (c_char_p, [c_char_p]),
+        "tl_run_option_whatif": (c_char_p, [c_void_p, c_char_p]),
+        "tl_combo_preview": (c_char_p, [c_void_p, c_char_p]),
         "tl_csv_validate": (c_char_p, [c_char_p, c_char_p]),
         "tl_pack_build_csv": (c_char_p, [c_char_p, c_char_p, c_char_p]),
         "tl_blob_data": (ctypes.POINTER(ctypes.c_uint8), []),
@@ -118,6 +121,12 @@ def mission_reveal(mission_id: str, seed: int) -> dict[str, Any]:
 def lesson(mission_id: str) -> dict[str, Any]:
     """The mission's lesson questions without the answer key (task 4.5), or {"error": "no_lesson"}."""
     return _json(load_library().tl_lesson(mission_id.encode()))
+
+
+def option_whatif(request: Mapping[str, Any]) -> dict[str, Any]:
+    """Run-less what-if valuation (tl_option_whatif, design D4 of add-academy-and-strategies): legs
+    with strike, minutesToExpiry, iv and entry, a shift and a grid; or {"error": ...}."""
+    return _json(load_library().tl_option_whatif(json.dumps(request).encode()))
 
 
 # ---- scenario packs and CSV import (spec scenario-packs) ----
@@ -311,6 +320,15 @@ class Run:
 
     def debrief(self) -> Any:
         return _json(self._lib.tl_debrief(self._h))
+
+    # --- report-only option analysis (never changes the run) ---
+    def option_whatif(self, request: Mapping[str, Any]) -> Any:
+        """The run's what-if valuation (tl_run_option_whatif): legs by series id or the perpetual."""
+        return _json(self._lib.tl_run_option_whatif(self._h, json.dumps(request).encode()))
+
+    def combo_preview(self, legs: list[Mapping[str, Any]]) -> Any:
+        """Dry run of market legs in order (tl_combo_preview) on a copy of the run state."""
+        return _json(self._lib.tl_combo_preview(self._h, json.dumps({"legs": legs}).encode()))
 
     def checkpoint(self) -> str:
         return _json(self._lib.tl_checkpoint(self._h))["checkpoint"]

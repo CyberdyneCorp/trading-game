@@ -185,4 +185,12 @@ std::string reveal_sha256(const JsonValue& fx) {
   return to_hex(sha256(std::span<const std::uint8_t>(bytes, json.size())));
 }
 
+std::string whatif_output(const JsonValue& fx) {
+  const std::string out = tl_option_whatif(detail::canonical_json(member(fx, "request")).c_str());
+  const detail::JsonParse p = detail::parse_json(out);
+  return p.ok ? detail::canonical_json(p.value) : out;
+}
+
+std::string whatif_expected(const JsonValue& fx) { return detail::canonical_json(member(member(fx, "expected"), "result")); }
+
 }  // namespace tradelab::golden
