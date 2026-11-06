@@ -5,6 +5,7 @@
 #include <doctest/doctest.h>
 
 #include <atomic>
+#include <cstddef>
 #include <functional>
 #include <mutex>
 
@@ -26,6 +27,7 @@ namespace {
 
 constexpr const char* kCatalogUrl = "https://cdn.test/catalog/catalog.json";
 constexpr const char* kSampleA = "ec9140b18db6c1997d9ebefa494be5d040fc91052236045d2a6336d2263602ee";
+constexpr std::size_t kSampleEntries = 3;  // apps/web/static/catalog/catalog.json: Markets A, B and C
 
 std::vector<std::uint8_t> file_bytes(const std::filesystem::path& p) {
   auto b = read_file(p);
@@ -137,18 +139,18 @@ TEST_CASE("pack service: the catalog is ready from the network, then read offlin
     s.service->load_catalog();
     const auto& ready = s.wait(PackEvent::Kind::Catalog, [](const PackEvent& e) { return e.status == CatalogStatus::Ready; });
     CHECK(s.events.front().status == CatalogStatus::Loading);  // reported before the worker answers
-    CHECK(ready.entries.size() == 2);
+    CHECK(ready.entries.size() == kSampleEntries);
     CHECK(ready.entries[0].url == "https://cdn.test/catalog/packs/" + std::string(kSampleA) + ".tlpack");
     s.http->offline = true;
     s.events.clear();
     s.service->load_catalog();
     const auto& offline = s.wait(PackEvent::Kind::Catalog, [](const PackEvent& e) { return e.status == CatalogStatus::Offline; });
-    CHECK(offline.entries.size() == 2);  // the last catalog seen on this device
+    CHECK(offline.entries.size() == kSampleEntries);  // the last catalog seen on this device
     s.http->offline = false;
     s.http->status = 503;
     s.events.clear();
     s.service->load_catalog();
-    CHECK(s.wait(PackEvent::Kind::Catalog, [](const PackEvent& e) { return e.status == CatalogStatus::Unavailable; }).entries.size() == 2);
+    CHECK(s.wait(PackEvent::Kind::Catalog, [](const PackEvent& e) { return e.status == CatalogStatus::Unavailable; }).entries.size() == kSampleEntries);
   }
   Service none(dir.path(), false);  // no libcurl: unavailable, imports and installed packs still work
   none.service->load_catalog();

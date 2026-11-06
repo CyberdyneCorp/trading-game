@@ -1,8 +1,8 @@
 // Pack runs played through the shell like a player (scripted), on real engine snapshots: a schema-2
 // pack with a mark-price series (apps/web/e2e/fixtures/mark-v2.tlpack, the web e2e fixture, signed
 // with the device key of its seed) and the web catalog's liquidity-shock pack (Market C), from the
-// briefing to the debrief. The desktop has no pack screen yet (tasks 1.14): the run is started through
-// the recorder, as EngineHost::start_pack does.
+// briefing to the debrief. The shell starts the run as the catalog screen does (AppViewModel::start_pack);
+// the recorder stands in for the worker (EngineHost::start_pack).
 #include <doctest/doctest.h>
 
 #include <cstdint>
@@ -13,6 +13,7 @@
 
 #include "model/game_state.hpp"
 #include "model/packs/files.hpp"
+#include "model/packs/pack_service.hpp"
 #include "model/storage/run_recorder.hpp"
 #include "model/storage/storage.hpp"
 #include "support/storage_fixtures.hpp"
@@ -72,10 +73,11 @@ struct PackSession {
     INFO(check.reason);
     REQUIRE(check.ok);
     REQUIRE(check.entry);
+    vm.on_pack_event(packs::PackEvent{packs::PackEvent::Kind::Library, {*check.entry}});
+    vm.start_pack(check.entry->digest);
     run = rec.start_pack(check.entry->digest, 5);
     REQUIRE(run);
-    vm.start_selected();
-    vm.on_snapshot(as(run->snapshot(), CommandKind::Start));
+    vm.on_snapshot(as(run->snapshot(), CommandKind::StartPack));
     REQUIRE(vm.screen() == Screen::Briefing);
   }
   [[nodiscard]] GameState state() const { return game_state_from_json(run->snapshot().state); }

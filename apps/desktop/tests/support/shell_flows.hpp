@@ -194,7 +194,7 @@ struct CatalogServer {
 inline void flow_catalog_download(App& app, Driver& d, CatalogServer& cs, const Shot& shot = {}) {
   REQUIRE(d.click(names::kMenuCatalog));
   REQUIRE(d.until([&] { return app.vm().packs().status == packs::CatalogStatus::Ready; }));
-  REQUIRE(app.vm().packs().entries.size() == 2);
+  REQUIRE(app.vm().packs().entries.size() == 3);  // the web sample catalog: Markets A, B and C
   CHECK(shown_text(app, names::kCatalogDownload) == "Baixar (76 KB)");
   if (shot) shot("flow-catalog");
   cs.server.set_remaining(1);  // the connection goes away after the first range
