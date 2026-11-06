@@ -36,3 +36,10 @@ When the debrief recommends a stage, it SHALL offer to open that stage's first A
 #### Scenario: Stop beyond liquidation
 - **WHEN** a debrief recommends Futures II and the player has not completed its lesson
 - **THEN** the debrief SHALL offer to open the Futures II lesson
+
+### Requirement: Campaign debrief names the stages passed
+A campaign mission's debrief SHALL name only the stages that are passed once it is finished: its stages whose missions are all assessed. A stage with several missions SHALL be named by its last one.
+
+#### Scenario: First Strategies mission
+- **WHEN** m13 is finished in a campaign run and m14 to m17 are not yet assessed
+- **THEN** the debrief SHALL NOT say that the Strategies stage was passed

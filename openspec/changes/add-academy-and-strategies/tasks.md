@@ -123,7 +123,7 @@ Suggested PRs, in order:
 
   Unit tests (ordering, cancel on refusal, incomplete detection) with a fake worker. e2e: a condor previewed, submitted and filled; a refused leg cancels the others; a forced no-bid leg gives the incomplete notice. Update `optionsMath.ts`'s comment: its mirrors stay for single-leg display only.
 - [x] W8 Curriculum, Academy screen and review (design D9), needs W3:
-  - the `strategies` stage in `curriculum.ts` (lesson-only until W10 adds m13–m17 to it and to the campaign order);
+  - the `strategies` stage in `curriculum.ts` (its lesson, with m13–m17 as its missions since W10);
   - `stagePassed` by missions for stages with missions;
   - the map shows lessons x/y;
   - the Academy screen (by stage, status, retake, glossary link);
@@ -148,7 +148,7 @@ Suggested PRs, in order:
   - unit tests (cards: 3–5, no spoiler words);
   - e2e: each mission played to the debrief (`e2e/missions-batch-c.spec.ts`).
 
-  Progress: texts, cards with the new art and the margin-rule cards, lesson texts, objectives, the Strategies stage and campaign order (with W8's curriculum), unit tests and the e2e (legs placed one by one through the option ticket) are in. Open: the briefing's margin rule (needs E4's `missionRules.spreadMargin`) and the debrief's strategy comparison (needs E9).
+  Progress: texts, cards with the new art and the margin-rule cards, lesson texts, objectives, the Strategies stage and campaign order (with W8's curriculum), unit tests and the e2e (legs placed one by one through the option ticket, and m13, m14 and m16 again through the builder) are in. Open: the briefing's margin rule (needs E4's `missionRules.spreadMargin`) and the debrief's strategy comparison (needs E9).
 - [ ] W11 Web README: content layout, Academy, glossary, lab, builder, tour, progress v3, e2e list.
 
 ## D. Desktop
@@ -172,6 +172,17 @@ Suggested PRs, in order:
   - desktop README.
 
 ## X. Cross-checks and docs
+
+### Playtest of the merged web build (as built)
+
+Played as a new player (guided first trade, every lesson right and wrong, glossary from the menu, terminal and builder, the lab's sliders, every template, m13–m17 with a sensible and a reckless approach, a campaign through Strategies; PT-BR and en; 1024 and 1440 px). Fixed, each with a regression test:
+- scoring v13: `wrote_options` only for an uncovered short (a spread, condor or covered call was called naked writing and lost the good-process credit);
+- the campaign debrief named a stage passed by its first mission (Strategies after m13, Options II after m04); now only stages whose missions are all assessed, web and desktop;
+- covered call and protective put on a held long default to "use my long" with as many contracts as its units (they bought another perpetual unit and wrote one call against a 48-unit long);
+- the combo plan named "× 1" whatever the contracts and called a short strangle's margin its planned risk; the debrief showed per-leg R from the split plan (±50R on a condor) and now shows one R per combo;
+- glossary links rendered "strike ;" and "( writing )" (whitespace in `Term`), and bare `[[id]]` links showed the headword mid-sentence ("Uma Call", "o Spread (compra/venda)");
+- theta in the what-if table now names its unit (a day in the Academy lab, a bar in a run), vega its point;
+- builder outputs are marked glossary terms (W7 listed them, none were); "1 termo", "1 leg", localized leg quantities, the condor art label.
 
 - [ ] X1 Same numbers: the playtest report for one m16 seed, played with the same legs on web and desktop, shows identical builder analysis, fills and debrief comparison.
 - [ ] X2 Root README ("What can the player predict?" for m13–m17, the features table, the curriculum), `docs/product-spec.md` (Strategies stage, Academy, glossary, tour), and the "As built" notes in this design.
