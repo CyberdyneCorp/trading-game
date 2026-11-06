@@ -14,6 +14,7 @@
 #include "view/game/scene_painter.hpp"
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/builder_widgets.hpp"
 #include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/game_widgets.hpp"
 #include "viewmodel/game/hotkeys.hpp"
@@ -94,6 +95,12 @@ std::vector<std::string> GameView::missing_names() const {
   for (std::string_view w : {"game-stop-chip-4", "game-tp-chip-2", "game-pstop-chip-4", "game-ptp-chip-2", "game-trail-chip-3"}) {
     if (find(w) == R_INVALID_ID) missing.push_back("widget " + std::string(w));
   }
+  std::vector<std::string> builder(names::builder::kRequired.begin(), names::builder::kRequired.end());
+  for (std::size_t i = 0; i < game::kTemplates.size(); ++i) builder.push_back(std::string(names::builder::kTemplatePrefix) + std::to_string(i));
+  for (auto& w : LabPanel::names(std::string(names::builder::kLabPrefix))) builder.push_back(std::move(w));
+  for (const auto& w : builder) {
+    if (find(w) == R_INVALID_ID) missing.push_back("widget " + w);
+  }
   return missing;
 }
 
@@ -115,6 +122,7 @@ void GameView::bind() {
   bind_options();
   bind_rail_and_panels();
   bind_dialogs();
+  bind_builder();
 }
 
 // ---- chart ----
@@ -333,6 +341,8 @@ void GameView::refresh() {
   apply_ticket(t, *g);
   apply_options(t, *g);
   apply_chain(t, *g);
+  apply_builder(t, *g);
+  apply_combo_notice();
   apply_rail(t, *g);
   apply_orders(t, *g);
   apply_advisor(t, *g);

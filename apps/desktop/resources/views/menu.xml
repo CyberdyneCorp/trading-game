@@ -24,6 +24,7 @@
             <Button Name="menu-settings" OnClicked="tl.menu.settings"/>
             <Button Name="menu-catalog" OnClicked="tl.menu.catalog"/>
             <Button Name="menu-import" OnClicked="tl.menu.import"/>
+            <Button Name="menu-lab" OnClicked="tl.menu.lab"/>
         </HBox>
         <Label Name="menu-notice" Wrap="true" Class="info"/>
         <HBox Spacing="16">

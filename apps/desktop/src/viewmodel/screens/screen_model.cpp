@@ -74,6 +74,7 @@ ScreenModel AppViewModel::screen_model() const {
     case Screen::Catalog: return screens::catalog(*this);
     case Screen::Import: return screens::csv_import(*this);
     case Screen::Game: return screens::game(*this);
+    case Screen::Lab: break;  // view/screens/lab_screen.cpp reads the lab viewmodel itself
   }
   ScreenModel m;
   for (auto& b : bindings()) m.text(b.widget, std::move(b.text));

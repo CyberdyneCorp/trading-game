@@ -8,10 +8,10 @@
 namespace tradelab::desktop::names {
 
 // Screens (children of the root Switcher, in this order).
-inline constexpr std::array<std::string_view, 11> kViews = {
+inline constexpr std::array<std::string_view, 12> kViews = {
     "views/menu.xml",       "views/briefing.xml", "views/game.xml",     "views/debrief.xml",
     "views/curriculum.xml", "views/journal.xml",  "views/lesson.xml",   "views/settings.xml",
-    "views/tutorial.xml",   "views/catalog.xml",  "views/import.xml"};
+    "views/tutorial.xml",   "views/catalog.xml",  "views/import.xml",   "views/lab.xml"};
 
 // Widgets fed by AppViewModel::bindings().
 inline constexpr std::string_view kMenuTitle = "menu-title";

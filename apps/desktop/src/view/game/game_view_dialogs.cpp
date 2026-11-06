@@ -77,6 +77,7 @@ void GameView::bind_dialogs() {
 void GameView::apply_modal(const game::Texts& t, const GameState& g) {
   const Modal m = vm().modal();
   set_visible(find(n::kModal), m != Modal::None);
+  apply_lab_dialog(t);
   if (m == Modal::None) return;
   Rswitcher_set_index(find(n::kModalSwitch), static_cast<int>(m) - 1);
   switch (m) {
@@ -98,7 +99,13 @@ void GameView::apply_modal(const game::Texts& t, const GameState& g) {
     case Modal::Help: apply_help(t); break;
     case Modal::Journal: {
       std::vector<game::Line> lines;
-      for (const auto& l : game::journal_lines(t, vm().journal())) lines.push_back({l, game::Tone::Plain});
+      const auto texts = game::journal_lines(t, vm().journal());
+      for (std::size_t i = 0; i < texts.size(); ++i) {
+        lines.push_back({texts[i], game::Tone::Plain});
+        // A combo's entry: its state and net premium so far (RunJournal's comboNote).
+        const std::string& combo = vm().journal()[i].combo;
+        if (!combo.empty() && !vm().combo_note(combo).empty()) lines.push_back({"    " + vm().combo_note(combo), game::Tone::Muted});
+      }
       if (lines.empty()) lines.push_back({t.tr("runJournal.empty"), game::Tone::Muted});
       journal_.set(lines);
       break;
@@ -116,6 +123,8 @@ void GameView::apply_modal(const game::Texts& t, const GameState& g) {
     case Modal::Lesson: apply_lessons(t, g); break;
     case Modal::Tutorial: apply_tutorial(t, g); break;
     case Modal::Perks: apply_perks(t); break;
+    case Modal::Lab:
+    case Modal::ConfirmCombo: break;
     case Modal::None: break;
   }
 }

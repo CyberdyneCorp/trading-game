@@ -35,7 +35,7 @@ set(TRADELAB_DESKTOP_RESOURCES
 # Shell screens, retro look and the web's screen data (README "Retro look").
 list(APPEND TRADELAB_DESKTOP_RESOURCES
   views/curriculum.xml views/journal.xml views/lesson.xml views/settings.xml
-  views/tutorial.xml views/catalog.xml views/import.xml
+  views/tutorial.xml views/catalog.xml views/import.xml views/lab.xml
   theme/tradelab.theme.xml theme/tradelab-cb.theme.xml
   fonts/VT323-Regular.ttf fonts/IBMPlexMono-Regular.ttf shaders/crt.spv
   web/content.json)
@@ -68,9 +68,11 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/whatif_lab.cpp)
 set(TRADELAB_DESKTOP_GAME_VIEW_SOURCES
   src/view/game/game_view.cpp
+  src/view/game/game_view_builder.cpp
   src/view/game/game_view_dialogs.cpp
   src/view/game/game_view_panels.cpp
   src/view/game/game_view_ticket.cpp
+  src/view/game/lab_panel.cpp
   src/view/game/scene_painter.cpp
   src/view/game/widgets.cpp)
 
@@ -128,6 +130,7 @@ target_link_libraries(tradelab_desktop_model PRIVATE tradelab_sqlite ${CMAKE_DL_
 
 add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/app_viewmodel.cpp
+  src/viewmodel/academy_lab.cpp
   src/viewmodel/assisted.cpp
   src/viewmodel/chart_geometry.cpp
   src/viewmodel/pack_screens.cpp
@@ -187,6 +190,7 @@ add_library(tradelab_desktop_view STATIC
   src/view/app_view.cpp
   src/view/chart_painter.cpp
   src/view/screens/retro_look.cpp
+  src/view/screens/lab_screen.cpp
   src/view/screens/shell_view.cpp
   src/view/screens/shell_view_flows.cpp
   src/view/raven/raven_ui.cpp

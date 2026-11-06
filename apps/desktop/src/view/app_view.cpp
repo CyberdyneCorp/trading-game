@@ -17,6 +17,7 @@
 #include "model/resources.hpp"
 #include "view/chart_painter.hpp"
 #include "view/raven/raven_ui.hpp"
+#include "viewmodel/game/builder_widgets.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -119,6 +120,8 @@ bool AppView::build(int width, int height) {
   bind_widgets();
   game_view_ = std::make_unique<view::GameView>(vm_, screens_[static_cast<std::size_t>(Screen::Game)], window_);
   game_view_->bind();
+  lab_screen_ = std::make_unique<view::LabScreen>(vm_, screens_[static_cast<std::size_t>(Screen::Lab)]);
+  lab_screen_->bind();
   refresh();
   return true;
 }
@@ -144,6 +147,7 @@ void AppView::bind_actions() {
   ui::bind_action(names::kActGameMenu, [&vm] { vm.back_to_menu(); });
   ui::bind_action(names::kActDebriefMenu, [&vm] { vm.back_to_menu(); });
   ui::bind_action(names::kActAgain, [&vm] { vm.play_again(); });
+  ui::bind_action("tl.menu.lab", [&vm] { vm.open_lab(); });
   shell_->bind();
 }
 
@@ -167,6 +171,7 @@ void AppView::refresh() {
   vm_.tick_audio(std::chrono::duration<double>(now - last_frame_).count());
   last_frame_ = now;
   if (game_view_) game_view_->refresh();
+  if (lab_screen_) lab_screen_->refresh();
   if (vm_.revision() == shown_revision_) return;
   shown_revision_ = vm_.revision();
   Rswitcher_set_index(switcher_, static_cast<int>(vm_.screen()));
@@ -202,6 +207,10 @@ std::vector<std::string> AppView::missing_names() const {
   if (game_view_) {
     for (auto& m : game_view_->missing_names()) missing.push_back(std::move(m));
   }
+  if (lab_screen_) {
+    for (auto& m : lab_screen_->missing_names()) missing.push_back(std::move(m));
+  }
+  if (find(names::builder::kMenuLab) == R_INVALID_ID) missing.push_back("widget " + std::string(names::builder::kMenuLab));
   return missing;
 }
 

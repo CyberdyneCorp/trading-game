@@ -9,11 +9,13 @@
 #include <raven/raven_window.h>
 
 #include <chrono>
+#include <memory>
 #include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "view/game/lab_panel.hpp"
 #include "view/game/widgets.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 
@@ -80,6 +82,14 @@ class GameView {
   void apply_tutorial(const game::Texts& t, const GameState& g);
   void set_chips(std::string_view field, const std::vector<game::LevelChip>& chips);
   void clear_rows(Rid box, std::vector<Rid>& rows);
+  // Strategy builder, combo notice and lab dialog (game_view_builder.cpp).
+  void bind_builder();
+  void apply_builder(const game::Texts& t, const GameState& g);
+  void build_leg_rows(const game::BuilderView& v);
+  void apply_leg_rows(const game::BuilderView& v);
+  void apply_combo_notice();
+  void apply_lab_dialog(const game::Texts& t);
+  static void on_builder_paint(Rid widget, RPainter* painter, float width, float height, void* self);
 
   static void on_dock_changed(Rid area, void* self);
   static void on_chart_paint(Rid widget, RPainter* painter, float width, float height, void* self);
@@ -102,6 +112,10 @@ class GameView {
   bool labels_done_ = false;
   std::string cell_;
   std::chrono::steady_clock::time_point last_tick_ = std::chrono::steady_clock::now();
+  LineList builder_preview_, builder_table_;
+  std::vector<Rid> leg_rows_;
+  std::string legs_key_, expiries_key_;
+  std::unique_ptr<LabPanel> lab_;
 };
 
 }  // namespace tradelab::desktop::view

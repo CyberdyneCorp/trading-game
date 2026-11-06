@@ -1,0 +1,53 @@
+<!-- The Academy's options lab (web LabScreen.svelte + AcademyLegs.svelte + WhatIfLab.svelte): an
+     illustrative market at 100, legs the player edits, the engine's valuation under price, time and IV
+     shifts. Names in src/viewmodel/game/builder_widgets.hpp; glue in src/view/screens/lab_screen.cpp. -->
+<ScrollBox Name="lab-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="8">
+        <HBox Spacing="12">
+            <Label Name="lab-title" TextSize="37.5" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="lab-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Label Name="lab-intro" Wrap="true" Class="muted"/>
+        <Label Name="lab-illustrative" Class="attention"/>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="8">
+            <VBox Spacing="4">
+                <Label Name="lab-legs-caption" Class="muted"/>
+                <VBox Name="lab-legs" Spacing="3"/>
+                <WrapBox Spacing="6">
+                    <Button Name="lab-add-option"/>
+                    <Button Name="lab-add-perp"/>
+                    <Button Name="lab-price-model"/>
+                </WrapBox>
+            </VBox>
+        </Border>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="8">
+            <VBox Spacing="5">
+                <Label Name="lab-note" Color="#FFC857" Wrap="true" TextSize="12"/>
+                <HBox Spacing="6">
+                    <Label Name="lab-price-label" Color="#8FB3A1" TextSize="12" Width="220" Wrap="true" Slot.VAlign="Center"/>
+                    <Slider Name="lab-price" Min="-30" Max="30" Step="1" Value="0" Slot.Fill="1"/>
+                    <Label Name="lab-price-value" Color="#E3F5EA" TextSize="12" Width="200" Slot.VAlign="Center"/>
+                </HBox>
+                <HBox Spacing="6">
+                    <Label Name="lab-time-label" Color="#8FB3A1" TextSize="12" Width="220" Wrap="true" Slot.VAlign="Center"/>
+                    <Slider Name="lab-time" Min="0" Max="30" Step="1" Value="0" Slot.Fill="1"/>
+                    <Label Name="lab-time-value" Color="#E3F5EA" TextSize="12" Width="200" Slot.VAlign="Center"/>
+                </HBox>
+                <HBox Spacing="6">
+                    <Label Name="lab-iv-label" Color="#8FB3A1" TextSize="12" Width="220" Wrap="true" Slot.VAlign="Center"/>
+                    <Slider Name="lab-iv" Min="-30" Max="30" Step="1" Value="0" Slot.Fill="1"/>
+                    <Label Name="lab-iv-value" Color="#E3F5EA" TextSize="12" Width="200" Slot.VAlign="Center"/>
+                </HBox>
+                <Button Name="lab-reset" Slot.HAlign="Left"/>
+                <Label Name="lab-error" Color="#FF5F7A" Wrap="true"/>
+                <Label Name="lab-summary" Color="#E3F5EA" Wrap="true"/>
+                <Label Name="lab-expiry-note" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                <Custom Name="lab-payoff" Height="200"/>
+                <Label Name="lab-legend" Color="#8FB3A1" TextSize="11"/>
+                <VBox Name="lab-table" Spacing="1"/>
+            </VBox>
+        </Border>
+    </VBox>
+</Border>
+</ScrollBox>

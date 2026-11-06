@@ -37,7 +37,8 @@ enum class Screen : std::uint8_t {
   Settings = 7,
   Tutorial = 8,  // a mission's tutorial cards, before its briefing (the first time only)
   Catalog = 9,
-  Import = 10
+  Import = 10,
+  Lab = 11  // the Academy's options lab (web LabScreen.svelte; viewmodel/academy_lab.cpp)
 };
 
 // A run left unfinished in an earlier launch (the active run of the store), offered by the menu: a
@@ -133,6 +134,15 @@ class AppViewModel {
   void open_curriculum();
   void open_journal();
   void open_settings();
+
+  // ---- The Academy's what-if lab (viewmodel/academy_lab.cpp): an illustrative market, no run needed ----
+  void open_lab();
+  [[nodiscard]] game::LabViewModel& academy_lab() { return academy_lab_; }
+  [[nodiscard]] const game::LabViewModel& academy_lab() const { return academy_lab_; }
+  // The legs or a slider changed: the engine values them again (tl_option_whatif).
+  void academy_lab_changed();
+  // Each option leg's entry becomes the engine's model value now (no shift).
+  void academy_lab_price_at_model();
 
   void campaign_start();
   void campaign_continue();
@@ -293,6 +303,8 @@ class AppViewModel {
   update::UpdateCommands* updates_ = nullptr;
   update::UpdateState update_;
   audio::Soundtrack soundtrack_;
+  game::LabViewModel academy_lab_;
+  std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);  // replies of report-only engine calls
 };
 
 }  // namespace tradelab::desktop
