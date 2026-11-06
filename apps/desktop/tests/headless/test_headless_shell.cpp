@@ -7,7 +7,10 @@
 #include <raven/raven_controls.h>
 #include <raven/raven_widget.h>
 
+#include "model/storage/storage.hpp"
 #include "support/driver.hpp"
+#include "support/game_flows.hpp"
+#include "support/storage_fixtures.hpp"
 #include "view/app.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -181,4 +184,51 @@ TEST_CASE("headless shell: journal and settings (palette switch, text scale, a r
   CHECK(d.text(names::kSettingsKeyMessage) == "\"Boleta: comprar\" agora usa K.");
   REQUIRE(d.click(names::kSettingsLangEn));
   CHECK(d.text(names::kSettingsTitle) == "Settings");
+}
+
+// Playtest finding: a run left mid-mission (window closed, or the process killed: OFF02 covers the
+// kill itself) was saved but the next launch's menu did not offer it.
+TEST_CASE("headless shell: a run left mid-mission is offered by the next launch's menu and resumes") {
+  testing::TempDir dir;
+  int step = 0;
+  double qty = 0;
+  std::string account;
+  {
+    RavenSession raven;
+    App app(builtin_catalog(), [] { return 11u; }, std::make_unique<storage::Storage>(dir.path()));
+    REQUIRE(app.build(1280, 800));
+    Driver d(app);
+    d.frames(2);
+    CHECK(Rwidget_get_visibility(d.widget(names::kMenuResumeRow)) != R_VISIBLE);  // nothing saved yet
+    testing::Terminal t(app, d);
+    t.open(0);
+    t.skip_question();
+    d.choose(names::game::kSizeBy, 1);
+    t.type(names::kGameQty, "2");
+    REQUIRE(d.click(names::kGameBuy));
+    t.submit_with_plan();
+    for (int i = 0; i < 3; ++i) t.advance();
+    step = t.g().step;
+    qty = t.g().position.qty;
+    account = d.text(names::kGameAccount);
+    REQUIRE(qty > 0);
+  }
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 99u; }, std::make_unique<storage::Storage>(dir.path()));
+  REQUIRE(app.build(1280, 800));
+  Driver d(app);
+  d.frames(2);
+  REQUIRE(Rwidget_get_visibility(d.widget(names::kMenuResumeRow)) == R_VISIBLE);
+  CHECK(d.text(names::kMenuResumeText) == "Missão 01 · Range · seed 11");
+  REQUIRE(d.click(names::kMenuResume));
+  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Game; }));
+  const GameState& g = *app.vm().game().state();
+  CHECK(g.step == step);
+  CHECK(g.position.qty == doctest::Approx(qty));
+  CHECK(d.text(names::kGameAccount) == account);
+  // Played on from there, and the offer is gone once it is back in play.
+  testing::Terminal t(app, d);
+  t.advance();
+  CHECK(app.vm().game().state()->step == step + 1);
+  CHECK_FALSE(app.vm().saved_run().has_value());
 }

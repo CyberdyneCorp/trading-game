@@ -63,6 +63,7 @@ void AppViewModel::start_mission(const std::string& id, const RunOptions& option
   run.starting_balance = options.starting_balance;
   run.leverage_cap = options.leverage_cap;
   if (send([&] { engine_.start_with(id, seeds_(), run); })) {
+    saved_run_.reset();  // the new run replaces it as the store's active run
     start_pending_ = true;
     run_mission_ = id;
     shell_.run_campaign = std::move(link);
@@ -135,6 +136,7 @@ void AppViewModel::apply_result(const CommandResult& r) {
     }
     start_pending_ = false;
   }
+  if (r.kind == CommandKind::Resume) resumed(r);
 }
 
 std::string AppViewModel::mission_text(const std::string& id, std::string_view field) const {

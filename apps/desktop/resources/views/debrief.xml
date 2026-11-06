@@ -73,6 +73,7 @@
         </Border>
         <Border Name="debrief-regimes-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
             <VBox Spacing="6">
+                <Label Name="debrief-regimes-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
                 <Custom Name="debrief-regime-band" Height="28" AccessibleRole="Image"/>
                 <Table Name="debrief-regimes" Height="160"/>
                 <Label Name="debrief-regimes-note" Wrap="true" Class="muted"/>
@@ -80,6 +81,7 @@
         </Border>
         <Border Name="debrief-releases-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
             <VBox Spacing="6">
+                <Label Name="debrief-releases-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
                 <Table Name="debrief-releases" Height="140"/>
                 <Label Name="debrief-releases-note" Wrap="true" Class="muted"/>
             </VBox>

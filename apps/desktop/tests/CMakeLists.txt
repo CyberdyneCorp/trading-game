@@ -62,6 +62,7 @@ add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.c
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)
+target_compile_definitions(tradelab_desktop_headless_tests PRIVATE TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog")
 add_test(NAME desktop_headless COMMAND tradelab_desktop_headless_tests)
 set_tests_properties(desktop_headless PROPERTIES LABELS headless ENVIRONMENT "RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0;TRADELAB_DATA_DIR=${CMAKE_BINARY_DIR}/test-data/headless")
 
@@ -80,6 +81,19 @@ if(RAVEN_BACKEND_VULKAN)
   add_test(NAME desktop_windowed COMMAND tradelab_desktop_windowed_tests)
   set_tests_properties(desktop_windowed PROPERTIES LABELS windowed
     ENVIRONMENT "TRADELAB_CAPTURE_DIR=${CMAKE_BINARY_DIR}/captures;RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0;TRADELAB_DATA_DIR=${CMAKE_BINARY_DIR}/test-data/windowed")
+
+  # Playtest: the twelve missions to the debrief with captures and text reports (README "Playtest").
+  add_executable(tradelab_desktop_playtest_tests main.cpp windowed/test_playtest.cpp support/png.cpp)
+  target_include_directories(tradelab_desktop_playtest_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
+  target_include_directories(tradelab_desktop_playtest_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_link_libraries(tradelab_desktop_playtest_tests PRIVATE tradelab_desktop_view)
+  if(ZLIB_FOUND)
+    target_compile_definitions(tradelab_desktop_playtest_tests PRIVATE TRADELAB_HAVE_ZLIB)
+    target_link_libraries(tradelab_desktop_playtest_tests PRIVATE ZLIB::ZLIB)
+  endif()
+  add_test(NAME desktop_playtest COMMAND tradelab_desktop_playtest_tests)
+  set_tests_properties(desktop_playtest PROPERTIES LABELS "windowed;playtest"
+    ENVIRONMENT "TRADELAB_CAPTURE_DIR=${CMAKE_BINARY_DIR}/captures;RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0;TRADELAB_DATA_DIR=${CMAKE_BINARY_DIR}/test-data/playtest")
 
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # No usable driver: an ICD list that names nothing. (CI also runs it with libvulkan1 removed.)

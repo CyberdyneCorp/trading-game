@@ -365,6 +365,9 @@ void GameView::build_chain(Rid box, const game::Texts& t, const std::vector<game
   label(t.tr("opt.pick"), game::Tone::Muted);
 }
 
+constexpr float kQuoteMinWidth = 44;
+constexpr float kStrikeWidth = 64;
+
 // Call bid | call ask | strike | put bid | put ask; a bid sells, an ask buys.
 void GameView::add_chain_row(Rid box, const game::ChainRow& r) {
   const Rid row = Rwidget_create(R_WIDGET_HBOX);
@@ -372,8 +375,11 @@ void GameView::add_chain_row(Rid box, const game::ChainRow& r) {
   chain_rows_.push_back(row);
   const auto quote_button = [&](const std::optional<game::ChainCell>& c, bool buy) {
     const Rid b = Rbutton_create(c ? (buy ? c->ask : c->bid).c_str() : "\xE2\x80\x94");
-    Rwidget_set_size(b, 70, 0);
+    // The four quotes share the row's width (the middle column is narrow at 1024x768) at their natural
+    // height; a fixed height of 0 cut their text in half.
+    Rwidget_set_min_size(b, kQuoteMinWidth, -1);
     Rwidget_add_child(row, b);
+    Rslot_set_fill(b, 1);
     if (!c) return Rwidget_set_enabled(b, R_FALSE);
     const int series = c->series;
     cb_.click(b, [this, series, buy] { vm().pick_option(series, buy); });
@@ -381,9 +387,11 @@ void GameView::add_chain_row(Rid box, const game::ChainRow& r) {
   };
   quote_button(r.call, false);
   quote_button(r.call, true);
-  const Rid strike = Rlabel_create((" " + r.strike + (r.held ? " \xE2\x97\x8F" : "") + " ").c_str());
+  const Rid strike = Rlabel_create((r.strike + (r.held ? " \xE2\x97\x8F" : "")).c_str());
   set_color(strike, r.itm_call ? game::Tone::Up : game::Tone::Plain);
+  Rwidget_set_size(strike, kStrikeWidth, -1);  // one column for every row, so the put quotes line up
   Rwidget_add_child(row, strike);
+  Rslot_set_valign(strike, R_VALIGN_CENTER);
   quote_button(r.put, false);
   quote_button(r.put, true);
 }

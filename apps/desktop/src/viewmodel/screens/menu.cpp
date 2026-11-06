@@ -43,10 +43,14 @@ void update_line(const AppViewModel& vm, ScreenModel& m) {
 void resume_line(const AppViewModel& vm, ScreenModel& m) {
   m.show(names::kMenuResumeRow, vm.resumable());
   if (!vm.resumable()) return;
-  const ShellState& s = vm.shell();
-  const std::string tag = s.run_campaign ? "[" + vm.tr("journal.mode.campaign") + "] " : std::string();
-  m.text(names::kMenuResumeText,
-         tag + mission_title(vm, s.run_mission) + std::string(kSep) + "seed " + std::to_string(vm.snapshot()->seed));
+  if (const auto& saved = vm.saved_run()) {
+    m.text(names::kMenuResumeText, mission_title(vm, saved->mission) + std::string(kSep) + "seed " + std::to_string(saved->seed));
+  } else {
+    const ShellState& s = vm.shell();
+    const std::string tag = s.run_campaign ? "[" + vm.tr("journal.mode.campaign") + "] " : std::string();
+    m.text(names::kMenuResumeText,
+           tag + mission_title(vm, s.run_mission) + std::string(kSep) + "seed " + std::to_string(vm.snapshot()->seed));
+  }
   m.text(names::kMenuResume, std::string(kPlay) + vm.tr("menu.resume"));
 }
 
@@ -127,7 +131,9 @@ void mission_list(const AppViewModel& vm, ScreenModel& m) {
   const auto& completed = vm.progress().completed;
   for (const auto& mission : vm.missions()) {
     const bool done = contains(completed, mission.id);
-    items.items.push_back(mission_title(vm, mission.id) + (done ? "  " + std::string(kCheck) + " " + vm.tr("menu.completed") : ""));
+    // The mark alone: the word would not fit the list (300 px) after the longest titles; the detail
+    // panel of the selected mission says "Concluída".
+    items.items.push_back(mission_title(vm, mission.id) + (done ? "  " + std::string(kCheck) : ""));
   }
   m.items.push_back(std::move(items));
   m.name(names::kMenuList, vm.tr("menu.missions"));
