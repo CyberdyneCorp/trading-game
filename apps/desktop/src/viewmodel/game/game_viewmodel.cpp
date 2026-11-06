@@ -61,6 +61,12 @@ void GameViewModel::set_layout(std::string layout) {
   save_prefs();
 }
 
+void GameViewModel::reset_layout() {
+  set_layout({});
+  dock.reset();
+  touch();
+}
+
 void GameViewModel::save_prefs() {
   prefs_.keymap = keymap_.to_map();
   if (prefs_file_ != nullptr) prefs_file_->save(prefs_);

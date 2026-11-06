@@ -18,8 +18,10 @@
             </HBox>
         </Border>
 
-        <HBox Spacing="6" Slot.Fill="1">
-            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="4" Slot.Fill="1">
+        <!-- Docked panels (viewmodel/game/dock_layout.hpp): tabs move them, borders resize them; the view
+             loads the default arrangement for the window size, or the player's own one from the prefs. -->
+        <DockArea Name="game-dock" Slot.Fill="1" Tearable="false">
+            <Border Name="game-panel-chart" Slot.Title="Chart" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="4">
                 <VBox Spacing="3">
                     <WrapBox Spacing="6">
                         <Checkbox Name="game-sma" Text="SMA20" Checked="true"/>
@@ -37,6 +39,7 @@
                         <Button Name="game-tutorial"/>
                         <Button Name="game-perks"/>
                         <Button Name="game-sound"/>
+                        <Button Name="game-layout-reset"/>
                     </WrapBox>
                     <Label Name="game-readout" Color="#E3F5EA" TextSize="12"/>
                     <Label Name="game-pattern-line" Color="#FFC857" TextSize="12"/>
@@ -54,7 +57,7 @@
                 </VBox>
             </Border>
 
-            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6" Width="290">
+            <Border Name="game-panel-rail" Slot.Title="Account" Slot.Dock="Right" Slot.DockSize="0.23" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6">
                 <ScrollBox>
                     <VBox Spacing="4">
                         <Label Name="game-account" Color="#8FB3A1" Wrap="true" TextSize="12"/>
@@ -79,10 +82,8 @@
                     </VBox>
                 </ScrollBox>
             </Border>
-        </HBox>
 
-        <HBox Spacing="6" Height="300">
-            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6" Width="340">
+            <Border Name="game-panel-ticket" Slot.Title="Ticket" Slot.Dock="Bottom" Slot.DockSize="0.45" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6">
                 <ScrollBox>
                     <VBox Spacing="4">
                         <HBox Name="game-tabs" Spacing="4">
@@ -198,7 +199,7 @@
                 </ScrollBox>
             </Border>
 
-            <VBox Spacing="6" Slot.Fill="1">
+            <VBox Name="game-panel-book" Slot.Title="Book" Slot.Dock="Right" Slot.DockTo="game-panel-ticket" Slot.DockSize="0.72" Spacing="6">
                 <Border Name="game-chain-box" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6" Slot.Fill="1">
                     <ScrollBox>
                         <VBox Name="game-chain" Spacing="2"/>
@@ -216,7 +217,7 @@
                 <Label Name="game-notice" Color="#FFC857" Wrap="true"/>
             </VBox>
 
-            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6" Width="300">
+            <Border Name="game-panel-feed" Slot.Title="Feed" Slot.Dock="Right" Slot.DockTo="game-panel-book" Slot.DockSize="0.4" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6">
                 <ScrollBox>
                     <VBox Spacing="4">
                         <VBox Name="game-advisor" Spacing="3">
@@ -238,7 +239,7 @@
                     </VBox>
                 </ScrollBox>
             </Border>
-        </HBox>
+        </DockArea>
     </VBox>
 </Border>
 

@@ -7,6 +7,7 @@
 #include "support/fake_engine.hpp"
 #include "viewmodel/format.hpp"
 #include "viewmodel/game/chart_vm.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/panels_vm.hpp"
 #include "viewmodel/game/ticket_vm.hpp"
 
@@ -324,4 +325,32 @@ TEST_CASE("chart: a branch-mode market marks its first generated bar and tints w
   g.market_mode = "synthetic";  // a synthetic mission: every bar is generated, nothing to mark
   CHECK_FALSE(marked(c.build(x.t, g, std::nullopt, false, 1600, 420)));
   CHECK(top_bar(x.t, g).market == "Mercado K2A SINTÉTICO");
+}
+
+TEST_CASE("dock layout: the default keeps the web's column widths; a stored layout loads once; reset") {
+  // 1264 wide: the ticket's 340 px of 1260 (the splitter excluded) is 270 thousandths.
+  const std::string d = default_layout(1264, 704);
+  CHECK(d.starts_with("V("));
+  CHECK(d.find("H(270,T(0;game-panel-ticket)") != std::string::npos);
+  CHECK(d.find("T(0;game-panel-chart),T(0;game-panel-rail)") != std::string::npos);
+  CHECK(default_layout(1012, 704).find("H(337,T(0;game-panel-ticket)") != std::string::npos);
+  CHECK(panel_title_key(kPanelTicket) == "ticket.title");
+
+  DockLayout l;
+  CHECK_FALSE(l.frame(0, 0, "").apply);  // not laid out yet
+  auto step = l.frame(1264, 704, "");
+  CHECK(step.apply);
+  CHECK(step.text == d);
+  CHECK_FALSE(l.frame(1264, 704, "").apply);
+  CHECK(l.frame(1012, 704, "").apply);  // the window changed: the default follows
+  l.changed();
+  CHECK_FALSE(l.frame(1012, 704, "H(500,T(0;a),T(0;b))").apply);  // the player's own, already on screen
+  l.reset();
+  CHECK(l.frame(1012, 704, "").apply);
+
+  DockLayout fresh;  // a new launch with a stored arrangement loads it once, whatever the size
+  step = fresh.frame(800, 600, "H(500,T(0;a),T(0;b))");
+  CHECK(step.apply);
+  CHECK(step.text == "H(500,T(0;a),T(0;b))");
+  CHECK_FALSE(fresh.frame(900, 600, "H(500,T(0;a),T(0;b))").apply);
 }

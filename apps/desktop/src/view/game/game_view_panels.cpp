@@ -2,11 +2,14 @@
 #include <algorithm>
 #include <raven/raven_accessibility.h>
 #include <raven/raven_controls.h>
+#include <raven/raven_shell.h>
 #include <raven/raven_widget.h>
 
 #include "view/game/game_view.hpp"
+
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/game_widgets.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -45,6 +48,12 @@ void GameView::apply_labels() {
   const game::Texts t = vm().texts();
   const auto label = [&](std::string_view name, const std::string& text) { set_label(find(name), text); };
   ui::set_text(find(n::kShowPatterns), t.tr("chart.patterns"));
+  const Rid dock = find(n::kDock);
+  for (std::string_view panel : game::kPanels) {
+    Rdock_area_set_panel_title(dock, find(panel), t.tr(game::panel_title_key(panel)).c_str());
+  }
+  ui::set_text(find(n::kLayoutReset), t.tr("desktop.layout.reset"));
+  Rwidget_set_tooltip(find(n::kLayoutReset), t.tr("desktop.layout.resetHint").c_str());
   ui::set_text(find(n::kTableToggle), "\xE2\x96\xA6 " + t.tr("chart.tableToggle"));
   ui::set_text(find(n::kTableLast), t.tr("chart.lastPage"));
   ui::set_text(find(n::kAutoEvents), t.tr("auto.pauseOnEvents"));

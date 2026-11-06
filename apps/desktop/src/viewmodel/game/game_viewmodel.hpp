@@ -20,6 +20,7 @@
 #include "model/snapshot.hpp"
 #include "viewmodel/game/chart_vm.hpp"
 #include "viewmodel/game/dialogs_vm.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/options_vm.hpp"
 #include "viewmodel/game/panels_vm.hpp"
 #include "viewmodel/game/progress.hpp"
@@ -136,6 +137,8 @@ class GameViewModel {
   // Sound settings (Settings screen) and the terminal's panel layout, kept with the prefs.
   void set_audio(const AudioPrefs& a);
   void set_layout(std::string layout);
+  // "Reset layout": forgets the player's arrangement; the default for the window shows again.
+  void reset_layout();
   void toggle_auto() { run_action(Action::Auto); }
 
   // Panel viewmodels and dialog state, edited by the view (text fields) and read back.
@@ -147,6 +150,7 @@ class GameViewModel {
   LessonDialog lessons;
   Remap remap;
   AutoPlay autoplay;
+  DockLayout dock;
   std::string margin_amount = "100";
   void touch() { ++revision_; }
 

@@ -47,6 +47,7 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/chart_scale.cpp
   src/viewmodel/game/chart_vm.cpp
   src/viewmodel/game/dialogs_vm.cpp
+  src/viewmodel/game/dock_layout.cpp
   src/viewmodel/game/game_keys.cpp
   src/viewmodel/game/game_viewmodel.cpp
   src/viewmodel/game/hotkeys.cpp

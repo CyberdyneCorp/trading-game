@@ -4,10 +4,13 @@
 #include <doctest/doctest.h>
 
 #include <raven/raven_controls.h>
+#include <raven/raven_shell.h>
 
 #include "support/driver.hpp"
 #include "support/game_flows.hpp"
+#include "support/storage_fixtures.hpp"
 #include "view/app.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 
 using namespace tradelab::desktop;
 namespace names = tradelab::desktop::names;
@@ -155,4 +158,63 @@ TEST_CASE("headless terminal: with the retro theme every terminal control fits i
   std::string all;
   for (const auto& o : overflows) all += o + "\n";
   CHECK_MESSAGE(overflows.empty(), all);
+}
+
+namespace {
+
+float width_of(Driver& d, std::string_view name) {
+  float x = 0, y = 0, w = 0, h = 0;
+  Rwidget_get_rect(d.widget(name), &x, &y, &w, &h);
+  return w;
+}
+
+}  // namespace
+
+// Docking (desktop-client "Terminal UX parity"): the default keeps the web's column widths at any window
+// size, a moved panel is stored with the prefs and comes back at the next launch, "Reset layout" restores.
+TEST_CASE("headless terminal: docked panels keep their default widths, a moved layout persists, Reset restores") {
+  testing::TempDir dir;
+  PrefsFile prefs((dir.path() / "prefs.json").string());
+  std::string moved;
+  {
+    RavenSession raven;
+    App app(builtin_catalog(), [] { return 1u; });
+    app.vm().game().attach_prefs(&prefs);
+    REQUIRE(app.build(1024, 768));
+    Driver d(app);
+    d.frames(2);
+    Terminal t(app, d);
+    t.open(0);
+    d.frames(4);
+    CHECK(width_of(d, game::kPanelTicket) == doctest::Approx(340).epsilon(0.02));
+    CHECK(width_of(d, game::kPanelRail) == doctest::Approx(290).epsilon(0.02));
+    CHECK(prefs.load().layout.empty());  // the default is not stored
+    const Rid dock = d.widget(gn::kDock);
+    // The player puts the feed behind the ticket's tab (what a tab drag does), as Raven reports it.
+    Rdock_area_move_panel(dock, d.widget(game::kPanelFeed), R_DOCK_TAB, d.widget(game::kPanelTicket), 0);
+    app.vm().game().dock.changed();
+    app.vm().game().set_layout(Rdock_area_save_layout(dock));
+    moved = prefs.load().layout;
+    CHECK(moved.find("game-panel-ticket,game-panel-feed") != std::string::npos);
+  }
+  {
+    RavenSession raven;
+    App app(builtin_catalog(), [] { return 1u; });
+    app.vm().game().attach_prefs(&prefs);
+    REQUIRE(app.build(1024, 768));
+    Driver d(app);
+    d.frames(2);
+    Terminal t(app, d);
+    t.open(0);
+    d.frames(4);
+    const Rid dock = d.widget(gn::kDock);
+    CHECK(std::string(Rdock_area_save_layout(dock)) == moved);
+    t.skip_question();
+    REQUIRE(d.click(gn::kLayoutReset));
+    d.frames(4);
+    CHECK(prefs.load().layout.empty());
+    CHECK(Rdock_area_is_panel_shown(dock, d.widget(game::kPanelFeed)));
+    CHECK(Rdock_area_is_panel_shown(dock, d.widget(game::kPanelTicket)));
+    CHECK(width_of(d, game::kPanelTicket) == doctest::Approx(340).epsilon(0.02));
+  }
 }
