@@ -12,6 +12,8 @@
 #include <string>
 
 #include "model/engine_host.hpp"
+#include "model/engine_run.hpp"
+#include "model/storage/actions.hpp"
 #include "support/fake_engine.hpp"
 #include "support/ui_queue.hpp"
 #include "viewmodel/format.hpp"
@@ -416,4 +418,34 @@ TEST_CASE("terminal lab on the real engine: at zero shift every leg's value is i
       CHECK(fmt::num(w.legs[i].vega) == q->vega);
     }
   }
+}
+
+// Design D3 "Combos in the log": the desktop logs the web's tags on each leg (and on the cancels of a
+// withdrawn combo); replay ignores them, so a tagged log reaches the untagged log's digest.
+TEST_CASE("builder: tagged legs are logged as the web logs them and replay to the untagged digest") {
+  auto plain = EngineRun::create("m16-range-condor", 4);
+  auto tagged = EngineRun::create("m16-range-condor", 4);
+  REQUIRE(plain);
+  REQUIRE(tagged);
+  const GameState g = *plain->snapshot().game;
+  const int expiry = expiries_of(g.options.chain).front();
+  const auto legs = template_legs(Template::IronCondor, strikes_of(g.options.chain, expiry), g.last_price(), 1);
+  REQUIRE(legs);
+  const auto orders = order_legs(g, expiry, *legs);
+  REQUIRE(orders);
+  for (const auto& o : *orders) {
+    const GameCommand c = GameCommand::option_order(o.series, o.buy, false, o.qty, {});
+    const storage::Action untagged = storage::actions::from_game(c);
+    const storage::Action with_tag = storage::actions::from_game(c.tagged("c1", "iron_condor"));
+    CHECK(with_tag.json.find(R"("combo":"c1","strategy":"iron_condor"})") != std::string::npos);
+    CHECK(untagged.json.find("combo") == std::string::npos);
+    CHECK(storage::apply_action(*plain, untagged).accepted);
+    CHECK(storage::apply_action(*tagged, with_tag).accepted);
+  }
+  const storage::Action cancel = storage::actions::from_game(GameCommand::cancel(1).tagged("c1", "iron_condor"));
+  CHECK(cancel.json.find(R"("combo":"c1")") != std::string::npos);
+  plain->advance(1);
+  tagged->advance(1);
+  CHECK(plain->snapshot().digest == tagged->snapshot().digest);
+  CHECK(tagged->snapshot().game->options.positions.size() == 4);
 }

@@ -63,6 +63,8 @@ std::string max_profit_text(const Texts& t, const WhatIfResult& r);
 std::string max_loss_text(const Texts& t, const WhatIfResult& r);
 // The payoff chart as a display list (PayoffChart.svelte): expiry solid, today dashed, breakevens
 // dotted, strikes ticked, the forward marked.
+// The same numbers in a narrow panel (the builder): one line per leg, then the position's Greeks.
+std::vector<Line> whatif_compact(const Texts& t, const WhatIfResult& r);
 ChartScene payoff_scene(const WhatIfResult& r, float width, float height);
 
 class LabViewModel {

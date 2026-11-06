@@ -134,8 +134,9 @@ void GameView::apply_builder(const game::Texts& t, const GameState& g) {
   apply_leg_rows(v);
   ui::set_text(find(b::kAddLeg), "+ " + t.tr("builder.addLeg"));
   set_enabled(find(b::kAddLeg), v.can_add_leg);
-  set_visible(find(b::kUseLong), !v.use_long.empty());
-  ui::set_text(find(b::kUseLong), v.use_long);
+  set_visible(find("game-builder-use-long-row"), !v.use_long.empty());
+  set_label(find("game-builder-use-long-text"), v.use_long);
+  Rwidget_set_accessible_name(find(b::kUseLong), v.use_long.c_str());
   check(find(b::kUseLong), m.builder.use_long);
   set_label(find(b::kProblem), v.problem);
   set_visible(find(b::kProblem), !v.problem.empty());

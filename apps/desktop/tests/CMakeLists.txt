@@ -69,7 +69,7 @@ set_tests_properties(desktop_golden PROPERTIES LABELS golden)
 
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
 add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp
-  headless/test_headless_shell.cpp headless/test_headless_flows.cpp)
+  headless/test_headless_shell.cpp headless/test_headless_flows.cpp headless/test_headless_strategies.cpp)
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)
@@ -83,6 +83,7 @@ set_tests_properties(desktop_headless PROPERTIES LABELS headless ENVIRONMENT "RA
 if(RAVEN_BACKEND_VULKAN)
   add_executable(tradelab_desktop_windowed_tests main.cpp windowed/test_windowed.cpp windowed/test_game_windowed.cpp
     windowed/test_windowed_shell.cpp windowed/test_windowed_flows.cpp windowed/test_windowed_playthroughs.cpp
+    windowed/test_windowed_strategies.cpp
     support/png.cpp support/reference.cpp)
   target_compile_definitions(tradelab_desktop_windowed_tests PRIVATE
     TRADELAB_REFERENCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/windowed/reference"

@@ -282,7 +282,7 @@ void BuilderViewModel::view_analysis(const Texts& t, const GameState& g, Builder
     v.analysis.emplace_back(t.tr("lab.maxProfit"), max_profit_text(t, w));
     v.analysis.emplace_back(t.tr("lab.maxLoss"), max_loss_text(t, w));
   }
-  v.table = whatif_table(t, w, false);
+  v.table = whatif_compact(t, w);
 }
 
 }  // namespace tradelab::desktop::game

@@ -232,6 +232,45 @@ void timeline(const AppViewModel& vm, const Snapshot& s, ScreenModel& m) {
   m.lines.push_back(std::move(out));
 }
 
+const json::Value* trade_numbered(const json::Value& trades, int n) {
+  for (const auto& tr : trades.items()) {
+    if (tr["n"].as_int() == n) return &tr;
+  }
+  return nullptr;
+}
+
+// Strategy-builder combos (Debrief.svelte): each combo's row (name, state, net premium, summed result
+// and one R) above its legs' trades, which are left in order for the caller; then the other trades.
+std::vector<const json::Value*> grouped_trades(const AppViewModel& vm, const Snapshot& s, const json::Value& d, WidgetTable& t) {
+  std::vector<const json::Value*> rest;
+  const json::Value& trades = d["trades"];
+  std::vector<game::ComboStatus> statuses;
+  if (s.log && s.game) {
+    for (const auto& r : game::combos_from_log(*s.log, s.game->warmup_bars)) statuses.push_back(game::combo_status(s.game->events, r));
+  }
+  const game::GroupedTrades g = game::group_trades(game::combo_trades_from(trades), statuses);
+  const Locale L = vm.locale();
+  const game::Texts tx(vm.catalog());
+  for (const auto& c : g.combos) {
+    const std::string name = tx.count("combo.label", static_cast<long>(c.status.record.legs.size()),
+                                      {{"name", vm.tr("strategy." + c.status.record.strategy)}});
+    const std::string premium = fmt::fmt_money(game::net_premium(c.status, s.game->options.multiplier), L, true);
+    std::vector<std::string> row(t.columns.size());
+    row[1] = "\xE2\x97\x86 " + name + " \xC2\xB7 " + vm.tr("combo.state." + std::string(game::combo_state_code(c.status.state))) +
+             " \xC2\xB7 " + vm.tr("combo.premium", {{"amount", premium}});
+    row[4] = std::string(fmt::sign_mark(c.net)) + " " + fmt::fmt_money(c.net, L, true);
+    row[5] = c.r ? fmt::fmt_num(*c.r, L, 2, true) + "R" : std::string(kDash);
+    t.rows.push_back(std::move(row));
+    for (const auto& tr : c.trades) {
+      if (const auto* v = trade_numbered(trades, tr.n)) t.rows.push_back(trade_row(vm, *v, s.debrief->reveal["spans"]));
+    }
+  }
+  for (const auto& tr : g.rest) {
+    if (const auto* v = trade_numbered(trades, tr.n)) rest.push_back(v);
+  }
+  return rest;
+}
+
 }  // namespace
 
 void debrief_trades(const AppViewModel& vm, const Snapshot& s, const json::Value& d, ScreenModel& m) {
@@ -239,10 +278,10 @@ void debrief_trades(const AppViewModel& vm, const Snapshot& s, const json::Value
   m.text(names::kDebriefTradesTitle, vm.tr("debrief.trades"));
   WidgetTable t{names::kDebriefTrades, trade_columns(vm, !spans.is_null()), {}};
   WidgetLines notes{names::kDebriefTradeNotes, {}};
-  for (const auto& tr : d["trades"].items()) {
-    t.rows.push_back(trade_row(vm, tr, spans));
-    const std::string advice = stop_advice_text(vm.catalog(), tr);
-    if (!advice.empty()) notes.lines.push_back({"#" + tr["n"].as_string() + " \xE2\x9C\x96 " + advice, Tone::Down});
+  for (const auto& tr : grouped_trades(vm, s, d, t)) {
+    t.rows.push_back(trade_row(vm, *tr, spans));
+    const std::string advice = stop_advice_text(vm.catalog(), *tr);
+    if (!advice.empty()) notes.lines.push_back({"#" + (*tr)["n"].as_string() + " \xE2\x9C\x96 " + advice, Tone::Down});
   }
   if (t.rows.empty()) notes.lines.push_back({vm.tr("debrief.noTrades"), Tone::Muted});
   m.name(names::kDebriefTrades, vm.tr("debrief.trades"));

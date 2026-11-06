@@ -127,6 +127,21 @@ std::vector<Line> whatif_table(const Texts& t, const WhatIfResult& r, bool per_d
   return out;
 }
 
+std::vector<Line> whatif_compact(const Texts& t, const WhatIfResult& r) {
+  const Locale L = t.locale();
+  std::vector<Line> out;
+  for (const auto& l : r.legs) {
+    out.push_back({leg_label(t, l) + kDot + fmt::fmt_price(l.value, L) + kDot + "\xCE\x94 " + greek(l.delta, L) + kDot +
+                       fmt::fmt_money(l.pnl, L, true),
+                   sign_tone(l.pnl)});
+  }
+  out.push_back({t.tr("lab.net") + ": \xCE\x94 " + greek(r.net.delta, L, 3) + kDot + "\xCE\x93 " + greek(r.net.gamma, L) + kDot +
+                     "\xCE\x98/" + t.tr("lab.perBar") + " " + fmt::fmt_money(r.net.theta, L) + kDot + "\xCE\xBD/" +
+                     t.tr("lab.perPoint") + " " + fmt::fmt_money(r.net.vega, L),
+                 Tone::Plain});
+  return out;
+}
+
 ChartScene payoff_scene(const WhatIfResult& r, float width, float height) {
   ChartScene s;
   const auto g = payoff_geometry(r, width, height, result_strikes(r));
