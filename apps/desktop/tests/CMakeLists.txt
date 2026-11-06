@@ -24,6 +24,8 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/test_pack_screens.cpp
   viewmodel/test_theme.cpp
   viewmodel/test_web_parity.cpp
+  viewmodel/test_academy_parity.cpp
+  viewmodel/test_academy.cpp
   viewmodel/test_audio.cpp)
 target_include_directories(tradelab_desktop_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

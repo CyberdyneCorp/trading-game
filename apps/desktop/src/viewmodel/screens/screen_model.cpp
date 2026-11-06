@@ -47,6 +47,13 @@ bool ScreenModel::is_enabled(std::string_view w, bool fallback) const {
   return fallback;
 }
 
+std::string ScreenModel::tip_of(std::string_view w) const {
+  for (auto it = tips.rbegin(); it != tips.rend(); ++it) {
+    if (it->widget == w) return it->text;
+  }
+  return {};
+}
+
 const WidgetItems* ScreenModel::items_of(std::string_view w) const {
   for (const auto& i : items) {
     if (i.widget == w) return &i;
@@ -73,6 +80,8 @@ ScreenModel AppViewModel::screen_model() const {
     case Screen::Tutorial: return screens::tutorial(*this);
     case Screen::Catalog: return screens::catalog(*this);
     case Screen::Import: return screens::csv_import(*this);
+    case Screen::Academy: return screens::academy(*this);
+    case Screen::Glossary: return screens::glossary(*this);
     case Screen::Game: return screens::game(*this);
   }
   ScreenModel m;

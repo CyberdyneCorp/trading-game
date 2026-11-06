@@ -1,5 +1,6 @@
 #include "model/progress_json.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -189,6 +190,7 @@ std::string settings(const Settings& s) {
   w.key("crt").begin_object().field("enabled", s.crt.enabled).field("scanlines", s.crt.scanlines);
   w.field("bloom", s.crt.bloom).field("noise", s.crt.noise).end_object();
   w.field("colorblind", s.colorblind).key("textScale").raw(number_text(static_cast<double>(s.text_scale)));
+  if (!s.review_dismissed_on.empty()) w.field("reviewDismissed", s.review_dismissed_on);
   return w.end_object().text();
 }
 
@@ -200,6 +202,7 @@ Settings settings_from(const json::Value& v) {
                       crt["noise"].as_bool(true)};
   s.colorblind = v["colorblind"].as_bool(false);
   s.text_scale = static_cast<float>(v["textScale"].as_double(1.0));
+  s.review_dismissed_on = v["reviewDismissed"].as_string();
   return s;
 }
 
@@ -214,6 +217,42 @@ std::map<std::string, std::string> keymap_from(const json::Value& v) {
   std::map<std::string, std::string> out;
   for (const auto& [action, key] : v.fields()) {
     if (key.kind() == Kind::String) out[action] = key.as_string();
+  }
+  return out;
+}
+
+std::string reviews(const LessonReviews& r) {
+  JsonWriter w;
+  w.begin_object();
+  for (const auto& [id, e] : r) w.key(id).begin_object().field("box", e.box).field("due", e.due).end_object();
+  return w.end_object().text();
+}
+
+namespace {
+
+// "YYYY-MM-DD" (review.ts DAY).
+bool is_day(const std::string& s) {
+  if (s.size() != 10 || s[4] != '-' || s[7] != '-') return false;
+  for (std::size_t i = 0; i < s.size(); ++i) {
+    if (i != 4 && i != 7 && (s[i] < '0' || s[i] > '9')) return false;
+  }
+  return true;
+}
+
+std::optional<ReviewEntry> review_entry(const json::Value& e) {
+  const json::Value& box = e["box"];
+  const double b = box.as_double(0);
+  if (box.kind() != Kind::Number || b < 1 || b != std::floor(b)) return std::nullopt;
+  if (e["due"].kind() != Kind::String || !is_day(e["due"].as_string())) return std::nullopt;
+  return ReviewEntry{static_cast<int>(std::min<double>(kReviewRetired, b)), e["due"].as_string()};
+}
+
+}  // namespace
+
+LessonReviews reviews_from(const json::Value& v) {
+  LessonReviews out;
+  for (const auto& [id, e] : v.fields()) {
+    if (auto entry = review_entry(e)) out.emplace(id, std::move(*entry));
   }
   return out;
 }

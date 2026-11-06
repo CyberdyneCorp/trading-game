@@ -39,6 +39,8 @@ list(APPEND TRADELAB_DESKTOP_RESOURCES
   theme/tradelab.theme.xml theme/tradelab-cb.theme.xml
   fonts/VT323-Regular.ttf fonts/IBMPlexMono-Regular.ttf shaders/crt.spv
   web/content.json)
+# Academy and glossary screens (add-academy-and-strategies).
+list(APPEND TRADELAB_DESKTOP_RESOURCES views/academy.xml views/glossary.xml)
 tradelab_embed_resources(${CMAKE_BINARY_DIR}/generated/resources.cpp ${CMAKE_CURRENT_SOURCE_DIR}/resources
   ${TRADELAB_DESKTOP_RESOURCES})
 
@@ -120,6 +122,17 @@ target_sources(tradelab_desktop_model PRIVATE
 # libcurl is opened at run time (dlopen), never linked.
 target_link_libraries(tradelab_desktop_model PRIVATE tradelab_sqlite ${CMAKE_DL_LIBS})
 
+# Academy (add-academy-and-strategies D3, D6-D8): lesson widgets, review, glossary, guided first trade.
+set(TRADELAB_DESKTOP_ACADEMY_VIEWMODEL_SOURCES
+  src/viewmodel/academy/coach.cpp
+  src/viewmodel/academy/glossary.cpp
+  src/viewmodel/academy/payoff.cpp
+  src/viewmodel/academy/review.cpp
+  src/viewmodel/academy/ticket_sandbox.cpp
+  src/viewmodel/academy_flow.cpp
+  src/viewmodel/screens/academy.cpp
+  src/viewmodel/screens/lesson_widgets.cpp)
+
 add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/app_viewmodel.cpp
   src/viewmodel/assisted.cpp
@@ -152,7 +165,8 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/updates.cpp
   src/viewmodel/audio/audio_director.cpp
   src/viewmodel/audio/audio_rules.cpp
-  ${TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES})
+  ${TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES}
+  ${TRADELAB_DESKTOP_ACADEMY_VIEWMODEL_SOURCES})
 target_link_libraries(tradelab_desktop_viewmodel PUBLIC tradelab_desktop_model)
 target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS} ${TRADELAB_DESKTOP_FLOAT_FLAGS})
 
@@ -183,6 +197,8 @@ add_library(tradelab_desktop_view STATIC
   src/view/screens/retro_look.cpp
   src/view/screens/shell_view.cpp
   src/view/screens/shell_view_flows.cpp
+  src/view/screens/shell_view_academy.cpp
+  src/view/game/coach_view.cpp
   src/view/raven/raven_ui.cpp
   ${TRADELAB_DESKTOP_GAME_VIEW_SOURCES})
 target_link_libraries(tradelab_desktop_view PUBLIC tradelab_desktop_viewmodel tradelab_desktop_platform raven::raven)

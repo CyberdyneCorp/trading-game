@@ -168,6 +168,7 @@ ScreenModel menu(const AppViewModel& vm) {
   m.enable(names::kMenuResume, !vm.waiting());
   campaign_panel(vm, m);
   mission_list(vm, m);
+  academy_menu(vm, m);
   return m;
 }
 

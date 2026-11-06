@@ -416,7 +416,7 @@ TEST_CASE("playtest: advance remapped to N with the CRT off, then an Academy les
   REQUIRE(d.click(names::kCurriculumLessonStart));
   for (int guard = 0; guard < 40 && !app.vm().shell().lesson.finished(); ++guard) {
     const LessonStep* s = app.vm().shell().lesson.step();
-    if (s->question()) REQUIRE(d.click(names::kLessonChoices[static_cast<std::size_t>(s->answer)]));
+    if (s->is_question()) REQUIRE(d.click(names::kLessonChoices[static_cast<std::size_t>(s->question->answer)]));
     run.clipping("lesson");
     REQUIRE(d.click(names::kLessonNext));
   }

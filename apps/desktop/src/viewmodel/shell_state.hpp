@@ -8,6 +8,7 @@
 #include <string>
 
 #include "model/progress.hpp"
+#include "viewmodel/academy/academy_state.hpp"
 #include "viewmodel/keymap.hpp"
 #include "viewmodel/lesson_runner.hpp"
 
@@ -61,6 +62,7 @@ struct ShellState {
   int journal_filter = 0;       // 0 = every mission, else journal_missions()[i - 1]
   int lesson_selected = 0;
   LessonRunner lesson;
+  AcademyState academy;  // Academy, lesson widgets, glossary, review prompt, guided first trade
   int key_row = 0;
   bool capturing_key = false;
   std::string key_message;

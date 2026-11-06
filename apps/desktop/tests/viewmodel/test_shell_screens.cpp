@@ -277,11 +277,11 @@ TEST_CASE("shell: curriculum map statuses, Academy lesson to completion, stage p
   CHECK(m.text_of(names::kLessonStep) == "1 de 8");
   while (!f.vm.shell().lesson.finished()) {
     const LessonStep* s = f.vm.shell().lesson.step();
-    if (s->question()) {
-      f.vm.lesson_pick((s->answer + 1) % static_cast<int>(s->choices.size()));  // wrong first
+    if (s->is_question()) {
+      f.vm.lesson_pick((s->question->answer + 1) % static_cast<int>(s->question->choices.size()));  // wrong first
       m = f.vm.screen_model();
       CHECK(m.text_of(names::kLessonFeedback).starts_with("Tente de novo. "));
-      f.vm.lesson_pick(s->answer);
+      f.vm.lesson_pick(s->question->answer);
     }
     f.vm.lesson_next();
   }

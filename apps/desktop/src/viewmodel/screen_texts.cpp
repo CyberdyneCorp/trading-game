@@ -37,7 +37,9 @@ std::vector<Binding> AppViewModel::bindings() const {
     case Screen::Settings:
     case Screen::Tutorial:
     case Screen::Catalog:
-    case Screen::Import: break;  // screens::*
+    case Screen::Import:
+    case Screen::Academy:
+    case Screen::Glossary: break;  // screens::*
   }
   return {};
 }

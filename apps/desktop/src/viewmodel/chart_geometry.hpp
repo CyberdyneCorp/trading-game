@@ -31,6 +31,8 @@ struct ChartGeometry {
   [[nodiscard]] float y_of(double price, float height) const;
 };
 
-ChartGeometry chart_geometry(const std::vector<Bar>& bars, float width, float height, int max_bars = 80);
+// `extra_prices` widen the price range (a lesson chart's labeled levels stay inside the box).
+ChartGeometry chart_geometry(const std::vector<Bar>& bars, float width, float height, int max_bars = 80,
+                             const std::vector<double>& extra_prices = {});
 
 }  // namespace tradelab::desktop

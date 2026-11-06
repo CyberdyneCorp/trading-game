@@ -17,6 +17,7 @@
 #include "model/resources.hpp"
 #include "view/chart_painter.hpp"
 #include "view/raven/raven_ui.hpp"
+#include "viewmodel/academy_names.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -119,6 +120,7 @@ bool AppView::build(int width, int height) {
   bind_widgets();
   game_view_ = std::make_unique<view::GameView>(vm_, screens_[static_cast<std::size_t>(Screen::Game)], window_);
   game_view_->bind();
+  coach_view_ = std::make_unique<view::CoachView>(vm_, switcher_, window_);
   refresh();
   return true;
 }
@@ -126,6 +128,9 @@ bool AppView::build(int width, int height) {
 bool AppView::on_key(const REvent* e) {
   if (ShellView::capture_key(vm_, e)) return true;  // Settings waits for a new shortcut key
   if (ShellView::tutorial_key(vm_, window_, e)) return true;
+  if (coach_view_) {
+    if (const auto used = coach_view_->on_key(e)) return *used;  // Esc skips; the callout's keys are its own
+  }
   if (vm_.screen() != Screen::Game || !game_view_) return false;
   return game_view_->on_key(e);
 }
@@ -166,7 +171,10 @@ void AppView::refresh() {
   const auto now = std::chrono::steady_clock::now();
   vm_.tick_audio(std::chrono::duration<double>(now - last_frame_).count());
   last_frame_ = now;
+  vm_.tick_coach();
   if (game_view_) game_view_->refresh();
+  shell_->focus_help(window_);
+  if (coach_view_) coach_view_->refresh();
   if (vm_.revision() == shown_revision_) return;
   shown_revision_ = vm_.revision();
   Rswitcher_set_index(switcher_, static_cast<int>(vm_.screen()));
@@ -175,6 +183,8 @@ void AppView::refresh() {
   Rwidget_set_enabled(find(names::kMenuStart), vm_.waiting() ? R_FALSE : R_TRUE);
   Rwidget_invalidate(find(names::kGameChart));
   if (vm_.screen() == Screen::Debrief) Rwidget_invalidate(find(names::kDebriefChart));
+  if (vm_.screen() == Screen::Lesson) Rwidget_invalidate(find(names::kLessonPayoff));
+  if (coach_view_) coach_view_->refresh();
 }
 
 void AppView::missing_actions(std::span<const std::string_view> actions, std::vector<std::string>& missing) {
@@ -195,10 +205,12 @@ std::vector<std::string> AppView::missing_names() const {
   missing_widgets(names::kWidgets, missing);
   missing_widgets(names::kShellWidgets, missing);
   missing_widgets(names::kFlowWidgets, missing);
+  missing_widgets(names::kAcademyWidgets, missing);
   if (shell_->look().overlay() == R_INVALID_ID) missing.push_back("widget " + std::string(names::kCrtOverlay));
   missing_actions(names::kActions, missing);
   missing_actions(names::kShellActions, missing);
   missing_actions(names::kFlowActions, missing);
+  missing_actions(names::kAcademyActions, missing);
   if (game_view_) {
     for (auto& m : game_view_->missing_names()) missing.push_back(std::move(m));
   }

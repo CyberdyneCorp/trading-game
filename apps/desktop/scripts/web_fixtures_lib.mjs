@@ -289,6 +289,14 @@ function curriculumFixture(m) {
 		for (const mission of missions) add('campaignPermissions', [mission, assessed], m.campaignPermissions(mission, assessed));
 	}
 	for (const mission of [...missions, 'm99-unknown']) add('stagesOf', [mission], m.stagesOf(mission));
+	const done = [[], ['foundations-bar', 'risk-sizing'], m.STAGES.flatMap((s) => s.lessons)];
+	for (const lessons of done) {
+		for (const s of m.STAGES) {
+			add('lessonProgress', [s.id, lessons], m.lessonProgress(s.id, lessons));
+			add('recommendedLesson', [s.id, lessons], m.recommendedLesson(s.id, lessons));
+		}
+	}
+	for (const code of ['options', 'risk', 'futures1', 'strategies', 'nope', '']) add('lessonCodeStage', [code], m.lessonCodeStage(code));
 	for (const u of ['short', 'leverage', 'optionsBuy', 'optionsWrite']) add('unlockStage', [u], m.unlockStage(u));
 	return { helper: 'curriculum.ts', cases: list };
 }
@@ -358,6 +366,97 @@ function audioFixture(m) {
 	return { helper: 'audioRules.ts', cases: list };
 }
 
+// ---- Academy (add-academy-and-strategies): lesson widgets, typed answers, review, glossary ----
+
+const leg = (kind, side, qty, strike, price) => (kind === 'perp' ? { kind, side, qty, price } : { kind, side, qty, strike, price });
+const LEG_SETS = [
+	[leg('call', 'buy', 1, 100, 4)],
+	[leg('put', 'buy', 1, 100, 4)],
+	[leg('call', 'buy', 1, 100, 4), leg('put', 'buy', 1, 100, 4)],
+	[leg('call', 'buy', 1, 100, 5.5), leg('call', 'sell', 1, 110, 1.5)],
+	[leg('put', 'buy', 1, 90, 0.8), leg('put', 'sell', 1, 95, 2.3), leg('call', 'sell', 1, 105, 2.3), leg('call', 'buy', 1, 110, 0.8)],
+	[leg('put', 'sell', 1, 95, 2), leg('call', 'sell', 1, 105, 2)],
+	[leg('perp', 'buy', 1, 0, 100), leg('call', 'sell', 1, 105, 2)],
+	[leg('perp', 'buy', 1, 0, 100), leg('put', 'buy', 1, 95, 2)],
+	[leg('perp', 'sell', 2, 0, 2400), leg('call', 'buy', 1, 2400, 75)],
+	[leg('call', 'sell', 3, 100, 1)],
+	[leg('put', 'sell', 1, 100, 100)],
+	[leg('call', 'buy', 0.5, 50, 2.25), leg('call', 'sell', 1, 55, 1), leg('call', 'buy', 0.5, 60, 0.4)]
+];
+
+function payoffFixture(m) {
+	const { list, add } = cases();
+	for (const legs of LEG_SETS) {
+		for (const s of [0, 50, 90, 95, 100, 104.5, 110, 2400, 3000]) add('pnlAt', [legs, s], m.pnlAt(legs, s));
+		add('legPnlAt', [legs[0], 97.5], m.legPnlAt(legs[0], 97.5));
+		add('breakevens', [legs], m.breakevens(legs));
+		add('maxProfit', [legs], m.maxProfit(legs));
+		add('maxLoss', [legs], m.maxLoss(legs));
+		add('payoffCurve', [legs, 80, 120, 8], m.payoffCurve(legs, 80, 120, 8));
+	}
+	return { helper: 'content/payoff.ts', cases: list };
+}
+
+const ticket = (o) => ({ kind: 'ticket', market: 'X', equity: 10000, entry: 100, side: 'buy', qty: 25, leverage: 5, maxLeverage: 20, stop: 96, target: 108, mmr: 0.01, lot: 1, edit: ['qty'], ...o });
+
+function ticketSandboxFixture(m) {
+	const { list, add } = cases();
+	const widgets = [ticket({}), ticket({ side: 'sell', entry: 250, stop: 260, target: 230, qty: 10 }), ticket({ stop: null, target: null, leverage: 20 }), ticket({ equity: 2000, entry: 50, qty: 3, leverage: 10, stop: 44, target: null })];
+	for (const w of widgets) {
+		const base = m.initialInputs(w);
+		add('initialInputs', [w], base);
+		const variants = [base, { ...base, qty: 0 }, { ...base, qty: -3 }, { ...base, leverage: 40 }, { ...base, leverage: 0 }, { ...base, side: base.side === 'buy' ? 'sell' : 'buy' }, { ...base, stop: null }, { ...base, target: 120 }];
+		for (const x of variants) {
+			const out = m.sandboxOutputs(w, x);
+			add('sandboxOutputs', [w, x], out);
+			for (const f of ['side', 'qty', 'leverage', 'stop', 'target', 'notional', 'margin', 'liquidation', 'riskAtStop', 'riskPct', 'rTarget']) {
+				add('sandboxValue', [f, x, out], m.sandboxValue(f, x, out));
+			}
+		}
+	}
+	for (const [v, t, tol] of [[100, 100, 0], [104, 100, 4], [104.0000001, 100, 4], [null, 1, 1], [Infinity, 1, 1], [96.1, 100, 4]]) add('reachesTarget', [v, t, tol], m.reachesTarget(v, t, tol));
+	return { helper: 'content/ticketSandbox.ts', cases: list };
+}
+
+function lessonRunFixture(m) {
+	const { list, add } = cases();
+	const inputs = ['6', '−1,20', '-1.2', '2.340', '2,340', '6,25%', '6.25 %', '2 R', '2R ', '5 cr', '5CR', '7×', '1.234,5', '1,234.5', 'abc', '', ' 18 ', '–30', '0,2R'];
+	for (const input of inputs) for (const L of LOCALES) add('readTypedNumber', [input, L], m.readTypedNumber(input, L));
+	return { helper: 'lessonRun.svelte.ts', cases: list };
+}
+
+function reviewFixture(m) {
+	const { list, add } = cases();
+	for (const [d, n] of [['2026-01-31', 1], ['2026-02-27', 3], ['2024-02-28', 1], ['2026-12-25', 7], ['2026-03-08', 21], ['2026-10-31', 1]]) add('addDays', [d, n], m.addDays(d, n));
+	const today = '2026-03-10';
+	let r = m.scheduleOnComplete({}, 'a', today);
+	add('scheduleOnComplete', [{}, 'a', today], r);
+	add('scheduleOnComplete', [r, 'a', '2026-03-12'], m.scheduleOnComplete(r, 'a', '2026-03-12'));
+	let day = today;
+	for (const right of [true, true, false, true, true, true, true, true]) {
+		const next = m.applyReview(r, 'a', right, day);
+		add('applyReview', [r, 'a', right, day], next);
+		r = next;
+		day = m.addDays(day, 2);
+	}
+	add('applyReview', [{}, 'b', true, today], m.applyReview({}, 'b', true, today));
+	const sched = { a: { box: 1, due: '2026-03-10' }, b: { box: 2, due: '2026-03-11' }, c: { box: 5, due: '2026-01-01' }, d: { box: 3, due: '2026-02-01' } };
+	for (const d of ['2026-03-09', '2026-03-10', '2026-03-11']) add('dueReviews', [sched, d, ['d', 'c', 'b', 'a', 'z']], m.dueReviews(sched, d, ['d', 'c', 'b', 'a', 'z']));
+	add('isRetired', [sched.c], m.isRetired(sched.c));
+	add('isRetired', [sched.a], m.isRetired(sched.a));
+	add('readReviews', [{ a: { box: 2, due: '2026-01-02' }, b: { box: 0, due: '2026-01-02' }, c: { box: 9, due: '2026-01-02' }, d: { box: 1.5, due: '2026-01-02' }, e: { box: 1, due: '2026/01/02' }, f: 'x' }], m.readReviews({ a: { box: 2, due: '2026-01-02' }, b: { box: 0, due: '2026-01-02' }, c: { box: 9, due: '2026-01-02' }, d: { box: 1.5, due: '2026-01-02' }, e: { box: 1, due: '2026/01/02' }, f: 'x' }));
+	return { helper: 'review.ts', cases: list };
+}
+
+function glossaryFixture(m) {
+	const { list, add } = cases();
+	for (const q of ['', 'liquidacao', 'LIQUIDAÇÃO', 'margem', 'margin', 'call', 'theta', 'stop', '  risco ', 'zzz', 'é', 'spread']) {
+		for (const L of LOCALES) add('searchTerms', [q, L], m.searchTerms(q, L).map((t) => t.id));
+	}
+	for (const s of ['Liquidação', ' Ação ', 'Ç', 'naïve', 'ÀÉÎÕÜ']) add('fold', [s], m.fold(s));
+	return { helper: 'content/glossary.ts', cases: list };
+}
+
 export async function buildFixtures(load) {
 	const i18n = await load('i18n.svelte.ts');
 	const curriculum = await load('curriculum.ts');
@@ -371,6 +470,11 @@ export async function buildFixtures(load) {
 		points: pointsFixture(await load('points.ts')),
 		campaign: campaignFixture(await load('campaign.ts'), curriculum),
 		curriculum: curriculumFixture(curriculum),
-		audioRules: audioFixture(await load('audioRules.ts'))
+		audioRules: audioFixture(await load('audioRules.ts')),
+		payoff: payoffFixture(await load('content/payoff.ts')),
+		ticketSandbox: ticketSandboxFixture(await load('content/ticketSandbox.ts')),
+		lessonRun: lessonRunFixture(await load('lessonRun.svelte.ts')),
+		review: reviewFixture(await load('review.ts')),
+		glossary: glossaryFixture(await load('content/glossary.ts'))
 	};
 }

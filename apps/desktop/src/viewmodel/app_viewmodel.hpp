@@ -16,8 +16,9 @@
 #include "model/packs/pack_service.hpp"
 #include "model/snapshot.hpp"
 #include "model/update/update_service.hpp"
-#include "viewmodel/chart_geometry.hpp"
+#include "viewmodel/academy/ticket_sandbox.hpp"
 #include "viewmodel/audio/audio_director.hpp"
+#include "viewmodel/chart_geometry.hpp"
 #include "viewmodel/game/game_viewmodel.hpp"
 #include "viewmodel/pack_screens.hpp"
 #include "viewmodel/screen_model.hpp"
@@ -37,7 +38,9 @@ enum class Screen : std::uint8_t {
   Settings = 7,
   Tutorial = 8,  // a mission's tutorial cards, before its briefing (the first time only)
   Catalog = 9,
-  Import = 10
+  Import = 10,
+  Academy = 11,  // lessons by stage, status, retake, reviews due (add-academy-and-strategies D8)
+  Glossary = 12  // the glossary's search and terms (D6)
 };
 
 // A run left unfinished in an earlier launch (the active run of the store), offered by the menu: a
@@ -142,12 +145,54 @@ class AppViewModel {
 
   void select_lesson(int index);
   void start_selected_lesson();
-  void open_lesson(const std::string& id);
   void lesson_pick(int choice);
   void lesson_next();
   void lesson_prev();
+
+  // ---- Academy, lesson widgets, glossary, review prompt, guided first trade (viewmodel/academy_flow.cpp) ----
+  // A lesson opened from a screen (it returns there), as a full lesson or a spaced review.
+  void open_lesson(const std::string& id, Screen from = Screen::Curriculum, LessonMode mode = LessonMode::Lesson);
   void lesson_leave();
+  // Records the finished lesson (completed and scheduled, or the review moved) and returns.
   void lesson_finish();
+  void lesson_set_typed(std::string text);
+  void lesson_submit_number();
+  void lesson_check_set();
+  // Ticket sandbox edits (only the fields the step lets the player change).
+  void sandbox_set_side(bool buy);
+  enum class SandboxField : std::uint8_t { Qty, Leverage, Stop, Target };
+  void sandbox_set_text(SandboxField field, std::string text);
+  [[nodiscard]] std::optional<academy::SandboxOutputs> sandbox_outputs() const;
+
+  void open_academy();
+  void academy_select(int index);
+  void academy_start_selected();  // start, or retake
+  void academy_due_select(int index);
+  void academy_review_selected();
+  // Today's local calendar day (the review schedule uses the device clock, never a run's).
+  [[nodiscard]] std::string today() const;
+  // Lessons whose review is due today, in Academy order.
+  [[nodiscard]] std::vector<std::string> reviews_due() const;
+  [[nodiscard]] bool review_prompt_shown() const;
+  void dismiss_review_prompt();
+  // The debrief's recommended lesson ("" = none): the stage's first lesson not completed, else its first.
+  [[nodiscard]] std::string debrief_lesson() const;
+  void open_debrief_lesson();
+
+  void open_glossary(std::optional<std::string> term = std::nullopt);
+  void leave_glossary();
+  void glossary_search(std::string query);
+  void glossary_select(int index);  // a row of the search results
+  void glossary_open(const std::string& id);
+  [[nodiscard]] std::vector<std::string> glossary_hits() const;
+
+  // Guided first trade (coach marks on the real terminal and its debrief).
+  [[nodiscard]] const academy::CoachModel& coach() const { return shell_.academy.coach; }
+  void coach_next();
+  void coach_skip();
+  void coach_replay();  // help overlay (starts now in the terminal) or briefing (when the terminal opens)
+  // Once per frame: screen changes, a typed stop and an advance drive the tour (like tick_audio).
+  void tick_coach();
 
   void set_journal_filter(int index);
   // The terminal's plan dialog records the plan of an entry in the run's journal.
@@ -269,6 +314,10 @@ class AppViewModel {
   void pause_downloads();
   void csv_report(const packs::PackEvent& e);
   void csv_imported(const packs::PackEvent& e);
+  // Academy (academy_flow.cpp).
+  void reset_sandbox();
+  void mark_coach_done();
+  void coach_watch_terminal();
 
   Catalog catalog_;
   std::vector<MissionInfo> missions_;

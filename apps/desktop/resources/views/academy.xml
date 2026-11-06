@@ -1,0 +1,30 @@
+<!-- Academy (web Academy.svelte): the reviews due today, every lesson by stage with its status (new,
+     done, review due) and start or retake, and the glossary. Texts from screens::academy(). -->
+<ScrollBox Name="academy-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="academy-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="academy-glossary" OnClicked="tl.glossary.open" Slot.VAlign="Center"/>
+            <Button Name="academy-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Label Name="academy-intro" Wrap="true" Class="muted"/>
+        <Border Name="academy-due-box" Background="#121C1B" BorderColor="#FFC857" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="academy-due-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <HBox Spacing="12">
+                    <ListView Name="academy-due" Width="420" Height="64"/>
+                    <Button Name="academy-review-start" Style="Primary" OnClicked="tl.academy.review" Slot.VAlign="Top"/>
+                </HBox>
+            </VBox>
+        </Border>
+        <HBox Spacing="12">
+            <ListView Name="academy-lessons" Width="620" Height="380"/>
+            <VBox Spacing="8" Slot.Fill="1">
+                <Label Name="academy-detail" Wrap="true"/>
+                <Button Name="academy-start" Style="Primary" OnClicked="tl.academy.start" Slot.HAlign="Left"/>
+            </VBox>
+        </HBox>
+    </VBox>
+</Border>
+</ScrollBox>

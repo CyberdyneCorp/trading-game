@@ -140,7 +140,7 @@ TEST_CASE("windowed shell: curriculum map, an Academy lesson with its chart, the
   CHECK(chart.near(0xFF, 0x5F, 0x7A) > 100);  // down candles
   for (int guard = 0; guard < 40 && !app.vm().shell().lesson.finished(); ++guard) {
     const LessonStep* s = app.vm().shell().lesson.step();
-    if (s->question()) REQUIRE(d.click(names::kLessonChoices[static_cast<std::size_t>(s->answer)]));
+    if (s->is_question()) REQUIRE(d.click(names::kLessonChoices[static_cast<std::size_t>(s->question->answer)]));
     REQUIRE(d.click(names::kLessonNext));
   }
   CHECK(capture(d, window, "shell-06-lesson-done").saved);

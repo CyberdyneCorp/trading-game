@@ -39,6 +39,17 @@ struct CurriculumSummary {
 };
 CurriculumSummary curriculum_summary(const WebContent& c, const Ids& assessed, const Ids& lessons_done = {});
 
+// Academy lessons of a stage: how many are completed (the map's "lessons x/y").
+struct LessonProgress {
+  int done = 0;
+  int total = 0;
+};
+LessonProgress lesson_progress(const WebContent& c, std::string_view id, const Ids& lessons_done);
+// The lesson a recommendation opens: the stage's first lesson not completed, else its first ("" = none).
+std::string recommended_lesson(const WebContent& c, std::string_view id, const Ids& lessons_done);
+// The stage a debrief's next-lesson code recommends (engine LessonCode; "options" is Options II; "" = none).
+std::string lesson_code_stage(const WebContent& c, std::string_view code);
+
 bool contains(const Ids& ids, std::string_view id);
 
 }  // namespace tradelab::desktop

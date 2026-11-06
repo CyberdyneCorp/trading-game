@@ -19,6 +19,25 @@ ScreenModel tutorial(const AppViewModel& vm);    // Tutorial.svelte (before the 
 ScreenModel catalog(const AppViewModel& vm);     // Catalog.svelte + the installed packs (MissionMenu practice panel)
 ScreenModel csv_import(const AppViewModel& vm);  // CsvImport.svelte
 ScreenModel game(const AppViewModel& vm);        // the terminal's shell parts: assisted tag and AssistPanel.svelte
+ScreenModel academy(const AppViewModel& vm);     // Academy.svelte
+ScreenModel glossary(const AppViewModel& vm);    // Glossary.svelte + GlossaryList.svelte
+
+// A marked glossary term's in-place definition (Term.svelte): "<term>: <short definition>" ("" when
+// the glossary has no such term). The view shows it as the tooltip and the accessible description.
+std::string term_tip(const AppViewModel& vm, std::string_view id);
+// The lesson widgets (LessonTicket / LessonTable / LessonPayoff, the chart's levels) and the question's
+// number and set rows (screens/lesson_widgets.cpp).
+void lesson_widgets(const AppViewModel& vm, const std::string& base, const LessonStep& step, ScreenModel& m);
+// The Academy's parts of other screens (screens/academy.cpp): the menu's Academy and glossary buttons
+// and review prompt, the map's Academy link, the briefing's guided tour, the debrief's recommended
+// lesson and coach step, and the terminal's coach marks and marked terms.
+void academy_menu(const AppViewModel& vm, ScreenModel& m);
+void academy_curriculum(const AppViewModel& vm, ScreenModel& m);
+void academy_briefing(const AppViewModel& vm, ScreenModel& m);
+void academy_debrief(const AppViewModel& vm, ScreenModel& m);
+void academy_game(const AppViewModel& vm, ScreenModel& m);
+// The guided first trade's callout (CoachMarks.svelte) in the terminal or the debrief.
+void coach_callout(const AppViewModel& vm, bool debrief, ScreenModel& m);
 
 // AssistPanel.svelte, shown in the terminal and in the debrief under their own widget names.
 void assist_panel(const AppViewModel& vm, const names::AssistNames& n, ScreenModel& m);

@@ -24,6 +24,14 @@
             <Button Name="menu-settings" OnClicked="tl.menu.settings"/>
             <Button Name="menu-catalog" OnClicked="tl.menu.catalog"/>
             <Button Name="menu-import" OnClicked="tl.menu.import"/>
+            <Button Name="menu-academy" OnClicked="tl.academy.open"/>
+            <Button Name="menu-glossary" OnClicked="tl.glossary.open"/>
+        </HBox>
+        <!-- Spaced review (web ReviewPrompt.svelte): never blocks play; dismissed until tomorrow. -->
+        <HBox Name="menu-review-row" Spacing="12">
+            <Label Name="menu-review-text" Wrap="true" Class="attention" Slot.Fill="1" Slot.VAlign="Center"/>
+            <Button Name="menu-review-open" Style="Primary" OnClicked="tl.academy.open"/>
+            <Button Name="menu-review-dismiss" OnClicked="tl.menu.reviewDismiss"/>
         </HBox>
         <Label Name="menu-notice" Wrap="true" Class="info"/>
         <HBox Spacing="16">

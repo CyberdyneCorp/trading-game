@@ -170,5 +170,9 @@
   "desktop.layout.resetHint": {
     "pt-BR": "Arraste a aba de um painel para movê-lo e a borda entre painéis para mudar o tamanho; o arranjo fica salvo. Este botão volta ao arranjo padrão.",
     "en": "Drag a panel's tab to move it and the border between panels to resize; the arrangement is saved. This button puts the default back."
+  },
+  "desktop.academy.terms": {
+    "pt-BR": "Termos desta etapa (passe o mouse ou foque para ver a definição; Enter abre o glossário):",
+    "en": "Terms in this step (hover or focus to see the definition; Enter opens the glossary):"
   }
 }

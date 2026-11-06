@@ -46,6 +46,7 @@
                     <Label Name="game-pattern-line" Color="#FFC857" TextSize="12"/>
                     <Custom Name="game-chart" Focusable="true" Slot.Fill="1"/>
                     <Label Name="game-chart-status" Color="#8FB3A1" TextSize="12" Wrap="true"/>
+                    <Label Name="game-term-help" Color="#4FD8FF" TextSize="12" Wrap="true"/>
                     <VBox Name="game-table-box" Spacing="3" Visibility="Collapsed">
                         <HBox Spacing="6">
                             <Button Name="game-table-prev" Text="◀"/>
@@ -315,6 +316,7 @@
                 <VBox Name="game-help-rows" Spacing="2"/>
                 <Label Name="game-help-message" Wrap="true"/>
                 <Label Name="game-help-note" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                <Button Name="game-help-tour" OnClicked="tl.game.helpTour" Slot.HAlign="Left"/>
                 <HBox Spacing="6">
                     <Button Name="game-help-reset"/>
                     <Spacer Slot.Fill="1"/>
@@ -357,4 +359,22 @@
         </Switcher>
     </Border>
 </Border>
+<!-- Guided first trade (web CoachMarks.svelte): a non-modal callout placed next to its target (the
+     view reads the target's rect each frame) and an outline over the target; the rest of the terminal
+     stays usable, so the layer lets the pointer through. -->
+<Canvas Name="game-coach-layer" HitTestable="false" Visibility="Collapsed">
+    <Border Name="game-coach-outline" BorderColor="#39FF88" BorderWidth="2" HitTestable="false"/>
+    <Border Name="game-coach" Background="#121C1B" BorderColor="#39FF88" BorderWidth="1" Padding="12" Width="340" AccessibleRole="Dialog">
+        <VBox Spacing="6">
+            <Label Name="game-coach-step" Color="#8FB3A1" TextSize="12"/>
+            <Label Name="game-coach-title" Color="#39FF88" TextSize="18" AccessibleRole="Heading"/>
+            <Label Name="game-coach-body" Color="#E3F5EA" Wrap="true"/>
+            <HBox Spacing="6">
+                <Button Name="game-coach-skip" Style="Flat" OnClicked="tl.coach.skip"/>
+                <Spacer Slot.Fill="1"/>
+                <Button Name="game-coach-next" Style="Primary" OnClicked="tl.coach.next"/>
+            </HBox>
+        </VBox>
+    </Border>
+</Canvas>
 </Overlay>

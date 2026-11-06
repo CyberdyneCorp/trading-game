@@ -106,4 +106,23 @@ CurriculumSummary curriculum_summary(const WebContent& c, const Ids& assessed, c
   return out;
 }
 
+LessonProgress lesson_progress(const WebContent& c, std::string_view id, const Ids& lessons_done) {
+  const Stage* s = c.stage(id);
+  if (s == nullptr) return {};
+  const auto done = std::ranges::count_if(s->lessons, [&](const std::string& l) { return contains(lessons_done, l); });
+  return {static_cast<int>(done), static_cast<int>(s->lessons.size())};
+}
+
+std::string recommended_lesson(const WebContent& c, std::string_view id, const Ids& lessons_done) {
+  const Stage* s = c.stage(id);
+  if (s == nullptr || s->lessons.empty()) return {};
+  const auto it = std::ranges::find_if(s->lessons, [&](const std::string& l) { return !contains(lessons_done, l); });
+  return it != s->lessons.end() ? *it : s->lessons.front();
+}
+
+std::string lesson_code_stage(const WebContent& c, std::string_view code) {
+  if (code == "options") return "options2";
+  return c.stage(code) != nullptr ? std::string(code) : std::string();
+}
+
 }  // namespace tradelab::desktop

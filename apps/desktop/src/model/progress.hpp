@@ -103,10 +103,23 @@ struct RunRecord {
   std::vector<PlanEntry> journal;
 };
 
+// A lesson's spaced-review schedule (review.ts ReviewEntry): box 1..4 while scheduled, kReviewRetired
+// once retired; `due` is a local calendar day ("YYYY-MM-DD").
+inline constexpr int kReviewRetired = 5;
+struct ReviewEntry {
+  int box = 1;
+  std::string due;
+  bool operator==(const ReviewEntry&) const = default;
+};
+using LessonReviews = std::map<std::string, ReviewEntry, std::less<>>;
+
 struct Progress {
   std::vector<std::string> completed;     // missions played to the end (not bankrupt)
   std::vector<std::string> assessed;      // missions finished in a campaign run: their stages are passed
   std::vector<std::string> lessons_done;  // Academy lessons completed
+  LessonReviews lesson_reviews;           // spaced reviews of completed lessons (progress v3)
+  std::vector<std::string> coach_done;    // guided tours finished or skipped ("first-trade")
+  std::vector<std::string> glossary_seen; // glossary terms opened (the "new" mark)
   std::optional<CampaignRun> campaign;
   std::vector<CampaignRun> campaign_history;  // ended campaign runs, oldest first
   std::vector<RunRecord> runs;
@@ -146,6 +159,8 @@ struct Settings {
   bool colorblind = false;
   float text_scale = 1.0f;
   std::map<std::string, std::string> keymap;  // action -> key; empty = the web's defaults
+  // The day the menu's review prompt was dismissed ("YYYY-MM-DD"; the web's tradelab.reviewDismissed.v1).
+  std::string review_dismissed_on;
 };
 
 class SettingsRepository {

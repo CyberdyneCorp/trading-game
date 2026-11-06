@@ -17,14 +17,21 @@ std::string join(const std::vector<std::string>& parts) {
   return out;
 }
 
+// The stage's lessons completed, "Aulas: x/y" (CurriculumMap.svelte), after its content.
+std::string lessons_done(const AppViewModel& vm, const Stage& st) {
+  if (st.lessons.empty()) return {};
+  const LessonProgress lp = lesson_progress(web_content(), st.id, vm.progress().lessons_done);
+  return std::string(kSep) + vm.tr("curriculum.lessons", {{"done", std::to_string(lp.done)}, {"total", std::to_string(lp.total)}});
+}
+
 std::string stage_content(const AppViewModel& vm, const Stage& st) {
   const Progress& p = vm.progress();
   if (!st.missions.empty()) {
     std::vector<std::string> titles;
     for (const auto& m : st.missions) titles.push_back((contains(p.assessed, m) ? "\xE2\x9C\x93 " : "") + mission_title(vm, m));
-    return vm.tr("curriculum.assessment", {{"missions", join(titles)}});
+    return vm.tr("curriculum.assessment", {{"missions", join(titles)}}) + lessons_done(vm, st);
   }
-  return vm.tr(st.lessons.empty() ? "curriculum.soonNote" : "curriculum.lessonNote");
+  return vm.tr(st.lessons.empty() ? "curriculum.soonNote" : "curriculum.lessonNote") + lessons_done(vm, st);
 }
 
 std::string stage_unlocks(const AppViewModel& vm, const Stage& st) {
@@ -86,6 +93,7 @@ ScreenModel curriculum(const AppViewModel& vm) {
   m.items.push_back(std::move(lessons));
   m.name(names::kCurriculumLessons, vm.tr("curriculum.lessonNote"));
   m.text(names::kCurriculumLessonStart, vm.tr(selected_done ? "curriculum.lessonRepeat" : "curriculum.lessonStart"));
+  academy_curriculum(vm, m);
   return m;
 }
 
