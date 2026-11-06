@@ -74,7 +74,10 @@ set_tests_properties(desktop_headless PROPERTIES LABELS headless ENVIRONMENT "RA
 # ---- Windowed: the real Vulkan renderer driven by injected input; frames saved as PNG. ----
 if(RAVEN_BACKEND_VULKAN)
   add_executable(tradelab_desktop_windowed_tests main.cpp windowed/test_windowed.cpp windowed/test_game_windowed.cpp
-    windowed/test_windowed_shell.cpp support/png.cpp)
+    windowed/test_windowed_shell.cpp windowed/test_windowed_playthroughs.cpp support/png.cpp support/reference.cpp)
+  target_compile_definitions(tradelab_desktop_windowed_tests PRIVATE
+    TRADELAB_REFERENCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/windowed/reference"
+    TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog")
   target_include_directories(tradelab_desktop_windowed_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
   target_include_directories(tradelab_desktop_windowed_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(tradelab_desktop_windowed_tests PRIVATE tradelab_desktop_view)

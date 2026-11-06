@@ -42,7 +42,7 @@ jobs:
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake ninja-build git python3 \
             libx11-dev zlib1g-dev libvulkan1 mesa-vulkan-drivers xvfb xauth clang clang-tidy libcurl4 \
-            curl ca-certificates file desktop-file-utils
+            curl ca-certificates file desktop-file-utils weston libwayland-client0 libxkbcommon0
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
@@ -69,6 +69,11 @@ jobs:
         run: |
           export VK_ICD_FILENAMES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -1)
           xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build/linux-release -L windowed --output-on-failure
+      - name: Wayland smoke test (headless Weston + Mesa lavapipe)
+        working-directory: apps/desktop
+        run: |
+          export VK_ICD_FILENAMES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -1)
+          packaging/smoke_wayland.sh build/linux-release/tradelab
       - name: AppImage (pinned appimagetool) and its smoke test
         working-directory: apps/desktop
         run: |
@@ -112,6 +117,32 @@ jobs:
           cmake --build --preset linux-headless -j 4
           ctest --preset linux-headless
 
+  # ThreadSanitizer over the EngineHost worker (task 1.10): the command queue, the coalesced hand-off to the
+  # UI thread and the storage writes on the worker. On the runner itself, not in a container: TSan needs
+  # the kernel's mmap randomness lowered, which a container cannot do.
+  tsan:
+    name: tsan (EngineHost worker)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang cmake
+          sudo sysctl vm.mmap_rnd_bits=28
+      - name: Build the unit tests with -fsanitize=thread
+        working-directory: apps/desktop
+        run: |
+          cmake --preset linux-headless -B build/tsan -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_FLAGS=-fsanitize=thread -DCMAKE_CXX_FLAGS=-fsanitize=thread \
+            -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread
+          cmake --build build/tsan -j 4 --target tradelab_desktop_unit_tests
+      - name: EngineHost and storage host tests under TSan
+        working-directory: apps/desktop
+        env:
+          TSAN_OPTIONS: halt_on_error=1 second_deadlock_stack=1
+        run: build/tsan/tests/tradelab_desktop_unit_tests -tc="engine host*,storage host*"
+
   macos:
     name: "macos (universal: arm64 + x86_64 under Rosetta, .app)"
     runs-on: macos-latest
@@ -135,11 +166,9 @@ jobs:
         run: |
           arch -x86_64 /usr/bin/true 2>/dev/null || sudo softwareupdate --install-rosetta --agree-to-license
           arch -x86_64 build/macos-universal/tests/tradelab_desktop_golden_tests
-      # Windowed tests need a Metal device; hosted runners may not expose one (design "Risks": fall back
-      # to a self-hosted Apple Silicon runner). Run them, but do not fail the job until that is settled.
-      - name: Windowed tests (MoltenVK, best effort on hosted runners)
+      # Windowed tests on the hosted runner's Metal device through MoltenVK: they pass there, so they block.
+      - name: Windowed tests (MoltenVK)
         working-directory: apps/desktop
-        continue-on-error: true
         run: ctest --test-dir build/macos-universal -L windowed --output-on-failure
       - name: TradeLab.app (pinned MoltenVK, ad-hoc signed)
         working-directory: apps/desktop
