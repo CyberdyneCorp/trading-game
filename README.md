@@ -10,8 +10,8 @@ Educational trading game: learn **perpetual futures** (long/short, leverage, fun
 | `bindings/python/` | Python (ctypes) binding over the engine C ABI, used by the API |
 | `apps/web/` | SvelteKit web client (PWA, works offline) — [`apps/web/README.md`](apps/web/README.md) |
 | `apps/desktop/` | C++20 desktop client on Raven for Linux and macOS (every web screen but the catalog and CSV import, the full terminal, SQLite action log, `.app` and AppImage, signed updates) — [`apps/desktop/README.md`](apps/desktop/README.md) |
-| `services/api/` | FastAPI backend: sync, server-side replay, progress — [`services/api/README.md`](services/api/README.md) |
-| `tools/` | Lint helpers (banned-API check for the engine) |
+| `services/api/` | FastAPI backend: sync, server-side replay (older execution policies side by side), progress and achievements, preferences, pack catalog with resumable downloads — [`services/api/README.md`](services/api/README.md) |
+| `tools/` | Lint helpers (banned-API check for the engine), golden regeneration, the packer, `build_policy_cache.py` (older engine libraries for the API) |
 
 ## Play locally
 
@@ -180,7 +180,7 @@ graph TB
 | C ABI | `engine/include/tradelab/c_api.h` | `tl_run_create`, `tl_place_order`, `tl_advance`, `tl_state` (JSON), `tl_checkpoint`, `tl_debrief`, … — the only surface bindings use. |
 | Web | SvelteKit + Svelte 5 runes, TypeScript strict, MVVM | Engine in a Web Worker; Canvas2D chart; i18n PT-BR first, English second; Vitest + Playwright. |
 | Desktop | C++20, Raven (pinned commit), Vulkan / MoltenVK, SQLite, MVVM | Links the engine's static library; engine on a worker thread; XML views, custom-painted chart, theme + CRT shader; texts generated from the web catalogs; `.app` and AppImage; doctest unit, golden, headless (null platform) and windowed (injected input + frame capture) tests. |
-| API | Python 3.12, FastAPI, SQLAlchemy, hexagonal (ports/adapters) | Idempotent batch sync, replay through the engine, progress, export and erase. Access tokens from CyberdyneAuth verified via discovery + JWKS. |
+| API | Python 3.12, FastAPI, SQLAlchemy, hexagonal (ports/adapters) | Idempotent batch sync, replay through the engine (older policies in per-policy worker processes), progress and achievements, preferences, pack catalog and Range downloads with an entitlement gate, export and erase. Access tokens from CyberdyneAuth verified via discovery + JWKS. |
 | CI | GitHub Actions | `engine` (Linux/macOS native, WASM, lint, clang-tidy, OpenSpec validate), `web` (check, unit, e2e), `api` (pytest on SQLite and PostgreSQL), `desktop` (Linux build + tests + windowed under Xvfb + AppImage, macOS universal + Rosetta goldens + `.app`). |
 
 ### How a bar is played
@@ -234,7 +234,7 @@ sequenceDiagram
     A-->>C: per run - accepted count, status, digest match
 ```
 
-The web client does not call the API yet (login via a BFF is the next milestone); the API itself is implemented and tested.
+The web client does not sync with the API yet (login via a BFF is the next milestone); built with `VITE_CATALOG_URL=/api/v1/scenarios` it reads the pack catalog and downloads free packs from it (see `apps/web/README.md`). The API itself is implemented and tested.
 
 ## How the market data is created
 
@@ -625,15 +625,14 @@ Built:
 - **Packs:** signed, zstd-compressed and validated in the engine, schema 2 (the pack's own mission texts and objectives, mark-price bars, settlement sub-bars, margin tiers; schema 1 still loads); bars, funding, news, liquidity shocks, option chains and counterfactual branch packs; private CSV import; the authoring CLI `tools/packer` (generate, mask, build with `events.json` stories, sign, inspect); a static sample catalog whose Market C tells a liquidity-shock story.
 - **Web client:** offline PWA with engine pinning, the full terminal (draggable stop/target lines, pattern cheat sheet), catalog with resumable downloads, OPFS pack store.
 - **Desktop client** on [Raven](https://github.com/oscar-soirey/Raven) for Linux and macOS (`apps/desktop`): every web screen except the catalog and CSV-import screens, the full terminal, the retro look, the crash-safe SQLite action log with resume, packs through the engine, the shared goldens, `TradeLab.app` / AppImage with launch smoke tests and the signed updater; what is still open is listed in `apps/desktop/README.md`.
-- **API:** sync, server replay with each run's start options, progress, export and erase.
+- **API:** sync, server replay with each run's start options and execution policy (older policies through cached engine builds), progress and achievements, preferences, the pack catalog with resumable (Range) downloads, export, erase, the signed CyberdyneAuth `user.deleted` webhook with an erasure audit log, private CSV import validation, per-player rate limits, a fail-closed staff roles resolver, Alembic migrations and an OpenAPI contract snapshot.
 
 Next:
 
-- Backend work that needs no login: the `user_deleted` webhook, Alembic migrations, rate limits, the catalog endpoint.
 - Login and sync through Cyberdyne Auth: web sign-in through a BFF and the client's sync, the desktop's loopback sign-in and sync (they need TradeLab clients registered in CyberdyneAuth).
 - Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data).
 - iPad/iPhone (SwiftUI over the engine; plan in `openspec/changes/add-native-clients`).
-- Deployment on Coolify; Developer ID signing, notarization and the update release key need a human with the accounts.
+- API deployment on Coolify (Postgres, MinIO for the pack object store); Developer ID signing, notarization and the update release key need a human with the accounts.
 
 ## Tests
 

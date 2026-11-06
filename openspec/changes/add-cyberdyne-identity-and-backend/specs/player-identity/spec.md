@@ -54,6 +54,10 @@ Every authenticated user SHALL be a player. Staff capabilities SHALL come from C
 - **WHEN** an access token has no `roles` claim and the user calls a publish endpoint
 - **THEN** the API SHALL resolve roles from CyberdyneAuth and deny with 403 if resolution fails
 
+#### Scenario: Role of another client
+- **WHEN** an access token's `roles` claim holds `admin` only for a client that is not a TradeLab client, or a role TradeLab does not define
+- **THEN** the API SHALL grant no staff permission
+
 ### Requirement: Entitlements gate content, not results
 Paid or restricted content SHALL be gated by the `entitlements` claim (`<product_key>[:plan]`). Entitlements SHALL NOT change engine parameters, scores, leverage caps or any simulation outcome.
 
@@ -76,12 +80,16 @@ Expired sessions SHALL NOT block offline practice with installed packs. Remote o
 - **THEN** the player SHALL continue local missions and SHALL be asked to sign in before the next sync
 
 ### Requirement: Logout and deletion
-Logout SHALL revoke the refresh token at CyberdyneAuth, end the BFF session, stop sync, and offer the user an explicit choice to keep or delete local data. When CyberdyneAuth emits a verified `user_deleted` webhook, or the user requests deletion in-game, the API SHALL erase that user's game data within the retention policy and log the erasure.
+Logout SHALL revoke the refresh token at CyberdyneAuth, end the BFF session, stop sync, and offer the user an explicit choice to keep or delete local data. When CyberdyneAuth emits a verified `user.deleted` webhook, or the user requests deletion in-game, the API SHALL erase that user's game data within the retention policy and log the erasure.
 
 #### Scenario: Deletion requested in-game
 - **WHEN** a player calls `DELETE /api/v1/me/data` with an idempotency key
 - **THEN** all of that player's runs, action logs and idempotency records SHALL be erased, the number of deleted runs returned, and a retry with the same key SHALL return the same response
 
 #### Scenario: User deleted upstream
-- **WHEN** a signed `user_deleted` webhook for `sub` S is received
-- **THEN** all runs, progress and imports for S SHALL be erased and the webhook acknowledged idempotently
+- **WHEN** a signed `user.deleted` webhook for `sub` S is received
+- **THEN** all runs, progress and imports for S SHALL be erased, the erasure logged, and the webhook acknowledged idempotently
+
+#### Scenario: Forged or replayed webhook
+- **WHEN** a webhook arrives with a signature that does not verify against the subscription secret, or with a timestamp more than 5 minutes from the server clock
+- **THEN** the API SHALL respond 401 and erase nothing; a delivery whose `webhook-id` was already processed SHALL be acknowledged without being applied again

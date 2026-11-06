@@ -8,11 +8,25 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, create_engine, delete, select
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    create_engine,
+    delete,
+    select,
+    text,
+)
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
-from ..domain.models import Action, Run
+from ..domain.models import Action, ErasureEntry, Preference, Run
 
 
 class Base(DeclarativeBase):
@@ -36,6 +50,7 @@ class RunRow(Base):
     score_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
     report: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     options: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    campaign: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
 
 class ActionRow(Base):
@@ -43,6 +58,14 @@ class ActionRow(Base):
     run_id: Mapped[str] = mapped_column(ForeignKey("runs.run_id", ondelete="CASCADE"), primary_key=True)
     seq: Mapped[int] = mapped_column(Integer, primary_key=True)
     action: Mapped[dict[str, Any]] = mapped_column(JSON)
+
+
+class PreferenceRow(Base):
+    __tablename__ = "preferences"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[Any] = mapped_column(JSON)
+    updated_at: Mapped[int] = mapped_column(BigInteger)
 
 
 class IdempotencyRow(Base):
@@ -53,9 +76,30 @@ class IdempotencyRow(Base):
     response: Mapped[str] = mapped_column(Text)
 
 
+class WebhookReceiptRow(Base):
+    """One row per processed CyberdyneAuth webhook (`webhook-id`): retries and replays are no-ops."""
+
+    __tablename__ = "webhook_receipts"
+    webhook_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(64))
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ErasureLogRow(Base):
+    """Audit trail of erasures. Holds the SHA-256 of the erased `sub`, never the `sub` itself."""
+
+    __tablename__ = "erasure_log"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject_sha256: Mapped[str] = mapped_column(String(64), index=True)
+    source: Mapped[str] = mapped_column(String(16))  # "player" (DELETE /me/data) | "webhook"
+    reference: Mapped[str | None] = mapped_column(String(128), nullable=True)  # webhook-id
+    deleted_runs: Mapped[int] = mapped_column(Integer)
+    erased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 _FIELDS = (
     "run_id", "owner", "mission_id", "seed", "execution_policy", "device_id", "created_at", "actions", "status",
-    "server_digest", "client_digest", "digest_mismatch", "score_total", "report", "options",
+    "server_digest", "client_digest", "digest_mismatch", "score_total", "report", "options", "campaign",
 )
 
 
@@ -71,9 +115,7 @@ def make_engine(url: str) -> Engine:
             from sqlalchemy.pool import StaticPool
 
             kwargs["poolclass"] = StaticPool
-    engine = create_engine(url, **kwargs)
-    Base.metadata.create_all(engine)
-    return engine
+    return create_engine(url, **kwargs)  # the schema comes from the Alembic migrations
 
 
 class SqlRunRepository:
@@ -120,6 +162,34 @@ class SqlRunRepository:
         return len(ids)
 
 
+class SqlPreferenceStore:
+    # First key of the two-key pg_advisory_xact_lock; the second is hashtext(owner).
+    LOCK_CLASS = 0x7072_6566  # "pref"
+
+    def __init__(self, session: Session) -> None:
+        self._s = session
+
+    def lock(self, owner: str) -> None:
+        # Two writes for one player overlapping would both merge against the same stale read and the
+        # later commit could replace a newer value. Row locks cannot cover keys not stored yet, so the
+        # player's whole preference set is locked (PostgreSQL; SQLite serializes writers already).
+        if self._s.get_bind().dialect.name == "postgresql":
+            self._s.execute(text("SELECT pg_advisory_xact_lock(:c, hashtext(:o))"), {"c": self.LOCK_CLASS, "o": owner})
+
+    def all(self, owner: str) -> dict[str, Preference]:
+        rows = self._s.scalars(select(PreferenceRow).where(PreferenceRow.owner == owner))
+        return {r.key: Preference(r.key, r.value, r.updated_at) for r in rows}
+
+    def put(self, owner: str, prefs: Sequence[Preference]) -> None:
+        for p in prefs:
+            self._s.merge(PreferenceRow(owner=owner, key=p.key, value=p.value, updated_at=p.updated_at))
+        self._s.flush()
+
+    def delete_owner(self, owner: str) -> None:
+        self._s.execute(delete(PreferenceRow).where(PreferenceRow.owner == owner))
+        self._s.flush()
+
+
 class SqlIdempotencyStore:
     def __init__(self, session: Session) -> None:
         self._s = session
@@ -131,6 +201,37 @@ class SqlIdempotencyStore:
     def put(self, owner: str, key: str, request_hash: str, response: Any) -> None:
         self._s.add(IdempotencyRow(owner=owner, key=key, request_hash=request_hash, response=json.dumps(response)))
         self._s.flush()
+
+
+class SqlWebhookReceipts:
+    def __init__(self, session: Session) -> None:
+        self._s = session
+
+    def claim(self, webhook_id: str, event_type: str, at: datetime) -> bool:
+        """Records the receipt; False when this webhook id was already processed."""
+        if self._s.get(WebhookReceiptRow, webhook_id) is not None:
+            return False
+        try:
+            with self._s.begin_nested():
+                self._s.add(WebhookReceiptRow(webhook_id=webhook_id, event_type=event_type, received_at=at))
+        except IntegrityError:
+            return False  # a concurrent delivery of the same event won the race
+        return True
+
+
+class SqlErasureLog:
+    def __init__(self, session: Session) -> None:
+        self._s = session
+
+    def record(self, entry: ErasureEntry) -> None:
+        self._s.add(ErasureLogRow(subject_sha256=entry.subject_sha256, source=entry.source,
+                                  reference=entry.reference, deleted_runs=entry.deleted_runs,
+                                  erased_at=entry.erased_at))
+        self._s.flush()
+
+    def entries(self) -> list[ErasureEntry]:
+        rows = self._s.scalars(select(ErasureLogRow).order_by(ErasureLogRow.id))
+        return [ErasureEntry(r.subject_sha256, r.source, r.reference, r.deleted_runs, r.erased_at) for r in rows]
 
 
 def request_hash(body: bytes) -> str:

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 import httpx
 import tradelab_engine as te
-from conftest import DISCOVERY
+from conftest import DISCOVERY, build_client
 
 from tradelab_api.adapters.oidc import OidcVerifier
 
@@ -67,6 +68,29 @@ def test_sync_replays_on_the_server_and_scores_it(client, auth):
     assert out["scoreTotal"] == expected.debrief["score"]["total"]  # server score, never the client's
 
 
+def test_client_sent_score_and_balance_are_ignored(client, auth):
+    # Spec game-api "Server re-simulation": client-reported balances or scores are never accepted.
+    expected = te.replay("m01-false-breakout", 5, LOG)
+    forged = run_body(scoreTotal=999_999, score={"total": 999_999}, balance="1000000000.00", equity="1e12",
+                      netPnl="999999.00", status="finished", serverDigest="f" * 64, report={"score": {"total": 1}},
+                      digestMismatch=False)
+    res = client.post("/api/v1/sync/batches", headers=auth(key="forged"),
+                      json={"deviceId": "ipad-1", "runs": [forged], "scoreTotal": 999_999, "balance": "1e9"})
+    assert res.status_code == 200
+    out = res.json()[0]
+    assert out["scoreTotal"] == expected.debrief["score"]["total"]
+    assert out["serverDigest"] == expected.digest
+    detail = client.get("/api/v1/runs/run-0001-abcd", headers=auth()).json()
+    assert detail["scoreTotal"] == expected.debrief["score"]["total"]
+    assert detail["report"] == expected.debrief
+    assert detail["serverDigest"] == expected.digest
+    progress = client.get("/api/v1/progress", headers=auth()).json()["missions"][0]
+    assert progress["bestScore"] == expected.debrief["score"]["total"]
+    assert progress["bestNetPnl"] == expected.debrief["netPnl"]
+    export = client.get("/api/v1/me/export", headers=auth()).json()
+    assert "999999" not in str(export) and "1000000000" not in str(export)
+
+
 def test_digest_mismatch_is_flagged_and_server_result_kept(client, auth):
     body = run_body(clientDigest="0" * 64, clientActionCount=len(LOG))
     out = sync(client, auth, [body]).json()[0]
@@ -113,7 +137,7 @@ def test_runs_are_private_to_their_owner(client, auth):
 
 def test_bad_logs_and_unsupported_policies_are_rejected_per_run(client, auth):
     bad = run_body(run_id="run-bad-0001", actions=[{"k": "explode"}])
-    old = run_body(run_id="run-old-0001", executionPolicy=POLICY - 1)
+    old = run_body(run_id="run-old-0001", executionPolicy=1)  # far outside the support window
     out = {o["runId"]: o for o in sync(client, auth, [bad, old, run_body()]).json()}
     assert out["run-bad-0001"]["error"] == "invalid_log"
     assert out["run-old-0001"]["error"] == "unsupported_policy"
@@ -150,7 +174,7 @@ def test_regression_discovery_is_refetched_after_the_ttl(idp):
 
 def test_progress_export_and_erase(client, auth):
     sync(client, auth, [run_body()], key="a")
-    progress = client.get("/api/v1/progress", headers=auth()).json()
+    progress = client.get("/api/v1/progress", headers=auth()).json()["missions"]
     assert progress[0]["missionId"] == "m01-false-breakout"
     assert progress[0]["completed"] == 1
     assert progress[0]["bestScore"] is not None
@@ -158,3 +182,37 @@ def test_progress_export_and_erase(client, auth):
     assert res.json() == {"deletedRuns": 1}
     assert client.delete("/api/v1/me/data", headers=auth(key="del")).json() == {"deletedRuns": 1}  # idempotent
     assert client.get("/api/v1/runs", headers=auth()).json() == []
+
+
+class _HeldReplayer:
+    """Delegates to the real replayer, but each replay waits until `release` is set (at most 5 s)."""
+
+    def __init__(self, inner: Any) -> None:
+        self.inner, self.entered, self.release, self.done = inner, threading.Event(), threading.Event(), threading.Event()
+
+    def supported_policy(self) -> int:
+        return self.inner.supported_policy()
+
+    def supported_policies(self) -> frozenset[int]:
+        return self.inner.supported_policies()
+
+    def replay(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        self.entered.set()
+        self.release.wait(5)
+        self.done.set()
+        return self.inner.replay(*args, **kwargs)
+
+
+def test_regression_a_replaying_sync_does_not_stall_other_requests(idp, replayer, auth):
+    # Before: the async sync handler replayed on the event loop thread, so every other request
+    # (health, catalog, pack downloads) waited for the whole batch to replay.
+    held = _HeldReplayer(replayer)
+    with build_client(idp, held) as client:  # one event loop for every request, as under uvicorn
+        syncing = threading.Thread(target=lambda: sync(client, auth, [run_body()], key="slow"))
+        syncing.start()
+        assert held.entered.wait(5)
+        assert client.get("/api/v1/health").status_code == 200
+        still_replaying = not held.done.is_set()
+        held.release.set()
+        syncing.join()
+    assert still_replaying, "health answered only after the replay had finished"

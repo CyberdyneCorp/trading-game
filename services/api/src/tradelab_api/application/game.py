@@ -1,7 +1,9 @@
-"""Use cases: sync runs (idempotent, server-side replay), list runs, progress, export, erase.
+"""Use cases: sync runs (idempotent, server-side replay), list runs, progress, preferences, export
+(erasure lives in `erasure.py`).
 
 The server never trusts client balances or scores: every sync replays the full action log through
-the same deterministic engine and stores its own digest, status and score (spec game-api).
+the same deterministic engine, with the execution policy the run was recorded with, and stores its
+own digest, status and score (spec game-api). Progress and achievements derive from those results.
 """
 
 from __future__ import annotations
@@ -10,9 +12,25 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from ..domain.errors import Conflict, DomainError, InvalidLog, NotFound, UnsupportedPolicy
-from ..domain.models import Action, IncomingRun, MissionProgress, Run, SyncOutcome
-from ..ports import Clock, Replayer, RunRepository
+from ..domain import preferences as prefs
+from ..domain.errors import (
+    Conflict,
+    DomainError,
+    InvalidLog,
+    NotFound,
+    UnsupportedPolicy,
+)
+from ..domain.models import (
+    Achievement,
+    Action,
+    IncomingRun,
+    MissionProgress,
+    Preference,
+    Run,
+    SyncOutcome,
+)
+from ..domain.progress import achievements, mission_progress
+from ..ports import Clock, PreferenceStore, Replayer, RunRepository
 
 MAX_RUNS_PER_BATCH = 50
 MAX_ACTIONS_PER_RUN = 20_000
@@ -23,11 +41,13 @@ def canonical(action: Action) -> str:
 
 
 class GameService:
-    def __init__(self, runs: RunRepository, replayer: Replayer, clock: Clock, action_kinds: frozenset[str]) -> None:
+    def __init__(self, runs: RunRepository, replayer: Replayer, clock: Clock, action_kinds: frozenset[str],
+                 preferences: PreferenceStore | None = None) -> None:
         self._runs = runs
         self._replayer = replayer
         self._clock = clock
         self._kinds = action_kinds
+        self._prefs = preferences
 
     # ---- sync -----------------------------------------------------------------------------
 
@@ -43,7 +63,7 @@ class GameService:
             return SyncOutcome(inc.run_id, 0, "", "", None, None, error=exc.code)
 
     def _sync_run(self, owner: str, device_id: str, inc: IncomingRun) -> SyncOutcome:
-        if inc.execution_policy != self._replayer.supported_policy():
+        if inc.execution_policy not in self._replayer.supported_policies():
             raise UnsupportedPolicy()
         run = self._owned_or_new(owner, device_id, inc)
         stored = self._runs.actions(run.run_id)
@@ -64,13 +84,13 @@ class GameService:
         run = self._runs.get(inc.run_id)
         if run is None:
             return Run(inc.run_id, owner, inc.mission_id, inc.seed, inc.execution_policy, device_id, self._clock.now(),
-                       options=inc.options or None)
+                       options=inc.options or None, campaign=inc.campaign or None)
         if run.owner != owner:
             raise NotFound()  # never reveal that someone else's run exists
-        if (run.mission_id, run.seed) != (inc.mission_id, inc.seed):
-            raise Conflict("run id reused for another mission or seed")
-        if (run.options or None) != (inc.options or None):
-            raise Conflict("start options differ from the stored ones")
+        if (run.mission_id, run.seed, run.execution_policy) != (inc.mission_id, inc.seed, inc.execution_policy):
+            raise Conflict("run id reused for another mission, seed or execution policy")
+        if (run.options or None, run.campaign or None) != (inc.options or None, inc.campaign or None):
+            raise Conflict("start options or campaign link differ from the stored ones")
         return run
 
     def _new_prefix(self, stored: list[tuple[int, Action]], incoming: list[tuple[int, Action]]) -> list[tuple[int, Action]]:
@@ -91,7 +111,7 @@ class GameService:
 
     def _replay(self, run: Run, actions: list[Action]) -> dict[str, Any]:
         try:
-            return self._replayer.replay(run.mission_id, run.seed, actions, run.options)
+            return self._replayer.replay(run.mission_id, run.seed, actions, run.options, run.execution_policy)
         except ValueError as exc:
             raise InvalidLog(str(exc)) from exc
 
@@ -125,27 +145,35 @@ class GameService:
             raise NotFound()
         return run
 
-    def progress(self, owner: str) -> list[MissionProgress]:
-        by_mission: dict[str, MissionProgress] = {}
-        for run in self._runs.runs_of(owner):
-            p = by_mission.setdefault(run.mission_id, MissionProgress(run.mission_id))
-            p.runs += 1
-            if run.status == "active":
-                continue
-            p.completed += 1
-            if run.score_total is not None and (p.best_score is None or run.score_total > p.best_score):
-                p.best_score = run.score_total
-                p.best_net_pnl = (run.report or {}).get("netPnl")
-        return sorted(by_mission.values(), key=lambda p: p.mission_id)
+    def progress(self, owner: str) -> tuple[list[MissionProgress], list[Achievement]]:
+        runs = self._runs.runs_of(owner)
+        return mission_progress(runs), achievements(runs)
+
+    # ---- preferences (last writer wins per key) ---------------------------------------------
+
+    def preferences(self, owner: str) -> dict[str, Preference]:
+        return self._prefs.all(owner) if self._prefs else {}
+
+    def set_preferences(self, owner: str, incoming: Sequence[Preference]) -> dict[str, Preference]:
+        if self._prefs is None:
+            return {}
+        self._prefs.lock(owner)
+        stored = self._prefs.all(owner)
+        changed = prefs.merge(stored, incoming, int(self._clock.now().timestamp() * 1000))
+        self._prefs.put(owner, changed)
+        return {**stored, **{p.key: p for p in changed}}
+
+    # ---- export and erasure -------------------------------------------------------------------
 
     def export(self, owner: str) -> dict[str, Any]:
         runs = []
         for run in self.runs(owner):
             runs.append({**_run_view(run), "actions": [a for _, a in self._runs.actions(run.run_id)], "report": run.report})
-        return {"player": owner, "runs": runs}
+        return {"player": owner, "runs": runs, "preferences": preference_view(self.preferences(owner))}
 
-    def erase(self, owner: str) -> int:
-        return self._runs.delete_owner(owner)
+
+def preference_view(stored: dict[str, Preference]) -> dict[str, Any]:
+    return {k: {"value": p.value, "updatedAt": p.updated_at} for k, p in sorted(stored.items())}
 
 
 def _run_view(run: Run) -> dict[str, Any]:
@@ -162,6 +190,7 @@ def _run_view(run: Run) -> dict[str, Any]:
         "digestMismatch": run.digest_mismatch,
         "scoreTotal": run.score_total,
         "options": run.options,
+        "campaign": run.campaign,
         "withIntel": run.with_intel,
     }
 

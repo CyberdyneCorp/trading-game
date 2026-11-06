@@ -11,7 +11,7 @@ Players need one Cyberdyne identity across web, desktop and iPad, progress that 
 - Optional entitlements (`<client_id>:<plan>`) gate paid content only, never results.
 - `services/api` (FastAPI, hexagonal, PostgreSQL, object storage): catalog, pack delivery, runs synced as idempotent action-log batches with server re-simulation and scoring, progress, data export/erasure, CSV import validation.
 - Offline-first sync protocol with idempotent batches and per-device attempt identity.
-- Erasure and export of game data, triggered by the user or by CyberdyneAuth `user_deleted` webhooks.
+- Erasure and export of game data, triggered by the user or by CyberdyneAuth `user.deleted` webhooks.
 
 ## Capabilities
 
