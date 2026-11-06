@@ -13,7 +13,8 @@ async function openCatalog(page: Page) {
 	await page.getByTestId('open-catalog').click();
 	expect((await listing).status()).toBe(200);
 	await expect(page.getByRole('heading', { name: 'Catálogo de pacotes' })).toBeVisible();
-	await expect(page.getByTestId('catalog-entry')).toHaveCount(2);
+	// The static sample catalog: Markets A, B and C (liquidity shock).
+	await expect(page.getByTestId('catalog-entry')).toHaveCount(3);
 }
 
 const entryA = (page: Page) => page.getByTestId('catalog-entry').filter({ hasText: 'Mercado A · 1h' });
