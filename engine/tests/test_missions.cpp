@@ -1,7 +1,9 @@
 #include <doctest/doctest.h>
 
+#include <map>
 #include <span>
 #include <string>
+#include <vector>
 
 #include "golden.hpp"
 #include "tradelab/c_api.h"
@@ -318,4 +320,89 @@ TEST_CASE("m09 buys options only (Options III comes later); m10 and m12 write; m
   REQUIRE(build_mission("m12-capstone", 3, m12));
   CHECK(m12.bars.size() == 230);
   CHECK(m12.contract.funding_interval == 8);
+}
+
+// Strategies (add-academy-and-strategies design D8): m13-m17 add their own goldens (tests/golden) with
+// default options and use existing generator capabilities only; every earlier golden stays byte-identical.
+namespace {
+
+struct StrategyShape {
+  const char* id;
+  std::uint32_t bars;
+  std::vector<std::uint32_t> expiries;  // bars after the listing
+  std::uint32_t strikes_each_side;
+  bool writes;
+};
+
+std::vector<std::uint32_t> expiry_offsets(const Scenario& sc) {
+  std::vector<std::uint32_t> out;
+  for (const OptionSeries& s : sc.options.series) {
+    const std::uint32_t e = s.expiry_step - s.list_step;
+    if (out.empty() || out.back() != e) out.push_back(e);
+  }
+  return out;
+}
+
+}  // namespace
+
+TEST_CASE("Strategy missions m13-m17: last in the catalog, 3x, a 2.5-step chain listed at the first decision") {
+  const std::vector<StrategyShape> shapes = {{"m13-call-spread", 151, {40, 90}, 4, true},
+                                             {"m14-covered-call", 181, {24, 48, 72, 96, 120}, 6, true},
+                                             {"m15-protective-put", 161, {40, 100}, 4, false},
+                                             {"m16-range-condor", 131, {30, 70}, 5, true},
+                                             {"m17-before-expiry", 156, {20, 45, 70, 95}, 6, true}};
+  const std::vector<MissionInfo> catalog = mission_catalog();
+  REQUIRE(catalog.size() == 17);
+  for (std::size_t i = 0; i < shapes.size(); ++i) {
+    const StrategyShape& want = shapes[i];
+    CAPTURE(want.id);
+    CHECK(catalog[12 + i].id == want.id);
+    CHECK(catalog[12 + i].leverage_cap == 3);
+    Scenario sc;
+    REQUIRE(build_mission(want.id, 5, sc));
+    CHECK(sc.bars.size() == want.bars);
+    CHECK(sc.options.series.front().list_step == 60);
+    CHECK(expiry_offsets(sc) == want.expiries);
+    CHECK(sc.options.series.size() == want.expiries.size() * (2 * want.strikes_each_side + 1) * 2);
+    CHECK(sc.options.series[2].strike.raw - sc.options.series[0].strike.raw == Price::kScale * 5 / 2);
+    CHECK(sc.options.allow_short == want.writes);
+    CHECK(sc.options.series.back().expiry_step == sc.bars.size() - 1);  // the last expiry settles on the last bar
+  }
+}
+
+TEST_CASE("Strategy missions: m15 buys only; the others write; objectives come from the mission") {
+  tl_run* m15 = tl_run_create("m15-protective-put", 3);
+  CHECK(std::string(tl_place_option_order(m15, 1, 9, 1, 0, "1", nullptr)).find("short_options_not_allowed") != std::string::npos);
+  CHECK(std::string(tl_place_option_order(m15, 2, 10, 0, 0, "1", nullptr)).find("\"accepted\":true") != std::string::npos);
+  CHECK(std::string(tl_state(m15)).find("{\"code\":\"floor_before_buying\",\"valueBp\":0}") != std::string::npos);
+  tl_run_destroy(m15);
+  tl_run* m13 = tl_run_create("m13-call-spread", 3);
+  CHECK(std::string(tl_place_option_order(m13, 1, 9, 0, 0, "1", nullptr)).find("\"accepted\":true") != std::string::npos);
+  CHECK(std::string(tl_place_option_order(m13, 2, 11, 1, 0, "1", nullptr)).find("\"accepted\":true") != std::string::npos);
+  const std::string state = tl_state(m13);
+  CHECK(state.find("{\"code\":\"spread_breakevens\",\"valueBp\":0},{\"code\":\"premium_budget\",\"valueBp\":200},"
+                   "{\"code\":\"cover_short_leg\",\"valueBp\":0}") != std::string::npos);
+  tl_run_destroy(m13);
+}
+
+TEST_CASE("Strategy missions: the drawn stories are in the reveal, never in the briefing") {
+  std::map<int, int> m14;
+  std::map<int, int> m15;
+  for (std::uint64_t seed = 1; seed <= 60; ++seed) {
+    MissionReveal r;
+    REQUIRE(mission_reveal("m14-covered-call", seed, r));
+    REQUIRE(r.events.size() == 1);
+    CHECK(r.events.front().announce_lead == 0);  // the rally headline is unannounced
+    m14[r.events.front().actual] += 1;
+    REQUIRE(mission_reveal("m15-protective-put", seed, r));
+    m15[r.events.front().actual] += 1;
+    REQUIRE(mission_reveal("m16-range-condor", seed, r));
+    CHECK(r.events.front().kind == NewsKind::RegulationRumor);
+    REQUIRE(mission_reveal("m17-before-expiry", seed, r));
+    CHECK(r.events.empty());
+    CHECK(r.spans.size() >= 3);  // a drawn path of regimes (G1)
+  }
+  CHECK(m14.size() == 2);  // no rally (0) or a strong one (+2)
+  CHECK(m14[2] >= 12);
+  CHECK(m15.size() == 3);  // harmless, mild or severe
 }

@@ -11,6 +11,11 @@
     "m10-hedged-book",
     "m11-news-calendar",
     "m12-capstone",
+    "m13-call-spread",
+    "m14-covered-call",
+    "m15-protective-put",
+    "m16-range-condor",
+    "m17-before-expiry",
     "csv-pack",
     "reveal-m08",
     "reveal-m11"

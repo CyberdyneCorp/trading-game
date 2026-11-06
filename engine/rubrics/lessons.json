@@ -108,6 +108,51 @@
         {"id": "one-sample", "kind": "choice", "choices": 3, "answer": 1, "points": 1},
         {"id": "expectancy", "kind": "numeric", "answer": "0.2", "tolerance": "0", "points": 1}
       ]
+    },
+    {
+      "mission": "m13-call-spread",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "spread-breakeven", "kind": "numeric", "answer": "102.1", "tolerance": "0", "points": 1},
+        {"id": "spread-max-profit", "kind": "choice", "choices": 3, "answer": 2, "points": 1}
+      ]
+    },
+    {
+      "mission": "m14-covered-call",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "covered-max-profit", "kind": "numeric", "answer": "7", "tolerance": "0", "points": 1},
+        {"id": "covered-fall", "kind": "choice", "choices": 3, "answer": 0, "points": 1}
+      ]
+    },
+    {
+      "mission": "m15-protective-put",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "put-floor", "kind": "numeric", "answer": "7", "tolerance": "0", "points": 1},
+        {"id": "calm-put-loss", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m16-range-condor",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "condor-max-loss", "kind": "numeric", "answer": "2", "tolerance": "0", "points": 1},
+        {"id": "unbounded-structure", "kind": "choice", "choices": 3, "answer": 2, "points": 1}
+      ]
+    },
+    {
+      "mission": "m17-before-expiry",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "theta-near-expiry", "kind": "choice", "choices": 3, "answer": 0, "points": 1},
+        {"id": "what-is-roll", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
     }
   ]
 }

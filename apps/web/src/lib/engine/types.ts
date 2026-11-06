@@ -189,7 +189,17 @@ export type ObjectiveCode =
 	| 'finish_mission'
 	| 'plan_and_stop_every_entry'
 	| 'no_liquidation_no_margin_call'
-	| 'read_campaign_report';
+	| 'read_campaign_report'
+	| 'spread_breakevens'
+	| 'cover_short_leg'
+	| 'capped_max_profit'
+	| 'premium_vs_funding'
+	| 'floor_before_buying'
+	| 'record_tenor'
+	| 'size_by_max_loss'
+	| 'breakout_exit_rule'
+	| 'decide_before_expiry'
+	| 'no_roll_without_thesis';
 
 /** What the player did at a decision point (task 4.2, spec gameplay-loop "Waiting is a decision"). */
 export type DecisionKind = 'wait' | 'hold' | 'act';

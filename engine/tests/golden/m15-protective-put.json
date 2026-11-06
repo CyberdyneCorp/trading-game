@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m15-protective-put",
+  "description": "A protective put: a long perpetual and an equal ATM put of the second expiry, held to the end.",
+  "mission": "m15-protective-put",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 1},
+    {"k": "order", "type": "market", "side": "buy", "qty": "40", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "opt", "series": 28, "side": "buy", "type": "market", "qty": "40", "premium": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "7da147ae684c6d37ccc681c1aa1c76cb6bd83cb2bc126c5fd69d1768c2473855",
+    "eventsDigest": "bec9cea0f089d8610e48bd4a2f08e0602aa1ff4a38e36d371a3deb3f5e590084",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

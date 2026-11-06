@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m17-before-expiry",
+  "description": "A short ATM put of the second expiry rolled 5 bars before it into the third expiry's ATM put.",
+  "mission": "m17-before-expiry",
+  "seed": 2026,
+  "actions": [
+    {"k": "opt", "series": 40, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 40},
+    {"k": "opt", "series": 40, "side": "buy", "type": "market", "qty": "10", "premium": null},
+    {"k": "opt", "series": 66, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "59826a5d66ae34666d5b21372b5ecebf9d13ae0308c7311968d4d6b0f3f3bd32",
+    "eventsDigest": "e633be3ae42db18b3c86f8bff46527a8b61ef0196e592698873cec77525355b8",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}
