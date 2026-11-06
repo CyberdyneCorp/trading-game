@@ -76,6 +76,7 @@ TEST_CASE("storage: a v1 database keeps its runs and actions through the migrati
   CHECK(run->record.run_id == "run-old");
   CHECK(run->record.engine == "0.9.0");
   CHECK_FALSE(run->record.pack_digest);  // column added by v2, empty for old rows
+  CHECK_FALSE(run->record.engine_abi);   // column added by v5: recorded before it (ABI 1)
   CHECK(run->actions == std::vector<std::string>{R"({"k":"adv","n":1})", R"({"k":"close"})"});
   const Progress p = store.progress();  // progress v1 -> v2
   CHECK(p.tutorials_seen == std::vector<std::string>{"m01-false-breakout"});

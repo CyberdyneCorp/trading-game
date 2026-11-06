@@ -36,6 +36,7 @@ class Statement {
   Statement& bind(int index, const std::string& text) { return bind(index, std::string_view(text)); }
   Statement& bind(int index, int value) { return bind(index, static_cast<std::int64_t>(value)); }
   Statement& bind(int index, const std::optional<std::string>& text);
+  Statement& bind(int index, const std::optional<std::int64_t>& value);
   Statement& bind_blob(int index, std::span<const std::uint8_t> bytes);
   Statement& bind_null(int index);
 

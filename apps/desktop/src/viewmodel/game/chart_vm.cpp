@@ -414,7 +414,7 @@ void apply_drag(std::vector<Level>& lv, const GameState& g, const DragTarget& ta
     l.dash = 0;
     if (target.draft) continue;
     for (const auto& o : g.orders) {
-      if (o.id == target.order_id && !exit_on_valid_side(o.side, o.type, price, g.account.mark)) l.ink = Ink::Danger;
+      if (o.id == target.order_id && !exit_on_valid_side(o.side, o.type, price, g.last_price())) l.ink = Ink::Danger;
     }
   }
 }

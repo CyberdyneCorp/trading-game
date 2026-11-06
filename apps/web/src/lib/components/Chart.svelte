@@ -9,6 +9,7 @@
 	import { candleText, stepFocus } from './chartA11y.ts';
 	import ChartTable from './ChartTable.svelte';
 	import { patternName } from '#lib/game/candlePatterns.ts';
+	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
 	import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragTarget, type DragZone } from './chartDrag.ts';
 
@@ -135,14 +136,14 @@
 		return out;
 	}
 
-	// The dragged level follows the pointer; an order dragged to the wrong side of the mark turns red.
+	// The dragged level follows the pointer; an order dragged to the wrong side of the last price turns red.
 	function withDrag(lv: Level[]): Level[] {
 		if (!drag) return lv;
 		const d = drag;
 		return lv.map((l) => {
 			if (!sameTarget(l.drag ?? null, d.target)) return l;
 			const order = d.target.kind === 'order' ? game.orders.find((o) => o.id === (d.target as { orderId: number }).orderId) : null;
-			const bad = order ? !exitOnValidSide(order.side, order.type, d.price, Number(game.account.mark)) : false;
+			const bad = order ? !exitOnValidSide(order.side, order.type, d.price, lastPrice(game)) : false;
 			return { ...l, price: d.price, dash: [], color: bad ? cssVar('--danger') : l.color };
 		});
 	}

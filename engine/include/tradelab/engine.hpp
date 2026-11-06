@@ -13,6 +13,13 @@ namespace tradelab {
 // Engine release, checked against a pack's engineCompatibility range.
 inline constexpr const char* kEngineVersion = "0.1.0";
 
+// Version of the C ABI (include/tradelab/c_api.h: function names, signatures and the JSON shapes
+// clients read), returned by tl_abi_version. A client drives only a build whose ABI it speaks: the web
+// worker refuses to resume a run on a pinned build with another ABI, the desktop a run recorded under
+// another one. Bump it when a change breaks a caller of an existing function; additions do not.
+// Builds older than tl_abi_version have no number (clients treat them as ABI 0).
+constexpr std::uint32_t kAbiVersion = 1;
+
 constexpr std::uint32_t kExecutionPolicyVersion = 17;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap); v13 MoveOrder (a working exit moved in place, OCO link kept); v14 an exit that closes the position cancels its own remainder on the same bar; v15 a stop cut short by capacity executes its remainder at the next opens (it is a market order once triggered); v16 capacity served by price then sequence within each phase, percentage trailing stops, maintenance-margin tiers by notional; v17 mark-price bars for margin, liquidation and funding (markFromLastPrice without them), option settlement window in market time (sub-bar TWAP, series_settling), continuity bars (no trading, indicator gap policy)
 
 // Calibration questions (spec mission-scoring "Calibration"): asked every kQuestionEvery steps from

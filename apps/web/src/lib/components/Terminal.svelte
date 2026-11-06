@@ -21,6 +21,7 @@
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
 	import { newsArrived } from '#lib/game/news.ts';
+	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import HelpOverlay from './HelpOverlay.svelte';
 	import OrderTicket, { type OrderDraft, type TicketOrderType, type TicketPreview } from './OrderTicket.svelte';
 	import OptionChain from './OptionChain.svelte';
@@ -90,13 +91,13 @@
 		side = a.stance === 'short' ? 'sell' : 'buy';
 		ticketStop = priceInputText(num(a.stop), num(c.tickSize), i18n.locale);
 		ticketSizeBy = 'qty';
-		// The read is sized for a market entry at the mark: a stale limit price would change its risk.
+		// The read is sized for a market entry at the last price: a stale limit price would change its risk.
 		ticketType = 'market';
 		// 1% risk at a tight stop can need more than the ticket's leverage: raise it (or cut the size at the
 		// cap), never lower what the player typed.
 		const s = session.state!;
 		const k = costsOf(c, s.liquidity);
-		const entry = estimatedMarketEntry(side, num(s.account.mark), k);
+		const entry = estimatedMarketEntry(side, lastPrice(s), k);
 		const typed = Math.min(Math.max(1, Math.round(ticketLeverage || 1)), c.leverageCap);
 		const fit = fitToMargin(num(a.size), entry, num(s.account.available), typed, c.leverageCap, k, num(c.lotSize));
 		// Written as the player would type it: "16,6" in PT-BR (before, the dot form "16.6").
@@ -119,7 +120,7 @@
 		if (!s || !o) return;
 		const to = priceToTick(price, num(s.contract.tickSize));
 		if (to === o.price || Number(to) === Number(o.price)) return;
-		if (!exitOnValidSide(o.side, o.type, Number(to), num(s.account.mark))) {
+		if (!exitOnValidSide(o.side, o.type, Number(to), lastPrice(s))) {
 			session.notice = { tone: 'error', text: `✖ ${t(o.type === 'stop_market' ? 'chart.dragStopSide' : 'chart.dragTpSide')}` };
 			return;
 		}

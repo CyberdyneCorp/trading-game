@@ -45,7 +45,7 @@ tl_run* create_mission(const RunRecord& r) {
 
 EngineVersion current_engine_version() {
   const json::Value v = parse_or_null(tl_version());
-  return EngineVersion{v["engine"].as_string(), static_cast<int>(v["executionPolicy"].as_int())};
+  return EngineVersion{v["engine"].as_string(), static_cast<int>(v["executionPolicy"].as_int()), static_cast<int>(tl_abi_version())};
 }
 
 std::string resume_notice_name(ResumeNoticeKind kind) {
@@ -55,6 +55,7 @@ std::string resume_notice_name(ResumeNoticeKind kind) {
     case ResumeNoticeKind::PolicyChanged: return "policy_changed";
     case ResumeNoticeKind::DigestMismatch: return "digest_mismatch";
     case ResumeNoticeKind::PackMissing: return "pack_missing";
+    case ResumeNoticeKind::AbiChanged: return "abi_changed";
     case ResumeNoticeKind::Damaged: return "damaged";
   }
   return {};
@@ -64,6 +65,7 @@ std::string ResumeNotice::i18n_key() const {
   switch (kind) {
     case ResumeNoticeKind::EngineChanged: return "engine.pinMissing";
     case ResumeNoticeKind::PackMissing: return "pack.missing";
+    case ResumeNoticeKind::AbiChanged: return "engine.abiMismatch";
     default: return {};
   }
 }
@@ -99,6 +101,7 @@ std::unique_ptr<EngineRun> RunRecorder::start(const std::string& mission, std::u
   r.created_at = now_ms();
   r.execution_policy = engine_.policy;
   r.engine = engine_.engine;
+  r.engine_abi = engine_.abi;
   const Snapshot s = run->snapshot();
   r.digest = s.digest;
   r.equity = s.equity;
@@ -123,6 +126,7 @@ std::unique_ptr<EngineRun> RunRecorder::start_pack(const std::string& digest, st
     set_reason("pack_refused");
     return nullptr;
   }
+  run->set_pack_texts(storage_.packs().texts(*bytes));
   RunRecord r;
   r.run_id = new_run_id();
   r.mission_id = entry->scenario_id;
@@ -130,6 +134,7 @@ std::unique_ptr<EngineRun> RunRecorder::start_pack(const std::string& digest, st
   r.created_at = now_ms();
   r.execution_policy = engine_.policy;
   r.engine = engine_.engine;
+  r.engine_abi = engine_.abi;
   r.pack_digest = digest;
   const Snapshot s = run->snapshot();
   r.digest = s.digest;
@@ -224,6 +229,13 @@ std::optional<Resumed> RunRecorder::resume() {
       return out;  // an evicted pack never starts from partial data
     }
   }
+  // A run recorded under another C ABI is never driven by this build (its log may mean something else).
+  // It is stored as left (like the web), so the next launch does not offer a resume it can only refuse.
+  if (const int abi = r.engine_abi.value_or(1); abi != engine_.abi) {
+    out.notice = {ResumeNoticeKind::AbiChanged, r.engine + "/" + std::to_string(abi)};
+    guarded([&] { storage_.store().leave_active_run(); });
+    return out;
+  }
   std::int64_t restored = 0;
   auto run = restore_checkpoint(r, stored->actions, pack, &restored);
   if (!run) run = fresh(r, pack);
@@ -231,6 +243,7 @@ std::optional<Resumed> RunRecorder::resume() {
     out.notice = {ResumeNoticeKind::Damaged, r.mission_id};
     return out;
   }
+  if (pack) run->set_pack_texts(storage_.packs().texts(*pack));
   const auto total = static_cast<std::int64_t>(stored->actions.size());
   for (std::int64_t i = restored; i < total; ++i) apply_action(*run, parse_action(stored->actions[static_cast<std::size_t>(i)]));
   out.notice = replay_notice(r, total, state_digest(*run));

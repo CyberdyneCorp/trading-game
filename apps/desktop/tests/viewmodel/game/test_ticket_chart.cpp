@@ -132,6 +132,31 @@ TEST_CASE("ticket: short locked, opposing order, relever, liquidity shock and ma
   CHECK_FALSE(tk.view(x.t, g, false).above_tier.empty());
 }
 
+// Regression: with a mark-price series (pack schema 2) the ticket priced orders at the mark. The
+// engine places, checks and fills them at the last price; only margin and liquidation use the mark.
+TEST_CASE("ticket: with a mark-price series orders are priced at the last price, not the mark") {
+  Texted x;
+  GameState g = base_state();
+  const double last = g.bars.back().close;
+  g.account.mark = last - 0.5;  // the mark series sits below the last price
+  TicketViewModel tk;
+  tk.size_by = SizeBy::Qty;
+  TicketView v = tk.view(x.t, g, false);
+  CHECK(fmt::parse_decimal(v.est_entry) > last);
+  tk.type = TicketType::Limit;
+  CHECK(tk.view(x.t, g, false).price_placeholder == fmt::fmt_num(last, Locale::PtBR, 2));
+  tk.type = TicketType::Market;
+  g.position.qty = 10;
+  g.position.entry = 100;
+  g.position.margin = 1000;
+  g.position.qty_text = "10.00000000";
+  tk.prot_stop = fmt::fmt_num(last - 0.2, Locale::PtBR, 2);  // below the last price, above the mark
+  v = tk.view(x.t, g, false);
+  CHECK_FALSE(v.prot_stop_warn);
+  tk.prot_stop = fmt::fmt_num(last + 0.2, Locale::PtBR, 2);
+  CHECK(tk.view(x.t, g, false).prot_stop_warn);
+}
+
 TEST_CASE("ticket: leverage follows the account only when it changes; a fill clears stop and target") {
   GameState g = base_state();
   TicketViewModel tk;

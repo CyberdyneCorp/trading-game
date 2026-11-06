@@ -249,6 +249,11 @@ struct GameState {
   LessonInfo lesson;
 
   [[nodiscard]] bool active() const { return status == "active"; }
+  // The last traded price, the close of the current bar (the web's lastPrice). The engine reserves
+  // margin, checks brackets, triggers stops and prices options against it; account.mark equals it
+  // unless the market has a mark-price series (pack schema 2), where the mark serves only margin,
+  // liquidation and funding. Order estimates and side checks use this, never the mark.
+  [[nodiscard]] double last_price() const { return bars.empty() ? account.mark : bars.back().close; }
 };
 
 GameState game_state_from_json(const json::Value& state);

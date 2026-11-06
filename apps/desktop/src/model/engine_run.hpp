@@ -53,6 +53,8 @@ class EngineRun {
   // Client ids: one per non-advance command, 1, 2, ... (a replay hands out the same ids).
   std::uint32_t take_client_id() { return next_client_id_++; }
   void set_next_client_id(std::uint32_t id) { next_client_id_ = id; }
+  // A run on a pack with its own mission texts carries them in every snapshot.
+  void set_pack_texts(std::vector<PackText> texts) { pack_texts_ = std::move(texts); }
 
  private:
   EngineRun(tl_run* run, std::uint32_t seed) : run_(run), seed_(seed) {}
@@ -61,6 +63,7 @@ class EngineRun {
   std::uint32_t seed_;
   LessonInfo lesson_;
   std::uint32_t next_client_id_ = 1;
+  std::vector<PackText> pack_texts_;
 };
 
 }  // namespace tradelab::desktop

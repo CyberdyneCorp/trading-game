@@ -96,7 +96,7 @@ OrderType order_type_of(TicketType t) {
 
 struct TicketViewModel::Calc {
   Costs k;
-  double tick = 0.01, lot = 0.1, mark = 0;
+  double tick = 0.01, lot = 0.1, mark = 0, last = 0;  // liquidation at the mark, orders at the last price
   int cap = 1;
   double pos_qty = 0;
   std::optional<double> atr;
@@ -122,14 +122,15 @@ TicketViewModel::Calc TicketViewModel::calc(const GameState& g, Locale locale) c
   c.tick = k.tick;
   c.lot = k.lot;
   c.mark = g.account.mark;
+  c.last = g.last_price();
   c.cap = k.leverage_cap;
   c.pos_qty = g.position.qty;
   c.atr = last_atr(g);
   c.typed_price = fmt::parse_decimal(price);
   c.needs_price = type != TicketType::Market;
   const double typed_entry = or_zero(c.typed_price);
-  const double limit_entry = typed_entry != 0 ? typed_entry : c.mark;
-  c.entry = type == TicketType::Market ? estimated_market_entry(side, c.mark, c.k) : limit_entry;
+  const double limit_entry = typed_entry != 0 ? typed_entry : c.last;
+  c.entry = type == TicketType::Market ? estimated_market_entry(side, c.last, c.k) : limit_entry;
   c.stop = typed_level(stop);
   c.tp = typed_level(take_profit);
   // Typed sizing amounts; the notional is in credits, so "1.000" in PT-BR is one thousand.
@@ -219,7 +220,7 @@ TicketView TicketViewModel::view(const Texts& t, const GameState& g, bool busy) 
   v.leverage_label = t.tr("ticket.leverage") + " (\xE2\x89\xA4 " + std::to_string(c.cap) + "x)";  // ≤
   v.needs_price = c.needs_price;
   v.price_label = t.tr(type == TicketType::Limit ? "ticket.price" : "ticket.trigger");
-  v.price_placeholder = price_text(c.mark, L);
+  v.price_placeholder = price_text(c.last, L);
   v.amount_label = t.tr(amount_key(size_by));
   v.est_qty = fmt::fmt_qty(c.qty_str, L);
   v.est_notional = fmt::fmt_money(c.est.notional, L);
@@ -294,7 +295,7 @@ void TicketViewModel::trailing(const Texts& t, const GameState& g, const Calc& c
   const Side exit = g.position.qty > 0 ? Side::Sell : Side::Buy;
   const auto trigger = prot_trail_pct.empty()
                            ? std::nullopt
-                           : trail_trigger_from_percent(exit, c.mark, fmt::parse_decimal(prot_trail_pct), c.tick);
+                           : trail_trigger_from_percent(exit, c.last, fmt::parse_decimal(prot_trail_pct), c.tick);
   v.trail_hint = trigger ? t.tr("ticket.trailPctHint", {{"price", price_text(*trigger, t.locale())}}) : t.tr("ticket.trailPctNote");
 }
 
@@ -309,13 +310,13 @@ void TicketViewModel::protection(const Texts& t, const GameState& g, const Calc&
   const Side pos_side = c.pos_qty > 0 ? Side::Buy : Side::Sell;
   const auto pstop = typed_level(prot_stop);
   const auto ptp = typed_level(prot_tp);
-  v.prot_stop_chips = stop_chips(t, g, pos_side, c.mark, c.atr);
+  v.prot_stop_chips = stop_chips(t, g, pos_side, c.last, c.atr);
   v.prot_tp_chips = target_chips(t, pos_side, g.position.entry, pstop);
   v.prot_stop_hint = stop_hint(L, g.position.entry, pstop, c.atr);
   v.prot_tp_hint = target_hint(L, pos_side, g.position.entry, pstop, ptp, c.atr);
-  const std::string at = price_text(c.mark, L);
-  if (pstop && !stop_on_losing_side(pos_side, c.mark, *pstop)) v.prot_stop_warn = t.tr("level.protStopSide", {{"price", at}});
-  if (ptp && !target_on_winning_side(pos_side, c.mark, *ptp)) v.prot_tp_warn = t.tr("level.protTpSide", {{"price", at}});
+  const std::string at = price_text(c.last, L);
+  if (pstop && !stop_on_losing_side(pos_side, c.last, *pstop)) v.prot_stop_warn = t.tr("level.protStopSide", {{"price", at}});
+  if (ptp && !target_on_winning_side(pos_side, c.last, *ptp)) v.prot_tp_warn = t.tr("level.protTpSide", {{"price", at}});
   const auto liq = g.account.liquidation;
   v.prot_beyond = pstop && liq && (c.pos_qty > 0 ? *pstop <= *liq : *pstop >= *liq) && g.rules.confirm_stop_beyond_liq;
   trailing(t, g, c, v);
@@ -382,10 +383,10 @@ void TicketViewModel::apply_advice(const GameState& g, const Advice& a, Locale l
   side = a.stance == "short" ? Side::Sell : Side::Buy;
   stop = fmt::price_input_text(fmt::num(a.stop), k.tick, locale);
   size_by = SizeBy::Qty;
-  // The read is sized for a market entry at the mark: a stale limit price would change its risk.
+  // The read is sized for a market entry at the last price: a stale limit price would change its risk.
   type = TicketType::Market;
   const Costs costs = costs_of(k, g.liquidity);
-  const double entry = estimated_market_entry(side, g.account.mark, costs);
+  const double entry = estimated_market_entry(side, g.last_price(), costs);
   const int typed = clamp_leverage(leverage, k.leverage_cap);
   const Fit fit = fit_to_margin(fmt::num(a.size), entry, g.account.available, typed, k.leverage_cap, costs, k.lot);
   qty = fmt::qty_input_text(fit.qty, k.lot, locale);

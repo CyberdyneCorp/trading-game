@@ -5,6 +5,7 @@
 
 import type { Locale, MessageKey } from './i18n.svelte';
 import type { PackOrigin } from './storage.ts';
+import type { PackText } from '#lib/engine/types.ts';
 
 export interface MissionText {
 	title: string;
@@ -312,7 +313,25 @@ function packedMissionText(id: string, locale: Locale): MissionText {
 }
 
 /** Texts of a mission; for a practice pack run, `origin` says whether it was imported or downloaded. */
-export function missionText(id: string, locale: Locale, origin: PackOrigin | null = null): MissionText {
+export function missionText(id: string, locale: Locale, origin: PackOrigin | null = null, packTexts?: readonly PackText[]): MissionText {
+	return withPackTexts(baseMissionText(id, locale, origin), packTexts, locale);
+}
+
+function baseMissionText(id: string, locale: Locale, origin: PackOrigin | null): MissionText {
 	if (isPracticeScenario(id)) return origin === 'catalog' ? { ...PRACTICE[locale], ...PRACTICE_CATALOG[locale] } : PRACTICE[locale];
 	return texts[id]?.[locale] ?? packedMissionText(id, locale);
+}
+
+/**
+ * A schema-v2 pack's own title and briefing (mission.json, checked by the engine: one entry per
+ * locale) over the generic pack texts; the rest (topic, reveal) stays the generic one.
+ */
+export function withPackTexts(base: MissionText, packTexts: readonly PackText[] | undefined, locale: Locale): MissionText {
+	const own = packTexts?.find((x) => x.locale === locale);
+	return own ? { ...base, title: own.title, tagline: own.briefing } : base;
+}
+
+/** The mission texts of an installed pack (undefined for a mission run or a pack without them). */
+export function packTextsOf(packs: readonly { digest: string; texts?: PackText[] }[], digest: string | null | undefined): PackText[] | undefined {
+	return digest ? packs.find((p) => p.digest === digest)?.texts : undefined;
 }

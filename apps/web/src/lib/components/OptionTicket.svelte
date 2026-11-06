@@ -16,6 +16,7 @@
 	import { fmtMoney, fmtNum, fmtPrice, fmtQty, num, parseDecimal, priceToTick, qtyToLot } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { breakeven, legFromQuote, maxLoss, optionBuyCost, optionFee, payoffCurve, seriesLabel, writeMargin } from '#lib/game/optionsMath.ts';
+	import { lastPrice } from '#lib/game/lastPrice.ts';
 
 	let {
 		game,
@@ -34,7 +35,7 @@
 	const L = $derived(i18n.locale);
 	const mult = $derived(num(game.options.multiplier));
 	const lot = $derived(num(game.options.lotSize));
-	const f = $derived(num(game.account.mark));
+	const f = $derived(lastPrice(game)); // the underlying options are priced on (not the mark)
 
 	let type = $state<'market' | 'limit'>('market');
 	let qtyInput = $state('1');

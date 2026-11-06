@@ -19,6 +19,8 @@ typedef struct tl_run tl_run; /* NOLINT(readability-identifier-naming): C ABI */
 /* Order types: 0 market, 1 limit, 2 stop-market, 3 take-profit, 4 trailing-stop. Sides: 0 buy, 1 sell. */
 
 const char* tl_version(void);
+/* The C ABI version (engine.hpp kAbiVersion). Builds without this function predate it (ABI 0). */
+uint32_t tl_abi_version(void);
 const char* tl_missions(void);
 
 /* Returns NULL for an unknown mission id. */
@@ -112,7 +114,8 @@ uint32_t tl_blob_size(void);
 /* {"id":"device-<16 hex>","publicKey":"<64 hex>"} for a device seed, or {"error":"invalid_seed"}. */
 const char* tl_device_key(const char* device_seed_hex);
 /* Verifies a pack for install (publish = 0) or publishing (publish = 1, adds LIC01 checks):
- * {"ok":bool,"reason","detail","pack":{summary without prices or reveal}}. */
+ * {"ok":bool,"reason","detail","pack":{summary without prices or reveal}}; the summary carries the
+ * pack's schemaVersion and, for a v2 pack with mission.json, its texts [{"locale","title","briefing"}]. */
 const char* tl_pack_validate(const uint8_t* data, uint32_t size, const char* trusted_keys_json, int32_t publish);
 /* Starts a run on a verified pack; NULL when the pack fails validation. */
 tl_run* tl_run_create_pack(const uint8_t* data, uint32_t size, const char* trusted_keys_json, uint32_t seed);

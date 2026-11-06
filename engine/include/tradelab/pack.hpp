@@ -17,17 +17,32 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kPackSchemaVersion = 1;
+// Newest pack schema this engine reads; every older one still loads. v2 (engine README "Scenario
+// packs"): mission texts and objectives, mark-price bars, settlement sub-bars, margin tiers. Writers
+// emit v1 unless the pack uses a v2 feature, so v1 packs keep their bytes.
+constexpr std::uint32_t kPackSchemaVersion = 2;
+constexpr std::uint32_t kPackMinSchemaVersion = 1;
 
 struct PackLimits {
   std::size_t max_pack_bytes = std::size_t{16} << 20U;
-  std::size_t max_files = 8;
+  std::size_t max_files = 12;
   std::size_t max_manifest_bytes = std::size_t{64} << 10U;
   std::size_t max_decompressed_file = std::size_t{8} << 20U;  // per data file
+  std::size_t max_mission_bytes = std::size_t{16} << 10U;     // mission.json (stored as is)
   std::uint32_t max_bars = 20'000;
   std::uint32_t max_events = 1'000;         // news rows and liquidity shocks, each
   std::uint32_t max_option_series = 2'000;
+  std::uint32_t max_sub_bars = 20'000;      // settlement sub-bar closes, all expiries together
 };
+
+// Mission texts of a v2 pack (mission.json), one entry per locale: exactly "pt-BR" and "en".
+struct PackText {
+  std::string locale;
+  std::string title;     // 1..120 bytes
+  std::string briefing;  // 1..4,000 bytes
+};
+constexpr std::size_t kPackTitleMax = 120;
+constexpr std::size_t kPackBriefingMax = 4'000;
 
 // ---------------------------------------------------------------- CSV import
 
@@ -127,6 +142,8 @@ struct PackInfo {
   std::uint32_t gaps = 0;
   std::string gap_policy;  // "skip" / "carryForward" when gaps were filled with continuity bars, else empty
   PackReveal reveal;
+  std::uint32_t schema_version = 1;
+  std::vector<PackText> texts;  // v2 mission.json; empty when the pack has none
 };
 
 struct PackOpen {
@@ -231,5 +248,11 @@ std::vector<std::uint8_t> encode_funding(std::span<const Rate> rates);
 std::vector<std::uint8_t> encode_events(std::span<const NewsItem> news, std::span<const LiquidityShock> liquidity);
 // options.bin: the series table (TLO1) followed by the IV table (TLI1; empty when iv_base is).
 std::vector<std::uint8_t> encode_options(const OptionSpec& options);
+// mark.bin (v2): TLM1, one mark bar per bar (open, high, low, close).
+std::vector<std::uint8_t> encode_mark(std::span<const Bar> mark);
+// subbars.bin (v2): TLS1, one row per sub-bar close (bar, minutes, close), grouped by bar.
+std::vector<std::uint8_t> encode_sub_bars(std::span<const SubBars> sub_bars);
+// mission.json (v2): {"texts": [{"locale","title","briefing"}, ...]}.
+std::string encode_texts(std::span<const PackText> texts);
 
 }  // namespace tradelab

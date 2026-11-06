@@ -48,6 +48,7 @@
 	import LevelField, { type LevelChip } from './LevelField.svelte';
 	import { keymap } from '#lib/game/keymap.svelte.ts';
 	import { keyLabel } from '#lib/game/shortcuts.ts';
+	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import TrailField from './TrailField.svelte';
 
 	let {
@@ -87,7 +88,9 @@
 	const shock = $derived(s.liquidity ? shockFactors(s.contract, s.liquidity) : null);
 	const tick = $derived(num(s.contract.tickSize));
 	const lot = $derived(num(s.contract.lotSize));
+	// Liquidation is checked at the mark; orders are placed, checked and filled at the last price.
 	const mark = $derived(num(s.account.mark));
+	const last = $derived(lastPrice(s));
 	const cap = $derived(s.contract.leverageCap);
 	const posQty = $derived(num(s.position.qty));
 	const atr = $derived.by(() => {
@@ -130,7 +133,7 @@
 		tpInput = '';
 	});
 
-	const entry = $derived(orderType === 'market' ? estimatedMarketEntry(side, mark, k) : parseDecimal(priceInput) || mark);
+	const entry = $derived(orderType === 'market' ? estimatedMarketEntry(side, last, k) : parseDecimal(priceInput) || last);
 	const stop = $derived(stopInput ? parseDecimal(stopInput) : null);
 	const qty = $derived(
 		sizedQty(sizeBy, { equity: num(s.account.equity), entry, stop, qty: parseDecimal(qtyInput) || 0, amount: AMOUNT[sizeBy]() || 0 }, k, lot)
@@ -244,7 +247,7 @@
 	const protStopN = $derived(protStop ? parseDecimal(protStop) : null);
 	const protTpN = $derived(protTp ? parseDecimal(protTp) : null);
 	const protStopWarn = $derived(
-		protStopN != null && !stopOnLosingSide(posSide, mark, protStopN) ? t('level.protStopSide', { price: fmtPrice(s.account.mark, L) }) : null
+		protStopN != null && !stopOnLosingSide(posSide, last, protStopN) ? t('level.protStopSide', { price: fmtPrice(String(last), L) }) : null
 	);
 	// A protective stop for the open position beyond its liquidation price also asks for confirmation.
 	const liqNow = $derived(s.account.liquidationPrice ? num(s.account.liquidationPrice) : null);
@@ -257,7 +260,7 @@
 		protConfirmed = false;
 	});
 	const protTpWarn = $derived(
-		protTpN != null && !targetOnWinningSide(posSide, mark, protTpN) ? t('level.protTpSide', { price: fmtPrice(s.account.mark, L) }) : null
+		protTpN != null && !targetOnWinningSide(posSide, last, protTpN) ? t('level.protTpSide', { price: fmtPrice(String(last), L) }) : null
 	);
 	// Sending at another leverage re-margins the open position too (engine set_leverage).
 	const relever = $derived.by(() => {
@@ -314,7 +317,7 @@
 		{#if needsPrice}
 			<label class="full">
 				{orderType === 'limit' ? t('ticket.price') : t('ticket.trigger')}
-				<input inputmode="decimal" bind:value={priceInput} placeholder={fmtPrice(s.account.mark, L)} />
+				<input inputmode="decimal" bind:value={priceInput} placeholder={fmtPrice(String(last), L)} />
 			</label>
 		{/if}
 		<label>
@@ -382,7 +385,7 @@
 	<dl class="kv est">
 		<dt>{t('ticket.qty')}</dt><dd data-testid="ticket-est-qty">{fmtQty(qtyStr, L)}</dd>
 		<dt>{t('ticket.estNotional')}</dt><dd data-testid="ticket-est-notional">{fmtMoney(est.notional, L)}</dd>
-		<dt>{t('ticket.estEntry')}</dt><dd>{fmtPrice(String(entry), L)}</dd>
+		<dt>{t('ticket.estEntry')}</dt><dd data-testid="ticket-est-entry">{fmtPrice(String(entry), L)}</dd>
 		<dt>{t('ticket.estMargin')}</dt><dd>{fmtMoney(est.margin, L)}</dd>
 		<dt>{t('ticket.estFee')}</dt><dd>{fmtMoney(est.fee, L)}</dd>
 		<dt>{t('ticket.estLiq')}</dt><dd class="down" data-testid="ticket-est-liq">{est.liquidation ? fmtPrice(String(est.liquidation), L) : '—'}</dd>
@@ -441,7 +444,7 @@
 				label={t('ticket.stopLoss')}
 				bind:value={protStop}
 				{tick}
-				chips={stopChips(posSide, mark)}
+				chips={stopChips(posSide, last)}
 				hint={stopHint(posEntry, protStopN)}
 				warn={protStopWarn}
 				{onPick}
@@ -457,7 +460,7 @@
 				{onPick}
 			/>
 			<div class="full">
-				<TrailField bind:distance={protTrail} bind:pct={protTrailPct} bind:mode={trailMode} {tick} chips={trailChips} exit={posQty > 0 ? 'sell' : 'buy'} close={mark} />
+				<TrailField bind:distance={protTrail} bind:pct={protTrailPct} bind:mode={trailMode} {tick} chips={trailChips} exit={posQty > 0 ? 'sell' : 'buy'} close={last} />
 			</div>
 		</div>
 		<div class="row">

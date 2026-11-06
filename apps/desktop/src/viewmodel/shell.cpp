@@ -1,6 +1,8 @@
 // AppViewModel's shell: the run's life as progress sees it (started, left, ended: completed missions,
 // campaign legs, journal records), the campaign commands, the curriculum map, the journal filter, the
 // Academy lesson runner and the settings. Ports the matching parts of the web's session.svelte.ts.
+#include <tradelab/c_api.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -152,6 +154,15 @@ void AppViewModel::offer_saved_run(std::optional<SavedRun> run) {
   touch();
 }
 
+// A run recorded under another engine C ABI: why it cannot resume (detail "<engine>/<abi>"), the web's
+// engine.abiMismatch.
+std::string AppViewModel::abi_refusal(const std::string& detail) const {
+  const auto slash = detail.rfind('/');
+  const std::string build = slash == std::string::npos ? detail : detail.substr(0, slash);
+  const std::string abi = slash == std::string::npos ? std::string("?") : detail.substr(slash + 1);
+  return tr("engine.abiMismatch", {{"build", build}, {"abi", abi}, {"expected", std::to_string(tl_abi_version())}});
+}
+
 // The answer to resume(): the run in play again (as a new session run of the shell), or the reason it
 // could not be restored. Either way the offer is gone.
 void AppViewModel::resumed(const CommandResult& r) {
@@ -159,7 +170,7 @@ void AppViewModel::resumed(const CommandResult& r) {
   resume_pending_ = false;
   saved_run_.reset();
   if (!r.accepted || !snap_ || !snap_->active()) {
-    notice_ = reason_text(r.reason);
+    notice_ = r.reason == "abi_changed" ? abi_refusal(snap_ ? snap_->resume_detail : std::string()) : reason_text(r.reason);
     return;
   }
   if (screen_ != Screen::Menu) return;

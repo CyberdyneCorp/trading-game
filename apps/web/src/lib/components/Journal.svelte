@@ -3,7 +3,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { journalMissions, journalRuns } from '#lib/game/journal.ts';
-	import { missionText, packOriginOf } from '#lib/game/missions.ts';
+	import { missionText, packOriginOf, packTextsOf } from '#lib/game/missions.ts';
 	import JournalEntries from './JournalEntries.svelte';
 
 	let { session }: { session: GameSession } = $props();
@@ -13,7 +13,7 @@
 	const missions = $derived(journalMissions(session.journalRecords));
 	// A practice run is named by its pack's origin (catalog or imported), as on the briefing.
 	function titleOf(missionId: string, digest: string | null | undefined = session.journalRecords.find((r) => r.missionId === missionId)?.packDigest) {
-		return missionText(missionId, L, packOriginOf(session.packs, digest)).title;
+		return missionText(missionId, L, packOriginOf(session.packs, digest), packTextsOf(session.packs, digest)).title;
 	}
 </script>
 

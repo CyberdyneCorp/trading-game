@@ -17,7 +17,7 @@ async function answerIfAsked(page: Page) {
 async function openCatalog(page: Page) {
 	await page.getByTestId('open-catalog').click();
 	await expect(page.getByRole('heading', { name: 'Catálogo de pacotes' })).toBeVisible();
-	await expect(page.getByTestId('catalog-entry')).toHaveCount(2);
+	await expect(page.getByTestId('catalog-entry')).toHaveCount(3);
 	await expect(page.getByTestId('catalog-tag').first()).toHaveText('SINTÉTICO');
 }
 
@@ -119,6 +119,42 @@ test('a corrupted download is refused before install and starts over', async ({ 
 	await expect(entryA(page).getByTestId('download-state')).toContainText('corrompido');
 	await expect(entryA(page)).toHaveAttribute('data-status', 'none');
 	await expect(page.getByTestId('catalog-installed')).toHaveCount(0);
+});
+
+// Market C is a schema-v2 sample pack built with the packer (scripts/build-sample-catalog.py): its
+// own mission texts and objectives, and a story where a liquidity-outflow headline at the close of
+// bar 15 is followed by a liquidity shock.
+test('a v2 catalog pack briefs with its own texts and objectives, and its liquidity shock reaches the ticket', async ({ page }) => {
+	const errors: string[] = [];
+	page.on('pageerror', (e) => errors.push(String(e)));
+	await page.goto('/?seed=5');
+	await openCatalog(page);
+	const c = page.getByTestId('catalog-entry').filter({ hasText: 'Mercado C · choque de liquidez' });
+	await c.getByTestId('catalog-download').click();
+	await expect(c.getByTestId('catalog-installed')).toHaveText('INSTALADO');
+	await c.getByTestId('catalog-play').click();
+
+	await expect(page.getByRole('heading', { name: 'Treino · choque de liquidez' })).toBeVisible();
+	await expect(page.locator('main')).toContainText('Uma formadora de mercado vai sair do livro.');
+	await expect(page.getByTestId('brief-shocks')).toBeVisible();
+	await expect(page.getByTestId('brief-objective')).toHaveCount(3);
+	await expect(page.getByTestId('brief-objective').nth(1)).toContainText('1%');
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await expect(page.locator('header.top')).toContainText('Treino · choque de liquidez');
+	await answerIfAsked(page);
+	await expect(page.getByTestId('ticket-shock')).toHaveCount(0);
+	for (let i = 0; i < 14; i++) {
+		await page.keyboard.press('Space');
+		await answerIfAsked(page);
+	}
+	await expect(page.locator('.turn')).toContainText('Barra 15');
+	await expect(page.getByTestId('ticket-shock')).toContainText('Choque de liquidez na próxima barra');
+
+	// The menu's resume line names the run by the pack's own title.
+	await page.getByRole('button', { name: /Menu/ }).first().click();
+	await expect(page.getByTestId('pack-row').filter({ hasText: 'Mercado C' })).toBeVisible();
+	await expect(page.locator('section.resume')).toContainText('Treino · choque de liquidez');
+	expect(errors).toEqual([]);
 });
 
 test('Academy: the Foundations lesson runs from the curriculum map and passes its stage', async ({ page }) => {

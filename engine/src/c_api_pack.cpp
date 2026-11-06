@@ -113,7 +113,10 @@ void write_summary(JsonOut& j, const PackOpen& p) {
   j.field("signingKeyId", p.info.signing_key_id).field("timeframe", p.info.timeframe);
   j.field("totalBars", static_cast<std::uint32_t>(sc.bars.size())).field("warmupBars", sc.mission.warmup_bars);
   j.field("leverageCap", std::min(sc.mission.leverage_cap, sc.contract.max_leverage)).field("allowShort", sc.mission.allow_short);
-  j.field("gaps", p.info.gaps).field("gapPolicy", p.info.gap_policy).end_obj();
+  j.field("gaps", p.info.gaps).field("gapPolicy", p.info.gap_policy).field("schemaVersion", p.info.schema_version);
+  j.key("texts").begin_arr();
+  for (const PackText& t : p.info.texts) j.begin_obj().field("locale", t.locale).field("title", t.title).field("briefing", t.briefing).end_obj();
+  j.end_arr().end_obj();
 }
 
 bool prefix_ok(const char* prefix) {

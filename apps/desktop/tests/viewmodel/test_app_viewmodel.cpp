@@ -118,6 +118,23 @@ TEST_CASE("app vm: start -> briefing -> terminal -> debrief -> menu") {
   CHECK(f.vm.screen() == Screen::Menu);
 }
 
+TEST_CASE("app vm: a pack run with its own mission texts briefs with them in the shown locale") {
+  Fixture f;
+  f.vm.start_selected();
+  auto s = std::make_shared<Snapshot>(*snap(CommandKind::Start));
+  s->mission = "csv-8f7d7cd22279";
+  s->pack_texts = {{"pt-BR", "Treino · choque de liquidez", "Uma formadora de mercado sai do livro."},
+                   {"en", "Practice · liquidity shock", "A market maker leaves the book."}};
+  f.vm.on_snapshot(s);
+  REQUIRE(f.vm.screen() == Screen::Briefing);
+  CHECK(text_of(f.vm, names::kBriefMission) == "Treino · choque de liquidez");
+  CHECK(text_of(f.vm, names::kBriefTagline) == "Uma formadora de mercado sai do livro.");
+  f.vm.set_locale(Locale::En);
+  CHECK(text_of(f.vm, names::kBriefMission) == "Practice · liquidity shock");
+  f.vm.open_terminal();
+  CHECK(text_of(f.vm, names::kGameMission) == "Practice · liquidity shock");
+}
+
 TEST_CASE("app vm: play again starts the same mission on a new market") {
   Fixture f;
   f.to_game();

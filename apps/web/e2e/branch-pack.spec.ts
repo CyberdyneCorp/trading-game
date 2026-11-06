@@ -1,10 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
+import { useDeviceSeed } from './helpers.ts';
 
 // A counterfactual branch pack (spec market-generator "Branch labeling"; add-scenarios-and-gameplay
 // 3.3) built by tools/packer with real zstd compression: e2e/fixtures/branch.tlpack is a masked
 // 150-bar CSV window (warm-up 40) whose bars after bar 90 come from m08 seed 4. It is signed with
-// the device key of DEVICE_SEED, so this test makes that seed the browser's device seed first.
+// the device key of FIXTURE_DEVICE_SEED (helpers.ts), so this test makes that seed the browser's device seed first.
 // Rebuild: see engine/README.md "Pack authoring".
 
 // e2e/fixtures/synthetic-m09.tlpack is `packer.py generate m09-event-straddle --seed 7` built the same
@@ -13,34 +14,6 @@ import { fileURLToPath } from 'node:url';
 
 const FIXTURE = fileURLToPath(new URL('./fixtures/branch.tlpack', import.meta.url));
 const SYNTHETIC = fileURLToPath(new URL('./fixtures/synthetic-m09.tlpack', import.meta.url));
-const DEVICE_SEED = '0e2e'.repeat(16);
-
-async function useDeviceSeed(page: Page) {
-	await page.goto('/?seed=11');
-	await expect(page.getByTestId('pack-file')).toBeAttached(); // the menu is up: the app has created its database
-	await page.evaluate(
-		(hex) =>
-			new Promise<void>((resolve, reject) => {
-				const open = indexedDB.open('tradelab');
-				open.onerror = () => reject(open.error);
-				open.onsuccess = () => {
-					try {
-						const tx = open.result.transaction('meta', 'readwrite');
-						tx.objectStore('meta').put({ key: 'deviceSeed', hex });
-						tx.oncomplete = () => {
-							open.result.close();
-							resolve();
-						};
-						tx.onerror = () => reject(tx.error);
-					} catch (e) {
-						reject(e);
-					}
-				};
-			}),
-		DEVICE_SEED
-	);
-	await page.reload();
-}
 
 async function answerIfAsked(page: Page) {
 	const dialog = page.getByRole('dialog', { name: /Pergunta de calibração/ });

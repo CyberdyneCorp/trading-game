@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { marketTagKey, missionText, packOriginOf } from './missions.ts';
+import { marketTagKey, missionText, packOriginOf, packTextsOf } from './missions.ts';
 
 describe('missions texts and tags', () => {
 	// Playtest: the menu row and the top bar tagged a generated pack CONHECIDO / KNOWN.
@@ -36,5 +36,21 @@ describe('missions texts and tags', () => {
 		expect(packOriginOf(packs, 'gone')).toBe('import');
 		expect(packOriginOf(packs, null)).toBeNull();
 		expect(missionText('csv-1', 'pt-BR', packOriginOf(packs, 'a')).title).toBe('Treino · pacote do catálogo');
+	});
+
+	it('a schema-v2 pack briefs with its own title and briefing in the shown locale', () => {
+		const texts = [
+			{ locale: 'pt-BR', title: 'Treino · choque de liquidez', briefing: 'Uma formadora de mercado sai do livro.' },
+			{ locale: 'en', title: 'Practice · liquidity shock', briefing: 'A market maker leaves the book.' }
+		];
+		const packs = [{ digest: 'c', origin: 'catalog' as const, texts }, { digest: 'old', origin: 'catalog' as const }];
+		const pt = missionText('csv-9', 'pt-BR', 'catalog', packTextsOf(packs, 'c'));
+		expect(pt.title).toBe('Treino · choque de liquidez');
+		expect(pt.tagline).toBe('Uma formadora de mercado sai do livro.');
+		expect(missionText('csv-9', 'en', 'catalog', packTextsOf(packs, 'c')).title).toBe('Practice · liquidity shock');
+		// A v1 pack (no texts) and a mission run keep the generic texts.
+		expect(packTextsOf(packs, 'old')).toBeUndefined();
+		expect(packTextsOf(packs, null)).toBeUndefined();
+		expect(missionText('csv-9', 'pt-BR', 'catalog', packTextsOf(packs, 'old')).title).toBe('Treino · pacote do catálogo');
 	});
 });

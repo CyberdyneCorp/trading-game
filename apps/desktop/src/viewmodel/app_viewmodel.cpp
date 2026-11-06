@@ -143,6 +143,16 @@ std::string AppViewModel::mission_text(const std::string& id, std::string_view f
   return tr("mission." + id + "." + std::string(field));
 }
 
+std::string AppViewModel::run_text(const Snapshot& s, std::string_view field) const {
+  const std::string_view code = locale_code(locale());
+  for (const PackText& t : s.pack_texts) {
+    if (t.locale != code) continue;
+    if (field == "title") return t.title;
+    if (field == "tagline") return t.briefing;
+  }
+  return mission_text(s.mission, field);
+}
+
 std::string AppViewModel::reason_text(const std::string& code) const {
   const std::string key = "reason." + code;
   return catalog_.has(key) ? tr(key) : code;

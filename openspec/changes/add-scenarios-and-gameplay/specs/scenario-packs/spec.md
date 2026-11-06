@@ -13,6 +13,25 @@ Every pack SHALL include a manifest with: scenarioId, schemaVersion, packVersion
 - **WHEN** a manifest lacks the funding model
 - **THEN** validation SHALL fail with an error naming the missing field
 
+### Requirement: Pack schema versions
+The engine SHALL read every pack schema version from 1 up to the newest it knows and refuse others with `unsupported_schema`. Schema 2 SHALL add, each optional: the pack's own mission texts in PT-BR and en (`mission.json`: a title and a briefing per locale), mission objectives and limits in the mission rules, mark-price bars (`mark.bin`), settlement sub-bars (`subbars.bin`) and maintenance-margin tiers in the margin model. A schema-1 manifest that names a schema-2 field or file SHALL be refused. Writers SHALL emit schema 1 unless a schema-2 feature is used, so schema-1 packs keep their bytes. Clients SHALL brief a run on a pack with the pack's own texts and objectives when it has them.
+
+#### Scenario: Schema-1 pack after the upgrade
+- **WHEN** a pack built before schema 2 is installed or resumed
+- **THEN** it SHALL load as before, with the generic pack texts and the common objectives
+
+#### Scenario: Pack with its own mission
+- **WHEN** a schema-2 pack carries mission texts and objectives
+- **THEN** the briefing SHALL show its title, briefing and objectives in the shown locale, and the engine's mission rules SHALL list those objectives
+
+#### Scenario: Pack with a mark-price series
+- **WHEN** a run is on a schema-2 pack whose mark price differs from the last price
+- **THEN** the briefing SHALL say that margin, liquidation and funding use the mark, and the clients SHALL estimate and side-check orders at the last price, as the engine places and fills them
+
+#### Scenario: Schema-2 feature in a schema-1 manifest
+- **WHEN** a manifest declaring schema 1 lists margin tiers or a `mission.json`
+- **THEN** validation SHALL fail (`invalid_field` naming the field, `unsupported_feature` naming the file)
+
 ### Requirement: Integrity and compatibility
 Clients SHALL verify file sizes, hashes and the manifest signature against a pinned set of publisher keys, and the engine compatibility range, before a pack can be installed or a run started. Packs SHALL be immutable: a content change SHALL produce a new packVersion and SHALL NOT alter existing runs.
 
@@ -42,6 +61,10 @@ Packs SHALL contain data only (no executable code). Validators SHALL enforce lim
 #### Scenario: Too many events
 - **WHEN** a pack declares more news rows, liquidity shocks or option series than the validator's limits
 - **THEN** it SHALL be rejected with reason `too_many_events` or `too_many_series` before any data file is decompressed
+
+#### Scenario: Oversized schema-2 data
+- **WHEN** a pack declares more settlement sub-bars than the limit, more than 16 margin tiers, or a `mission.json` larger than 16 KiB
+- **THEN** it SHALL be rejected (`too_many_sub_bars`, `invalid_field`, `mission_too_large`) before the data is used
 
 #### Scenario: Hostile bytes
 - **WHEN** a pack, CSV file or manifest is arbitrary or mutated data
