@@ -37,7 +37,7 @@ class Terminal {
     app_.vm().select(index);
     d_.frames(2);
     REQUIRE(d_.click(names::kMenuStart));
-    REQUIRE(d_.until([&] { return app_.vm().screen() == Screen::Briefing; }));
+    REQUIRE(d_.to_briefing());
     REQUIRE(d_.click(names::kBriefGo));
     REQUIRE(app_.vm().screen() == Screen::Game);
     d_.frames(3);

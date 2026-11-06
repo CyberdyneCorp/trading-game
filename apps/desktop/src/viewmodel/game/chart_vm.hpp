@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "model/game_state.hpp"
+#include "model/json.hpp"
 #include "viewmodel/game/chart_scale.hpp"
 #include "viewmodel/game/texts.hpp"
 
@@ -63,6 +64,17 @@ struct TicketPreview {
 
 enum class Oscillator : std::uint8_t { Rsi, Macd, Adx, None };
 
+// A revealed regime span (tl_mission_reveal "spans": label, direction, first bar, length), known only
+// once the run has ended.
+struct RegimeSpan {
+  std::string label;
+  int direction = 0;
+  int start = 0;
+  int bars = 0;
+};
+std::vector<RegimeSpan> regime_spans(const json::Value& spans);
+
+
 // What a pointer or key did on the chart, for the terminal to act on.
 struct ChartAction {
   enum class Kind : std::uint8_t { None, DraftStop, DraftTarget, MoveOrder, Pattern, Picked, CancelPick };
@@ -85,6 +97,11 @@ class ChartViewModel {
   bool show_patterns = true;
   Oscillator osc = Oscillator::Rsi;
 
+  // After the reveal (the run ended): the regimes the market really went through, as bands behind the
+  // candles with their names; empty while the run is live (a new run starts with a new chart).
+  void set_regimes(std::vector<RegimeSpan> spans);
+  [[nodiscard]] const std::vector<RegimeSpan>& regimes() const { return regimes_; }
+
   // Builds the frame for a box of width x height (also remembered for hit tests and drags).
   ChartScene build(const Texts& t, const GameState& g, const std::optional<TicketPreview>& preview, bool picking,
                    float width, float height);
@@ -104,6 +121,8 @@ class ChartViewModel {
   void focus_lost();
 
   [[nodiscard]] int zoom() const { return zoom_; }
+  // Shows every bar from `step` on (the debrief: the whole run from its first decision).
+  void show_from(const GameState& g, int step);
   [[nodiscard]] std::optional<int> hover_bar(const GameState& g) const;
   [[nodiscard]] std::optional<int> focus_bar() const { return focus_; }
   // What a screen reader announces for the focused candle ("" without focus).
@@ -149,6 +168,7 @@ class ChartViewModel {
   ChartAction drag_to(float py);
   void touch() { ++revision_; }
 
+  std::vector<RegimeSpan> regimes_;
   int zoom_ = 100;
   std::optional<int> hover_;  // visible index
   std::optional<float> hover_y_;

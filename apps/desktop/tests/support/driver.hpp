@@ -43,6 +43,15 @@ class Driver {
     return until([this] { return !app_.vm().waiting(); });
   }
 
+  // After a start: the mission's tutorial shows the first time (fresh data folder), skipped here as a
+  // player would; then the briefing.
+  bool to_briefing() {
+    const auto& vm = app_.vm();
+    if (!until([&] { return vm.screen() == Screen::Tutorial || vm.screen() == Screen::Briefing; })) return false;
+    if (vm.screen() == Screen::Tutorial && !click("tut-skip")) return false;
+    return until([&] { return vm.screen() == Screen::Briefing; });
+  }
+
   [[nodiscard]] Rid widget(std::string_view name) const { return app_.view().find(name); }
 
   // Left click at the centre of the named widget. False when it has no area (not laid out / hidden).

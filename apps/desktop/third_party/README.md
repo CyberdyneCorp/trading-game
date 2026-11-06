@@ -24,3 +24,22 @@ includes `sqlite3.h`.
 Updating: download the new amalgamation zip, compare its SHA3-256 with the one on sqlite.org/download.html, copy
 `sqlite3.c` and `sqlite3.h`, update this table (`openssl dgst -sha3-256 sqlite3.c sqlite3.h`) and run the storage tests
 (`tradelab_desktop_unit_tests -ts='storage*,packs*'`) on Linux and macOS.
+
+## miniaudio (`miniaudio/`)
+
+| | |
+|---|---|
+| Version | 0.11.22 (`MA_VERSION_MAJOR.MINOR.REVISION` in the header) |
+| Source | https://raw.githubusercontent.com/mackron/miniaudio/0.11.22/miniaudio.h (tag `0.11.22`) |
+| SHA-256 of `miniaudio.h` | `9019743287e443c55e5737a7297f38e5e358561701d6db2d905afb114390c410` |
+| License | public domain (Unlicense) or MIT No Attribution, at the user's choice (`miniaudio/LICENSE`, copied from the end of the header) |
+| Files kept | `miniaudio.h`; `miniaudio.c` is ours (the one implementation unit) |
+
+Built as the static library `tradelab_miniaudio` with `MA_NO_ENCODING` and `MA_NO_GENERATION` and its own warnings
+silenced; MP3 decoding is miniaudio's built-in dr_mp3. Backends are opened at run time: Core Audio on macOS; PulseAudio,
+ALSA or JACK on Linux (nothing is linked, so a machine without them runs silent). Only `src/platform/audio_out.cpp`
+includes `miniaudio.h`.
+
+Updating: download `miniaudio.h` of the new tag, check its SHA-256 here, copy the license block from the end of the
+header into `LICENSE`, and run the audio tests (`tradelab_desktop_unit_tests -ts='*audio*'` and the headless binary's
+null-device test) on Linux and macOS.

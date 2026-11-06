@@ -3,7 +3,8 @@
 # appimagetool and type 2 runtime (packaging/pins.sh). Run it in the baseline container (ubuntu:24.04,
 # as CI does): the binary needs that glibc/libstdc++ or newer. Nothing else is bundled: libX11,
 # libvulkan.so.1 and the GPU driver come from the system (like any Vulkan app), libcurl is opened at run
-# time when present.
+# time when present. The web's soundtrack goes to usr/share/tradelab/audio (played with miniaudio, which
+# opens PulseAudio, ALSA or JACK at run time).
 #   packaging/package_appimage.sh <build dir> <out dir>      -> <out dir>/TradeLab-<arch>.AppImage
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -31,6 +32,8 @@ rm -rf "$appdir"
 mkdir -p "$appdir/usr/bin" "$appdir/usr/share/applications" "$appdir/usr/share/icons/hicolor/512x512/apps"
 install -m 755 "$build/tradelab" "$appdir/usr/bin/tradelab"
 strip "$appdir/usr/bin/tradelab" 2>/dev/null || true
+mkdir -p "$appdir/usr/share/tradelab/audio"
+install -m 644 "$here/../../web/static/audio/"*.mp3 "$appdir/usr/share/tradelab/audio/"
 install -m 644 "$here/linux/tradelab.desktop" "$appdir/tradelab.desktop"
 install -m 644 "$here/linux/tradelab.desktop" "$appdir/usr/share/applications/tradelab.desktop"
 install -m 644 "$here/../../web/static/icons/icon-512.png" "$appdir/tradelab.png"

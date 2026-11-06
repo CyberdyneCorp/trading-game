@@ -37,6 +37,10 @@ inline constexpr std::string_view kTablePrev = "game-table-prev";
 inline constexpr std::string_view kTableNext = "game-table-next";
 inline constexpr std::string_view kTableLast = "game-table-last";
 
+// Docked panels (viewmodel/game/dock_layout.hpp names the panels) and "Reset layout"
+inline constexpr std::string_view kDock = "game-dock";
+inline constexpr std::string_view kLayoutReset = "game-layout-reset";
+
 // Rail
 inline constexpr std::string_view kRailEquity = "game-rail-equity";
 inline constexpr std::string_view kRailPnl = "game-rail-pnl";
@@ -163,8 +167,8 @@ inline constexpr std::string_view kTutorialSkip = "game-tutorial-skip";
 inline constexpr std::string_view kPerkRows = "game-perk-rows";
 inline constexpr std::string_view kPerkClose = "game-perk-close";
 
-inline constexpr std::array<std::string_view, 21> kRequired = {
+inline constexpr std::array<std::string_view, 23> kRequired = {
     kReadout, kTable, kRailEquity, kRailLiq, kType, kLeverage, kSizeBy, kStop, kTp, kEstimate, kSubmit,
-    kOptSubmit, kChain, kOrders, kAdvAsk, kNews, kFeed, kModal, kPlanThesis, kCalPct, kHelpRows};
+    kOptSubmit, kChain, kOrders, kAdvAsk, kNews, kFeed, kModal, kPlanThesis, kCalPct, kHelpRows, kDock, kLayoutReset};
 
 }  // namespace tradelab::desktop::names::game

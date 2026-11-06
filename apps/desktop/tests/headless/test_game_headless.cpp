@@ -4,10 +4,14 @@
 #include <doctest/doctest.h>
 
 #include <raven/raven_controls.h>
+#include <raven/raven_shell.h>
 
 #include "support/driver.hpp"
 #include "support/game_flows.hpp"
+#include "support/storage_fixtures.hpp"
 #include "view/app.hpp"
+#include "viewmodel/game/dock_layout.hpp"
+#include "viewmodel/screen_names.hpp"
 
 using namespace tradelab::desktop;
 namespace names = tradelab::desktop::names;
@@ -32,6 +36,30 @@ TEST_CASE("headless terminal: place, move the attached stop by dragging it, canc
   d.frames(2);
   Terminal t(app, d);
   testing::flow_place_move_cancel(app, d, t);
+}
+
+// The amount field's label follows the sizing mode (OrderTicket.svelte), also after the shell redraws its
+// own texts (a screen change): the shell's bindings once wrote "Quantity" over it whatever the mode.
+TEST_CASE("headless terminal: the amount label follows the sizing mode across a trip to the menu") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 1u; });
+  REQUIRE(app.build(1280, 800));
+  Driver d(app);
+  d.frames(2);
+  Terminal t(app, d);
+  t.open(0);
+  t.skip_question();
+  d.frames(3);
+  REQUIRE(app.vm().game().ticket.size_by == game::SizeBy::Risk);
+  CHECK(d.text(names::kGameQtyLabel) == "Risco (% patrimônio)");
+  REQUIRE(d.click(names::kGameMenu));
+  REQUIRE(d.click(names::kMenuResume));
+  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Game; }));
+  d.frames(3);
+  CHECK(d.text(names::kGameQtyLabel) == "Risco (% patrimônio)");
+  d.choose(gn::kSizeBy, 1);
+  d.frames(3);
+  CHECK(d.text(names::kGameQtyLabel) == "Quantidade (contratos)");
 }
 
 TEST_CASE("headless terminal: a stop dragged past liquidation is confirmed, then the long is liquidated") {
@@ -146,7 +174,7 @@ TEST_CASE("headless terminal: with the retro theme every terminal control fits i
   d.frames(2);
   Terminal t(app, d);
   REQUIRE(d.click(names::kMenuStart));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   REQUIRE(d.click(names::kBriefGo));
   t.skip_question();
   d.frames(2);
@@ -155,4 +183,64 @@ TEST_CASE("headless terminal: with the retro theme every terminal control fits i
   std::string all;
   for (const auto& o : overflows) all += o + "\n";
   CHECK_MESSAGE(overflows.empty(), all);
+}
+
+namespace {
+
+float width_of(Driver& d, std::string_view name) {
+  float x = 0, y = 0, w = 0, h = 0;
+  Rwidget_get_rect(d.widget(name), &x, &y, &w, &h);
+  return w;
+}
+
+}  // namespace
+
+// Docking (desktop-client "Terminal UX parity"): the default keeps the web's column widths at any window
+// size, a moved panel is stored with the prefs and comes back at the next launch, "Reset layout" restores.
+TEST_CASE("headless terminal: docked panels keep their default widths, a moved layout persists, Reset restores") {
+  testing::TempDir dir;
+  storage::ProfileStore profile(dir.path() / "tradelab.db");  // where the app keeps the layout
+  storage::GamePrefsStore prefs(profile);
+  std::string moved;
+  {
+    RavenSession raven;
+    App app(builtin_catalog(), [] { return 1u; });
+    app.vm().game().attach_prefs(&prefs);
+    REQUIRE(app.build(1024, 768));
+    Driver d(app);
+    d.frames(2);
+    Terminal t(app, d);
+    t.open(0);
+    d.frames(4);
+    CHECK(width_of(d, game::kPanelTicket) == doctest::Approx(340).epsilon(0.02));
+    CHECK(width_of(d, game::kPanelRail) == doctest::Approx(290).epsilon(0.02));
+    CHECK(prefs.load().layout.empty());  // the default is not stored
+    const Rid dock = d.widget(gn::kDock);
+    // The player puts the feed behind the ticket's tab (what a tab drag does), as Raven reports it.
+    Rdock_area_move_panel(dock, d.widget(game::kPanelFeed), R_DOCK_TAB, d.widget(game::kPanelTicket), 0);
+    app.vm().game().dock.changed();
+    app.vm().game().set_layout(Rdock_area_save_layout(dock));
+    moved = prefs.load().layout;
+    CHECK(moved.find("game-panel-ticket,game-panel-feed") != std::string::npos);
+  }
+  {
+    RavenSession raven;
+    App app(builtin_catalog(), [] { return 1u; });
+    app.vm().game().attach_prefs(&prefs);
+    REQUIRE(app.build(1024, 768));
+    Driver d(app);
+    d.frames(2);
+    Terminal t(app, d);
+    t.open(0);
+    d.frames(4);
+    const Rid dock = d.widget(gn::kDock);
+    CHECK(std::string(Rdock_area_save_layout(dock)) == moved);
+    t.skip_question();
+    REQUIRE(d.click(gn::kLayoutReset));
+    d.frames(4);
+    CHECK(prefs.load().layout.empty());
+    CHECK(Rdock_area_is_panel_shown(dock, d.widget(game::kPanelFeed)));
+    CHECK(Rdock_area_is_panel_shown(dock, d.widget(game::kPanelTicket)));
+    CHECK(width_of(d, game::kPanelTicket) == doctest::Approx(340).epsilon(0.02));
+  }
 }
