@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m06-thin-book",
+  "description": "Limit entry with a bracket, a market buy larger than a thin bar's capacity, a close.",
+  "mission": "m06-thin-book",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 2},
+    {"k": "order", "type": "limit", "side": "buy", "qty": "40", "price": "99.5", "ro": false, "stop": "97.5", "tp": "102", "trail": null},
+    {"k": "adv", "n": 30},
+    {"k": "order", "type": "market", "side": "buy", "qty": "150", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 40},
+    {"k": "close"},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "73915792a3b323a91ec8bd84fc7f73c8c20a9f922675ec7dd25a25442312cd25",
+    "eventsDigest": "b084466a7e0ab87dacc53c40794afcbc017917decfac736279404e82558f009a",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

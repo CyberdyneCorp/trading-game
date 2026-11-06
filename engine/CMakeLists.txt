@@ -116,8 +116,35 @@ if(TRADELAB_BUILD_TESTS)
     SOURCE_SUBDIR header-only-no-cmake)  # header-only: do not run doctest's (CMake<3.5) build
   FetchContent_MakeAvailable(doctest)
 
+  # Shared golden fixtures (tests/golden, format in README.md): every file listed in index.json is
+  # embedded as a string literal, so the native and WASM test binaries need no file I/O. A fixture
+  # file missing from the index (or the reverse) fails the configure step.
+  set(TRADELAB_GOLDEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests/golden)
+  file(GLOB TRADELAB_GOLDEN_FILES CONFIGURE_DEPENDS ${TRADELAB_GOLDEN_DIR}/*.json)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TRADELAB_GOLDEN_FILES})
+  file(READ ${TRADELAB_GOLDEN_DIR}/index.json TRADELAB_GOLDEN_INDEX)
+  string(JSON TRADELAB_GOLDEN_COUNT LENGTH "${TRADELAB_GOLDEN_INDEX}" fixtures)
+  math(EXPR TRADELAB_GOLDEN_LAST "${TRADELAB_GOLDEN_COUNT} - 1")
+  set(TRADELAB_GOLDEN_INC "")
+  set(TRADELAB_GOLDEN_LISTED ${TRADELAB_GOLDEN_DIR}/index.json)
+  foreach(i RANGE ${TRADELAB_GOLDEN_LAST})
+    string(JSON name GET "${TRADELAB_GOLDEN_INDEX}" fixtures ${i})
+    list(APPEND TRADELAB_GOLDEN_LISTED ${TRADELAB_GOLDEN_DIR}/${name}.json)
+    file(READ ${TRADELAB_GOLDEN_DIR}/${name}.json body)
+    string(APPEND TRADELAB_GOLDEN_INC "{\"${name}\", R\"tlgolden(${body})tlgolden\"},\n")
+  endforeach()
+  list(SORT TRADELAB_GOLDEN_LISTED)
+  list(SORT TRADELAB_GOLDEN_FILES)
+  if(NOT TRADELAB_GOLDEN_LISTED STREQUAL TRADELAB_GOLDEN_FILES)
+    message(FATAL_ERROR "tests/golden/index.json does not list exactly the fixture files in tests/golden")
+  endif()
+  file(CONFIGURE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/generated/golden_fixtures.inc
+       CONTENT "${TRADELAB_GOLDEN_INC}" @ONLY)
+
   add_executable(tradelab_engine_tests
     tests/main.cpp
+    tests/golden.cpp
+    tests/test_golden.cpp
     tests/test_fixed.cpp
     tests/test_det_math.cpp
     tests/test_advisor.cpp
@@ -161,6 +188,7 @@ if(TRADELAB_BUILD_TESTS)
     target_link_options(tradelab_engine_tests PRIVATE -sEXIT_RUNTIME=1 -sALLOW_MEMORY_GROWTH=1 -sENVIRONMENT=node)
   endif()
   target_include_directories(tradelab_engine_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
+  target_include_directories(tradelab_engine_tests PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
   target_link_libraries(tradelab_engine_tests PRIVATE tradelab::engine tradelab_vendor)
 
   enable_testing()

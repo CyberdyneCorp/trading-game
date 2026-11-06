@@ -4,6 +4,7 @@
 #include <string>
 
 #include "../src/pack_codec.hpp"
+#include "golden.hpp"
 #include "pack_fixtures.hpp"
 #include "tradelab/c_api.h"
 #include "tradelab/engine.hpp"
@@ -233,7 +234,7 @@ TEST_CASE("pack C ABI: import, play to the end, debrief reveal, checkpoint resto
 
 namespace {
 
-// Same text as bindings/python/tests/test_packs.py golden_csv(): prices in integer tenths.
+// The market of tests/golden/csv-pack.json (and of test_packs.py golden_csv()): prices in integer tenths.
 std::string golden_csv(int step_seconds = 3600) {
   const auto tenths = [](int v) { return std::to_string(v / 10) + "." + std::to_string(v % 10); };
   std::string out = "timestamp,open,high,low,close,volume,funding\n";
@@ -254,27 +255,15 @@ std::string json_text(const std::string& json, std::string_view key) {
 
 }  // namespace
 
-TEST_CASE("Golden: scripted run on an imported CSV pack (cross-platform, mirrored in Python)") {
-  const std::string meta =
-      R"({"asset":"X","pair":"X/USD","venue":"v","volumeUnit":"base","intervalSeconds":3600,"timestampUnit":"s","leverageCap":5})";
-  const std::string seed_hex(64, '7');
-  const std::string built = tl_pack_build_csv(golden_csv().c_str(), meta.c_str(), seed_hex.c_str());
-  REQUIRE(built.find("\"ok\":true") != std::string::npos);
-  const std::vector<std::uint8_t> pack(tl_blob_data(), tl_blob_data() + tl_blob_size());
-  const std::string key = tl_device_key(seed_hex.c_str());
-  const std::string keys = "[{\"id\":\"" + json_text(key, "id") + "\",\"key\":\"" + json_text(key, "publicKey") + "\"}]";
-  tl_run* run = tl_run_create_pack(pack.data(), static_cast<uint32_t>(pack.size()), keys.c_str(), 2026);
-  REQUIRE(run != nullptr);
-  tl_set_leverage(run, 1, 3);
-  tl_place_order(run, 2, 0, 0, "10", nullptr, 0);
-  tl_advance(run, 20);
-  tl_place_order(run, 3, 0, 1, "25", nullptr, 0);
-  tl_advance(run, 30);
-  tl_close_position(run, 4);
-  const std::string state = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  CHECK(json_text(state, "digest") == "b7bcd9961c3dd9b19a70c44108ad6816e9909589541ca64b05f8c6c5f6b1099c");
-  CHECK(json_text(state, "eventsDigest") == "e3e42dedf85efb5b7fa7b55835e1998d82b3c552100f3c017214b6b585d382da");
+// The scripted run on this CSV is the shared fixture tests/golden/csv-pack.json (test_golden.cpp).
+TEST_CASE("Golden CSV pack (tests/golden): the fixture's market is golden_csv() with the same metadata and key") {
+  const detail::JsonParse fx = golden::load("csv-pack");
+  REQUIRE(fx.ok);
+  const detail::JsonValue& pack = *fx.value.find("csvPack");
+  CHECK(golden::csv_text(pack) == golden_csv());
+  CHECK(detail::canonical_json(*pack.find("meta")) ==
+        R"({"asset":"X","intervalSeconds":3600,"leverageCap":5,"pair":"X/USD","timestampUnit":"s","venue":"v","volumeUnit":"base"})");
+  CHECK(golden::text(pack, "deviceSeed") == std::string(64, '7'));
 }
 
 TEST_CASE("Regression: the state names the bar interval (an imported 15-minute market is not '1h')") {

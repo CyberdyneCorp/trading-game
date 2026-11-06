@@ -116,11 +116,17 @@ def replay(mission_id: str, seed: int, actions: Sequence[Mapping[str, Any]],
            options: RunOptions | None = None) -> ReplayResult:
     """Re-simulates a run from scratch and returns its final state (and debrief when finished)."""
     with Run(mission_id, seed, options) as run:
-        cid = 1
-        results: list[Any] = []
-        for a in actions:
-            res, cid = _apply(run, a, cid)
-            results.append(res)
-        state = run.state()
-        debrief = run.debrief() if state["status"] != "active" else None
-        return ReplayResult(state=state, debrief=debrief, results=results)
+        return replay_on(run, actions)
+
+
+def replay_on(run: Run, actions: Sequence[Mapping[str, Any]]) -> ReplayResult:
+    """Applies an action log to a freshly created run (a mission or a pack run) and returns its final
+    state (and debrief when finished). The caller owns the run."""
+    cid = 1
+    results: list[Any] = []
+    for a in actions:
+        res, cid = _apply(run, a, cid)
+        results.append(res)
+    state = run.state()
+    debrief = run.debrief() if state["status"] != "active" else None
+    return ReplayResult(state=state, debrief=debrief, results=results)

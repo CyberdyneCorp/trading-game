@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "kind": "reveal",
+  "name": "reveal-m11",
+  "description": "G4 with G2: drawn outcomes, intensity, gap and implied move of the m11 events.",
+  "mission": "m11-news-calendar",
+  "seed": 7,
+  "expected": {"sha256": "4282fd1e468d68bd8be98bd86422c185e85c48e25559b8c5ff3d6e710b1b3fe8"},
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

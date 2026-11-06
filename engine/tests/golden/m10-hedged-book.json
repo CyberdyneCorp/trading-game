@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m10-hedged-book",
+  "description": "A collar on a long through the rumor (put bought, call written), then a close.",
+  "mission": "m10-hedged-book",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 1},
+    {"k": "order", "type": "market", "side": "buy", "qty": "40", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "opt", "series": 20, "side": "buy", "type": "market", "qty": "40", "premium": null},
+    {"k": "opt", "series": 23, "side": "sell", "type": "market", "qty": "40", "premium": null},
+    {"k": "adv", "n": 50},
+    {"k": "close"},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "c72b368e8a95c70f3544ac0834af7cb60f641ff7b259747f56db903bbd078ffc",
+    "eventsDigest": "ae540e1bed50c0d2e6995cc7d63fe6b8d04d772c11c34fd198d65688b87f3251",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m08-regime-switch",
+  "description": "A fade (short with a bracket), a close and a follow (long with a stop).",
+  "mission": "m08-regime-switch",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 3},
+    {"k": "order", "type": "market", "side": "sell", "qty": "50", "price": null, "ro": false, "stop": "104", "tp": "96", "trail": null},
+    {"k": "adv", "n": 35},
+    {"k": "close"},
+    {"k": "order", "type": "market", "side": "buy", "qty": "80", "price": null, "ro": false, "stop": "90", "tp": null, "trail": null},
+    {"k": "adv", "n": 30},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "9cca2b0bb58cba31fb272c72780e4d0937dd784538d28bb36869c74e82fea9d8",
+    "eventsDigest": "e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb",
+    "status": "finished",
+    "rejected": [{"action": 1, "reason": "invalid_bracket"}, {"action": 3, "reason": "position_closed"}]
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

@@ -1,0 +1,25 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m02-advisor-options",
+  "description": "Start options (advice allowance 3, fast wire 1, calendar) with a plan, a bracket entry and two advisor requests (design D6).",
+  "mission": "m02-funding-squeeze",
+  "seed": 2026,
+  "options": {"adviceAllowance": 3, "newsLead": 1, "calendar": true},
+  "actions": [
+    {"k": "advice"},
+    {"k": "lev", "lev": 3},
+    {"k": "plan", "side": "buy", "skipped": false, "option": false, "lose": true, "inv": "95", "target": "115", "conf": 60, "risk": "100"},
+    {"k": "order", "type": "market", "side": "buy", "qty": "50", "price": null, "ro": false, "stop": "95", "tp": "115", "trail": null},
+    {"k": "adv", "n": 25},
+    {"k": "advice"},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "b4b86bfad81a81b303c7833879798fd8d2db50b783f8409a587b0e171d7c5963",
+    "eventsDigest": "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

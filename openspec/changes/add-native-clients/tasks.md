@@ -3,7 +3,7 @@
 ## 1. Desktop (Phase 3, Raven, Linux + macOS)
 
 Shared with iOS:
-- [ ] 1.0 Extract the engine's golden scripted runs and digests (inline in `engine/tests` and `bindings/python/tests` today) into shared fixtures
+- [x] 1.0 Extract the engine's golden scripted runs and digests (inline in `engine/tests` and `bindings/python/tests` until now) into shared fixtures: `engine/tests/golden/*.json` (format and regeneration in `engine/README.md`), replayed by `tests/test_golden.cpp` and `bindings/python/tests/test_golden.py`; `tools/regen_golden.py` checks them in CI
 
 Build and platform:
 - [ ] 1.1 `apps/desktop` CMake project + presets (`linux-release`, `linux-headless` with `RAVEN_PLATFORM=null` and `RAVEN_BACKEND_VULKAN=OFF`, `macos-release`): Raven by `FetchContent` at `0fc738631c33844d6da732210267d21b5223f960` (examples/tests/tools/web off), Vulkan-Headers declared first by sha, `FETCHCONTENT_SOURCE_DIR_*` offline override, optional org mirror; `add_subdirectory(engine)` with `TRADELAB_BUILD_TESTS=OFF`; configure fails on global `-ffast-math`/`-Ofast`. Test: configure with `-ffast-math` fails; engine golden digests unchanged (`tradelab_engine_tests` on main vs branch)

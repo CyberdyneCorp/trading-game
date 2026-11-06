@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "golden.hpp"
 #include "scenario_builder.hpp"
 #include "tradelab/advisor.hpp"
 #include "tradelab/c_api.h"
@@ -315,20 +316,14 @@ TEST_CASE("C ABI: start options, advice in the state and the debrief, no_advice_
   CHECK(tl_run_create_ex("m01-false-breakout", 5, 0, 256, 0, nullptr, 0) == nullptr);
 }
 
-// Golden (design D6): m02 with {allowance 3, news_lead 1, calendar} and two pieces of advice.
-TEST_CASE("Golden: scripted run with start options and advice is bit-frozen across targets") {
-  tl_run* run = tl_run_create_ex("m02-funding-squeeze", 2026, 3, 1, 1, nullptr, 0);
-  tl_request_advice(run, 1);
-  tl_set_leverage(run, 2, 3);
-  tl_record_plan(run, 3, 0, 0, 0, 1, "95", "115", 60, "100");
-  tl_place_order_ex(run, 4, 0, 0, "50", nullptr, 0, "95", "115", nullptr);
-  tl_advance(run, 25);
-  tl_request_advice(run, 5);
-  const std::string s = tl_advance(run, 1000);
-  tl_run_destroy(run);
-  CHECK(s.find("\"allowance\":3,\"left\":1,\"newsLead\":1,\"calendar\":true") != std::string::npos);
-  CHECK(s.find("\"type\":\"fill\"") != std::string::npos);
-  CHECK(s.substr(s.find("\"digest\"")) ==
-        "\"digest\":\"b4b86bfad81a81b303c7833879798fd8d2db50b783f8409a587b0e171d7c5963\","
-        "\"eventsDigest\":\"c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f\"}");
+// Golden (design D6): m02 with {allowance 3, news_lead 1, calendar} and two pieces of advice. The script
+// and its digests are the shared fixture tests/golden/m02-advisor-options.json (test_golden.cpp).
+TEST_CASE("Golden m02 (tests/golden): the start options and both pieces of advice are in the state") {
+  const detail::JsonParse fx = golden::load("m02-advisor-options");
+  REQUIRE(fx.ok);
+  const golden::RunResult r = golden::replay_run(fx.value);
+  REQUIRE(r.ok);
+  CHECK(r.rejected.empty());
+  CHECK(r.state.find("\"allowance\":3,\"left\":1,\"newsLead\":1,\"calendar\":true") != std::string::npos);
+  CHECK(r.state.find("\"type\":\"fill\"") != std::string::npos);
 }
