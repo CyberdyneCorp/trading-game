@@ -20,7 +20,7 @@
 	import type { ComboPreview, WhatIfLegInput, WhatIfResult } from '#lib/engine/types.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { Analysis } from '#lib/engine/protocol.ts';
-	import { fmtMoney, fmtNum, fmtPrice, parseDecimal } from '#lib/game/format.ts';
+	import { fmtMoney, fmtNum, fmtPrice, fmtQty, parseDecimal } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import { nextComboId } from '#lib/game/combos.ts';
@@ -176,7 +176,7 @@
 	const legName = (o: { series: number; side: string; qty: string }) => {
 		const q = chain.find((x) => x.id === o.series);
 		const what = q ? `${q.kind === 'call' ? 'C' : 'P'} ${fmtPrice(q.strike, L)}` : t('lab.perp');
-		return `${o.side === 'buy' ? '+' : '−'}${o.qty} ${what}`;
+		return `${o.side === 'buy' ? '+' : '−'}${fmtQty(o.qty, L)} ${what}`;
 	};
 </script>
 

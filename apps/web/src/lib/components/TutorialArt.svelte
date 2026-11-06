@@ -215,7 +215,7 @@
 		<path class="liq" d="M8,96 L52,30 L108,30 L152,96" />
 		<path class="payoff" d="M8,66 L30,66 L49,38 L111,38 L130,66 L152,66" />
 		<text x="80" y="24" class="small up-fill" text-anchor="middle">+{t('tut.art.premium')}</text>
-		<text x="10" y="60" class="small attention">{t('tut.art.condor')}</text>
+		<text x="80" y="58" class="small attention" text-anchor="middle">{t('tut.art.condor')}</text>
 		<text x="150" y="92" class="small danger" text-anchor="end">{t('tut.art.strangle')} · {t('tut.art.open')}</text>
 		<line class="bracket" x1="140" x2="140" y1="44" y2="66" />
 	{:else if art === 'roll'}
