@@ -113,6 +113,16 @@ void on_text_scale(Rid, float value, void* user_data) { vm_of(user_data).set_tex
 
 void on_palette(Rid, int checked, void* user_data) { vm_of(user_data).set_colorblind(checked != 0); }
 
+void on_sound(Rid, int checked, void* user_data) { vm_of(user_data).set_sound_on(checked != 0); }
+
+void on_music(Rid, float value, void* user_data) { vm_of(user_data).set_music_volume(value); }
+
+void on_sfx(Rid, float value, void* user_data) { vm_of(user_data).set_sfx_volume(value); }
+
+void sync_slider(Rid slider, double value) {
+  if (slider != R_INVALID_ID && Rslider_get_value(slider) != static_cast<float>(value)) Rslider_set_value(slider, static_cast<float>(value));
+}
+
 // One callback for the four CRT switches: the widget says which one changed.
 struct CrtSwitch {
   AppViewModel* vm;
@@ -200,6 +210,9 @@ void ShellView::bind_callbacks() {
   for (std::size_t i = 0; i < boxes.size(); ++i) Rcheckbox_set_changed_callback(find(boxes[i]), on_crt, &switches[i]);
   Rcheckbox_set_changed_callback(find(names::kSettingsPalette), on_palette, &vm_);
   Rslider_set_changed_callback(find(names::kSettingsTextScale), on_text_scale, &vm_);
+  Rcheckbox_set_changed_callback(find(names::kSettingsSound), on_sound, &vm_);
+  Rslider_set_changed_callback(find(names::kSettingsMusic), on_music, &vm_);
+  Rslider_set_changed_callback(find(names::kSettingsSfx), on_sfx, &vm_);
   Rtable_set_selection_changed_callback(find(names::kSettingsKeys), on_key_row, &vm_);
   Rcombo_box_set_changed_callback(find(names::kJournalFilter), on_journal_filter, &vm_);
   Rlist_view_set_selection_changed_callback(find(names::kCurriculumLessons), on_lesson_selected, &vm_);
@@ -228,9 +241,9 @@ void ShellView::apply_flags(const ScreenModel& m) {
     const Rid w = find(f.widget);
     if ((Rcheckbox_is_checked(w) != 0) != f.on) Rcheckbox_set_checked(w, f.on ? R_TRUE : R_FALSE);
   }
-  const Rid slider = find(names::kSettingsTextScale);
-  const float scale = vm_.settings().text_scale;
-  if (slider != R_INVALID_ID && Rslider_get_value(slider) != scale) Rslider_set_value(slider, scale);
+  sync_slider(find(names::kSettingsTextScale), vm_.settings().text_scale);
+  sync_slider(find(names::kSettingsMusic), vm_.game().prefs().audio.music);
+  sync_slider(find(names::kSettingsSfx), vm_.game().prefs().audio.sfx);
 }
 
 void ShellView::apply_lines(const WidgetLines& l) {

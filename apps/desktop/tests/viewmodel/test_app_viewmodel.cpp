@@ -178,16 +178,29 @@ TEST_CASE("app vm: an engine rejection shows its plain-language reason") {
 
 TEST_CASE("app vm: Space advances one bar, Shift+Space five; ignored while typing or off the terminal") {
   Fixture f;
-  CHECK_FALSE(f.vm.handle_key(Key::Space, false));  // menu
+  CHECK_FALSE(f.vm.handle_key("Space", false));  // menu
   f.to_game();
-  CHECK_FALSE(f.vm.handle_key(Key::Space, true));  // typing in the quantity field
+  CHECK_FALSE(f.vm.handle_key("Space", true));  // typing in the quantity field
   CHECK(f.engine.log.back() != "advance 1");
-  CHECK(f.vm.handle_key(Key::Space, false));
+  CHECK(f.vm.handle_key("Space", false));
   CHECK(f.engine.log.back() == "advance 1");
   f.vm.on_snapshot(snap(CommandKind::Advance));
-  CHECK(f.vm.handle_key(Key::ShiftSpace, false));
+  CHECK(f.vm.handle_key("Shift+Space", false));
   CHECK(f.engine.log.back() == "advance 5");
-  CHECK_FALSE(f.vm.handle_key(Key::Other, false));
+  CHECK_FALSE(f.vm.handle_key("", false));
+}
+
+// Regression: the app-level key entry hard-coded Space and Shift+Space; it now goes through the key map.
+TEST_CASE("app vm: a remapped advance key advances and Space no longer does") {
+  Fixture f;
+  f.to_game();
+  f.vm.game().set_keymap({{"advance", "n"}});
+  f.vm.on_snapshot(snap(CommandKind::Advance));
+  const std::size_t before = f.engine.log.size();
+  CHECK_FALSE(f.vm.handle_key("Space", false));
+  CHECK(f.engine.log.size() == before);
+  CHECK(f.vm.handle_key("n", false));
+  CHECK(f.engine.log.back() == "advance 1");
 }
 
 TEST_CASE("app vm: switching to en re-renders every text, numbers included") {

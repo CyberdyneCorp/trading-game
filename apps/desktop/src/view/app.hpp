@@ -11,6 +11,7 @@
 #include "model/game_prefs.hpp"
 #include "model/i18n.hpp"
 #include "model/update/update_service.hpp"
+#include "platform/audio_out.hpp"
 #include "view/app_view.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 
@@ -45,6 +46,7 @@ class App {
 
  private:
   PrefsFile prefs_{default_prefs_path()};  // terminal key map and progress (model/game_prefs.hpp)
+  std::unique_ptr<platform::MiniaudioOut> audio_;  // outlives the viewmodel, whose soundtrack plays on it
   std::unique_ptr<EngineHost> engine_;
   std::unique_ptr<AppViewModel> vm_;
   std::unique_ptr<AppView> view_;

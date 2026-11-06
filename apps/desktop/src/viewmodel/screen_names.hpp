@@ -143,6 +143,11 @@ inline constexpr std::string_view kSettingsCrtNote = "settings-crt-note";
 inline constexpr std::string_view kSettingsTextScaleLabel = "settings-text-scale-label";
 inline constexpr std::string_view kSettingsTextScale = "settings-text-scale";
 inline constexpr std::string_view kSettingsPalette = "settings-palette";
+inline constexpr std::string_view kSettingsSound = "settings-sound";
+inline constexpr std::string_view kSettingsMusicLabel = "settings-music-label";
+inline constexpr std::string_view kSettingsMusic = "settings-music";
+inline constexpr std::string_view kSettingsSfxLabel = "settings-sfx-label";
+inline constexpr std::string_view kSettingsSfx = "settings-sfx";
 inline constexpr std::string_view kSettingsKeysTitle = "settings-keys-title";
 inline constexpr std::string_view kSettingsKeys = "settings-keys";
 inline constexpr std::string_view kSettingsKeyChange = "settings-key-change";
@@ -173,6 +178,7 @@ inline constexpr auto kShellWidgets = std::to_array<std::string_view>({
     kLessonDoneTitle, kLessonDoneName, kLessonScore, kLessonDoneNote, kLessonFinish, kSettingsTitle, kSettingsBack,
     kSettingsLanguage, kSettingsLangPt, kSettingsLangEn, kSettingsCrt, kSettingsScanlines, kSettingsBloom,
     kSettingsNoise, kSettingsCrtNote, kSettingsTextScaleLabel, kSettingsTextScale, kSettingsPalette,
+    kSettingsSound, kSettingsMusicLabel, kSettingsMusic, kSettingsSfxLabel, kSettingsSfx,
     kSettingsKeysTitle, kSettingsKeys, kSettingsKeyChange, kSettingsKeyReset, kSettingsKeyMessage, kSettingsAbout,
     kCrtOverlay});
 

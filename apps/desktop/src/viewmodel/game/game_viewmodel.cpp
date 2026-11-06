@@ -48,6 +48,19 @@ void GameViewModel::set_keymap(const std::map<std::string, std::string>& map) {
   touch();
 }
 
+void GameViewModel::set_audio(const AudioPrefs& a) {
+  if (a == prefs_.audio) return;
+  prefs_.audio = a;
+  save_prefs();
+  touch();
+}
+
+void GameViewModel::set_layout(std::string layout) {
+  if (layout == prefs_.layout) return;
+  prefs_.layout = std::move(layout);
+  save_prefs();
+}
+
 void GameViewModel::save_prefs() {
   prefs_.keymap = keymap_.to_map();
   if (prefs_file_ != nullptr) prefs_file_->save(prefs_);

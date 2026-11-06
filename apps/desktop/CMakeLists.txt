@@ -144,9 +144,20 @@ add_library(tradelab_desktop_viewmodel STATIC
 target_link_libraries(tradelab_desktop_viewmodel PUBLIC tradelab_desktop_model)
 target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS} ${TRADELAB_DESKTOP_FLOAT_FLAGS})
 
-add_library(tradelab_desktop_platform STATIC src/platform/platform.cpp)
+# Vendored miniaudio (third_party/README.md): playback of the web's soundtrack. Its own warnings off.
+add_library(tradelab_miniaudio STATIC third_party/miniaudio/miniaudio.c)
+target_include_directories(tradelab_miniaudio SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/miniaudio)
+target_compile_options(tradelab_miniaudio PRIVATE -w)
+target_link_libraries(tradelab_miniaudio PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_link_libraries(tradelab_miniaudio PUBLIC m)
+endif()
+
+add_library(tradelab_desktop_platform STATIC src/platform/platform.cpp src/platform/audio_out.cpp)
 target_include_directories(tradelab_desktop_platform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_options(tradelab_desktop_platform PRIVATE ${TRADELAB_DESKTOP_WARNINGS})
+# Platform services: the soundtrack's player implements the viewmodel's AudioOut interface.
+target_link_libraries(tradelab_desktop_platform PUBLIC tradelab_desktop_viewmodel PRIVATE tradelab_miniaudio)
 if(APPLE)
   find_library(TRADELAB_COREFOUNDATION CoreFoundation REQUIRED)
   target_link_libraries(tradelab_desktop_platform PUBLIC ${TRADELAB_COREFOUNDATION})
@@ -173,7 +184,8 @@ set(TRADELAB_UPDATE_MANIFEST_URL
 target_compile_definitions(tradelab_desktop_view PRIVATE
   TRADELAB_UPDATE_PUBLIC_KEY="${TRADELAB_UPDATE_PUBLIC_KEY}"
   TRADELAB_UPDATE_MANIFEST_URL="${TRADELAB_UPDATE_MANIFEST_URL}"
-  TRADELAB_DESKTOP_VERSION="${PROJECT_VERSION}")
+  TRADELAB_DESKTOP_VERSION="${PROJECT_VERSION}"
+  TRADELAB_AUDIO_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../web/static/audio")
 
 add_executable(tradelab_desktop src/main.cpp)
 target_link_libraries(tradelab_desktop PRIVATE tradelab_desktop_view)

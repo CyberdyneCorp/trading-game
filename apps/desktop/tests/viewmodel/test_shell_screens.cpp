@@ -347,7 +347,7 @@ TEST_CASE("shell: journal lists the plans of the runs, newest first, with a miss
   CHECK(m.lines_of(names::kJournalRuns)->lines[0].text.starts_with("Missão 01 · Range"));
 }
 
-TEST_CASE("shell: settings toggle CRT effects, palette, text scale, language and remap shortcuts") {
+TEST_CASE("shell: settings toggle CRT effects, palette, text scale, sound, language and remap shortcuts") {
   Fixture f;
   MemorySettingsRepository repo;
   f.vm.attach_repositories(nullptr, &repo);
@@ -386,6 +386,18 @@ TEST_CASE("shell: settings toggle CRT effects, palette, text scale, language and
   f.vm.reset_keys();
   CHECK(f.vm.shell().keymap.at("buy") == "b");
   CHECK(f.vm.game().keymap().key(game::Action::Buy) == "b");
+
+  // Sound (the web menu's block): on/off and the two volumes, shared with the terminal's mute key.
+  m = f.vm.screen_model();
+  CHECK(m.text_of(names::kSettingsSound) == "Som (música e efeitos)");
+  CHECK(m.text_of(names::kSettingsMusicLabel) == "Música 35%");
+  f.vm.set_sound_on(false);
+  f.vm.set_music_volume(0.6);
+  f.vm.set_sfx_volume(2);
+  CHECK(f.vm.game().muted());
+  m = f.vm.screen_model();
+  CHECK(m.text_of(names::kSettingsMusicLabel) == "Música 60%");
+  CHECK(m.text_of(names::kSettingsSfxLabel) == "Efeitos 100%");
 
   f.vm.set_locale(Locale::En);
   CHECK(repo.load()->locale == Locale::En);

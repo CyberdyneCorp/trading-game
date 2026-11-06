@@ -49,6 +49,8 @@ App::App(Catalog catalog, AppViewModel::SeedSource seeds, std::unique_ptr<storag
   vm_ = std::make_unique<AppViewModel>(std::move(catalog), engine_->missions(), *engine_, std::move(seeds));
   vm_->offer_saved_run(saved);
   vm_->game().attach_prefs(&prefs_);
+  audio_ = platform::MiniaudioOut::from_environment(TRADELAB_AUDIO_SOURCE_DIR);
+  vm_->attach_audio(audio_.get());
   view_ = std::make_unique<AppView>(*vm_);
 }
 

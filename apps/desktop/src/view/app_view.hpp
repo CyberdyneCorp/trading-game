@@ -6,6 +6,7 @@
 #include <raven/raven_core.h>
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -46,6 +47,7 @@ class AppView {
   void apply_bindings();
 
   AppViewModel& vm_;
+  std::chrono::steady_clock::time_point last_frame_ = std::chrono::steady_clock::now();
   Rid window_ = R_INVALID_ID;
   Rid switcher_ = R_INVALID_ID;
   std::array<Rid, 8> screens_{};

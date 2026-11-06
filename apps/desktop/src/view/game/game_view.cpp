@@ -5,6 +5,7 @@
 #include <raven/raven_controls.h>
 #include <raven/raven_draw.h>
 #include <raven/raven_widget.h>
+#include <raven/raven_window.h>
 
 #include <cctype>
 
@@ -12,6 +13,7 @@
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/format.hpp"
 #include "viewmodel/game/game_widgets.hpp"
+#include "viewmodel/game/hotkeys.hpp"
 #include "viewmodel/widget_names.hpp"
 
 namespace tradelab::desktop::view {
@@ -232,12 +234,33 @@ void GameView::bind_top() {
 
 // ---- keyboard ----
 
+namespace {
+
+game::Focus focus_kind(Rid widget) {
+  if (widget == R_INVALID_ID) return game::Focus::None;
+  switch (Rwidget_get_type(widget)) {
+    case R_WIDGET_TEXT_INPUT:
+    case R_WIDGET_TEXT_EDITOR:
+    case R_WIDGET_SPIN_BOX: return game::Focus::Text;
+    case R_WIDGET_COMBO_BOX: return game::Focus::Select;
+    case R_WIDGET_SLIDER: return game::Focus::Slider;
+    case R_WIDGET_CHECKBOX: return game::Focus::Checkbox;
+    case R_WIDGET_BUTTON: return game::Focus::Button;
+    default: return game::Focus::Other;
+  }
+}
+
+}  // namespace
+
 bool GameView::on_key(const REvent* e) {
   if (e->type != R_EVENT_KEY_DOWN) return false;
   const std::string name = key_name(e);
   if (name.empty()) return false;
   const Ruint chord = R_MOD_CTRL | R_MOD_ALT | R_MOD_SUPER;
-  const bool typing = Rwindow_wants_text_input(window_) != 0;
+  // The focused control keeps the keys it uses (web hotkeys.ts keepsKey): a text field all of them, a
+  // combo box all but Space, a slider its arrows; a checkbox or button none.
+  const game::Focus focus = Rwindow_wants_text_input(window_) != 0 ? game::Focus::Text : focus_kind(Rwindow_get_focused_widget(window_));
+  const bool typing = game::keeps_key(focus, name);
   const bool chart_focused = Rwidget_is_focused(find(names::kGameChart)) != 0;
   const game::KeyPress k{name, typing, (e->modifiers & chord) != 0, chart_focused};
   if (!vm().handle_key(k)) return false;

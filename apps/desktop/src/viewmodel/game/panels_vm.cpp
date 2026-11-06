@@ -218,10 +218,34 @@ AdvisorView advisor_view(const Texts& t, const GameState& g, bool busy) {
   return v;
 }
 
+std::optional<int> branch_turn(const GameState& g) {
+  if (g.market_mode != "branch") return std::nullopt;
+  const auto first = std::find_if(g.bars.begin(), g.bars.end(), [](const GameBar& b) { return b.synthetic; });
+  if (first == g.bars.end()) return std::nullopt;
+  return static_cast<int>(first - g.bars.begin()) - g.warmup_bars + 1;
+}
+
+KeyHints key_hints(const Texts& t, const Keymap& map, bool muted) {
+  const auto key = [&](Action a) { return key_label(map.key(a)); };
+  const auto tip = [&](const std::string& text, Action a) { return text + " (" + key(a) + ")"; };
+  KeyHints h;
+  h.patterns = t.tr("patterns.open") + " [" + key(Action::Patterns) + "]";
+  h.patterns_tip = key(Action::Patterns);
+  h.sound_tip = tip(t.tr(muted ? "sound.unmute" : "sound.mute"), Action::Mute);
+  h.help_tip = tip(t.tr("top.help"), Action::Help);
+  h.journal_tip = tip(t.tr("journal.open"), Action::Journal);
+  h.options_tip = tip(t.tr("opt.tabOptions"), Action::Options);
+  h.buy_tip = tip(t.tr("ticket.buy"), Action::Buy);
+  h.sell_tip = tip(t.tr("ticket.sell"), Action::Sell);
+  return h;
+}
+
 TopBarView top_bar(const Texts& t, const GameState& g) {
   const int playable = g.last_decision_step - g.warmup_bars + 1;
   const int turn = std::max(0, g.step - g.warmup_bars + 1);
-  return {t.tr("top.market") + " " + g.alias + " " + t.tr("top.synthetic"), t.tr("mission." + g.mission + ".title"),
+  const bool branch = branch_turn(g).has_value();
+  return {t.tr("top.market") + " " + g.alias + " " + t.tr(branch ? "top.branch" : "top.synthetic"),
+          t.tr("mission." + g.mission + ".title"),
           t.tr("top.step") + " " + std::to_string(turn) + " " + t.tr("top.of") + " " + std::to_string(playable) + kDot +
               interval_label(g.step_seconds)};
 }

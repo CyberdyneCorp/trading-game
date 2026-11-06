@@ -179,7 +179,10 @@ void GameViewModel::run_action(Action a) {
     case Action::Advance: autoplay.running ? autoplay.stop() : advance(1); break;
     case Action::Advance5: autoplay.running ? autoplay.stop() : advance(5); break;
     case Action::Auto: autoplay.toggle(!active()); break;
-    case Action::Mute: muted_ = !muted_; break;
+    case Action::Mute:
+      prefs_.audio.muted = !prefs_.audio.muted;
+      save_prefs();
+      break;
     case Action::Buy: ticket.side = Side::Buy; break;
     case Action::Sell: ticket.side = Side::Sell; break;
     case Action::Close: close_position(); break;
