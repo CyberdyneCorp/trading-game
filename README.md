@@ -615,6 +615,7 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 | `add-cyberdyne-identity-and-backend` | player-identity, game-api, offline-sync |
 | `add-native-clients` | desktop-client, ios-client |
 | `add-advisor-intel-tutorials` | mission-tutorial, advisor, progression-rewards |
+| `add-academy-and-strategies` (planned) | academy, options-whatif, strategy-builder, guided-first-trade, glossary |
 
 ## Status and roadmap
 
