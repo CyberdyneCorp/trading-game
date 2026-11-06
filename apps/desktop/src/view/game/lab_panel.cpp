@@ -4,6 +4,7 @@
 #include <raven/raven_controls.h>
 #include <raven/raven_widget.h>
 
+#include <algorithm>
 #include <cmath>
 
 #include "view/game/scene_painter.hpp"

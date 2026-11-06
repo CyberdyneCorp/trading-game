@@ -470,6 +470,14 @@ The desktop follows the web, with the same content and engine calls:
 
 Windowed reference captures are per platform (macOS and Linux lavapipe, see `apps/desktop/README.md`). Every new screen adds captures on both.
 
+**As built (desktop builder and lab; tasks D2, D4, D5).**
+- **Engine calls.** `EngineCommands::analyze(kind, request, reply)` queues a report-only call (`tl_option_whatif`, `tl_run_option_whatif`, `tl_combo_preview`) on the `EngineHost` worker after the commands sent before it; the reply reaches the UI thread like a snapshot and is dropped once the host is gone. An engine that cannot answer replies `{"error":"unsupported"}` and the lab and builder say so, as the web's feature detection does. Every snapshot carries the run's logged actions (shared, one copy per change), from which the builder rebuilds its combos.
+- **Ports.** `strategies.ts`, `combos.ts` and `whatifLab.ts` are ported (`viewmodel/game/strategies`, `combos`, `whatif_lab`) and checked by the web parity fixtures `strategies.json`, `combos.json` and `whatifLab.json` (the chart geometry from the engine's own `whatif` golden answers). They caught two differences: JavaScript's `toFixed` rounds the exact binary value (87.65 × 0.7 is 61.35499… and gives `61.35`), and the position legs carry `String(Math.abs(q))` ("1.5", not "1.50000000").
+- **Requests and replies.** Each analysis takes a ticket; a reply to an older request (a slider moved meanwhile) is dropped. The builder asks again when its legs or the state they are valued in change (bar, events, available balance).
+- **Builder.** A third tab of the option ticket; template buttons wrap in the 340 px column. A combo's plan is one dialog: the engine gets one plan per leg (the risk split evenly, an option leg named by the combo), the journal one entry with the combo id; the legs then go one at a time with their tags, and a refused leg puts the cancels of the accepted ones first in the queue, so no advance can run in between. The incomplete notice sits in the book panel; its close asks for a confirmation in the terminal's dialog.
+- **Lab.** One `LabPanel` (sliders, summary, payoff, table) serves the terminal's dialog and the Academy lab screen (`views/lab.xml`, from the menu's ⚗ button); the payoff is a display list for the scene painter. The builder shows a compact line per leg (the full table needs the dialog's width).
+- **Debrief and journal.** The trades table puts each combo's row (name, state, net premium, summed result, one R) above its legs; a combo's journal entry shows its state and net premium.
+
 ### D11. Testing
 
 | Layer | Tests |

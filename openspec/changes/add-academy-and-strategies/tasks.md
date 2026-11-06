@@ -154,14 +154,14 @@ Suggested PRs, in order:
 ## D. Desktop
 
 - [ ] D1 Generator, needs W1: `gen_i18n.mjs` reads `content/academy/*.json`, `glossary.json` and `coach.json` into `strings.csv` (`academyLesson.*`, `glossary.*`, `coach.*`) and `content.json`, replacing the TypeScript evaluation of `academy.ts`; `check_i18n.mjs` drift; script tests updated; the Foundations lesson renders as before (headless and windowed captures unchanged).
-- [ ] D2 Engine adapter, needs E2–E4 and E6: `tl_option_whatif`, `tl_run_option_whatif` and `tl_combo_preview` on the `EngineHost` worker; the `combo` field in `storage::Action` and replay; the `whatif` fixtures in `tradelab_desktop_golden_tests`.
+- [x] D2 Engine adapter, needs E2–E4 and E6: `tl_option_whatif`, `tl_run_option_whatif` and `tl_combo_preview` on the `EngineHost` worker; the `combo` field in `storage::Action` and replay; the `whatif` fixtures in `tradelab_desktop_golden_tests`.
 - [ ] D3 Lesson runner widgets and question types, needs D1 and D2:
   - viewmodels for `chart` levels, `ticket` sandbox, `table`, `payoff`, `whatif` and `builder`, plus the `number` and `set` questions;
   - painters in the view layer;
   - unit tests with the web's vectors;
   - headless lesson by keyboard.
-- [ ] D4 What-if lab screen (Academy and terminal), needs D2; unit and headless tests; zero shift equals the chain.
-- [ ] D5 Strategy builder panel in the option ticket, needs D2: templates, analysis, submission order with `combo`, cancel on refusal, incomplete notice, journal and debrief grouping; viewmodel tests with a fake engine; a headless flow.
+- [x] D4 What-if lab screen (Academy and terminal), needs D2; unit and headless tests; zero shift equals the chain.
+- [x] D5 Strategy builder panel in the option ticket, needs D2: templates, analysis, submission order with `combo`, cancel on refusal, incomplete notice, journal and debrief grouping; viewmodel tests with a fake engine; a headless flow.
 - [ ] D6 Glossary screen and tooltips, needs D1: `Rwidget_set_tooltip` on hover, the help line and accessible description on focus; screen-reader names; headless test.
 - [ ] D7 Coach marks overlay, needs D1: anchored to the named widgets; skip, `Esc`, replay from help and briefing; `prefs.json` `coachDone`; keys never advance from the callout; headless keyboard test.
 - [ ] D8 Academy screen, curriculum Strategies stage and lessons x/y, the review prompt (`prefs.json` `lessonReviews`), and the recommended lesson from the debrief; tests with a fake clock.
@@ -170,6 +170,8 @@ Suggested PRs, in order:
   - windowed reference captures for every new screen on macOS and on Linux (lavapipe in docker; say so if docker is unavailable);
   - complexity ≤ 15;
   - desktop README.
+
+  Progress: m13–m17 are in the menu, the campaign order and the curriculum's Strategies stage (generated from the web; fixtures regenerated), with their mission texts, tutorial cards (text; the desktop draws no card art yet), lesson questions and goldens (`tradelab_desktop_golden_tests` replays them and the `whatif` fixtures); each is played to the debrief with a builder structure in `tests/headless/test_headless_strategies.cpp` and `tests/windowed/test_windowed_strategies.cpp` (captures `strategy-*.png`), and the debrief groups a combo's trades under one row. New reference images (`builder-condor-m13`, `academy-lab`, and `menu` with the lab button) were made on macOS only: docker did not respond on the development machine, so the Linux lavapipe run is open. Open: the briefing's margin rule and the debrief's strategy comparison (both wait for the web's W10 and the engine's E9), the new tutorial art, and the playtest suite (`test_playtest.cpp`) extended to m13–m17.
 
 ## X. Cross-checks and docs
 
