@@ -1,8 +1,9 @@
 // Pack catalog (web-client tasks 4.4, 5.3, 5.5; spec web-client "Installable offline PWA").
 //
-// The catalog is a static JSON manifest listing packs published as static files. It is read from
-// CATALOG_URL (build-time `VITE_CATALOG_URL`; the backend catalog endpoint comes later and only
-// changes this URL). The manifest is only a list: it never grants trust. Every downloaded pack is
+// The catalog is a JSON manifest listing packs. It is read from CATALOG_URL (build-time
+// `VITE_CATALOG_URL`): by default the static file in static/catalog; `/api/v1/scenarios` reads the same
+// manifest from services/api, whose `file` entries (`packs/<digest>`) resolve to its Range-capable
+// `/api/v1/packs/<digest>`. The manifest is only a list: it never grants trust. Every downloaded pack is
 // checked against the manifest's SHA-256, then verified by the engine against the pinned publisher
 // keys before it is installed (verify-then-install).
 

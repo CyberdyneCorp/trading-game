@@ -113,7 +113,7 @@ def test_runs_are_private_to_their_owner(client, auth):
 
 def test_bad_logs_and_unsupported_policies_are_rejected_per_run(client, auth):
     bad = run_body(run_id="run-bad-0001", actions=[{"k": "explode"}])
-    old = run_body(run_id="run-old-0001", executionPolicy=POLICY - 1)
+    old = run_body(run_id="run-old-0001", executionPolicy=1)  # far outside the support window
     out = {o["runId"]: o for o in sync(client, auth, [bad, old, run_body()]).json()}
     assert out["run-bad-0001"]["error"] == "invalid_log"
     assert out["run-old-0001"]["error"] == "unsupported_policy"
@@ -150,7 +150,7 @@ def test_regression_discovery_is_refetched_after_the_ttl(idp):
 
 def test_progress_export_and_erase(client, auth):
     sync(client, auth, [run_body()], key="a")
-    progress = client.get("/api/v1/progress", headers=auth()).json()
+    progress = client.get("/api/v1/progress", headers=auth()).json()["missions"]
     assert progress[0]["missionId"] == "m01-false-breakout"
     assert progress[0]["completed"] == 1
     assert progress[0]["bestScore"] is not None

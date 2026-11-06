@@ -10,8 +10,8 @@ Educational trading game: learn **perpetual futures** (long/short, leverage, fun
 | `bindings/python/` | Python (ctypes) binding over the engine C ABI, used by the API |
 | `apps/web/` | SvelteKit web client (PWA, works offline) — [`apps/web/README.md`](apps/web/README.md) |
 | `apps/desktop/` | C++20 desktop client on Raven for Linux and macOS (every web screen but the catalog and CSV import, the full terminal, SQLite action log, `.app` and AppImage, signed updates) — [`apps/desktop/README.md`](apps/desktop/README.md) |
-| `services/api/` | FastAPI backend: sync, server-side replay, progress — [`services/api/README.md`](services/api/README.md) |
-| `tools/` | Lint helpers (banned-API check for the engine) |
+| `services/api/` | FastAPI backend: sync, server-side replay (older execution policies side by side), progress and achievements, preferences, pack catalog with resumable downloads — [`services/api/README.md`](services/api/README.md) |
+| `tools/` | Lint helpers (banned-API check for the engine), golden regeneration, the packer, `build_policy_cache.py` (older engine libraries for the API) |
 
 ## Play locally
 
@@ -179,7 +179,7 @@ graph TB
 | C ABI | `engine/include/tradelab/c_api.h` | `tl_run_create`, `tl_place_order`, `tl_advance`, `tl_state` (JSON), `tl_checkpoint`, `tl_debrief`, … — the only surface bindings use. |
 | Web | SvelteKit + Svelte 5 runes, TypeScript strict, MVVM | Engine in a Web Worker; Canvas2D chart; i18n PT-BR first, English second; Vitest + Playwright. |
 | Desktop | C++20, Raven (pinned commit), Vulkan / MoltenVK, SQLite, MVVM | Links the engine's static library; engine on a worker thread; XML views, custom-painted chart, theme + CRT shader; texts generated from the web catalogs; `.app` and AppImage; doctest unit, golden, headless (null platform) and windowed (injected input + frame capture) tests. |
-| API | Python 3.12, FastAPI, SQLAlchemy, hexagonal (ports/adapters) | Idempotent batch sync, replay through the engine, progress, export and erase. Access tokens from CyberdyneAuth verified via discovery + JWKS. |
+| API | Python 3.12, FastAPI, SQLAlchemy, hexagonal (ports/adapters) | Idempotent batch sync, replay through the engine (older policies in per-policy worker processes), progress and achievements, preferences, pack catalog and Range downloads with an entitlement gate, export and erase. Access tokens from CyberdyneAuth verified via discovery + JWKS. |
 | CI | GitHub Actions | `engine` (Linux/macOS native, WASM, lint, clang-tidy, OpenSpec validate), `web` (check, unit, e2e), `api` (pytest on SQLite and PostgreSQL), `desktop` (Linux build + tests + windowed under Xvfb + AppImage, macOS universal + Rosetta goldens + `.app`). |
 
 ### How a bar is played
@@ -233,7 +233,7 @@ sequenceDiagram
     A-->>C: per run - accepted count, status, digest match
 ```
 
-The web client does not call the API yet (login via a BFF is the next milestone); the API itself is implemented and tested.
+The web client does not sync with the API yet (login via a BFF is the next milestone); built with `VITE_CATALOG_URL=/api/v1/scenarios` it reads the pack catalog and downloads free packs from it (see `apps/web/README.md`). The API itself is implemented and tested.
 
 ## How the market data is created
 
@@ -617,7 +617,7 @@ Requirements live in `openspec/changes/`, one change per area; `openspec list` s
 
 ## Status and roadmap
 
-Built: the deterministic engine (perps, options, indicators, patterns, generator v5 with a Markov regime chain, drawn event outcomes, announced releases and event jump, funding, spread and capacity channels (calibration report in `docs/calibration/`), execution policy v15, scoring v12 with the full debrief, the seeded reveal, mission rules as engine data, decision records and lesson questions), the twelve phase-2 missions with first-start tutorials (batch A: m06 thin book, m07 size and exit, m08 regime switch; batch B: m09 the day before, m10 cover, m11 calendar, m12 final exam), campaign runs with carried capital and the capstone's campaign report, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, legal intel perks (economic calendar, fast wire) unlocked by finished missions, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay with each run's start options, progress, export, erase) and scenario packs (signed, zstd, validated in the engine; bars, funding, news, liquidity shocks, option chains and counterfactual branch packs) with private CSV import and the authoring CLI `tools/packer` (generate, mask, build, sign, inspect).
+Built: the deterministic engine (perps, options, indicators, patterns, generator v5 with a Markov regime chain, drawn event outcomes, announced releases and event jump, funding, spread and capacity channels (calibration report in `docs/calibration/`), execution policy v15, scoring v12 with the full debrief, the seeded reveal, mission rules as engine data, decision records and lesson questions), the twelve phase-2 missions with first-start tutorials (batch A: m06 thin book, m07 size and exit, m08 regime switch; batch B: m09 the day before, m10 cover, m11 calendar, m12 final exam), campaign runs with carried capital and the capstone's campaign report, the curriculum map and the plan journal, the advisor with points earned by disciplined trades, legal intel perks (economic calendar, fast wire) unlocked by finished missions, the web client (offline PWA, draggable stop/target lines, pattern cheat sheet with outcome animations), the API (sync, replay with each run's start options and execution policy, progress and achievements, preferences, pack catalog and resumable downloads, export, erase) and scenario packs (signed, zstd, validated in the engine; bars, funding, news, liquidity shocks, option chains and counterfactual branch packs) with private CSV import and the authoring CLI `tools/packer` (generate, mask, build, sign, inspect).
 
 Next:
 

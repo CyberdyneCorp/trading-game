@@ -2,7 +2,7 @@ name: api
 
 on:
   pull_request:
-    paths: ["services/api/**", "bindings/**", "engine/**", ".github/workflows/api.yml"]
+    paths: ["services/api/**", "bindings/**", "engine/**", "tools/build_policy_cache.py", ".github/workflows/api.yml"]
   push:
     branches: [main]
 
@@ -25,6 +25,7 @@ jobs:
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }  # the policy cache builds older engines from their commits
       - uses: astral-sh/setup-uv@v6
       - run: sudo apt-get update && sudo apt-get install -y ninja-build
       - name: Build the engine C ABI library
@@ -33,13 +34,18 @@ jobs:
         run: |
           cmake --preset native-release -DTRADELAB_BUILD_TESTS=OFF
           cmake --build --preset native-release --target tradelab_capi
+      - name: Older execution-policy libraries (support window)
+        env: { CXX: clang++-18 }
+        run: python3 tools/build_policy_cache.py --cache services/api/.policy-cache --window 3
       - name: Tests (SQLite)
         working-directory: services/api
+        env: { TRADELAB_REQUIRE_POLICY_CACHE: "1" }
         run: uv run --python 3.12 pytest -q
       - name: Tests (PostgreSQL)
         working-directory: services/api
         env:
           TRADELAB_TEST_DATABASE_URL: postgresql+psycopg://postgres:pw@localhost:5432/tradelab
+          TRADELAB_REQUIRE_POLICY_CACHE: "1"
         run: uv run --python 3.12 pytest -q
       - name: Docker image builds
         run: docker build -f services/api/Dockerfile -t tradelab-api:ci .
