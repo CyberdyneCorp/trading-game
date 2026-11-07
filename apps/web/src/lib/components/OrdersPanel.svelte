@@ -8,8 +8,10 @@
 	const orders = $derived(session.state?.orders ?? []);
 </script>
 
-<section class="panel orders">
-	<h2 class="panel-title">{t('orders.title')}</h2>
+<!-- A scrolling panel must take keyboard focus so its rows can be scrolled into view without a mouse (axe scrollable-region-focusable). -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<section class="panel orders" tabindex="0" aria-labelledby="orders-title">
+	<h2 class="panel-title" id="orders-title">{t('orders.title')}</h2>
 	{#if orders.length === 0}
 		<p class="muted">{t('orders.none')}</p>
 	{:else}
