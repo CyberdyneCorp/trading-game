@@ -64,6 +64,9 @@
 		text-align: right;
 		font-variant-numeric: tabular-nums;
 	}
+	.cmp .tag {
+		margin-left: 0.4rem;
+	}
 	.cmp tr.you th {
 		color: var(--attention);
 	}

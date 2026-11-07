@@ -65,11 +65,11 @@
 			"text": {
 				"pt-BR": {
 					"title": "Lendo as gregas de uma call no laboratório",
-					"body": "Uma call no dinheiro ilustrativa no mercado A: strike 100, 30 dias até o vencimento, IV de 50%. O motor do jogo a avalia em 5,71, com [[delta|delta]] 0,53, [[gamma|gamma]] 0,028, [[theta|theta]] de −0,095 por dia e [[vega|vega]] de 0,114 por ponto (tabela abaixo). Leve o preço a +2% (102): só o delta prevê um ganho de 0,53 × 2 = 1,06; o motor dá 6,83, um ganho de 1,12, porque o gamma faz o delta crescer no caminho (0,58 em 102). Volte o preço e avance 5 dias: o theta prevê 0,095 × 5 = 0,475 a menos; o motor dá 5,22."
+					"body": "Uma call no dinheiro ilustrativa no mercado A: strike 100, 30 dias até o vencimento, IV de 50%. O motor do jogo a avalia em 5,71, com [[delta|delta]] 0,53, [[gamma|gamma]] 0,028, [[theta|theta]] de −0,095 por dia e [[vega|vega]] de 0,114 por ponto (tabela do laboratório). Leve o preço a +2% (102): só o delta prevê um ganho de 0,53 × 2 = 1,06; o motor dá 6,83, um ganho de 1,12, porque o gamma faz o delta crescer no caminho (0,58 em 102). Volte o preço e avance 5 dias: o theta prevê 0,095 × 5 = 0,475 a menos; o motor dá 5,22."
 				},
 				"en": {
 					"title": "Reading a call's Greeks in the lab",
-					"body": "An illustrative at-the-money call on market A: strike 100, 30 days to expiry, IV 50%. The game's engine values it at 5.71, with a [[delta|delta]] of 0.53, a [[gamma|gamma]] of 0.028, a [[theta|theta]] of −0.095 per day and a [[vega|vega]] of 0.114 per point (table below). Move the price to +2% (102): delta alone predicts a gain of 0.53 × 2 = 1.06; the engine gives 6.83, a gain of 1.12, because gamma grows the delta on the way (0.58 at 102). Put the price back and move 5 days on: theta predicts 0.095 × 5 = 0.475 less; the engine gives 5.22."
+					"body": "An illustrative at-the-money call on market A: strike 100, 30 days to expiry, IV 50%. The game's engine values it at 5.71, with a [[delta|delta]] of 0.53, a [[gamma|gamma]] of 0.028, a [[theta|theta]] of −0.095 per day and a [[vega|vega]] of 0.114 per point (the lab's table). Move the price to +2% (102): delta alone predicts a gain of 0.53 × 2 = 1.06; the engine gives 6.83, a gain of 1.12, because gamma grows the delta on the way (0.58 at 102). Put the price back and move 5 days on: theta predicts 0.095 × 5 = 0.475 less; the engine gives 5.22."
 				}
 			}
 		},

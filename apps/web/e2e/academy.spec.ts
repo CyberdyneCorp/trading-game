@@ -146,6 +146,37 @@ test('a set question with the ticket sandbox, a payoff and a table pass axe; a r
 	await expectNoViolations(page, 'lesson with a table');
 });
 
+test("lesson what-if and builder widgets: engine numbers, only the step's sliders move, axe", async ({ page }) => {
+	await page.goto('/');
+	await page.getByTestId('open-academy').click();
+	await page.locator('[data-lesson=options-greeks]').getByTestId('academy-start').click();
+	for (let i = 0; i < 2; i++) await page.getByTestId('lesson-next').click();
+	const lab = page.getByTestId('lesson-whatif');
+	await expect(lab.getByTestId('lab-value')).toHaveText('5,71 cr'); // the call the text describes, valued by the engine
+	await expect(lab.getByTestId('lab-iv')).toBeDisabled(); // this step unlocks price and time only
+	await lab.getByTestId('lab-price').fill('2');
+	await expect(lab.getByTestId('lab-value')).toHaveText('6,83 cr'); // +2%: the number the text states
+	await lab.getByTestId('lab-price').fill('0');
+	await lab.getByTestId('lab-time').fill('5');
+	await expect(lab.getByTestId('lab-value')).toHaveText('5,22 cr');
+	await expectNoViolations(page, 'lesson with the what-if lab');
+	await page.getByRole('button', { name: 'Sair da lição' }).click();
+
+	await page.locator('[data-lesson=strategies-shapes]').getByTestId('academy-start').click();
+	for (const s of steps('strategies-shapes')) {
+		if (s.id === 'view') break;
+		if (s.question) await answerRight(page, s);
+		await page.getByTestId('lesson-next').click();
+	}
+	const builder = page.getByTestId('lesson-builder');
+	await builder.getByTestId('lesson-template-bull_call').click();
+	await expect(builder.getByTestId('lesson-builder-max-loss')).toHaveText(/^\d+,\d{2} cr$/); // the debit: a known worst case
+	await builder.getByTestId('lesson-template-strangle').click();
+	await builder.getByRole('checkbox').check();
+	await expect(builder.getByTestId('lesson-builder-max-loss')).toHaveText(/ilimitada acima de/);
+	await expectNoViolations(page, 'lesson with the builder');
+});
+
 test('Review due: the menu prompts a day later, the review asks only decision and transfer questions, a miss resets it', async ({ page }) => {
 	await page.clock.setFixedTime(new Date(2026, 2, 10, 12));
 	await page.goto('/');

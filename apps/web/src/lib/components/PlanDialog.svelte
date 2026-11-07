@@ -65,7 +65,7 @@
 	<div class="modal" role="dialog" aria-modal="true" aria-labelledby="plan-title">
 		<h2 id="plan-title">{t('plan.title')}</h2>
 		<p class="muted">{t('plan.why')}</p>
-		<p class={draft.side === 'buy' ? 'up' : 'down'}>
+		<p class={draft.side === 'buy' ? 'up' : 'down'} data-testid="plan-headline">
 			{planHeadline(draft, optionLabel, i18n.locale)} ·
 			{t('rail.plannedRisk')}: {draft.estimate.plannedRisk != null ? fmtMoney(draft.estimate.plannedRisk, i18n.locale) : '—'}
 		</p>

@@ -104,7 +104,7 @@
 		{#each SLIDERS as s (s)}
 			{@const locked = !unlocked.includes(s)}
 			<label class:locked>
-				<span>{t(`lab.slider.${s}`)}{#if locked} · {t('lab.locked')}{/if}</span>
+				<span>{t(`lab.slider.${s}`)}{#if locked}{' · '}{t('lab.locked')}{/if}</span>
 				<input
 					type="range"
 					min={sliderMin(s)}

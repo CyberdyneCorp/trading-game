@@ -200,7 +200,7 @@
 			"text": {
 				"pt-BR": {
 					"title": "Transferência: escolha a estrutura",
-					"body": "Mercado Y, entre 606 e 633, sobe devagar. Sua visão: alta moderada até o vencimento, e você quer saber a perda máxima antes de entrar. Qual estrutura combina com essa visão? Experimente os modelos no construtor abaixo antes de responder: ele precifica cada perna com o motor do jogo.",
+					"body": "Mercado Y, entre 606 e 633, sobe devagar. Sua visão: alta moderada até o vencimento, e você quer saber a perda máxima antes de entrar. Qual estrutura combina com essa visão? Experimente os modelos no construtor acima antes de responder: ele precifica cada perna com o motor do jogo.",
 					"right": "Uma trava de alta com calls: ganha com a alta até o strike de cima, custa menos que a call sozinha e a perda máxima é o débito. A estrutura vem da visão, não o contrário.",
 					"wrong": "Procure a forma que ganha com alta moderada e tem perda máxima conhecida.",
 					"choices": { "bull": "Trava de alta com calls", "shortStrangle": "Strangle vendido", "straddle": "Straddle comprado" },
@@ -211,7 +211,7 @@
 				},
 				"en": {
 					"title": "Transfer: pick the structure",
-					"body": "Market Y, between 606 and 633, rises slowly. Your view: a moderate rise by expiry, and you want to know the largest loss before entering. Which structure fits that view? Try the templates in the builder below before answering: it prices each leg with the game's engine.",
+					"body": "Market Y, between 606 and 633, rises slowly. Your view: a moderate rise by expiry, and you want to know the largest loss before entering. Which structure fits that view? Try the templates in the builder above before answering: it prices each leg with the game's engine.",
 					"right": "A bull call spread: it gains from the rise up to the upper strike, costs less than the call alone and its largest loss is the debit. The structure follows from the view, not the other way round.",
 					"wrong": "Look for the shape that gains from a moderate rise and has a known largest loss.",
 					"choices": { "bull": "Bull call spread", "shortStrangle": "Short strangle", "straddle": "Long straddle" },

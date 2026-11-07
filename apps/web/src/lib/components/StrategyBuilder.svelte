@@ -165,9 +165,10 @@
 	);
 
 	function applySize() {
-		if (sized == null || sized <= 0) return;
-		nInput = fmtNum(sized, L, 1);
-		legs = legs.map((l) => ({ ...l, qty: sized }));
+		const q = sized; // read before nInput changes: the derived size follows it
+		if (q == null || q <= 0) return;
+		legs = legs.map((l) => ({ ...l, qty: q }));
+		nInput = fmtNum(q, L, 1);
 	}
 
 	function submit() {
@@ -187,6 +188,9 @@
 		const q = seriesFor(chain, expiry, l.kind, l.strike ?? NaN);
 		return !!q && Number(q.bid) <= 0;
 	}
+
+	// A leg's contracts as typed in this locale (88,4 in PT-BR), never rounded to the lot shown elsewhere.
+	const qtyText = (q: number) => new Intl.NumberFormat(L, { maximumFractionDigits: 8, useGrouping: false }).format(q);
 
 	const legName = (o: { series: number; side: string; qty: string }) => {
 		const q = chain.find((x) => x.id === o.series);
@@ -249,7 +253,7 @@
 									</select>
 								{/if}
 							</td>
-							<td><input aria-label={t('opt.qty')} inputmode="decimal" value={l.qty} onchange={(e) => edit(i, { qty: Math.max(0, parseDecimal((e.currentTarget as HTMLInputElement).value) || 0) })} /></td>
+							<td><input aria-label={t('opt.qty')} inputmode="decimal" value={qtyText(l.qty)} onchange={(e) => edit(i, { qty: Math.max(0, parseDecimal((e.currentTarget as HTMLInputElement).value) || 0) })} /></td>
 							<td><button aria-label={t('lab.remove')} onclick={() => ((legs = legs.filter((_, j) => j !== i)), (strategy = 'custom'))}>✕</button></td>
 						</tr>
 						{#if noBid(l)}<tr><td colspan="5" class="attention small" data-testid="builder-no-bid">⚠ <Term id="legging-risk">{t('builder.noBid')}</Term></td></tr>{/if}
@@ -302,7 +306,7 @@
 						<label><Term id="risk-budget">{t('builder.sizeRisk')}</Term><input inputmode="decimal" bind:value={riskInput} data-testid="builder-size-risk" /></label>
 						<button onclick={applySize} disabled={sized == null || sized <= 0} data-testid="builder-size-apply">{t('builder.sizeApply', { n: sized != null ? fmtNum(sized, L, 1) : '—' })}</button>
 					</div>
-					<p class="muted small" data-testid="builder-size-hint">{t('builder.sizeHint', { n: fmtNum(n, L, 1), risk: fmtMoney(w.expiry.maxLoss, L) })}</p>
+					{#if !pending}<p class="muted small" data-testid="builder-size-hint">{t('builder.sizeHint', { n: fmtNum(n, L, 1), risk: fmtMoney(w.expiry.maxLoss, L) })}</p>{/if}
 				{/if}
 			{/if}
 			<PayoffChart result={w} testid="builder-payoff" />
