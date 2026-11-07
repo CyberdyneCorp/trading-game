@@ -19,6 +19,16 @@ export function orderPriceText(o: Pick<OrderView, 'type' | 'series' | 'price'>, 
 }
 
 /**
+ * Tag of a stop or target placed by a filled order: "OCO" only while its sibling is still open (the
+ * stop and the target cancel each other); a lone stop or target is just the parent's child.
+ */
+export function childTag(o: Pick<OrderView, 'id' | 'parentId'>, orders: readonly Pick<OrderView, 'id' | 'parentId'>[]): string | null {
+	if (!o.parentId) return null;
+	const paired = orders.some((x) => x.id !== o.id && x.parentId === o.parentId);
+	return `${paired ? 'OCO ' : ''}↳#${o.parentId}`;
+}
+
+/**
  * Names for option contracts that events carry. The state only lists listed series, so names are
  * remembered as they are seen and survive expiry. (Order types come with each event: `orderType`.)
  */

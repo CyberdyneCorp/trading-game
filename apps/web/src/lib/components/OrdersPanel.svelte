@@ -2,7 +2,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { fmtPct, fmtQty, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
-	import { ORDER_TYPE_LABEL, orderPriceText } from '#lib/game/eventNames.ts';
+	import { ORDER_TYPE_LABEL, childTag, orderPriceText } from '#lib/game/eventNames.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const orders = $derived(session.state?.orders ?? []);
@@ -29,7 +29,7 @@
 							{#if num(o.trailRate ?? '0') > 0}
 								<span class="tag info" title={t('orders.trailPct')} data-testid="trail-pct">{fmtPct(num(o.trailRate ?? '0'), i18n.locale)}</span>
 							{/if}
-							{#if o.parentId}<span class="tag muted" title={t('orders.child', { id: o.parentId })}>OCO ↳#{o.parentId}</span>{/if}
+							{#if o.parentId}<span class="tag muted" title={t('orders.child', { id: o.parentId })} data-testid="order-child">{childTag(o, orders)}</span>{/if}
 							{#if o.bracketStop !== '0.00000000' || o.bracketTp !== '0.00000000'}<span class="tag attention">BRK</span>{/if}
 						</td>
 						<td>
