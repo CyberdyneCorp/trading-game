@@ -56,8 +56,7 @@ TEST_CASE("windowed terminal: place, drag the stop, cancel a limit order") {
 }
 
 // The window of the hosted macOS runners (their 1024x768 screen shrinks every window to 1024x645): the
-// price pane is a few pixels tall and grabbing a level makes the chart shorter (the focused candle's
-// text under it wraps to two lines). The drag still lands on its price (Terminal::drag_level_to).
+// price pane is a few pixels tall. The drag still lands on its price (Terminal::drag_level_to).
 TEST_CASE("windowed terminal: the stop drag lands on its price in the hosted runner's 1024x645 window") {
   RavenSession raven;
   App app(builtin_catalog(), [] { return 1u; });
@@ -66,6 +65,18 @@ TEST_CASE("windowed terminal: the stop drag lands on its price in the hosted run
   d.frames(4);
   Terminal t(app, d);
   testing::flow_place_move_cancel(app, d, t);
+}
+
+// Regression: grabbing a level made the chart 16 px shorter in a 1024-wide window (the focused candle's
+// text under it wrapped to a second line), so the chart jumped under the pointer.
+TEST_CASE("windowed terminal: grabbing a level does not move or resize the chart in a 1024-wide window") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 1u; });
+  REQUIRE(app.build(1024, 645));
+  Driver d(app);
+  d.frames(4);
+  Terminal t(app, d);
+  testing::flow_grab_keeps_chart(d, t);
 }
 
 TEST_CASE("windowed terminal: stop past liquidation confirmed, then liquidation") {
