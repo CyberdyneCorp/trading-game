@@ -233,3 +233,11 @@ ThreadSanitizer locally: configure a separate build with `-fsanitize=thread` in 
 ### Playtest
 
 `tradelab_desktop_playtest_tests` plays the app like a player and leaves what a reviewer reads: `playtest/<run>-*.png` and `playtest/<run>.txt` under `$TRADELAB_CAPTURE_DIR`. The engine is shared, so the numbers must match the web's for the same mission, seed and actions: open the web with `?seed=<seed>`, play the same orders (the report names them: side, quantity, preset chips, the limit price it typed) and compare the account line after each step and the debrief. The last comparison (all twelve missions; then the builder's templates on m13, both labs and m13–m17 with seed 3) found the same numbers everywhere; the hover readout of the web's debrief chart is the only text the desktop does not show (its debrief chart is read only), and the builder keeps its per-leg lines short (value, IV, delta, P&L; gamma, theta and vega per leg are in the lab, one click away). A text cut by its panel or control fails the run (in a window of the requested size; see Reference images) (`tests/support/text_dump.hpp`: a label drawn past the visible part of its panels, a label narrower than its text given one line, a button narrower than its text). Under AddressSanitizer: configure a separate build with `-fsanitize=address,undefined` in `CMAKE_C_FLAGS`/`CMAKE_CXX_FLAGS` (sanitizers do not touch the engine's floating-point rules) and run the unit, golden, headless, windowed and playtest binaries.
+
+### Screenshots
+
+The README images of the desktop game (`docs/screenshots/desktop/NN-name.png`: menu, briefing, m01 terminal mid-trade, m05 option chain, m16 iron condor in the builder, options lab, debrief, Academy lesson, curriculum, glossary) come from a playtest case that runs only when `TRADELAB_SCREENSHOT_DIR` is set (`tests/windowed/test_screenshots.cpp`: 1280x800, English, fixed seeds, CRT off, a Retina capture reduced to 1280 px wide). After a change to those screens:
+
+```bash
+TRADELAB_SCREENSHOT_DIR=$PWD/../../docs/screenshots/desktop build/macos-release/tests/tradelab_desktop_playtest_tests -tc="screenshots*"
+```
