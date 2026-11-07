@@ -1,0 +1,201 @@
+{
+	"id": "structure-zones",
+	"stage": "structure",
+	"charts": {
+		"range": {
+			"market": "S",
+			"interval": "1h",
+			"candles": [
+				{ "o": 100.0, "h": 101.2, "l": 99.6, "c": 100.8, "v": 110 },
+				{ "o": 100.8, "h": 101.8, "l": 100.2, "c": 100.4, "v": 140 },
+				{ "o": 100.4, "h": 100.6, "l": 98.4, "c": 98.9, "v": 190 },
+				{ "o": 98.9, "h": 100.3, "l": 98.7, "c": 100.1, "v": 150 },
+				{ "o": 100.1, "h": 101.7, "l": 99.9, "c": 101.3, "v": 160 },
+				{ "o": 101.3, "h": 101.5, "l": 99.5, "c": 99.8, "v": 170 },
+				{ "o": 99.8, "h": 100.0, "l": 98.1, "c": 99.6, "v": 210 },
+				{ "o": 99.6, "h": 101.0, "l": 99.4, "c": 100.7, "v": 130 },
+				{ "o": 100.7, "h": 102.6, "l": 100.5, "c": 102.4, "v": 260 },
+				{ "o": 102.4, "h": 102.5, "l": 101.6, "c": 102.0, "v": 150 }
+			]
+		},
+		"trend": {
+			"market": "S",
+			"interval": "1h",
+			"candles": [
+				{ "o": 100.0, "h": 100.8, "l": 99.2, "c": 100.5, "v": 120 },
+				{ "o": 100.5, "h": 101.6, "l": 100.1, "c": 101.3, "v": 150 },
+				{ "o": 101.3, "h": 101.5, "l": 100.4, "c": 100.7, "v": 110 },
+				{ "o": 100.7, "h": 102.4, "l": 100.6, "c": 102.1, "v": 170 },
+				{ "o": 102.1, "h": 102.3, "l": 101.2, "c": 101.5, "v": 120 },
+				{ "o": 101.5, "h": 103.1, "l": 101.4, "c": 102.9, "v": 180 },
+				{ "o": 102.9, "h": 103.0, "l": 101.9, "c": 102.1, "v": 140 },
+				{ "o": 102.1, "h": 102.4, "l": 100.8, "c": 101.0, "v": 230 },
+				{ "o": 101.0, "h": 101.6, "l": 100.6, "c": 101.4, "v": 130 },
+				{ "o": 101.4, "h": 101.8, "l": 100.7, "c": 100.9, "v": 120 }
+			]
+		},
+		"transfer": {
+			"market": "T",
+			"interval": "4h",
+			"candles": [
+				{ "o": 2450, "h": 2462, "l": 2420, "c": 2428, "v": 40 },
+				{ "o": 2428, "h": 2440, "l": 2391, "c": 2398, "v": 55 },
+				{ "o": 2398, "h": 2431, "l": 2392, "c": 2425, "v": 38 },
+				{ "o": 2425, "h": 2427, "l": 2370, "c": 2376, "v": 61 },
+				{ "o": 2376, "h": 2412, "l": 2368, "c": 2405, "v": 44 },
+				{ "o": 2405, "h": 2409, "l": 2381, "c": 2388, "v": 36 },
+				{ "o": 2388, "h": 2426, "l": 2385, "c": 2421, "v": 58 },
+				{ "o": 2421, "h": 2433, "l": 2410, "c": 2428, "v": 41 }
+			]
+		}
+	},
+	"steps": [
+		{
+			"id": "zones",
+			"phase": "concept",
+			"chart": { "ref": "range" },
+			"text": {
+				"pt-BR": {
+					"title": "Zonas, não linhas",
+					"body": "[[support|Suporte]] é uma faixa de preço onde compradores apareceram antes; [[resistance|resistência]], onde vendedores apareceram. São faixas porque o preço raramente para no mesmo centavo: aqui a queda parou duas vezes entre 98,10 e 98,40, e a alta parou entre 101,70 e 101,80."
+				},
+				"en": {
+					"title": "Zones, not lines",
+					"body": "[[support|Support]] is a price band where buyers showed up before; [[resistance|resistance]], where sellers did. They are bands because price rarely stops at the same cent: here the fall stopped twice between 98.10 and 98.40, and the rise stopped between 101.70 and 101.80."
+				}
+			}
+		},
+		{
+			"id": "trend",
+			"phase": "concept",
+			"chart": { "ref": "trend", "known": 7 },
+			"text": {
+				"pt-BR": {
+					"title": "Topos e fundos",
+					"body": "Numa [[trend|tendência]] de alta cada topo passa o anterior e cada fundo fica acima do anterior: topos 101,60, 102,40, 103,10; fundos 100,40, 101,20. Enquanto essa sequência continua, a estrutura é de alta. Ela quebra quando um fechamento fica abaixo do último fundo ascendente."
+				},
+				"en": {
+					"title": "Highs and lows",
+					"body": "In an up [[trend|trend]] each high passes the previous one and each low stays above the previous one: highs 101.60, 102.40, 103.10; lows 100.40, 101.20. While that sequence goes on, the structure is up. It breaks when a close falls below the last higher low."
+				}
+			}
+		},
+		{
+			"id": "retest",
+			"phase": "demo",
+			"chart": { "ref": "range", "highlight": 10 },
+			"text": {
+				"pt-BR": {
+					"title": "Rompimento e reteste",
+					"body": "A barra 9 fechou em 102,40, acima da resistência: um [[breakout|rompimento]]. A barra 10 voltou até 101,60, a antiga resistência, e fechou acima dela: um reteste que segurou. A zona trocou de papel. Mesmo assim, é informação sobre o passado, não garantia sobre a próxima barra."
+				},
+				"en": {
+					"title": "Breakout and retest",
+					"body": "Bar 9 closed at 102.40, above resistance: a [[breakout|breakout]]. Bar 10 came back to 101.60, the old resistance, and closed above it: a retest that held. The zone switched roles. Still, this is information about the past, not a guarantee about the next bar."
+				}
+			}
+		},
+		{
+			"id": "held",
+			"phase": "decision",
+			"chart": { "ref": "range", "known": 8 },
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "z98" },
+					{ "kind": "text", "id": "z99" },
+					{ "kind": "text", "id": "z100" },
+					{ "kind": "text", "id": "z102" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: qual zona segurou?",
+					"body": "Olhando só as barras fechadas, qual faixa segurou a queda duas vezes?",
+					"right": "Isso: as barras 3 e 7 desceram até 98,40 e 98,10 e voltaram. Dois toques parecidos, não idênticos: por isso é uma zona.",
+					"wrong": "Procure as mínimas parecidas em que o preço parou de cair e voltou.",
+					"choices": {
+						"z98": "98,10 a 98,40",
+						"z99": "99,50 a 99,90",
+						"z100": "100,20 a 100,60",
+						"z102": "102,40 a 102,60"
+					},
+					"feedback": {
+						"z102": "Essa faixa ainda não existe: as barras 9 e 10 são futuro nesta etapa. Use só o que já fechou."
+					}
+				},
+				"en": {
+					"title": "Decision: which zone held?",
+					"body": "Looking only at the closed bars, which band held the fall twice?",
+					"right": "Bars 3 and 7 went down to 98.40 and 98.10 and came back. Two similar touches, not identical: that is why it is a zone.",
+					"wrong": "Look for similar lows where price stopped falling and came back.",
+					"choices": {
+						"z98": "98.10 to 98.40",
+						"z99": "99.50 to 99.90",
+						"z100": "100.20 to 100.60",
+						"z102": "102.40 to 102.60"
+					},
+					"feedback": {
+						"z102": "That band does not exist yet: bars 9 and 10 are the future at this step. Use only what has closed."
+					}
+				}
+			}
+		},
+		{
+			"id": "broke",
+			"phase": "decision",
+			"chart": { "ref": "trend" },
+			"question": {
+				"choices": [
+					{ "kind": "bar", "bar": 5 },
+					{ "kind": "bar", "bar": 7 },
+					{ "kind": "bar", "bar": 8 },
+					{ "kind": "bar", "bar": 9 }
+				],
+				"answer": 2
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: onde a estrutura quebrou?",
+					"body": "Qual barra foi a primeira a fechar abaixo do último fundo ascendente?",
+					"right": "A barra 8 fechou em 101,00, abaixo do último fundo ascendente (101,20, barra 5): a sequência de fundos ascendentes acabou. Isso não diz que vai cair, só que a tendência anterior parou de se confirmar.",
+					"wrong": "O último fundo ascendente é 101,20 (barra 5). Procure o primeiro fechamento abaixo dele."
+				},
+				"en": {
+					"title": "Decision: where did the structure break?",
+					"body": "Which bar was the first to close below the last higher low?",
+					"right": "Bar 8 closed at 101.00, below the last higher low (101.20, bar 5): the sequence of higher lows ended. That does not say it will fall, only that the previous trend stopped confirming.",
+					"wrong": "The last higher low is 101.20 (bar 5). Look for the first close below it."
+				}
+			}
+		},
+		{
+			"id": "transfer-break",
+			"phase": "transfer",
+			"chart": { "ref": "transfer" },
+			"question": {
+				"choices": [
+					{ "kind": "bar", "bar": 3 },
+					{ "kind": "bar", "bar": 5 },
+					{ "kind": "bar", "bar": 6 },
+					{ "kind": "bar", "bar": 7 }
+				],
+				"answer": 3
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: uma tendência de baixa",
+					"body": "Mercado T, barras de 4 horas, preço entre 2.368 e 2.462, em tendência de baixa (topos e fundos descendentes). Qual barra foi a primeira a fechar acima do último topo descendente?",
+					"right": "A barra 7 fechou em 2.421, acima do último topo descendente (2.412, barra 5): a sequência de topos descendentes acabou. A mesma regra vale invertida, em qualquer nível de preço.",
+					"wrong": "Os topos descendentes são 2.440, 2.431 e 2.412. Procure o primeiro fechamento acima do último deles."
+				},
+				"en": {
+					"title": "Transfer: a downtrend",
+					"body": "Market T, 4-hour bars, price between 2,368 and 2,462, in a downtrend (lower highs and lower lows). Which bar was the first to close above the last lower high?",
+					"right": "Bar 7 closed at 2,421, above the last lower high (2,412, bar 5): the sequence of lower highs ended. The same rule holds upside down, at any price level.",
+					"wrong": "The lower highs are 2,440, 2,431 and 2,412. Look for the first close above the last of them."
+				}
+			}
+		}
+	]
+}

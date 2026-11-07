@@ -1,0 +1,216 @@
+{
+	"id": "options-writing",
+	"stage": "options3",
+	"checks": [
+		{ "kind": "maxProfit", "legs": [{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }], "expect": 7 },
+		{ "kind": "breakeven", "legs": [{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }], "expect": [98] },
+		{ "kind": "diff", "a": 105, "b": 100, "expect": 5 },
+		{ "kind": "maxLoss", "legs": [{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 }, { "kind": "put", "side": "buy", "qty": 1, "strike": 95, "price": 2 }], "expect": 7 },
+		{ "kind": "payoff", "legs": [{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }], "at": 80, "expect": -18 },
+		{ "kind": "maxProfit", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 5.5 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 110, "price": 1.5 }], "expect": 6 },
+		{ "kind": "maxLoss", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 5.5 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 110, "price": 1.5 }], "expect": 4 },
+		{ "kind": "breakeven", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 5.5 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 110, "price": 1.5 }], "expect": [104] },
+		{ "kind": "diff", "a": 5.5, "b": 1.5, "expect": 4 },
+		{ "kind": "diff", "a": 110, "b": 100, "expect": 10 }
+	],
+	"steps": [
+		{
+			"id": "writing",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Do outro lado do contrato",
+					"body": "Vender uma opção ([[writing|lançar]]) é receber o prêmio e assumir a obrigação. O ganho máximo é o prêmio; a perda de uma call vendida sozinha não tem teto. Por isso vender exige margem, conferida a cada barra: abaixo da manutenção, a opção é recomprada à força, a [[margin-call|chamada de margem]]. Na maioria das missões cada perna vendida tem margem própria; quando uma missão aceita margem de trava, o briefing diz."
+				},
+				"en": {
+					"title": "On the other side of the contract",
+					"body": "Selling an option ([[writing|writing]]) means receiving the premium and taking on the obligation. The largest gain is the premium; a call sold on its own has no ceiling on its loss. That is why writing needs margin, checked every bar: below maintenance the option is bought back by force, a [[margin-call|margin call]]. In most missions each short leg has its own margin; when a mission accepts spread margin, the briefing says so."
+				}
+			}
+		},
+		{
+			"id": "settle",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Como as opções terminam aqui",
+					"body": "As opções do jogo são europeias e [[settlement|liquidadas em dinheiro]]: no vencimento cada uma paga o seu valor intrínseco, calculado pelo [[twap|TWAP]] (a média de preço) das últimas barras. Ninguém exerce antes da data e ninguém entrega o ativo."
+				},
+				"en": {
+					"title": "How options end here",
+					"body": "The game's options are European and [[settlement|settled in cash]]: at expiry each one pays its intrinsic value, computed from the [[twap|TWAP]] (the average price) of the last bars. Nobody exercises before the date and nobody delivers the asset."
+				}
+			}
+		},
+		{
+			"id": "covered",
+			"phase": "demo",
+			"widget": {
+				"kind": "payoff",
+				"market": "C",
+				"legs": [
+					{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 },
+					{ "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }
+				],
+				"lo": 80,
+				"hi": 120
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Venda coberta",
+					"body": "Comprado a 100 e vendido numa call 105 por 2: uma [[covered-call|venda coberta]]. O prêmio baixa o equilíbrio para 98, mas acima de 105 a alta é da call: o ganho máximo é 5 + 2 = 7. Na queda a posição perde quase tudo como o ativo sozinho: a 80, −18. O prêmio é um colchão, não uma proteção."
+				},
+				"en": {
+					"title": "Covered call",
+					"body": "Long at 100 and short a 105 call for 2: a [[covered-call|covered call]]. The premium lowers the breakeven to 98, but above 105 the rise belongs to the call: the largest gain is 5 + 2 = 7. On a fall the position loses almost as much as the asset alone: at 80, −18. The premium is a cushion, not protection."
+				}
+			}
+		},
+		{
+			"id": "ccMax",
+			"phase": "decision",
+			"widget": {
+				"kind": "payoff",
+				"market": "C",
+				"legs": [
+					{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 },
+					{ "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }
+				],
+				"lo": 80,
+				"hi": 120,
+				"hideAnalytics": true
+			},
+			"question": { "type": "number", "answer": 7, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o teto da venda coberta",
+					"body": "Por unidade, qual o ganho máximo desta venda coberta no vencimento?",
+					"right": "Do 100 até o strike 105 são 5, mais os 2 do prêmio: 7. Acima de 105 o que o ativo ganha a call vendida perde.",
+					"wrong": "Some o caminho até o strike e o prêmio recebido."
+				},
+				"en": {
+					"title": "Decision: the covered call's ceiling",
+					"body": "Per unit, what is this covered call's largest gain at expiry?",
+					"right": "From 100 up to the 105 strike is 5, plus the 2 of premium: 7. Above 105 whatever the asset gains the short call loses.",
+					"wrong": "Add the way up to the strike and the premium received."
+				}
+			}
+		},
+		{
+			"id": "protective",
+			"phase": "decision",
+			"widget": {
+				"kind": "payoff",
+				"market": "C",
+				"legs": [
+					{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 },
+					{ "kind": "put", "side": "buy", "qty": 1, "strike": 95, "price": 2 }
+				],
+				"lo": 80,
+				"hi": 120,
+				"hideAnalytics": true
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "l7" },
+					{ "kind": "text", "id": "l2" },
+					{ "kind": "text", "id": "l5" },
+					{ "kind": "text", "id": "none" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o piso da put de proteção",
+					"body": "Comprado a 100 com uma put 95 comprada por 2: uma [[protective-put|put de proteção]]. Qual a perda máxima por unidade?",
+					"right": "De 100 até 95 são 5, mais os 2 do prêmio: 7, por mais que o preço caia. O strike é a franquia do seguro.",
+					"wrong": "Abaixo de 95 a put compensa cada ponto de queda. Quanto já se perdeu até ali?",
+					"choices": { "l7": "7", "l2": "2", "l5": "5", "none": "Não há perda possível" },
+					"feedback": {
+						"l2": "2 é só o prêmio. A put começa a proteger em 95, e de 100 a 95 a perda é sua.",
+						"l5": "5 é a queda até o strike. Falta o prêmio pago pela put.",
+						"none": "A put limita a perda, não a elimina: a queda até o strike e o prêmio continuam sendo seus."
+					}
+				},
+				"en": {
+					"title": "Decision: the protective put's floor",
+					"body": "Long at 100 with a 95 put bought for 2: a [[protective-put|protective put]]. What is the largest loss per unit?",
+					"right": "From 100 down to 95 is 5, plus the 2 of premium: 7, however far the price falls. The strike is the insurance deductible.",
+					"wrong": "Below 95 the put offsets each point of the fall. How much was lost up to there?",
+					"choices": { "l7": "7", "l2": "2", "l5": "5", "none": "No loss is possible" },
+					"feedback": {
+						"l2": "2 is only the premium. The put starts protecting at 95, and from 100 to 95 the loss is yours.",
+						"l5": "5 is the fall to the strike. The premium paid for the put is missing.",
+						"none": "The put bounds the loss; it does not remove it: the fall to the strike and the premium are still yours."
+					}
+				}
+			}
+		},
+		{
+			"id": "settleQ",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "twap" },
+					{ "kind": "text", "id": "early" },
+					{ "kind": "text", "id": "delivery" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o vencimento",
+					"body": "Você vendeu uma call que está dentro do dinheiro dois dias antes do vencimento. O que pode acontecer com ela no jogo?",
+					"right": "Ela continua aberta até o vencimento, a menos que você a recompre ou uma chamada de margem a recompre. No vencimento paga o valor intrínseco pelo TWAP, em dinheiro.",
+					"wrong": "As opções aqui são europeias e liquidadas em dinheiro.",
+					"choices": {
+						"twap": "Fica aberta e é liquidada em dinheiro pelo TWAP no vencimento",
+						"early": "Pode ser exercida hoje pelo comprador",
+						"delivery": "No vencimento você entrega o ativo"
+					}
+				},
+				"en": {
+					"title": "Decision: expiry",
+					"body": "You sold a call that is in the money two days before expiry. What can happen to it in the game?",
+					"right": "It stays open until expiry, unless you buy it back or a margin call does. At expiry it pays its intrinsic value from the TWAP, in cash.",
+					"wrong": "Options here are European and settled in cash.",
+					"choices": {
+						"twap": "It stays open and settles in cash at the TWAP at expiry",
+						"early": "The buyer can exercise it today",
+						"delivery": "At expiry you deliver the asset"
+					}
+				}
+			}
+		},
+		{
+			"id": "spread",
+			"phase": "transfer",
+			"widget": {
+				"kind": "payoff",
+				"market": "B",
+				"legs": [
+					{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 5.5 },
+					{ "kind": "call", "side": "sell", "qty": 1, "strike": 110, "price": 1.5 }
+				],
+				"lo": 85,
+				"hi": 125,
+				"hideAnalytics": true
+			},
+			"question": { "type": "number", "answer": 6, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: uma trava de alta",
+					"body": "Mercado B: compre a call 100 por 5,50 e venda a call 110 por 1,50, um débito de 4. Qual o ganho máximo por unidade no vencimento?",
+					"right": "A largura entre os strikes (10) menos o débito (4): 6. A perda máxima é o débito, 4, e o equilíbrio fica em 104. Uma [[vertical-spread|trava]] limita os dois lados.",
+					"wrong": "Acima de 110 as duas calls valem e o ganho para de crescer. Compare a largura com o que você pagou."
+				},
+				"en": {
+					"title": "Transfer: a bull call spread",
+					"body": "Market B: buy the 100 call for 5.50 and sell the 110 call for 1.50, a debit of 4. What is the largest gain per unit at expiry?",
+					"right": "The width between the strikes (10) minus the debit (4): 6. The largest loss is the debit, 4, and the breakeven is 104. A [[vertical-spread|vertical spread]] bounds both sides.",
+					"wrong": "Above 110 both calls are worth something and the gain stops growing. Compare the width with what you paid."
+				}
+			}
+		}
+	]
+}

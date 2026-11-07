@@ -118,6 +118,9 @@ desktop::Progress ProfileStore::load_progress() {
   guarded([&] {
     const Progress p = store_.progress();
     out.lessons_done = p.lessons_done;
+    out.lesson_reviews = progress_json::reviews_from(parse_or_null(p.lesson_reviews));
+    out.coach_done = p.coach_done;
+    out.glossary_seen = p.glossary_seen;
     out.assessed = p.assessed;
     if (p.campaign) out.campaign = progress_json::campaign_from(parse_or_null(p.campaign));
     for (const std::string& c : p.campaign_history) {
@@ -168,6 +171,9 @@ void ProfileStore::save_progress(const desktop::Progress& p) {
   guarded([&] {
     Progress row = store_.progress();
     row.lessons_done = p.lessons_done;
+    row.lesson_reviews = progress_json::reviews(p.lesson_reviews);
+    row.coach_done = p.coach_done;
+    row.glossary_seen = p.glossary_seen;
     row.assessed = p.assessed;
     row.campaign = p.campaign ? std::optional<std::string>(progress_json::campaign(*p.campaign)) : std::nullopt;
     row.campaign_history.clear();

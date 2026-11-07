@@ -7,6 +7,8 @@ import type {
 	AnswerQuestionCommand,
 	CancelOrderCommand,
 	ClientIdCommand,
+	ComboPreview,
+	ComboRequest,
 	CommandResult,
 	CsvMeta,
 	CsvValidation,
@@ -24,7 +26,9 @@ import type {
 	RecordPlanCommand,
 	RunOptionsView,
 	SetLeverageCommand,
-	TrustedKey
+	TrustedKey,
+	WhatIfRequest,
+	WhatIfResult
 } from './types';
 
 export type EngineRequest =
@@ -40,6 +44,10 @@ export type EngineRequest =
 	| { kind: 'startPack'; pack: Uint8Array; keys: TrustedKey[]; seed: number }
 	// A mission's lesson questions without the key (tl_lesson, run-less).
 	| { kind: 'lesson'; missionId: string }
+	// Report-only option analysis (add-academy-and-strategies D4): never logged, never changes the run.
+	| { kind: 'whatif'; request: WhatIfRequest }
+	| { kind: 'runWhatif'; request: WhatIfRequest }
+	| { kind: 'comboPreview'; request: ComboRequest }
 	// Player commands: payload shapes generated from engine/idl (one C ABI call each).
 	| ({ kind: 'order' } & PlaceOrderCommand)
 	| ({ kind: 'option' } & PlaceOptionOrderCommand)
@@ -59,6 +67,12 @@ export type EngineRequest =
 	// Checkpoints (opaque engine RunState: no scenario bars) and restore + replay of the tail.
 	| { kind: 'checkpoint' }
 	| { kind: 'restore'; missionId: string; seed: number; checkpoint: string; pack?: Uint8Array; keys?: TrustedKey[] };
+
+/**
+ * An analysis reply: the engine's result, or why there is none ('unsupported' when the loaded engine
+ * build predates the call, e.g. a run pinned to an older build; otherwise the engine's error code).
+ */
+export type Analysis<T> = { ok: true; value: T } | { ok: false; error: string };
 
 export interface CommandResponse {
 	result: CommandResult;
@@ -92,6 +106,9 @@ interface ResponseMap {
 	debrief: DebriefData;
 	/** Null for a mission without lesson questions. */
 	lesson: LessonInfo | null;
+	whatif: Analysis<WhatIfResult>;
+	runWhatif: Analysis<WhatIfResult>;
+	comboPreview: Analysis<ComboPreview>;
 	/** Null for runs on imported packs (their reveal is in the debrief). */
 	reveal: MissionReveal | null;
 }

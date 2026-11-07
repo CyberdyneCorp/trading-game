@@ -13,7 +13,9 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/test_chart_geometry.cpp
   viewmodel/test_app_viewmodel.cpp
   viewmodel/test_vulkan_message.cpp
+  viewmodel/game/test_builder.cpp
   viewmodel/game/test_game_viewmodel.cpp
+  viewmodel/game/test_options_parity.cpp
   viewmodel/game/test_rules.cpp
   viewmodel/game/test_sizing.cpp
   viewmodel/game/test_ticket_chart.cpp
@@ -24,6 +26,8 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/test_pack_screens.cpp
   viewmodel/test_theme.cpp
   viewmodel/test_web_parity.cpp
+  viewmodel/test_academy_parity.cpp
+  viewmodel/test_academy.cpp
   viewmodel/test_audio.cpp)
 target_include_directories(tradelab_desktop_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -67,7 +71,8 @@ set_tests_properties(desktop_golden PROPERTIES LABELS golden)
 
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
 add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp
-  headless/test_headless_shell.cpp headless/test_headless_flows.cpp)
+  headless/test_headless_shell.cpp headless/test_headless_flows.cpp headless/test_headless_academy.cpp
+  headless/test_headless_strategies.cpp)
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)
@@ -81,6 +86,8 @@ set_tests_properties(desktop_headless PROPERTIES LABELS headless ENVIRONMENT "RA
 if(RAVEN_BACKEND_VULKAN)
   add_executable(tradelab_desktop_windowed_tests main.cpp windowed/test_windowed.cpp windowed/test_game_windowed.cpp
     windowed/test_windowed_shell.cpp windowed/test_windowed_flows.cpp windowed/test_windowed_playthroughs.cpp
+    windowed/test_windowed_academy.cpp
+    windowed/test_windowed_strategies.cpp
     support/png.cpp support/reference.cpp)
   target_compile_definitions(tradelab_desktop_windowed_tests PRIVATE
     TRADELAB_REFERENCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/windowed/reference"
@@ -99,10 +106,12 @@ if(RAVEN_BACKEND_VULKAN)
     ENVIRONMENT "TRADELAB_CAPTURE_DIR=${CMAKE_BINARY_DIR}/captures;RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0;TRADELAB_AUDIO=null;TRADELAB_DATA_DIR=${CMAKE_BINARY_DIR}/test-data/windowed")
 
   # Playtest: the twelve missions to the debrief with captures and text reports (README "Playtest").
-  add_executable(tradelab_desktop_playtest_tests main.cpp windowed/test_playtest.cpp support/png.cpp)
+  add_executable(tradelab_desktop_playtest_tests main.cpp windowed/test_playtest.cpp windowed/test_playtest_strategies.cpp
+    support/png.cpp)
   target_include_directories(tradelab_desktop_playtest_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
   target_include_directories(tradelab_desktop_playtest_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(tradelab_desktop_playtest_tests PRIVATE tradelab_desktop_view)
+  target_compile_definitions(tradelab_desktop_playtest_tests PRIVATE TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog")
   if(ZLIB_FOUND)
     target_compile_definitions(tradelab_desktop_playtest_tests PRIVATE TRADELAB_HAVE_ZLIB)
     target_link_libraries(tradelab_desktop_playtest_tests PRIVATE ZLIB::ZLIB)

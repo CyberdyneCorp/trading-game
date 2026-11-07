@@ -31,6 +31,10 @@ struct GameCommand {
   bool skipped = false;
   bool option = false;         // plan for an option order
   bool lose_scenario = false;  // plan wrote an option lose scenario
+  // A strategy-builder leg (or the cancel of a withdrawn combo): its combo id ("c1") and structure name
+  // ("iron_condor"), logged with the action and ignored by replay (design D3). "" = not a combo leg.
+  std::string combo;
+  std::string strategy;
 
   static GameCommand order(OrderType type, bool buy, std::string qty, std::string price, bool reduce_only,
                            std::string stop = {}, std::string tp = {}, std::string trail = {});
@@ -46,6 +50,8 @@ struct GameCommand {
   static GameCommand answer(int p_bp, bool skipped);
   static GameCommand lesson(int question, int choice, std::string value, bool skipped);
   static GameCommand advice();
+  // This command tagged as a leg of `combo` (structure `strategy`).
+  [[nodiscard]] GameCommand tagged(std::string combo_id, std::string strategy_name) const;
 };
 
 // The engine's command result JSON ({"accepted","reason","orderId","warning"}) as a CommandResult.

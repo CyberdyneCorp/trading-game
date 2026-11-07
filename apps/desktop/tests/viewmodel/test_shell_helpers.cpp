@@ -33,7 +33,7 @@ Catalog en() {
 }  // namespace
 
 TEST_CASE("web content: stages, lessons, shortcuts and constants come from the web sources") {
-  CHECK(C().stages.size() == 13);
+  CHECK(C().stages.size() == 14);
   CHECK(C().stages.front().id == "foundations");
   CHECK(C().locked_leverage_cap == 2);
   CHECK(C().campaign_capital == "10000");
@@ -43,8 +43,8 @@ TEST_CASE("web content: stages, lessons, shortcuts and constants come from the w
   const auto& steps = C().lesson("foundations-bar")->steps;
   CHECK(steps.size() == 8);
   CHECK(steps[3].id == "wick");
-  CHECK(steps[3].choices.size() == 4);
-  CHECK(steps[3].answer == 2);
+  CHECK(steps[3].question->choices.size() == 4);
+  CHECK(steps[3].question->answer == 2);
   CHECK(default_keymap(C()).at("advance5") == "Shift+Space");
   CHECK(C().shortcut_actions.size() == 11);
 }
@@ -56,12 +56,18 @@ TEST_CASE("curriculum: statuses, campaign order and the leverage gate") {
   CHECK(stage_status(C(), "futures1", none) == StageStatus::Locked);
   CHECK(stage_status(C(), "foundations", none, {"foundations-bar"}) == StageStatus::Passed);
   const Ids order = campaign_missions(C());
-  REQUIRE(order.size() == 12);
+  REQUIRE(order.size() == 17);
   CHECK(order.front() == "m06-thin-book");
   CHECK(order[1] == "m01-false-breakout");
   CHECK(order.back() == "m12-capstone");
-  CHECK(stage_passed(C(), "orders", {"m06-thin-book"}));
+  CHECK(stage_passed(C(), "orders", {"m06-thin-book"}));  // its lesson never gates it
+  CHECK_FALSE(stage_passed(C(), "orders", {}, {"orders-execution"}));
   CHECK(stage_status(C(), "futures1", {"m06-thin-book"}) == StageStatus::Open);
+  // Regression: the debrief named Strategies passed after m13 alone (it has five missions).
+  CHECK(stages_passed_with(C(), "m13-call-spread", {"m13-call-spread"}).empty());
+  CHECK(stages_passed_with(C(), "m04-options-buyer", {"m04-options-buyer"}) == Ids{"options1"});
+  const Ids strategies{"m13-call-spread", "m14-covered-call", "m15-protective-put", "m16-range-condor", "m17-before-expiry"};
+  CHECK(stages_passed_with(C(), "m17-before-expiry", strategies) == Ids{"strategies"});
 
   const Permissions first = campaign_permissions(C(), "m06-thin-book", none);
   CHECK(first.leverage_cap == 2);
@@ -71,7 +77,7 @@ TEST_CASE("curriculum: statuses, campaign order and the leverage gate") {
   CHECK_FALSE(campaign_permissions(C(), "m02-funding-squeeze", {"m03-volatility-shock"}).leverage_cap.has_value());
   const CurriculumSummary s = curriculum_summary(C(), {"m06-thin-book"}, {"foundations-bar"});
   CHECK(s.passed == 3);
-  CHECK(s.with_content == 13);
+  CHECK(s.with_content == 14);
 }
 
 TEST_CASE("campaign: capital carries on, bankruptcy and the minimum end it, settling is idempotent") {
@@ -120,20 +126,20 @@ TEST_CASE("campaign: completing every mission, best capital and the report") {
                              std::to_string(10000 + i), r});
   }
   CHECK(p.campaign->status == CampaignStatus::Complete);
-  CHECK(best_completed_capital(p.campaign_history) == "10011");
+  CHECK(best_completed_capital(p.campaign_history) == "10016");
   const CampaignReport r = campaign_report(C(), p.campaign->legs);
-  CHECK(r.missions == 12);
-  CHECK(r.trades == 36);
-  CHECK(r.wins == 24);
-  CHECK(r.without_r == 12);
+  CHECK(r.missions == 17);
+  CHECK(r.trades == 51);
+  CHECK(r.wins == 34);
+  CHECK(r.without_r == 17);
   CHECK(r.avg_win_r.value() == doctest::Approx(0.5));
   CHECK(r.avg_loss_r.value() == doctest::Approx(-1.0));
   CHECK(r.expectancy_r.value() == doctest::Approx(-0.25));
-  CHECK(r.costs == doctest::Approx(12 * 2.0));  // fees + spread + funding paid
-  CHECK(r.cost_share.value() == doctest::Approx(24.0 / (96 + 24)));
+  CHECK(r.costs == doctest::Approx(17 * 2.0));  // fees + spread + funding paid
+  CHECK(r.cost_share.value() == doctest::Approx(34.0 / (136 + 34)));
   CHECK_FALSE(r.too_few);
   REQUIRE(r.by_regime.size() == 3);
-  CHECK(r.by_regime[0].trades == 12);
+  CHECK(r.by_regime[0].trades == 17);
   CHECK(r.by_regime[2].regime == "unlabeled");
 }
 
@@ -187,7 +193,7 @@ TEST_CASE("Academy runner: a wrong first try explains, lets the player choose ag
   CHECK_FALSE(r.pick(1));  // solved: further picks ignored
   while (!r.finished()) {
     const LessonStep* s = r.step();
-    if (s->question()) r.pick(s->answer);
+    if (s->is_question()) r.pick(s->question->answer);
     REQUIRE(r.next());
   }
   CHECK(r.score().total == 5);

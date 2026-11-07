@@ -189,7 +189,17 @@ export type ObjectiveCode =
 	| 'finish_mission'
 	| 'plan_and_stop_every_entry'
 	| 'no_liquidation_no_margin_call'
-	| 'read_campaign_report';
+	| 'read_campaign_report'
+	| 'spread_breakevens'
+	| 'cover_short_leg'
+	| 'capped_max_profit'
+	| 'premium_vs_funding'
+	| 'floor_before_buying'
+	| 'record_tenor'
+	| 'size_by_max_loss'
+	| 'breakout_exit_rule'
+	| 'decide_before_expiry'
+	| 'no_roll_without_thesis';
 
 /** What the player did at a decision point (task 4.2, spec gameplay-loop "Waiting is a decision"). */
 export type DecisionKind = 'wait' | 'hold' | 'act';
@@ -498,6 +508,12 @@ export interface MissionRulesView {
 	drawdownBudgetBp: number;
 	/** The ticket asks for explicit confirmation of a stop beyond the liquidation price. */
 	confirmStopBeyondLiq: boolean;
+	/**
+	 * Defined-risk spread margin (add-academy-and-strategies D5): a short paired with longs of the same
+	 * kind and expiry is margined at most at its worst loss at expiry; false = every short per leg.
+	 * Absent from builds that predate it.
+	 */
+	spreadMargin?: boolean;
 }
 
 /** The cost model with the liquidity shock in force applied (same fields as the contract's). */
@@ -1040,6 +1056,160 @@ export interface PackWriteResult {
 	digest: string;
 	size: number;
 	signingKeyId: string;
+}
+
+export type WhatIfLegKind = 'call' | 'put' | 'perp';
+
+/**
+ * One leg of a what-if request: run-less legs give strike, minutesToExpiry, iv and entry; run legs
+ * name a listed series (or kind "perp") and may omit entry (the ask to buy, the bid to sell, the
+ * last close for the perpetual).
+ */
+export interface WhatIfLegInput {
+	kind?: WhatIfLegKind;
+	series?: number;
+	side: OrderSideName;
+	qty: string;
+	strike?: string;
+	minutesToExpiry?: number;
+	/** Annualized implied volatility, e.g. "0.6". */
+	iv?: string;
+	entry?: string;
+}
+
+/**
+ * Shifts: forward (absent = unchanged), time (run-less minutesElapsed, run bars) and IV in
+ * volatility points ("-5" = -0.05), floored at 5% per leg.
+ */
+export interface WhatIfShiftInput {
+	forward?: string;
+	minutesElapsed?: number;
+	bars?: number;
+	ivPoints?: string;
+}
+
+/** Curve prices: lo..hi in `points` steps (2..401); absent = forward -30%..+30%, 61 points. */
+export interface WhatIfGridInput {
+	lo: string;
+	hi: string;
+	points: number;
+}
+
+/**
+ * tl_option_whatif (run-less: forward, minutesPerStep, multiplier) and tl_run_option_whatif (legs,
+ * shift and grid only).
+ */
+export interface WhatIfRequest {
+	forward?: string;
+	minutesPerStep?: number;
+	multiplier?: string;
+	legs: WhatIfLegInput[];
+	shift?: WhatIfShiftInput;
+	grid?: WhatIfGridInput;
+}
+
+/**
+ * Per unit as the option quote (value not tick-rounded; perpetual: the forward and delta 1); the
+ * position's value and P&L are signed (short legs negative).
+ */
+export interface WhatIfLegView {
+	kind: WhatIfLegKind;
+	side: OrderSideName;
+	qty: Decimal;
+	/** Run legs: the series id and its expiry step; 0 otherwise. */
+	series: number;
+	expiryStep: number;
+	strike: Decimal | null;
+	entry: Decimal;
+	value: Decimal;
+	iv: Decimal | null;
+	/** The 5% floor applied after the IV shift. */
+	ivFloored: boolean;
+	delta: Decimal;
+	gamma: Decimal;
+	theta: Decimal;
+	vega: Decimal;
+	positionValue: Decimal;
+	pnl: Decimal;
+}
+
+/**
+ * Sums over the legs: delta and gamma in underlying units (1e-8), theta per step and vega per
+ * volatility point as money.
+ */
+export interface WhatIfNetView {
+	value: Decimal;
+	pnl: Decimal;
+	delta: Decimal;
+	gamma: Decimal;
+	theta: Decimal;
+	vega: Decimal;
+}
+
+/** [price, P&L]. */
+export type CurvePointTuple = [Decimal, Decimal];
+
+/** Exact analytics of the payoff at the (common) expiry; prices never go below 0. */
+export interface WhatIfExpiryView {
+	breakevens: Decimal[];
+	maxProfit: Decimal | null;
+	/** A positive amount is a loss; null = unbounded (above the upper breakeven). */
+	maxLoss: Decimal | null;
+	curve: CurvePointTuple[];
+}
+
+/** tl_option_whatif / tl_run_option_whatif. */
+export interface WhatIfResult {
+	forward: Decimal;
+	/** The time shift reaches the options' common expiry: intrinsic values, no time-value Greeks. */
+	atExpiry: boolean;
+	legs: WhatIfLegView[];
+	net: WhatIfNetView;
+	/** Null unless every option leg shares one expiry. */
+	expiry: WhatIfExpiryView | null;
+	/** The P&L curve at the shifted time and IV. */
+	today: CurvePointTuple[];
+}
+
+export interface ComboLegInput {
+	kind?: WhatIfLegKind;
+	series?: number;
+	side: OrderSideName;
+	qty: string;
+}
+
+/** tl_combo_preview input: up to 8 market legs in submission order. */
+export interface ComboRequest {
+	legs: ComboLegInput[];
+}
+
+/** One leg of the dry run, as the real command would answer at this step. */
+export interface ComboLegView {
+	accepted: boolean;
+	reason: ReasonCode;
+	/** The ask or bid it would cross now; the last close for the perpetual. */
+	quote: Decimal;
+	premium: Decimal;
+	fee: Decimal;
+	/** What the command checks: premium + fee to buy, the margin a sale adds, the perpetual's margin + fee. */
+	required: Decimal;
+	availableAfter: Decimal;
+}
+
+/**
+ * tl_combo_preview: per leg, totals over the accepted legs (netPremium: credit > 0, debit < 0) and
+ * an estimate once they fill at today's quotes (execution uses the next open).
+ */
+export interface ComboPreview {
+	accepted: boolean;
+	legs: ComboLegView[];
+	netPremium: Decimal;
+	fees: Decimal;
+	required: Decimal;
+	availableAfter: Decimal;
+	optionMarginAfterFill: Decimal;
+	positionMarginAfterFill: Decimal;
+	availableAfterFill: Decimal;
 }
 
 /** tl_checkpoint: the run state as hex, restored by tl_run_restore / tl_run_restore_pack. */

@@ -41,11 +41,14 @@ Ids campaign_missions(const WebContent& c) {
   return out;
 }
 
+// A stage with missions is passed by its missions only (its Academy lessons prepare for it and never
+// gate it); a lesson-only stage when its lessons are done (add-academy-and-strategies design D9).
 bool stage_passed(const WebContent& c, std::string_view id, const Ids& assessed, const Ids& lessons_done) {
   const Stage* s = c.stage(id);
   if (s == nullptr || !has_content(*s)) return false;
   const auto in = [](const Ids& ids) { return [&ids](const std::string& x) { return contains(ids, x); }; };
-  return std::ranges::all_of(s->missions, in(assessed)) && std::ranges::all_of(s->lessons, in(lessons_done));
+  if (!s->missions.empty()) return std::ranges::all_of(s->missions, in(assessed));
+  return std::ranges::all_of(s->lessons, in(lessons_done));
 }
 
 StageStatus stage_status(const WebContent& c, std::string_view id, const Ids& assessed, const Ids& lessons_done) {
@@ -60,6 +63,14 @@ Ids stages_of(const WebContent& c, std::string_view mission) {
   Ids out;
   for (const auto& s : c.stages) {
     if (contains(s.missions, mission)) out.push_back(s.id);
+  }
+  return out;
+}
+
+Ids stages_passed_with(const WebContent& c, std::string_view mission, const Ids& assessed) {
+  Ids out;
+  for (const auto& s : stages_of(c, mission)) {
+    if (stage_passed(c, s, assessed)) out.push_back(s);
   }
   return out;
 }
@@ -93,6 +104,25 @@ CurriculumSummary curriculum_summary(const WebContent& c, const Ids& assessed, c
     if (stage_passed(c, s.id, assessed, lessons_done)) ++out.passed;
   }
   return out;
+}
+
+LessonProgress lesson_progress(const WebContent& c, std::string_view id, const Ids& lessons_done) {
+  const Stage* s = c.stage(id);
+  if (s == nullptr) return {};
+  const auto done = std::ranges::count_if(s->lessons, [&](const std::string& l) { return contains(lessons_done, l); });
+  return {static_cast<int>(done), static_cast<int>(s->lessons.size())};
+}
+
+std::string recommended_lesson(const WebContent& c, std::string_view id, const Ids& lessons_done) {
+  const Stage* s = c.stage(id);
+  if (s == nullptr || s->lessons.empty()) return {};
+  const auto it = std::ranges::find_if(s->lessons, [&](const std::string& l) { return !contains(lessons_done, l); });
+  return it != s->lessons.end() ? *it : s->lessons.front();
+}
+
+std::string lesson_code_stage(const WebContent& c, std::string_view code) {
+  if (code == "options") return "options2";
+  return c.stage(code) != nullptr ? std::string(code) : std::string();
 }
 
 }  // namespace tradelab::desktop

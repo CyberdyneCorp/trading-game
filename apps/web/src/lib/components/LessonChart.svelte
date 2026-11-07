@@ -1,8 +1,9 @@
 <script lang="ts">
 	// Small illustrative chart for Academy lessons: candles with volume, bar numbers, an optional
 	// highlighted bar, and the unknown future hatched after the last closed bar (nothing drawn there).
-	// `anatomy` draws one large candle with its parts named. A screen-reader table lists the bars.
-	import type { LessonChart } from '#lib/game/academy.ts';
+	// `anatomy` draws one large candle with its parts named. Labeled levels (entry, stop, target,
+	// liquidation, mark and last, strike) are drawn as lines. A screen-reader table lists the bars.
+	import type { LessonChart } from '#lib/content/academy.ts';
 	import { fmtNum } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
@@ -19,8 +20,9 @@
 	const shown = $derived(chart.candles.slice(0, known));
 	const slot = $derived((chart.anatomy ? 200 : W - 60) / n);
 	const left = $derived(chart.anatomy ? 140 : 8);
-	const hi = $derived(Math.max(...shown.map((c) => c.h)));
-	const lo = $derived(Math.min(...shown.map((c) => c.l)));
+	const levels = $derived(chart.levels ?? []);
+	const hi = $derived(Math.max(...shown.map((c) => c.h), ...levels.map((l) => l.price)));
+	const lo = $derived(Math.min(...shown.map((c) => c.l), ...levels.map((l) => l.price)));
 	const maxVol = $derived(Math.max(1, ...shown.map((c) => c.v)));
 	const digits = $derived(hi >= 1000 ? 0 : 2);
 	const y = (p: number) => 10 + ((hi - p) / (hi - lo || 1)) * (PRICE_H - 20);
@@ -70,6 +72,10 @@
 				<text class="axis" x={cx(i)} y={H - 6} text-anchor="middle">{i + 1}</text>
 			{/if}
 		{/each}
+		{#each levels as lv (lv.kind)}
+			<line class="level {lv.kind}" x1={left} x2={W - 60} y1={y(lv.price)} y2={y(lv.price)} />
+			<text class="level-label {lv.kind}" x={W - 4} y={y(lv.price) - 3} text-anchor="end">{t(`academy.level.${lv.kind}`)} {fmt(lv.price)}</text>
+		{/each}
 		{#if chart.anatomy}
 			{@const c = chart.candles[0]}
 			{@const x0 = cx(0) + 45}
@@ -82,6 +88,11 @@
 			<text class="label muted" x={cx(0) - 45} y={(y(c.o) + y(c.l)) / 2 + 4} text-anchor="end">{t('academy.art.wick')}</text>
 		{/if}
 	</svg>
+	{#if levels.length}
+		<ul class="sr-only">
+			{#each levels as lv (lv.kind)}<li>{t(`academy.level.${lv.kind}`)}: {fmt(lv.price)}</li>{/each}
+		</ul>
+	{/if}
 	{#if !chart.anatomy}
 		<table class="sr-only">
 			<caption>{desc}</caption>
@@ -160,6 +171,36 @@
 	}
 	.label.muted {
 		fill: var(--muted);
+	}
+	.level {
+		stroke-width: 1.2;
+		stroke-dasharray: 5 3;
+		stroke: var(--info);
+	}
+	.level.stop,
+	.level.liquidation {
+		stroke: var(--down);
+	}
+	.level.target {
+		stroke: var(--up);
+	}
+	.level.mark {
+		stroke: var(--attention);
+	}
+	.level-label {
+		font-size: 10px;
+		font-family: var(--font-mono);
+		fill: var(--info);
+	}
+	.level-label.stop,
+	.level-label.liquidation {
+		fill: var(--down);
+	}
+	.level-label.target {
+		fill: var(--up);
+	}
+	.level-label.mark {
+		fill: var(--attention);
 	}
 	.future {
 		fill: var(--muted);

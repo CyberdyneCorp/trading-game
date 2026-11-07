@@ -70,7 +70,7 @@ void write_mission_rules(JsonOut& j, const Scenario& sc, const RunState& st) {
   for (const Objective& o : m.objectives) j.begin_obj().field("code", json_name(o.code)).field("valueBp", o.value_bp).end_obj();
   j.end_arr();
   j.field("liqWarningBp", m.liq_warning_bp).field("drawdownBudgetBp", m.drawdown_budget_bp);
-  j.field("confirmStopBeyondLiq", m.confirm_stop_beyond_liq);
+  j.field("confirmStopBeyondLiq", m.confirm_stop_beyond_liq).field("spreadMargin", sc.options.spread_margin);
   j.end_obj();
 }
 

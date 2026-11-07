@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m16-range-condor",
+  "description": "An iron condor of the first expiry (wings bought first) held to settlement.",
+  "mission": "m16-range-condor",
+  "seed": 2026,
+  "actions": [
+    {"k": "opt", "series": 4, "side": "buy", "type": "market", "qty": "20", "premium": null},
+    {"k": "opt", "series": 19, "side": "buy", "type": "market", "qty": "20", "premium": null},
+    {"k": "opt", "series": 8, "side": "sell", "type": "market", "qty": "20", "premium": null},
+    {"k": "opt", "series": 15, "side": "sell", "type": "market", "qty": "20", "premium": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "f1149ab4886140ec3c4cbef3e898149ee5681f078fc07ac315e0d644d5e160fe",
+    "eventsDigest": "f32b59783303ee7581829fbc1d6808a47d8f96bac490329d53d9fb2eaa97fdae",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

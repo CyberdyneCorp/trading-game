@@ -12,6 +12,11 @@
 	import Catalog from '#lib/components/Catalog.svelte';
 	import CurriculumMap from '#lib/components/CurriculumMap.svelte';
 	import LessonRunner from '#lib/components/LessonRunner.svelte';
+	import Academy from '#lib/components/Academy.svelte';
+	import Glossary from '#lib/components/Glossary.svelte';
+	import GlossaryDialog from '#lib/components/GlossaryDialog.svelte';
+	import { glossaryUi } from '#lib/game/glossaryUi.svelte.ts';
+	import LabScreen from '#lib/components/LabScreen.svelte';
 	import Journal from '#lib/components/Journal.svelte';
 	import Tutorial from '#lib/components/Tutorial.svelte';
 	import CrtOverlay from '#lib/components/CrtOverlay.svelte';
@@ -41,6 +46,7 @@
 		window.addEventListener('keydown', unlock);
 		const seed = Number(new URLSearchParams(location.search).get('seed'));
 		if (Number.isInteger(seed) && seed > 0) session.fixedSeed = seed;
+		glossaryUi.onOpen = (id) => session.markGlossarySeen(id);
 		void session.init();
 		return () => {
 			window.removeEventListener('pointerdown', unlock);
@@ -71,6 +77,12 @@
 	<CurriculumMap {session} />
 {:else if session.screen === 'lesson'}
 	<LessonRunner {session} />
+{:else if session.screen === 'academy'}
+	<Academy {session} />
+{:else if session.screen === 'glossary'}
+	<Glossary {session} />
+{:else if session.screen === 'lab'}
+	<LabScreen {session} />
 {:else if session.screen === 'catalog'}
 	<Catalog {session} />
 {:else if session.screen === 'journal'}
@@ -83,6 +95,10 @@
 	<Terminal {session} />
 {:else if session.screen === 'debrief' && session.debrief}
 	<Debrief {session} />
+{/if}
+
+{#if glossaryUi.open}
+	<GlossaryDialog seen={session.progress.glossarySeen} />
 {/if}
 
 {#if settings.crt}

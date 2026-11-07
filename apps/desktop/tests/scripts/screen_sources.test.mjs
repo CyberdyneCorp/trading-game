@@ -9,6 +9,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { checkI18n } from '../../scripts/check_i18n.mjs';
 import { DEFAULT_PATHS, generate, loadTypeScript } from '../../scripts/i18n_lib.mjs';
+import { stepTerms, stripLinks } from '../../scripts/screen_sources.mjs';
 
 const ts = loadTypeScript();
 
@@ -33,10 +34,40 @@ test('the real sources give objectives, findings, news names, Academy texts and 
 	assert.match(csv, /^news\.level\.4,muito positivo,very positive$/m);
 	assert.match(csv, /^academyLesson\.foundations-bar\.known\.choice\.close6,O fechamento da barra 6,/m);
 	const data = JSON.parse(content);
-	assert.equal(data.stages.length, 13);
+	assert.equal(data.stages.length, 14);
+	assert.equal(data.lessons.length, 16);
+	assert.doesNotMatch(csv, /\[\[/); // glossary links become plain text
 	assert.equal(data.lessons[0].steps.length, 8);
 	assert.equal(data.defaultKeymap.advance, 'Space');
 	assert.equal(data.campaignCapital, '10000');
+});
+
+test('the glossary, the guided first trade and the finding terms reach the catalog and content.json', () => {
+	const { csv, content } = generate(ts, DEFAULT_PATHS);
+	assert.match(csv, /^glossary\.liquidation-price\.term,Preço de liquidação,Liquidation price$/m);
+	assert.match(csv, /^glossary\.leverage\.short,/m);
+	assert.match(csv, /^glossary\.leverage\.aliases,/m);
+	assert.match(csv, /^coach\.stop\.title,"?O stop, antes da entrada/m);
+	const data = JSON.parse(content);
+	assert.ok(data.glossary.length >= 70);
+	assert.deepEqual(Object.keys(data.glossary[0]).sort(), ['id', 'related', 'stage']);
+	assert.deepEqual(data.coach.map((s) => s.id), ['chart', 'ticket', 'stop', 'risk', 'advance', 'debrief']);
+	assert.equal(data.findingTerms.no_stop, 'stop-loss');
+	// Each step lists the glossary terms its texts link, for the desktop's term buttons.
+	const ids = new Set(data.glossary.map((t) => t.id));
+	const linked = data.lessons.flatMap((l) => l.steps.flatMap((s) => s.terms ?? []));
+	assert.ok(linked.length > 0);
+	for (const id of linked) assert.ok(ids.has(id), `unknown term ${id}`);
+});
+
+test('glossary links: plain text for the catalog, linked ids for the step', () => {
+	assert.equal(stripLinks('a [[leverage|alavancagem]] e o [[strike|strike]].'), 'a alavancagem e o strike.');
+	// [[id]] alone shows the term's name in that locale (web glossary.ts plainText), never the bare id.
+	assert.equal(stripLinks('a [[margin-call]].'), 'a Chamada de margem.');
+	assert.equal(stripLinks('a [[margin-call]].', 'en'), 'a Margin call.');
+	assert.equal(stripLinks('[[no-such-term]]'), 'no-such-term');
+	const step = { text: { 'pt-BR': { body: '[[margin-call|chamada]] e [[leverage|x]]', right: '[[leverage|y]]', choices: { a: '[[gap]]' } } } };
+	assert.deepEqual(stepTerms(step), ['margin-call', 'leverage', 'gap']);
 });
 
 test('in sync: the committed outputs match', () => {

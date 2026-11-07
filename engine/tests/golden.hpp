@@ -44,6 +44,11 @@ RunResult replay_run(const detail::JsonValue& fx);
 // SHA-256 (hex) of the exact bytes tl_mission_reveal returns for a "reveal" fixture.
 std::string reveal_sha256(const detail::JsonValue& fx);
 
+// tl_option_whatif's output for a "whatif" fixture's request, and the fixture's expected result, both
+// in canonical JSON (RFC 8785) so they compare as text.
+std::string whatif_output(const detail::JsonValue& fx);
+std::string whatif_expected(const detail::JsonValue& fx);
+
 // The CSV text of a "csvPack" market: its lines joined with '\n', with a final '\n'.
 std::string csv_text(const detail::JsonValue& pack);
 

@@ -1,8 +1,9 @@
 // The player's progress and settings in SQLite (spec desktop-client "Local storage and offline"; the
 // web keeps the same data in IndexedDB `meta.progress`, the runs store and localStorage):
 //
-//   meta "progress"            storage::Progress (web Progress v2): tutorials seen, advisor points and
-//                              settled runs, perks introduced, Academy lessons, campaign + history, assessed
+//   meta "progress"            storage::Progress (web Progress v3): tutorials seen, advisor points and
+//                              settled runs, perks introduced, Academy lessons and their review schedule,
+//                              campaign + history, assessed, guided tours done, glossary terms opened
 //   meta "setting:display"     language, CRT effects, colorblind palette, text scale
 //   meta "setting:keymap"      the shortcut map (Settings and the terminal share it)
 //   meta "setting:audio"       mute, music and effects volumes (the web's tradelab.audio.v1)

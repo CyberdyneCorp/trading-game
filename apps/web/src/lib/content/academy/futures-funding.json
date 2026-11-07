@@ -1,0 +1,170 @@
+{
+	"id": "futures-funding",
+	"stage": "futures3",
+	"checks": [
+		{ "kind": "funding", "notional": 10000, "ratePct": 0.05, "expect": 5 },
+		{ "kind": "ratio", "a": 0.05, "b": 100, "expect": 0.0005 },
+		{ "kind": "product", "a": 5, "b": 3, "expect": 15 },
+		{ "kind": "product", "a": 5, "b": 9, "expect": 45 },
+		{ "kind": "return", "from": 10000, "to": 10045, "expect": 0.45, "digits": 2 },
+		{ "kind": "funding", "notional": 2000, "ratePct": 0.03, "expect": 0.6, "digits": 2 },
+		{ "kind": "funding", "notional": 2000, "ratePct": 0.3, "expect": 6, "digits": 2 }
+	],
+	"steps": [
+		{
+			"id": "funding",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Quem paga quem",
+					"body": "Um perpétuo não vence. Para mantê-lo perto do preço do ativo, a cada intervalo longs e shorts trocam o [[funding-rate|funding]]: nocional × taxa. Taxa positiva: longs pagam shorts. Taxa negativa: shorts pagam longs. Ele é cobrado sobre a posição aberta naquele momento, ganhando ou perdendo."
+				},
+				"en": {
+					"title": "Who pays whom",
+					"body": "A perpetual never expires. To keep it close to the asset's price, every interval longs and shorts exchange [[funding-rate|funding]]: notional × rate. A positive rate: longs pay shorts. A negative rate: shorts pay longs. It is charged on the position open at that moment, winning or losing."
+				}
+			}
+		},
+		{
+			"id": "carry",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "N",
+				"columns": [
+					{ "id": "interval" },
+					{ "id": "rate", "digits": 2, "suffix": "%" },
+					{ "id": "paid", "digits": 2 }
+				],
+				"rows": [
+					[1, 0.05, 5],
+					[2, 0.05, 5],
+					[3, 0.05, 5]
+				]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "O custo de carregar",
+					"body": "Um long de 10.000 de nocional com funding de +0,05% paga 5 por intervalo: 15 em três intervalos. Mantido por 9 intervalos, são 45, e o preço precisa subir 0,45% só para cobrir esse custo. Funding positivo por muito tempo mostra longs lotados: muita gente do mesmo lado.",
+					"columns": ["Intervalo", "Taxa", "Pago pelo long"]
+				},
+				"en": {
+					"title": "The cost of carry",
+					"body": "A long of 10,000 notional with +0.05% funding pays 5 per interval: 15 over three intervals. Held for 9 intervals, that is 45, and the price must rise 0.45% just to cover the cost. Funding that stays positive shows crowded longs: many people on the same side.",
+					"columns": ["Interval", "Rate", "Paid by the long"]
+				}
+			}
+		},
+		{
+			"id": "pay",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 5, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: quanto se paga?",
+					"body": "Você está long com 10.000 de nocional e o funding é +0,05%. Quanto você paga neste intervalo?",
+					"right": "10.000 × 0,05% = 5. Positivo: o long paga.",
+					"wrong": "Funding = nocional × taxa. Cuidado com a porcentagem: 0,05% é 0,0005."
+				},
+				"en": {
+					"title": "Decision: how much is paid?",
+					"body": "You are long 10,000 notional and funding is +0.05%. How much do you pay this interval?",
+					"right": "10,000 × 0.05% = 5. Positive: the long pays.",
+					"wrong": "Funding = notional × rate. Mind the percent: 0.05% is 0.0005."
+				}
+			}
+		},
+		{
+			"id": "crowded",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "longs" },
+					{ "kind": "text", "id": "shorts" },
+					{ "kind": "text", "id": "up" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o que a taxa diz?",
+					"body": "O funding ficou positivo e alto por muitos intervalos seguidos. O que isso indica?",
+					"right": "Muitos longs dispostos a pagar para ficar comprados: o lado long está lotado. Isso é um custo para eles, não uma previsão de direção.",
+					"wrong": "Quem paga é quem está do lado mais procurado.",
+					"choices": {
+						"longs": "O lado long está lotado e paga para ficar",
+						"shorts": "O lado short está lotado",
+						"up": "Que o preço vai subir"
+					},
+					"feedback": {
+						"up": "O funding mede o desequilíbrio entre longs e shorts, não prevê o preço. Lados lotados podem até virar de repente."
+					}
+				},
+				"en": {
+					"title": "Decision: what does the rate say?",
+					"body": "Funding stayed positive and high for many intervals in a row. What does that show?",
+					"right": "Many longs willing to pay to stay long: the long side is crowded. It is a cost for them, not a forecast of direction.",
+					"wrong": "The side that pays is the side more people want.",
+					"choices": {
+						"longs": "The long side is crowded and pays to stay",
+						"shorts": "The short side is crowded",
+						"up": "That the price will rise"
+					},
+					"feedback": {
+						"up": "Funding measures the imbalance between longs and shorts; it does not forecast price. Crowded sides can even turn suddenly."
+					}
+				}
+			}
+		},
+		{
+			"id": "negative",
+			"phase": "transfer",
+			"widget": {
+				"kind": "table",
+				"market": "P",
+				"columns": [
+					{ "id": "interval" },
+					{ "id": "rate", "digits": 2, "suffix": "%" }
+				],
+				"rows": [
+					[1, -0.03],
+					[2, -0.03]
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "pay06" },
+					{ "kind": "text", "id": "get06" },
+					{ "kind": "text", "id": "pay6" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: taxa negativa",
+					"body": "Mercado P: o funding está em −0,03%. Você está short com 2.000 de nocional. O que acontece no próximo intervalo?",
+					"right": "Taxa negativa: shorts pagam longs. 2.000 × 0,03% = 0,60 saem da sua conta.",
+					"wrong": "O sinal da taxa diz quem paga; o nocional × a taxa diz quanto.",
+					"choices": { "pay06": "Você paga 0,60", "get06": "Você recebe 0,60", "pay6": "Você paga 6,00" },
+					"feedback": {
+						"get06": "Com taxa positiva o short receberia. Aqui ela é negativa: o short paga.",
+						"pay6": "6,00 seria uma taxa de 0,3%. Confira as casas decimais: 0,03% de 2.000 é 0,60."
+					},
+					"columns": ["Intervalo", "Taxa"]
+				},
+				"en": {
+					"title": "Transfer: a negative rate",
+					"body": "Market P: funding is at −0.03%. You are short 2,000 notional. What happens at the next interval?",
+					"right": "A negative rate: shorts pay longs. 2,000 × 0.03% = 0.60 leaves your account.",
+					"wrong": "The sign of the rate says who pays; notional × rate says how much.",
+					"choices": { "pay06": "You pay 0.60", "get06": "You receive 0.60", "pay6": "You pay 6.00" },
+					"feedback": {
+						"get06": "With a positive rate the short would receive. Here it is negative: the short pays.",
+						"pay6": "6.00 would be a 0.3% rate. Check the decimals: 0.03% of 2,000 is 0.60."
+					},
+					"columns": ["Interval", "Rate"]
+				}
+			}
+		}
+	]
+}

@@ -1,0 +1,305 @@
+{
+	"id": "foundations-bar",
+	"stage": "foundations",
+	"checks": [
+		{ "kind": "diff", "a": 102.2, "b": 100.8, "expect": 1.4, "digits": 2 },
+		{ "kind": "return", "from": 100.8, "to": 102.2, "expect": 1.39, "digits": 2 },
+		{ "kind": "return", "from": 2400, "to": 2401.4, "expect": 0.06, "digits": 2 },
+		{ "kind": "diff", "a": 100.2, "b": 97.9, "expect": 2.3, "digits": 2 },
+		{ "kind": "return", "from": 99.4, "to": 100.6, "expect": 1.21, "digits": 2 },
+		{ "kind": "diff", "a": 100.6, "b": 99.4, "expect": 1.2, "digits": 2 },
+		{ "kind": "diff", "a": 2441, "b": 2380, "expect": 61 },
+		{ "kind": "diff", "a": 2394, "b": 2425, "expect": -31 },
+		{ "kind": "return", "from": 2425, "to": 2394, "expect": -1.28, "digits": 2 }
+	],
+	"steps": [
+		{
+			"id": "anatomy",
+			"phase": "concept",
+			"chart": { "market": "X", "interval": "1h", "candles": [{ "o": 100, "h": 104, "l": 98, "c": 103, "v": 0 }], "anatomy": true },
+			"text": {
+				"pt-BR": {
+					"title": "Uma barra, quatro preços",
+					"body": "Cada barra resume um intervalo: o preço de abertura, a máxima, a mínima e o fechamento. O corpo vai da abertura ao fechamento; os pavios mostram até onde o preço foi. Fechou acima da abertura: barra de alta (verde). Abaixo: de baixa (vermelha)."
+				},
+				"en": {
+					"title": "One bar, four prices",
+					"body": "Each bar sums up one interval: the open, the high, the low and the close. The body runs from open to close; the wicks show how far price went. Closed above the open: an up bar (green). Below: a down bar (red)."
+				}
+			}
+		},
+		{
+			"id": "interval",
+			"phase": "concept",
+			"chart": {
+				"market": "X",
+				"interval": "1h",
+				"candles": [
+					{ "o": 100.0, "h": 101.2, "l": 99.4, "c": 100.8, "v": 120 },
+					{ "o": 100.8, "h": 102.6, "l": 100.5, "c": 102.2, "v": 180 },
+					{ "o": 102.2, "h": 102.9, "l": 100.9, "c": 101.3, "v": 150 },
+					{ "o": 101.3, "h": 101.6, "l": 98.6, "c": 99.4, "v": 260 },
+					{ "o": 99.4, "h": 100.9, "l": 99.1, "c": 100.6, "v": 140 },
+					{ "o": 100.6, "h": 100.8, "l": 97.9, "c": 100.2, "v": 210 },
+					{ "o": 100.2, "h": 101.8, "l": 100.0, "c": 101.5, "v": 170 },
+					{ "o": 101.5, "h": 102.4, "l": 101.1, "c": 102.0, "v": 130 }
+				]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Intervalo e volume",
+					"body": "Neste gráfico cada barra é 1 hora: o intervalo (timeframe) diz quanto tempo cabe em uma barra. As colunas embaixo são o volume, quanto foi negociado naquela hora. Volume alto mostra participação, não direção."
+				},
+				"en": {
+					"title": "Interval and volume",
+					"body": "On this chart each bar is 1 hour: the interval (timeframe) says how much time one bar holds. The columns below are volume, how much traded in that hour. High volume shows participation, not direction."
+				}
+			}
+		},
+		{
+			"id": "return",
+			"phase": "demo",
+			"chart": {
+				"market": "X",
+				"interval": "1h",
+				"highlight": 2,
+				"candles": [
+					{ "o": 100.0, "h": 101.2, "l": 99.4, "c": 100.8, "v": 120 },
+					{ "o": 100.8, "h": 102.6, "l": 100.5, "c": 102.2, "v": 180 },
+					{ "o": 102.2, "h": 102.9, "l": 100.9, "c": 101.3, "v": 150 },
+					{ "o": 101.3, "h": 101.6, "l": 98.6, "c": 99.4, "v": 260 },
+					{ "o": 99.4, "h": 100.9, "l": 99.1, "c": 100.6, "v": 140 },
+					{ "o": 100.6, "h": 100.8, "l": 97.9, "c": 100.2, "v": 210 },
+					{ "o": 100.2, "h": 101.8, "l": 100.0, "c": 101.5, "v": 170 },
+					{ "o": 101.5, "h": 102.4, "l": 101.1, "c": 102.0, "v": 130 }
+				]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Preço contra retorno",
+					"body": "A barra 2 subiu de 100,80 para 102,20: 1,40 de preço, ou +1,39% de retorno. Os mesmos 1,40 em um mercado a 2.400 seriam só 0,06%. Compare movimentos em retorno (%), não em pontos."
+				},
+				"en": {
+					"title": "Price against return",
+					"body": "Bar 2 rose from 100.80 to 102.20: 1.40 in price, or a +1.39% return. The same 1.40 in a market at 2,400 would be only 0.06%. Compare moves as returns (%), not points."
+				}
+			}
+		},
+		{
+			"id": "wick",
+			"phase": "decision",
+			"chart": {
+				"market": "X",
+				"interval": "1h",
+				"candles": [
+					{ "o": 100.0, "h": 101.2, "l": 99.4, "c": 100.8, "v": 120 },
+					{ "o": 100.8, "h": 102.6, "l": 100.5, "c": 102.2, "v": 180 },
+					{ "o": 102.2, "h": 102.9, "l": 100.9, "c": 101.3, "v": 150 },
+					{ "o": 101.3, "h": 101.6, "l": 98.6, "c": 99.4, "v": 260 },
+					{ "o": 99.4, "h": 100.9, "l": 99.1, "c": 100.6, "v": 140 },
+					{ "o": 100.6, "h": 100.8, "l": 97.9, "c": 100.2, "v": 210 },
+					{ "o": 100.2, "h": 101.8, "l": 100.0, "c": 101.5, "v": 170 },
+					{ "o": 101.5, "h": 102.4, "l": 101.1, "c": 102.0, "v": 130 }
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "bar", "bar": 3 },
+					{ "kind": "bar", "bar": 4 },
+					{ "kind": "bar", "bar": 6 },
+					{ "kind": "bar", "bar": 7 }
+				],
+				"answer": 2
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: leia os pavios",
+					"body": "Qual barra fechou abaixo da abertura e tem o pavio inferior mais longo?",
+					"right": "Isso. A barra 6 abriu em 100,60, foi até 97,90 e fechou em 100,20: pavio inferior de 2,30. Vendedores empurraram, compradores trouxeram de volta.",
+					"wrong": "Ainda não. O pavio inferior vai do menor entre abertura e fechamento até a mínima. Compare as barras de baixa (fechamento abaixo da abertura)."
+				},
+				"en": {
+					"title": "Decision: read the wicks",
+					"body": "Which bar closed below its open and has the longest lower wick?",
+					"right": "Bar 6 opened at 100.60, went down to 97.90 and closed at 100.20: a 2.30 lower wick. Sellers pushed, buyers brought it back.",
+					"wrong": "Not yet. The lower wick runs from the lower of open and close down to the low. Compare the down bars (close below open)."
+				}
+			}
+		},
+		{
+			"id": "pct",
+			"phase": "decision",
+			"chart": {
+				"market": "X",
+				"interval": "1h",
+				"highlight": 5,
+				"candles": [
+					{ "o": 100.0, "h": 101.2, "l": 99.4, "c": 100.8, "v": 120 },
+					{ "o": 100.8, "h": 102.6, "l": 100.5, "c": 102.2, "v": 180 },
+					{ "o": 102.2, "h": 102.9, "l": 100.9, "c": 101.3, "v": 150 },
+					{ "o": 101.3, "h": 101.6, "l": 98.6, "c": 99.4, "v": 260 },
+					{ "o": 99.4, "h": 100.9, "l": 99.1, "c": 100.6, "v": 140 },
+					{ "o": 100.6, "h": 100.8, "l": 97.9, "c": 100.2, "v": 210 },
+					{ "o": 100.2, "h": 101.8, "l": 100.0, "c": 101.5, "v": 170 },
+					{ "o": 101.5, "h": 102.4, "l": 101.1, "c": 102.0, "v": 130 }
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "pct", "value": 1.21 },
+					{ "kind": "pct", "value": 0.12 },
+					{ "kind": "pct", "value": -1.21 },
+					{ "kind": "pct", "value": 12.07 }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: calcule o retorno",
+					"body": "A barra 5 abriu em 99,40 e fechou em 100,60. Qual foi o retorno dela?",
+					"right": "(100,60 − 99,40) / 99,40 = +1,21%.",
+					"wrong": "Retorno = (fechamento − abertura) / abertura. Aqui: 1,20 / 99,40."
+				},
+				"en": {
+					"title": "Decision: work out the return",
+					"body": "Bar 5 opened at 99.40 and closed at 100.60. What was its return?",
+					"right": "(100.60 − 99.40) / 99.40 = +1.21%.",
+					"wrong": "Return = (close − open) / open. Here: 1.20 / 99.40."
+				}
+			}
+		},
+		{
+			"id": "known",
+			"phase": "decision",
+			"chart": {
+				"market": "X",
+				"interval": "1h",
+				"known": 6,
+				"candles": [
+					{ "o": 100.0, "h": 101.2, "l": 99.4, "c": 100.8, "v": 120 },
+					{ "o": 100.8, "h": 102.6, "l": 100.5, "c": 102.2, "v": 180 },
+					{ "o": 102.2, "h": 102.9, "l": 100.9, "c": 101.3, "v": 150 },
+					{ "o": 101.3, "h": 101.6, "l": 98.6, "c": 99.4, "v": 260 },
+					{ "o": 99.4, "h": 100.9, "l": 99.1, "c": 100.6, "v": 140 },
+					{ "o": 100.6, "h": 100.8, "l": 97.9, "c": 100.2, "v": 210 },
+					{ "o": 100.2, "h": 101.8, "l": 100.0, "c": 101.5, "v": 170 },
+					{ "o": 101.5, "h": 102.4, "l": 101.1, "c": 102.0, "v": 130 }
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "close6" },
+					{ "kind": "text", "id": "high7" },
+					{ "kind": "text", "id": "dir7" },
+					{ "kind": "text", "id": "wickUp" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o que você já sabe?",
+					"body": "A barra 6 acabou de fechar. A área hachurada é o futuro. O que você sabe agora?",
+					"right": "Exato. Só o que já fechou é informação. A máxima da barra 7 e a direção dela ainda não existem, e um pavio longo não garante nada: padrões falham.",
+					"wrong": "Nada depois da barra 6 é conhecido. Um pavio longo é uma pista, não uma garantia: padrões falham com frequência.",
+					"choices": {
+						"close6": "O fechamento da barra 6",
+						"high7": "A máxima da barra 7",
+						"dir7": "Se a barra 7 vai fechar em alta",
+						"wickUp": "Que o pavio longo da barra 6 garante uma alta"
+					}
+				},
+				"en": {
+					"title": "Decision: what do you know?",
+					"body": "Bar 6 has just closed. The hatched area is the future. What do you know now?",
+					"right": "Exactly. Only what has closed is information. Bar 7’s high and direction do not exist yet, and a long wick guarantees nothing: patterns fail.",
+					"wrong": "Nothing after bar 6 is known. A long wick is a clue, not a guarantee: patterns fail often.",
+					"choices": {
+						"close6": "Bar 6’s close",
+						"high7": "Bar 7’s high",
+						"dir7": "Whether bar 7 will close up",
+						"wickUp": "That bar 6’s long wick guarantees a rise"
+					}
+				}
+			}
+		},
+		{
+			"id": "range",
+			"phase": "transfer",
+			"chart": {
+				"market": "Y",
+				"interval": "4h",
+				"candles": [
+					{ "o": 2410, "h": 2432, "l": 2398, "c": 2425, "v": 35 },
+					{ "o": 2425, "h": 2441, "l": 2380, "c": 2391, "v": 52 },
+					{ "o": 2391, "h": 2402, "l": 2350, "c": 2362, "v": 61 },
+					{ "o": 2362, "h": 2399, "l": 2355, "c": 2394, "v": 44 },
+					{ "o": 2394, "h": 2418, "l": 2388, "c": 2412, "v": 38 },
+					{ "o": 2412, "h": 2415, "l": 2371, "c": 2378, "v": 49 }
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "bar", "bar": 2 },
+					{ "kind": "bar", "bar": 3 },
+					{ "kind": "bar", "bar": 4 },
+					{ "kind": "bar", "bar": 6 }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: outro mercado",
+					"body": "Mercado Y, barras de 4 horas, preço perto de 2.400. Qual barra teve a maior amplitude (máxima − mínima)?",
+					"right": "Sim: a barra 2 foi de 2.441 a 2.380, amplitude de 61. As mesmas regras de leitura valem em qualquer mercado e intervalo.",
+					"wrong": "Amplitude = máxima − mínima, incluindo os pavios. Meça cada barra."
+				},
+				"en": {
+					"title": "Transfer: another market",
+					"body": "Market Y, 4-hour bars, price near 2,400. Which bar had the widest range (high − low)?",
+					"right": "Yes: bar 2 went from 2,441 to 2,380, a range of 61. The same reading rules hold in any market and interval.",
+					"wrong": "Range = high − low, wicks included. Measure each bar."
+				}
+			}
+		},
+		{
+			"id": "move",
+			"phase": "transfer",
+			"chart": {
+				"market": "Y",
+				"interval": "4h",
+				"highlight": 4,
+				"candles": [
+					{ "o": 2410, "h": 2432, "l": 2398, "c": 2425, "v": 35 },
+					{ "o": 2425, "h": 2441, "l": 2380, "c": 2391, "v": 52 },
+					{ "o": 2391, "h": 2402, "l": 2350, "c": 2362, "v": 61 },
+					{ "o": 2362, "h": 2399, "l": 2355, "c": 2394, "v": 44 },
+					{ "o": 2394, "h": 2418, "l": 2388, "c": 2412, "v": 38 },
+					{ "o": 2412, "h": 2415, "l": 2371, "c": 2378, "v": 49 }
+				]
+			},
+			"question": {
+				"choices": [
+					{ "kind": "pct", "value": -1.28 },
+					{ "kind": "pct", "value": 1.28 },
+					{ "kind": "pct", "value": -0.31 },
+					{ "kind": "pct", "value": -12.78 }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: retorno em outro nível de preço",
+					"body": "Do fechamento da barra 1 (2.425) ao fechamento da barra 4 (2.394), qual foi o retorno?",
+					"right": "−31 / 2.425 = −1,28%. No mercado X, 31 pontos seriam cerca de 30%: por isso se compara em retorno.",
+					"wrong": "Use os fechamentos: (2.394 − 2.425) / 2.425."
+				},
+				"en": {
+					"title": "Transfer: return at another price level",
+					"body": "From the close of bar 1 (2,425) to the close of bar 4 (2,394), what was the return?",
+					"right": "−31 / 2,425 = −1.28%. In market X, 31 points would be about 30%: that is why moves are compared as returns.",
+					"wrong": "Use the closes: (2,394 − 2,425) / 2,425."
+				}
+			}
+		}
+	]
+}

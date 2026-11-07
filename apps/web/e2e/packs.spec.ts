@@ -141,10 +141,10 @@ test('regression: a finished practice run does not change the advisor point bala
 	// Regression: nor is it a completed mission in the curriculum (before: "1 de 5"), now or after a reload.
 	await page.getByRole('button', { name: /Voltar às missões/ }).click();
 	await page.getByTestId('open-curriculum').click();
-	await expect(page.getByText(/Missões concluídas \(qualquer modo\): 0 de 12/)).toBeVisible();
+	await expect(page.getByText(/Missões concluídas \(qualquer modo\): 0 de 17/)).toBeVisible();
 	await page.goto('/?seed=11');
 	await page.getByTestId('open-curriculum').click();
-	await expect(page.getByText(/Missões concluídas \(qualquer modo\): 0 de 12/)).toBeVisible();
+	await expect(page.getByText(/Missões concluídas \(qualquer modo\): 0 de 17/)).toBeVisible();
 	await page.goto('/?seed=11');
 	await page.getByRole('button', { name: /Iniciar missão/ }).first().click();
 	await page.getByRole('button', { name: 'Pular tutorial' }).click();

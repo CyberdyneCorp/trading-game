@@ -70,6 +70,9 @@ struct Objective {
 };
 
 // The objectives of a mission that declares none (imported packs): plan, 2% risk, no liquidation.
+// The highest objective code this engine knows (validation of missions and pack manifests).
+constexpr ObjectiveCode kLastObjectiveCode = ObjectiveCode::NoRollWithoutThesis;
+
 inline std::vector<Objective> common_objectives() {
   return {{ObjectiveCode::PlanEveryEntry, 0}, {ObjectiveCode::RiskPerIdea, 200}, {ObjectiveCode::NoLiquidationWaitOk, 0}};
 }
@@ -123,6 +126,10 @@ struct OptionSpec {
   Rate im_floor;
   Rate mm_base;
   bool allow_short = false;
+  // Defined-risk margin (design D5 of add-academy-and-strategies): a short paired with longs of the
+  // same kind and expiry is margined at the smaller of its per-leg margin and its worst loss at
+  // expiry. Off: every short is margined on its own, exactly as before.
+  bool spread_margin = false;
 };
 
 // What the player can see about a news item once released (spec: market-generator "Events").

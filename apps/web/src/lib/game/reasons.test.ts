@@ -28,6 +28,17 @@ describe('reasonText', () => {
 });
 
 describe('tCount', () => {
+	// Playtest: a covered call on a held long is one order and read "Covered call · 1 legs".
+	it('regression: a one-leg combo is singular', () => {
+		expect(tCount('combo.label', 1, { name: 'Venda coberta de call' })).toBe('Venda coberta de call · 1 perna');
+		expect(tCount('combo.label', 4, { name: 'Iron condor' })).toBe('Iron condor · 4 pernas');
+		expect(tCount('glossary.count', 1)).toBe('1 termo'); // the glossary search read "1 termos"
+		expect(tCount('glossary.count', 80)).toBe('80 termos');
+		i18n.locale = 'en';
+		expect(tCount('combo.label', 1, { name: 'Covered call' })).toBe('Covered call · 1 leg');
+		i18n.locale = 'pt-BR';
+	});
+
 	// Playtest: the CSV import report read "2000 barras".
 	it('regression: writes the count in the locale ("2.000 barras", "2,000 bars")', () => {
 		expect(tCount('csv.rows', 2000)).toBe('2.000 barras');

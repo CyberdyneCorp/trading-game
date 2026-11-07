@@ -1,0 +1,95 @@
+{
+	"id": "first-trade",
+	"steps": [
+		{
+			"id": "chart",
+			"target": "chart",
+			"completes": "next",
+			"text": {
+				"pt-BR": {
+					"title": "O gráfico",
+					"body": "Cada barra fechada é informação; a próxima ainda não existe. Comece lendo a última barra: onde abriu, até onde foi e onde fechou."
+				},
+				"en": {
+					"title": "The chart",
+					"body": "Every closed bar is information; the next one does not exist yet. Start by reading the last bar: where it opened, how far it went and where it closed."
+				}
+			}
+		},
+		{
+			"id": "ticket",
+			"target": "ticket",
+			"completes": "next",
+			"text": {
+				"pt-BR": {
+					"title": "A boleta",
+					"body": "Aqui você escolhe o lado (comprar ou vender), o tamanho e o tipo de ordem. Uma ordem aceita ainda não foi executada: ela executa na próxima barra."
+				},
+				"en": {
+					"title": "The ticket",
+					"body": "Here you choose the side (buy or sell), the size and the order type. An accepted order is not filled yet: it fills on the next bar."
+				}
+			}
+		},
+		{
+			"id": "stop",
+			"target": "stop",
+			"completes": "stop",
+			"text": {
+				"pt-BR": {
+					"title": "O stop, antes da entrada",
+					"body": "Defina o stop antes de entrar: é o preço em que a sua ideia está errada. Digite um preço ou use um dos atalhos."
+				},
+				"en": {
+					"title": "The stop, before the entry",
+					"body": "Set the stop before entering: it is the price where your idea is wrong. Type a price or use one of the shortcuts."
+				}
+			}
+		},
+		{
+			"id": "risk",
+			"target": "risk",
+			"completes": "next",
+			"text": {
+				"pt-BR": {
+					"title": "O risco até o stop",
+					"body": "Esta linha mostra quanto você perde se o stop executar. Compare com o seu capital: mantenha cada trade perto de 1% ou menos."
+				},
+				"en": {
+					"title": "The risk to the stop",
+					"body": "This line shows how much you lose if the stop fills. Compare it with your capital: keep each trade near 1% or less."
+				}
+			}
+		},
+		{
+			"id": "advance",
+			"target": "advance",
+			"completes": "advance",
+			"text": {
+				"pt-BR": {
+					"title": "O tempo só anda quando você avança",
+					"body": "Nada acontece até você avançar uma barra. Esperar também é uma decisão: avance quando estiver pronto."
+				},
+				"en": {
+					"title": "Time moves only when you advance",
+					"body": "Nothing happens until you advance a bar. Waiting is a decision too: advance when you are ready."
+				}
+			}
+		},
+		{
+			"id": "debrief",
+			"target": "debrief",
+			"completes": "next",
+			"text": {
+				"pt-BR": {
+					"title": "O debrief",
+					"body": "Aqui o resultado vem depois do processo: confira primeiro os achados (plano, stop, tamanho), depois o lucro ou o prejuízo."
+				},
+				"en": {
+					"title": "The debrief",
+					"body": "Here the process comes before the result: read the findings first (plan, stop, size), then the profit or loss."
+				}
+			}
+		}
+	]
+}

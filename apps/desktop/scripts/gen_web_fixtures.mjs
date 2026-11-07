@@ -30,10 +30,13 @@ const server = await createServer({
 	optimizeDeps: { noDiscovery: true, include: [] }
 });
 
-const load = (name) => server.ssrLoadModule(`/src/lib/game/${name}`);
+// A bare name is a game helper (src/lib/game); 'content/x.ts' is under src/lib.
+const load = (name) => server.ssrLoadModule(name.includes('/') ? `/src/lib/${name}` : `/src/lib/game/${name}`);
+// The engine's what-if golden fixtures: real engine answers for the lab's chart geometry.
+const golden = (name) => JSON.parse(readFileSync(resolve(here, `../../../engine/tests/golden/${name}.json`), 'utf8')).expected.result;
 let fixtures;
 try {
-	fixtures = await buildFixtures(load);
+	fixtures = await buildFixtures(load, golden);
 } finally {
 	await server.close();
 }

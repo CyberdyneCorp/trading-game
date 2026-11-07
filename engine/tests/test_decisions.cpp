@@ -124,7 +124,7 @@ TEST_CASE("Mission rules: objectives, permissions and warning distances come fro
   CHECK(s.find(R"("missionRules":{"initialBalance":"10000.00000000","leverageCap":10,"warmupBars":50,)"
                R"("permissions":{"long":true,"short":true,"optionsBuy":false,"optionsWrite":false},)"
                R"("objectives":[{"code":"plan_every_entry","valueBp":0},{"code":"risk_per_idea","valueBp":200},{"code":"liq_distance","valueBp":1000}],)"
-               R"("liqWarningBp":1000,"drawdownBudgetBp":2000,"confirmStopBeyondLiq":true})") != std::string::npos);
+               R"("liqWarningBp":1000,"drawdownBudgetBp":2000,"confirmStopBeyondLiq":true,"spreadMargin":false})") != std::string::npos);
   tl_run_destroy(m02);
   tl_run* m09 = tl_run_create("m09-event-straddle", 1);
   s = tl_state(m09);

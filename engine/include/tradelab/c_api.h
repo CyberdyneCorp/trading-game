@@ -93,6 +93,36 @@ const char* tl_debrief(tl_run* run);
  * on that mission and seed: clients ask for it only after the run has ended (design D6). */
 const char* tl_mission_reveal(const char* mission_id, uint32_t seed);
 
+/* ---- Report-only option analysis (design D4 of add-academy-and-strategies). ----
+ * None of these changes a run, its log, checkpoint or digests, and none reads data after the
+ * current step. Errors: {"error":"invalid_input"} (malformed or out-of-range request) or
+ * {"error":"series_not_listed"}. Output (WhatIfResult in the IDL): per leg the value per unit
+ * (Price, not tick-rounded), IV used (and whether the 5% floor applied), delta and gamma per unit
+ * (1e-10), theta per step and vega per volatility point (Price), the position value and P&L
+ * (Money, signed: short legs negative); "net" sums them (delta and gamma at 1e-8); "expiry" (null
+ * unless every option leg shares one expiry) has the exact breakevens, maxProfit and maxLoss (a
+ * positive maxLoss is a loss; null = unbounded, always above, since prices stop at 0) and the
+ * payoff curve; "today" is the curve at the shifted time and IV. Curves are [price, pnl] pairs on
+ * the grid (default forward -30%..+30%, 61 points; at most 401). */
+
+/* Run-less (the Academy, static buffer): {"forward","minutesPerStep","multiplier",
+ * "legs":[{"kind":"call|put|perp","side":"buy|sell","qty","strike","minutesToExpiry","iv","entry"}],
+ * "shift":{"forward","minutesElapsed","ivPoints"},"grid":{"lo","hi","points"}}. sigma = max(5%,
+ * iv + ivPoints / 100); a perpetual leg's units are qty x multiplier like an option's. */
+const char* tl_option_whatif(const char* request_json);
+/* The run's valuation (the terminal lab): legs {"series"} or {"kind":"perp"}, "side", "qty" and an
+ * optional "entry" (default: the ask to buy, the bid to sell, the last close for the perpetual);
+ * "shift":{"forward","bars","ivPoints"}. The IV model uses the base published at the current step,
+ * the term factor at the shifted time and skew and smile at the shifted forward; with no shift each
+ * leg's value rounds to the series' mid and its Greeks equal the quote's. */
+const char* tl_run_option_whatif(tl_run* run, const char* request_json);
+/* Dry run of up to 8 market legs, in order ({"legs":[{"series"} | {"kind":"perp"}, "side", "qty"]}),
+ * on a copy of the run state with the command functions: per leg accepted, reason, the quote it
+ * would cross, premium, fee, what the command checks ("required") and the available balance after
+ * it; totals, and the margins and available balance once the accepted legs fill at today's quotes
+ * (an estimate: execution uses the next open). */
+const char* tl_combo_preview(tl_run* run, const char* legs_json);
+
 /* ---- Scenario packs and private CSV import (spec scenario-packs). ----
  * Packs are byte buffers (pointer + size). trusted_keys_json is [{"id":"...","key":"<64 hex>"}]:
  * the client's pinned publisher keys plus its own device key. Reason codes are listed in

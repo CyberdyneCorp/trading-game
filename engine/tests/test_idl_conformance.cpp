@@ -298,3 +298,26 @@ TEST_CASE("IDL conformance checker rejects output that drifts from the IDL") {
   CHECK(drifted(R"("leverage":)", R"("leverage":"1","x":)").size() == 2);            // wrong type + unknown key
   CHECK_FALSE(drifted(R"("wallet":")", R"("wallet":"x)").empty());                    // not a decimal
 }
+
+TEST_CASE("IDL conformance: what-if valuation and combo dry run") {
+  const char* runless =
+      R"({"forward":"100","minutesPerStep":1440,"multiplier":"1","legs":[{"kind":"call","side":"buy","qty":"1","strike":"100",)"
+      R"("minutesToExpiry":43200,"iv":"0.60","entry":"4.12"},{"kind":"perp","side":"sell","qty":"1","entry":"100"}],)"
+      R"("shift":{"forward":"105","minutesElapsed":1440,"ivPoints":"-5"},"grid":{"lo":"70","hi":"130","points":7}})";
+  conforms(tl_option_whatif(runless), "WhatIfResult");
+  conforms(tl_option_whatif("{}"), "EngineError");
+  tl_run* run = tl_run_create("m05-options-writer", 4);
+  REQUIRE(run != nullptr);
+  const std::uint32_t series = first_option_series(tl_state(run));
+  REQUIRE(series != 0);
+  const std::string legs = R"({"legs":[{"series":)" + std::to_string(series) +
+                           R"(,"side":"sell","qty":"1"},{"kind":"perp","side":"buy","qty":"1"},{"series":)" +
+                           std::to_string(series) + R"(,"side":"buy","qty":"100000"}],"shift":{"bars":3}})";
+  conforms(tl_run_option_whatif(run, legs.c_str()), "WhatIfResult");
+  const std::string preview = tl_combo_preview(run, legs.c_str());
+  conforms(preview, "ComboPreview");
+  CHECK(preview.find("\"insufficient_margin\"") != std::string::npos);
+  conforms(tl_run_option_whatif(run, R"({"legs":[{"series":1000000,"side":"buy","qty":"1"}]})"), "EngineError");
+  conforms(tl_combo_preview(run, "[]"), "EngineError");
+  tl_run_destroy(run);
+}

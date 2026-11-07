@@ -4,7 +4,7 @@
 	import { keyLabel, SHORTCUT_ACTIONS } from '#lib/game/shortcuts.ts';
 	import ShortcutSettings, { ACTION_LABEL } from './ShortcutSettings.svelte';
 
-	let { onClose }: { onClose: () => void } = $props();
+	let { onClose, onTour }: { onClose: () => void; onTour?: () => void } = $props();
 	let editing = $state(false);
 </script>
 
@@ -28,6 +28,7 @@
 			<p class="muted">{t('brief.rules')}</p>
 		{/if}
 		<div class="row">
+			{#if onTour}<button onclick={onTour} data-testid="help-tour">🧭 {t('coach.replay')}</button>{/if}
 			<button onclick={() => (editing = !editing)} aria-pressed={editing} data-testid="help-remap">{t(editing ? 'keys.done' : 'keys.edit')}</button>
 			<button class="primary" onclick={onClose}>OK</button>
 		</div>

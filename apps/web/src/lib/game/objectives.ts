@@ -42,7 +42,17 @@ const PT: Catalog = {
 	finish_mission: 'Termine a missão.',
 	plan_and_stop_every_entry: 'Cada entrada com plano e stop.',
 	no_liquidation_no_margin_call: 'Nenhuma liquidação e nenhuma chamada de margem.',
-	read_campaign_report: 'Leia o relatório da campanha antes de concluir qualquer coisa.'
+	read_campaign_report: 'Leia o relatório da campanha antes de concluir qualquer coisa.',
+	spread_breakevens: 'Antes de entrar, escreva o ponto de equilíbrio e a perda máxima da trava e da call sozinha.',
+	cover_short_leg: 'Nunca deixe a opção vendida descoberta: feche-a antes ou junto com a comprada.',
+	capped_max_profit: 'Antes de vender a call, escreva o lucro máximo, que fica limitado pelo strike.',
+	premium_vs_funding: 'Compare o prêmio recebido com o funding pago pelo long.',
+	floor_before_buying: 'Antes de comprar a put, escreva o piso: a perda máxima da posição protegida.',
+	record_tenor: 'Escolha o vencimento da proteção e registre por que ele cobre o risco.',
+	size_by_max_loss: 'Dimensione pela perda máxima: até {pct} do patrimônio numa estrutura de risco definido.',
+	breakout_exit_rule: 'Antes de entrar, escreva o que fará se o mercado romper o range.',
+	decide_before_expiry: 'Antes das 5 últimas barras de um vencimento, decida fechar, rolar ou manter, e registre por quê.',
+	no_roll_without_thesis: 'Não role sem uma tese nova: julgue a rolagem como uma entrada nova.'
 };
 
 const EN: Catalog = {
@@ -78,7 +88,17 @@ const EN: Catalog = {
 	finish_mission: 'Finish the mission.',
 	plan_and_stop_every_entry: 'Every entry with a plan and a stop.',
 	no_liquidation_no_margin_call: 'No liquidation and no margin call.',
-	read_campaign_report: 'Read the campaign report before concluding anything.'
+	read_campaign_report: 'Read the campaign report before concluding anything.',
+	spread_breakevens: 'Before entering, write the breakeven and the maximum loss of both the spread and the call alone.',
+	cover_short_leg: 'Never leave the written option uncovered: close it before or with the bought one.',
+	capped_max_profit: 'Before selling the call, write the maximum profit, which the strike caps.',
+	premium_vs_funding: 'Compare the premium collected with the funding the long pays.',
+	floor_before_buying: 'Before buying the put, write the floor: the hedged position’s maximum loss.',
+	record_tenor: 'Choose the hedge’s expiry and record why it covers the risk.',
+	size_by_max_loss: 'Size by the maximum loss: at most {pct} of equity in a defined-risk structure.',
+	breakout_exit_rule: 'Before entering, write what you will do if the market breaks out of the range.',
+	decide_before_expiry: 'Before an expiry’s last 5 bars, decide to close, roll or hold, and record why.',
+	no_roll_without_thesis: 'Do not roll without a new thesis: judge the roll as a fresh entry.'
 };
 
 const CATALOGS: Record<Locale, Catalog> = { 'pt-BR': PT, en: EN };

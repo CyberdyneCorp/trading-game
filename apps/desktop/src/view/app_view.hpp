@@ -14,7 +14,9 @@
 #include <string_view>
 #include <vector>
 
+#include "view/game/coach_view.hpp"
 #include "view/game/game_view.hpp"
+#include "view/screens/lab_screen.hpp"
 #include "view/screens/shell_view.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -55,6 +57,8 @@ class AppView {
   std::unique_ptr<ShellView> shell_;
   std::uint64_t shown_revision_ = 0;
   std::unique_ptr<view::GameView> game_view_;
+  std::unique_ptr<view::CoachView> coach_view_;
+  std::unique_ptr<view::LabScreen> lab_screen_;
 };
 
 // Starts Raven on the null platform and backend (no window system, no GPU): headless tests.

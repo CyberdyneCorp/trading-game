@@ -217,7 +217,7 @@ void GameView::apply_ticket(const game::Texts& t, const GameState& g) {
   GameViewModel& m = vm();
   const bool options = g.options.enabled;
   set_visible(find(n::kTabs), options);
-  Rswitcher_set_index(find(n::kTicketSwitch), options && m.tab() == game::Tab::Options ? 1 : 0);
+  Rswitcher_set_index(find(n::kTicketSwitch), options ? static_cast<int>(m.tab()) : 0);  // perp, options, builder
   ui::set_text(find(n::kTabPerp), std::string(m.tab() == game::Tab::Perp ? "\xE2\x96\xB8 " : "") + t.tr("opt.tabPerp"));
   ui::set_text(find(n::kTabOptions), std::string(m.tab() == game::Tab::Options ? "\xE2\x96\xB8 " : "") + t.tr("opt.tabOptions"));
   const game::TicketView v = m.ticket.view(t, g, m.busy());

@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 
+#include <algorithm>
+
 #include "scenario_builder.hpp"
 #include "tradelab/scoring.hpp"
 
@@ -463,6 +465,69 @@ TEST_CASE("Regression: a profitable planned naked option write is never praised 
   REQUIRE(r.net_pnl.raw > 0);
   CHECK_FALSE(has(r, FindingCode::GoodProcessWin));
   CHECK(has(r, FindingCode::WroteOptions));
+}
+
+namespace {
+Scenario spread_scenario() {
+  Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "104", "100", "104"},
+                               {"104", "108", "104", "108"}, {"108", "108", "108", "108"}, {"108", "108", "108", "108"}});
+  add_options(sc, 5, {"100", "101"}, true);  // ids: 1 C100, 2 P100, 3 C101, 4 P101 (both with a bid)
+  return sc;
+}
+
+bool filled(const RunState& st, std::uint32_t series, OrderSide side) {
+  return std::any_of(st.events.begin(), st.events.end(),
+                     [&](const Event& e) { return e.type == EventType::Fill && e.series == series && e.side == side; });
+}
+}  // namespace
+
+TEST_CASE("Regression (v13): a bull call spread's short call is covered, not naked writing") {
+  // Before: any written option raised wrote_options, so the m13 debrief told a spread player
+  // "you wrote options uncovered" and withheld the good-process credit.
+  const Scenario sc = spread_scenario();
+  Driver d(sc);
+  REQUIRE(d.plan(OrderSide::Buy, nullptr, "100", false, true).accepted);
+  REQUIRE(d.option(1, OrderSide::Buy, "5").accepted);   // long C100 first
+  REQUIRE(d.option(3, OrderSide::Sell, "5").accepted);  // short C101, same expiry
+  d.step(5);
+  REQUIRE(filled(d.state(), 3, OrderSide::Sell));
+  const ScoreReport r = score_run(sc, d.state());
+  CHECK_FALSE(has(r, FindingCode::WroteOptions));
+}
+
+TEST_CASE("v13: a short call covered by a long perpetual (covered call) is not naked writing") {
+  const Scenario sc = spread_scenario();
+  Driver d(sc);
+  d.order(OrderType::Market, OrderSide::Buy, "5");
+  REQUIRE(d.option(3, OrderSide::Sell, "5").accepted);
+  d.step(5);
+  REQUIRE(filled(d.state(), 3, OrderSide::Sell));
+  CHECK_FALSE(has(score_run(sc, d.state()), FindingCode::WroteOptions));
+}
+
+TEST_CASE("v13: closing the long that covered a short leaves it naked") {
+  const Scenario sc = spread_scenario();
+  Driver d(sc);
+  REQUIRE(d.option(1, OrderSide::Buy, "5").accepted);
+  REQUIRE(d.option(3, OrderSide::Sell, "5").accepted);
+  d.step(1);
+  REQUIRE(d.option(1, OrderSide::Sell, "5").accepted);  // the cover is sold, the short stays
+  d.step(4);
+  CHECK(has(score_run(sc, d.state()), FindingCode::WroteOptions));
+}
+
+TEST_CASE("v13: a short put is not covered by a long call, nor by more shorts than longs") {
+  const Scenario sc = spread_scenario();
+  Driver d(sc);
+  REQUIRE(d.option(1, OrderSide::Buy, "5").accepted);
+  REQUIRE(d.option(4, OrderSide::Sell, "5").accepted);  // short P101: another kind
+  d.step(5);
+  CHECK(has(score_run(sc, d.state()), FindingCode::WroteOptions));
+  Driver e(sc);
+  REQUIRE(e.option(1, OrderSide::Buy, "2").accepted);
+  REQUIRE(e.option(3, OrderSide::Sell, "5").accepted);  // 3 of 5 uncovered
+  e.step(5);
+  CHECK(has(score_run(sc, e.state()), FindingCode::WroteOptions));
 }
 
 TEST_CASE("Regression: a profit where one trade had no plan says so (findings never empty)") {

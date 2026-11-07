@@ -4,7 +4,11 @@
 	import { t } from '#lib/game/i18n.svelte.ts';
 	import JournalEntries from './JournalEntries.svelte';
 
-	let { entries, onClose }: { entries: readonly PlanEntry[]; onClose: () => void } = $props();
+	let {
+		entries,
+		onClose,
+		comboNote
+	}: { entries: readonly PlanEntry[]; onClose: () => void; comboNote?: (id: string) => string | null } = $props();
 </script>
 
 <div class="modal-backdrop" role="presentation" onclick={onClose}>
@@ -13,7 +17,7 @@
 		{#if entries.length === 0}
 			<p class="muted" data-testid="run-journal-empty">{t('runJournal.empty')}</p>
 		{:else}
-			<JournalEntries {entries} />
+			<JournalEntries {entries} {comboNote} />
 		{/if}
 		<button class="primary" onclick={onClose}>OK</button>
 	</div>

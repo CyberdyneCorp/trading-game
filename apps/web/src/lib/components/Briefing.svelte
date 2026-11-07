@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { GameSession } from '#lib/game/session.svelte.ts';
+	import { coach } from '#lib/game/coach.svelte.ts';
 	import { missionText, packModeKey } from '#lib/game/missions.ts';
 	import { campaignMissions, campaignPermissions, LOCKED_LEVERAGE_CAP, unlockStage } from '#lib/game/curriculum.ts';
 	import { tutorialFor } from '#lib/game/tutorials.ts';
@@ -86,6 +87,13 @@
 			<span class="left">
 				<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
 				{#if tutorialFor(s.mission, L).length}<button onclick={() => session.showTutorial()}>? {t('brief.tutorial')}</button>{/if}
+				<button
+					onclick={() => {
+						coach.requested = true;
+						session.enterTerminal();
+					}}
+					data-testid="brief-tour">🧭 {t('coach.replay')}</button
+				>
 			</span>
 			<!-- svelte-ignore a11y_autofocus -->
 			<button class="primary" onclick={() => session.enterTerminal()} autofocus>▶ {t('brief.go')}</button>

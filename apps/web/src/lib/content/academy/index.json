@@ -1,0 +1,148 @@
+{
+	"lessons": [
+		{
+			"id": "foundations-bar",
+			"stage": "foundations",
+			"title": { "pt-BR": "Ler uma barra", "en": "Reading a bar" },
+			"summary": {
+				"pt-BR": "Abertura, máxima, mínima e fechamento; corpo, pavios e volume; preço contra retorno; o que já se sabe e o que é futuro.",
+				"en": "Open, high, low and close; body, wicks and volume; price against return; what is known and what is future."
+			}
+		},
+		{
+			"id": "structure-zones",
+			"stage": "structure",
+			"title": { "pt-BR": "Zonas e estrutura", "en": "Zones and structure" },
+			"summary": {
+				"pt-BR": "Suporte e resistência são zonas; topos e fundos ascendentes; rompimento contra reteste; quando a estrutura quebra.",
+				"en": "Support and resistance are zones; higher highs and higher lows; breakout against retest; when the structure breaks."
+			}
+		},
+		{
+			"id": "orders-execution",
+			"stage": "orders",
+			"title": { "pt-BR": "Ordens e execução", "en": "Orders and execution" },
+			"summary": {
+				"pt-BR": "Mercado, limitada e stop; aceita não é executada; spread, slippage e capacidade; um stop que escorregou num gap.",
+				"en": "Market, limit and stop; accepted is not filled; spread, slippage and capacity; a stop that slipped in a gap."
+			}
+		},
+		{
+			"id": "futures-pnl",
+			"stage": "futures1",
+			"title": { "pt-BR": "Long, short e resultado", "en": "Long, short and P&L" },
+			"summary": {
+				"pt-BR": "Um contrato linear: resultado de long e short, nocional e taxas na entrada e na saída.",
+				"en": "A linear contract: long and short P&L, notional, and fees on entry and exit."
+			}
+		},
+		{
+			"id": "futures-margin",
+			"stage": "futures2",
+			"title": { "pt-BR": "Margem, alavancagem e liquidação", "en": "Margin, leverage and liquidation" },
+			"summary": {
+				"pt-BR": "Margem inicial e de manutenção, alavancagem, preço de liquidação, margem isolada e marcação contra último preço.",
+				"en": "Initial and maintenance margin, leverage, liquidation price, isolated margin and mark against last price."
+			}
+		},
+		{
+			"id": "futures-funding",
+			"stage": "futures3",
+			"title": { "pt-BR": "Funding", "en": "Funding" },
+			"summary": {
+				"pt-BR": "Quem paga quem a cada intervalo, quanto, o que uma taxa persistente diz e o custo de carregar a posição.",
+				"en": "Who pays whom every interval, how much, what a persistent rate says and the cost of carrying a position."
+			}
+		},
+		{
+			"id": "risk-sizing",
+			"stage": "risk",
+			"title": { "pt-BR": "Dimensionar pelo stop", "en": "Sizing from the stop" },
+			"summary": {
+				"pt-BR": "Quantidade = orçamento de risco / distância até o stop; a alavancagem não muda esse risco; múltiplos de R.",
+				"en": "Quantity = risk budget / distance to the stop; leverage does not change that risk; R multiples."
+			}
+		},
+		{
+			"id": "risk-expectancy",
+			"stage": "risk",
+			"title": { "pt-BR": "Expectativa e drawdown", "en": "Expectancy and drawdown" },
+			"summary": {
+				"pt-BR": "Expectativa em R, sequências de perdas, a matemática da recuperação e por que poucas amostras enganam.",
+				"en": "Expectancy in R, losing streaks, the arithmetic of recovery and why small samples mislead."
+			}
+		},
+		{
+			"id": "options-payoff",
+			"stage": "options1",
+			"title": { "pt-BR": "Calls, puts e payoff", "en": "Calls, puts and payoff" },
+			"summary": {
+				"pt-BR": "O direito de comprar ou vender; prêmio; valor intrínseco e de tempo; payoff no vencimento; ponto de equilíbrio.",
+				"en": "The right to buy or sell; premium; intrinsic and time value; payoff at expiry; breakeven."
+			}
+		},
+		{
+			"id": "options-greeks",
+			"stage": "options2",
+			"title": { "pt-BR": "As gregas", "en": "The Greeks" },
+			"summary": {
+				"pt-BR": "Delta, gamma, theta e vega: o que cada uma mede e qual delas explica um ganho ou uma perda.",
+				"en": "Delta, gamma, theta and vega: what each one measures and which one explains a gain or a loss."
+			}
+		},
+		{
+			"id": "options-iv",
+			"stage": "options2",
+			"title": { "pt-BR": "Volatilidade implícita", "en": "Implied volatility" },
+			"summary": {
+				"pt-BR": "IV contra volatilidade realizada, o movimento que o preço da opção embute, o decaimento e a queda da IV depois de eventos.",
+				"en": "IV against realized volatility, the move an option's price implies, time decay and IV crush after events."
+			}
+		},
+		{
+			"id": "options-writing",
+			"stage": "options3",
+			"title": { "pt-BR": "Vender opções", "en": "Writing options" },
+			"summary": {
+				"pt-BR": "Prêmio recebido e obrigação; margem e chamada de margem; liquidação em dinheiro; venda coberta, put de proteção e travas.",
+				"en": "Premium received and obligation; margin and margin calls; cash settlement; covered call, protective put and spreads."
+			}
+		},
+		{
+			"id": "strategies-shapes",
+			"stage": "strategies",
+			"title": { "pt-BR": "Estruturas e formas de payoff", "en": "Structures and payoff shapes" },
+			"summary": {
+				"pt-BR": "Travas, straddle, strangle e iron condor; risco definido contra indefinido; risco de perna e custo de várias pernas.",
+				"en": "Verticals, straddle, strangle and iron condor; defined against undefined risk; legging risk and the cost of several legs."
+			}
+		},
+		{
+			"id": "patterns-lag",
+			"stage": "patterns",
+			"title": { "pt-BR": "Indicadores e regime", "en": "Indicators and regime" },
+			"summary": {
+				"pt-BR": "Indicadores resumem o passado; primeiro o regime; um padrão que falhou e quanto ele custou.",
+				"en": "Indicators summarize the past; regime first; a pattern that failed and what it cost."
+			}
+		},
+		{
+			"id": "events-surprise",
+			"stage": "events",
+			"title": { "pt-BR": "Consenso, surpresa e gaps", "en": "Consensus, surprise and gaps" },
+			"summary": {
+				"pt-BR": "O consenso já está no preço; só a surpresa move; gaps saltam stops; notícia boa pode cair.",
+				"en": "The consensus is priced; only the surprise moves it; gaps jump stops; good news can sell off."
+			}
+		},
+		{
+			"id": "mind-plan",
+			"stage": "evaluation",
+			"title": { "pt-BR": "Plano, diário e vieses", "en": "Plan, journal and biases" },
+			"summary": {
+				"pt-BR": "Hipótese, invalidação e tamanho antes da entrada; o diário; FOMO, vingança e excesso de confiança; calibração.",
+				"en": "Thesis, invalidation and size before the entry; the journal; FOMO, revenge and overconfidence; calibration."
+			}
+		}
+	]
+}

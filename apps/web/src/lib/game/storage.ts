@@ -8,6 +8,7 @@
 import type { PackText } from '#lib/engine/types.ts';
 import type { AssistedLink } from './assisted.ts';
 import type { CampaignLink, CampaignProgress, CampaignRun } from './campaign.ts';
+import { readReviews, type LessonReviews } from './review.ts';
 import type { PartialStore } from './download.ts';
 import type { SeriesKey } from './eventNames.ts';
 import { START_POINTS } from './points.ts';
@@ -101,12 +102,14 @@ export interface StoredRun<A, J, Q> {
 }
 
 /**
- * Per-device player progress (specs mission-tutorial, progression-rewards, curriculum). Version 2
- * adds the campaign run, its history and the missions assessed in a campaign (curriculum stages);
- * `perksIntroduced` is a later key of version 2 (absent = none explained yet).
+ * Per-device player progress (specs mission-tutorial, progression-rewards, curriculum, academy,
+ * guided-first-trade, glossary). Version 2 adds the campaign run, its history and the missions
+ * assessed in a campaign (curriculum stages); `perksIntroduced` is a later key of version 2 (absent =
+ * none explained yet). Version 3 adds the spaced-review schedule, the tours done and the glossary
+ * terms seen (add-academy-and-strategies design D9).
  */
 export interface Progress extends CampaignProgress {
-	version: 2;
+	version: 3;
 	tutorialsSeen: string[];
 	/** Advisor point balance (see points.ts). */
 	advisorPoints: number;
@@ -114,17 +117,26 @@ export interface Progress extends CampaignProgress {
 	settledRuns: string[];
 	/** Intel perks already explained on a briefing (perks.ts). */
 	perksIntroduced: string[];
-	/** Academy lessons completed (lessons.ts); a later key of version 2 (absent = none). */
+	/** Academy lessons completed (content/academy); a later key of version 2 (absent = none). */
 	lessonsDone: string[];
+	/** Spaced review of completed lessons, by lesson id (review.ts). */
+	lessonReviews: LessonReviews;
+	/** Guided tours finished or skipped on this device ("first-trade"). */
+	coachDone: string[];
+	/** Glossary terms opened (only for a "new" mark; never gates anything). */
+	glossarySeen: string[];
 }
 
 export const EMPTY_PROGRESS: Progress = {
-	version: 2,
+	version: 3,
 	tutorialsSeen: [],
 	advisorPoints: START_POINTS,
 	settledRuns: [],
 	perksIntroduced: [],
 	lessonsDone: [],
+	lessonReviews: {},
+	coachDone: [],
+	glossarySeen: [],
 	campaign: null,
 	campaignHistory: [],
 	assessed: []
@@ -136,18 +148,22 @@ const isCampaign = (v: unknown): v is CampaignRun =>
 
 /**
  * Reads any stored progress shape: version 1 (tutorials, then advisor points) gets the version 2
- * fields empty; unknown or damaged fields fall back to their defaults instead of failing.
+ * fields empty, version 2 the version 3 fields; unknown or damaged fields fall back to their
+ * defaults instead of failing.
  */
 export function migrateProgress(row: Record<string, unknown> | undefined): Progress {
 	const r = row ?? {};
 	const history = Array.isArray(r.campaignHistory) ? r.campaignHistory.filter(isCampaign) : [];
 	return {
-		version: 2,
+		version: 3,
 		tutorialsSeen: strings(r.tutorialsSeen),
 		advisorPoints: typeof r.advisorPoints === 'number' ? r.advisorPoints : START_POINTS,
 		settledRuns: strings(r.settledRuns),
 		perksIntroduced: strings(r.perksIntroduced),
 		lessonsDone: strings(r.lessonsDone),
+		lessonReviews: readReviews(r.lessonReviews),
+		coachDone: strings(r.coachDone),
+		glossarySeen: strings(r.glossarySeen),
 		campaign: isCampaign(r.campaign) ? r.campaign : null,
 		campaignHistory: history,
 		assessed: strings(r.assessed)

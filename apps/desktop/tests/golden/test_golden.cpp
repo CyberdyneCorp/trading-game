@@ -167,6 +167,12 @@ TEST_CASE("desktop goldens: every shared fixture replays to its frozen digests t
       CHECK(packs::sha256_hex(bytes) == fx["expected"]["sha256"].as_string());
       continue;
     }
+    if (kind == "whatif") {  // report-only valuation (add-academy-and-strategies D4): the output, field by field
+      const auto out = json::parse(tl_option_whatif(storage::dump(fx["request"]).c_str()));
+      REQUIRE(out.has_value());
+      CHECK(storage::dump(*out) == storage::dump(fx["expected"]["result"]));
+      continue;
+    }
     REQUIRE(kind == "run");
     auto run = market_of(fx);
     REQUIRE(run);
@@ -174,7 +180,7 @@ TEST_CASE("desktop goldens: every shared fixture replays to its frozen digests t
     check_state(*run, fx["expected"]);
     if (fx.has("mission")) check_saved_and_resumed(fx);
   }
-  CHECK(kinds == std::set<std::string>{"reveal", "run"});
+  CHECK(kinds == std::set<std::string>{"reveal", "run", "whatif"});
 }
 
 TEST_CASE("desktop goldens: a changed action log does not reach the frozen digest") {

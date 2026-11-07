@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { sound } from '#lib/game/sound.svelte.ts';
+	import ReviewPrompt from './ReviewPrompt.svelte';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { marketTagKey, missionText, packOriginOf, packTextsOf } from '#lib/game/missions.ts';
 	import { settings } from '#lib/game/settings.svelte.ts';
@@ -89,8 +90,13 @@
 		</section>
 	{/if}
 
+	<ReviewPrompt {session} />
+
 	<nav class="screens">
 		<button onclick={() => session.openCurriculum()} data-testid="open-curriculum">▦ {t('curriculum.open')}</button>
+		<button onclick={() => session.openAcademy()} data-testid="open-academy">🎓 {t('academy.open')}</button>
+		<button onclick={() => session.openGlossary('menu')} data-testid="open-glossary">📖 {t('glossary.open')}</button>
+		<button onclick={() => session.openLab()} data-testid="open-lab">⚗ {t('lab.open')}</button>
 		<button onclick={() => session.openJournal()} data-testid="open-journal">✎ {t('journal.open')}</button>
 		<button onclick={() => session.openCatalog()} data-testid="open-catalog">⇩ {t('catalog.open')}</button>
 	</nav>

@@ -1,0 +1,1596 @@
+{
+	"terms": [
+		{
+			"id": "perpetual",
+			"stage": "futures1",
+			"related": ["funding-rate", "mark-price", "leverage"],
+			"text": {
+				"pt-BR": {
+					"term": "Futuro perpétuo",
+					"aliases": ["perpétuo", "perp"],
+					"short": "Contrato que acompanha o preço de um ativo e não vence. Você ganha ou perde a diferença de preço vezes a quantidade.",
+					"long": "Um perpétuo é linear: cada unidade ganha o que o preço sobe (long) ou o que ele cai (short). Como não vence, uma taxa periódica, o funding, mantém o contrato perto do preço do ativo. Aqui ele usa margem isolada: só a margem da posição está em risco."
+				},
+				"en": {
+					"term": "Perpetual future",
+					"aliases": ["perpetual", "perp"],
+					"short": "A contract that tracks an asset's price and never expires. You gain or lose the price change times the quantity.",
+					"long": "A perpetual is linear: each unit earns what the price rises (long) or what it falls (short). Since it never expires, a periodic payment, funding, keeps it close to the asset's price. Here it uses isolated margin: only the position's margin is at risk."
+				}
+			}
+		},
+		{
+			"id": "long",
+			"stage": "futures1",
+			"related": ["short", "pnl"],
+			"text": {
+				"pt-BR": {
+					"term": "Long (comprado)",
+					"aliases": ["comprado", "compra", "long"],
+					"short": "Posição que ganha quando o preço sobe. Resultado = (saída − entrada) × quantidade.",
+					"long": "Estar long é ter comprado o contrato. Cada ponto de alta rende um ponto por unidade; cada ponto de queda custa o mesmo. Num perpétuo a perda de um long é limitada pela margem isolada, que a liquidação consome."
+				},
+				"en": {
+					"term": "Long",
+					"aliases": ["buy", "bought"],
+					"short": "A position that gains when the price rises. Result = (exit − entry) × quantity.",
+					"long": "Being long means having bought the contract. Each point up earns one point per unit; each point down costs the same. In a perpetual a long's loss is bounded by its isolated margin, which liquidation consumes."
+				}
+			}
+		},
+		{
+			"id": "short",
+			"stage": "futures1",
+			"related": ["long", "pnl", "funding-rate"],
+			"text": {
+				"pt-BR": {
+					"term": "Short (vendido)",
+					"aliases": ["vendido", "venda", "short"],
+					"short": "Posição que ganha quando o preço cai. Resultado = (entrada − saída) × quantidade.",
+					"long": "Estar short é ter vendido o contrato sem tê-lo antes. A alta do preço é a perda, e ela não tem teto natural: por isso o stop e a margem importam ainda mais. Com funding negativo, quem está short paga."
+				},
+				"en": {
+					"term": "Short",
+					"aliases": ["sell", "sold"],
+					"short": "A position that gains when the price falls. Result = (entry − exit) × quantity.",
+					"long": "Being short means having sold the contract without owning it first. A rising price is the loss, and it has no natural ceiling: that is why the stop and the margin matter even more. With negative funding, shorts pay."
+				}
+			}
+		},
+		{
+			"id": "notional",
+			"stage": "futures1",
+			"related": ["leverage", "initial-margin"],
+			"text": {
+				"pt-BR": {
+					"term": "Nocional",
+					"aliases": ["valor nocional", "exposição"],
+					"short": "O tamanho da posição em dinheiro: preço × quantidade. É sobre ele que se calculam taxas, funding e margem.",
+					"long": "O nocional mede quanto você está exposto, não quanto colocou de margem. Cinco unidades a 120 são 600 de nocional, com qualquer alavancagem.",
+					"example": "5 unidades a 120 = 600 de nocional."
+				},
+				"en": {
+					"term": "Notional",
+					"aliases": ["notional value", "exposure"],
+					"short": "The position's size in money: price × quantity. Fees, funding and margin are computed on it.",
+					"long": "Notional measures how much you are exposed, not how much margin you posted. Five units at 120 are 600 of notional, at any leverage.",
+					"example": "5 units at 120 = 600 notional."
+				}
+			},
+			"checks": [{ "kind": "product", "a": 5, "b": 120, "expect": 600 }]
+		},
+		{
+			"id": "leverage",
+			"stage": "futures2",
+			"related": ["initial-margin", "liquidation-price", "notional"],
+			"text": {
+				"pt-BR": {
+					"term": "Alavancagem",
+					"aliases": ["alavancagem", "lev"],
+					"short": "Nocional dividido pela margem. Mais alavancagem usa menos margem e põe a liquidação mais perto da entrada.",
+					"long": "Alavancagem não muda o risco até o stop: ele depende da quantidade e da distância. Ela muda quanto da sua margem fica presa e a que distância a liquidação está. 1.000 de nocional com 100 de margem é 10×.",
+					"example": "1.000 de nocional / 100 de margem = 10×."
+				},
+				"en": {
+					"term": "Leverage",
+					"aliases": ["lev"],
+					"short": "Notional divided by margin. More leverage uses less margin and puts liquidation closer to the entry.",
+					"long": "Leverage does not change the risk to the stop: that depends on quantity and distance. It changes how much of your margin is tied up and how far away liquidation is. 1,000 notional with 100 margin is 10×.",
+					"example": "1,000 notional / 100 margin = 10×."
+				}
+			},
+			"checks": [{ "kind": "leverage", "notional": 1000, "margin": 100, "expect": 10 }]
+		},
+		{
+			"id": "initial-margin",
+			"stage": "futures2",
+			"related": ["maintenance-margin", "leverage"],
+			"text": {
+				"pt-BR": {
+					"term": "Margem inicial",
+					"aliases": ["margem", "margem de entrada"],
+					"short": "O dinheiro reservado para abrir a posição: nocional / alavancagem.",
+					"long": "A margem inicial é a garantia que a posição precisa para existir. Ela sai do saldo disponível e volta (com o resultado) quando a posição fecha."
+				},
+				"en": {
+					"term": "Initial margin",
+					"aliases": ["margin"],
+					"short": "The money reserved to open the position: notional / leverage.",
+					"long": "Initial margin is the collateral a position needs to exist. It leaves the available balance and comes back (with the result) when the position closes."
+				}
+			}
+		},
+		{
+			"id": "maintenance-margin",
+			"stage": "futures2",
+			"related": ["liquidation-price", "initial-margin", "margin-call"],
+			"text": {
+				"pt-BR": {
+					"term": "Margem de manutenção",
+					"aliases": ["manutenção"],
+					"short": "O mínimo de margem que a posição precisa manter. Abaixo dele, a posição é liquidada.",
+					"long": "A margem de manutenção é uma fração do nocional, menor que a inicial. Quando as perdas consomem a margem até esse mínimo, o preço chegou à liquidação. Posições maiores podem ter taxas maiores (faixas por tamanho)."
+				},
+				"en": {
+					"term": "Maintenance margin",
+					"aliases": ["maintenance"],
+					"short": "The least margin a position must keep. Below it, the position is liquidated.",
+					"long": "Maintenance margin is a fraction of notional, smaller than the initial one. When losses eat the margin down to that minimum, the price has reached liquidation. Larger positions can have higher rates (size tiers)."
+				}
+			}
+		},
+		{
+			"id": "isolated-margin",
+			"stage": "futures2",
+			"related": ["initial-margin", "liquidation-price"],
+			"text": {
+				"pt-BR": {
+					"term": "Margem isolada",
+					"aliases": ["isolada"],
+					"short": "Cada posição usa só a sua própria margem. Uma liquidação perde essa margem, não a conta inteira.",
+					"long": "Com margem isolada, a perda máxima de uma posição é a margem que ela reservou. Você pode adicionar margem para afastar a liquidação, mas isso também aumenta o que está em jogo."
+				},
+				"en": {
+					"term": "Isolated margin",
+					"aliases": ["isolated"],
+					"short": "Each position uses only its own margin. A liquidation loses that margin, not the whole account.",
+					"long": "With isolated margin, a position's largest loss is the margin it reserved. You can add margin to push liquidation away, but that also raises what is at stake."
+				}
+			}
+		},
+		{
+			"id": "liquidation-price",
+			"stage": "futures2",
+			"related": ["maintenance-margin", "leverage", "mark-price", "stop-loss"],
+			"text": {
+				"pt-BR": {
+					"term": "Preço de liquidação",
+					"aliases": ["liquidação", "liq."],
+					"short": "O preço em que a margem da posição chega à manutenção e a posição é fechada à força. O stop deve ficar antes dele.",
+					"long": "Num long, a liquidação fica perto de entrada × (1 − 1/alavancagem) / (1 − taxa de manutenção). Ela usa o preço de marcação quando existe. Uma liquidação perde a margem inteira, então um stop além dela não protege nada.",
+					"example": "Long a 100 com 10× e manutenção de 1%: liquidação perto de 90,91."
+				},
+				"en": {
+					"term": "Liquidation price",
+					"aliases": ["liquidation", "liq."],
+					"short": "The price at which the position's margin reaches maintenance and the position is closed by force. The stop must sit before it.",
+					"long": "For a long, liquidation sits near entry × (1 − 1/leverage) / (1 − maintenance rate). It uses the mark price when there is one. A liquidation loses the whole margin, so a stop beyond it protects nothing.",
+					"example": "Long at 100 with 10× and 1% maintenance: liquidation near 90.91."
+				}
+			},
+			"checks": [{ "kind": "liquidation", "side": "buy", "entry": 100, "leverage": 10, "mmr": 0.01, "expect": 90.91, "digits": 2 }]
+		},
+		{
+			"id": "mark-price",
+			"stage": "futures2",
+			"related": ["last-price", "liquidation-price", "funding-rate"],
+			"text": {
+				"pt-BR": {
+					"term": "Preço de marcação",
+					"aliases": ["marcação", "mark"],
+					"short": "Um preço de referência mais estável que o último negócio. Margem, liquidação e funding usam a marcação; execuções usam o último preço.",
+					"long": "A marcação evita que um pavio isolado no último preço liquide posições. Quando o cenário não tem série de marcação, o jogo usa o último preço para tudo, e o briefing avisa."
+				},
+				"en": {
+					"term": "Mark price",
+					"aliases": ["mark"],
+					"short": "A reference price steadier than the last trade. Margin, liquidation and funding use the mark; fills use the last price.",
+					"long": "The mark keeps a single wick in the last price from liquidating positions. When a scenario has no mark series, the game uses the last price for everything, and the briefing says so."
+				}
+			}
+		},
+		{
+			"id": "last-price",
+			"stage": "futures2",
+			"related": ["mark-price"],
+			"text": {
+				"pt-BR": {
+					"term": "Último preço",
+					"aliases": ["last", "último negócio"],
+					"short": "O preço do último negócio. É o que o gráfico desenha e onde as ordens executam.",
+					"long": "O último preço pode ter pavios que a marcação não segue. Ordens, stops e alvos executam pelo último preço; a margem olha a marcação."
+				},
+				"en": {
+					"term": "Last price",
+					"aliases": ["last", "last trade"],
+					"short": "The price of the latest trade. It is what the chart draws and where orders fill.",
+					"long": "The last price can have wicks the mark does not follow. Orders, stops and targets fill on the last price; margin looks at the mark."
+				}
+			}
+		},
+		{
+			"id": "funding-rate",
+			"stage": "futures3",
+			"related": ["perpetual", "mark-price"],
+			"text": {
+				"pt-BR": {
+					"term": "Funding",
+					"aliases": ["taxa de funding", "financiamento"],
+					"short": "Pagamento periódico entre longs e shorts: nocional × taxa. Taxa positiva, longs pagam; negativa, shorts pagam.",
+					"long": "O funding mantém o perpétuo perto do preço do ativo. Uma taxa positiva por muito tempo mostra longs lotados. Ele é um custo de carregar a posição: some ao longo de muitos intervalos.",
+					"example": "10.000 de nocional a +0,05%: o long paga 5 por intervalo."
+				},
+				"en": {
+					"term": "Funding",
+					"aliases": ["funding rate"],
+					"short": "A periodic payment between longs and shorts: notional × rate. A positive rate, longs pay; negative, shorts pay.",
+					"long": "Funding keeps the perpetual close to the asset's price. A rate that stays positive shows crowded longs. It is a cost of carrying a position: it adds up over many intervals.",
+					"example": "10,000 notional at +0.05%: the long pays 5 per interval."
+				}
+			},
+			"checks": [{ "kind": "funding", "notional": 10000, "ratePct": 0.05, "expect": 5 }]
+		},
+		{
+			"id": "equity",
+			"stage": "futures1",
+			"related": ["pnl", "drawdown"],
+			"text": {
+				"pt-BR": {
+					"term": "Patrimônio",
+					"aliases": ["equity", "capital", "disponível", "saldo disponível"],
+					"short": "Saldo mais o resultado aberto das posições. O saldo disponível é o que sobra livre para novas ordens.",
+					"long": "O patrimônio é o que a conta vale agora, marcando as posições. O disponível desconta a margem já reservada e é o que limita uma nova ordem."
+				},
+				"en": {
+					"term": "Equity",
+					"aliases": ["capital", "available", "available balance"],
+					"short": "Balance plus the open result of positions. The available balance is what is left free for new orders.",
+					"long": "Equity is what the account is worth now, marking positions. Available subtracts the margin already reserved and is what limits a new order."
+				}
+			}
+		},
+		{
+			"id": "fee",
+			"stage": "orders",
+			"related": ["spread", "slippage", "notional"],
+			"text": {
+				"pt-BR": {
+					"term": "Taxa",
+					"aliases": ["taxas", "taker", "maker", "custos"],
+					"short": "O custo cobrado em cada execução, uma fração do nocional. Paga-se na entrada e na saída.",
+					"long": "Taxas parecem pequenas por ordem, mas somam: muitas entradas e saídas, ou estratégias com várias pernas, pagam várias vezes. Ordens que tiram liquidez (taker) pagam mais que as que a oferecem (maker)."
+				},
+				"en": {
+					"term": "Fee",
+					"aliases": ["fees", "taker", "maker", "costs"],
+					"short": "The cost charged on each fill, a fraction of notional. It is paid on entry and on exit.",
+					"long": "Fees look small per order but add up: many entries and exits, or strategies with several legs, pay many times. Orders that take liquidity (taker) pay more than those that provide it (maker)."
+				}
+			}
+		},
+		{
+			"id": "pnl",
+			"stage": "futures1",
+			"related": ["long", "short", "equity"],
+			"text": {
+				"pt-BR": {
+					"term": "Resultado (P&L)",
+					"aliases": ["P&L", "lucro", "prejuízo", "resultado aberto", "realizado"],
+					"short": "Quanto a posição ganhou ou perdeu. Aberto enquanto a posição existe; realizado quando ela fecha.",
+					"long": "Num perpétuo, o resultado é (saída − entrada) × quantidade para um long e o inverso para um short, menos taxas e funding. O resultado aberto muda a cada barra; só o realizado entra no saldo."
+				},
+				"en": {
+					"term": "Profit and loss (P&L)",
+					"aliases": ["P&L", "profit", "loss", "unrealized", "realized"],
+					"short": "How much the position gained or lost. Unrealized while it is open; realized when it closes.",
+					"long": "In a perpetual, the result is (exit − entry) × quantity for a long and the reverse for a short, minus fees and funding. Unrealized P&L moves every bar; only realized P&L reaches the balance."
+				}
+			}
+		},
+		{
+			"id": "market-order",
+			"stage": "orders",
+			"related": ["limit-order", "spread", "slippage"],
+			"text": {
+				"pt-BR": {
+					"term": "Ordem a mercado",
+					"aliases": ["a mercado", "mercado"],
+					"short": "Executa no próximo preço disponível. Garante a execução (havendo liquidez), não o preço.",
+					"long": "Uma ordem a mercado compra na ponta vendedora e vende na compradora, então paga o spread e o slippage. Aqui ela executa na abertura da próxima barra: aceita não significa executada."
+				},
+				"en": {
+					"term": "Market order",
+					"aliases": ["market"],
+					"short": "Fills at the next available price. It guarantees the fill (given liquidity), not the price.",
+					"long": "A market order buys at the ask and sells at the bid, so it pays the spread and slippage. Here it fills at the next bar's open: accepted does not mean filled."
+				}
+			}
+		},
+		{
+			"id": "limit-order",
+			"stage": "orders",
+			"related": ["market-order", "stop-order"],
+			"text": {
+				"pt-BR": {
+					"term": "Ordem limitada",
+					"aliases": ["limite", "limitada"],
+					"short": "Executa só no preço pedido ou melhor. Garante o preço, não a execução.",
+					"long": "Uma compra limitada abaixo do preço atual espera o preço vir até ela. Se ele não vier, nada acontece: você pode perder o movimento que queria."
+				},
+				"en": {
+					"term": "Limit order",
+					"aliases": ["limit"],
+					"short": "Fills only at the stated price or better. It guarantees the price, not the fill.",
+					"long": "A buy limit below the current price waits for the price to come to it. If it never does, nothing happens: you can miss the move you wanted."
+				}
+			}
+		},
+		{
+			"id": "stop-order",
+			"stage": "orders",
+			"related": ["stop-loss", "gap", "slippage"],
+			"text": {
+				"pt-BR": {
+					"term": "Ordem stop",
+					"aliases": ["stop", "gatilho"],
+					"short": "Fica dormente até o preço tocar o gatilho; então vira uma ordem a mercado. O gatilho não é o preço de execução.",
+					"long": "Num gap, o preço pula o gatilho e a ordem executa na abertura, que pode estar bem além. Por isso um stop limita o risco na maior parte do tempo, mas não sempre."
+				},
+				"en": {
+					"term": "Stop order",
+					"aliases": ["stop", "trigger"],
+					"short": "Sleeps until the price touches the trigger; then it becomes a market order. The trigger is not the fill price.",
+					"long": "In a gap the price jumps over the trigger and the order fills at the open, which can be far beyond. That is why a stop bounds risk most of the time, but not always."
+				}
+			}
+		},
+		{
+			"id": "take-profit",
+			"stage": "orders",
+			"related": ["stop-loss", "r-multiple"],
+			"text": {
+				"pt-BR": {
+					"term": "Alvo (take profit)",
+					"aliases": ["alvo", "take profit", "TP"],
+					"short": "Ordem que fecha a posição com lucro num preço definido antes da entrada.",
+					"long": "Junto com o stop, o alvo define a relação retorno/risco do trade em múltiplos de R. Stop e alvo presos à posição se cancelam um ao outro quando um executa."
+				},
+				"en": {
+					"term": "Take profit",
+					"aliases": ["target", "TP"],
+					"short": "An order that closes the position at a profit at a price set before the entry.",
+					"long": "Together with the stop, the target sets the trade's reward to risk in R multiples. A stop and target attached to the position cancel each other when one fills."
+				}
+			}
+		},
+		{
+			"id": "trailing-stop",
+			"stage": "risk",
+			"related": ["stop-loss", "trend"],
+			"text": {
+				"pt-BR": {
+					"term": "Stop móvel",
+					"aliases": ["trailing", "stop móvel"],
+					"short": "Um stop que acompanha o preço a uma distância fixa (ou percentual) quando ele anda a seu favor, e nunca recua.",
+					"long": "O stop móvel deixa uma tendência correr e protege parte do ganho. Num mercado lateral, ele sai cedo com frequência: a ferramenta depende do regime."
+				},
+				"en": {
+					"term": "Trailing stop",
+					"aliases": ["trailing"],
+					"short": "A stop that follows the price at a fixed (or percent) distance when it moves your way, and never moves back.",
+					"long": "A trailing stop lets a trend run and protects part of the gain. In a range it often exits early: the tool depends on the regime."
+				}
+			}
+		},
+		{
+			"id": "spread",
+			"stage": "orders",
+			"related": ["slippage", "market-order", "fee"],
+			"text": {
+				"pt-BR": {
+					"term": "Spread (compra/venda)",
+					"aliases": ["spread", "bid/ask", "bid", "ask", "compra", "venda"],
+					"short": "A diferença entre o melhor preço de venda (ask) e o de compra (bid). Quem executa a mercado paga essa diferença.",
+					"long": "Comprar a mercado e vender logo em seguida custa o spread vezes a quantidade, antes das taxas. Mercados finos têm spreads largos, e choques de liquidez os alargam ainda mais.",
+					"example": "Bid 99,90 e ask 100,10: ida e volta de 10 unidades custa 2,00."
+				},
+				"en": {
+					"term": "Bid/ask spread",
+					"aliases": ["spread", "bid", "ask"],
+					"short": "The gap between the best selling price (ask) and the best buying price (bid). A market order pays it.",
+					"long": "Buying at market and selling right after costs the spread times the quantity, before fees. Thin markets have wide spreads, and liquidity shocks widen them further.",
+					"example": "Bid 99.90 and ask 100.10: a round trip of 10 units costs 2.00."
+				}
+			},
+			"checks": [{ "kind": "roundTrip", "bid": 99.9, "ask": 100.1, "qty": 10, "expect": 2 }]
+		},
+		{
+			"id": "slippage",
+			"stage": "orders",
+			"related": ["spread", "capacity", "gap"],
+			"text": {
+				"pt-BR": {
+					"term": "Slippage",
+					"aliases": ["deslizamento", "escorregamento"],
+					"short": "A diferença entre o preço esperado e o executado, contra você.",
+					"long": "Slippage cresce com o tamanho da ordem, com mercados finos e com movimentos rápidos. Um stop num gap pode escorregar muito além do gatilho."
+				},
+				"en": {
+					"term": "Slippage",
+					"aliases": ["slipped"],
+					"short": "The difference between the expected and the filled price, against you.",
+					"long": "Slippage grows with order size, thin markets and fast moves. A stop in a gap can slip far beyond its trigger."
+				}
+			}
+		},
+		{
+			"id": "capacity",
+			"stage": "orders",
+			"related": ["slippage"],
+			"text": {
+				"pt-BR": {
+					"term": "Capacidade",
+					"aliases": ["liquidez", "capacidade da barra"],
+					"short": "Quanto uma barra consegue executar. Uma ordem maior executa em pedaços, em várias barras.",
+					"long": "A capacidade simulada é uma fração do volume da barra. Num mercado fino, uma ordem grande pode levar várias barras para executar, a preços diferentes."
+				},
+				"en": {
+					"term": "Capacity",
+					"aliases": ["liquidity", "bar capacity"],
+					"short": "How much one bar can fill. A larger order fills in pieces, over several bars.",
+					"long": "The simulated capacity is a fraction of the bar's volume. In a thin market a large order can take several bars to fill, at different prices."
+				}
+			}
+		},
+		{
+			"id": "gap",
+			"stage": "events",
+			"related": ["stop-order", "slippage", "surprise"],
+			"text": {
+				"pt-BR": {
+					"term": "Gap",
+					"aliases": ["salto", "gaps"],
+					"short": "Quando a barra abre longe do fechamento anterior, sem negócios no meio. Stops no caminho executam na abertura.",
+					"long": "Gaps acontecem em notícias e divulgações. Nenhum stop executa no meio do salto: ele executa no primeiro preço depois dele. Tamanho menor ou uma put limitam esse risco; um stop sozinho, não."
+				},
+				"en": {
+					"term": "Gap",
+					"aliases": ["gaps"],
+					"short": "When a bar opens far from the previous close, with no trades in between. Stops in the way fill at the open.",
+					"long": "Gaps come with news and releases. No stop fills inside the jump: it fills at the first price after it. Smaller size or a put bound that risk; a stop alone does not."
+				}
+			}
+		},
+		{
+			"id": "stop-loss",
+			"stage": "risk",
+			"related": ["stop-order", "invalidation", "position-sizing", "liquidation-price"],
+			"text": {
+				"pt-BR": {
+					"term": "Stop de proteção",
+					"aliases": ["stop loss", "stop", "stop de proteção"],
+					"short": "A ordem que fecha a posição no ponto onde a ideia está errada. Defina antes de entrar.",
+					"long": "O stop transforma a invalidação da hipótese numa perda conhecida: distância × quantidade. Ele deve ficar antes da liquidação e num lugar que o mercado só alcança se a ideia falhar."
+				},
+				"en": {
+					"term": "Stop loss",
+					"aliases": ["stop", "protective stop"],
+					"short": "The order that closes the position where the idea is wrong. Set it before entering.",
+					"long": "The stop turns the idea's invalidation into a known loss: distance × quantity. It must sit before liquidation, at a place the market only reaches if the idea fails."
+				}
+			}
+		},
+		{
+			"id": "risk-budget",
+			"stage": "risk",
+			"related": ["position-sizing", "stop-loss", "risk-of-ruin"],
+			"text": {
+				"pt-BR": {
+					"term": "Orçamento de risco",
+					"aliases": ["risco por trade", "risco %", "risco planejado"],
+					"short": "Quanto do capital você aceita perder se o stop executar, por exemplo 1%.",
+					"long": "Um orçamento pequeno e fixo por trade deixa sobreviver às sequências de perdas, que são normais. Ele vem antes da quantidade: a quantidade sai dele."
+				},
+				"en": {
+					"term": "Risk budget",
+					"aliases": ["risk per trade", "risk %", "planned risk"],
+					"short": "How much of your capital you accept to lose if the stop fills, for example 1%.",
+					"long": "A small, fixed budget per trade lets you survive losing streaks, which are normal. It comes before the quantity: the quantity follows from it."
+				}
+			}
+		},
+		{
+			"id": "position-sizing",
+			"stage": "risk",
+			"related": ["risk-budget", "stop-loss", "leverage"],
+			"text": {
+				"pt-BR": {
+					"term": "Dimensionamento",
+					"aliases": ["tamanho da posição", "quantidade", "dimensionar"],
+					"short": "Quantidade = orçamento de risco / distância até o stop. A alavancagem não entra na conta.",
+					"long": "Com 10.000 de capital, 1% de risco e stop a 4 da entrada, a quantidade é 25. Alavancagem maior só reduz a margem usada; o risco até o stop continua 100.",
+					"example": "10.000 × 1% / 4 = 25 unidades."
+				},
+				"en": {
+					"term": "Position sizing",
+					"aliases": ["position size", "quantity", "size"],
+					"short": "Quantity = risk budget / distance to the stop. Leverage is not part of it.",
+					"long": "With 10,000 capital, 1% risk and a stop 4 from the entry, the quantity is 25. Higher leverage only lowers the margin used; the risk to the stop stays 100.",
+					"example": "10,000 × 1% / 4 = 25 units."
+				}
+			},
+			"checks": [
+				{ "kind": "size", "equity": 10000, "riskPct": 1, "entry": 100, "stop": 96, "expect": 25 },
+				{ "kind": "risk", "entry": 100, "stop": 96, "qty": 25, "expect": 100 }
+			]
+		},
+		{
+			"id": "r-multiple",
+			"stage": "risk",
+			"related": ["expectancy", "stop-loss", "take-profit"],
+			"text": {
+				"pt-BR": {
+					"term": "Múltiplo de R",
+					"aliases": ["R", "retorno/risco"],
+					"short": "Um resultado medido em unidades do risco inicial (R = distância até o stop). Ganhar 2R é ganhar o dobro do que se arriscou.",
+					"long": "Medir em R deixa comparar trades de tamanhos e mercados diferentes. Entrada 100, stop 96 e alvo 108: o alvo vale 2R.",
+					"example": "(108 − 100) / (100 − 96) = 2R."
+				},
+				"en": {
+					"term": "R multiple",
+					"aliases": ["R", "reward/risk"],
+					"short": "A result measured in units of the initial risk (R = distance to the stop). Gaining 2R is gaining twice what you risked.",
+					"long": "Measuring in R compares trades of different sizes and markets. Entry 100, stop 96 and target 108: the target is worth 2R.",
+					"example": "(108 − 100) / (100 − 96) = 2R."
+				}
+			},
+			"checks": [{ "kind": "r", "entry": 100, "stop": 96, "target": 108, "expect": 2 }]
+		},
+		{
+			"id": "expectancy",
+			"stage": "risk",
+			"related": ["r-multiple", "drawdown", "risk-of-ruin"],
+			"text": {
+				"pt-BR": {
+					"term": "Expectativa",
+					"aliases": ["valor esperado", "edge"],
+					"short": "O resultado médio por trade: % de acertos × ganho médio − % de erros × perda média.",
+					"long": "Uma estratégia que acerta 40% com ganho médio de 2R e perda média de 1R tem expectativa de +0,2R por trade. Poucos trades não bastam para saber a expectativa: a amostra engana.",
+					"example": "40% × 2R − 60% × 1R = +0,2R."
+				},
+				"en": {
+					"term": "Expectancy",
+					"aliases": ["expected value", "edge"],
+					"short": "The average result per trade: win rate × average win − loss rate × average loss.",
+					"long": "A strategy that wins 40% with an average win of 2R and an average loss of 1R has an expectancy of +0.2R per trade. A few trades are not enough to know it: small samples mislead.",
+					"example": "40% × 2R − 60% × 1R = +0.2R."
+				}
+			},
+			"checks": [{ "kind": "expectancy", "winPct": 40, "avgWin": 2, "avgLoss": 1, "expect": 0.2 }]
+		},
+		{
+			"id": "drawdown",
+			"stage": "risk",
+			"related": ["risk-of-ruin", "equity"],
+			"text": {
+				"pt-BR": {
+					"term": "Drawdown",
+					"aliases": ["rebaixamento", "queda do capital"],
+					"short": "A queda do capital desde o seu pico. Recuperar exige um ganho maior que a queda.",
+					"long": "Depois de −20%, é preciso +25% para voltar; depois de −50%, +100%. Por isso proteger o capital pesa mais que buscar o ganho máximo.",
+					"example": "−50% pede +100% para voltar."
+				},
+				"en": {
+					"term": "Drawdown",
+					"aliases": ["peak-to-trough"],
+					"short": "The fall of capital from its peak. Recovering needs a gain larger than the fall.",
+					"long": "After −20% you need +25% to get back; after −50%, +100%. That is why protecting capital weighs more than chasing the largest gain.",
+					"example": "−50% needs +100% to get back."
+				}
+			},
+			"checks": [
+				{ "kind": "recovery", "drawdownPct": 20, "expect": 25 },
+				{ "kind": "recovery", "drawdownPct": 50, "expect": 100 }
+			]
+		},
+		{
+			"id": "risk-of-ruin",
+			"stage": "risk",
+			"related": ["risk-budget", "drawdown", "expectancy"],
+			"text": {
+				"pt-BR": {
+					"term": "Risco de ruína",
+					"aliases": ["ruína"],
+					"short": "A chance de perder tanto que não dá mais para continuar. Cresce rápido com o risco por trade.",
+					"long": "Mesmo com expectativa positiva, arriscar muito por trade torna provável uma sequência de perdas que quebra a conta. Com 60% de trades perdedores, 5 perdas seguidas têm chance de cerca de 7,8%."
+				},
+				"en": {
+					"term": "Risk of ruin",
+					"aliases": ["ruin"],
+					"short": "The chance of losing so much you cannot go on. It grows fast with the risk per trade.",
+					"long": "Even with a positive expectancy, risking a lot per trade makes a losing streak that breaks the account likely. With 60% losing trades, 5 losses in a row have about a 7.8% chance."
+				}
+			},
+			"checks": [{ "kind": "streak", "lossPct": 60, "n": 5, "expect": 7.8, "digits": 1 }]
+		},
+		{
+			"id": "support",
+			"stage": "structure",
+			"related": ["resistance", "range", "breakout"],
+			"text": {
+				"pt-BR": {
+					"term": "Suporte",
+					"aliases": ["zona de suporte"],
+					"short": "Uma zona de preço onde compradores apareceram antes e a queda parou. É uma faixa, não uma linha exata.",
+					"long": "Um suporte testado várias vezes é informação sobre o passado, não garantia. Quando ele cede, o rompimento costuma ser rápido, e um suporte rompido pode virar resistência."
+				},
+				"en": {
+					"term": "Support",
+					"aliases": ["support zone"],
+					"short": "A price zone where buyers showed up before and the fall stopped. It is a band, not an exact line.",
+					"long": "A support tested several times is information about the past, not a guarantee. When it gives way the break is often fast, and broken support can turn into resistance."
+				}
+			}
+		},
+		{
+			"id": "resistance",
+			"stage": "structure",
+			"related": ["support", "breakout"],
+			"text": {
+				"pt-BR": {
+					"term": "Resistência",
+					"aliases": ["zona de resistência"],
+					"short": "Uma zona de preço onde vendedores apareceram antes e a alta parou.",
+					"long": "Como o suporte, é uma faixa. Uma resistência rompida e depois testada por cima (reteste) que segura vira suporte."
+				},
+				"en": {
+					"term": "Resistance",
+					"aliases": ["resistance zone"],
+					"short": "A price zone where sellers showed up before and the rise stopped.",
+					"long": "Like support, it is a band. A broken resistance that is retested from above and holds becomes support."
+				}
+			}
+		},
+		{
+			"id": "trend",
+			"stage": "structure",
+			"related": ["range", "regime", "breakout"],
+			"text": {
+				"pt-BR": {
+					"term": "Tendência",
+					"aliases": ["topos e fundos", "estrutura"],
+					"short": "Alta: topos e fundos ascendentes; baixa: topos e fundos descendentes. Um fechamento além do último fundo (ou topo) quebra a estrutura.",
+					"long": "A estrutura de topos e fundos diz se o mercado está em tendência. A quebra da estrutura não prevê a próxima barra: só diz que a sequência anterior acabou."
+				},
+				"en": {
+					"term": "Trend",
+					"aliases": ["higher highs", "market structure"],
+					"short": "Up: higher highs and higher lows; down: lower highs and lower lows. A close beyond the last low (or high) breaks the structure.",
+					"long": "The structure of highs and lows says whether the market is trending. A break of structure does not predict the next bar: it only says the previous sequence ended."
+				}
+			}
+		},
+		{
+			"id": "range",
+			"stage": "structure",
+			"related": ["trend", "support", "resistance", "regime"],
+			"text": {
+				"pt-BR": {
+					"term": "Lateralidade (range)",
+					"aliases": ["range", "lateral", "faixa"],
+					"short": "Um mercado que oscila entre um suporte e uma resistência sem tendência clara.",
+					"long": "Em ranges, ferramentas de reversão funcionam melhor e as de tendência (cruzamentos de médias) dão sinais falsos. O range termina num rompimento, que pode falhar."
+				},
+				"en": {
+					"term": "Range",
+					"aliases": ["sideways", "range-bound"],
+					"short": "A market swinging between a support and a resistance without a clear trend.",
+					"long": "In ranges, mean-reversion tools work better and trend tools (moving-average crosses) give false signals. A range ends in a breakout, which can fail."
+				}
+			}
+		},
+		{
+			"id": "breakout",
+			"stage": "structure",
+			"related": ["support", "resistance", "range"],
+			"text": {
+				"pt-BR": {
+					"term": "Rompimento",
+					"aliases": ["breakout", "reteste"],
+					"short": "Um fechamento além de um suporte ou resistência. O reteste é a volta à zona rompida, pelo outro lado.",
+					"long": "Rompimentos falsos são comuns: o preço fura a zona e volta. Esperar o fechamento ou o reteste reduz os falsos, ao custo de entrar mais tarde."
+				},
+				"en": {
+					"term": "Breakout",
+					"aliases": ["break", "retest"],
+					"short": "A close beyond a support or resistance. The retest is the return to the broken zone, from the other side.",
+					"long": "False breakouts are common: price pierces the zone and comes back. Waiting for the close or the retest filters some of them, at the cost of a later entry."
+				}
+			}
+		},
+		{
+			"id": "option",
+			"stage": "options1",
+			"related": ["call", "put", "premium", "strike", "expiry"],
+			"text": {
+				"pt-BR": {
+					"term": "Opção",
+					"aliases": ["opções"],
+					"short": "Um contrato que dá o direito, não a obrigação, de comprar (call) ou vender (put) a um preço (strike) numa data (vencimento).",
+					"long": "Quem compra paga o prêmio e não pode perder mais que ele. Quem vende (lança) recebe o prêmio e assume a obrigação. Aqui as opções são europeias e liquidadas em dinheiro no vencimento."
+				},
+				"en": {
+					"term": "Option",
+					"aliases": ["options"],
+					"short": "A contract giving the right, not the obligation, to buy (call) or sell (put) at a price (strike) on a date (expiry).",
+					"long": "The buyer pays the premium and cannot lose more than it. The seller (writer) receives the premium and takes on the obligation. Here options are European and settled in cash at expiry."
+				}
+			}
+		},
+		{
+			"id": "call",
+			"stage": "options1",
+			"related": ["put", "strike", "breakeven"],
+			"text": {
+				"pt-BR": {
+					"term": "Call",
+					"aliases": ["opção de compra", "calls"],
+					"short": "O direito de comprar no strike. No vencimento vale max(0, preço − strike).",
+					"long": "Uma call ganha com a alta acima do strike mais o prêmio. Abaixo do strike, ela vence sem valor e o comprador perde o prêmio."
+				},
+				"en": {
+					"term": "Call",
+					"aliases": ["call option", "calls"],
+					"short": "The right to buy at the strike. At expiry it is worth max(0, price − strike).",
+					"long": "A call profits from a rise above the strike plus the premium. Below the strike it expires worthless and the buyer loses the premium."
+				}
+			}
+		},
+		{
+			"id": "put",
+			"stage": "options1",
+			"related": ["call", "protective-put"],
+			"text": {
+				"pt-BR": {
+					"term": "Put",
+					"aliases": ["opção de venda", "puts"],
+					"short": "O direito de vender no strike. No vencimento vale max(0, strike − preço).",
+					"long": "Uma put ganha com a queda abaixo do strike menos o prêmio. Comprada junto com o ativo, ela funciona como um seguro."
+				},
+				"en": {
+					"term": "Put",
+					"aliases": ["put option", "puts"],
+					"short": "The right to sell at the strike. At expiry it is worth max(0, strike − price).",
+					"long": "A put profits from a fall below the strike minus the premium. Bought together with the asset, it works as insurance."
+				}
+			}
+		},
+		{
+			"id": "strike",
+			"stage": "options1",
+			"related": ["option", "moneyness"],
+			"text": {
+				"pt-BR": {
+					"term": "Strike",
+					"aliases": ["preço de exercício", "exercício"],
+					"short": "O preço fixado no contrato da opção. O valor no vencimento é a distância entre o preço e o strike.",
+					"long": "Strikes mais distantes do preço são mais baratos e precisam de movimentos maiores para valer algo no vencimento."
+				},
+				"en": {
+					"term": "Strike",
+					"aliases": ["strike price", "exercise price"],
+					"short": "The price fixed in the option contract. Its value at expiry is the distance between the price and the strike.",
+					"long": "Strikes farther from the price are cheaper and need larger moves to be worth anything at expiry."
+				}
+			}
+		},
+		{
+			"id": "expiry",
+			"stage": "options1",
+			"related": ["settlement", "theta", "time-value"],
+			"text": {
+				"pt-BR": {
+					"term": "Vencimento",
+					"aliases": ["expiração", "venc."],
+					"short": "A data em que a opção é liquidada e deixa de existir.",
+					"long": "Quanto mais perto do vencimento, menos valor de tempo resta e mais rápido ele cai. Perto do vencimento, pequenos movimentos mudam muito o delta."
+				},
+				"en": {
+					"term": "Expiry",
+					"aliases": ["expiration", "exp."],
+					"short": "The date the option is settled and stops existing.",
+					"long": "The closer to expiry, the less time value is left and the faster it falls. Near expiry, small moves change the delta a lot."
+				}
+			}
+		},
+		{
+			"id": "premium",
+			"stage": "options1",
+			"related": ["intrinsic-value", "time-value", "writing"],
+			"text": {
+				"pt-BR": {
+					"term": "Prêmio",
+					"aliases": ["preço da opção"],
+					"short": "O preço da opção: o comprador paga, o vendedor recebe. É a perda máxima de quem compra.",
+					"long": "O prêmio é valor intrínseco mais valor de tempo. Ele sobe com a volatilidade implícita e com o tempo até o vencimento."
+				},
+				"en": {
+					"term": "Premium",
+					"aliases": ["option price"],
+					"short": "The option's price: the buyer pays, the seller receives. It is the buyer's largest loss.",
+					"long": "The premium is intrinsic value plus time value. It rises with implied volatility and with the time to expiry."
+				}
+			}
+		},
+		{
+			"id": "intrinsic-value",
+			"stage": "options1",
+			"related": ["time-value", "premium", "moneyness"],
+			"text": {
+				"pt-BR": {
+					"term": "Valor intrínseco",
+					"aliases": ["intrínseco"],
+					"short": "O que a opção valeria se vencesse agora: max(0, preço − strike) numa call.",
+					"long": "Uma call de strike 100 com o preço em 103 tem 3 de valor intrínseco. Se ela custa 5, os outros 2 são valor de tempo.",
+					"example": "Call 100, preço 103: intrínseco 3."
+				},
+				"en": {
+					"term": "Intrinsic value",
+					"aliases": ["intrinsic"],
+					"short": "What the option would be worth if it expired now: max(0, price − strike) for a call.",
+					"long": "A 100-strike call with the price at 103 has 3 of intrinsic value. If it costs 5, the other 2 are time value.",
+					"example": "Call 100, price 103: intrinsic 3."
+				}
+			},
+			"checks": [
+				{ "kind": "diff", "a": 103, "b": 100, "expect": 3 },
+				{ "kind": "diff", "a": 5, "b": 3, "expect": 2 }
+			]
+		},
+		{
+			"id": "time-value",
+			"stage": "options1",
+			"related": ["intrinsic-value", "theta"],
+			"text": {
+				"pt-BR": {
+					"term": "Valor de tempo",
+					"aliases": ["valor extrínseco"],
+					"short": "A parte do prêmio acima do valor intrínseco: o preço da chance de o movimento ainda acontecer.",
+					"long": "O valor de tempo vai a zero no vencimento. Ele cai devagar no começo e cada vez mais rápido no fim: isso é o theta."
+				},
+				"en": {
+					"term": "Time value",
+					"aliases": ["extrinsic value"],
+					"short": "The part of the premium above intrinsic value: the price of the chance that the move still happens.",
+					"long": "Time value goes to zero at expiry. It falls slowly at first and faster and faster near the end: that is theta."
+				}
+			}
+		},
+		{
+			"id": "moneyness",
+			"stage": "options1",
+			"related": ["strike", "intrinsic-value", "delta"],
+			"text": {
+				"pt-BR": {
+					"term": "No/dentro/fora do dinheiro",
+					"aliases": ["ATM", "ITM", "OTM", "no dinheiro", "fora do dinheiro", "dentro do dinheiro"],
+					"short": "ATM: strike perto do preço; ITM: já tem valor intrínseco; OTM: só tem valor de tempo.",
+					"long": "Uma call com strike abaixo do preço está dentro do dinheiro; acima, fora. Opções fora do dinheiro são baratas porque quase sempre vencem sem valor."
+				},
+				"en": {
+					"term": "Moneyness (ATM, ITM, OTM)",
+					"aliases": ["ATM", "ITM", "OTM", "at the money", "in the money", "out of the money"],
+					"short": "ATM: strike near the price; ITM: it already has intrinsic value; OTM: it has only time value.",
+					"long": "A call with a strike below the price is in the money; above, out of the money. Out-of-the-money options are cheap because they usually expire worthless."
+				}
+			}
+		},
+		{
+			"id": "breakeven",
+			"stage": "options1",
+			"related": ["premium", "call", "put"],
+			"text": {
+				"pt-BR": {
+					"term": "Ponto de equilíbrio",
+					"aliases": ["breakeven", "equilíbrio"],
+					"short": "O preço no vencimento em que a posição não ganha nem perde. Call comprada: strike + prêmio.",
+					"long": "Uma call 100 comprada por 4 empata em 104; uma put 100 comprada por 3 empata em 97. Taxas empurram o ponto um pouco mais longe.",
+					"example": "Call 100 por 4: equilíbrio em 104."
+				},
+				"en": {
+					"term": "Breakeven",
+					"aliases": ["break-even"],
+					"short": "The price at expiry where the position neither gains nor loses. Bought call: strike + premium.",
+					"long": "A 100 call bought for 4 breaks even at 104; a 100 put bought for 3 breaks even at 97. Fees push it a little further.",
+					"example": "Call 100 for 4: breakeven at 104."
+				}
+			},
+			"checks": [
+				{ "kind": "breakeven", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 4 }], "expect": [104] },
+				{ "kind": "breakeven", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 100, "price": 3 }], "expect": [97] }
+			]
+		},
+		{
+			"id": "delta",
+			"stage": "options2",
+			"related": ["gamma", "moneyness"],
+			"text": {
+				"pt-BR": {
+					"term": "Delta",
+					"aliases": ["Δ"],
+					"short": "Quanto o valor da opção muda quando o preço sobe 1. Calls de 0 a 1, puts de −1 a 0.",
+					"long": "Uma call ATM tem delta perto de 0,5: sobe cerca de meio ponto por ponto de alta. O delta também é a quantidade de ativo que equivale à opção, por isso serve como razão de hedge."
+				},
+				"en": {
+					"term": "Delta",
+					"aliases": ["Δ"],
+					"short": "How much the option's value changes when the price rises by 1. Calls 0 to 1, puts −1 to 0.",
+					"long": "An ATM call has a delta near 0.5: it rises about half a point per point up. Delta is also the amount of the asset that behaves like the option, so it works as a hedge ratio."
+				}
+			}
+		},
+		{
+			"id": "gamma",
+			"stage": "options2",
+			"related": ["delta", "expiry"],
+			"text": {
+				"pt-BR": {
+					"term": "Gamma",
+					"aliases": ["Γ"],
+					"short": "Quanto o delta muda quando o preço anda 1. É maior no dinheiro e perto do vencimento.",
+					"long": "Gamma alto faz o delta saltar: perto do vencimento, uma opção ATM passa de quase 0 a quase 1 com um movimento pequeno. Para quem vende, gamma alto é risco."
+				},
+				"en": {
+					"term": "Gamma",
+					"aliases": ["Γ"],
+					"short": "How much delta changes when the price moves by 1. It is largest at the money and near expiry.",
+					"long": "High gamma makes delta jump: near expiry an ATM option goes from almost 0 to almost 1 on a small move. For a seller, high gamma is risk."
+				}
+			}
+		},
+		{
+			"id": "theta",
+			"stage": "options2",
+			"related": ["time-value", "expiry", "vega"],
+			"text": {
+				"pt-BR": {
+					"term": "Theta",
+					"aliases": ["Θ", "decaimento"],
+					"short": "O valor que a opção perde por barra quando nada mais muda. Custa para quem compra e rende para quem vende.",
+					"long": "O theta de uma opção ATM cresce perto do vencimento. Se o preço ficou parado e a opção comprada perdeu valor, foi o theta."
+				},
+				"en": {
+					"term": "Theta",
+					"aliases": ["Θ", "time decay"],
+					"short": "The value the option loses per bar when nothing else changes. It costs the buyer and pays the seller.",
+					"long": "An ATM option's theta grows near expiry. If the price stood still and a bought option lost value, that was theta."
+				}
+			}
+		},
+		{
+			"id": "vega",
+			"stage": "options2",
+			"related": ["implied-volatility", "iv-crush"],
+			"text": {
+				"pt-BR": {
+					"term": "Vega",
+					"aliases": ["ν"],
+					"short": "Quanto o valor da opção muda por 1 ponto de volatilidade implícita.",
+					"long": "Com vega 0,20, uma queda de 15 pontos na IV tira cerca de 3,00 da opção, mesmo sem o preço andar. Opções mais longas têm mais vega.",
+					"example": "0,20 × −15 = −3,00."
+				},
+				"en": {
+					"term": "Vega",
+					"aliases": ["ν"],
+					"short": "How much the option's value changes per 1 point of implied volatility.",
+					"long": "With a vega of 0.20, a 15-point drop in IV takes about 3.00 off the option, even if the price does not move. Longer options have more vega.",
+					"example": "0.20 × −15 = −3.00."
+				}
+			},
+			"checks": [{ "kind": "product", "a": 0.2, "b": -15, "expect": -3 }]
+		},
+		{
+			"id": "implied-volatility",
+			"stage": "options2",
+			"related": ["realized-volatility", "vega", "iv-crush"],
+			"text": {
+				"pt-BR": {
+					"term": "Volatilidade implícita (IV)",
+					"aliases": ["IV", "volatilidade implícita", "vol implícita"],
+					"short": "A volatilidade que o preço da opção embute: quanto movimento o mercado está cobrando.",
+					"long": "IV alta deixa opções caras; baixa, baratas. Ela não diz para onde o preço vai, só quanto ele deve se mexer. Aqui as opções são precificadas por Black-76 com juros zero."
+				},
+				"en": {
+					"term": "Implied volatility (IV)",
+					"aliases": ["IV", "implied vol"],
+					"short": "The volatility the option's price implies: how much movement the market is charging for.",
+					"long": "High IV makes options expensive; low IV, cheap. It does not say where the price goes, only how much it should move. Here options are priced with Black-76 at a zero rate."
+				}
+			}
+		},
+		{
+			"id": "realized-volatility",
+			"stage": "options2",
+			"related": ["implied-volatility"],
+			"text": {
+				"pt-BR": {
+					"term": "Volatilidade realizada",
+					"aliases": ["vol realizada", "volatilidade histórica"],
+					"short": "O quanto o preço de fato se mexeu num período.",
+					"long": "Quando a IV fica acima da realizada, quem vende opções tende a ganhar com o tempo; quando a realizada supera a IV, quem compra ganha. Nenhum dos dois é garantido numa amostra."
+				},
+				"en": {
+					"term": "Realized volatility",
+					"aliases": ["realized vol", "historical volatility"],
+					"short": "How much the price actually moved over a period.",
+					"long": "When IV stays above realized, option sellers tend to gain over time; when realized beats IV, buyers gain. Neither is guaranteed in one sample."
+				}
+			}
+		},
+		{
+			"id": "iv-crush",
+			"stage": "options2",
+			"related": ["implied-volatility", "vega", "consensus"],
+			"text": {
+				"pt-BR": {
+					"term": "Queda da IV (IV crush)",
+					"aliases": ["IV crush", "esmagamento da IV"],
+					"short": "A queda da volatilidade implícita depois de um evento esperado. Opções compradas perdem valor mesmo com algum movimento.",
+					"long": "Antes de uma divulgação, a IV embute o movimento esperado. Depois, a incerteza some e a IV cai. Quem comprou precisa de um movimento maior do que o já cobrado."
+				},
+				"en": {
+					"term": "IV crush",
+					"aliases": ["volatility crush"],
+					"short": "The fall in implied volatility after an expected event. Bought options lose value even with some movement.",
+					"long": "Before a release, IV holds the expected move. After it, the uncertainty is gone and IV falls. A buyer needs a move larger than the one already priced."
+				}
+			}
+		},
+		{
+			"id": "option-chain",
+			"stage": "options1",
+			"related": ["strike", "expiry", "implied-volatility"],
+			"text": {
+				"pt-BR": {
+					"term": "Cadeia de opções",
+					"aliases": ["cadeia", "grade de opções"],
+					"short": "A tabela de calls e puts disponíveis, por vencimento e strike, com compra, venda, IV e delta.",
+					"long": "Na cadeia você escolhe o vencimento (quanto tempo) e o strike (quão longe). O spread entre compra e venda de cada série também é custo."
+				},
+				"en": {
+					"term": "Option chain",
+					"aliases": ["chain"],
+					"short": "The table of available calls and puts, by expiry and strike, with bid, ask, IV and delta.",
+					"long": "In the chain you choose the expiry (how much time) and the strike (how far). The bid/ask spread of each series is a cost too."
+				}
+			}
+		},
+		{
+			"id": "writing",
+			"stage": "options3",
+			"related": ["premium", "margin-call", "defined-risk"],
+			"text": {
+				"pt-BR": {
+					"term": "Venda de opções (lançamento)",
+					"aliases": ["lançar", "vender opção", "opção vendida", "lançamento"],
+					"short": "Vender uma opção: receber o prêmio e assumir a obrigação. O ganho máximo é o prêmio; a perda pode ser grande.",
+					"long": "Uma call vendida sem proteção tem perda sem teto na alta. Vendas exigem margem, conferida a cada barra; abaixo da manutenção, a opção é recomprada à força (chamada de margem)."
+				},
+				"en": {
+					"term": "Writing options",
+					"aliases": ["write", "sell an option", "short option"],
+					"short": "Selling an option: receiving the premium and taking on the obligation. The largest gain is the premium; the loss can be large.",
+					"long": "A call sold without cover has an unbounded loss on the upside. Writing needs margin, checked every bar; below maintenance the option is bought back by force (margin call)."
+				}
+			}
+		},
+		{
+			"id": "settlement",
+			"stage": "options3",
+			"related": ["expiry", "twap"],
+			"text": {
+				"pt-BR": {
+					"term": "Liquidação no vencimento",
+					"aliases": ["liquidação em dinheiro", "settlement", "exercício"],
+					"short": "Aqui as opções são europeias e liquidadas em dinheiro no vencimento, pela média de preço das últimas barras (TWAP). Não há exercício antecipado.",
+					"long": "No vencimento, cada opção paga o seu valor intrínseco calculado pelo TWAP. Ninguém entrega o ativo e ninguém é exercido antes da data."
+				},
+				"en": {
+					"term": "Settlement",
+					"aliases": ["cash settlement", "exercise"],
+					"short": "Here options are European and settled in cash at expiry, at the average price of the last bars (TWAP). There is no early exercise.",
+					"long": "At expiry each option pays its intrinsic value computed from the TWAP. Nobody delivers the asset and nobody is exercised before the date."
+				}
+			}
+		},
+		{
+			"id": "twap",
+			"stage": "options3",
+			"related": ["settlement"],
+			"text": {
+				"pt-BR": {
+					"term": "TWAP",
+					"aliases": ["média ponderada pelo tempo"],
+					"short": "Preço médio ponderado pelo tempo de um período. Uma média é mais difícil de manipular que um único preço.",
+					"long": "O preço de liquidação das opções é o TWAP das últimas barras antes do vencimento, não o fechamento de uma única barra."
+				},
+				"en": {
+					"term": "TWAP",
+					"aliases": ["time-weighted average price"],
+					"short": "The time-weighted average price over a period. An average is harder to push around than a single price.",
+					"long": "Options settle at the TWAP of the last bars before expiry, not at the close of a single bar."
+				}
+			}
+		},
+		{
+			"id": "margin-call",
+			"stage": "options3",
+			"related": ["writing", "maintenance-margin"],
+			"text": {
+				"pt-BR": {
+					"term": "Chamada de margem",
+					"aliases": ["margin call", "recompra forçada"],
+					"short": "Quando a margem das opções vendidas fica abaixo da manutenção, elas são recompradas à força.",
+					"long": "A recompra acontece no preço do momento, quase sempre ruim. Uma folga acima da manutenção evita que um movimento normal force a saída."
+				},
+				"en": {
+					"term": "Margin call",
+					"aliases": ["forced buy-back"],
+					"short": "When the margin of written options falls below maintenance, they are bought back by force.",
+					"long": "The buy-back happens at the price of the moment, almost always a bad one. A buffer above maintenance keeps a normal move from forcing the exit."
+				}
+			}
+		},
+		{
+			"id": "vertical-spread",
+			"stage": "strategies",
+			"related": ["defined-risk", "call", "put"],
+			"text": {
+				"pt-BR": {
+					"term": "Trava (spread vertical)",
+					"aliases": ["trava de alta", "trava de baixa", "bull call spread", "bear put spread", "trava"],
+					"short": "Comprar uma opção e vender outra do mesmo tipo e vencimento em outro strike. Ganho e perda ficam limitados.",
+					"long": "Uma trava de alta com calls 100/110 por 4 de débito ganha no máximo 6 e perde no máximo 4, com equilíbrio em 104. Vender a perna de cima financia a compra e abre mão da alta além dela.",
+					"example": "Calls 100/110 por 4: ganho máximo 6, perda máxima 4."
+				},
+				"en": {
+					"term": "Vertical spread",
+					"aliases": ["bull call spread", "bear put spread", "debit spread", "credit spread"],
+					"short": "Buying one option and selling another of the same kind and expiry at another strike. Gain and loss are both bounded.",
+					"long": "A 100/110 bull call spread for a 4 debit gains at most 6 and loses at most 4, breaking even at 104. Selling the upper leg pays for part of the purchase and gives up the rise beyond it.",
+					"example": "Calls 100/110 for 4: max gain 6, max loss 4."
+				}
+			},
+			"checks": [
+				{ "kind": "maxProfit", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 5.5 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 110, "price": 1.5 }], "expect": 6 },
+				{ "kind": "maxLoss", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 5.5 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 110, "price": 1.5 }], "expect": 4 },
+				{ "kind": "breakeven", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 5.5 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 110, "price": 1.5 }], "expect": [104] }
+			]
+		},
+		{
+			"id": "covered-call",
+			"stage": "strategies",
+			"related": ["writing", "protective-put"],
+			"text": {
+				"pt-BR": {
+					"term": "Venda coberta (covered call)",
+					"aliases": ["covered call", "venda coberta"],
+					"short": "Ter o ativo e vender uma call acima do preço. O prêmio baixa o ponto de equilíbrio, mas a alta fica limitada no strike.",
+					"long": "Comprado a 100 e vendido numa call 105 por 2: ganho máximo 7, equilíbrio em 98. A queda continua quase toda sua: o prêmio é só um colchão. Aqui a call vendida precisa de margem própria, porque o perpétuo tem margem separada."
+				},
+				"en": {
+					"term": "Covered call",
+					"aliases": ["buy-write"],
+					"short": "Holding the asset and selling a call above the price. The premium lowers the breakeven, but the upside is capped at the strike.",
+					"long": "Long at 100 and short a 105 call for 2: max gain 7, breakeven 98. Almost all the downside stays yours: the premium is only a cushion. Here the short call needs its own margin, because the perpetual is margined separately."
+				}
+			},
+			"checks": [
+				{ "kind": "maxProfit", "legs": [{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }], "expect": 7 },
+				{ "kind": "breakeven", "legs": [{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }], "expect": [98] }
+			]
+		},
+		{
+			"id": "protective-put",
+			"stage": "strategies",
+			"related": ["put", "covered-call"],
+			"text": {
+				"pt-BR": {
+					"term": "Put de proteção",
+					"aliases": ["protective put", "seguro"],
+					"short": "Ter o ativo e comprar uma put: um piso para a perda, pago com o prêmio.",
+					"long": "Comprado a 100 com uma put 95 por 2, a perda máxima é 7 (5 até o strike mais 2 de prêmio). O strike é a franquia: quanto mais longe, mais barato e mais baixo o piso. Na maior parte do tempo o prêmio se perde, como um seguro."
+				},
+				"en": {
+					"term": "Protective put",
+					"aliases": ["married put", "insurance"],
+					"short": "Holding the asset and buying a put: a floor for the loss, paid with the premium.",
+					"long": "Long at 100 with a 95 put for 2, the largest loss is 7 (5 to the strike plus 2 of premium). The strike is the deductible: the farther, the cheaper and the lower the floor. Most of the time the premium is lost, like insurance."
+				}
+			},
+			"checks": [
+				{ "kind": "maxLoss", "legs": [{ "kind": "perp", "side": "buy", "qty": 1, "price": 100 }, { "kind": "put", "side": "buy", "qty": 1, "strike": 95, "price": 2 }], "expect": 7 },
+				{ "kind": "diff", "a": 100, "b": 95, "expect": 5 }
+			]
+		},
+		{
+			"id": "straddle",
+			"stage": "strategies",
+			"related": ["strangle", "implied-volatility"],
+			"text": {
+				"pt-BR": {
+					"term": "Straddle",
+					"aliases": ["compra de volatilidade"],
+					"short": "Comprar uma call e uma put no mesmo strike. Ganha com um movimento grande para qualquer lado.",
+					"long": "O preço de um straddle no dinheiro é quase o movimento que o mercado espera até o vencimento. Ele perde se o preço ficar perto do strike ou se a IV cair."
+				},
+				"en": {
+					"term": "Straddle",
+					"aliases": ["long volatility"],
+					"short": "Buying a call and a put at the same strike. It gains from a large move either way.",
+					"long": "The price of an at-the-money straddle is close to the move the market expects by expiry. It loses if the price stays near the strike or if IV falls."
+				}
+			}
+		},
+		{
+			"id": "strangle",
+			"stage": "strategies",
+			"related": ["straddle", "iron-condor"],
+			"text": {
+				"pt-BR": {
+					"term": "Strangle",
+					"aliases": ["strangle vendido", "strangle comprado"],
+					"short": "Uma call acima e uma put abaixo do preço. Comprado, ganha com movimentos grandes; vendido, ganha se o preço ficar entre os strikes.",
+					"long": "Um strangle vendido 95/105 por 4 empata em 91 e 109 e tem perda sem teto na alta. Ele ganha na maioria das vezes e perde muito às vezes."
+				},
+				"en": {
+					"term": "Strangle",
+					"aliases": ["short strangle", "long strangle"],
+					"short": "A call above and a put below the price. Bought, it gains from large moves; sold, it gains if the price stays between the strikes.",
+					"long": "A 95/105 short strangle for 4 breaks even at 91 and 109 and has an unbounded loss on the upside. It wins most of the time and sometimes loses a lot."
+				}
+			},
+			"checks": [
+				{ "kind": "breakeven", "legs": [{ "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2 }], "expect": [91, 109] }
+			]
+		},
+		{
+			"id": "iron-condor",
+			"stage": "strategies",
+			"related": ["strangle", "defined-risk", "vertical-spread"],
+			"text": {
+				"pt-BR": {
+					"term": "Iron condor",
+					"aliases": ["condor"],
+					"short": "Um strangle vendido com asas compradas mais longe. Recebe menos prêmio, mas a perda máxima fica limitada.",
+					"long": "Um condor 90/95/105/110 com 3 de crédito empata em 92 e 108; a perda máxima é a largura de uma asa (5) menos o crédito: 2. Quatro pernas pagam quatro spreads."
+				},
+				"en": {
+					"term": "Iron condor",
+					"aliases": ["condor"],
+					"short": "A short strangle with long wings farther out. It collects less premium, but the largest loss is bounded.",
+					"long": "A 90/95/105/110 condor for a 3 credit breaks even at 92 and 108; its largest loss is one wing's width (5) minus the credit: 2. Four legs pay four spreads."
+				}
+			},
+			"checks": [
+				{ "kind": "maxLoss", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 90, "price": 0.8 }, { "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2.3 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2.3 }, { "kind": "call", "side": "buy", "qty": 1, "strike": 110, "price": 0.8 }], "expect": 2 },
+				{ "kind": "breakeven", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": 90, "price": 0.8 }, { "kind": "put", "side": "sell", "qty": 1, "strike": 95, "price": 2.3 }, { "kind": "call", "side": "sell", "qty": 1, "strike": 105, "price": 2.3 }, { "kind": "call", "side": "buy", "qty": 1, "strike": 110, "price": 0.8 }], "expect": [92, 108] },
+				{ "kind": "diff", "a": 95, "b": 90, "expect": 5 }
+			]
+		},
+		{
+			"id": "defined-risk",
+			"stage": "strategies",
+			"related": ["iron-condor", "vertical-spread", "writing"],
+			"text": {
+				"pt-BR": {
+					"term": "Risco definido",
+					"aliases": ["risco limitado", "risco indefinido", "perda máxima"],
+					"short": "Uma estrutura cuja perda máxima é conhecida antes da entrada. Risco indefinido: a perda não tem teto.",
+					"long": "Com risco definido você dimensiona pelo pior caso. Algumas missões margeiam travas pelo que elas ainda podem perder (margem de trava); as outras margeiam cada perna vendida sozinha, e o briefing diz qual regra vale."
+				},
+				"en": {
+					"term": "Defined risk",
+					"aliases": ["limited risk", "undefined risk", "max loss"],
+					"short": "A structure whose largest loss is known before entry. Undefined risk: the loss has no ceiling.",
+					"long": "With defined risk you size by the worst case. Some missions margin spreads by what they can still lose (spread margin); the others margin each short leg on its own, and the briefing says which rule applies."
+				}
+			}
+		},
+		{
+			"id": "legging-risk",
+			"stage": "strategies",
+			"related": ["iron-condor", "vertical-spread"],
+			"text": {
+				"pt-BR": {
+					"term": "Risco de perna",
+					"aliases": ["legging", "combinação incompleta"],
+					"short": "O risco de só parte das pernas de uma estrutura executar, deixando uma posição diferente da planejada.",
+					"long": "Se a perna comprada não executa e a vendida sim, a trava vira uma venda descoberta. Execute as proteções primeiro e confira o que ficou aberto depois de cada avanço."
+				},
+				"en": {
+					"term": "Legging risk",
+					"aliases": ["legging", "incomplete combo"],
+					"short": "The risk that only some legs of a structure fill, leaving a position other than the one planned.",
+					"long": "If the long leg does not fill and the short one does, a spread turns into a naked short. Fill the protection first and check what is open after each advance."
+				}
+			}
+		},
+		{
+			"id": "roll",
+			"stage": "strategies",
+			"related": ["theta", "gamma", "expiry"],
+			"text": {
+				"pt-BR": {
+					"term": "Rolagem",
+					"aliases": ["rolar", "roll"],
+					"short": "Fechar uma opção perto do vencimento e abrir outra mais longa: duas operações e uma decisão nova.",
+					"long": "Rolar paga dois spreads e duas taxas. Rolar uma posição perdedora para esperar que ela volte só acrescenta tempo e custo: julgue a nova posição como se abrisse do zero."
+				},
+				"en": {
+					"term": "Roll",
+					"aliases": ["rolling"],
+					"short": "Closing an option near expiry and opening a longer one: two trades and a new decision.",
+					"long": "Rolling pays two spreads and two fees. Rolling a loser to wait for it to come back only adds time and cost: judge the new position as if opening it fresh."
+				}
+			}
+		},
+		{
+			"id": "regime",
+			"stage": "patterns",
+			"related": ["trend", "range", "indicator"],
+			"text": {
+				"pt-BR": {
+					"term": "Regime",
+					"aliases": ["regime de mercado"],
+					"short": "O estado do mercado: em tendência, lateral ou agitado. Cada ferramenta funciona num regime e falha em outro.",
+					"long": "Identifique o regime antes de escolher a ferramenta. O regime muda sem aviso; uma regra que ganhou num regime pode perder no seguinte."
+				},
+				"en": {
+					"term": "Regime",
+					"aliases": ["market regime"],
+					"short": "The state of the market: trending, ranging or choppy. Each tool works in one regime and fails in another.",
+					"long": "Identify the regime before choosing the tool. Regimes change without warning; a rule that won in one can lose in the next."
+				}
+			}
+		},
+		{
+			"id": "indicator",
+			"stage": "patterns",
+			"related": ["regime", "moving-average", "rsi"],
+			"text": {
+				"pt-BR": {
+					"term": "Indicador",
+					"aliases": ["indicadores"],
+					"short": "Um resumo calculado das barras passadas. Ele descreve o passado e reage com atraso.",
+					"long": "Indicadores não sabem nada que as barras não mostrem. Eles ajudam a ler o regime e a padronizar decisões, mas falham com frequência: confira sempre o custo de errar."
+				},
+				"en": {
+					"term": "Indicator",
+					"aliases": ["indicators"],
+					"short": "A computed summary of past bars. It describes the past and reacts with a lag.",
+					"long": "Indicators know nothing the bars do not show. They help read the regime and standardize decisions, but they fail often: always weigh the cost of being wrong."
+				}
+			}
+		},
+		{
+			"id": "moving-average",
+			"stage": "patterns",
+			"related": ["indicator", "trend"],
+			"text": {
+				"pt-BR": {
+					"term": "Média móvel",
+					"aliases": ["SMA", "EMA", "média", "VWAP"],
+					"short": "A média dos últimos fechamentos (SMA) ou uma média que pesa mais os recentes (EMA). Segue o preço com atraso.",
+					"long": "Cruzamentos de médias funcionam em tendências e dão sinais falsos em mercados laterais. A VWAP pondera o preço pelo volume."
+				},
+				"en": {
+					"term": "Moving average",
+					"aliases": ["SMA", "EMA", "average", "VWAP"],
+					"short": "The average of the last closes (SMA) or one that weighs recent closes more (EMA). It follows the price with a lag.",
+					"long": "Moving-average crosses work in trends and give false signals in ranges. VWAP weighs price by volume."
+				}
+			}
+		},
+		{
+			"id": "rsi",
+			"stage": "patterns",
+			"related": ["indicator", "regime"],
+			"text": {
+				"pt-BR": {
+					"term": "RSI",
+					"aliases": ["IFR", "sobrecomprado", "sobrevendido", "oscilador"],
+					"short": "Um oscilador de 0 a 100 que compara altas e quedas recentes. Acima de 70 se diz sobrecomprado; abaixo de 30, sobrevendido.",
+					"long": "Numa tendência forte o RSI pode ficar sobrecomprado por muito tempo: não é um sinal de venda por si só. Em mercados laterais, os extremos funcionam melhor."
+				},
+				"en": {
+					"term": "RSI",
+					"aliases": ["overbought", "oversold", "oscillator"],
+					"short": "An oscillator from 0 to 100 comparing recent rises and falls. Above 70 is called overbought; below 30, oversold.",
+					"long": "In a strong trend RSI can stay overbought for a long time: it is not a sell signal by itself. In ranges the extremes work better."
+				}
+			}
+		},
+		{
+			"id": "consensus",
+			"stage": "events",
+			"related": ["surprise", "iv-crush"],
+			"text": {
+				"pt-BR": {
+					"term": "Consenso",
+					"aliases": ["expectativa do mercado", "previsão"],
+					"short": "O valor que o mercado espera de uma divulgação. Ele já está no preço antes da notícia.",
+					"long": "Se o número sai igual ao consenso, quase nada muda: a informação já era conhecida. O calendário mostra o consenso antes da divulgação."
+				},
+				"en": {
+					"term": "Consensus",
+					"aliases": ["market expectation", "forecast"],
+					"short": "The value the market expects from a release. It is already in the price before the news.",
+					"long": "If the number matches the consensus, little changes: the information was already known. The calendar shows the consensus before the release."
+				}
+			}
+		},
+		{
+			"id": "surprise",
+			"stage": "events",
+			"related": ["consensus", "gap"],
+			"text": {
+				"pt-BR": {
+					"term": "Surpresa",
+					"aliases": ["surpresa da divulgação"],
+					"short": "A diferença entre o número divulgado e o consenso. É a surpresa, não o número, que move o preço.",
+					"long": "Uma notícia boa pode derrubar o preço se veio menos boa que o esperado. Surpresas grandes costumam vir com gaps."
+				},
+				"en": {
+					"term": "Surprise",
+					"aliases": ["release surprise"],
+					"short": "The difference between the released number and the consensus. The surprise, not the number, moves the price.",
+					"long": "Good news can sell off if it is less good than expected. Large surprises often come with gaps."
+				}
+			}
+		},
+		{
+			"id": "thesis",
+			"stage": "evaluation",
+			"related": ["invalidation", "journal"],
+			"text": {
+				"pt-BR": {
+					"term": "Hipótese",
+					"aliases": ["tese", "plano"],
+					"short": "Por que você espera que o trade funcione, escrito antes da entrada.",
+					"long": "Uma hipótese clara diz o que precisa acontecer e o que mostraria que você está errado. Sem ela, não há como aprender com o resultado."
+				},
+				"en": {
+					"term": "Thesis",
+					"aliases": ["hypothesis", "plan"],
+					"short": "Why you expect the trade to work, written before the entry.",
+					"long": "A clear thesis says what must happen and what would show you are wrong. Without it there is nothing to learn from the result."
+				}
+			}
+		},
+		{
+			"id": "invalidation",
+			"stage": "evaluation",
+			"related": ["thesis", "stop-loss"],
+			"text": {
+				"pt-BR": {
+					"term": "Invalidação",
+					"aliases": ["ponto de invalidação"],
+					"short": "O preço ou fato que mostra que a hipótese está errada. É onde o stop deve ficar.",
+					"long": "Defina a invalidação antes de entrar, enquanto você ainda não tem uma posição para defender."
+				},
+				"en": {
+					"term": "Invalidation",
+					"aliases": ["invalidation level"],
+					"short": "The price or fact that shows the thesis is wrong. It is where the stop belongs.",
+					"long": "Set the invalidation before entering, while you have no position to defend yet."
+				}
+			}
+		},
+		{
+			"id": "journal",
+			"stage": "evaluation",
+			"related": ["thesis", "calibration"],
+			"text": {
+				"pt-BR": {
+					"term": "Diário",
+					"aliases": ["diário de trades", "registro"],
+					"short": "O registro de cada trade: plano, confiança, resultado e o que você faria diferente.",
+					"long": "O diário separa processo de resultado: um trade bom pode perder e um ruim pode ganhar. Só muitas entradas mostram padrões, inclusive os seus vieses."
+				},
+				"en": {
+					"term": "Journal",
+					"aliases": ["trade journal", "log"],
+					"short": "The record of each trade: plan, confidence, result and what you would do differently.",
+					"long": "A journal separates process from outcome: a good trade can lose and a bad one can win. Only many entries show patterns, your biases included."
+				}
+			}
+		},
+		{
+			"id": "fomo",
+			"stage": "evaluation",
+			"related": ["revenge-trading", "thesis"],
+			"text": {
+				"pt-BR": {
+					"term": "FOMO",
+					"aliases": ["medo de ficar de fora"],
+					"short": "Entrar porque o preço já andou e dá medo de perder o resto, sem plano.",
+					"long": "Entradas por FOMO costumam vir tarde, com stop longe ou sem stop. Esperar é uma decisão válida."
+				},
+				"en": {
+					"term": "FOMO",
+					"aliases": ["fear of missing out"],
+					"short": "Entering because the price already moved and you fear missing the rest, with no plan.",
+					"long": "FOMO entries tend to come late, with a far stop or none. Waiting is a valid decision."
+				}
+			}
+		},
+		{
+			"id": "revenge-trading",
+			"stage": "evaluation",
+			"related": ["fomo", "risk-budget"],
+			"text": {
+				"pt-BR": {
+					"term": "Trade de vingança",
+					"aliases": ["vingança", "revenge trading"],
+					"short": "Aumentar o tamanho ou abandonar o plano logo depois de perdas, para recuperar rápido.",
+					"long": "Depois de uma sequência de perdas, o próximo trade não tem mais chance de ganhar. Dobrar o risco nessa hora é o caminho mais curto para o drawdown grande."
+				},
+				"en": {
+					"term": "Revenge trading",
+					"aliases": ["revenge"],
+					"short": "Raising the size or dropping the plan right after losses, to win it back quickly.",
+					"long": "After a losing streak the next trade is no more likely to win. Doubling the risk then is the shortest way to a large drawdown."
+				}
+			}
+		},
+		{
+			"id": "overconfidence",
+			"stage": "evaluation",
+			"related": ["calibration"],
+			"text": {
+				"pt-BR": {
+					"term": "Excesso de confiança",
+					"aliases": ["overconfidence"],
+					"short": "Acreditar que suas previsões acertam mais do que de fato acertam.",
+					"long": "O excesso de confiança leva a tamanhos grandes e stops ignorados. A calibração mede isso: compare a confiança declarada com a frequência real de acerto."
+				},
+				"en": {
+					"term": "Overconfidence",
+					"aliases": ["overconfident"],
+					"short": "Believing your forecasts are right more often than they are.",
+					"long": "Overconfidence leads to large sizes and ignored stops. Calibration measures it: compare your stated confidence with how often you are actually right."
+				}
+			}
+		},
+		{
+			"id": "calibration",
+			"stage": "evaluation",
+			"related": ["overconfidence", "journal"],
+			"text": {
+				"pt-BR": {
+					"term": "Calibração",
+					"aliases": ["calibrado"],
+					"short": "Previsões feitas com 70% de confiança devem acertar cerca de 70% das vezes.",
+					"long": "Se você diz 70% e acerta 4 de 10, está confiante demais. A calibração só aparece em muitas previsões: uma partida é uma amostra só."
+				},
+				"en": {
+					"term": "Calibration",
+					"aliases": ["calibrated"],
+					"short": "Forecasts made with 70% confidence should come true about 70% of the time.",
+					"long": "If you say 70% and get 4 out of 10 right, you are overconfident. Calibration only shows over many forecasts: one run is one sample."
+				}
+			}
+		}
+	]
+}

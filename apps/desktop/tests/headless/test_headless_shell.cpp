@@ -125,14 +125,14 @@ TEST_CASE("headless shell: curriculum map, an Academy lesson played by clicks, t
   REQUIRE(d.click(names::kMenuCurriculum));
   REQUIRE(app.vm().screen() == Screen::Curriculum);
   const Rid stages = d.widget(names::kCurriculumStages);
-  CHECK(Rtable_get_row_count(stages) == 13);
+  CHECK(Rtable_get_row_count(stages) == 14);
   CHECK(std::string(Rtable_get_cell(stages, 0, 2)) == "DISPONÍVEL");
   REQUIRE(d.click(names::kCurriculumLessonStart));
   REQUIRE(app.vm().screen() == Screen::Lesson);
   CHECK(d.text(names::kLessonTitle) == "Uma barra, quatro preços");
   for (int guard = 0; guard < 40 && !app.vm().shell().lesson.finished(); ++guard) {
     const LessonStep* s = app.vm().shell().lesson.step();
-    if (s->question()) REQUIRE(d.click(names::kLessonChoices[static_cast<std::size_t>(s->answer)]));
+    if (s->is_question()) REQUIRE(d.click(names::kLessonChoices[static_cast<std::size_t>(s->question->answer)]));
     REQUIRE(d.click(names::kLessonNext));
   }
   REQUIRE(app.vm().shell().lesson.finished());

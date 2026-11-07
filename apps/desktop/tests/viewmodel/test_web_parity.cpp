@@ -24,74 +24,17 @@
 #include "viewmodel/game/options_math.hpp"
 #include "viewmodel/game/progress.hpp"
 #include "viewmodel/game/sizing.hpp"
+#include "support/web_fixture.hpp"
 #include "viewmodel/game/texts.hpp"
 
 using namespace tradelab::desktop;
 using namespace tradelab::desktop::game;
 using json::Value;
+using namespace tradelab::desktop::test_support;
 
 namespace {
 
-using Case = std::function<void(const Value& args, const Value& out)>;
-
-json::Value fixture(const std::string& name) {
-  std::ifstream in(std::string(TRADELAB_WEB_FIXTURES_DIR) + "/" + name + ".json", std::ios::binary);
-  REQUIRE_MESSAGE(in.good(), "missing fixture " << name << ".json: run scripts/gen_web_fixtures.mjs");
-  std::ostringstream text;
-  text << in.rdbuf();
-  auto v = json::parse(text.str());
-  REQUIRE(v.has_value());
-  return *v;
-}
-
-std::string dump(const Value& v) { return storage::dump(v); }
-
-bool same_number(double got, const Value& want) {
-  if (want.is_null()) return std::isnan(got);
-  const double w = want.as_double();
-  return std::abs(got - w) <= 1e-9 * std::max({1.0, std::abs(got), std::abs(w)});
-}
-
-void check_number(double got, const Value& want) { CHECK_MESSAGE(same_number(got, want), "got " << got); }
-
-void check_optional(const std::optional<double>& got, const Value& want) {
-  if (want.is_null()) {
-    CHECK_FALSE_MESSAGE(got.has_value(), "got " << got.value_or(0));
-  } else {
-    REQUIRE(got.has_value());
-    check_number(*got, want);
-  }
-}
-
-void check_string(const std::string& got, const Value& want) { CHECK(got == want.as_string()); }
-
-void check_strings(const std::vector<std::string>& got, const Value& want) {
-  REQUIRE(got.size() == want.size());
-  for (std::size_t i = 0; i < got.size(); ++i) CHECK(got[i] == want[i].as_string());
-}
-
-std::optional<double> opt(const Value& v) { return v.is_null() ? std::nullopt : std::optional<double>(v.as_double()); }
 Side side(const Value& v) { return v.as_string() == "buy" ? Side::Buy : Side::Sell; }
-Locale locale(const Value& v) { return v.as_string() == "en" ? Locale::En : Locale::PtBR; }
-std::vector<std::string> strings(const Value& v) {
-  std::vector<std::string> out;
-  for (const auto& s : v.items()) out.push_back(s.as_string());
-  return out;
-}
-
-void replay(const std::string& name, const std::map<std::string, Case>& ports) {
-  const Value f = fixture(name);
-  int n = 0;
-  for (const Value& c : f["cases"].items()) {
-    const std::string fn = c["fn"].as_string();
-    const auto port = ports.find(fn);
-    REQUIRE_MESSAGE(port != ports.end(), name << ": no C++ port mapped for " << fn);
-    INFO(name << " " << fn << " " << dump(c["args"]) << " -> " << dump(c["out"]));
-    port->second(c["args"], c["out"]);
-    ++n;
-  }
-  CHECK(n > 0);
-}
 
 // ---- sizing.ts / stops.ts ----
 
@@ -558,6 +501,20 @@ std::map<std::string, Case> curriculum_ports() {
          if (p.leverage_cap) CHECK(*p.leverage_cap == o["leverageCap"].as_int());
        }},
       {"stagesOf", [&c](const Value& a, const Value& o) { check_strings(stages_of(c, a[0].as_string()), o); }},
+      {"lessonProgress",
+       [&c](const Value& a, const Value& o) {
+         const LessonProgress p = lesson_progress(c, a[0].as_string(), strings(a[1]));
+         CHECK(p.done == o["done"].as_int());
+         CHECK(p.total == o["total"].as_int());
+       }},
+      {"recommendedLesson",
+       [&c](const Value& a, const Value& o) {
+         CHECK(recommended_lesson(c, a[0].as_string(), strings(a[1])) == (o.is_null() ? "" : o.as_string()));
+       }},
+      {"lessonCodeStage",
+       [&c](const Value& a, const Value& o) {
+         CHECK(lesson_code_stage(c, a[0].as_string()) == (o.is_null() ? "" : o.as_string()));
+       }},
       {"unlockStage", [&c](const Value& a, const Value& o) { CHECK(unlock_stage(c, a[0].as_string()) == o.as_string()); }},
   };
 }

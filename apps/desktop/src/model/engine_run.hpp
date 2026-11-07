@@ -46,6 +46,13 @@ class EngineRun {
   CommandResult place_market(Side side, const std::string& qty);
   [[nodiscard]] Snapshot snapshot() const;
 
+  // Report-only option analysis (add-academy-and-strategies design D4): none changes the run, its log or
+  // digests. The run-less valuation (Academy lab) answers in the engine's shared buffer, so like every
+  // engine call these run on EngineHost's worker only.
+  static std::string option_whatif(const std::string& request_json);
+  [[nodiscard]] std::string run_whatif(const std::string& request_json) const;
+  [[nodiscard]] std::string combo_preview(const std::string& legs_json) const;
+
   // Storage (model/storage): takes ownership of a run built by another tl_* constructor (pack, restore).
   // The mission's lesson questions are read as create() does.
   static std::unique_ptr<EngineRun> adopt(tl_run* run, std::uint32_t seed);

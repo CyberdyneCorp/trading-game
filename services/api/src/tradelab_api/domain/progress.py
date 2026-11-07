@@ -25,7 +25,8 @@ from .models import Achievement, MissionProgress, Run
 
 CAMPAIGN_MISSIONS: tuple[str, ...] = (
     "m06-thin-book", "m01-false-breakout", "m03-volatility-shock", "m02-funding-squeeze", "m07-trend-trailing",
-    "m04-options-buyer", "m09-event-straddle", "m05-options-writer", "m10-hedged-book", "m08-regime-switch",
+    "m04-options-buyer", "m09-event-straddle", "m05-options-writer", "m10-hedged-book", "m13-call-spread",
+    "m14-covered-call", "m15-protective-put", "m16-range-condor", "m17-before-expiry", "m08-regime-switch",
     "m11-news-calendar", "m12-capstone",
 )
 CAMPAIGN_MIN_CAPITAL = Decimal(100)
