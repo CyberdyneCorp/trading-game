@@ -1436,7 +1436,7 @@ tutorial.m04-options-buyer.3.body,"O risco de uma opção comprada é o prêmio 
 tutorial.m04-options-buyer.3.art,risk,risk
 tutorial.m05-options-writer.0.title,Vender prêmio,Selling premium
 tutorial.m05-options-writer.0.body,Quem vende a opção recebe o prêmio na hora. O ganho máximo é esse prêmio; a perda pode ser muitas vezes maior se o preço passar do strike.,The option seller receives the premium up front. The maximum gain is that premium; the loss can be many times larger if price moves past the strike.
-tutorial.m05-options-writer.0.art,payoff,payoff
+tutorial.m05-options-writer.0.art,written,written
 tutorial.m05-options-writer.1.title,Margem e chamada de margem,Margin and margin calls
 tutorial.m05-options-writer.1.body,"Opção vendida exige margem, e ela cresce quando a opção anda contra você. Se a margem não cobre, há chamada de margem e recompra forçada, no pior momento.","A sold option needs margin, and it grows when the option moves against you. If the margin does not cover it, there is a margin call and a forced buyback, at the worst moment."
 tutorial.m05-options-writer.1.art,margin,margin

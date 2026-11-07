@@ -91,6 +91,13 @@
 		<line class="strike" x1="80" x2="80" y1="10" y2="92" />
 		<text x="84" y="94" class="small muted">strike</text>
 		<text x="12" y="92" class="small down-fill">−{t('tut.art.premium')}</text>
+	{:else if art === 'written'}
+		<!-- A written option: the premium received is the most it earns; past the strike the loss grows. -->
+		<line class="axis" x1="10" x2="150" y1="50" y2="50" />
+		<path class="payoff" d="M10,34 L80,34 L150,94" />
+		<line class="strike" x1="80" x2="80" y1="10" y2="92" />
+		<text x="84" y="20" class="small muted">strike</text>
+		<text x="12" y="28" class="small up-fill">+{t('tut.art.premium')}</text>
 	{:else if art === 'chain'}
 		{#each CHAIN_ART as q, r (q.strike)}
 			<rect class="row" class:atm={q.strike === 100} x="14" y={12 + r * 16} width="132" height="13" />

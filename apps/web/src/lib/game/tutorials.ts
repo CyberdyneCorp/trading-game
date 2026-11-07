@@ -15,6 +15,7 @@ export type TutorialArt =
 	| 'leverage'
 	| 'volatility'
 	| 'payoff'
+	| 'written'
 	| 'chain'
 	| 'decay'
 	| 'margin'
@@ -255,7 +256,7 @@ const m04: Cards = {
 const m05: Cards = {
 	'pt-BR': [
 		{
-			art: 'payoff',
+			art: 'written',
 			title: 'Vender prêmio',
 			body: 'Quem vende a opção recebe o prêmio na hora. O ganho máximo é esse prêmio; a perda pode ser muitas vezes maior se o preço passar do strike.'
 		},
@@ -277,7 +278,7 @@ const m05: Cards = {
 	],
 	en: [
 		{
-			art: 'payoff',
+			art: 'written',
 			title: 'Selling premium',
 			body: 'The option seller receives the premium up front. The maximum gain is that premium; the loss can be many times larger if price moves past the strike.'
 		},

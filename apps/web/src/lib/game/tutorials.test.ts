@@ -110,6 +110,10 @@ describe('mission tutorials', () => {
 		expect(card('en')).toMatch(/about 4\.5% against you/);
 	});
 
+	it("m05's first card draws a written option's payoff (it showed a buyer's, labelled −premium)", () => {
+		for (const loc of ['pt-BR', 'en'] as const) expect(tutorialFor('m05-options-writer', loc)[0].art).toBe('written');
+	});
+
 	it('the drawn option chain obeys intrinsic value and put-call parity (it priced the 90 call at 3.2 with money at 100)', () => {
 		expect(CHAIN_ART.map((q) => q.strike)).toEqual([90, 95, 100, 105, 110]);
 		for (const q of CHAIN_ART) {
