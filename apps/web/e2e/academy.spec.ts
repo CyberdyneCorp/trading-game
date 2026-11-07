@@ -282,6 +282,11 @@ test('guided first trade reaches its debrief step after the advance step; the br
 	await playToEnd(page);
 	await expect(mark).toHaveAttribute('data-step', 'debrief');
 	await expect(page.locator('[data-coach=debrief]')).toHaveClass(/coach-target/);
+	// Regression: a market key pressed as the debrief opened went to a focused Next and ended the tour.
+	await expect(mark).toBeFocused();
+	await page.keyboard.press('Shift+Space');
+	await page.keyboard.press('Space');
+	await expect(mark).toHaveAttribute('data-step', 'debrief');
 	await page.getByTestId('coach-next').click();
 	await expect(mark).toHaveCount(0);
 

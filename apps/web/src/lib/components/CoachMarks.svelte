@@ -47,9 +47,12 @@
 		const before = el?.getAttribute('aria-describedby') ?? null;
 		el?.classList.add('coach-target');
 		el?.setAttribute('aria-describedby', [before, 'coach-body'].filter(Boolean).join(' '));
+		// The debrief step appears after a market key (Space, Shift+Space), often one pressed again just
+		// as the run ends: focus goes to the callout, so that key never presses Next by mistake.
+		const focusCallout = step.target === 'debrief';
 		void tick().then(() => {
 			place_();
-			nextButton?.focus();
+			(focusCallout ? callout : nextButton)?.focus();
 		});
 		return () => {
 			el?.classList.remove('coach-target');
@@ -136,6 +139,7 @@
 		aria-labelledby="coach-title"
 		data-own-keys
 		data-testid="coach-mark"
+		tabindex="-1"
 		data-step={step?.id}
 		bind:this={callout}
 		style="top: {pos.top}px; left: {pos.left}px"
