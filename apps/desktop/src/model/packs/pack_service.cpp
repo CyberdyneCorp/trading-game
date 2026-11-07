@@ -1,5 +1,7 @@
 #include "model/packs/pack_service.hpp"
 
+#include <memory>
+#include <optional>
 #include <utility>
 
 #include "model/engine_host.hpp"
@@ -46,8 +48,11 @@ PackService::~PackService() {
 }
 
 void PackService::stop_downloads() {
-  std::lock_guard lock(flags_mu_);
-  for (auto& [digest, flag] : stop_) flag->store(true);
+  {
+    std::lock_guard lock(flags_mu_);
+    for (auto& [digest, flag] : stop_) flag->store(true);
+  }
+  fetches_.stop();
 }
 
 void PackService::report(PackEvent e) const {
@@ -78,20 +83,24 @@ void PackService::load_catalog() {
   loading.kind = PackEvent::Kind::Catalog;
   loading.status = CatalogStatus::Loading;
   report(loading);
-  host_.post_storage_job([this](storage::Storage& s) {
+  if (!http_) {
     PackEvent e;
     e.kind = PackEvent::Kind::Catalog;
-    if (!http_) {
-      e.status = CatalogStatus::Unavailable;
+    e.status = CatalogStatus::Unavailable;
+    return report(std::move(e));
+  }
+  // The network off the worker, then the cache (or the offline copy) on it, where the store lives.
+  fetches_.post([this] {
+    auto response = std::make_shared<const HttpResponse>(catalog_url_.empty() ? HttpResponse{} : http_->get(catalog_url_, std::nullopt));
+    host_.post_storage_job([this, response](storage::Storage& s) {
+      PackDownloader::CatalogRead read = PackDownloader::read_catalog(*response, catalog_url_, s.store());
+      PackEvent e;
+      e.kind = PackEvent::Kind::Catalog;
+      if (read.catalog) e.entries = std::move(read.catalog->entries);
+      e.status = read.fresh ? CatalogStatus::Ready : read.offline ? CatalogStatus::Offline : CatalogStatus::Unavailable;
       report(std::move(e));
-      return;
-    }
-    PackDownloader loader(s.packs(), s.store(), *http_);
-    PackDownloader::CatalogRead read = loader.read_catalog(catalog_url_);
-    if (read.catalog) e.entries = std::move(read.catalog->entries);
-    e.status = read.fresh ? CatalogStatus::Ready : read.offline ? CatalogStatus::Offline : CatalogStatus::Unavailable;
-    report(std::move(e));
-    report(library_event(s.store(), s.packs().missing()));
+      report(library_event(s.store(), s.packs().missing()));
+    });
   });
 }
 

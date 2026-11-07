@@ -137,11 +137,11 @@ jobs:
             -DCMAKE_C_FLAGS=-fsanitize=thread -DCMAKE_CXX_FLAGS=-fsanitize=thread \
             -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread
           cmake --build build/tsan -j 4 --target tradelab_desktop_unit_tests
-      - name: EngineHost and storage host tests under TSan
+      - name: EngineHost, storage host and pack service tests under TSan
         working-directory: apps/desktop
         env:
           TSAN_OPTIONS: halt_on_error=1 second_deadlock_stack=1
-        run: build/tsan/tests/tradelab_desktop_unit_tests -tc="engine host*,storage host*"
+        run: build/tsan/tests/tradelab_desktop_unit_tests -tc="engine host*,storage host*,pack service*"
 
   macos:
     name: "macos (universal: arm64 + x86_64 under Rosetta, .app)"

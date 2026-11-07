@@ -66,6 +66,8 @@ class PackDownloader {
     bool offline = false;
   };
   CatalogRead read_catalog(const std::string& url);
+  // The same from a response fetched elsewhere (PackService reads the network off the simulation worker).
+  static CatalogRead read_catalog(const HttpResponse& response, const std::string& url, storage::RunStore& store);
 
  private:
   std::int64_t prepare(const CatalogEntry& entry);

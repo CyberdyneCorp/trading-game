@@ -11,7 +11,7 @@ namespace {
 
 // Every test case starts with empty saved data: TRADELAB_DATA_DIR (the prefs file of App) points to a
 // folder of this process that is emptied first, so a key remapped or a run settled by one test (or by
-// an earlier run of the suite) never reaches another.
+// an earlier run of the suite) never reaches another. And with an offline pack catalog.
 class FreshDataDir final : public doctest::IReporter {
  public:
   explicit FreshDataDir(const doctest::ContextOptions& /*options*/) {}
@@ -23,6 +23,9 @@ class FreshDataDir final : public doctest::IReporter {
     fs::remove_all(dir, ec);
     fs::create_directories(dir, ec);
     ::setenv("TRADELAB_DATA_DIR", dir.c_str(), 1);
+    // No test reads the public catalog: one that opens the catalog without its own server
+    // (CatalogServer) finds none listening (offline), never a slow network.
+    ::setenv("TRADELAB_CATALOG_URL", "http://127.0.0.1:9/catalog/catalog.json", 0);
   }
 
   void report_query(const doctest::QueryData& /*data*/) override {}

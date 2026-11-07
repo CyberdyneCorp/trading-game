@@ -8,7 +8,10 @@
 #include <atomic>
 #include <cstddef>
 #include <functional>
+#include <future>
+#include <memory>
 #include <mutex>
+#include <utility>
 
 #include "model/engine_host.hpp"
 #include "model/packs/download.hpp"
@@ -37,12 +40,13 @@ std::vector<std::uint8_t> file_bytes(const std::filesystem::path& p) {
 }
 
 // The catalog and its packs by URL, with Range; `offline` answers nothing, `status` an HTTP error, and
-// `on_range` runs on the worker before each range is served.
+// `on_range` runs on the worker before each range is served, `on_catalog` before the manifest is.
 class CatalogHttp final : public HttpClient {
  public:
   bool offline = false;
   int status = 0;
   std::function<void(std::int64_t first)> on_range;
+  std::function<void()> on_catalog;
   std::vector<std::int64_t> offsets;
 
   HttpResponse get(const std::string& url, const std::optional<ByteRange>& range) override {
@@ -53,6 +57,7 @@ class CatalogHttp final : public HttpClient {
       return r;
     }
     if (url == kCatalogUrl) {
+      if (on_catalog) on_catalog();
       r.status = 200;
       r.body = file_bytes(web_catalog_dir() / "catalog.json");
       return r;
@@ -131,6 +136,17 @@ struct Service {
 
 bool phase_is(const PackEvent& e, DownloadPhase p) { return e.download.phase == p; }
 
+// A server that answers once released, at the latest when this goes out of scope.
+struct ServerAnswer {
+  std::promise<void> promise;
+  std::shared_future<void> answered = promise.get_future().share();
+  bool sent = false;
+  void release() {
+    if (!std::exchange(sent, true)) promise.set_value();
+  }
+  ~ServerAnswer() { release(); }
+};
+
 }  // namespace
 
 TEST_CASE("pack service: the catalog is ready from the network, then read offline from the cache") {
@@ -157,6 +173,30 @@ TEST_CASE("pack service: the catalog is ready from the network, then read offlin
   none.service->load_catalog();
   CHECK(none.wait(PackEvent::Kind::Catalog, [](const PackEvent& e) { return e.status != CatalogStatus::Loading; }).status ==
         CatalogStatus::Unavailable);
+}
+
+// The windowed flows' flaky failure on CI (shell_flows.hpp: no briefing after the library's Play, on the
+// macOS and Linux runners): the catalog's HTTP read ran on the simulation worker, so a slow catalog server
+// held the pack run started meanwhile behind it for longer than the test waited (a player waited up to
+// curl's two-minute timeout). Now the read runs off the worker: while the server does not answer, the
+// worker's other jobs still run.
+TEST_CASE("pack service: a catalog server that does not answer holds none of the worker's other jobs") {
+  TempDir dir;
+  Service s(dir.path());
+  ServerAnswer answer;  // after the service: answers before the service and its worker are stopped
+  auto asked = std::make_shared<std::atomic<bool>>(false);
+  s.http->on_catalog = [asked, answered = answer.answered] {
+    *asked = true;
+    answered.wait();
+  };
+  s.service->load_catalog();
+  REQUIRE(s.ui.pump_until([&] { return asked->load(); }));
+  s.service->refresh();  // queued behind the catalog read on the worker before the fix
+  CHECK(s.wait(PackEvent::Kind::Library).packs.empty());
+  const auto ready = [](const PackEvent& e) { return e.status == CatalogStatus::Ready; };
+  CHECK(std::none_of(s.events.begin(), s.events.end(), [&](const PackEvent& e) { return e.kind == PackEvent::Kind::Catalog && ready(e); }));
+  answer.release();
+  CHECK(s.wait(PackEvent::Kind::Catalog, ready).entries.size() == kSampleEntries);
 }
 
 TEST_CASE("pack service: a paused download keeps its bytes, resumes from the committed offset (also after a restart) and installs verified") {
