@@ -62,8 +62,8 @@ Each task ships its tests and updates the READMEs and this change in the same PR
 
 ## D. Desktop
 
-- [ ] D1 Engine host call for `tl_run_file_verify`; export from the SQLite log in the web's format (an action-format round-trip test against `engine/tests/runfiles/`).
-- [ ] D2 Imports table (schema migration), import and export screens with the web's texts (generated catalogs), the replay viewer on the docked terminal panels (read-only), the debrief without own-run controls.
-- [ ] D3 Port of `runSummary.ts` and `journalStats.ts` with web parity fixtures (`scripts/web_fixtures_lib.mjs`), the summary written at the debrief, recomputation of older runs, and the statistics screen.
-- [ ] D4 Cross-client tests: every file of `engine/tests/runfiles/` imported with its expected verdict; a desktop-exported file verified by the web's fixtures check.
-- [ ] D5 `apps/desktop/README.md`.
+- [x] D1 `model/run_files.cpp`: `tl_run_file_verify` / `tl_run_file_seal` through the linked engine (mutex-guarded), and the draft from the SQLite run record and log in the web's format.
+- [ ] D2 Imports table (schema v6) [done]; import and export screens with the web's texts (generated catalogs), the replay viewer on the docked terminal panels (read-only), the debrief without own-run controls [open].
+- [ ] D3 Port of `runSummary.ts` and `journalStats.ts` with web parity fixtures (`journalStats` in `scripts/web_fixtures_lib.mjs`), the summary written at the debrief (`runs.summary`) and the statistics screen [done]; recomputation of older runs [open].
+- [x] D4 Cross-client tests: every file of `engine/tests/runfiles/` gets its expected verdict through the desktop; the desktop's exports of the scripted goldens equal the shared (web-checked) files byte for byte (same `fileDigest`).
+- [x] D5 `apps/desktop/README.md`.
