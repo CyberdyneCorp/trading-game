@@ -8,6 +8,7 @@
 #include "viewmodel/campaign.hpp"
 #include "viewmodel/curriculum.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/texts.hpp"
 #include "viewmodel/report_texts.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/academy/glossary.hpp"
@@ -285,6 +286,42 @@ void greeks(const Ctx& c, ScreenModel& m) {
   m.lines.push_back(std::move(out));
 }
 
+// ---- StrategyComparison.svelte ----
+
+std::vector<std::string> comparison_cells(const Ctx& c, const ComparisonLine& l) {
+  std::string name = c.tr(l.name) + (l.best ? " [" + c.tr("comparison.best") + "]" : "");
+  if (!l.refused.empty()) return {"\xE2\x9C\x96 " + name, std::string(kDash), std::string(kDash), std::string(kDash), std::string(kDash)};
+  const std::string bars = l.entry_step ? str(*l.entry_step) + " \xE2\x86\x92 " + str(l.exit_step.value_or(0)) : std::string(kDash);  // →
+  return {std::move(name), bars, l.net ? c.money(*l.net, true) : std::string(kDash), l.drawdown ? c.money(*l.drawdown) : std::string(kDash),
+          l.margin_calls ? str(*l.margin_calls) : std::string(kDash)};
+}
+
+void comparison(const Ctx& c, ScreenModel& m) {
+  const json::Value& cmp = c.d["strategyComparison"];
+  m.show(names::kDebriefComparisonPanel, !cmp.is_null());
+  if (cmp.is_null()) return;
+  m.text(names::kDebriefComparisonTitle, c.tr("comparison.title"));
+  const bool player = cmp["basis"].as_string() == "player";
+  m.text(names::kDebriefComparisonBasis, c.tr(player ? "comparison.basisPlayer" : "comparison.basisReference",
+                                              {{"step", cmp["entryStep"].as_string()}, {"qty", fmt::fmt_qty(cmp["qty"].as_string(), c.L)}}));
+  WidgetTable t{names::kDebriefComparison,
+                {c.tr("comparison.col.structure"), c.tr("comparison.col.bars"), c.tr("comparison.col.net"), c.tr("comparison.col.drawdown"),
+                 c.tr("comparison.col.calls")},
+                {}};
+  WidgetLines refused{names::kDebriefComparisonRefused, {}};
+  for (const auto& l : comparison_lines(cmp, fmt::num(c.d["netPnl"].as_string()))) {
+    t.rows.push_back(comparison_cells(c, l));
+    if (!l.refused.empty()) {
+      refused.lines.push_back({"\xE2\x9C\x96 " + c.tr(l.name) + ": " + c.tr("comparison.refused", {{"reason", game::rejection_text(c.vm.game().texts(), l.refused)}}), Tone::Muted});
+    }
+  }
+  m.name(names::kDebriefComparison, c.tr("comparison.title"));
+  m.tables.push_back(std::move(t));
+  m.show(names::kDebriefComparisonRefused, !refused.lines.empty());
+  m.lines.push_back(std::move(refused));
+  m.text(names::kDebriefComparisonNote, c.tr("comparison.note"));
+}
+
 }  // namespace
 
 // Defined in debrief_tables.cpp.
@@ -345,6 +382,7 @@ ScreenModel debrief(const AppViewModel& vm) {
   decisions(c, m);
   greeks(c, m);
   debrief_trades(vm, *s, c.d, m);
+  comparison(c, m);
   debrief_reveal_tables(vm, *s, c.d, m);
   chart_panel(vm, *s, m);
   assist_panel(vm, names::kDebriefAssist, m);

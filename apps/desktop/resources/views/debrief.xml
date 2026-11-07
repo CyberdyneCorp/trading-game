@@ -85,6 +85,16 @@
                 <Label Name="debrief-calibration" Wrap="true" Class="muted"/>
             </VBox>
         </Border>
+        <!-- The mission's reference structures on this seed, next to the player's result (web StrategyComparison.svelte). -->
+        <Border Name="debrief-comparison-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="debrief-comparison-title" TextSize="25" Class="title" Wrap="true" AccessibleRole="Heading"/>
+                <Label Name="debrief-comparison-basis" Wrap="true"/>
+                <Table Name="debrief-comparison" Height="150"/>
+                <VBox Name="debrief-comparison-refused" Spacing="2"/>
+                <Label Name="debrief-comparison-note" Wrap="true" Class="muted"/>
+            </VBox>
+        </Border>
         <Border Name="debrief-advisor-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
             <VBox Name="debrief-advisor" Spacing="2"/>
         </Border>

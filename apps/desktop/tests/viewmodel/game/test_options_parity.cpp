@@ -19,6 +19,7 @@
 #include "viewmodel/game/combos.hpp"
 #include "viewmodel/game/strategies.hpp"
 #include "viewmodel/game/whatif_lab.hpp"
+#include "viewmodel/report_texts.hpp"
 
 using namespace tradelab::desktop;
 using namespace tradelab::desktop::game;
@@ -431,6 +432,23 @@ TEST_CASE("web parity: strategies.ts (templates, legs, submission order, orders,
 
 TEST_CASE("web parity: combos.ts (log, legs followed through events, premium, R, grouped trades)") {
   replay("combos", combo_ports());
+}
+
+namespace {
+
+std::string comparison_json(const std::vector<ComparisonLine>& lines) {
+  const auto opt_i = [](const std::optional<int>& v) { return v ? std::to_string(*v) : std::string("null"); };
+  return array(lines, [&](const ComparisonLine& l) {
+    return "{\"key\":" + text(l.key) + ",\"name\":" + text(l.name) + ",\"net\":" + opt_num(l.net) + ",\"drawdown\":" + opt_num(l.drawdown) +
+           ",\"marginCalls\":" + opt_i(l.margin_calls) + ",\"entryStep\":" + opt_i(l.entry_step) + ",\"exitStep\":" + opt_i(l.exit_step) +
+           ",\"refused\":" + (l.refused.empty() ? std::string("null") : text(l.refused)) + ",\"best\":" + boolean(l.best) + "}";
+  });
+}
+
+}  // namespace
+
+TEST_CASE("web parity: debrief.ts comparisonLines (the player's row, the best net, refused structures)") {
+  replay("comparison", {{"comparisonLines", [](const Value& a) { return comparison_json(comparison_lines(a[0], a[1].as_double())); }}});
 }
 
 TEST_CASE("web parity: whatifLab.ts (requests, sliders, the payoff chart's geometry from engine answers)") {

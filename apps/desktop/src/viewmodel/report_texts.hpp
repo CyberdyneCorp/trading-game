@@ -63,6 +63,19 @@ struct GreekRow {
 };
 std::vector<GreekRow> greek_rows(const json::Value& greeks);
 
+// A row of the debrief's strategy comparison as drawn (debrief.ts comparisonLines): the player's own
+// result first, then the engine's reference structures (scoring v13, report-only). A refused structure
+// has no numbers, only the engine's refusal reason.
+struct ComparisonLine {
+  std::string key;   // "you" or the structure's id
+  std::string name;  // i18n key: comparison.you or comparison.<structure>
+  std::optional<double> net, drawdown;
+  std::optional<int> margin_calls, entry_step, exit_step;
+  std::string refused;  // the engine's refusal reason, "" when the structure was placed
+  bool best = false;    // the best net result among the rows (the player's included); ties all marked
+};
+std::vector<ComparisonLine> comparison_lines(const json::Value& comparison, double player_net);
+
 struct DecisionCounts {
   int act = 0;
   int hold = 0;

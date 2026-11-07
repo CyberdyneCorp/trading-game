@@ -17,6 +17,7 @@
                 <Label Name="brief-limits" Wrap="true"/>
                 <Label Name="brief-mmr"/>
                 <Label Name="brief-tiers" Wrap="true"/>
+                <Label Name="brief-margin-rule" Wrap="true"/>
                 <Label Name="brief-mark" Wrap="true"/>
                 <Label Name="brief-costs" Wrap="true"/>
                 <Label Name="brief-shocks" Wrap="true" Class="attention"/>

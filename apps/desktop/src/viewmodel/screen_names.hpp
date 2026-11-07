@@ -41,6 +41,7 @@ inline constexpr std::string_view kBriefLimits = "brief-limits";
 inline constexpr std::string_view kBriefMmr = "brief-mmr";
 inline constexpr std::string_view kBriefTiers = "brief-tiers";
 inline constexpr std::string_view kBriefMark = "brief-mark";
+inline constexpr std::string_view kBriefMarginRule = "brief-margin-rule";
 inline constexpr std::string_view kBriefCosts = "brief-costs";
 inline constexpr std::string_view kBriefShocks = "brief-shocks";
 inline constexpr std::string_view kBriefObjectivesTitle = "brief-objectives-title";
@@ -76,6 +77,12 @@ inline constexpr std::string_view kDebriefTradesTitle = "debrief-trades-title";
 inline constexpr std::string_view kDebriefTrades = "debrief-trades";
 inline constexpr std::string_view kDebriefTradeNotes = "debrief-trade-notes";
 inline constexpr std::string_view kDebriefCalibration = "debrief-calibration";
+inline constexpr std::string_view kDebriefComparisonPanel = "debrief-comparison-panel";
+inline constexpr std::string_view kDebriefComparisonTitle = "debrief-comparison-title";
+inline constexpr std::string_view kDebriefComparisonBasis = "debrief-comparison-basis";
+inline constexpr std::string_view kDebriefComparison = "debrief-comparison";
+inline constexpr std::string_view kDebriefComparisonRefused = "debrief-comparison-refused";
+inline constexpr std::string_view kDebriefComparisonNote = "debrief-comparison-note";
 inline constexpr std::string_view kDebriefAdvisorPanel = "debrief-advisor-panel";
 inline constexpr std::string_view kDebriefAdvisor = "debrief-advisor";
 inline constexpr std::string_view kDebriefRegimesPanel = "debrief-regimes-panel";
@@ -170,13 +177,14 @@ inline constexpr auto kShellWidgets = std::to_array<std::string_view>({
     kMenuResumeRow, kMenuResumeText, kMenuResume, kMenuUpdateRow, kMenuUpdateText, kMenuUpdateInstall, kMenuCurriculum, kMenuJournal, kMenuStats, kMenuSettings, kMenuDetailDone,
     kCampaignTitle, kCampaignNote, kCampaignSteps, kCampaignProgress, kCampaignEnded, kCampaignStart, kCampaignContinue,
     kCampaignEnd, kCampaignConfirmRow, kCampaignConfirm, kCampaignEndYes, kCampaignEndNo, kCampaignPlayed,
-    kBriefPermissions, kBriefNotAllowed, kBriefLimits, kBriefMmr, kBriefTiers, kBriefMark, kBriefCosts, kBriefShocks,
+    kBriefPermissions, kBriefNotAllowed, kBriefLimits, kBriefMmr, kBriefTiers, kBriefMark, kBriefMarginRule, kBriefCosts, kBriefShocks,
     kBriefObjectivesTitle, kBriefObjectives, kBriefLocked, kBriefRules, kBriefTopic, kDebriefMission, kDebriefTags,
     kDebriefCampaignPanel, kDebriefCampaign, kDebriefCampaignNext, kDebriefCampaignNew, kDebriefReportPanel,
     kDebriefReport, kDebriefReportRegimes, kDebriefOutcomeLines, kDebriefDims, kDebriefScoreNote, kDebriefRevealTitle,
     kDebriefReveal, kDebriefFindingsTitle, kDebriefFindings, kDebriefNextLesson, kDebriefDisclaimer, kDebriefLessons,
     kDebriefDecisions, kDebriefGreeksPanel, kDebriefGreeks, kDebriefTradesTitle, kDebriefTrades, kDebriefTradeNotes,
-    kDebriefCalibration, kDebriefAdvisorPanel, kDebriefAdvisor, kDebriefRegimesPanel, kDebriefRegimeBand,
+    kDebriefCalibration, kDebriefComparisonPanel, kDebriefComparisonTitle, kDebriefComparisonBasis, kDebriefComparison,
+    kDebriefComparisonRefused, kDebriefComparisonNote, kDebriefAdvisorPanel, kDebriefAdvisor, kDebriefRegimesPanel, kDebriefRegimeBand,
     kDebriefRegimes, kDebriefRegimesNote, kDebriefRegimesTitle, kDebriefReleasesTitle, kDebriefReleasesPanel, kDebriefReleases, kDebriefReleasesNote,
     kDebriefTimeline, kCurriculumTitle, kCurriculumBack, kCurriculumNote, kCurriculumProgress, kCurriculumStages,
     kCurriculumLessons, kCurriculumLessonStart, kJournalTitle, kJournalBack, kJournalNote, kJournalFilterRow,

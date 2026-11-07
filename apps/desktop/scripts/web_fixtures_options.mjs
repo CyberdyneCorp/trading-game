@@ -171,6 +171,24 @@ export function strategiesFixture(m) {
 	return { helper: 'strategies.ts', cases: list };
 }
 
+// The debrief's strategy comparison (debrief.ts comparisonLines): the player's row first, the best net
+// marked (ties too), refused structures without numbers.
+const row = (name, netPnl, extra = {}) => ({ name, entryStep: 62, exitStep: 140, netPnl, maxDrawdown: '35.20000000', marginCalls: 0, refused: null, ...extra });
+
+export function comparisonFixture(m) {
+	const { list, add } = cases();
+	const comparisons = [
+		{ basis: 'player', entryStep: 62, qty: '88.4', rows: [row('iron_condor', '121.11000000'), row('short_strangle', '-310.50000000', { marginCalls: 2, exitStep: 97 })] },
+		{ basis: 'reference', entryStep: 60, qty: '10', rows: [row('naked_call', '50.00000000'), row('bull_call_spread', '50.00000000')] },
+		{ basis: 'reference', entryStep: 60, qty: '10', rows: [row('iron_condor', '0', { refused: 'insufficient_margin', netPnl: '0', exitStep: 60 }), row('short_strangle', '-12.50000000')] },
+		{ basis: 'player', entryStep: 70, qty: '1', rows: [] }
+	];
+	for (const c of comparisons) {
+		for (const net of [0, 121.11, -40.25, 50]) add('comparisonLines', [c, net], m.comparisonLines(c, net));
+	}
+	return { helper: 'debrief.ts', cases: list };
+}
+
 const COMBO_LOG = [
 	{ k: 'adv', n: 2 },
 	{ k: 'plan', side: 'buy' },

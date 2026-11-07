@@ -48,6 +48,16 @@ void permissions(const AppViewModel& vm, const json::Value& rules, ScreenModel& 
   m.show(names::kBriefNotAllowed, !not_allowed.empty());
 }
 
+// The option margin rule (missionRules.spreadMargin), where options trade and writing is allowed: a
+// spread's defined risk, or every written option on its own.
+void margin_rule(const AppViewModel& vm, const Snapshot& s, const json::Value& rules, ScreenModel& m) {
+  const json::Value& spread = rules["spreadMargin"];
+  const bool shown = s.state["options"]["enabled"].as_bool(false) && rules["permissions"]["optionsWrite"].as_bool(false) &&
+                     !spread.is_null();
+  m.show(names::kBriefMarginRule, shown);
+  if (shown) m.text(names::kBriefMarginRule, kv(vm, "brief.marginRule", vm.tr(spread.as_bool() ? "brief.marginRuleSpread" : "brief.marginRulePerLeg")));
+}
+
 void contract_lines(const AppViewModel& vm, const json::Value& c, ScreenModel& m) {
   const Locale L = vm.locale();
   m.text(names::kBriefMmr, kv(vm, "brief.mmr", fmt::fmt_pct(fmt::num(c["maintenanceMargin"].as_string()), L)));
@@ -103,6 +113,7 @@ ScreenModel briefing(const AppViewModel& vm) {
                                         {"dd", bp_pct(static_cast<int>(rules["drawdownBudgetBp"].as_int()), vm.locale())}})));
   permissions(vm, rules, m);
   contract_lines(vm, c, m);
+  margin_rule(vm, *s, rules, m);
   m.text(names::kBriefObjectivesTitle, vm.tr("brief.objectives"));
   WidgetLines objectives{names::kBriefObjectives, {}};
   for (auto& o : objective_texts(vm.catalog(), rules)) objectives.lines.push_back({"\xE2\x80\xA2 " + o, Tone::Normal});
