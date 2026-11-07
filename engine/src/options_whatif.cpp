@@ -71,8 +71,9 @@ Money plus(Money a, Money b) { return Money::from_raw(a.raw + b.raw); }
 
 Price diff(Price a, Price b) { return Price::from_raw(a.raw - b.raw); }
 
-// Value per unit at expiry for settlement price s (a perpetual is worth s).
+// Value per unit at expiry for settlement price s: a perpetual is worth s, or the stop beyond it.
 Price payoff(const PreparedLeg& p, Price s) {
+  if (p.leg.perp && p.leg.stop.raw > 0) return p.sign > 0 ? std::max(s, p.leg.stop) : std::min(s, p.leg.stop);
   if (p.leg.perp) return s;
   const std::int64_t v = p.leg.kind == OptionKind::Call ? s.raw - p.strike.raw : p.strike.raw - s.raw;
   return Price::from_raw(std::max<std::int64_t>(0, v));
@@ -90,19 +91,23 @@ Money today_pnl(const std::vector<PreparedLeg>& legs, Price f) {
   return total;
 }
 
-// P&L slope above the highest strike, in units per unit of price (calls and the perpetual).
+// P&L slope above the highest kink, in units per unit of price (calls and the perpetual; a short
+// perpetual stopped above is flat there).
 std::int64_t upper_slope(const std::vector<PreparedLeg>& legs) {
   std::int64_t slope = 0;
   for (const PreparedLeg& p : legs) {
-    if (p.leg.perp || p.leg.kind == OptionKind::Call) slope += p.sign * p.units.raw;
+    const bool stopped_above = p.leg.perp && p.sign < 0 && p.leg.stop.raw > 0;
+    if ((p.leg.perp || p.leg.kind == OptionKind::Call) && !stopped_above) slope += p.sign * p.units.raw;
   }
   return slope;
 }
 
+// Where the expiry payoff bends: 0, every strike and every perpetual stop.
 std::vector<Price> kink_points(const std::vector<PreparedLeg>& legs) {
   std::vector<Price> pts{Price{}};
   for (const PreparedLeg& p : legs) {
     if (!p.leg.perp) pts.push_back(p.strike);
+    else if (p.leg.stop.raw > 0) pts.push_back(p.leg.stop);
   }
   std::sort(pts.begin(), pts.end());
   pts.erase(std::unique(pts.begin(), pts.end()), pts.end());
@@ -234,7 +239,8 @@ bool valid_shift(const WhatIfShift& s) {
 }
 
 bool valid_leg_common(const WhatIfLeg& l) {
-  return in_range(l.qty.raw, 1, kMaxQty) && in_range(l.entry.raw, 0, kMaxPrice);
+  return in_range(l.qty.raw, 1, kMaxQty) && in_range(l.entry.raw, 0, kMaxPrice) && in_range(l.stop.raw, 0, kMaxPrice) &&
+         (l.perp || l.stop.raw == 0);
 }
 
 bool valid_runless_leg(const WhatIfLeg& l) {

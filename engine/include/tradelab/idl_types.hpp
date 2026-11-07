@@ -646,6 +646,52 @@ constexpr const char* json_name(ExitReason v) {
   return "unknown";
 }
 
+// A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8).
+enum class ComparisonStrategy : std::uint8_t {
+  // m13: a call at the money.
+  NakedCall = 0,
+  // m13: that call bought, the next strike up written.
+  BullCallSpread = 1,
+  // m14, m15: the perpetual long alone, held to the end.
+  LongOnly = 2,
+  // m14: the long plus a call about 5% out of the money written, written again at each settlement.
+  CoveredCall = 3,
+  // m15: the long with a protective stop 2 x ATR(14) below the entry close.
+  AtrStop = 4,
+  // m15: the long plus a put at the money of the second expiry.
+  AtmPut = 5,
+  // m15: the long plus a put about 5% out of the money of the second expiry.
+  OtmPut = 6,
+  // m16: a put and a call 2 strikes out written, held to settlement.
+  ShortStrangle = 7,
+  // m16: the strangle plus the strikes 4 out bought (wings), held to settlement.
+  IronCondor = 8,
+  // m17: a put at the money written and held to settlement.
+  HoldToSettlement = 9,
+  // m17: the same put bought back 5 bars before its expiry.
+  CloseBeforeExpiry = 10,
+  // m17: the same put rolled 5 bars before each expiry into the next expiry's put at the money.
+  RollBeforeExpiry = 11,
+};
+
+constexpr const char* json_name(ComparisonStrategy v) {
+  switch (v) {
+    case ComparisonStrategy::NakedCall: return "naked_call";
+    case ComparisonStrategy::BullCallSpread: return "bull_call_spread";
+    case ComparisonStrategy::LongOnly: return "long_only";
+    case ComparisonStrategy::CoveredCall: return "covered_call";
+    case ComparisonStrategy::AtrStop: return "atr_stop";
+    case ComparisonStrategy::AtmPut: return "atm_put";
+    case ComparisonStrategy::OtmPut: return "otm_put";
+    case ComparisonStrategy::ShortStrangle: return "short_strangle";
+    case ComparisonStrategy::IronCondor: return "iron_condor";
+    case ComparisonStrategy::HoldToSettlement: return "hold_to_settlement";
+    case ComparisonStrategy::CloseBeforeExpiry: return "close_before_expiry";
+    case ComparisonStrategy::RollBeforeExpiry: return "roll_before_expiry";
+  }
+  return "unknown";
+}
+
 // Advice in the debrief: a long or short read is right when the close 5 bars after the next open moved its way.
 enum class AdviceOutcome : std::uint8_t {
   Right = 0,

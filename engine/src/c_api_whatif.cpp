@@ -60,7 +60,7 @@ bool read_kind(const JsonValue& o, WhatIfLeg& l, bool run) {
 
 bool read_leg(const JsonValue& o, WhatIfLeg& l, bool run) {
   if (!o.is(Kind::Object) || !read_kind(o, l, run) || !read_side(o, &l.side)) return false;
-  bool ok = read_dec(o, "qty", &l.qty) && read_dec(o, "entry", &l.entry, &l.has_entry);
+  bool ok = read_dec(o, "qty", &l.qty) && read_dec(o, "entry", &l.entry, &l.has_entry) && read_dec(o, "stop", &l.stop);
   if (run) return ok && (l.perp || (read_uint(o, "series", &l.series) && l.series != 0));
   ok = ok && read_dec(o, "strike", &l.strike) && read_dec(o, "iv", &l.iv) && read_uint(o, "minutesToExpiry", &l.minutes_to_expiry);
   return ok && (l.has_entry || run);

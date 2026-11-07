@@ -63,6 +63,7 @@ add_library(tradelab_engine STATIC
   src/options_exec.cpp
   src/options_pricing.cpp
   src/spread_margin.cpp
+  src/strategy_comparison.cpp
   src/prng.cpp
   src/scenario.cpp
   src/scoring.cpp
@@ -208,6 +209,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_mission_learnability_c.cpp
     tests/test_options.cpp
     tests/test_spread_margin.cpp
+    tests/test_strategy_comparison.cpp
     tests/test_whatif.cpp
     tests/test_prng.cpp
     tests/test_scoring.cpp

@@ -66,7 +66,9 @@ double brute_pnl(const std::vector<WhatIfLeg>& legs, double s) {
   double total = 0.0;
   for (const WhatIfLeg& l : legs) {
     const double k = d(l.strike);
-    const double pay = l.perp ? s : (l.kind == kCall ? std::max(0.0, s - k) : std::max(0.0, k - s));
+    const double stop = d(l.stop);
+    const double held = stop <= 0.0 ? s : (l.side == kBuy ? std::max(s, stop) : std::min(s, stop));
+    const double pay = l.perp ? held : (l.kind == kCall ? std::max(0.0, s - k) : std::max(0.0, k - s));
     total += (l.side == kBuy ? 1.0 : -1.0) * d(l.qty) * (pay - d(l.entry));
   }
   return total;
@@ -78,7 +80,7 @@ void check_against_brute_force(const std::vector<WhatIfLeg>& legs) {
   REQUIRE(r.error == WhatIfError::None);
   REQUIRE(r.expiry.has_value());
   double top = 100.0;
-  for (const WhatIfLeg& l : legs) top = std::max({top, d(l.strike), d(l.entry)});
+  for (const WhatIfLeg& l : legs) top = std::max({top, d(l.strike), d(l.entry), d(l.stop)});
   const double hi = 3.0 * top;
   double lo_pnl = 1e300;
   double hi_pnl = -1e300;
@@ -141,6 +143,7 @@ TEST_CASE("What-if: the seven templates and random leg sets agree with a brute-f
       legs.push_back(opt(next(2) == 0 ? kCall : kPut, next(2) == 0 ? kBuy : kSell, k.c_str(), e.c_str(), q.c_str()));
     }
     if (next(3) == 0) legs.push_back(perp(next(2) == 0 ? kBuy : kSell, "100"));
+    if (next(2) == 0 && legs.back().perp) legs.back().stop = P(std::to_string(85 + next(31)).c_str());
     check_against_brute_force(legs);
   }
 }
@@ -181,6 +184,40 @@ TEST_CASE("What-if: a perpetual leg is worth the forward with delta 1; a short c
   CHECK_FALSE(s.expiry->max_loss.has_value());
   CHECK(*s.expiry->max_profit == M("4"));
   CHECK(s.expiry->breakevens == std::vector<Price>{P("91"), P("109")});
+}
+
+TEST_CASE("What-if: a held perpetual's stop bounds the combo's loss at expiry (covered call, protective put, short)") {
+  // Covered call on a long of 48 from 100 with its stop at 97: the loss is the stop's less the premium.
+  WhatIfLeg held = perp(kBuy, "100", "48");
+  held.stop = P("97");
+  const WhatIfResult cc = option_whatif(runless({held, opt(kCall, kSell, "105", "2", "48")}));
+  REQUIRE(cc.expiry.has_value());
+  CHECK(*cc.expiry->max_loss == M("48"));     // (100 - 97 - 2) x 48
+  CHECK(*cc.expiry->max_profit == M("336"));  // (105 - 100 + 2) x 48
+  CHECK(cc.expiry->breakevens == std::vector<Price>{P("98")});
+  const WhatIfResult naked = option_whatif(runless({perp(kBuy, "100", "48"), opt(kCall, kSell, "105", "2", "48")}));
+  CHECK(*naked.expiry->max_loss == M("4704"));  // without the stop: (100 - 2) x 48, down to a price of 0
+  CHECK(cc.net.pnl == naked.net.pnl);           // value and P&L today ignore the stop
+  // Protective put above its stop: the stop fires first, the premium is lost.
+  const WhatIfResult pp = option_whatif(runless({held, opt(kPut, kBuy, "95", "2", "48")}));
+  CHECK(*pp.expiry->max_loss == M("240"));  // (100 - 97 + 2) x 48
+  // A short stopped above is bounded above.
+  WhatIfLeg s = perp(kSell, "100", "2");
+  s.stop = P("103");
+  const WhatIfResult sh = option_whatif(runless({s}));
+  CHECK(*sh.expiry->max_loss == M("6"));
+  CHECK(*sh.expiry->max_profit == M("200"));
+  check_against_brute_force({held, opt(kCall, kSell, "105", "2", "48")});
+  check_against_brute_force({s, opt(kCall, kSell, "105", "2"), opt(kPut, kBuy, "95", "1")});
+  // Through the C ABI; a stop on an option leg is refused.
+  const std::string ok = tl_option_whatif(
+      R"({"forward":"100","minutesPerStep":1440,"multiplier":"1","legs":[{"kind":"perp","side":"buy","qty":"48",)"
+      R"("entry":"100","stop":"97"},{"kind":"call","side":"sell","qty":"48","strike":"105","minutesToExpiry":43200,)"
+      R"("iv":"0.6","entry":"2"}]})");
+  CHECK(ok.find(R"("maxLoss":"48.00000000")") != std::string::npos);
+  WhatIfRequest bad = runless({opt(kCall, kBuy, "100", "4")});
+  bad.legs[0].stop = P("90");
+  CHECK(option_whatif(bad).error == WhatIfError::InvalidInput);
 }
 
 TEST_CASE("What-if: legs on different expiries have no expiry analytics; bad input is refused") {

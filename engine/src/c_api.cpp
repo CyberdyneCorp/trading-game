@@ -412,6 +412,24 @@ void write_lessons(JsonOut& j, const Scenario& sc, const RunState& st, const Sco
   j.end_arr().end_obj();
 }
 
+// Debrief only (scoring v13, report-only): the strategy missions' reference structures on this seed.
+void write_strategy_comparison(JsonOut& j, const std::optional<StrategyComparison>& c) {
+  j.key("strategyComparison");
+  if (!c) {
+    j.null();
+    return;
+  }
+  j.begin_obj().field("basis", c->from_player ? "player" : "reference").field("entryStep", c->entry_step).field("qty", c->qty);
+  j.key("rows").begin_arr();
+  for (const ComparisonRow& r : c->rows) {
+    j.begin_obj().field("name", json_name(r.name)).field("entryStep", r.entry_step).field("exitStep", r.exit_step);
+    j.field("netPnl", r.net_pnl).field("maxDrawdown", r.max_drawdown).field("marginCalls", r.margin_calls).key("refused");
+    if (r.refused == Reason::None) j.null(); else j.str(json_name(r.refused));
+    j.end_obj();
+  }
+  j.end_arr().end_obj();
+}
+
 void write_score(JsonOut& j, const ScoreReport& r, const std::vector<RegimeSpan>& spans) {
   j.key("score").begin_obj().field("version", kScoringVersion).key("total");
   if (r.total) j.num(*r.total); else j.null();
@@ -836,6 +854,7 @@ const char* tl_debrief(tl_run* run) {
   write_mission_rules(j, sc, run->state);
   write_decisions(j, run->state);
   write_lessons(j, sc, run->state, report);
+  write_strategy_comparison(j, run->from_pack ? std::nullopt : strategy_comparison(sc, run->state));
   j.end_obj();
   run->buffer = j.text();
   return run->buffer.c_str();
