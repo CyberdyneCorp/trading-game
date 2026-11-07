@@ -53,7 +53,10 @@ test('Academy lab: an illustrative call priced by the engine; sliders change its
 	const [box, curve] = await Promise.all([lab.locator('figure svg').first().boundingBox(), lab.locator('figure path.today').first().boundingBox()]);
 	expect(curve!.width).toBeGreaterThan(box!.width * 0.95);
 	const value = await lab.getByTestId('lab-value').innerText();
+	await expect(lab.getByRole('textbox', { name: 'Preço de entrada' }).first()).toHaveValue(/^\d+,\d+$/); // the model's price, typed the PT-BR way
+	await expect(lab.getByText('Valor da posição agora')).toBeVisible();
 	await slide(page, 'lab-price', 10);
+	await expect(lab.getByText('Valor da posição nesse cenário')).toBeVisible(); // a moved slider is a scenario, not "now"
 	await expect(lab.getByTestId('lab-value')).not.toHaveText(value);
 	await expect(lab.getByTestId('lab-pnl')).toHaveText(/^\+/);
 	await slide(page, 'lab-iv', -30);

@@ -16,6 +16,7 @@
 		academyMaxDays,
 		academyRequest,
 		clampShift,
+		isZero,
 		runRequest,
 		setSlider,
 		shiftedForward,
@@ -125,7 +126,7 @@
 	{:else if result}
 		{@const above = unboundedAbove(result)}
 		<dl class="kv summary" aria-live="polite">
-			<dt>{t('lab.positionValue')}</dt><dd data-testid="lab-value">{fmtMoney(result.net.value, L)}</dd>
+			<dt>{t(isZero(shift) ? 'lab.positionValue' : 'lab.positionValueScenario')}</dt><dd data-testid="lab-value">{fmtMoney(result.net.value, L)}</dd>
 			<dt>{t('lab.pnlNow')}</dt><dd data-testid="lab-pnl" class:up={Number(result.net.pnl) > 0} class:down={Number(result.net.pnl) < 0}>{fmtMoney(result.net.pnl, L, true)}</dd>
 			{#if result.expiry}
 				<dt>{t('opt.breakeven')}</dt><dd data-testid="lab-breakevens">{result.expiry.breakevens.map((b) => fmtPrice(b, L)).join(' · ') || '—'}</dd>

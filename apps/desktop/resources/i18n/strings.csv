@@ -1009,6 +1009,7 @@ lab.days,+{n} dias,+{n} days
 lab.unsupported,"A análise de opções não existe na versão do motor desta partida (uma versão mais antiga, fixada no início dela).","Option analysis does not exist in this run's engine version (an older one, pinned when the run started)."
 lab.error,"O motor não conseguiu avaliar estas pernas (confira strikes, quantidades e preços).","The engine could not value these legs (check strikes, quantities and prices)."
 lab.positionValue,Valor da posição agora,Position value now
+lab.positionValueScenario,Valor da posição nesse cenário,Position value in this scenario
 lab.pnlNow,P&L nesse cenário,P&L in this scenario
 lab.maxProfit,Lucro máximo no vencimento,Max profit at expiry
 lab.maxLoss,Perda máxima no vencimento,Max loss at expiry
