@@ -216,6 +216,54 @@ std::vector<std::string> RunStore::finished_missions() {
   return out;
 }
 
+std::optional<StoredRun> RunStore::stored_run(const std::string& run_id) {
+  auto record = run(run_id);
+  if (!record) return std::nullopt;
+  StoredRun out{std::move(*record), {}};
+  Statement s = db_.prepare("SELECT seq, action FROM actions WHERE run_id = ? ORDER BY seq");
+  s.bind(1, run_id);
+  while (s.step() && s.int64(0) == static_cast<std::int64_t>(out.actions.size())) out.actions.push_back(s.text(1));
+  return out;
+}
+
+void RunStore::set_summary(const std::string& run_id, const std::string& summary_json) {
+  db_.prepare("UPDATE runs SET summary = ? WHERE run_id = ?").bind(1, summary_json).bind(2, run_id).run();
+}
+
+std::vector<std::pair<std::string, std::string>> RunStore::summaries() {
+  std::vector<std::pair<std::string, std::string>> out;
+  Statement s = db_.prepare("SELECT run_id, summary FROM runs WHERE summary IS NOT NULL ORDER BY created_at, rowid");
+  while (s.step()) out.emplace_back(s.text(0), s.text(1));
+  return out;
+}
+
+// ---- imported run files ----
+
+void RunStore::save_import(const ImportRecord& r) {
+  db_.prepare(
+         "INSERT INTO imports (id, text, mission, seed, pack, status, imported_at) VALUES (?, ?, ?, ?, ?, ?, ?) "
+         "ON CONFLICT(id) DO UPDATE SET text = excluded.text, status = excluded.status")
+      .bind(1, r.id)
+      .bind(2, r.text)
+      .bind(3, r.mission)
+      .bind(4, static_cast<std::int64_t>(r.seed))
+      .bind(5, r.pack)
+      .bind(6, r.status)
+      .bind(7, r.imported_at)
+      .run();
+}
+
+std::vector<ImportRecord> RunStore::imports() {
+  std::vector<ImportRecord> out;
+  Statement s = db_.prepare("SELECT id, text, mission, seed, pack, status, imported_at FROM imports ORDER BY imported_at DESC, id");
+  while (s.step()) {
+    out.push_back({s.text(0), s.text(1), s.text(2), static_cast<std::uint32_t>(s.int64(3)), s.optional_text(4), s.text(5), s.int64(6)});
+  }
+  return out;
+}
+
+void RunStore::delete_import(const std::string& id) { db_.prepare("DELETE FROM imports WHERE id = ?").bind(1, id).run(); }
+
 // ---- checkpoints ----
 
 void RunStore::save_checkpoint(const Checkpoint& cp) {

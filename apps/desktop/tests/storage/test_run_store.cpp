@@ -53,7 +53,7 @@ TEST_CASE("storage: an empty database migrates to the current schema with WAL an
   Statement sync = store.db().prepare("PRAGMA synchronous");
   REQUIRE(sync.step());
   CHECK(sync.int64(0) == 2);  // FULL
-  CHECK(tables(store.db()) == std::vector<std::string>{"actions", "checkpoints", "downloads", "meta", "packs", "runs"});
+  CHECK(tables(store.db()) == std::vector<std::string>{"actions", "checkpoints", "downloads", "imports", "meta", "packs", "runs"});
   CHECK(sqlite_version() == "3.54.1");
 }
 

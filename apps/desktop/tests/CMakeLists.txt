@@ -28,7 +28,9 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/test_web_parity.cpp
   viewmodel/test_academy_parity.cpp
   viewmodel/test_academy.cpp
-  viewmodel/test_audio.cpp)
+  viewmodel/test_audio.cpp
+  viewmodel/test_journal_stats.cpp
+  model/test_run_files.cpp)
 target_include_directories(tradelab_desktop_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_unit_tests PRIVATE tradelab_desktop_viewmodel)
@@ -55,7 +57,9 @@ add_dependencies(tradelab_desktop_unit_tests tradelab_desktop_crash_child)
 target_compile_definitions(tradelab_desktop_unit_tests PRIVATE
   TRADELAB_CRASH_CHILD="$<TARGET_FILE:tradelab_desktop_crash_child>"
   TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog"
-  TRADELAB_WEB_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/web")
+  TRADELAB_WEB_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/web"
+  TRADELAB_RUNFILES_DIR="${DESKTOP_DIR}/../../engine/tests/runfiles"
+  TRADELAB_GOLDEN_DIR="${DESKTOP_DIR}/../../engine/tests/golden")
 
 # ---- Goldens (task 1.6): the engine's shared fixtures replayed through the desktop build. ----
 # Its own binary so a universal macOS build can run it on each slice (arch -arm64 / -x86_64).

@@ -6,6 +6,8 @@
 //   4  downloads (resumable pack downloads: url, size, bytes committed)   (desktop only)
 //   5  runs.engine_abi: the engine C ABI a run was recorded under (tl_abi_version; NULL = before it was
 //      recorded, ABI 1)                                                   (desktop only)
+//   6  imports (imported run files, by file digest) and runs.summary (the journal statistics summary)
+//                                                                      (web DB v4 and RunRecord.summary)
 // A database newer than this build is refused (SchemaTooNew) rather than written to.
 #pragma once
 
@@ -13,7 +15,7 @@
 
 namespace tradelab::desktop::storage {
 
-constexpr int kSchemaVersion = 5;
+constexpr int kSchemaVersion = 6;
 
 class SchemaTooNew : public Error {
  public:

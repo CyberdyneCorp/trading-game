@@ -82,6 +82,19 @@ CREATE TABLE downloads (
     R"sql(
 ALTER TABLE runs ADD COLUMN engine_abi INTEGER;
 )sql",
+    // 6: imported run files (add-run-sharing-and-journal-stats D5) and each run's statistics summary (D7).
+    R"sql(
+CREATE TABLE imports (
+  id TEXT PRIMARY KEY CHECK (length(id) = 64),
+  text TEXT NOT NULL,
+  mission TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  pack TEXT,
+  status TEXT NOT NULL CHECK (status IN ('active', 'finished', 'bankrupt')),
+  imported_at INTEGER NOT NULL
+) WITHOUT ROWID;
+ALTER TABLE runs ADD COLUMN summary TEXT;
+)sql",
 };
 
 }  // namespace
