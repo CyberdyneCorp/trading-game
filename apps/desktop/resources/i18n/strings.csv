@@ -2790,6 +2790,13 @@ desktop.alreadyRunning.title,O TradeLab já está aberto,TradeLab is already ope
 desktop.alreadyRunning.body,Outra janela do TradeLab está usando os dados salvos deste usuário. Use essa janela ou feche-a antes de abrir o TradeLab de novo.,"Another TradeLab window is using this user's saved data. Use that window, or close it before opening TradeLab again."
 desktop.storageUnavailable,Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.,The saved data could not be opened ({detail}): this session will not be saved.
 desktop.csv.path,Caminho do arquivo CSV neste computador,CSV file path on this computer
+desktop.runfile.title,Arquivos de partida (.tlrun),Run files (.tlrun)
+desktop.runfile.note,Exporte uma partida para abri-la em outro aparelho (web ou desktop) ou importe uma partida exportada lá. O motor verifica cada arquivo reproduzindo a partida até o resultado gravado.,"Export a run to open it on another device (web or desktop), or import a run exported there. The engine checks each file by replaying the run to its recorded result."
+desktop.runfile.path,"Arquivo para importar, ou pasta para exportar (vazio = pasta de dados/exports)","File to import, or folder to export to (empty = data folder/exports)"
+desktop.runfile.run,Partida,Run
+desktop.runfile.import,Importar,Import
+desktop.runfile.written,Arquivo salvo em {path},File saved to {path}
+desktop.runfile.writeFailed,Não foi possível gravar {name}: confira a pasta.,{name} could not be written: check the folder.
 desktop.csv.open,Abrir arquivo,Open file
 desktop.csv.unreadable,Não foi possível ler o arquivo: confira o caminho.,The file could not be read: check the path.
 desktop.pack.missingFile,O arquivo deste pacote não está mais na pasta de dados. Remova-o e baixe ou importe de novo.,This pack's file is no longer in the data folder. Remove it and download or import it again.

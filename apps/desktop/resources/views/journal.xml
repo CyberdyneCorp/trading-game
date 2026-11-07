@@ -13,6 +13,38 @@
         </HBox>
         <Label Name="journal-empty" Wrap="true" Class="muted"/>
         <VBox Name="journal-runs" Spacing="3"/>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="journal-files-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Label Name="journal-files-note" Wrap="true" Class="muted" TextSize="12"/>
+                <HBox Spacing="8">
+                    <Label Name="journal-files-path-label" Slot.VAlign="Center"/>
+                    <TextInput Name="journal-files-path" Slot.Fill="1"/>
+                    <Button Name="journal-files-import" OnClicked="tl.files.import"/>
+                </HBox>
+                <HBox Spacing="8">
+                    <Label Name="journal-files-run-label" Slot.VAlign="Center"/>
+                    <ComboBox Name="journal-files-run" Width="420"/>
+                    <Button Name="journal-files-watch" OnClicked="tl.files.watch"/>
+                    <Button Name="journal-files-export" Style="Primary" OnClicked="tl.files.export"/>
+                </HBox>
+                <Checkbox Name="journal-files-notes"/>
+                <Label Name="journal-files-notes-hint" Wrap="true" Class="muted" TextSize="12"/>
+                <Label Name="journal-files-message" Wrap="true"/>
+            </VBox>
+        </Border>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="journal-imports-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Label Name="journal-imports-note" Wrap="true" Class="muted" TextSize="12"/>
+                <Label Name="journal-imports-empty" Class="muted"/>
+                <HBox Name="journal-imports-row" Spacing="8">
+                    <ComboBox Name="journal-imports" Width="420"/>
+                    <Button Name="journal-import-watch" Style="Primary" OnClicked="tl.files.watchImport"/>
+                    <Button Name="journal-import-remove" OnClicked="tl.files.removeImport"/>
+                </HBox>
+            </VBox>
+        </Border>
     </VBox>
 </Border>
 </ScrollBox>

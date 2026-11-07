@@ -117,6 +117,8 @@ target_sources(tradelab_desktop_model PRIVATE
   src/model/storage/run_recorder.cpp
   src/model/storage/run_store.cpp
   src/model/run_files.cpp
+  src/model/run_summary.cpp
+  src/model/run_sharing.cpp
   src/model/storage/schema.cpp
   src/model/storage/sqlite.cpp
   src/model/packs/catalog.cpp
@@ -156,7 +158,9 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/curriculum.cpp
   src/viewmodel/journal.cpp
   src/viewmodel/journal_stats.cpp
+  src/viewmodel/run_sharing_vm.cpp
   src/viewmodel/screens/stats.cpp
+  src/viewmodel/screens/run_files.cpp
   src/viewmodel/keymap.cpp
   src/viewmodel/lesson_runner.cpp
   src/viewmodel/report_texts.cpp

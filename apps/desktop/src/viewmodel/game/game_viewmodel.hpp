@@ -67,6 +67,9 @@ class GameViewModel {
   [[nodiscard]] std::uint64_t revision() const { return revision_ + chart.revision(); }
   [[nodiscard]] const GameState* state() const { return state_.get(); }
   [[nodiscard]] bool busy() const { return in_flight_ != InFlight::None || !chain_.empty(); }
+  // The replay viewer plays a run file (add-run-sharing-and-journal-stats D6): it asks no question.
+  [[nodiscard]] bool replay() const { return replay_; }
+  [[nodiscard]] bool question_due() const { return state_ && state_->calibration.due && !replay_; }
   [[nodiscard]] const Line& notice() const { return notice_; }
   void set_notice(Line l);
 
@@ -247,6 +250,7 @@ class GameViewModel {
   std::optional<Step> current_;
   std::deque<Step> chain_;
   int queued_ = 0;
+  bool replay_ = false;  // the snapshot is the replay viewer's
   bool relaunching_ = false;
 
   Line notice_;

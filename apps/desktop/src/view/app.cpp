@@ -2,6 +2,7 @@
 
 #include <raven/raven_core.h>
 #include <raven/raven_window.h>
+#include <tradelab/c_api.h>
 
 #include <algorithm>
 #include <cstdlib>
@@ -9,12 +10,19 @@
 #include <optional>
 #include <utility>
 
+#include "model/json.hpp"
 #include "model/progress_json.hpp"
 #include "view/raven/raven_ui.hpp"
 
 namespace tradelab::desktop {
 
 namespace {
+
+// This engine's versions, stamped on exported run files.
+EngineStamp engine_stamp() {
+  const json::Value v = json::parse(tl_version()).value_or(json::Value{});
+  return EngineStamp{static_cast<int>(v["executionPolicy"].as_int()), static_cast<int>(tl_abi_version()), v["engine"].as_string()};
+}
 
 json::Value parse_or_null(const std::optional<std::string>& text) {
   if (!text) return {};
@@ -94,6 +102,13 @@ App::App(Catalog catalog, AppViewModel::SeedSource seeds, std::unique_ptr<storag
           if (vm_) vm_->on_pack_event(e);
         });
     vm_->attach_packs(packs_.get());
+    // Run files (add-run-sharing-and-journal-stats): stamped with this engine's versions.
+    run_files_ = std::make_unique<runfiles::RunFileService>(
+        *engine_, engine_stamp(),[](runfiles::RunFileService::Task t) { ui::post(std::move(t)); },
+        [this](const runfiles::RunFileEvent& e) {
+          if (vm_) vm_->on_run_file_event(e);
+        });
+    vm_->attach_run_files(run_files_.get());
   }
   audio_ = platform::MiniaudioOut::from_environment(TRADELAB_AUDIO_SOURCE_DIR);
   vm_->attach_audio(audio_.get());
@@ -107,6 +122,7 @@ App::~App() {
   if (packs_) packs_->stop_downloads();  // a download in progress stops at its next chunk
   engine_.reset();  // joins the worker; posted deliveries become no-ops
   packs_.reset();
+  run_files_.reset();
   vm_.reset();
 }
 

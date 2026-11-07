@@ -63,7 +63,7 @@ Each task ships its tests and updates the READMEs and this change in the same PR
 ## D. Desktop
 
 - [x] D1 `model/run_files.cpp`: `tl_run_file_verify` / `tl_run_file_seal` through the linked engine (mutex-guarded), and the draft from the SQLite run record and log in the web's format.
-- [ ] D2 Imports table (schema v6) [done]; import and export screens with the web's texts (generated catalogs), the replay viewer on the docked terminal panels (read-only), the debrief without own-run controls [open].
-- [ ] D3 Port of `runSummary.ts` and `journalStats.ts` with web parity fixtures (`journalStats` in `scripts/web_fixtures_lib.mjs`), the summary written at the debrief (`runs.summary`) and the statistics screen [done]; recomputation of older runs [open].
+- [x] D2 Imports table (schema v6); import and export in the journal with the web's texts (generated catalogs) and the engine's verdicts; the replay viewer on the docked terminal (`EngineHost::watch`, read-only, bar by bar); the debrief without own-run controls. Headless and windowed flows: tampered file refused, the shared web-checked file imported, replayed and debriefed; an own run exported and watched again.
+- [x] D3 Port of `runSummary.ts` and `journalStats.ts` with web parity fixtures (`journalStats` in `scripts/web_fixtures_lib.mjs`), the summary written at the debrief (`runs.summary`), the statistics screen, and recomputation of older runs through the engine.
 - [x] D4 Cross-client tests: every file of `engine/tests/runfiles/` gets its expected verdict through the desktop; the desktop's exports of the scripted goldens equal the shared (web-checked) files byte for byte (same `fileDigest`).
 - [x] D5 `apps/desktop/README.md`.

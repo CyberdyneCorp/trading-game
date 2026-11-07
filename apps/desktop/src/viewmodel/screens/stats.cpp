@@ -124,6 +124,7 @@ ScreenModel stats(const AppViewModel& vm) {
   m.text(names::kStatsBack, vm.tr("debrief.menu"));
   m.text(names::kStatsNote, vm.tr("stats.note"));
   const auto runs = stats_runs(vm.progress());
+  stats_run_files(vm, m);
   m.show(names::kStatsEmpty, runs.empty());
   m.text(names::kStatsEmpty, vm.tr("stats.empty"));
   WidgetLines lines{names::kStatsLines, {}};

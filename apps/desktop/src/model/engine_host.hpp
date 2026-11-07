@@ -17,6 +17,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -63,6 +64,10 @@ class EngineCommands {
   virtual void analyze(AnalysisKind /*kind*/, const std::string& /*request*/, AnalysisReply reply) {
     reply(R"({"error":"unsupported"})");
   }
+  // The replay viewer (add-run-sharing-and-journal-stats D6): rebuilds the run of a verified, canonical
+  // run file without storing anything; while it is watched, advance() plays its log bar by bar and
+  // every other command is refused ("replay"). Acknowledged as CommandKind::Watch.
+  virtual void watch(const std::string& /*file_text*/) {}
 };
 
 class EngineHost final : public EngineCommands {
@@ -94,6 +99,7 @@ class EngineHost final : public EngineCommands {
                     const RunLinks& links) override;
   void rewind(int to_step, const RunLinks& links) override;
   void analyze(AnalysisKind kind, const std::string& request, AnalysisReply reply) override;
+  void watch(const std::string& file_text) override;
   // Runs `job` on the worker, in queue order, with the storage (pack install/import, catalog downloads:
   // the engine's run-less calls must stay on this thread). Not run when the host has no storage.
   void post_storage_job(StorageJob job);
@@ -149,6 +155,10 @@ class EngineHost final : public EngineCommands {
   void run_start_pack(const Command& c);
   void run_rewind(const Command& c);
   void run_analysis(const Command& c);
+  void run_watch(const Command& c);
+  void run_watch_steps(int steps);
+  bool watch_step();
+  void stamp_watch(Snapshot& s) const;
   std::unique_ptr<EngineRun> open_run(const Current& next, const RunLinks& links, std::string* reason);
   storage::ApplyResult perform(const storage::Action& a);
   void stamp(Snapshot& s);
@@ -174,6 +184,16 @@ class EngineHost final : public EngineCommands {
   std::unique_ptr<storage::Storage> storage_;
   std::unique_ptr<storage::RunRecorder> recorder_;
   Current current_;
+  // The watched run file's log and where the viewer is in it (an advance of n bars plays one by one).
+  struct Watching {
+    std::vector<std::string> actions;
+    std::size_t index = 0;
+    int left = 0;  // bars left of the advance at `index` once it started
+    int bar = 0;
+    int bars = 0;
+    [[nodiscard]] bool done() const { return index >= actions.size() && left == 0; }
+  };
+  std::optional<Watching> watching_;
   std::shared_ptr<const std::vector<std::string>> shared_log_;  // copy of current_.log for snapshots
   std::uint64_t seq_ = 0;
 

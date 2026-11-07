@@ -127,6 +127,34 @@
     "pt-BR": "Caminho do arquivo CSV neste computador",
     "en": "CSV file path on this computer"
   },
+  "desktop.runfile.title": {
+    "pt-BR": "Arquivos de partida (.tlrun)",
+    "en": "Run files (.tlrun)"
+  },
+  "desktop.runfile.note": {
+    "pt-BR": "Exporte uma partida para abri-la em outro aparelho (web ou desktop) ou importe uma partida exportada lá. O motor verifica cada arquivo reproduzindo a partida até o resultado gravado.",
+    "en": "Export a run to open it on another device (web or desktop), or import a run exported there. The engine checks each file by replaying the run to its recorded result."
+  },
+  "desktop.runfile.path": {
+    "pt-BR": "Arquivo para importar, ou pasta para exportar (vazio = pasta de dados/exports)",
+    "en": "File to import, or folder to export to (empty = data folder/exports)"
+  },
+  "desktop.runfile.run": {
+    "pt-BR": "Partida",
+    "en": "Run"
+  },
+  "desktop.runfile.import": {
+    "pt-BR": "Importar",
+    "en": "Import"
+  },
+  "desktop.runfile.written": {
+    "pt-BR": "Arquivo salvo em {path}",
+    "en": "File saved to {path}"
+  },
+  "desktop.runfile.writeFailed": {
+    "pt-BR": "Não foi possível gravar {name}: confira a pasta.",
+    "en": "{name} could not be written: check the folder."
+  },
   "desktop.csv.open": {
     "pt-BR": "Abrir arquivo",
     "en": "Open file"

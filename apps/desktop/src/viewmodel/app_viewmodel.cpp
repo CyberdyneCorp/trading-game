@@ -83,6 +83,7 @@ void AppViewModel::open_terminal() {
 }
 
 void AppViewModel::back_to_menu() {
+  if (viewing()) return leave_replay();
   if (screen_ == Screen::Catalog) pause_downloads();
   screen_ = Screen::Menu;
   notice_.clear();
@@ -169,6 +170,7 @@ void AppViewModel::apply_result(const CommandResult& r) {
     case CommandKind::StartPack: run_started(r); break;
     case CommandKind::Resume: resumed(r); break;
     case CommandKind::Rewind: apply_rewind(r); break;
+    case CommandKind::Watch: watch_result(r); break;
     default: break;
   }
 }
@@ -183,6 +185,7 @@ void AppViewModel::run_started(const CommandResult& r) {
     shell_.pending_assisted.reset();
     return;
   }
+  shell_.run_files.viewing.reset();  // a new run leaves the replay viewer
   shell_.run_assisted = std::exchange(shell_.pending_assisted, std::nullopt);
   shell_.run_pack = std::exchange(shell_.pending_pack, {});
   if (!shell_.run_pack.empty() && snap_) run_mission_ = snap_->mission;

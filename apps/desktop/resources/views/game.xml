@@ -15,6 +15,8 @@
                     <Label Name="game-market" Color="#FFC857" Slot.VAlign="Center"/>
                     <Label Name="game-mission" Color="#8FB3A1" Slot.Fill="1" Slot.VAlign="Center"/>
                     <Label Name="game-assisted-tag" Class="attention" Slot.VAlign="Center"/>
+                    <Label Name="game-replay-tag" Class="attention" Slot.VAlign="Center"/>
+                    <Button Name="game-replay-leave" OnClicked="tl.replay.leave"/>
                     <HBox Name="game-top-controls" Spacing="10" Slot.HAlign="Right">
                         <Label Name="game-turn" Color="#E3F5EA" Slot.VAlign="Center"/>
                         <Label Name="game-interval" Color="#8FB3A1" Slot.VAlign="Center"/>

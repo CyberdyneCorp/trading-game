@@ -5,6 +5,7 @@
 #include "viewmodel/app_viewmodel.hpp"
 #include "viewmodel/journal_stats.hpp"
 #include "viewmodel/screen_model.hpp"
+#include "viewmodel/run_file_names.hpp"
 #include "viewmodel/screen_names.hpp"
 
 namespace tradelab::desktop::screens {
@@ -43,6 +44,13 @@ void academy_debrief(const AppViewModel& vm, ScreenModel& m);
 void academy_game(const AppViewModel& vm, ScreenModel& m);
 // The guided first trade's callout (CoachMarks.svelte) in the terminal or the debrief.
 void coach_callout(const AppViewModel& vm, bool debrief, ScreenModel& m);
+
+// Run files (screens/run_files.cpp): the journal's run-file panel and imports, the statistics'
+// recomputation, and the replay viewer's parts of the terminal and the debrief.
+void journal_run_files(const AppViewModel& vm, ScreenModel& m);
+void stats_run_files(const AppViewModel& vm, ScreenModel& m);
+void game_replay(const AppViewModel& vm, ScreenModel& m);
+void debrief_replay(const AppViewModel& vm, ScreenModel& m);
 
 // AssistPanel.svelte, shown in the terminal and in the debrief under their own widget names.
 void assist_panel(const AppViewModel& vm, const names::AssistNames& n, ScreenModel& m);

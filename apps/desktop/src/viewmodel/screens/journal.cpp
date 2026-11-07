@@ -96,6 +96,7 @@ ScreenModel journal(const AppViewModel& vm) {
     for (const auto& p : run.entries) entry_lines(vm, p, lines.lines);
   }
   m.lines.push_back(std::move(lines));
+  journal_run_files(vm, m);
   return m;
 }
 

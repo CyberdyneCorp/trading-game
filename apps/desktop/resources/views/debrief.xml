@@ -9,6 +9,7 @@
         <Label Name="debrief-mission" Class="muted"/>
         <Label Name="debrief-tags" Class="attention"/>
         <Label Name="debrief-assisted" Wrap="true" Class="attention"/>
+        <Label Name="debrief-viewing" Wrap="true" Class="attention"/>
         <Border Name="debrief-campaign-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
             <VBox Spacing="6">
                 <VBox Name="debrief-campaign" Spacing="4"/>

@@ -7,6 +7,11 @@
             <Button Name="stats-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
         </HBox>
         <Label Name="stats-note" Wrap="true" Class="muted"/>
+        <HBox Spacing="8">
+            <Label Name="stats-missing" Wrap="true" Slot.VAlign="Center"/>
+            <Button Name="stats-recompute" OnClicked="tl.stats.recompute"/>
+        </HBox>
+        <Label Name="stats-message" Wrap="true" Class="muted"/>
         <Label Name="stats-empty" Wrap="true" Class="muted"/>
         <VBox Name="stats-lines" Spacing="3"/>
     </VBox>

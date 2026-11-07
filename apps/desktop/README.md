@@ -136,9 +136,20 @@ Everything saved lives in one folder: macOS `~/Library/Application Support/Trade
   - It seals the file (`tl_run_file_seal`) or verifies one (`tl_run_file_verify`) through the linked engine. Its own mutex guards the call's static buffer, which is separate from the pack calls' buffer.
   - A desktop export is the web's canonical file for the same run. `tests/model/test_run_files.cpp` checks every file of `engine/tests/runfiles` and that the exports of the scripted goldens equal the shared files.
   - Imported runs have their own `imports` table, which no progress reader opens.
-  - Each debrief stores the run's summary (`viewmodel/journal_stats.cpp`, the port of `runSummary.ts`/`journalStats.ts`, checked by the `journalStats` web parity fixture) in `runs.summary`.
-  - The menu's "Estatísticas do diário" screen (`screens::stats`) shows the web's statistics, each with its lesson.
-  - Not yet: the import and export screens, the replay viewer, and recomputing summaries of runs finished before schema v6 (the web has all three).
+  - **Journal panel** (`screens::journal_run_files`, `viewmodel/run_sharing_vm.cpp`), with every storage job on the worker through `runfiles::RunFileService`, `src/model/run_sharing.cpp`:
+    - a path field (a `.tlrun` to import, or the folder exports go to; empty = `<data>/exports`);
+    - import with the verdict in the player's language: the engine's reason, the invalid member, the file's policy;
+    - the player's runs to export (plan notes on request) or watch;
+    - imported runs to watch or remove.
+  - **Replay viewer** (`EngineHost::watch`): the run file's run is rebuilt in the worker without storage, so the active stored run and the recorder are untouched.
+    - It plays on the docked terminal: Space or Shift+Space plays the log bar by bar, and an `adv n` is n single bars. The top bar shows `[Replay] Barra x de y` and "Sair do replay". No calibration question is asked. Every other command is refused with `replay`.
+    - At the end, the debrief opens labeled as a replay, with no play again, campaign or rewind, and "Sair do replay" in place of the menu button.
+    - A session run that could still resume is offered from storage afterwards.
+  - Each debrief stores the run's summary in `runs.summary`: `model/run_summary.cpp` ports `runSummary.ts` and `viewmodel/journal_stats.cpp` ports `journalStats.ts`, both checked by the `journalStats` web parity fixture.
+  - The menu's "Estatísticas do diário" screen (`screens::stats`) shows the web's statistics, each with its lesson. "Calcular pelo motor" recomputes the summaries of runs that ended before schema v6 by sealing them through the engine; a run whose log no longer gives its stored digest is skipped.
+  - Tests:
+    - `tests/model/test_run_sharing.cpp`: import, refusals stored nowhere, export equals the shared file, recompute, the worker's watched run reaching the recorded digest;
+    - `tests/headless/test_headless_run_files.cpp` and the windowed run-file flow (`tests/support/run_file_flows.hpp`): tampered file refused, the web-checked shared file imported, watched bar by bar on the terminal and debriefed; an own run exported, verified and watched again.
 
 ## Packages
 

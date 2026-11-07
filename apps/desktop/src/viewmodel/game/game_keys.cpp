@@ -8,7 +8,7 @@ namespace tradelab::desktop::game {
 
 Modal GameViewModel::modal() const {
   // The calibration question shows whenever it is due, except over the plan of an order being placed.
-  if (state_ && state_->active() && state_->calibration.due && modal_ != Modal::Plan) return Modal::Calibration;
+  if (state_ && state_->active() && question_due() && modal_ != Modal::Plan) return Modal::Calibration;
   return modal_;
 }
 

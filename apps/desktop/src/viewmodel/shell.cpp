@@ -78,6 +78,7 @@ RunRecord* find_run(Progress& p, const std::string& id) {
 
 // The stored run's id when there is storage (a resumed run keeps its record), else one for the session.
 void AppViewModel::record_started_run() {
+  shell_.run_files.viewing.reset();  // a new or resumed run leaves the replay viewer
   const std::string stored = snap_ ? snap_->run_id : std::string();
   shell_.run_id = stored.empty() ? "run-" + std::to_string(++shell_.run_counter) + "-" + std::to_string(shell_.now()) : stored;
   shell_.run_mission = run_mission_;
@@ -236,12 +237,15 @@ void AppViewModel::open_curriculum() {
 }
 
 void AppViewModel::open_stats() {
+  shell_.run_files.stats_message.clear();
   screen_ = Screen::Stats;
   touch();
 }
 
 void AppViewModel::open_journal() {
   shell_.journal_filter = 0;
+  shell_.run_files.message.clear();
+  if (run_files_ != nullptr) run_files_->list_imports();
   screen_ = Screen::Journal;
   touch();
 }
