@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TUTORIAL_MISSIONS, tutorialFor } from './tutorials.ts';
 
 import { campaignMissions } from './curriculum.ts';
+import { liquidationPrice, type Costs } from './sizing.ts';
 
 const MISSIONS = [
 	'm01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer',
@@ -94,6 +95,18 @@ describe('mission tutorials', () => {
 		}
 		expect(card('m14-covered-call', 'en')).toMatch(/written call needs its own margin even while the long covers it in P&L/);
 		expect(card('m14-covered-call', 'pt-BR')).toMatch(/call vendida tem margem própria mesmo com o long cobrindo o resultado/);
+	});
+
+	it("m03's leverage card states the move that liquidates at 20x, maintenance margin included", () => {
+		// Margin 5% of the notional, maintenance 0.5% (m03's contract): liquidation comes before a 5% move.
+		const k: Costs = { multiplier: 1, takerFee: 0, maintenanceMargin: 0.005, halfSpread: 0, slippage: 0 };
+		const long = 1 - (liquidationPrice('buy', 1, 100, 100 / 20, k) ?? 0) / 100;
+		const short = (liquidationPrice('sell', 1, 100, 100 / 20, k) ?? 0) / 100 - 1;
+		expect(long.toFixed(3)).toBe('0.045');
+		expect(short.toFixed(3)).toBe('0.045');
+		const card = (loc: 'pt-BR' | 'en') => tutorialFor('m03-volatility-shock', loc).find((c) => c.art === 'leverage')?.body;
+		expect(card('pt-BR')).toMatch(/cerca de 4,5% contra você/);
+		expect(card('en')).toMatch(/about 4\.5% against you/);
 	});
 
 	it('an unknown mission has no tutorial', () => {

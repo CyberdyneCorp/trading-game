@@ -150,7 +150,7 @@ const m03: Cards = {
 		{
 			art: 'leverage',
 			title: 'O que a alavancagem muda',
-			body: 'Alavancagem não muda quanto você ganha ou perde por contrato quando o preço anda. Ela muda a margem que você deposita e o quão perto fica a liquidação. A 20×, um movimento de cerca de 5% contra você liquida.'
+			body: 'Alavancagem não muda quanto você ganha ou perde por contrato quando o preço anda. Ela muda a margem que você deposita e o quão perto fica a liquidação. A 20×, a margem é 5% do nocional, mas a de manutenção (0,5%) precisa ficar: um movimento de cerca de 4,5% contra você já liquida.'
 		},
 		{
 			art: 'volatility',
@@ -172,7 +172,7 @@ const m03: Cards = {
 		{
 			art: 'leverage',
 			title: 'What leverage changes',
-			body: 'Leverage does not change how much you gain or lose per contract when price moves. It changes the margin you post and how close liquidation is. At 20×, a move of about 5% against you liquidates.'
+			body: 'Leverage does not change how much you gain or lose per contract when price moves. It changes the margin you post and how close liquidation is. At 20×, the margin is 5% of the notional, but the maintenance margin (0.5%) must stay: a move of about 4.5% against you already liquidates.'
 		},
 		{
 			art: 'volatility',
