@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <set>
 
 #include "model/storage/json_writer.hpp"
@@ -133,15 +134,30 @@ std::string to_fixed(double v, int digits) {
 }
 
 // The shortest text that reads back as the same double (JavaScript's String(number) for the ranges used).
+// Number#toString: the shortest digits that read back as `v`, in plain notation from 1e-7 up to 1e21
+// ("30", "0.004", "2.5"), else exponential ("1e+21", "1.5e-7").
 std::string js_number(double v) {
   if (!std::isfinite(v)) return std::isnan(v) ? "NaN" : (v > 0 ? "Infinity" : "-Infinity");
   if (v == 0) return "0";
   char buf[64];
-  for (int p = 1; p <= 17; ++p) {
-    std::snprintf(buf, sizeof buf, "%.*g", p, v);
+  int p = 1;
+  for (; p <= 17; ++p) {
+    std::snprintf(buf, sizeof buf, "%.*e", p - 1, v);
     if (std::strtod(buf, nullptr) == v) break;
   }
-  return buf;
+  const int exp10 = std::atoi(std::strchr(buf, 'e') + 1);
+  if (exp10 >= -7 && exp10 < 21) {
+    std::snprintf(buf, sizeof buf, "%.*f", std::max(0, p - 1 - exp10), v);
+    return buf;
+  }
+  std::string s = buf;  // "1.5e-07" -> "1.5e-7"
+  const auto e = s.find('e');
+  std::string mantissa = s.substr(0, e);
+  if (mantissa.find('.') != std::string::npos) {
+    mantissa.erase(mantissa.find_last_not_of('0') + 1);
+    if (mantissa.back() == '.') mantissa.pop_back();
+  }
+  return mantissa + "e" + (exp10 < 0 ? "-" : "+") + std::to_string(std::abs(exp10));
 }
 
 std::string shifted_forward(double forward, int pct) { return to_fixed(forward * (1 + pct / 100.0), 2); }

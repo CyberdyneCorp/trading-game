@@ -155,7 +155,8 @@ export function strategiesFixture(m) {
 			{ series: 12, qty: '-1.50000000', avgPremium: '0.80000000' }
 		]
 	});
-	for (const g of [pos, games[0], games[2]]) add('positionLegs', [g], m.positionLegs(g));
+	const tens = gameOf({ posQty: '10.00000000', posEntry: '620.00000000', positions: [{ series: 9, qty: '-20.00000000', avgPremium: '13.46000000' }] });
+	for (const g of [pos, games[0], games[2], tens]) add('positionLegs', [g], m.positionLegs(g));
 	const orders = [
 		{ series: 9, side: 'buy', qty: '1.0' },
 		{ series: 0, side: 'buy', qty: '2.5' },
@@ -289,6 +290,13 @@ function requestCases(m, add) {
 		add('runRequest', [run, shift, 101.37], m.runRequest(run, shift, 101.37));
 	}
 	for (const ls of [legs, legs.slice(2), [], [{ ...legs[0], days: -2 }]]) add('academyMaxDays', [ls], m.academyMaxDays(ls));
+	// Whole quantities of 10 and more are written as String(n) writes them ("10", never "1e+01").
+	const round = [
+		{ ...legs[0], qty: 10, strike: 620 },
+		{ ...legs[1], qty: 20, strike: 600 },
+		{ ...legs[2], qty: 100, entry: 620 }
+	];
+	add('academyRequest', [round, { price: 0, time: 0, iv: 0 }, 620], m.academyRequest(round, { price: 0, time: 0, iv: 0 }, 620));
 }
 
 export function whatifLabFixture(m, condor, call) {

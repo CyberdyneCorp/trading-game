@@ -17,6 +17,7 @@
 {"fn":"academyMaxDays","args":[[{"kind":"perp","side":"buy","strike":100,"qty":3,"days":0,"ivPct":0,"entry":99.93}]],"out":0},
 {"fn":"academyMaxDays","args":[[]],"out":0},
 {"fn":"academyMaxDays","args":[[{"kind":"call","side":"buy","strike":100,"qty":1,"days":-2,"ivPct":60,"entry":4.12}]],"out":0},
+{"fn":"academyRequest","args":[[{"kind":"call","side":"buy","strike":620,"qty":10,"days":30,"ivPct":60,"entry":4.12},{"kind":"put","side":"sell","strike":600,"qty":20,"days":12.5,"ivPct":47.5,"entry":1.07},{"kind":"perp","side":"buy","strike":100,"qty":100,"days":0,"ivPct":0,"entry":620}],{"price":0,"time":0,"iv":0},620],"out":{"forward":"620.00","minutesPerStep":1440,"multiplier":"1","legs":[{"kind":"call","side":"buy","qty":"10","strike":"620.00","minutesToExpiry":43200,"iv":"0.6000","entry":"4.12"},{"kind":"put","side":"sell","qty":"20","strike":"600.00","minutesToExpiry":18000,"iv":"0.4750","entry":"1.07"},{"kind":"perp","side":"buy","qty":"100","entry":"620.00"}],"shift":{"forward":"620.00","minutesElapsed":0,"ivPoints":"0"},"grid":{"lo":"434.00","hi":"806.00","points":61}}},
 {"fn":"runMaxBars","args":[[100,150],60],"out":40},
 {"fn":"runMaxBars","args":[[],60],"out":0},
 {"fn":"runMaxBars","args":[[50],60],"out":0},
