@@ -5,6 +5,7 @@ import {
 	academyRequest,
 	chartGeometry,
 	clampShift,
+	legLabel,
 	runMaxBars,
 	runRequest,
 	setSlider,
@@ -77,5 +78,15 @@ describe('payoff chart from engine curves', () => {
 		expect(unboundedAbove({ ...result, expiry: { ...result.expiry!, maxLoss: '3' } })).toBeNull();
 		expect(unboundedAbove({ ...result, expiry: null })).toBeNull();
 		expect(chartGeometry({ ...result, today: [] }, 200, 100)).toBeNull();
+	});
+});
+
+describe('legLabel', () => {
+	it('shows the quantity as held, not rounded to a whole contract', () => {
+		const perp = { kind: 'perp', side: 'buy', qty: '47.90000000', strike: null } as const;
+		const call = { kind: 'call', side: 'sell', qty: '47.90000000', strike: '100.00000000' } as const;
+		expect(legLabel(perp, 'pt-BR', 'perpétuo')).toBe('+47,9 perpétuo');
+		expect(legLabel(call, 'en', 'perpetual')).toBe('−47.9 C 100.00');
+		expect(legLabel({ ...call, qty: '1.00000000' }, 'en', 'perpetual')).toBe('−1 C 100.00');
 	});
 });

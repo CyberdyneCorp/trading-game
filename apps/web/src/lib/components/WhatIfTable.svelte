@@ -3,17 +3,14 @@
 	import type { WhatIfLegView, WhatIfResult } from '#lib/engine/types.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { legLabel } from '#lib/game/whatifLab.ts';
 
 	// `step`: what one unit of time is (a day in the Academy lab, a bar in a run); theta is per step.
 	let { result, perUnit = true, step = 'bar' }: { result: WhatIfResult; perUnit?: boolean; step?: 'day' | 'bar' } = $props();
 	const unit = $derived(t(step === 'day' ? 'lab.perDay' : 'lab.perBar'));
 	const L = $derived(i18n.locale);
 
-	function label(l: WhatIfLegView): string {
-		const side = l.side === 'buy' ? '+' : '−';
-		if (l.kind === 'perp') return `${side}${fmtNum(Number(l.qty), L, 0)} ${t('lab.perp')}`;
-		return `${side}${fmtNum(Number(l.qty), L, 0)} ${l.kind === 'call' ? 'C' : 'P'} ${fmtPrice(l.strike, L)}`;
-	}
+	const label = (l: WhatIfLegView) => legLabel(l, L, t('lab.perp'));
 	const greek = (v: string, d = 4) => fmtNum(Number(v), L, d);
 </script>
 

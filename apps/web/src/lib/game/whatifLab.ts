@@ -3,7 +3,9 @@
 // breakeven and bound shown comes from the engine (tl_option_whatif / tl_run_option_whatif); this
 // module only turns slider positions into requests and engine strings into drawing coordinates.
 
-import type { WhatIfLegInput, WhatIfRequest, WhatIfResult } from '#lib/engine/types.ts';
+import type { WhatIfLegInput, WhatIfLegView, WhatIfRequest, WhatIfResult } from '#lib/engine/types.ts';
+import { fmtPrice } from './format.ts';
+import type { Locale } from './i18n.svelte.ts';
 
 export type Slider = 'price' | 'time' | 'iv';
 export const SLIDERS: readonly Slider[] = ['price', 'time', 'iv'];
@@ -157,4 +159,15 @@ export function unboundedAbove(r: WhatIfResult): string | null {
 	const e = r.expiry;
 	if (!e || e.maxLoss != null) return null;
 	return e.breakevens.at(-1) ?? null;
+}
+
+/**
+ * A leg's row label: side, quantity as held (47.9 stays 47.9, 1 stays 1, never rounded to a whole
+ * contract), then the option or the perpetual's name (`perpName`).
+ */
+export function legLabel(l: Pick<WhatIfLegView, 'kind' | 'side' | 'qty' | 'strike'>, locale: Locale, perpName: string): string {
+	const side = l.side === 'buy' ? '+' : '−';
+	const qty = new Intl.NumberFormat(locale, { maximumFractionDigits: 8 }).format(Number(l.qty));
+	if (l.kind === 'perp') return `${side}${qty} ${perpName}`;
+	return `${side}${qty} ${l.kind === 'call' ? 'C' : 'P'} ${fmtPrice(l.strike, locale)}`;
 }
