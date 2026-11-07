@@ -3,6 +3,7 @@ import { TUTORIAL_MISSIONS, tutorialFor } from './tutorials.ts';
 
 import { campaignMissions } from './curriculum.ts';
 import { liquidationPrice, type Costs } from './sizing.ts';
+import { termById } from '#lib/content/glossary.ts';
 
 const MISSIONS = [
 	'm01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer',
@@ -107,6 +108,18 @@ describe('mission tutorials', () => {
 		const card = (loc: 'pt-BR' | 'en') => tutorialFor('m03-volatility-shock', loc).find((c) => c.art === 'leverage')?.body;
 		expect(card('pt-BR')).toMatch(/cerca de 4,5% contra você/);
 		expect(card('en')).toMatch(/about 4\.5% against you/);
+	});
+
+	it('the option cards and the spread definition say the buyer pays the ask and the seller gets the bid', () => {
+		// "ask (the selling price)" read as the price the player sells at: say it from the player's side.
+		const body = (id: string, loc: 'pt-BR' | 'en') => tutorialFor(id, loc).map((c) => c.body).join(' ');
+		expect(body('m04-options-buyer', 'pt-BR')).toMatch(/ask, o preço pedido por quem vende: é o que você paga/);
+		expect(body('m04-options-buyer', 'en')).toMatch(/ask, the price sellers ask: it is what you pay/);
+		expect(body('m05-options-writer', 'pt-BR')).toMatch(/bid, o preço oferecido por quem compra: é o que você recebe/);
+		expect(body('m05-options-writer', 'en')).toMatch(/bid, the price buyers offer: it is what you receive/);
+		const spread = termById('spread')!.text;
+		expect(spread['pt-BR'].short).toMatch(/Quem compra a mercado paga o ask e quem vende recebe o bid/);
+		expect(spread.en.short).toMatch(/A market buy pays the ask and a market sell gets the bid/);
 	});
 
 	it('an unknown mission has no tutorial', () => {

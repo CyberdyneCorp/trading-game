@@ -202,7 +202,7 @@ const m04: Cards = {
 		{
 			art: 'chain',
 			title: 'A cadeia de opções',
-			body: 'Na aba Opções, cada linha é um strike e cada bloco um vencimento. Compre clicando no ask (o preço de venda). A volatilidade implícita (IV) é o preço do seguro: IV alta, opção cara.'
+			body: 'Na aba Opções, cada linha é um strike e cada bloco um vencimento. Compre clicando no ask, o preço pedido por quem vende: é o que você paga. A volatilidade implícita (IV) é o preço do seguro: IV alta, opção cara.'
 		},
 		{
 			art: 'decay',
@@ -224,7 +224,7 @@ const m04: Cards = {
 		{
 			art: 'chain',
 			title: 'The option chain',
-			body: 'In the Options tab, each row is a strike and each block an expiry. Buy by clicking the ask (the selling price). Implied volatility (IV) is the price of insurance: high IV, expensive option.'
+			body: 'In the Options tab, each row is a strike and each block an expiry. Buy by clicking the ask, the price sellers ask: it is what you pay. Implied volatility (IV) is the price of insurance: high IV, expensive option.'
 		},
 		{
 			art: 'decay',
@@ -254,7 +254,7 @@ const m05: Cards = {
 		{
 			art: 'chain',
 			title: 'IV alta, prêmio alto',
-			body: 'IV alta paga mais prêmio porque o mercado espera movimentos maiores. Venda pelo bid (o preço de compra). O prêmio recebido é pagamento por um risco, não lucro garantido.'
+			body: 'IV alta paga mais prêmio porque o mercado espera movimentos maiores. Venda pelo bid, o preço oferecido por quem compra: é o que você recebe. O prêmio recebido é pagamento por um risco, não lucro garantido.'
 		},
 		{
 			art: 'risk',
@@ -276,7 +276,7 @@ const m05: Cards = {
 		{
 			art: 'chain',
 			title: 'High IV, high premium',
-			body: 'High IV pays more premium because the market expects bigger moves. Sell at the bid (the buying price). The premium received is payment for a risk, not a guaranteed profit.'
+			body: 'High IV pays more premium because the market expects bigger moves. Sell at the bid, the price buyers offer: it is what you receive. The premium received is payment for a risk, not a guaranteed profit.'
 		},
 		{
 			art: 'risk',
