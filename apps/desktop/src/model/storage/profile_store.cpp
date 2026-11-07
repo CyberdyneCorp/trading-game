@@ -128,9 +128,13 @@ desktop::Progress ProfileStore::load_progress() {
     }
     auto runs = store_.runs();  // newest first; the shell keeps them oldest first
     std::ranges::reverse(runs);
+    const auto summaries = store_.summaries();
     for (const RunRecord& r : runs) {
-      stored_[r.run_id] = StoredColumns{r.journal, r.campaign.value_or(""), r.status};
+      const auto s = std::ranges::find_if(summaries, [&](const auto& p) { return p.first == r.run_id; });
+      const std::string summary = s == summaries.end() ? std::string() : s->second;
+      stored_[r.run_id] = StoredColumns{r.journal, r.campaign.value_or(""), r.status, summary};
       out.runs.push_back(shell_record(r));
+      out.runs.back().summary = summary;
     }
   });
   out.completed = finished();
@@ -158,6 +162,10 @@ void ProfileStore::save_run(const desktop::RunRecord& r) {
     const auto row = store_.run(r.run_id);
     if (!row) return;  // a run the store does not know (no storage when it started)
     it = stored_.emplace(r.run_id, StoredColumns{row->journal, row->campaign.value_or(""), row->status}).first;
+  }
+  if (!r.summary.empty() && r.summary != it->second.summary) {
+    store_.set_summary(r.run_id, r.summary);
+    it->second.summary = r.summary;
   }
   const RunPatch patch = shell_patch(r, it->second);
   if (!patch.journal && !patch.campaign && !patch.status) return;

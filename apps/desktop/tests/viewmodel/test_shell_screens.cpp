@@ -10,6 +10,7 @@
 #include "support/shell_helpers.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 #include "viewmodel/screen_names.hpp"
+#include "viewmodel/screens/screens.hpp"
 #include "viewmodel/widget_names.hpp"
 
 using namespace tradelab::desktop;
@@ -404,4 +405,27 @@ TEST_CASE("shell: settings toggle CRT effects, palette, text scale, sound, langu
   f.vm.set_locale(Locale::En);
   CHECK(repo.load()->locale == Locale::En);
   CHECK(f.vm.screen_model().text_of(names::kSettingsTitle) == "Settings");
+}
+
+TEST_CASE("shell: a debrief stores the run's summary and the statistics screen counts it (journal stats D7)") {
+  Fixture f;
+  f.vm.open_stats();
+  CHECK(f.vm.screen() == Screen::Stats);
+  CHECK(f.vm.screen_model().is_visible(names::kStatsEmpty));
+  f.vm.back_to_menu();
+  RealRun run;
+  f.play_selected(run);
+  REQUIRE(f.vm.progress().runs.size() == 1);
+  const std::string summary = f.vm.progress().runs[0].summary;
+  REQUIRE_FALSE(summary.empty());
+  CHECK(summary.find(R"("mission":"m01-false-breakout")") != std::string::npos);
+  CHECK(summary.find(R"("movedAway":0)") != std::string::npos);
+  REQUIRE(screens::stats_runs(f.vm.progress()).size() == 1);
+  f.vm.back_to_menu();
+  f.vm.open_stats();
+  const ScreenModel m = f.vm.screen_model();
+  CHECK_FALSE(m.is_visible(names::kStatsEmpty, true));
+  CHECK(has_line(m, names::kStatsLines, "Só 1 trade fechado"));
+  CHECK(has_line(m, names::kStatsLines, "Lição: Dimensionar pelo stop"));
+  CHECK(has_line(m, names::kStatsLines, "Entrada sem stop"));
 }

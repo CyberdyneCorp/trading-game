@@ -201,6 +201,7 @@ void ShellView::bind() {
   ui::bind_action(names::kActUpdateInstall, [&vm] { vm.install_update(); });
   ui::bind_action(names::kActOpenCurriculum, [&vm] { vm.open_curriculum(); });
   ui::bind_action(names::kActOpenJournal, [&vm] { vm.open_journal(); });
+  ui::bind_action(names::kActOpenStats, [&vm] { vm.open_stats(); });
   ui::bind_action(names::kActOpenSettings, [&vm] { vm.open_settings(); });
   ui::bind_action(names::kActCampaignStart, [&vm] { vm.campaign_start(); });
   ui::bind_action(names::kActCampaignContinue, [&vm] { vm.campaign_continue(); });

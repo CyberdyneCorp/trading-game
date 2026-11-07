@@ -10,6 +10,7 @@
 #include "model/json.hpp"
 #include "model/run_files.hpp"
 #include "model/storage/json_writer.hpp"
+#include "model/storage/profile_store.hpp"
 #include "model/storage/run_store.hpp"
 #include "support/storage_fixtures.hpp"
 
@@ -145,4 +146,25 @@ TEST_CASE("storage: imported runs in their own table, one row per file, never a 
   store.set_summary("r1", R"({"v":1})");
   REQUIRE(store.summaries().size() == 1);
   CHECK(store.summaries()[0].second == R"({"v":1})");
+}
+
+TEST_CASE("storage: the shell's run summary is saved to runs.summary and read back by a new connection") {
+  TempDir dir;
+  {
+    storage::RunStore store(dir.db());
+    storage::RunRecord r;
+    r.run_id = "r1";
+    r.mission_id = "m01-false-breakout";
+    store.create_run(r);
+  }
+  {
+    storage::ProfileStore profile(dir.path() / "tradelab.db");
+    Progress p = profile.load_progress();
+    REQUIRE(p.runs.size() == 1);
+    CHECK(p.runs[0].summary.empty());
+    p.runs[0].summary = R"({"v":1,"mission":"m01-false-breakout"})";
+    profile.save_progress(p);
+  }
+  storage::ProfileStore again(dir.path() / "tradelab.db");
+  CHECK(again.load_progress().runs[0].summary == R"({"v":1,"mission":"m01-false-breakout"})");
 }

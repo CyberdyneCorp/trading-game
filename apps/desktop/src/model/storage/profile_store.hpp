@@ -54,6 +54,7 @@ class ProfileStore {
     std::string journal;
     std::string campaign;
     std::string status;
+    std::string summary;
   };
   template <class Fn>
   bool guarded(Fn&& fn);

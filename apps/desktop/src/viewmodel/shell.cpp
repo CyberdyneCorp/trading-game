@@ -13,6 +13,7 @@
 #include "viewmodel/campaign.hpp"
 #include "viewmodel/curriculum.hpp"
 #include "viewmodel/journal.hpp"
+#include "viewmodel/journal_stats.hpp"
 
 namespace tradelab::desktop {
 
@@ -140,6 +141,8 @@ void AppViewModel::settle_ended_run() {
   if (RunRecord* r = find_run(shell_.progress, shell_.run_id)) {
     r->status = bankrupt ? RunStatus::Bankrupt : RunStatus::Finished;
     r->equity = d.final_equity;
+    // The journal statistics read this compact debrief later (add-run-sharing-and-journal-stats D7).
+    if (const auto summary = summarize(d.raw)) r->summary = summary_json(*summary);
   }
   if (shell_.run_assisted) {  // assisted practice never counts for progress or the campaign
     save_progress();
@@ -229,6 +232,11 @@ void AppViewModel::add_journal_entry(PlanEntry entry) {
 void AppViewModel::open_curriculum() {
   shell_.confirming_end = false;
   screen_ = Screen::Curriculum;
+  touch();
+}
+
+void AppViewModel::open_stats() {
+  screen_ = Screen::Stats;
   touch();
 }
 

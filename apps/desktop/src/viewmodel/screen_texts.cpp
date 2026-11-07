@@ -40,7 +40,8 @@ std::vector<Binding> AppViewModel::bindings() const {
     case Screen::Import:
     case Screen::Academy:
     case Screen::Glossary:
-    case Screen::Lab: break;  // screens::*
+    case Screen::Lab:
+    case Screen::Stats: break;  // screens::*
   }
   return {};
 }

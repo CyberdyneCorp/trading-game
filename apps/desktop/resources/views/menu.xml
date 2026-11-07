@@ -18,10 +18,11 @@
             <Label Name="menu-resume-text" Slot.Fill="1" Slot.VAlign="Center"/>
             <Button Name="menu-resume" Style="Primary" OnClicked="tl.menu.resume"/>
         </HBox>
-        <!-- Eight screens: wraps onto a second line in a narrow window (web MissionMenu's flex-wrap). -->
+        <!-- Nine screens: wraps onto a second line in a narrow window (web MissionMenu's flex-wrap). -->
         <WrapBox Spacing="8">
             <Button Name="menu-curriculum" OnClicked="tl.menu.curriculum"/>
             <Button Name="menu-journal" OnClicked="tl.menu.journal"/>
+            <Button Name="menu-stats" OnClicked="tl.menu.stats"/>
             <Button Name="menu-settings" OnClicked="tl.menu.settings"/>
             <Button Name="menu-catalog" OnClicked="tl.menu.catalog"/>
             <Button Name="menu-import" OnClicked="tl.menu.import"/>

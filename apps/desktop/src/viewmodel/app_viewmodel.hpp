@@ -41,7 +41,8 @@ enum class Screen : std::uint8_t {
   Import = 10,
   Academy = 11,  // lessons by stage, status, retake, reviews due (add-academy-and-strategies D8)
   Glossary = 12,  // the glossary's search and terms (D6)
-  Lab = 13  // the Academy's options lab (web LabScreen.svelte; viewmodel/academy_lab.cpp)
+  Lab = 13,  // the Academy's options lab (web LabScreen.svelte; viewmodel/academy_lab.cpp)
+  Stats = 14  // journal statistics (web JournalStats.svelte; add-run-sharing-and-journal-stats D7)
 };
 
 // A run left unfinished in an earlier launch (the active run of the store), offered by the menu: a
@@ -136,6 +137,7 @@ class AppViewModel {
   [[nodiscard]] const std::optional<SavedRun>& saved_run() const { return saved_run_; }
   void open_curriculum();
   void open_journal();
+  void open_stats();
   void open_settings();
 
   // ---- The Academy's what-if lab (viewmodel/academy_lab.cpp): an illustrative market, no run needed ----

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "viewmodel/app_viewmodel.hpp"
+#include "viewmodel/journal_stats.hpp"
 #include "viewmodel/screen_model.hpp"
 #include "viewmodel/screen_names.hpp"
 
@@ -21,6 +22,10 @@ ScreenModel csv_import(const AppViewModel& vm);  // CsvImport.svelte
 ScreenModel game(const AppViewModel& vm);        // the terminal's shell parts: assisted tag and AssistPanel.svelte
 ScreenModel academy(const AppViewModel& vm);     // Academy.svelte
 ScreenModel glossary(const AppViewModel& vm);    // Glossary.svelte + GlossaryList.svelte
+ScreenModel stats(const AppViewModel& vm);       // JournalStats.svelte (add-run-sharing-and-journal-stats D7)
+
+// The runs the journal statistics count: own runs with a summary, never assisted, oldest first.
+std::vector<StatsRun> stats_runs(const Progress& p);
 
 // A marked glossary term's in-place definition (Term.svelte): "<term>: <short definition>" ("" when
 // the glossary has no such term). The view shows it as the tooltip and the accessible description.

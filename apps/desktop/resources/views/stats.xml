@@ -1,0 +1,14 @@
+<!-- Journal statistics (web JournalStats.svelte). Texts and lines from screens::stats(). -->
+<ScrollBox Name="stats-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="stats-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="stats-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Label Name="stats-note" Wrap="true" Class="muted"/>
+        <Label Name="stats-empty" Wrap="true" Class="muted"/>
+        <VBox Name="stats-lines" Spacing="3"/>
+    </VBox>
+</Border>
+</ScrollBox>
