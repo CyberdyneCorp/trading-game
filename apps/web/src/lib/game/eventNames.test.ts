@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { EventNames, orderPriceText } from './eventNames.ts';
+import { EventNames, childTag, orderPriceText, sideLabel } from './eventNames.ts';
 import { i18n } from './i18n.svelte.ts';
 import { seriesLabel } from './optionsMath.ts';
 import type { GameState } from '#lib/engine/types.ts';
@@ -72,4 +72,22 @@ describe('orderPriceText', () => {
 		expect(orderPriceText({ ...opt, type: 'market' }, 'en')).toBe('@open');
 	});
 
+});
+
+describe('childTag', () => {
+	it('calls a bracket child OCO only while its sibling is open', () => {
+		const stop = { id: 2, parentId: 1 };
+		const tp = { id: 3, parentId: 1 };
+		expect(childTag(stop, [stop, tp])).toBe('OCO ↳#1');
+		expect(childTag(stop, [stop])).toBe('↳#1'); // a stop with no target cancels nothing
+		expect(childTag({ id: 4, parentId: 0 }, [stop, tp])).toBeNull();
+	});
+});
+
+describe('sideLabel', () => {
+	it('names the side in the shown language (the feed said BUY/SELL on Portuguese screens)', () => {
+		expect([sideLabel('buy'), sideLabel('sell')]).toEqual(['COMPRA', 'VENDA']);
+		i18n.locale = 'en';
+		expect([sideLabel('buy'), sideLabel('sell')]).toEqual(['BUY', 'SELL']);
+	});
 });

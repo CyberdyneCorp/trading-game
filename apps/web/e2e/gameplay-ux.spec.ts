@@ -64,7 +64,7 @@ test('the ticket sizes by notional and by % of equity, reading PT-BR decimal com
 	const shown = (await qty.textContent())!.trim();
 	await sendWithoutPlan(page);
 	await advance(page);
-	await expect(page.locator('.feed').getByText(new RegExp(`Execução #1: BUY ${shown.replace('.', '\\.')} @`))).toBeVisible();
+	await expect(page.locator('.feed').getByText(new RegExp(`Execução #1: COMPRA ${shown.replace('.', '\\.')} @`))).toBeVisible();
 
 	// Risk % also takes a comma: half the risk is about half the size.
 	await sizeBy(page).selectOption('risk');

@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { recordWorkerMessages, requestKinds, workerLog } from './helpers.ts';
 
 // What-if lab and strategy builder (add-academy-and-strategies tasks W5 and W7; specs options-whatif and
@@ -33,6 +33,16 @@ async function expectNoViolations(page: Page, where: string, include?: string) {
 	expect(violations.map((v) => `${where}: ${v.id} ${v.nodes[0]?.target.join(' ')}`)).toEqual([]);
 }
 
+/** The payoff legend: lower scale end at the box's left edge, upper end at its right, the key between, nothing overlapping. */
+async function expectLegendAtEdges(figure: Locator) {
+	const box = (await figure.locator('svg').boundingBox())!;
+	const spans = await figure.locator('figcaption > span').evaluateAll((els) => els.map((e) => e.getBoundingClientRect()).map((r) => ({ left: r.left, right: r.right })));
+	expect(spans).toHaveLength(3);
+	expect(Math.abs(spans[0].left - box.x)).toBeLessThan(2);
+	expect(Math.abs(spans[2].right - (box.x + box.width))).toBeLessThan(2); // it sat mid-box at 1440 px
+	for (let i = 1; i < spans.length; i++) expect(spans[i].left, 'legend items overlap').toBeGreaterThanOrEqual(spans[i - 1].right);
+}
+
 /** Moves a range input to `value` (keyboard-free: sets it and fires input). */
 async function slide(page: Page, testid: string, value: number) {
 	await page.getByTestId(testid).evaluate((el, v) => {
@@ -48,8 +58,16 @@ test('Academy lab: an illustrative call priced by the engine; sliders change its
 	const lab = page.getByTestId('whatif-lab');
 	await expect(lab.getByText(/Black-76 com taxa de juros zero/)).toBeVisible();
 	await expect(lab.getByTestId('lab-pnl')).toHaveText(/0,00/); // entry = the model's price, no shift
+	// The curve spans the whole chart box, so the scale ends printed at its edges are the curve's ends
+	// (it was drawn in the middle third of a wide box).
+	const [box, curve] = await Promise.all([lab.locator('figure svg').first().boundingBox(), lab.locator('figure path.today').first().boundingBox()]);
+	expect(curve!.width).toBeGreaterThan(box!.width * 0.95);
+	await expectLegendAtEdges(lab.locator('figure').first());
 	const value = await lab.getByTestId('lab-value').innerText();
+	await expect(lab.getByRole('textbox', { name: 'Preço de entrada' }).first()).toHaveValue(/^\d+,\d+$/); // the model's price, typed the PT-BR way
+	await expect(lab.getByText('Valor da posição agora')).toBeVisible();
 	await slide(page, 'lab-price', 10);
+	await expect(lab.getByText('Valor da posição nesse cenário')).toBeVisible(); // a moved slider is a scenario, not "now"
 	await expect(lab.getByTestId('lab-value')).not.toHaveText(value);
 	await expect(lab.getByTestId('lab-pnl')).toHaveText(/^\+/);
 	await slide(page, 'lab-iv', -30);
@@ -102,6 +120,35 @@ test('terminal lab agrees with the chain: zero shift = the engine quote mid, Gre
 	}
 	expect(requestKinds(log)).toContain('runWhatif');
 	expect(requestKinds(log)).toContain('comboPreview');
+});
+
+test('at 1024 px the builder never scrolls sideways: the Greeks table scrolls on its own, the payoff legend wraps', async ({ page }) => {
+	await page.setViewportSize({ width: 1024, height: 768 });
+	await openBuilder(page);
+	await page.getByTestId('template-iron_condor').click();
+	await expect(page.getByTestId('whatif-table')).toBeVisible();
+	const builder = page.getByTestId('strategy-builder');
+	const overflow = await builder.evaluate((el) => el.scrollWidth - el.clientWidth);
+	expect(overflow).toBeLessThanOrEqual(1); // before: the 463 px table pushed the whole panel sideways
+	const region = page.getByRole('region', { name: /Por perna/ });
+	await expect(region).toHaveAttribute('tabindex', '0'); // a scrolling region keyboard users can reach
+	await expectLegendAtEdges(page.getByTestId('builder-payoff'));
+	// Each leg's chosen side and strike is readable, not clipped ("Vende", "90,0(" before).
+	const clipped = await page.getByTestId('builder-leg').locator('select').evaluateAll((els) => {
+		const ctx = document.createElement('canvas').getContext('2d')!;
+		return els
+			.map((el) => {
+				const s = el as HTMLSelectElement;
+				const cs = getComputedStyle(s);
+				ctx.font = `${cs.fontSize} ${cs.fontFamily}`;
+				const room = s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 20; // the native arrow
+				return { text: s.selectedOptions[0]?.text ?? '', fits: ctx.measureText(s.selectedOptions[0]?.text ?? '').width <= room };
+			})
+			.filter((x) => !x.fits)
+			.map((x) => x.text);
+	});
+	expect(clipped).toEqual([]);
+	await expectNoViolations(page, 'builder at 1024', '[data-testid="strategy-builder"]');
 });
 
 test('every template (and the short versions) is built from the chain and analysed by the engine', async ({ page }) => {

@@ -236,7 +236,7 @@
 				"pt-BR": {
 					"title": "Transferência: um diário novo",
 					"body": "Outro mercado, outro diário. Qual entrada foi por FOMO?",
-					"right": "A entrada 1: comprou depois de uma barra de alta forte, sem stop, com medo de perder o resto. Esperar, como no trade 3, também é uma decisão válida.",
+					"right": "O trade 1: comprou depois de uma barra de alta forte, sem stop, com medo de perder o resto. Esperar, como no trade 3, também é uma decisão válida.",
 					"wrong": "FOMO é entrar porque o preço já andou, sem plano.",
 					"choices": { "t1": "Trade 1", "t2": "Trade 2", "t3": "Trade 3" },
 					"columns": ["Trade", "Anotação"],
@@ -249,7 +249,7 @@
 				"en": {
 					"title": "Transfer: a new journal",
 					"body": "Another market, another journal. Which entry was FOMO?",
-					"right": "Entry 1: bought after a strong up bar, with no stop, afraid of missing the rest. Waiting, as in trade 3, is a valid decision too.",
+					"right": "Trade 1: bought after a strong up bar, with no stop, afraid of missing the rest. Waiting, as in trade 3, is a valid decision too.",
 					"wrong": "FOMO is entering because the price already moved, with no plan.",
 					"choices": { "t1": "Trade 1", "t2": "Trade 2", "t3": "Trade 3" },
 					"columns": ["Trade", "Note"],

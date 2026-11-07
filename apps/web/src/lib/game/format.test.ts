@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtNum, parseAmount, parseDecimal, planHeadline, priceInputText, priceToTick, qtyInputText, qtyToLot, signMark } from './format.ts';
+import { fmtNum, inputText, parseAmount, parseDecimal, planHeadline, priceInputText, priceToTick, qtyInputText, qtyToLot, signMark } from './format.ts';
 
 describe('format', () => {
 	it('floors quantities to the lot and emits engine decimal strings', () => {
@@ -68,5 +68,13 @@ describe('planHeadline', () => {
 
 	it('shows whole option contracts without decimals', () => {
 		expect(planHeadline({ side: 'sell', qty: '20', leverage: 1 }, 'P 100 · exp 96', 'pt-BR')).toBe('▼ P 100 · exp 96 × 20');
+	});
+});
+
+describe('inputText', () => {
+	it('writes a number the way the locale types it (the lab filled 6.85 on a PT-BR screen)', () => {
+		expect(inputText(6.85, 'pt-BR')).toBe('6,85');
+		expect(inputText(6.85, 'en')).toBe('6.85');
+		expect(inputText(100, 'pt-BR')).toBe('100');
 	});
 });

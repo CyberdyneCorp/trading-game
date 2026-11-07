@@ -1,8 +1,8 @@
 <script lang="ts">
 	// Leg editor of the Academy lab: kind, side, strike, contracts, days to expiry, IV and the premium paid
 	// or received, on an illustrative market. Up to four option legs and one perpetual leg.
-	import { parseDecimal } from '#lib/game/format.ts';
-	import { t } from '#lib/game/i18n.svelte.ts';
+	import { inputText, parseDecimal } from '#lib/game/format.ts';
+	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { MAX_OPTION_LEGS } from '#lib/game/strategies.ts';
 	import { ACADEMY_FORWARD, type AcademyLeg } from '#lib/game/whatifLab.ts';
 
@@ -50,11 +50,11 @@
 						<option value="buy">{t('opt.buy')}</option><option value="sell">{t('opt.sell')}</option>
 					</select>
 				</td>
-				<td>{#if l.kind !== 'perp'}<input aria-label={t('opt.strike')} inputmode="decimal" value={l.strike} onchange={(e) => update(i, { strike: num(e, 0.01) })} />{/if}</td>
+				<td>{#if l.kind !== 'perp'}<input aria-label={t('opt.strike')} inputmode="decimal" value={inputText(l.strike, i18n.locale)} onchange={(e) => update(i, { strike: num(e, 0.01) })} />{/if}</td>
 				<td><input aria-label={t('opt.qty')} inputmode="decimal" value={l.qty} onchange={(e) => update(i, { qty: num(e, 1) })} /></td>
 				<td>{#if l.kind !== 'perp'}<input aria-label={t('lab.daysToExpiry')} inputmode="numeric" value={l.days} onchange={(e) => update(i, { days: Math.round(num(e)) })} />{/if}</td>
-				<td>{#if l.kind !== 'perp'}<input aria-label={t('lab.ivPct')} inputmode="decimal" value={l.ivPct} onchange={(e) => update(i, { ivPct: num(e, 1) })} />{/if}</td>
-				<td><input aria-label={t('lab.entry')} inputmode="decimal" value={l.entry} onchange={(e) => update(i, { entry: num(e) })} /></td>
+				<td>{#if l.kind !== 'perp'}<input aria-label={t('lab.ivPct')} inputmode="decimal" value={inputText(l.ivPct, i18n.locale)} onchange={(e) => update(i, { ivPct: num(e, 1) })} />{/if}</td>
+				<td><input aria-label={t('lab.entry')} inputmode="decimal" value={inputText(l.entry, i18n.locale)} onchange={(e) => update(i, { entry: num(e) })} /></td>
 				<td><button aria-label={t('lab.remove')} onclick={() => (legs = legs.filter((_, j) => j !== i))} disabled={legs.length <= 1}>✕</button></td>
 			</tr>
 		{/each}

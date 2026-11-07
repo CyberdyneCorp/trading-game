@@ -22,7 +22,7 @@ The client SHALL offer a glossary screen from the menu and the Academy. It SHALL
 
 ### Requirement: In-place definitions
 Marked terms in the UI SHALL show their short definition in place:
-- on pointer hover and on keyboard focus, as a tooltip tied to the term for screen readers;
+- on pointer hover and on keyboard focus, as a tooltip tied to the term for screen readers, kept inside the viewport and never clipped by the panel the term sits in;
 - on tap on touch screens.
 
 A "more" link SHALL open the glossary at that term. Marked terms SHALL include at least the ticket's fields and estimates, the rail's account figures, the option chain's column headers, the strategy builder's outputs and the debrief's findings.

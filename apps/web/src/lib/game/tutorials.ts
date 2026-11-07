@@ -15,6 +15,7 @@ export type TutorialArt =
 	| 'leverage'
 	| 'volatility'
 	| 'payoff'
+	| 'written'
 	| 'chain'
 	| 'decay'
 	| 'margin'
@@ -40,6 +41,19 @@ export interface TutorialCard {
 }
 
 type Cards = Record<Locale, TutorialCard[]>;
+
+/**
+ * The option chain drawn on the 'chain' card (money at 100): call and put premiums per strike. They
+ * obey the rules the chain teaches: each premium is at least its intrinsic value and call − put =
+ * 100 − strike (put-call parity at zero rate).
+ */
+export const CHAIN_ART: readonly { strike: number; call: number; put: number }[] = [
+	{ strike: 90, call: 10.4, put: 0.4 },
+	{ strike: 95, call: 6.1, put: 1.1 },
+	{ strike: 100, call: 2.9, put: 2.9 },
+	{ strike: 105, call: 1.0, put: 6.0 },
+	{ strike: 110, call: 0.3, put: 10.3 }
+];
 
 const m01: Cards = {
 	'pt-BR': [
@@ -150,7 +164,7 @@ const m03: Cards = {
 		{
 			art: 'leverage',
 			title: 'O que a alavancagem muda',
-			body: 'Alavancagem não muda quanto você ganha ou perde por contrato quando o preço anda. Ela muda a margem que você deposita e o quão perto fica a liquidação. A 20×, um movimento de cerca de 5% contra você liquida.'
+			body: 'Alavancagem não muda quanto você ganha ou perde por contrato quando o preço anda. Ela muda a margem que você deposita e o quão perto fica a liquidação. A 20×, a margem é 5% do nocional, mas a de manutenção (0,5%) precisa ficar: um movimento de cerca de 4,5% contra você já liquida.'
 		},
 		{
 			art: 'volatility',
@@ -172,7 +186,7 @@ const m03: Cards = {
 		{
 			art: 'leverage',
 			title: 'What leverage changes',
-			body: 'Leverage does not change how much you gain or lose per contract when price moves. It changes the margin you post and how close liquidation is. At 20×, a move of about 5% against you liquidates.'
+			body: 'Leverage does not change how much you gain or lose per contract when price moves. It changes the margin you post and how close liquidation is. At 20×, the margin is 5% of the notional, but the maintenance margin (0.5%) must stay: a move of about 4.5% against you already liquidates.'
 		},
 		{
 			art: 'volatility',
@@ -202,7 +216,7 @@ const m04: Cards = {
 		{
 			art: 'chain',
 			title: 'A cadeia de opções',
-			body: 'Na aba Opções, cada linha é um strike e cada bloco um vencimento. Compre clicando no ask (o preço de venda). A volatilidade implícita (IV) é o preço do seguro: IV alta, opção cara.'
+			body: 'Na aba Opções, cada linha é um strike e cada bloco um vencimento. Compre clicando no ask, o preço pedido por quem vende: é o que você paga. A volatilidade implícita (IV) é o preço do seguro: IV alta, opção cara.'
 		},
 		{
 			art: 'decay',
@@ -224,7 +238,7 @@ const m04: Cards = {
 		{
 			art: 'chain',
 			title: 'The option chain',
-			body: 'In the Options tab, each row is a strike and each block an expiry. Buy by clicking the ask (the selling price). Implied volatility (IV) is the price of insurance: high IV, expensive option.'
+			body: 'In the Options tab, each row is a strike and each block an expiry. Buy by clicking the ask, the price sellers ask: it is what you pay. Implied volatility (IV) is the price of insurance: high IV, expensive option.'
 		},
 		{
 			art: 'decay',
@@ -242,7 +256,7 @@ const m04: Cards = {
 const m05: Cards = {
 	'pt-BR': [
 		{
-			art: 'payoff',
+			art: 'written',
 			title: 'Vender prêmio',
 			body: 'Quem vende a opção recebe o prêmio na hora. O ganho máximo é esse prêmio; a perda pode ser muitas vezes maior se o preço passar do strike.'
 		},
@@ -254,7 +268,7 @@ const m05: Cards = {
 		{
 			art: 'chain',
 			title: 'IV alta, prêmio alto',
-			body: 'IV alta paga mais prêmio porque o mercado espera movimentos maiores. Venda pelo bid (o preço de compra). O prêmio recebido é pagamento por um risco, não lucro garantido.'
+			body: 'IV alta paga mais prêmio porque o mercado espera movimentos maiores. Venda pelo bid, o preço oferecido por quem compra: é o que você recebe. O prêmio recebido é pagamento por um risco, não lucro garantido.'
 		},
 		{
 			art: 'risk',
@@ -264,7 +278,7 @@ const m05: Cards = {
 	],
 	en: [
 		{
-			art: 'payoff',
+			art: 'written',
 			title: 'Selling premium',
 			body: 'The option seller receives the premium up front. The maximum gain is that premium; the loss can be many times larger if price moves past the strike.'
 		},
@@ -276,7 +290,7 @@ const m05: Cards = {
 		{
 			art: 'chain',
 			title: 'High IV, high premium',
-			body: 'High IV pays more premium because the market expects bigger moves. Sell at the bid (the buying price). The premium received is payment for a risk, not a guaranteed profit.'
+			body: 'High IV pays more premium because the market expects bigger moves. Sell at the bid, the price buyers offer: it is what you receive. The premium received is payment for a risk, not a guaranteed profit.'
 		},
 		{
 			art: 'risk',
@@ -599,7 +613,7 @@ const m12: Cards = {
 		{
 			art: 'report',
 			title: 'Expectativa e amostra',
-			body: 'Expectativa é o resultado médio por trade em R: taxa de acerto vezes ganho médio, menos taxa de erro vezes perda média. Com poucos trades ela é quase só sorte. O debrief desta missão traz o relatório de toda a campanha.'
+			body: 'Expectativa é o resultado médio por trade em R: taxa de acerto vezes ganho médio, menos taxa de erro vezes perda média. Com poucos trades ela é quase só sorte. Na campanha, o debrief desta missão traz o relatório de todas as missões.'
 		},
 		{
 			art: 'regime',
@@ -619,14 +633,14 @@ const m12: Cards = {
 		{
 			art: 'risk',
 			title: 'Um trade não pode acabar com a campanha',
-			body: 'Dimensione pelo pior caso, contando gaps e saltos. Sem liquidação e sem chamada de margem: o capital que sobra segue para a próxima campanha.'
+			body: 'Dimensione pelo pior caso, contando gaps e saltos. Sem liquidação e sem chamada de margem: o capital que sobra é o resultado final da campanha.'
 		}
 	],
 	en: [
 		{
 			art: 'report',
 			title: 'Expectancy and sample size',
-			body: 'Expectancy is the average result per trade in R: win rate times average win, minus loss rate times average loss. With few trades it is mostly luck. This mission’s debrief carries the report of the whole campaign run.'
+			body: 'Expectancy is the average result per trade in R: win rate times average win, minus loss rate times average loss. With few trades it is mostly luck. In a campaign, this mission’s debrief carries the report of the whole run.'
 		},
 		{
 			art: 'regime',
@@ -646,7 +660,7 @@ const m12: Cards = {
 		{
 			art: 'risk',
 			title: 'One trade must not end the campaign',
-			body: 'Size for the worst case, counting gaps and jumps. No liquidation and no margin call: what is left carries on.'
+			body: 'Size for the worst case, counting gaps and jumps. No liquidation and no margin call: what is left is the campaign’s final result.'
 		}
 	]
 };

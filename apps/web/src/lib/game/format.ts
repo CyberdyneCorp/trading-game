@@ -93,6 +93,12 @@ export function priceInputText(price: number, tick: number, locale: Locale): str
 	return locale === 'pt-BR' ? s.replace('.', ',') : s;
 }
 
+/** A number as the player would type it in an input: "6,85" in PT-BR, "6.85" in English. */
+export function inputText(v: number, locale: Locale): string {
+	const s = String(v);
+	return locale === 'pt-BR' ? s.replace('.', ',') : s;
+}
+
 /** A quantity on the lot as the player would type it in an input: "16,6" in PT-BR, "16.6" in English. */
 export function qtyInputText(qty: number, lot: number, locale: Locale): string {
 	const s = qtyToLot(qty, lot);

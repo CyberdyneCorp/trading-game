@@ -327,8 +327,16 @@
 		font-size: 0.8rem;
 		border-collapse: collapse;
 	}
+	/* Tight cells so "Vender" and "100,00" fit in the 340 px column at 1024 px. */
+	.legs td {
+		padding: 0.1rem 0.1rem;
+	}
+	.legs select {
+		padding-left: 0.2rem;
+		padding-right: 0.1rem;
+	}
 	.legs input {
-		width: 4.5rem;
+		width: 3.2rem;
 	}
 	.preview {
 		margin: 0;

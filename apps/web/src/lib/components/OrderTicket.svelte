@@ -576,8 +576,8 @@
 		border-top: 1px solid var(--line);
 		width: 100%;
 	}
+	/* Full colour, not faded: a faded key on the red sell button failed WCAG AA contrast (axe, a11y e2e). */
 	kbd {
 		font-size: 0.7rem;
-		opacity: 0.7;
 	}
 </style>
