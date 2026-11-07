@@ -214,4 +214,4 @@ The margin rule, the strategy comparison (m14 played, m15 without options), the 
 
 - [ ] X1 Same numbers: the playtest report for one m16 seed, played with the same legs on web and desktop, shows identical builder analysis, fills and debrief comparison.
 - [x] X2 Root README ("What can the player predict?" for m13–m17, the features table, the curriculum), `docs/product-spec.md` (Strategies stage, Academy, glossary, tour), and the "As built" notes in this design.
-- [ ] X3 `openspec validate --all --strict`; cognitive complexity within targets (frontend ≤ 12, C++ ≤ 15); every earlier golden digest unchanged.
+- [x] X3 `openspec validate --all --strict`; cognitive complexity within targets (frontend ≤ 12, C++ ≤ 15); every earlier golden digest unchanged.
