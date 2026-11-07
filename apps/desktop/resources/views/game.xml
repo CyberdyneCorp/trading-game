@@ -258,6 +258,15 @@
                                     <VBox Name="game-builder-preview" Spacing="1"/>
                                     <Label Name="game-builder-totals" Color="#E3F5EA" Wrap="true" TextSize="12"/>
                                     <Label Name="game-builder-analysis" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                                    <Label Name="game-builder-size-held" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                                    <VBox Name="game-builder-sizing" Spacing="3" AccessibleRole="Group">
+                                        <HBox Spacing="4">
+                                            <Label Name="game-builder-size-label" Color="#8FB3A1" TextSize="12" Wrap="true" Slot.Fill="1" Slot.VAlign="Center"/>
+                                            <TextInput Name="game-builder-size-risk" Width="64"/>
+                                        </HBox>
+                                        <Button Name="game-builder-size-apply" Slot.HAlign="Left"/>
+                                    </VBox>
+                                    <Label Name="game-builder-size-hint" Color="#8FB3A1" Wrap="true" TextSize="12"/>
                                     <Custom Name="game-builder-payoff" Height="110"/>
                                     <Label Name="game-builder-legend" Color="#8FB3A1" Wrap="true" TextSize="11"/>
                                     <VBox Name="game-builder-table" Spacing="1"/>

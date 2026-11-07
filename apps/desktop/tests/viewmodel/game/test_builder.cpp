@@ -239,6 +239,100 @@ TEST_CASE("builder: covered call on a held long uses that long and covers all of
         R"({"legs":[{"series":11,"side":"sell","qty":"4.8"},{"kind":"perp","side":"buy","qty":"4.80000000","entry":"99.50000000"}]})");
 }
 
+namespace {
+
+GameState held_long_state() {
+  GameState g = options_state();
+  g.position.qty = 4.8;
+  g.position.qty_text = "4.80000000";
+  g.position.entry = 99.5;
+  g.position.entry_text = "99.50000000";
+  return g;
+}
+
+Order stop_order(int id, const std::string& type, double price, double qty, double filled = 0) {
+  Order o;
+  o.id = id;
+  o.type = type;
+  o.side = "sell";
+  o.qty = qty;
+  o.filled = filled;
+  o.price = price;
+  o.price_text = fmt::price_to_tick(price, 0.01);
+  o.reduce_only = true;
+  o.status = "working";
+  return o;
+}
+
+}  // namespace
+
+// Playtest fix (web strategies.ts heldLong/longStop): the covered call on a stopped long planned the
+// long's whole value as its risk ("one entry risked ~4,650 cr"); the long's stop now bounds it.
+TEST_CASE("builder: a covered call on a held long with a stop values the long to that stop; the size follows the long") {
+  GameState g = held_long_state();
+  g.orders = {stop_order(1, "stop_market", 97.5, 4.8), stop_order(2, "trailing_stop", 98.2, 5),
+              stop_order(3, "stop_market", 99, 4.8, 1)};  // partly filled: no longer closes all of it
+  Fixture f(g);
+  CHECK(long_stop(*f.vm.state()) == std::optional<std::string>("98.20"));
+  f.vm.set_tab(Tab::Builder);
+  f.vm.builder.pick(*f.vm.state(), Template::CoveredCall, Locale::PtBR);
+  f.vm.builder_changed();
+  REQUIRE(f.engine.analyses.size() == 2);
+  CHECK(f.engine.analyses[0].request ==
+        R"({"legs":[{"series":11,"side":"sell","qty":"4.8"},{"kind":"perp","side":"buy","qty":"4.80000000","entry":"99.50000000","stop":"98.20"}]})");
+  f.reply_analysis();
+  const BuilderView v = f.vm.builder_view();
+  CHECK(v.size_held.find("98,20") != std::string::npos);
+  CHECK_FALSE(v.sizing);  // the size is the long's, not a risk budget's
+  CHECK_FALSE(f.vm.builder.sized(*f.vm.state(), Locale::PtBR).has_value());
+  // The combo's planned risk is the engine's maximum loss with the stop.
+  const auto d = f.vm.builder.draft(f.vm.texts(), *f.vm.state(), {}, false);
+  REQUIRE(d.has_value());
+  CHECK(d->risk == doctest::Approx(1.9));
+}
+
+TEST_CASE("builder: a held long without a stop says its maximum loss runs to a price of 0") {
+  Fixture f(held_long_state());
+  f.vm.set_tab(Tab::Builder);
+  f.vm.builder.pick(*f.vm.state(), Template::ProtectivePut, Locale::En);
+  f.vm.builder_changed();
+  REQUIRE(f.engine.analyses.size() == 2);
+  CHECK(f.engine.analyses[0].request.find("stop") == std::string::npos);
+  f.reply_analysis();
+  CHECK(f.vm.builder_view().size_held.find("pre\xC3\xA7o 0") != std::string::npos);
+}
+
+// Playtest fix: the builder defaulted to 1 contract with no way to size; applying the size wrote no
+// quantity into the legs, and the hint showed the old maximum loss while the engine re-analysed.
+TEST_CASE("builder: the sizing aid turns a risk % of equity into contracts from the engine's maximum loss") {
+  Fixture f;
+  f.condor();
+  f.reply_analysis();  // maximum loss 1,90 at 1 contract; equity 10.000
+  BuilderView v = f.vm.builder_view();
+  REQUIRE(v.sizing);
+  CHECK(v.size_label == "Risco (% patrim\xC3\xB4nio)");
+  CHECK(v.size_apply == "Usar 52,6 contratos");  // 1% of 10.000 / 1,90 = 52,63 -> the 0,1 lot
+  CHECK(v.can_size);
+  CHECK(v.size_hint.find("1,0 contratos") != std::string::npos);
+  CHECK(v.size_hint.find("1,90") != std::string::npos);
+  f.vm.builder.risk_pct = "2,5";
+  CHECK(f.vm.builder.sized(*f.vm.state(), Locale::PtBR) == doctest::Approx(131.5));
+  f.vm.builder.risk_pct = "1";
+  REQUIRE(f.vm.builder.apply_size(*f.vm.state(), Locale::PtBR));
+  f.vm.builder_changed();
+  for (const auto& l : f.vm.builder.legs) CHECK(l.qty == doctest::Approx(52.6));
+  CHECK(f.vm.builder.qty == "52,6");
+  REQUIRE(f.engine.analyses.size() == 4);
+  CHECK(f.engine.analyses[3].request.find(R"("qty":"52.6")") != std::string::npos);
+  v = f.vm.builder_view();
+  CHECK(v.size_hint.empty());  // the old maximum loss is not shown while the engine re-analyses
+  // Legs of different sizes: no single size to suggest.
+  f.reply_analysis();
+  f.vm.builder.set_leg_qty(0, "3");
+  CHECK_FALSE(f.vm.builder_view().sizing);
+  CHECK_FALSE(f.vm.builder.apply_size(*f.vm.state(), Locale::PtBR));
+}
+
 TEST_CASE("builder: an incomplete combo names the open legs and their risk; keep, or close after confirming") {
   Fixture f;
   auto s = std::make_shared<Snapshot>(*snapshot_of(f.g, CommandResult{CommandKind::Advance, true, "none"}));
@@ -390,6 +484,44 @@ TEST_CASE("builder on the real engine: m16's iron condor previewed, submitted as
   CHECK(vm.state()->options.positions.size() == 4);
   CHECK_FALSE(vm.combo_notice().has_value());
   CHECK(vm.combo_note("c1").rfind("completo", 0) == 0);
+}
+
+TEST_CASE("builder on the real engine: a covered call on a stopped long plans the loss to the stop, not the long's value") {
+  RealRun r("m14-covered-call", 3);
+  GameViewModel& vm = *r.vm;
+  const double last = vm.state()->last_price();
+  vm.ticket.size_by = SizeBy::Qty;
+  vm.ticket.qty = "10";
+  vm.ticket.stop = fmt::fmt_num(last * 0.97, Locale::PtBR, 2);
+  vm.submit();
+  REQUIRE(vm.modal() == Modal::Plan);
+  vm.plan_confirm(true);
+  r.settle();
+  for (int i = 0; i < 4 && vm.state()->position.qty <= 0; ++i) {  // a due calibration question first
+    if (vm.modal() == Modal::Calibration) vm.calibration_answer(true);
+    else vm.advance(1);
+    r.settle();
+  }
+  REQUIRE(vm.state()->position.qty > 0);
+  const auto stop = long_stop(*vm.state());
+  REQUIRE(stop.has_value());
+  vm.set_tab(Tab::Builder);
+  vm.builder.pick(*vm.state(), Template::CoveredCall, Locale::PtBR);
+  vm.builder_changed();
+  r.settle();
+  REQUIRE(vm.builder.use_long);
+  REQUIRE(vm.builder.whatif().has_value());
+  REQUIRE(vm.builder.whatif()->ok());
+  const auto& e = vm.builder.whatif()->value->expiry;
+  REQUIRE(e.has_value());
+  REQUIRE(e->max_loss.has_value());
+  const double loss = fmt::num(*e->max_loss);
+  const double value = vm.state()->position.qty * vm.state()->position.entry;
+  CHECK(loss > 0);
+  CHECK(loss < value * 0.05);  // without the stop it was the long's whole value
+  // The loss to the stop: the long from its breakeven (entry less the call's premium) down to the stop.
+  CHECK(loss <= vm.state()->position.qty * (vm.state()->position.entry - fmt::num(*stop)) + 1e-6);
+  CHECK(vm.builder_view().size_held.find(fmt::fmt_price(*stop, Locale::PtBR)) != std::string::npos);
 }
 
 TEST_CASE("terminal lab on the real engine: at zero shift every leg's value is its series' mid and its Greeks the chain's") {

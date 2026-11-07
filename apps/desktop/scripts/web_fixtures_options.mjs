@@ -32,12 +32,53 @@ function chainOf() {
 }
 
 // A GameState as far as the builder reads it (the engine's tl_state shape).
-function gameOf({ multiplier = '1', optMultiplier = '1', lot = '0.1', optLot = '0.1', posQty = '0', posEntry = '0', positions = [] } = {}) {
+function gameOf({ multiplier = '1', optMultiplier = '1', lot = '0.1', optLot = '0.1', posQty = '0', posEntry = '0', positions = [], orders = [] } = {}) {
 	return {
 		contract: { multiplier, lotSize: lot },
 		position: { qty: posQty, entry: posEntry },
+		...(orders.length ? { orders } : {}),
 		options: { multiplier: optMultiplier, lotSize: optLot, chain: chainOf(), positions }
 	};
+}
+
+// Working orders around a held long of 4.8: which reduce-only sell stops close all of it.
+const order = (id, type, price, qty, extra = {}) => ({ id, type, side: 'sell', qty, filled: '0', price, reduceOnly: true, series: 0, ...extra });
+const STOPS = [
+	order(1, 'stop_market', '97.50000000', '4.80000000'),
+	order(2, 'trailing_stop', '98.20000000', '5.00000000'),
+	order(3, 'stop_market', '99.00000000', '4.80000000', { filled: '1.00000000' }),
+	order(4, 'take_profit', '105.00000000', '4.80000000'),
+	order(5, 'stop_market', '99.10000000', '4.80000000', { reduceOnly: false }),
+	order(6, 'stop_market', '99.20000000', '4.80000000', { series: 3 }),
+	order(7, 'stop_market', '99.30000000', '4.80000000', { side: 'buy' }),
+	order(8, 'stop_market', '0', '4.80000000')
+];
+
+function stopCases(m, add) {
+	for (const g of [
+		gameOf({ posQty: '4.8', posEntry: '99.5', orders: STOPS }),
+		gameOf({ posQty: '4.8', posEntry: '99.5', orders: STOPS.slice(2) }),
+		gameOf({ posQty: '4.8', posEntry: '99.5', orders: [STOPS[0]] }),
+		gameOf({ posQty: '-4.8', posEntry: '99.5', orders: STOPS }),
+		gameOf({ orders: STOPS })
+	]) {
+		add('longStop', [g], m.longStop(g));
+		add('heldLong', [g], m.heldLong(g));
+	}
+	for (const args of [
+		[10000, 1, 99.89, 1, 0.1],
+		[10000, 1, 99.89, 88.4, 0.1],
+		[2500, 2.5, 46.49, 44.7, 0.1],
+		[10000, 1, 0.37, 1, 1],
+		[10000, 1, null, 1, 0.1],
+		[10000, 1, 0, 1, 0.1],
+		[10000, 0, 99.89, 1, 0.1],
+		[0, 1, 99.89, 1, 0.1],
+		[10000, 1, 99.89, 0, 0.1],
+		[10000, 0.01, 99.89, 1, 0.1]
+	]) {
+		add('contractsForRisk', args, m.contractsForRisk(...args));
+	}
 }
 
 function templateCases(m, add, games) {
@@ -124,6 +165,9 @@ export function strategiesFixture(m) {
 	add('whatifLegs', [orders, null], m.whatifLegs(orders, null));
 	const held = { qty: '4.80000000', entry: '99.50000000' };
 	add('whatifLegs', [orders, held], m.whatifLegs(orders, held));
+	const stopped = { ...held, stop: '98.20000000' };
+	add('whatifLegs', [orders.filter((o) => o.series !== 0), stopped], m.whatifLegs(orders.filter((o) => o.series !== 0), stopped));
+	stopCases(m, add);
 	return { helper: 'strategies.ts', cases: list };
 }
 

@@ -73,32 +73,45 @@ std::string perp_contracts(const GameState& g, double units);
 // The legs' orders in submission order; nullopt when a strike is not listed on `expiry`.
 std::optional<std::vector<OrderLeg>> order_legs(const GameState& g, int expiry, const std::vector<BuilderLeg>& legs);
 
-// The player's long perpetual ("use my long"): its quantity and entry as the engine wrote them.
+// The player's long perpetual ("use my long"): its quantity and entry as the engine wrote them, and the
+// trigger of the working reduce-only stop that closes all of it (the highest when several do).
 struct HeldLong {
   std::string qty;
   std::string entry;
+  std::optional<std::string> stop;
 };
+// The highest trigger of the working reduce-only sell stops (stop market or trailing) that close the
+// whole long; nullopt without a long or without such a stop.
+std::optional<std::string> long_stop(const GameState& g);
 std::optional<HeldLong> held_long(const GameState& g);
 // Option contracts covering a held long: its underlying units over the option multiplier, to the lot.
 double cover_contracts(const GameState& g, const HeldLong& held);
 [[nodiscard]] bool covers_long(Template t);
 
 // A what-if or dry-run leg as the engine reads it ({"series"} or {"kind":"perp"}, "side", "qty",
-// optional "entry").
+// optional "entry" and, on the perpetual, optional "stop": the expiry analytics treat that leg as
+// closed at its stop).
 struct AnalysisLeg {
   int series = 0;  // 0 with kind "perp"
   bool buy = true;
   std::string qty;
   std::optional<std::string> entry;
+  std::optional<std::string> stop;
   bool operator==(const AnalysisLeg&) const = default;
 };
 
 std::vector<AnalysisLeg> combo_legs(const std::vector<OrderLeg>& orders);
 // The combo's orders at the prices they would cross, plus the held long when "use my long" replaces
-// the perpetual order (valued from its entry).
+// the perpetual order (valued from its entry). The long carries its stop, so the engine's maximum loss
+// (the combo's planned risk) is the loss to that stop, not the long's whole value down to a price of 0.
 std::vector<AnalysisLeg> whatif_legs(const std::vector<OrderLeg>& orders, const std::optional<HeldLong>& held);
 // The player's open positions as what-if legs at their entries (the terminal lab "from positions").
 std::vector<AnalysisLeg> position_legs(const GameState& g);
+
+// Contracts per leg whose maximum loss is `risk_pct` % of equity (the builder's sizing aid): the
+// engine's maximum loss at `n` contracts scaled to the budget, down to the option lot. nullopt without
+// a bounded, positive maximum loss (or with a non-positive input).
+std::optional<double> contracts_for_risk(double equity, double risk_pct, std::optional<double> max_loss, double n, double lot);
 
 // {"legs":[...]} for tl_combo_preview, or the "legs" array of a what-if request.
 std::string legs_json(const std::vector<AnalysisLeg>& legs);

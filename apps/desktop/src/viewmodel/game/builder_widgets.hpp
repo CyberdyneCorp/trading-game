@@ -28,6 +28,12 @@ inline constexpr std::string_view kNoAnalysis = "game-builder-no-analysis";
 inline constexpr std::string_view kPreview = "game-builder-preview";
 inline constexpr std::string_view kTotals = "game-builder-totals";
 inline constexpr std::string_view kAnalysis = "game-builder-analysis";
+inline constexpr std::string_view kSizeHeld = "game-builder-size-held";
+inline constexpr std::string_view kSizing = "game-builder-sizing";
+inline constexpr std::string_view kSizeLabel = "game-builder-size-label";
+inline constexpr std::string_view kSizeRisk = "game-builder-size-risk";
+inline constexpr std::string_view kSizeApply = "game-builder-size-apply";
+inline constexpr std::string_view kSizeHint = "game-builder-size-hint";
 inline constexpr std::string_view kPayoff = "game-builder-payoff";
 inline constexpr std::string_view kLegend = "game-builder-legend";
 inline constexpr std::string_view kTable = "game-builder-table";
@@ -54,11 +60,12 @@ inline constexpr std::string_view kCloseText = "game-combo-close-text";
 inline constexpr std::string_view kCloseNo = "game-combo-close-no";
 inline constexpr std::string_view kCloseYes = "game-combo-close-yes";
 
-inline constexpr std::array<std::string_view, 35> kRequired = {
+inline constexpr std::array<std::string_view, 41> kRequired = {
     kTab,      kTitle,         kLabPositions, kNone,       kBody,     kExpiryLabel,  kExpiry,       kQtyLabel,       kQty,
     kShort,    kWriteLocked,   kCaption,      kLegs,       kAddLeg,   kUseLong,      kProblem,      kNoAnalysis,     kPreview,
     kTotals,   kAnalysis,      kPayoff,       kTable,      kOpenLab,  kLegging,      kSubmit,       kNotice,         kNoticeKeep,
-    kNoticeClose, kLabTitle,   kLabClose,     kCloseTitle, kCloseText, kCloseNo,     kCloseYes,       kLegend};
+    kNoticeClose, kLabTitle,   kLabClose,     kCloseTitle, kCloseText, kCloseNo,     kCloseYes,       kLegend,
+    kSizeHeld, kSizing,        kSizeLabel,    kSizeRisk,   kSizeApply, kSizeHint};
 
 // The Academy lab screen (views/lab.xml).
 inline constexpr std::string_view kScreenPrefix = "lab-";

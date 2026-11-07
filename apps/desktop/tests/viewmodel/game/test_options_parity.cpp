@@ -145,6 +145,7 @@ AnalysisLeg analysis_leg(const Value& l) {
   out.buy = l["side"].as_string() != "sell";
   out.qty = l["qty"].as_string();
   if (l.has("entry")) out.entry = l["entry"].as_string();
+  if (l.has("stop")) out.stop = l["stop"].as_string();
   return out;
 }
 
@@ -327,16 +328,26 @@ std::map<std::string, Port> strategy_ports() {
       {"heldLong",
        [](const Value& a) {
          const auto h = held_long(game(a[0]));
-         return h ? "{\"qty\":" + text(h->qty) + ",\"entry\":" + text(h->entry) + "}" : std::string("null");
+         if (!h) return std::string("null");
+         return "{\"qty\":" + text(h->qty) + ",\"entry\":" + text(h->entry) + (h->stop ? ",\"stop\":" + text(*h->stop) : "") + "}";
+       }},
+      {"longStop", [](const Value& a) { return opt_text(long_stop(game(a[0]))); }},
+      {"contractsForRisk",
+       [](const Value& a) {
+         const std::optional<double> loss = a[2].is_null() ? std::nullopt : std::optional<double>(a[2].as_double());
+         return opt_num(contracts_for_risk(a[0].as_double(), a[1].as_double(), loss, a[3].as_double(), a[4].as_double()));
        }},
       {"coverContracts",
-       [](const Value& a) { return num(cover_contracts(game(a[0]), HeldLong{a[1]["qty"].as_string(), "0"})); }},
+       [](const Value& a) { return num(cover_contracts(game(a[0]), HeldLong{a[1]["qty"].as_string(), "0", std::nullopt})); }},
       {"positionLegs", [](const Value& a) { return legs_json(position_legs(game(a[0]))); }},
       {"comboLegs", [](const Value& a) { return legs_json(combo_legs(order_legs_of(a[0]))); }},
       {"whatifLegs",
        [](const Value& a) {
          std::optional<HeldLong> held;
-         if (!a[1].is_null()) held = HeldLong{a[1]["qty"].as_string(), a[1]["entry"].as_string()};
+         if (!a[1].is_null()) {
+           held = HeldLong{a[1]["qty"].as_string(), a[1]["entry"].as_string(), std::nullopt};
+           if (a[1].has("stop")) held->stop = a[1]["stop"].as_string();
+         }
          return legs_json(whatif_legs(order_legs_of(a[0]), held));
        }},
   };

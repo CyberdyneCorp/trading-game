@@ -88,6 +88,7 @@ Order order_from(const Value& o) {
   out.type = o["type"].as_string();
   out.side = o["side"].as_string();
   out.qty = dbl(o["qty"]);
+  out.filled = dbl(o["filled"]);
   out.price_text = o["price"].as_string();
   out.price = dbl(o["price"]);
   out.reduce_only = o["reduceOnly"].as_bool(false);
