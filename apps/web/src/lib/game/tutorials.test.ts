@@ -110,6 +110,17 @@ describe('mission tutorials', () => {
 		expect(card('en')).toMatch(/about 4\.5% against you/);
 	});
 
+	it("m12's cards: the campaign report is a campaign thing, and no capital carries past the last mission", () => {
+		// A new campaign run starts again from CAMPAIGN_CAPITAL; m12 is the last mission of the run.
+		expect(campaignMissions().at(-1)).toBe('m12-capstone');
+		const body = (loc: 'pt-BR' | 'en') => tutorialFor('m12-capstone', loc).map((c) => c.body).join(' ');
+		expect(body('pt-BR')).not.toMatch(/próxima campanha/);
+		expect(body('pt-BR')).toMatch(/resultado final da campanha/);
+		expect(body('en')).toMatch(/the campaign’s final result/);
+		expect(body('pt-BR')).toMatch(/Na campanha, o debrief desta missão traz o relatório/);
+		expect(body('en')).toMatch(/In a campaign, this mission’s debrief carries the report/);
+	});
+
 	it('the option cards and the spread definition say the buyer pays the ask and the seller gets the bid', () => {
 		// "ask (the selling price)" read as the price the player sells at: say it from the player's side.
 		const body = (id: string, loc: 'pt-BR' | 'en') => tutorialFor(id, loc).map((c) => c.body).join(' ');

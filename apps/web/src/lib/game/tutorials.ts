@@ -599,7 +599,7 @@ const m12: Cards = {
 		{
 			art: 'report',
 			title: 'Expectativa e amostra',
-			body: 'Expectativa é o resultado médio por trade em R: taxa de acerto vezes ganho médio, menos taxa de erro vezes perda média. Com poucos trades ela é quase só sorte. O debrief desta missão traz o relatório de toda a campanha.'
+			body: 'Expectativa é o resultado médio por trade em R: taxa de acerto vezes ganho médio, menos taxa de erro vezes perda média. Com poucos trades ela é quase só sorte. Na campanha, o debrief desta missão traz o relatório de todas as missões.'
 		},
 		{
 			art: 'regime',
@@ -619,14 +619,14 @@ const m12: Cards = {
 		{
 			art: 'risk',
 			title: 'Um trade não pode acabar com a campanha',
-			body: 'Dimensione pelo pior caso, contando gaps e saltos. Sem liquidação e sem chamada de margem: o capital que sobra segue para a próxima campanha.'
+			body: 'Dimensione pelo pior caso, contando gaps e saltos. Sem liquidação e sem chamada de margem: o capital que sobra é o resultado final da campanha.'
 		}
 	],
 	en: [
 		{
 			art: 'report',
 			title: 'Expectancy and sample size',
-			body: 'Expectancy is the average result per trade in R: win rate times average win, minus loss rate times average loss. With few trades it is mostly luck. This mission’s debrief carries the report of the whole campaign run.'
+			body: 'Expectancy is the average result per trade in R: win rate times average win, minus loss rate times average loss. With few trades it is mostly luck. In a campaign, this mission’s debrief carries the report of the whole run.'
 		},
 		{
 			art: 'regime',
@@ -646,7 +646,7 @@ const m12: Cards = {
 		{
 			art: 'risk',
 			title: 'One trade must not end the campaign',
-			body: 'Size for the worst case, counting gaps and jumps. No liquidation and no margin call: what is left carries on.'
+			body: 'Size for the worst case, counting gaps and jumps. No liquidation and no margin call: what is left is the campaign’s final result.'
 		}
 	]
 };
