@@ -82,6 +82,10 @@
 		gap: 0 0.6rem;
 		color: var(--muted);
 	}
+	/* Narrow: the scale ends stay on the first row, the key wraps under them. */
+	.key {
+		order: 3;
+	}
 	.key i {
 		display: inline-block;
 		width: 1rem;

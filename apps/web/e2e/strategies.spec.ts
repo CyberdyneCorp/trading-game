@@ -121,6 +121,21 @@ test('at 1024 px the builder never scrolls sideways: the Greeks table scrolls on
 		const [a, b] = [spans[i - 1], spans[i]];
 		if (a.top === b.top) expect(b.left, 'legend items overlap').toBeGreaterThanOrEqual(a.right);
 	}
+	// Each leg's chosen side and strike is readable, not clipped ("Vende", "90,0(" before).
+	const clipped = await page.getByTestId('builder-leg').locator('select').evaluateAll((els) => {
+		const ctx = document.createElement('canvas').getContext('2d')!;
+		return els
+			.map((el) => {
+				const s = el as HTMLSelectElement;
+				const cs = getComputedStyle(s);
+				ctx.font = `${cs.fontSize} ${cs.fontFamily}`;
+				const room = s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 20; // the native arrow
+				return { text: s.selectedOptions[0]?.text ?? '', fits: ctx.measureText(s.selectedOptions[0]?.text ?? '').width <= room };
+			})
+			.filter((x) => !x.fits)
+			.map((x) => x.text);
+	});
+	expect(clipped).toEqual([]);
 	await expectNoViolations(page, 'builder at 1024', '[data-testid="strategy-builder"]');
 });
 
