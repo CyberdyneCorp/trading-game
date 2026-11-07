@@ -47,6 +47,9 @@ interface Api {
 	whatif: Fn | null;
 	runWhatif: Fn | null;
 	comboPreview: Fn | null;
+	// Run files (add-run-sharing-and-journal-stats D2); null on builds that predate them.
+	verifyRun: Fn | null;
+	sealRun: Fn | null;
 }
 
 let mod: TradelabModule | null = null;
@@ -109,7 +112,9 @@ async function load(): Promise<Api> {
 		// Feature-detected: a run pinned to an older build has no analysis, and the client hides it.
 		whatif: exported(mod, 'tl_option_whatif') ? w('tl_option_whatif', 'number', ['number']) : null,
 		runWhatif: exported(mod, 'tl_run_option_whatif') ? w('tl_run_option_whatif', 'number', ['number', 'number']) : null,
-		comboPreview: exported(mod, 'tl_combo_preview') ? w('tl_combo_preview', 'number', ['number', 'number']) : null
+		comboPreview: exported(mod, 'tl_combo_preview') ? w('tl_combo_preview', 'number', ['number', 'number']) : null,
+		verifyRun: exported(mod, 'tl_run_file_verify') ? w('tl_run_file_verify', 'number', ['number', 'number', 'number', 'string']) : null,
+		sealRun: exported(mod, 'tl_run_file_seal') ? w('tl_run_file_seal', 'number', ['number', 'number', 'number', 'string']) : null
 	};
 	return api;
 }
@@ -234,6 +239,17 @@ function analysis(a: Api, req: AnalysisRequest): { ok: true; value: unknown } | 
 	return out.error ? { ok: false, error: out.error } : { ok: true, value: out };
 }
 
+type RunFileRequest = Extract<EngineRequest, { kind: 'verifyRun' | 'sealRun' }>;
+
+// Run-less: the file text and the pack go through the heap; the run held by the worker is untouched.
+function runFile(a: Api, req: RunFileRequest): unknown {
+	const fn = a[req.kind];
+	if (!fn) return { ok: false, reason: 'unsupported', pack: '' };
+	const keys = JSON.stringify(req.keys ?? []);
+	const call = (ptr: number, size: number) => withText(req.text, (text) => json(fn(text, ptr, size, keys)));
+	return req.pack?.length ? withBytes(req.pack, call) : call(0, 0);
+}
+
 type OrderRequest = Extract<EngineRequest, { kind: 'order' }>;
 
 // A trailing stop given as a rate of the close has its own entry point (policy v16).
@@ -310,6 +326,9 @@ async function handle(req: EngineRequest): Promise<unknown> {
 		case 'runWhatif':
 		case 'comboPreview':
 			return analysis(a, req);
+		case 'verifyRun':
+		case 'sealRun':
+			return runFile(a, req);
 		case 'lessonAnswer':
 			return withState(
 				a,
