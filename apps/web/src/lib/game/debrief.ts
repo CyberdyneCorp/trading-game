@@ -1,7 +1,20 @@
 // Display helpers for the engine debrief (report-only numbers computed by engine/src/debrief.cpp).
 // The client formats; it never recomputes attribution, costs or leverage advice.
 
-import type { Account, DecisionView, EngineTrade, GreekAttribution, NewsView, PackReveal, RegimeSignals, RegimeSpan, RevealEvent, SignalTally } from '#lib/engine/types.ts';
+import type {
+	Account,
+	ComparisonStrategy,
+	DecisionView,
+	EngineTrade,
+	GreekAttribution,
+	NewsView,
+	PackReveal,
+	RegimeSignals,
+	RegimeSpan,
+	RevealEvent,
+	SignalTally,
+	StrategyComparison
+} from '#lib/engine/types.ts';
 import { fmtPct, fmtPrice, num } from './format.ts';
 import { t, type Locale } from './i18n.svelte.ts';
 import { headline } from './news.ts';
@@ -187,3 +200,43 @@ export function decisionCounts(decisions: readonly DecisionView[]): { act: numbe
 	for (const d of decisions) out[d.kind] += 1;
 	return out;
 }
+
+/** A row of the strategy comparison as drawn: the player's own result first, then the engine's structures. */
+export interface ComparisonLine {
+	key: string;
+	/** i18n key of the name. */
+	name: 'comparison.you' | `comparison.${ComparisonStrategy}`;
+	net: number | null;
+	drawdown: number | null;
+	marginCalls: number | null;
+	entryStep: number | null;
+	exitStep: number | null;
+	refused: StrategyComparison['rows'][number]['refused'];
+	/** The best net result among the rows (the player's included); ties all marked. */
+	best: boolean;
+}
+
+/**
+ * The debrief's strategy comparison (scoring v13, report-only): the player's net result next to the
+ * mission's reference structures, valued by the engine on this seed. Refused structures have no numbers.
+ */
+export function comparisonLines(c: StrategyComparison, playerNet: number): ComparisonLine[] {
+	const lines: ComparisonLine[] = [
+		{ key: 'you', name: 'comparison.you' as const, net: playerNet, drawdown: null, marginCalls: null, entryStep: null, exitStep: null, refused: null, best: false },
+		...c.rows.map((r) => ({
+			key: r.name,
+			name: `comparison.${r.name}` as const,
+			net: r.refused ? null : Number(r.netPnl),
+			drawdown: r.refused ? null : Number(r.maxDrawdown),
+			marginCalls: r.refused ? null : r.marginCalls,
+			entryStep: r.entryStep,
+			exitStep: r.refused ? null : r.exitStep,
+			refused: r.refused,
+			best: false
+		}))
+	];
+	const nets = lines.flatMap((l) => (l.net == null ? [] : [l.net]));
+	const top = nets.length ? Math.max(...nets) : null;
+	return lines.map((l) => ({ ...l, best: top != null && l.net === top }));
+}
+

@@ -8,4 +8,4 @@ export function revealAllowed(status: RunStatus): boolean {
 }
 
 /** Fields that carry the reveal; none of them may appear in a reply sent while a run is active. */
-export const REVEAL_FIELDS = ['spans', 'regimes', 'reveal'] as const;
+export const REVEAL_FIELDS = ['spans', 'regimes', 'reveal', 'strategyComparison'] as const;

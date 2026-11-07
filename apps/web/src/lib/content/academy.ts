@@ -9,6 +9,8 @@
 // declared as a `check` (content/checks.ts verifies them in the unit tests).
 
 import type { StageId } from '#lib/game/curriculum.ts';
+import { TEMPLATES, type TemplateId } from '#lib/game/strategies.ts';
+import { SLIDERS, type AcademyLeg, type Slider } from '#lib/game/whatifLab.ts';
 import type { Locale } from '#lib/game/i18n.svelte.ts';
 import type { Check } from './checks.ts';
 import indexJson from './academy/index.json';
@@ -102,7 +104,38 @@ export interface PayoffWidget {
 	hideAnalytics?: boolean;
 }
 
-export type LessonWidget = TicketWidget | TableWidget | PayoffWidget;
+/**
+ * The what-if lab on fixed legs (design D2 `whatif`): the engine values the legs (tl_option_whatif),
+ * and only the `unlocked` sliders move. Numbers a text states about it are `whatif` checks.
+ */
+export interface WhatIfWidget {
+	kind: 'whatif';
+	market: string;
+	/** The illustrative market's price (the price slider moves it in %). */
+	forward: number;
+	legs: AcademyLeg[];
+	unlocked: Slider[];
+}
+
+/**
+ * The strategy builder on a synthetic chain (design D2 `builder`): templates and strikes to try, each
+ * leg priced at the engine's model value; analysis only, nothing is sent.
+ */
+export interface BuilderWidget {
+	kind: 'builder';
+	market: string;
+	forward: number;
+	/** Listed strikes, ascending. */
+	strikes: number[];
+	/** Days to the chain's single expiry. */
+	days: number;
+	/** Implied volatility of every strike, in %. */
+	ivPct: number;
+	/** Template shown first (none: the player picks). */
+	template?: TemplateId;
+}
+
+export type LessonWidget = TicketWidget | TableWidget | PayoffWidget | WhatIfWidget | BuilderWidget;
 export type WidgetKind = LessonWidget['kind'];
 
 export type Choice = { kind: 'bar'; bar: number } | { kind: 'pct'; value: number } | { kind: 'text'; id: string };
@@ -318,11 +351,38 @@ const payoffOk = (w: PayoffWidget) =>
 	w.legs.every((l) => l.kind === 'perp' || (l.strike ?? 0) > 0) &&
 	w.lo < w.hi;
 
+const academyLegOk = (l: AcademyLeg) =>
+	['call', 'put', 'perp'].includes(l.kind) && l.qty > 0 && l.entry >= 0 && (l.kind === 'perp' || (l.strike > 0 && l.days > 0 && l.ivPct > 0));
+const whatifOk = (w: WhatIfWidget) =>
+	w.forward > 0 &&
+	w.legs.length >= 1 &&
+	w.legs.length <= 5 &&
+	w.legs.filter((l) => l.kind === 'perp').length <= 1 &&
+	w.legs.every(academyLegOk) &&
+	w.unlocked.every((u) => SLIDERS.includes(u));
+const builderOk = (w: BuilderWidget) =>
+	w.forward > 0 &&
+	w.days > 0 &&
+	w.ivPct > 0 &&
+	w.strikes.length >= 4 &&
+	w.strikes.every((k, i) => k > 0 && (i === 0 || k > w.strikes[i - 1])) &&
+	(w.template === undefined || TEMPLATES.includes(w.template));
+
 function widgetOk(w: LessonWidget): boolean {
-	if (w.kind === 'ticket') return ticketOk(w);
-	if (w.kind === 'table') return tableOk(w);
-	if (w.kind === 'payoff') return payoffOk(w);
-	return false;
+	switch (w.kind) {
+		case 'ticket':
+			return ticketOk(w);
+		case 'table':
+			return tableOk(w);
+		case 'payoff':
+			return payoffOk(w);
+		case 'whatif':
+			return whatifOk(w);
+		case 'builder':
+			return builderOk(w);
+		default:
+			return false;
+	}
 }
 
 function widgetProblems(s: LessonStep): string[] {

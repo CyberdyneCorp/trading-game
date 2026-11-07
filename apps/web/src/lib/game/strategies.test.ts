@@ -8,7 +8,10 @@ import {
 	orderLegs,
 	positionLegs,
 	COVERS_LONG,
+	contractsForRisk,
 	coverContracts,
+	heldLong,
+	longStop,
 	sameExpiry,
 	strategyOf,
 	strikesOf,
@@ -143,5 +146,49 @@ describe('submission order and leg checks', () => {
 		expect(coverContracts(g, { qty: '48.20000000' })).toBe(48.2);
 		expect(coverContracts(g, { qty: '48.27' })).toBe(48.2); // down to the option lot, never more than held
 		expect([...COVERS_LONG].sort()).toEqual(['covered_call', 'protective_put']);
+	});
+});
+
+describe('Regression: a combo on a held long plans the risk to the long\'s stop', () => {
+	const stop = (id: number, price: string, qty: string, extra: Record<string, unknown> = {}) => ({
+		id, type: 'stop_market', side: 'sell', qty, filled: '0', price, reduceOnly: true, status: 'accepted', placedStep: 60,
+		parentId: 0, ocoGroup: 0, trailDistance: '0', bracketStop: '0', bracketTp: '0', series: 0, ...extra
+	});
+
+	it('the held long carries the highest working stop that closes all of it, and the what-if leg passes it on', () => {
+		const g = game([], {
+			position: { qty: '48', entry: '100', margin: '1600' },
+			orders: [stop(1, '96', '48'), stop(2, '97', '48'), stop(3, '99', '10'), stop(4, '98', '48', { reduceOnly: false })] as never
+		});
+		expect(longStop(g)).toBe('97');
+		expect(heldLong(g)).toEqual({ qty: '48', entry: '100', stop: '97' });
+		expect(whatifLegs([{ series: 13, side: 'sell', qty: '48' }], heldLong(g))).toEqual([
+			{ series: 13, side: 'sell', qty: '48' },
+			{ kind: 'perp', side: 'buy', qty: '48', entry: '100', stop: '97' }
+		]);
+	});
+
+	it('without a stop covering the long (none, partial, an option order) the leg has none', () => {
+		const partial = game([], { position: { qty: '48', entry: '100', margin: '1600' }, orders: [stop(1, '97', '20'), stop(2, '97', '48', { series: 7 })] as never });
+		expect(longStop(partial)).toBeNull();
+		expect(heldLong(partial)).toEqual({ qty: '48', entry: '100' });
+		expect(heldLong(game([], { position: { qty: '-3', entry: '100', margin: '100' } }))).toBeNull();
+	});
+});
+
+describe('builder sizing aid: contracts from the maximum loss', () => {
+	it('scales the engine\'s maximum loss at n contracts to the risk budget, down to the lot', () => {
+		// A condor losing 2 per contract at most: 1% of 10,000 = 100 -> 50 contracts.
+		expect(contractsForRisk(10_000, 1, 2, 1, 0.1)).toBe(50);
+		// The same condor analysed at 3 contracts (max loss 6): the per-contract loss is what counts.
+		expect(contractsForRisk(10_000, 1, 6, 3, 0.1)).toBe(50);
+		expect(contractsForRisk(10_000, 2, 3.3, 1, 0.1)).toBe(60.6);
+	});
+
+	it('no answer without a bounded, positive maximum loss or a usable budget', () => {
+		expect(contractsForRisk(10_000, 1, null, 1, 0.1)).toBeNull();
+		expect(contractsForRisk(10_000, 1, 0, 1, 0.1)).toBeNull();
+		expect(contractsForRisk(10_000, 0, 2, 1, 0.1)).toBeNull();
+		expect(contractsForRisk(10_000, 1, 2, 0, 0.1)).toBeNull();
 	});
 });

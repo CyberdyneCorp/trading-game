@@ -30,6 +30,7 @@
 		MAX_OPTION_LEGS,
 		TEMPLATES,
 		comboLegs,
+		contractsForRisk,
 		coverContracts,
 		expiriesOf,
 		heldLong,
@@ -153,6 +154,20 @@
 		const e = whatif?.ok ? whatif.value.expiry : null;
 		if (e?.maxLoss != null) return Math.max(0, Number(e.maxLoss));
 		return preview?.ok ? Number(preview.value.required) : null;
+	}
+
+	// Sizing aid (like the perpetual ticket's risk sizing): contracts whose maximum loss is a share of equity.
+	let riskInput = $state('1');
+	const sameQty = $derived(legs.length > 0 && legs.every((l) => l.qty === n));
+	const maxLossNow = $derived(whatif?.ok && whatif.value.expiry?.maxLoss != null ? Number(whatif.value.expiry.maxLoss) : null);
+	const sized = $derived(
+		covers || !sameQty ? null : contractsForRisk(Number(game.account.equity), parseDecimal(riskInput), maxLossNow, n, Number(game.options.lotSize))
+	);
+
+	function applySize() {
+		if (sized == null || sized <= 0) return;
+		nInput = fmtNum(sized, L, 1);
+		legs = legs.map((l) => ({ ...l, qty: sized }));
 	}
 
 	function submit() {
@@ -280,6 +295,15 @@
 					<dt>{t('lab.maxProfit')}</dt><dd>{w.expiry.maxProfit != null ? fmtMoney(w.expiry.maxProfit, L) : t('lab.unbounded')}</dd>
 					<dt><Term id="defined-risk">{t('lab.maxLoss')}</Term></dt><dd data-testid="builder-max-loss">{w.expiry.maxLoss != null ? fmtMoney(w.expiry.maxLoss, L) : t('lab.unboundedAbove', { price: above ? fmtPrice(above, L) : '—' })}</dd>
 				</dl>
+				{#if covers && held}
+					<p class="muted small" data-testid="builder-size-held">{held.stop ? t('builder.sizeHeld', { stop: fmtPrice(held.stop, L) }) : t('builder.sizeNoStop')}</p>
+				{:else if w.expiry.maxLoss != null && sameQty}
+					<div class="row sizing" role="group" aria-label={t('builder.sizeTitle')} data-testid="builder-sizing">
+						<label><Term id="risk-budget">{t('builder.sizeRisk')}</Term><input inputmode="decimal" bind:value={riskInput} data-testid="builder-size-risk" /></label>
+						<button onclick={applySize} disabled={sized == null || sized <= 0} data-testid="builder-size-apply">{t('builder.sizeApply', { n: sized != null ? fmtNum(sized, L, 1) : '—' })}</button>
+					</div>
+					<p class="muted small" data-testid="builder-size-hint">{t('builder.sizeHint', { n: fmtNum(n, L, 1), risk: fmtMoney(w.expiry.maxLoss, L) })}</p>
+				{/if}
 			{/if}
 			<PayoffChart result={w} testid="builder-payoff" />
 			<WhatIfTable result={w} />
@@ -359,5 +383,8 @@
 	}
 	.submit {
 		width: 100%;
+	}
+	.sizing input {
+		width: 4rem;
 	}
 </style>

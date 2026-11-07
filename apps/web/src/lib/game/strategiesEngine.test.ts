@@ -61,4 +61,36 @@ describe.skipIf(!wasmBuilt)('builder and lab against the engine kernel (WASM)', 
 		}
 		expect((engine.state(run) as GameState).digest).toBe(state.digest);
 	});
+
+	it('Regression: a covered call on a held long with a stop plans the loss to that stop, not the whole long (engine)', () => {
+		// Playtest: "one entry risked ~4,650 cr (> 2%)" for a call written on a 48-unit long that had its own stop.
+		const { run, state } = m05();
+		const expiry = expiriesOf(state.options.chain)[0];
+		const strikes = strikesOf(state.options.chain, expiry);
+		const f = lastPrice(state);
+		const call = templateLegs('covered_call', strikes, f, 48)!.filter((l) => l.kind !== 'perp');
+		const orders = orderLegs(state, expiry, call)!;
+		const entry = f.toFixed(2);
+		const stop = (f * 0.97).toFixed(2);
+		const naked = engine.runWhatif(run, { legs: whatifLegs(orders, { qty: '48', entry }) }) as WhatIfResult;
+		const covered = engine.runWhatif(run, { legs: whatifLegs(orders, { qty: '48', entry, stop }) }) as WhatIfResult;
+		const premium = Number(covered.legs[0].entry);
+		expect(Number(naked.expiry!.maxLoss)).toBeGreaterThan(40 * f);
+		expect(Number(covered.expiry!.maxLoss)).toBeCloseTo((Number(entry) - Number(stop) - premium) * 48, 6);
+		expect(Number(covered.expiry!.maxLoss)).toBeLessThan(0.02 * Number(state.account.equity));
+	});
+
+	it('the strategy comparison crosses only in the debrief, which the engine refuses while the run is active', () => {
+		const run = engine.createRun('m16-range-condor', 3);
+		expect(engine.debrief(run)).toEqual({ error: 'run_active' });
+		expect(Object.keys(engine.state(run) as object)).not.toContain('strategyComparison');
+		engine.advance(run, 100000);
+		const d = engine.debrief(run) as { strategyComparison: { basis: string; rows: { name: string; netPnl: string }[] } };
+		expect(d.strategyComparison.basis).toBe('reference');
+		expect(d.strategyComparison.rows.map((r) => r.name)).toEqual(['short_strangle', 'iron_condor']);
+		const other = engine.createRun('m05-options-writer', 3);
+		engine.advance(other, 100000);
+		expect((engine.debrief(other) as { strategyComparison: unknown }).strategyComparison).toBeNull();
+	});
 });
+

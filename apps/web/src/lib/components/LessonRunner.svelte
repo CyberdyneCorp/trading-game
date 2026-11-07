@@ -1,7 +1,8 @@
 <script lang="ts">
 	// Academy lesson runner (design D2; spec academy): concept, demonstration, decisions with feedback
 	// after each answer, and a transfer exercise on another market. Each step can show a chart, a
-	// ticket sandbox, a payoff diagram or a table, and ask a choice, a typed number or a target to reach
+	// ticket sandbox, a payoff diagram, the what-if lab, the strategy builder (both valued by the engine) or
+	// a table, and ask a choice, a typed number or a target to reach
 	// with the sandbox. A wrong answer explains and lets the player answer again; the first try is what
 	// counts. A spaced review runs only the decision and transfer questions. The lesson file loads
 	// lazily, so lessons stay out of the initial bundle.
@@ -11,11 +12,13 @@
 	import { initialInputs, type SandboxInputs } from '#lib/content/ticketSandbox.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { LessonRun } from '#lib/game/lessonRun.svelte.ts';
+	import LessonBuilder from './LessonBuilder.svelte';
 	import LessonChart from './LessonChart.svelte';
 	import LessonPayoff from './LessonPayoff.svelte';
 	import LessonQuestion from './LessonQuestion.svelte';
 	import LessonTable from './LessonTable.svelte';
 	import LessonTicket from './LessonTicket.svelte';
+	import LessonWhatIf from './LessonWhatIf.svelte';
 	import RichText from './RichText.svelte';
 
 	let { session }: { session: GameSession } = $props();
@@ -85,6 +88,10 @@
 				<LessonPayoff widget={step.widget} />
 			{:else if step.widget?.kind === 'table'}
 				<LessonTable widget={step.widget} text={st} />
+			{:else if step.widget?.kind === 'whatif'}
+				{#key step.id}<LessonWhatIf {session} widget={step.widget} />{/key}
+			{:else if step.widget?.kind === 'builder'}
+				{#key step.id}<LessonBuilder {session} widget={step.widget} />{/key}
 			{/if}
 			<p class="body"><RichText text={st.body} /></p>
 			{#if step.question}

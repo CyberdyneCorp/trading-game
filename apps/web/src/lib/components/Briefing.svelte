@@ -58,6 +58,9 @@
 			<dd data-testid="brief-limits">{t('brief.limitsValue', { liq: bpPct(rules.liqWarningBp, L), dd: bpPct(rules.drawdownBudgetBp, L) })}</dd>
 			<dt>{t('brief.mmr')}</dt><dd>{fmtPct(num(c.maintenanceMargin), L)}</dd>
 			{#if tiers.length}<dt>{t('brief.tiers')}</dt><dd data-testid="brief-tiers">{tiers.join(' · ')}</dd>{/if}
+			{#if s.options.enabled && rules.permissions.optionsWrite && rules.spreadMargin != null}
+				<dt>{t('brief.marginRule')}</dt><dd data-testid="brief-margin-rule">{t(rules.spreadMargin ? 'brief.marginRuleSpread' : 'brief.marginRulePerLeg')}</dd>
+			{/if}
 			{#if c.markFromLastPrice != null}
 				<dt>{t('brief.mark')}</dt><dd data-testid="brief-mark">{t(c.markFromLastPrice ? 'brief.markLast' : 'brief.markSeries')}</dd>
 			{/if}

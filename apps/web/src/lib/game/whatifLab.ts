@@ -76,6 +76,31 @@ export function academyRequest(legs: readonly AcademyLeg[], shift: LabShift, for
 	};
 }
 
+/**
+ * A lesson builder's legs as Academy legs on its synthetic chain (one expiry, one IV), entries unset
+ * (the perpetual at the forward). Null when the chain lacks a strike the template needs.
+ */
+export function builderAcademyLegs(
+	legs: readonly { kind: 'call' | 'put' | 'perp'; side: 'buy' | 'sell'; strike: number | null; qty: number }[] | null,
+	chain: { forward: number; days: number; ivPct: number }
+): AcademyLeg[] | null {
+	if (!legs) return null;
+	return legs.map((l) => ({
+		kind: l.kind,
+		side: l.side,
+		strike: l.strike ?? 0,
+		qty: l.qty,
+		days: chain.days,
+		ivPct: chain.ivPct,
+		entry: l.kind === 'perp' ? chain.forward : 0
+	}));
+}
+
+/** The legs with each option's entry at the engine's model value, rounded to the cent (a fair fill). */
+export function pricedLegs(legs: readonly AcademyLeg[], priced: WhatIfResult): AcademyLeg[] {
+	return legs.map((l, i) => (l.kind === 'perp' ? l : { ...l, entry: Number(Number(priced.legs[i].value).toFixed(2)) }));
+}
+
 /** The run's request: legs by series id (or the perpetual), time in bars, IV model at today's base. */
 export function runRequest(legs: readonly WhatIfLegInput[], shift: LabShift, forward: number): WhatIfRequest {
 	return {

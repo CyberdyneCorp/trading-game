@@ -2539,40 +2539,31 @@
      "id": "move",
      "phase": "demo",
      "widget": {
-      "kind": "table",
+      "kind": "whatif",
       "market": "A",
-      "columns": [
+      "forward": 100,
+      "legs": [
        {
-        "id": "value",
-        "digits": 2
-       },
-       {
-        "id": "delta",
-        "digits": 2
-       },
-       {
-        "id": "gamma",
-        "digits": 2
-       },
-       {
-        "id": "theta",
-        "digits": 2
-       },
-       {
-        "id": "vega",
-        "digits": 2
+        "kind": "call",
+        "side": "buy",
+        "strike": 100,
+        "qty": 1,
+        "days": 30,
+        "ivPct": 50,
+        "entry": 5.71
        }
       ],
-      "rows": [
-       [
-        3.2,
-        0.5,
-        0.04,
-        -0.08,
-        0.15
-       ]
+      "unlocked": [
+       "price",
+       "time"
       ]
-     }
+     },
+     "terms": [
+      "delta",
+      "gamma",
+      "theta",
+      "vega"
+     ]
     },
     {
      "id": "which",
@@ -2629,34 +2620,28 @@
      "id": "vega",
      "phase": "transfer",
      "widget": {
-      "kind": "table",
+      "kind": "whatif",
       "market": "B",
-      "columns": [
+      "forward": 250,
+      "legs": [
        {
-        "id": "delta",
-        "digits": 2
-       },
-       {
-        "id": "theta",
-        "digits": 2
-       },
-       {
-        "id": "vega",
-        "digits": 2
+        "kind": "put",
+        "side": "buy",
+        "strike": 240,
+        "qty": 1,
+        "days": 60,
+        "ivPct": 40,
+        "entry": 11.33
        }
       ],
-      "rows": [
-       [
-        -0.3,
-        -0.05,
-        0.25
-       ]
+      "unlocked": [
+       "iv"
       ]
      },
      "question": {
       "type": "number",
-      "answer": 1,
-      "tolerance": 0.001
+      "answer": 1.54,
+      "tolerance": 0.05
      }
     }
    ]
@@ -2676,6 +2661,25 @@
     {
      "id": "decay",
      "phase": "concept",
+     "widget": {
+      "kind": "whatif",
+      "market": "E",
+      "forward": 100,
+      "legs": [
+       {
+        "kind": "call",
+        "side": "buy",
+        "strike": 100,
+        "qty": 1,
+        "days": 30,
+        "ivPct": 50,
+        "entry": 5.71
+       }
+      ],
+      "unlocked": [
+       "time"
+      ]
+     },
      "terms": [
       "time-value",
       "iv-crush"
@@ -3194,6 +3198,24 @@
        }
       ],
       "answer": 0
+     },
+     "widget": {
+      "kind": "builder",
+      "market": "Y",
+      "forward": 620,
+      "strikes": [
+       580,
+       590,
+       600,
+       610,
+       620,
+       630,
+       640,
+       650,
+       660
+      ],
+      "days": 30,
+      "ivPct": 45
      }
     }
    ]
