@@ -67,9 +67,9 @@ Suggested PRs, in order:
   - rubrics in `engine/rubrics/lessons.json` (two questions each, `reviewed: false`).
 
   Done: the missions declare `spread_margin` (`MissionDef`), copied into `OptionSpec` once E4 adds the field; liquidation warning and drawdown budget keep the defaults (3%, 20%); the reveal reports spans and events like every mission. As built: design D8.
-- [ ] E8 Learnability and realism, needs E7: `tests/test_mission_learnability_c.cpp` with the D8 bands (reference players in `tests/learnability.hpp`), the realism bands pooled over 17 missions, and `tools/market_study.py` rows for m13–m17. Record any tuning as "As built" in design D8; bands are never widened silently.
+- [x] E8 Learnability and realism, needs E7: `tests/test_mission_learnability_c.cpp` with the D8 bands (reference players in `tests/learnability.hpp`), the realism bands pooled over 17 missions, and `tools/market_study.py` rows for m13–m17. Record any tuning as "As built" in design D8; bands are never widened silently.
 
-  Progress: the test, the realism bands over 17 missions and the market-study rows are in, with the as-built bands in design D8 (m13 one-strike spread; m16 quantities; m17 kernel and swing bands). Open: m16's "condor at a 20%-of-equity size is never margin-called" runs only once E4's `spread_margin` exists (`kSpreadMargin` in the test) and has not been measured yet.
+  As built: design D8 (m13 one-strike spread; m16 quantities; m17 kernel and swing bands). m16's condor is sized per seed at 20% of equity at its maximum loss and is never margin-called under `spread_margin`.
 - [ ] E9 Strategy comparison, scoring v13 (design D8):
   - per-mission comparison declarations;
   - `debrief.strategyComparison` (name code, entry and exit bar, net P&L, max drawdown, margin calls) computed after the run with the engine's quotes and fees;

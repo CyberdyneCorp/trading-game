@@ -17,12 +17,6 @@ using namespace tradelab::learn;
 
 namespace {
 
-// Whether this engine margins defined-risk spreads (design D5, task E4). The bands that need it
-// (m16's condor at the 20%-of-equity size) run only when it does; see design D8 "As built".
-template <class Spec>
-constexpr bool kHasSpreadMargin = requires(Spec o) { o.spread_margin; };
-constexpr bool kSpreadMargin = kHasSpreadMargin<OptionSpec>;
-
 struct Leg {
   const OptionSeries* series = nullptr;
   OrderSide side = OrderSide::Buy;
@@ -356,13 +350,13 @@ namespace {
 constexpr const char* kM16 = "m16-range-condor";
 // Quantities (design D8 "As built"). Both structures are compared at kCompareQty, a size at which no
 // margin call cuts the strangle's loss short. The strangle's margin calls are counted at kOversizedQty,
-// where its per-leg initial margin takes about 95% of equity. The condor is checked for margin calls at
-// 400 units, where its maximum loss stays under 20% of equity, when the engine margins defined-risk
-// spreads; under per-leg margin its shorts are margined like the strangle's, so it is checked at
-// kCompareQty.
+// where its per-leg initial margin takes about 95% of equity. The condor is checked for margin calls
+// (under the mission's spread margin) at the largest quantity whose maximum loss, width minus the credit
+// at the chain's mids, is at most kCondorRiskShare of equity.
 constexpr double kCompareQty = 150.0;
 constexpr double kOversizedQty = 440.0;
-constexpr double kCondorCallQty = kSpreadMargin ? 400.0 : kCompareQty;
+constexpr double kCondorRiskShare = 0.20;
+constexpr double kWidth = 2 * 2.5;
 
 struct PremiumSeed {
   double net = 0.0;
@@ -370,10 +364,9 @@ struct PremiumSeed {
   int margin_calls = 0;
 };
 
-// Sells the strikes 2 steps either side of the money at the first decision, first expiry; with
-// wings, buys the strikes 4 steps away (the iron condor). Held to settlement.
-PremiumSeed sell_premium(std::uint64_t seed, bool wings, double q) {
-  Play p(kM16, seed);
+// The strikes 2 steps either side of the money at the first decision, first expiry; with wings, the
+// strikes 4 steps away bought (the iron condor).
+std::vector<Leg> premium_legs(const Play& p, bool wings) {
   const std::uint32_t expiry = p.expiries().front();
   const double f = p.close(p.st.step);
   std::vector<Leg> legs = {{p.strike_near(OptionKind::Put, expiry, f, -2), OrderSide::Sell},
@@ -382,11 +375,25 @@ PremiumSeed sell_premium(std::uint64_t seed, bool wings, double q) {
     legs.push_back({p.strike_near(OptionKind::Put, expiry, f, -4), OrderSide::Buy});
     legs.push_back({p.strike_near(OptionKind::Call, expiry, f, 4), OrderSide::Buy});
   }
-  open_legs(p, legs, q);
+  return legs;
+}
+
+// The condor quantity whose maximum loss (width - credit at the mids) is kCondorRiskShare of equity.
+double condor_qty_at_risk_share(std::uint64_t seed) {
+  const Play p(kM16, seed);
+  double credit = 0.0;
+  for (const Leg& l : premium_legs(p, true)) credit += (l.side == OrderSide::Sell ? 1.0 : -1.0) * mid(p, *l.series, p.st.step);
+  return std::floor(kCondorRiskShare * num(p.sc.mission.initial_balance) / (kWidth - credit) * 10.0) / 10.0;
+}
+
+// Sells premium at the first decision (see premium_legs) and holds it to settlement.
+PremiumSeed sell_premium(std::uint64_t seed, bool wings, double q) {
+  Play p(kM16, seed);
+  open_legs(p, premium_legs(p, wings), q);
   p.step();
   const double credit = (option_flow(p, OrderSide::Sell) - option_flow(p, OrderSide::Buy)) / q;
   p.finish();
-  return {p.net(), (2 * 2.5 - credit) * q + fees(p), p.margin_calls()};
+  return {p.net(), (kWidth - credit) * q + fees(p), p.margin_calls()};
 }
 
 bool breakout_before(const Play& p) {
@@ -425,16 +432,22 @@ TEST_CASE("Learnability m16: an oversized strangle is margin-called by an early 
   int early = 0;
   int early_calls = 0;
   int condor_calls = 0;
+  double smallest = 1e18;
+  double largest = 0.0;
+  REQUIRE(Play(kM16, 1).sc.options.spread_margin);  // the band is about the mission's own margin rule
   for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
-    condor_calls += sell_premium(seed, true, kCondorCallQty).margin_calls > 0 ? 1 : 0;
+    const double q = condor_qty_at_risk_share(seed);
+    smallest = std::min(smallest, q);
+    largest = std::max(largest, q);
+    condor_calls += sell_premium(seed, true, q).margin_calls > 0 ? 1 : 0;
     if (!breakout_before(Play(kM16, seed))) continue;
     early += 1;
     early_calls += sell_premium(seed, false, kOversizedQty).margin_calls > 0 ? 1 : 0;
   }
   MESSAGE("m16: breakout before the first expiry in " << early << " seeds; a " << kOversizedQty
                                                       << "-unit strangle margin-called in " << early_calls);
-  MESSAGE("m16: the condor (" << kCondorCallQty << " units, spread margin " << kSpreadMargin << ") margin-called in "
-                              << condor_calls);
+  MESSAGE("m16: the condor at " << kCondorRiskShare * 100 << "% of equity at its maximum loss (" << smallest << "-"
+                                 << largest << " units) margin-called in " << condor_calls);
   CHECK(early >= 10);
   CHECK(share(early_calls, early) >= 0.25);
   CHECK(condor_calls == 0);
