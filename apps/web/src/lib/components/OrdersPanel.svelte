@@ -2,7 +2,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { fmtPct, fmtQty, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
-	import { ORDER_TYPE_LABEL, childTag, orderPriceText } from '#lib/game/eventNames.ts';
+	import { ORDER_TYPE_LABEL, childTag, orderPriceText, sideLabel } from '#lib/game/eventNames.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const orders = $derived(session.state?.orders ?? []);
@@ -21,7 +21,7 @@
 					<tr>
 						<td class="muted">#{o.id}</td>
 						<td>{o.series ? `${session.names.seriesName(o.series, i18n.locale)} ` : ''}{ORDER_TYPE_LABEL[o.type]}</td>
-						<td class={o.side === 'buy' ? 'up' : 'down'}>{o.side === 'buy' ? '▲' : '▼'} {o.side.toUpperCase()}</td>
+						<td class={o.side === 'buy' ? 'up' : 'down'}>{o.side === 'buy' ? '▲' : '▼'} {sideLabel(o.side)}</td>
 						<td class="num">{fmtQty(o.qty, i18n.locale)}</td>
 						<td class="num">{orderPriceText(o, i18n.locale)}</td>
 						<td>

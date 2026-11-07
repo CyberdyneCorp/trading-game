@@ -15,7 +15,7 @@ describe('describeEvent', () => {
 		const names = new EventNames();
 		names.rememberSeries({ id: 4, kind: 'put', strike: '100.00000000', expiryStep: 108 });
 		const text = describeEvent(fill({ orderId: 0 }), 'pt-BR', names)?.text ?? '';
-		expect(text).toMatch(/^P 100 · exp 108 Recompra forçada \(chamada de margem\): BUY 200,0 @ 24,47/);
+		expect(text).toMatch(/^P 100 · exp 108 Recompra forçada \(chamada de margem\): COMPRA 200,0 @ 24,47/);
 		expect(text).not.toMatch(/#0/);
 	});
 

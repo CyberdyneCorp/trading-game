@@ -1,6 +1,6 @@
 import type { GameState, OptionQuoteView, OrderTypeName, OrderView } from '#lib/engine/types.ts';
 import { fmtPrice } from './format.ts';
-import { t, type Locale } from './i18n.svelte.ts';
+import { i18n, t, type Locale } from './i18n.svelte.ts';
 import { seriesLabel } from './optionsMath.ts';
 
 export const ORDER_TYPE_LABEL: Record<OrderTypeName, string> = {
@@ -16,6 +16,11 @@ export function orderPriceText(o: Pick<OrderView, 'type' | 'series' | 'price'>, 
 	if (o.type === 'market') return '@open';
 	const price = fmtPrice(o.price, locale);
 	return o.series ? t('orders.premium', { price }) : price;
+}
+
+/** An order or fill side in capitals in the shown language: COMPRA/VENDA, BUY/SELL. */
+export function sideLabel(side: 'buy' | 'sell'): string {
+	return t(side === 'buy' ? 'side.buy' : 'side.sell').toLocaleUpperCase(i18n.locale);
 }
 
 /**
