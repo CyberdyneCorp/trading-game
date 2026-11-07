@@ -708,6 +708,42 @@ void describe_series(const Scenario& sc, TradeRow& t) {
 }
 
 namespace {
+
+// An accepted MoveOrder on a reduce-only perpetual stop: when, and which way the trigger went
+// (+1 up, -1 down, 0 unchanged) against its previous trigger in the order's own updates.
+struct StopMove {
+  std::uint32_t step = 0;
+  int direction = 0;
+};
+
+bool movable_stop(const Order* o) { return o != nullptr && o->series == 0 && o->reduce_only && o->type == OrderType::StopMarket; }
+
+std::vector<StopMove> stop_moves(const RunState& st) {
+  std::vector<std::pair<std::uint32_t, std::int64_t>> last;  // order id -> last trigger seen
+  std::vector<StopMove> moves;
+  for (const Event& e : st.events) {
+    if (e.type != EventType::OrderUpdate) continue;
+    auto it = std::find_if(last.begin(), last.end(), [&e](const auto& p) { return p.first == e.order_id; });
+    if (e.reason == Reason::OrderMoved && it != last.end() && movable_stop(find_order(st, e.order_id))) {
+      moves.push_back({e.step, (e.requested.raw > it->second) - (e.requested.raw < it->second)});
+    }
+    if (it == last.end()) last.emplace_back(e.order_id, e.requested.raw);
+    else it->second = e.requested.raw;
+  }
+  return moves;
+}
+
+// Design D8: a long's stop moved lower, or a short's higher, while the trade was open (from its
+// entry fill to the bar it closed on; a move at the exit's decision step comes after the exit).
+void count_stop_moves(const std::vector<StopMove>& moves, TradeRow& t) {
+  if (t.series != 0) return;
+  const int away = t.is_long ? -1 : 1;
+  for (const StopMove& m : moves) {
+    const bool open = m.step >= t.entry_step && (!t.exit_step || m.step < *t.exit_step);
+    t.stop_moved_away += open && m.direction == away ? 1U : 0U;
+  }
+}
+
 void route(const Event& e, Walker& perp, const auto& option_walker) {
   if (e.type == EventType::Liquidation) perp.on_liquidation(e);
   else if (e.type == EventType::Funding) perp.on_funding(e);
@@ -735,7 +771,9 @@ std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
   take(perp);
   for (auto& [id, w] : options) take(w);
   std::stable_sort(rows.begin(), rows.end(), [](const TradeRow& a, const TradeRow& b) { return a.entry_step < b.entry_step; });
+  const std::vector<StopMove> moves = stop_moves(st);
   for (std::size_t i = 0; i < rows.size(); ++i) {
+    count_stop_moves(moves, rows[i]);
     rows[i].n = static_cast<std::uint32_t>(i + 1);
     describe_series(sc, rows[i]);
     const Price invalidation = rows[i].stop;  // the plan's (finalize); annotate_stop puts the stop order's

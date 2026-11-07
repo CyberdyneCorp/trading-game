@@ -340,6 +340,7 @@ void write_trade(JsonOut& j, const TradeRow& t, const std::vector<RegimeSpan>& s
     j.field("stop", t.stop).field("leverage", t.leverage).field("liqPrice", t.liq_price).field("stopBeyondLiq", t.stop_beyond_liq);
     j.key("safeLeverage");
     if (t.stop_beyond_liq) j.num(t.safe_leverage); else j.null();
+    j.field("stopMovedAway", t.stop_moved_away);
   }
   j.field("plannedRisk", t.planned_risk).key("rBp");
   if (t.r_bp) j.num(*t.r_bp); else j.null();

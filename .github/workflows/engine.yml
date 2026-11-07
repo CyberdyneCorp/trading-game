@@ -2,7 +2,7 @@ name: engine
 
 on:
   pull_request:
-    paths: ["engine/**", "bindings/**", "tools/check_engine_bans.py", "tools/regen_golden.py", "tools/packer/**", ".github/workflows/engine.yml"]
+    paths: ["engine/**", "bindings/**", "tools/check_engine_bans.py", "tools/regen_golden.py", "tools/make_run_files.py", "tools/packer/**", ".github/workflows/engine.yml"]
   push:
     branches: [main]
 
@@ -80,6 +80,8 @@ jobs:
         run: uv run --python 3.12 --with pytest pytest -q
       - name: Shared golden fixtures are current (engine/tests/golden)
         run: uv run --python 3.12 python tools/regen_golden.py
+      - name: Shared run-file fixtures are current (engine/tests/runfiles)
+        run: uv run --python 3.12 python tools/make_run_files.py
 
   # libFuzzer with ASan + UBSan on the untrusted-input parsers (CSV import, packs, JSON).
   fuzz:
@@ -92,11 +94,11 @@ jobs:
         run: |
           cmake -S . -B build/fuzz -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTRADELAB_BUILD_TESTS=OFF \
             -DTRADELAB_BUILD_FUZZERS=ON -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18
-          cmake --build build/fuzz --target fuzz_csv fuzz_pack fuzz_json
+          cmake --build build/fuzz --target fuzz_csv fuzz_pack fuzz_json fuzz_runfile
       - name: Fuzz 60 s each (seed corpora in engine/fuzz/corpus)
         working-directory: engine
         run: |
-          for t in csv pack json; do
+          for t in csv pack json runfile; do
             mkdir -p "$RUNNER_TEMP/corpus-$t" && cp fuzz/corpus/$t/* "$RUNNER_TEMP/corpus-$t/"
             build/fuzz/fuzz_$t -max_total_time=60 -max_len=20000 -timeout=10 "$RUNNER_TEMP/corpus-$t"
           done

@@ -88,6 +88,10 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         fn = getattr(lib, name)
         fn.restype = restype
         fn.argtypes = argtypes
+    # Run files (add-run-sharing-and-journal-stats D2): optional, older policy builds predate it.
+    if hasattr(lib, "tl_run_file_verify"):
+        lib.tl_run_file_verify.restype = c_char_p
+        lib.tl_run_file_verify.argtypes = [c_char_p, c_char_p, u32, c_char_p]
     return lib
 
 
@@ -155,6 +159,17 @@ def build_csv_pack(csv: str, meta: dict[str, Any], seed_hex: str) -> tuple[dict[
 def pack_validate(pack: bytes, trusted: TrustedKeys, *, publish: bool = False) -> dict[str, Any]:
     """Verifies a pack for install or publishing (LIC01): {"ok", "reason", "detail", "pack"}."""
     return _json(load_library().tl_pack_validate(pack, len(pack), json.dumps(trusted).encode(), int(publish)))
+
+
+def verify_run_file(text: str, pack: bytes | None = None, trusted: TrustedKeys | None = None) -> dict[str, Any]:
+    """Verifies a run file (add-run-sharing-and-journal-stats D2): strict parse and schema, then a
+    replay that must reproduce its recorded status and digests. {"ok": True, ..., "run", "fileDigest",
+    "debrief"} or {"ok": False, "reason", "path", "pack", "detail"}."""
+    lib = load_library()
+    if not hasattr(lib, "tl_run_file_verify"):
+        raise EngineError("this engine build has no tl_run_file_verify")
+    keys = json.dumps(trusted or []).encode()
+    return _json(lib.tl_run_file_verify(text.encode("utf-8"), pack, len(pack or b""), keys))
 
 
 # ---- pack authoring (tools/packer, design D5) ----

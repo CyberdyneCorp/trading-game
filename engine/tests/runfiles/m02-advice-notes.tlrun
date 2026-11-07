@@ -1,0 +1,91 @@
+{
+ "format": "tradelab-run",
+ "version": 1,
+ "mission": "m02-funding-squeeze",
+ "pack": null,
+ "seed": 2026,
+ "options": {
+  "adviceAllowance": 3,
+  "newsLead": 1,
+  "calendar": true
+ },
+ "engine": {
+  "executionPolicy": 17,
+  "abi": 1,
+  "version": "0.1.0"
+ },
+ "labels": {
+  "campaign": false,
+  "assisted": false
+ },
+ "actions": [
+  {
+   "k": "advice"
+  },
+  {
+   "k": "lev",
+   "lev": 3
+  },
+  {
+   "k": "plan",
+   "side": "buy",
+   "skipped": false,
+   "option": false,
+   "lose": true,
+   "inv": "95",
+   "target": "115",
+   "conf": 60,
+   "risk": "100"
+  },
+  {
+   "k": "order",
+   "type": "market",
+   "side": "buy",
+   "qty": "50",
+   "price": null,
+   "ro": false,
+   "stop": "95",
+   "tp": "115",
+   "trail": null
+  },
+  {
+   "k": "adv",
+   "n": 25
+  },
+  {
+   "k": "advice"
+  },
+  {
+   "k": "adv",
+   "n": 1000
+  }
+ ],
+ "journal": [
+  {
+   "step": 72,
+   "side": "buy",
+   "thesis": "Range low holds; funding is light.",
+   "invalidation": "97.50",
+   "target": "104.00",
+   "plannedRisk": "100.00",
+   "confidence": 60,
+   "skipped": false
+  },
+  {
+   "step": 80,
+   "side": "sell",
+   "thesis": "Ação: não opero contra a notícia.",
+   "invalidation": null,
+   "target": null,
+   "plannedRisk": null,
+   "confidence": 50,
+   "skipped": true,
+   "loseScenario": "IV crush"
+  }
+ ],
+ "result": {
+  "status": "finished",
+  "digest": "b4b86bfad81a81b303c7833879798fd8d2db50b783f8409a587b0e171d7c5963",
+  "eventsDigest": "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f"
+ }
+}

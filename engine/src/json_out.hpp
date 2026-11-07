@@ -41,6 +41,12 @@ class JsonOut {
     out_ += v ? "true" : "false";
     return *this;
   }
+  // Already serialized JSON (a nested document), appended as one value.
+  JsonOut& raw(std::string_view json) {
+    separate();
+    out_ += json;
+    return *this;
+  }
   JsonOut& null() {
     separate();
     out_ += "null";

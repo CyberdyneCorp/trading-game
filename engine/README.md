@@ -223,7 +223,7 @@ Each column is range-checked before narrowing (`malformed_data`); semantic check
 ```bash
 cmake -S . -B build/fuzz -G Ninja -DTRADELAB_BUILD_FUZZERS=ON -DTRADELAB_BUILD_TESTS=OFF \
   -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18   # macOS: Homebrew llvm@18
-cmake --build build/fuzz --target fuzz_csv fuzz_pack fuzz_json
+cmake --build build/fuzz --target fuzz_csv fuzz_pack fuzz_json fuzz_runfile
 mkdir -p /tmp/corpus && cp fuzz/corpus/csv/* /tmp/corpus/ && build/fuzz/fuzz_csv -max_total_time=60 /tmp/corpus
 ```
 

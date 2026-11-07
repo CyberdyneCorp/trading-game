@@ -1,0 +1,63 @@
+{
+ "format": "tradelab-run",
+ "version": 1,
+ "mission": "m07-trend-trailing",
+ "pack": null,
+ "seed": 2026,
+ "options": {
+  "adviceAllowance": 0,
+  "newsLead": 0,
+  "calendar": false
+ },
+ "engine": {
+  "executionPolicy": 17,
+  "abi": 1,
+  "version": "0.1.0"
+ },
+ "labels": {
+  "campaign": false,
+  "assisted": false
+ },
+ "actions": [
+  {
+   "k": "lev",
+   "lev": 5
+  },
+  {
+   "k": "adv",
+   "n": 15
+  },
+  {
+   "k": "order",
+   "type": "market",
+   "side": "buy",
+   "qty": "60",
+   "price": null,
+   "ro": false,
+   "stop": null,
+   "tp": null,
+   "trail": null
+  },
+  {
+   "k": "adv",
+   "n": 1
+  },
+  {
+   "k": "order",
+   "type": "trailing_stop",
+   "side": "sell",
+   "qty": "60",
+   "price": null,
+   "ro": true,
+   "stop": null,
+   "tp": null,
+   "trail": "2.5"
+  }
+ ],
+ "journal": [],
+ "result": {
+  "status": "active",
+  "digest": "68f8312b599c4a893c17cc4c21853aac98d4c227e99bae4975260c992bd5370f",
+  "eventsDigest": "d20eecf973a4700fcdf507175d5498bcadf91b6bc689459288ec6f4b42e520b0"
+ }
+}
