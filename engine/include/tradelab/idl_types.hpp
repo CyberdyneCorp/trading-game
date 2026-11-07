@@ -529,6 +529,27 @@ enum class ObjectiveCode : std::uint8_t {
   PlanAndStopEveryEntry = 30,
   NoLiquidationNoMarginCall = 31,
   ReadCampaignReport = 32,
+  // Strategies (m13-m17, add-academy-and-strategies D8). Before entering, write both structures'
+  // breakevens and maximum loss (spread against naked call).
+  SpreadBreakevens = 33,
+  // Never leave a short option uncovered: close it before or with its long.
+  CoverShortLeg = 34,
+  // Before selling the call, write the capped maximum profit.
+  CappedMaxProfit = 35,
+  // Compare the premium collected with the funding paid.
+  PremiumVsFunding = 36,
+  // Before buying the put, write the floor (maximum loss).
+  FloorBeforeBuying = 37,
+  // Choose and record the hedge's tenor.
+  RecordTenor = 38,
+  // Size a defined-risk structure by its maximum loss: at most valueBp of equity.
+  SizeByMaxLoss = 39,
+  // Before entering, write the exit rule for a breakout.
+  BreakoutExitRule = 40,
+  // Before an expiry's last 5 bars, decide to close, roll or hold, and record why.
+  DecideBeforeExpiry = 41,
+  // Do not roll without a new thesis.
+  NoRollWithoutThesis = 42,
 };
 
 constexpr const char* json_name(ObjectiveCode v) {
@@ -566,6 +587,16 @@ constexpr const char* json_name(ObjectiveCode v) {
     case ObjectiveCode::PlanAndStopEveryEntry: return "plan_and_stop_every_entry";
     case ObjectiveCode::NoLiquidationNoMarginCall: return "no_liquidation_no_margin_call";
     case ObjectiveCode::ReadCampaignReport: return "read_campaign_report";
+    case ObjectiveCode::SpreadBreakevens: return "spread_breakevens";
+    case ObjectiveCode::CoverShortLeg: return "cover_short_leg";
+    case ObjectiveCode::CappedMaxProfit: return "capped_max_profit";
+    case ObjectiveCode::PremiumVsFunding: return "premium_vs_funding";
+    case ObjectiveCode::FloorBeforeBuying: return "floor_before_buying";
+    case ObjectiveCode::RecordTenor: return "record_tenor";
+    case ObjectiveCode::SizeByMaxLoss: return "size_by_max_loss";
+    case ObjectiveCode::BreakoutExitRule: return "breakout_exit_rule";
+    case ObjectiveCode::DecideBeforeExpiry: return "decide_before_expiry";
+    case ObjectiveCode::NoRollWithoutThesis: return "no_roll_without_thesis";
   }
   return "unknown";
 }

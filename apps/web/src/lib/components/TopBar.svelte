@@ -49,7 +49,7 @@
 			{t('top.step')} <strong>{Math.max(0, turn)}</strong> {t('top.of')} {playable} · {intervalLabel(s.stepSeconds)}
 		</div>
 		<div class="actions">
-			<button class="primary" onclick={() => session.advance(1)} disabled={session.busy || s.status !== 'active'}>
+			<button class="primary" onclick={() => session.advance(1)} disabled={session.busy || s.status !== 'active'} data-coach="advance">
 				▶ {t('top.advance')} <kbd>{keyLabel(keymap.map.advance)}</kbd>
 			</button>
 			<div class="auto" role="group" aria-label={t('auto.title')}>

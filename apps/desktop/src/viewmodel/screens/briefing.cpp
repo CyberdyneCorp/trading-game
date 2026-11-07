@@ -4,6 +4,7 @@
 #include "model/content.hpp"
 #include "viewmodel/curriculum.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/dialogs_vm.hpp"
 #include "viewmodel/report_texts.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/screens/screens.hpp"
@@ -108,8 +109,13 @@ ScreenModel briefing(const AppViewModel& vm) {
   m.lines.push_back(std::move(objectives));
   locked_line(vm, *s, m);
   m.text(names::kBriefRules, vm.tr("brief.rules"));
-  m.text(names::kBriefTopic, vm.tr("mission." + s->mission + ".topic"));
+  const std::string topic = "mission." + s->mission + ".topic";
+  m.text(names::kBriefTopic, vm.catalog().has(topic) ? vm.tr(topic) : vm.tr("menu.practiceNote"));
+  // The mission's tutorial can be replayed from here (web Briefing.svelte).
+  m.show(names::kBriefTutorial, !game::tutorial_cards(vm.game().texts(), s->mission).empty());
+  m.text(names::kBriefTutorial, vm.tr("brief.tutorial"));
   m.text(names::kBriefGo, "\xE2\x96\xB6 " + vm.tr("brief.go"));
+  academy_briefing(vm, m);
   return m;
 }
 

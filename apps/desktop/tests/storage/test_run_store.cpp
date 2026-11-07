@@ -164,6 +164,31 @@ TEST_CASE("storage: progress v2 round-trips with the campaign kept as the web's 
   CHECK(store.progress() == p);
 }
 
+TEST_CASE("storage: progress v3 keeps the review schedule, the tours done and the glossary terms seen") {
+  TempDir dir;
+  RunStore store(dir.db());
+  Progress p;
+  p.lessons_done = {"risk-sizing"};
+  p.lesson_reviews = R"({"risk-sizing":{"box":2,"due":"2026-03-04"}})";
+  p.coach_done = {"first-trade"};
+  p.glossary_seen = {"leverage", "strike"};
+  store.save_progress(p);
+  CHECK(store.progress() == p);
+  CHECK(progress_json(p).find(R"("version":3)") != std::string::npos);
+}
+
+// A version-2 row (before add-academy-and-strategies) reads with the version-3 fields empty.
+TEST_CASE("storage: a progress v2 row migrates to v3 with no reviews, tours or terms") {
+  const auto row = json::parse(R"({"version":2,"tutorialsSeen":["m01-false-breakout"],"lessonsDone":["foundations-bar"]})");
+  REQUIRE(row);
+  const Progress p = migrate_progress(*row);
+  CHECK(p.version == 3);
+  CHECK(p.lessons_done == std::vector<std::string>{"foundations-bar"});
+  CHECK(p.lesson_reviews == "{}");
+  CHECK(p.coach_done.empty());
+  CHECK(p.glossary_seen.empty());
+}
+
 TEST_CASE("storage: damaged progress fields fall back to their defaults (web migrateProgress)") {
   const auto row = json::parse(
       R"({"tutorialsSeen":["a",3,null],"advisorPoints":"x","campaign":{"id":"c"},"campaignHistory":[{"id":"h","legs":[]},7]})");

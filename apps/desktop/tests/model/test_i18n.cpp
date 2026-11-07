@@ -58,7 +58,7 @@ TEST_CASE("i18n: the built-in catalog is the generated web catalog plus desktop 
 TEST_CASE("i18n: every engine mission has its web title, tagline and topic in both languages") {
   Catalog c = builtin_catalog();
   const auto missions = engine_missions();
-  REQUIRE(missions.size() == 12);
+  REQUIRE(missions.size() == 17);
   for (const auto& m : missions) {
     for (const char* field : {"title", "tagline", "topic", "reveal"}) {
       const std::string key = "mission." + m.id + "." + field;

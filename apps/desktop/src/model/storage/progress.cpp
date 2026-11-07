@@ -39,12 +39,15 @@ Progress migrate_progress(const json::Value& row) {
     if (is_campaign(c)) p.campaign_history.push_back(dump(c));
   }
   p.assessed = strings(row["assessed"]);
+  if (row["lessonReviews"].kind() == json::Value::Kind::Object) p.lesson_reviews = dump(row["lessonReviews"]);
+  p.coach_done = strings(row["coachDone"]);
+  p.glossary_seen = strings(row["glossarySeen"]);
   return p;
 }
 
 std::string progress_json(const Progress& p) {
   JsonWriter w;
-  w.begin_object().field("version", 2);
+  w.begin_object().field("version", 3);
   write_strings(w, "tutorialsSeen", p.tutorials_seen);
   w.field("advisorPoints", p.advisor_points);
   write_strings(w, "settledRuns", p.settled_runs);
@@ -56,6 +59,9 @@ std::string progress_json(const Progress& p) {
   for (const std::string& c : p.campaign_history) w.raw(c);
   w.end_array();
   write_strings(w, "assessed", p.assessed);
+  w.key("lessonReviews").raw(p.lesson_reviews.empty() ? "{}" : p.lesson_reviews);
+  write_strings(w, "coachDone", p.coach_done);
+  write_strings(w, "glossarySeen", p.glossary_seen);
   return w.end_object().text();
 }
 

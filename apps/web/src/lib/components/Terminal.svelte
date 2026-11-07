@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { sound } from '#lib/game/sound.svelte.ts';
+	import CoachMarks from './CoachMarks.svelte';
+	import { coach } from '#lib/game/coach.svelte.ts';
+	import { glossaryUi } from '#lib/game/glossaryUi.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import type { PlanEntry } from '#lib/game/analysis.ts';
 	import type { AdviceView, OrderSideName, OrderView } from '#lib/engine/types.ts';
@@ -16,7 +19,7 @@
 	import { positionPlannedRisk } from '#lib/game/journal.ts';
 	import { exitOnValidSide, stopMovedBeyondLiquidation } from './chartDrag.ts';
 	import ConfirmDialog from './ConfirmDialog.svelte';
-	import { fmtPrice, fmtQty, num, priceInputText, priceToTick, qtyInputText } from '#lib/game/format.ts';
+	import { fmtMoney, fmtPrice, fmtQty, num, priceInputText, priceToTick, qtyInputText } from '#lib/game/format.ts';
 	import { costsOf, estimatedMarketEntry, fitToMargin, type SizeBy } from '#lib/game/sizing.ts';
 	import EventFeed from './EventFeed.svelte';
 	import NewsPanel from './NewsPanel.svelte';
@@ -33,6 +36,12 @@
 	import RightRail from './RightRail.svelte';
 	import AssistPanel from './AssistPanel.svelte';
 	import TopBar from './TopBar.svelte';
+	import StrategyBuilder, { type ComboDraft } from './StrategyBuilder.svelte';
+	import ComboNotice from './ComboNotice.svelte';
+	import WhatIfLab from './WhatIfLab.svelte';
+	import type { WhatIfLegInput } from '#lib/engine/types.ts';
+	import { comboContracts, comboStatus, netPremium, submitCombo } from '#lib/game/combos.ts';
+	import { runMaxBars } from '#lib/game/whatifLab.ts';
 
 	let { session }: { session: GameSession } = $props();
 
@@ -52,7 +61,7 @@
 	// Auto-advance: same advance as Space; waits while any dialog is open, pauses on notable bars.
 	const auto = new AutoPlay({
 		ready: () =>
-			!draft && !optDraft && !pick && !patterns && !help && !journalOpen && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
+			!draft && !optDraft && !comboDraft && !labLegs && !pick && !patterns && !help && !journalOpen && !glossaryUi.open && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
 		finished: () => session.state?.status !== 'active',
 		advance: () => session.advance(1),
 		notable: () => {
@@ -146,7 +155,7 @@
 		pick?.(price);
 		pick = null;
 	}
-	let tab = $state<'perp' | 'options'>('perp');
+	let tab = $state<'perp' | 'options' | 'builder'>('perp');
 	let optSeries = $state<number | null>(null);
 	let optSide = $state<'buy' | 'sell'>('buy');
 	let optDraft = $state<OptionDraft | null>(null);
@@ -197,6 +206,63 @@
 			if (d) await sendOption(d);
 		});
 	}
+
+	// ---- Strategy builder combos (design D3): one plan per leg for the engine, one journal entry ----
+	let comboDraft = $state<ComboDraft | null>(null);
+	let labLegs = $state<WhatIfLegInput[] | null>(null);
+	let dismissed = $state<string[]>([]);
+	const comboPlanDraft = $derived<OrderDraft | null>(
+		comboDraft ? optPlanDraftOf(comboDraft.orders[0]?.side ?? 'buy', comboDraft.risk, comboContracts(comboDraft.orders)) : null
+	);
+	const statuses = $derived(session.state ? session.combos.map((r) => comboStatus(session.state!.events, r)) : []);
+	const incomplete = $derived(statuses.findLast((st) => st.state === 'incomplete' && !dismissed.includes(st.record.id)) ?? null);
+
+	function optPlanDraftOf(side: 'buy' | 'sell', risk: number | null, qty = '1'): OrderDraft {
+		return {
+			side,
+			type: 'market',
+			qty,
+			price: null,
+			leverage: 1,
+			stop: null,
+			takeProfit: null,
+			estimate: { notional: 0, margin: 0, fee: 0, liquidation: null, plannedRisk: risk, stopBeyondLiquidation: false },
+			increases: true,
+			required: 0
+		};
+	}
+
+	function onComboPlan(p: PlanEntry) {
+		const d = comboDraft;
+		comboDraft = null;
+		if (!d) return;
+		void session.sequence(async () => {
+			// The engine pairs plans with orders by step, instrument and side: one plan per leg.
+			const share = p.plannedRisk != null ? p.plannedRisk / d.orders.length : null;
+			for (const [i, o] of d.orders.entries()) {
+				const leg: PlanEntry = { ...p, side: o.side, plannedRisk: share, instrument: o.series === 0 ? undefined : d.label };
+				await session.recordPlan(leg, i === 0 ? { ...p, instrument: d.label, combo: d.tag.combo } : null);
+			}
+			const out = await submitCombo(session.comboPort(), d.orders, d.tag);
+			if (out.ok) session.notice = { tone: 'ok', text: t('combo.sent', { name: d.label }) };
+			else session.notice = { tone: 'error', text: `✖ ${t('combo.refused', { n: out.refusedLeg + 1, reason: rejectionText(out.reason) })}` };
+		});
+	}
+
+	// The journal's combo line: its state and net premium so far (engine fills).
+	function comboNote(id: string): string | null {
+		const st = statuses.find((x) => x.record.id === id);
+		if (!st || !session.state) return null;
+		const premium = fmtMoney(netPremium(st, num(session.state.options.multiplier)), i18n.locale, true);
+		return `${t(`combo.state.${st.state}`)} · ${t('combo.premium', { amount: premium })}`;
+	}
+
+	const labMaxBars = $derived.by(() => {
+		const s = session.state;
+		if (!s || !labLegs) return 0;
+		const steps = labLegs.flatMap((l) => s.options.chain.filter((q) => q.id === l.series).map((q) => q.expiryStep));
+		return runMaxBars(steps, s.step);
+	});
 
 	async function send(d: OrderDraft) {
 		const s = session.state;
@@ -265,7 +331,9 @@
 	}
 
 	function onKey(e: KeyboardEvent) {
-		if (keymap.capturing || draft || optDraft || session.pendingQuestion || pick) return;
+		if (keymap.capturing || draft || optDraft || comboDraft || labLegs || session.pendingQuestion || pick || glossaryUi.open) return;
+		// The coach mark's buttons keep Space and Enter (the market never advances from the callout).
+		if ((e.target as HTMLElement | null)?.closest?.('[data-own-keys]')) return;
 		const action = actionFor(keymap.map, keyName(e));
 		if (modalKey(e, action)) return;
 		if (typing(e) || e.metaKey || e.ctrlKey || e.altKey || !action) return;
@@ -280,7 +348,7 @@
 	<div class="terminal">
 		<TopBar {session} {auto} onHelp={() => (help = true)} onPatterns={() => openPattern(null)} />
 		<div class="main">
-			<section class="panel chart"><Chart
+			<section class="panel chart" data-coach="chart"><Chart
 					game={session.state}
 					preview={tab === 'perp' ? preview : null}
 					picking={pick != null}
@@ -306,9 +374,12 @@
 					<div class="tabs" role="tablist">
 						<button role="tab" aria-selected={tab === 'perp'} class:primary={tab === 'perp'} onclick={() => (tab = 'perp')}>{t('opt.tabPerp')}</button>
 						<button role="tab" aria-selected={tab === 'options'} class:primary={tab === 'options'} onclick={() => (tab = 'options')}>{t('opt.tabOptions')}</button>
+						<button role="tab" aria-selected={tab === 'builder'} class:primary={tab === 'builder'} onclick={() => (tab = 'builder')} data-testid="tab-builder">{t('builder.tab')}</button>
 					</div>
 				{/if}
-				{#if tab === 'options' && optionsOn}
+				{#if tab === 'builder' && optionsOn}
+					<StrategyBuilder {session} onSubmit={(d) => (comboDraft = d)} onLab={(legs) => (labLegs = legs)} />
+				{:else if tab === 'options' && optionsOn}
 					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
 				{:else}
 					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} bind:leverage={ticketLeverage} bind:orderType={ticketType} {onSubmit} onPick={(set) => (pick = set)} />
@@ -317,6 +388,9 @@
 			<div class="stack">
 				{#if optionsOn}
 					<OptionChain game={session.state} selected={optSeries} onPick={pickOption} />
+				{/if}
+				{#if incomplete}
+					<ComboNotice {session} status={incomplete} onDone={() => (dismissed = [...dismissed, incomplete.record.id])} />
 				{/if}
 				<OrdersPanel {session} />
 				{#if session.notice}
@@ -345,6 +419,25 @@
 {#if draft && session.state}
 	<PlanDialog {draft} step={session.state.step} onConfirm={onPlan} onCancel={() => (draft = null)} />
 {/if}
+{#if comboDraft && comboPlanDraft && session.state}
+	<PlanDialog
+		draft={comboPlanDraft}
+		step={session.state.step}
+		optionLabel={comboDraft.label}
+		riskUnbounded={comboDraft.unbounded}
+		onConfirm={onComboPlan}
+		onCancel={() => (comboDraft = null)}
+	/>
+{/if}
+{#if labLegs && session.state}
+	<div class="modal-backdrop" role="presentation">
+		<div class="modal lab-modal" role="dialog" aria-modal="true" aria-labelledby="lab-modal-title">
+			<h2 id="lab-modal-title">{t('lab.title')}</h2>
+			<WhatIfLab {session} mode="terminal" runLegs={labLegs} forward={lastPrice(session.state)} maxBars={labMaxBars} />
+			<button class="primary" onclick={() => (labLegs = null)} data-testid="lab-close">{t('lab.close')}</button>
+		</div>
+	</div>
+{/if}
 {#if pendingMove && session.state}
 	{@const pm = pendingMove}
 	<ConfirmDialog
@@ -361,10 +454,17 @@
 	/>
 {/if}
 {#if help}
-	<HelpOverlay onClose={() => (help = false)} />
+	<HelpOverlay
+		onClose={() => (help = false)}
+		onTour={() => {
+			help = false;
+			coach.start(session.currentRunId);
+		}}
+	/>
 {/if}
+<CoachMarks {session} place="terminal" />
 {#if journalOpen}
-	<RunJournal entries={session.journal} onClose={() => (journalOpen = false)} />
+	<RunJournal entries={session.journal} onClose={() => (journalOpen = false)} {comboNote} />
 {/if}
 {#if patterns}
 	<PatternSheet focus={patternFocus} onClose={() => (patterns = false)} />
@@ -411,8 +511,14 @@
 	}
 	.tabs {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: 1fr 1fr 1fr;
 		gap: 0.3rem;
+	}
+	.lab-modal {
+		max-width: 860px;
+		width: 95vw;
+		max-height: 92vh;
+		overflow: auto;
 	}
 	.notice {
 		padding: 0.4rem 0.6rem;

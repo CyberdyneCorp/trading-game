@@ -1,0 +1,49 @@
+<!-- Pack catalog (web Catalog.svelte) and the installed packs (web MissionMenu.svelte practice panel).
+     Texts, items and flags from screens::catalog(); downloads and installs run on the simulation worker. -->
+<ScrollBox Name="catalog-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="catalog-title" TextSize="50" Class="title" AccessibleRole="Heading" Slot.Fill="1"/>
+            <Button Name="catalog-back" Style="Flat" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Label Name="catalog-note" Wrap="true" Class="muted"/>
+        <HBox Spacing="12">
+            <Label Name="catalog-state" Wrap="true" Class="attention" Slot.Fill="1" Slot.VAlign="Center"/>
+            <Button Name="catalog-retry" OnClicked="tl.catalog.retry"/>
+        </HBox>
+        <Label Name="catalog-cached" Wrap="true" Class="muted"/>
+        <HBox Spacing="12">
+            <ListView Name="catalog-list" Width="300" Height="240"/>
+            <Border Name="catalog-detail" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12" Slot.Fill="1">
+                <VBox Spacing="8">
+                    <Label Name="catalog-entry-title" TextSize="25" Class="title" Wrap="true"/>
+                    <Label Name="catalog-entry-tags" Wrap="true" Class="info"/>
+                    <Label Name="catalog-entry-summary" Wrap="true"/>
+                    <Label Name="catalog-download-state" Wrap="true" Class="info"/>
+                    <ProgressBar Name="catalog-progress" Height="12"/>
+                    <HBox Spacing="8">
+                        <Button Name="catalog-play" Style="Primary" OnClicked="tl.catalog.play"/>
+                        <Button Name="catalog-download" Style="Primary" OnClicked="tl.catalog.download"/>
+                        <Button Name="catalog-pause" OnClicked="tl.catalog.pause"/>
+                        <Label Name="catalog-needs-connection" Wrap="true" Class="muted" Slot.VAlign="Center"/>
+                    </HBox>
+                </VBox>
+            </Border>
+        </HBox>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <Label Name="library-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Label Name="library-note" Wrap="true" Class="muted"/>
+                <Label Name="library-empty" Class="muted"/>
+                <ListView Name="library-list" Height="140"/>
+                <Label Name="library-missing" Wrap="true" Class="down"/>
+                <HBox Spacing="8">
+                    <Button Name="library-play" Style="Primary" OnClicked="tl.library.play"/>
+                    <Button Name="library-remove" OnClicked="tl.library.remove"/>
+                </HBox>
+            </VBox>
+        </Border>
+    </VBox>
+</Border>
+</ScrollBox>

@@ -12,6 +12,7 @@
 
 #include "view/chart_painter.hpp"
 #include "view/raven/raven_ui.hpp"
+#include "viewmodel/format.hpp"
 #include "viewmodel/keymap.hpp"
 #include "viewmodel/report_texts.hpp"
 #include "viewmodel/screen_names.hpp"
@@ -27,6 +28,25 @@ AppViewModel& vm_of(void* user_data) { return *static_cast<AppViewModel*>(user_d
 constexpr std::array<float, 3> kHatch{0x24 / 255.0f, 0x41 / 255.0f, 0x3A / 255.0f};
 constexpr std::array<float, 3> kAttention{0xFF / 255.0f, 0xC8 / 255.0f, 0x57 / 255.0f};
 
+std::array<float, 3> level_colour(const std::string& kind) {
+  if (kind == "stop" || kind == "liquidation") return {0xFF / 255.0f, 0x5F / 255.0f, 0x7A / 255.0f};
+  if (kind == "target") return {0x39 / 255.0f, 0xFF / 255.0f, 0x88 / 255.0f};
+  if (kind == "entry") return {0x4F / 255.0f, 0xD8 / 255.0f, 0xFF / 255.0f};
+  if (kind == "strike") return kAttention;
+  return {0x8F / 255.0f, 0xB3 / 255.0f, 0xA1 / 255.0f};
+}
+
+// The lesson chart's labeled lines (entry, stop, target, liquidation, mark, last, strike).
+void paint_levels(RPainter* p, const AppViewModel& vm, const LessonChart& c, const ChartGeometry& g, float width, float height) {
+  for (const auto& l : c.levels) {
+    const auto col = level_colour(l.kind);
+    const float y = g.y_of(l.price, height);
+    for (float x = 0; x < width; x += 8) Rdraw_line(p, x, y, std::min(width, x + 5), y, 1.0f, col[0], col[1], col[2], 1.0f);
+    const std::string label = vm.tr("academy.level." + l.kind) + " " + fmt::fmt_num(l.price, vm.locale(), 2);
+    Rdraw_text(p, R_INVALID_ID, 11, 4, std::max(0.0f, y - 14), label.c_str(), col[0], col[1], col[2], 1.0f);
+  }
+}
+
 void paint_lesson_chart(Rid /*w*/, RPainter* p, float width, float height, void* user_data) {
   const LessonStep* step = vm_of(user_data).shell().lesson.step();
   if (step == nullptr || !step->chart) return;
@@ -38,10 +58,13 @@ void paint_lesson_chart(Rid /*w*/, RPainter* p, float width, float height, void*
     const LessonCandle& k = c.candles[static_cast<std::size_t>(i)];
     bars.push_back(Bar{k.o, k.h, k.l, k.c, k.v});
   }
-  // Scaled from the closed bars only; the unknown future is hatched and nothing is drawn in it.
+  // Scaled from the closed bars and the labeled levels; the unknown future is hatched, nothing drawn in it.
   const float known_width = width * static_cast<float>(known) / static_cast<float>(std::max(1, total));
-  const ChartGeometry g = chart_geometry(bars, known_width, height, std::max(1, known));
+  std::vector<double> prices;
+  for (const auto& l : c.levels) prices.push_back(l.price);
+  const ChartGeometry g = chart_geometry(bars, known_width, height, std::max(1, known), prices);
   paint_chart(p, g, known_width, height);
+  paint_levels(p, vm_of(user_data), c, g, width, height);
   for (float x = known_width; x < width; x += 8.0f) {
     Rdraw_line(p, x, height, std::min(width, x + height), 0, 1.0f, kHatch[0], kHatch[1], kHatch[2], 0.8f);
   }
@@ -112,6 +135,16 @@ void on_key_row(Rid, int row, void* user_data) { vm_of(user_data).select_key_row
 void on_text_scale(Rid, float value, void* user_data) { vm_of(user_data).set_text_scale(value); }
 
 void on_palette(Rid, int checked, void* user_data) { vm_of(user_data).set_colorblind(checked != 0); }
+
+void on_sound(Rid, int checked, void* user_data) { vm_of(user_data).set_sound_on(checked != 0); }
+
+void on_music(Rid, float value, void* user_data) { vm_of(user_data).set_music_volume(value); }
+
+void on_sfx(Rid, float value, void* user_data) { vm_of(user_data).set_sfx_volume(value); }
+
+void sync_slider(Rid slider, double value) {
+  if (slider != R_INVALID_ID && Rslider_get_value(slider) != static_cast<float>(value)) Rslider_set_value(slider, static_cast<float>(value));
+}
 
 // One callback for the four CRT switches: the widget says which one changed.
 struct CrtSwitch {
@@ -189,6 +222,8 @@ void ShellView::bind() {
   ui::bind_action(names::kActKeyChange, [&vm] { vm.begin_key_change(); });
   ui::bind_action(names::kActKeyReset, [&vm] { vm.reset_keys(); });
   bind_callbacks();
+  bind_flows();
+  bind_academy();
 }
 
 void ShellView::bind_callbacks() {
@@ -200,6 +235,9 @@ void ShellView::bind_callbacks() {
   for (std::size_t i = 0; i < boxes.size(); ++i) Rcheckbox_set_changed_callback(find(boxes[i]), on_crt, &switches[i]);
   Rcheckbox_set_changed_callback(find(names::kSettingsPalette), on_palette, &vm_);
   Rslider_set_changed_callback(find(names::kSettingsTextScale), on_text_scale, &vm_);
+  Rcheckbox_set_changed_callback(find(names::kSettingsSound), on_sound, &vm_);
+  Rslider_set_changed_callback(find(names::kSettingsMusic), on_music, &vm_);
+  Rslider_set_changed_callback(find(names::kSettingsSfx), on_sfx, &vm_);
   Rtable_set_selection_changed_callback(find(names::kSettingsKeys), on_key_row, &vm_);
   Rcombo_box_set_changed_callback(find(names::kJournalFilter), on_journal_filter, &vm_);
   Rlist_view_set_selection_changed_callback(find(names::kCurriculumLessons), on_lesson_selected, &vm_);
@@ -211,13 +249,16 @@ void ShellView::bind_callbacks() {
 void ShellView::apply(const ScreenModel& m) {
   for (const auto& t : m.texts) {
     const Rid w = find(t.widget);
-    if (w != R_INVALID_ID) ui::set_text(w, t.text);
+    // Unchanged texts are left alone: a field being typed in keeps its cursor.
+    if (w != R_INVALID_ID && ui::text_of(w) != t.text) ui::set_text(w, t.text);
   }
   for (const auto& n : m.names) Rwidget_set_accessible_name(find(n.widget), n.text.c_str());
   for (const auto& l : m.lines) apply_lines(l);
   for (const auto& t : m.tables) apply_table(t);
   for (const auto& it : m.items) apply_items(it);
   apply_flags(m);
+  apply_values(m);
+  apply_tips(m);
 }
 
 // Widget callbacks fired by these setters see the viewmodel's own values: no-ops there.
@@ -228,16 +269,16 @@ void ShellView::apply_flags(const ScreenModel& m) {
     const Rid w = find(f.widget);
     if ((Rcheckbox_is_checked(w) != 0) != f.on) Rcheckbox_set_checked(w, f.on ? R_TRUE : R_FALSE);
   }
-  const Rid slider = find(names::kSettingsTextScale);
-  const float scale = vm_.settings().text_scale;
-  if (slider != R_INVALID_ID && Rslider_get_value(slider) != scale) Rslider_set_value(slider, scale);
+  sync_slider(find(names::kSettingsTextScale), vm_.settings().text_scale);
+  sync_slider(find(names::kSettingsMusic), vm_.game().prefs().audio.music);
+  sync_slider(find(names::kSettingsSfx), vm_.game().prefs().audio.sfx);
 }
 
 void ShellView::apply_lines(const WidgetLines& l) {
   auto& shown = lines_[std::string(l.widget)];
   const bool same = shown.size() == l.lines.size() &&
                     std::equal(shown.begin(), shown.end(), l.lines.begin(),
-                               [](const Line& a, const Line& b) { return a.text == b.text && a.tone == b.tone; });
+                               [](const Line& a, const Line& b) { return a == b; });
   if (same) return;
   const Rid box = find(l.widget);
   if (box == R_INVALID_ID) return;
@@ -245,6 +286,11 @@ void ShellView::apply_lines(const WidgetLines& l) {
   for (const Line& line : l.lines) {
     const Rid label = Rlabel_create(line.text.c_str());
     Rlabel_set_wrap(label, R_TRUE);
+    if (!line.tip.empty()) {  // a marked term: hover shows it, focus puts it on the help line
+      Rwidget_set_tooltip(label, line.tip.c_str());
+      Rwidget_set_accessible_description(label, line.tip.c_str());
+      Rwidget_set_focusable(label, R_TRUE);
+    }
     const std::string_view cls = tone_class(line.tone);
     if (!cls.empty()) Rwidget_set_class(label, std::string(cls).c_str());
     if (line.tone == Tone::Title) {

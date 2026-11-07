@@ -18,7 +18,7 @@ def test_m08_golden_signals_by_regime_match_native_cpp():
     """Shared fixture m08-regime-switch (digests checked in test_golden.py)."""
     debrief = golden.replay_run(golden.load("m08-regime-switch")).debrief
     assert debrief is not None
-    assert debrief["score"]["version"] == 12
+    assert debrief["score"]["version"] == 13
     assert debrief["regimes"][0]["start"] == 60
     assert {r["label"] for r in debrief["regimes"]} <= {"range", "trend", "high_vol"}
     assert all(t["regime"] in {"range", "trend", "high_vol"} for t in debrief["trades"])

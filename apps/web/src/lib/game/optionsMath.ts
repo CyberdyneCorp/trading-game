@@ -1,5 +1,7 @@
 // Display-side option helpers (payoff, breakeven, margin estimate, position Greeks).
-// Estimates only: the engine is authoritative for fills, margin, margin calls and settlement.
+// Estimates only: the engine is authoritative for fills, margin, margin calls and settlement. These
+// mirrors serve the single-leg option ticket only; combos, the what-if lab and every multi-leg number
+// come from the engine itself (tl_option_whatif, tl_run_option_whatif, tl_combo_preview).
 
 import type { OptionQuoteView, OptionsView } from '#lib/engine/types.ts';
 import { fmtPrice } from './format.ts';

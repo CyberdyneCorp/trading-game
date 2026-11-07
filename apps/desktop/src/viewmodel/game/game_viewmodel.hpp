@@ -18,20 +18,24 @@
 #include "model/game_prefs.hpp"
 #include "model/i18n.hpp"
 #include "model/snapshot.hpp"
+#include "viewmodel/game/builder_vm.hpp"
 #include "viewmodel/game/chart_vm.hpp"
+#include "viewmodel/game/combos.hpp"
 #include "viewmodel/game/dialogs_vm.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/options_vm.hpp"
 #include "viewmodel/game/panels_vm.hpp"
 #include "viewmodel/game/progress.hpp"
 #include "viewmodel/game/shortcuts.hpp"
 #include "viewmodel/game/texts.hpp"
+#include "viewmodel/game/lab_vm.hpp"
 #include "viewmodel/game/ticket_vm.hpp"
 
 namespace tradelab::desktop::game {
 
-enum class Modal : std::uint8_t { None, Plan, Calibration, ConfirmMove, Help, Journal, Pattern, Lesson, Tutorial, Perks };
+enum class Modal : std::uint8_t { None, Plan, Calibration, ConfirmMove, Help, Journal, Pattern, Lesson, Tutorial, Perks, Lab, ConfirmCombo };
 enum class PickTarget : std::uint8_t { None, Stop, Target, ProtStop, ProtTarget };
-enum class Tab : std::uint8_t { Perp, Options };
+enum class Tab : std::uint8_t { Perp, Options, Builder };
 
 // A key press as the web names it (shortcuts.ts keyName): "Space", "Shift+Space", "b", "?", "Escape",
 // "Enter", "ArrowLeft"... `typing`: a text field has the focus; `chord`: Ctrl, Alt or Super is held.
@@ -52,10 +56,10 @@ struct PerkRow {
 class GameViewModel {
  public:
   // `prefs` may be null (no persistence: tests). `built_in` lists the built-in mission ids.
-  GameViewModel(const Catalog& catalog, EngineCommands& engine, PrefsFile* prefs, std::vector<std::string> built_in);
+  GameViewModel(const Catalog& catalog, EngineCommands& engine, PrefsStore* prefs, std::vector<std::string> built_in);
 
-  // Loads the shortcut map and progress from `file` and saves there from now on (null: none).
-  void attach_prefs(PrefsFile* file);
+  // Loads the shortcut map and progress from `store` and saves there from now on (null: none).
+  void attach_prefs(PrefsStore* store);
   // Called with each plan the player records (AppViewModel keeps it in the run's journal).
   void set_plan_sink(std::function<void(const PlanEntry&)> sink) { plan_sink_ = std::move(sink); }
 
@@ -107,6 +111,12 @@ class GameViewModel {
   void lesson_skip(int question);
   void open_tutorial();
   void tutorial_step(int delta);  // past the last card closes it and marks it seen
+  [[nodiscard]] bool tutorial_seen(const std::string& mission) const;
+  void mark_tutorial_seen(const std::string& mission);
+  // The run in play is an assisted practice attempt: it settles no points and finishes no mission.
+  [[nodiscard]] bool assisted() const { return assisted_; }
+  // Terminal.svelte: practice packs and assisted attempts start without the advisor, so it is not offered.
+  [[nodiscard]] bool advisor_offered() const { return state_ && !state_->known_scenario && !assisted_; }
   [[nodiscard]] int tutorial_index() const { return tutorial_index_; }
   void open_perks();
   void set_perk(Perk id, bool on);
@@ -131,8 +141,13 @@ class GameViewModel {
   void set_keymap(const std::map<std::string, std::string>& map);
   // Frame time for auto-advance.
   void tick(double dt);
-  [[nodiscard]] bool muted() const { return muted_; }
+  [[nodiscard]] bool muted() const { return prefs_.audio.muted; }
   void toggle_mute() { run_action(Action::Mute); }
+  // Sound settings (Settings screen) and the terminal's panel layout, kept with the prefs.
+  void set_audio(const AudioPrefs& a);
+  void set_layout(std::string layout);
+  // "Reset layout": forgets the player's arrangement; the default for the window shows again.
+  void reset_layout();
   void toggle_auto() { run_action(Action::Auto); }
 
   // Panel viewmodels and dialog state, edited by the view (text fields) and read back.
@@ -144,12 +159,42 @@ class GameViewModel {
   LessonDialog lessons;
   Remap remap;
   AutoPlay autoplay;
+  DockLayout dock;
   std::string margin_amount = "100";
   void touch() { ++revision_; }
 
   [[nodiscard]] const SeriesNames& series_names() const { return names_; }
   [[nodiscard]] std::optional<double> planned_risk() const;
   [[nodiscard]] const GamePrefs& prefs() const { return prefs_; }
+  [[nodiscard]] const std::string& run_id() const { return run_id_; }
+
+  // ---- strategy builder and what-if lab (game_combos.cpp; add-academy-and-strategies D3, D4) ----
+  BuilderViewModel builder;
+  LabViewModel lab;
+  // The view edited `builder` (a template, a leg, the expiry): asks the engine for the new analysis.
+  void builder_changed();
+  // Opens the plan of the builder's combo; its legs are sent once the plan is recorded.
+  void builder_submit();
+  [[nodiscard]] BuilderView builder_view() const;
+  // The terminal lab over the player's positions, or over the builder's legs.
+  void open_lab_positions();
+  void open_lab_builder();
+  // A lab slider moved (the view set `lab.shift` through lab.slide): asks for the new valuation.
+  void lab_changed();
+  // The run's combos (from the action log's tags) and how their legs went.
+  [[nodiscard]] std::vector<ComboRecord> combos() const;
+  [[nodiscard]] std::vector<ComboStatus> combo_statuses() const;
+  struct ComboNotice {
+    std::string id, title, open_legs, cancelled_legs, risk, legging;
+  };
+  // The latest incomplete combo the player has not dismissed (ComboNotice.svelte).
+  [[nodiscard]] std::optional<ComboNotice> combo_notice() const;
+  void combo_keep();
+  void combo_close();  // asks for a confirmation first
+  void combo_close_confirm(bool yes);
+  [[nodiscard]] std::string combo_close_text() const;
+  // The journal line of a combo: its state and net premium so far (RunJournal's comboNote).
+  [[nodiscard]] std::string combo_note(const std::string& id) const;
 
  private:
   enum class InFlight : std::uint8_t { None, Advance, Game, Start };
@@ -181,7 +226,7 @@ class GameViewModel {
 
   const Catalog* catalog_;
   EngineCommands& engine_;
-  PrefsFile* prefs_file_;
+  PrefsStore* prefs_file_;
   GamePrefs prefs_;
   std::vector<std::string> built_in_;
   Keymap keymap_;
@@ -193,6 +238,8 @@ class GameViewModel {
   RunOptions next_options_;
   std::string run_id_;
   bool run_settled_ = false;
+  bool assisted_ = false;
+  void begin_run(const Snapshot& s, bool rewound);
   int run_counter_ = 0;
   int actions_ = 0;  // non-lesson commands this run (perks can change only before the first)
 
@@ -214,8 +261,29 @@ class GameViewModel {
   std::vector<PlanEntry> journal_;
   std::function<void(const PlanEntry&)> plan_sink_;
   SeriesNames names_;
-  bool muted_ = false;
   std::uint64_t revision_ = 1;
+
+  // Strategy builder combos (game_combos.cpp).
+  struct ComboRun {
+    ComboDraft draft;
+    std::vector<int> accepted;  // order ids of the legs accepted so far
+  };
+  void plan_combo(const PlanEntry& e);
+  void place_combo_leg(const std::shared_ptr<ComboRun>& run, std::size_t i);
+  void withdraw_combo(const ComboRun& run, std::size_t refused, const std::string& reason);
+  void reset_combos();
+  void refresh_analysis();
+  void request_lab();
+  void request_combo_risk();
+  // Replies of report-only engine calls reach this object only while it lives.
+  [[nodiscard]] EngineCommands::AnalysisReply guarded(std::function<void(GameViewModel&, const std::string&)> fn);
+  std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);
+  std::shared_ptr<const std::vector<std::string>> log_;
+  std::optional<ComboDraft> pending_combo_;
+  std::vector<std::string> dismissed_;
+  std::string risk_combo_;  // the incomplete combo whose risk was asked
+  std::optional<WhatIfResult> combo_risk_;
+  AnalysisTicket risk_ticket_;
 };
 
 }  // namespace tradelab::desktop::game

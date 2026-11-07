@@ -18,6 +18,9 @@ the web client does, so a replay reproduces the client's run bit for bit):
   {"k":"advice"}
   {"k":"adv","n":5}
 
+An "opt" or "order" action may carry a "combo" tag ("c1", ...) naming the strategy-builder combo it
+belongs to (add-academy-and-strategies D3): clients group by it, replay ignores it.
+
 Start options (advice allowance, perks) are not actions: pass the run record's options to replay().
 """
 

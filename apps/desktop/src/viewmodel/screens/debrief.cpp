@@ -10,6 +10,7 @@
 #include "viewmodel/format.hpp"
 #include "viewmodel/report_texts.hpp"
 #include "viewmodel/screen_names.hpp"
+#include "viewmodel/academy/glossary.hpp"
 #include "viewmodel/screens/screens.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -73,7 +74,7 @@ void campaign_outcome(const Ctx& c, ScreenModel& m) {
   out.lines.push_back({c.tr("campaign.leg", {{"start", c.money(leg->start_capital)}, {"end", c.money(leg->end_capital)}})});
   std::vector<std::string> passed;
   if (leg->result == LegResult::Finished) {
-    for (const auto& st : stages_of(content, leg->mission_id)) passed.push_back(c.tr("stage." + st));
+    for (const auto& st : stages_passed_with(content, leg->mission_id, c.vm.progress().assessed)) passed.push_back(c.tr("stage." + st));
   }
   std::string stages;
   for (const auto& p : passed) stages += (stages.empty() ? "" : ", ") + p;
@@ -214,13 +215,40 @@ void findings_lines(const Ctx& c, ScreenModel& m) {
   WidgetLines out{names::kDebriefFindings, {}};
   for (std::size_t i = 0; i < texts.size(); ++i) {
     const Tone tone = finding_tone(findings[i]["tone"].as_string());
-    out.lines.push_back({std::string(finding_mark(tone)) + texts[i], tone});
+    // The finding's glossary term, marked in place (glossary.ts FINDING_TERMS).
+    const auto term = academy::finding_term(web_content(), findings[i]["code"].as_string());
+    out.lines.push_back({std::string(finding_mark(tone)) + texts[i], tone, term ? term_tip(c.vm, *term) : std::string()});
   }
   m.lines.push_back(std::move(out));
   m.text(names::kDebriefNextLesson, c.tr("debrief.nextLesson") + ": " + describe_lesson(c.vm.catalog(), c.d["lesson"].as_string()));
   m.text(names::kDebriefDisclaimer, c.tr("debrief.disclaimer"));
 }
 
+// lessons.ts answerText: a choice's wording, or a numeric answer in the locale.
+std::string answer_text(const Ctx& c, const json::Value& q, std::string_view which) {
+  const json::Value& v = q[which];
+  if (v.is_null()) return std::string(kDash);
+  if (q["kind"].as_string() == "numeric") {
+    const double x = v.as_double();
+    return fmt::fmt_num(x, c.L, std::floor(x) == x ? 0 : 2);
+  }
+  const std::string key = "lessonq." + c.s.mission + "." + q["id"].as_string() + ".choice" + v.as_string();
+  return c.vm.catalog().has(key) ? c.tr(key) : v.as_string();
+}
+
+void question_lines(const Ctx& c, const json::Value& q, std::size_t n, WidgetLines& out) {
+  const std::string prompt = "lessonq." + c.s.mission + "." + q["id"].as_string() + ".prompt";
+  out.lines.push_back({std::to_string(n) + ". " + (c.vm.catalog().has(prompt) ? c.tr(prompt) : q["id"].as_string())});
+  const bool right = q["correct"].as_bool(false);
+  const std::string yours = q["answered"].as_bool(false) ? answer_text(c, q, "given")
+                                                         : c.tr(q["skipped"].as_bool(false) ? "lesson.skipped" : "lesson.none");
+  out.lines.push_back({std::string(right ? "\xE2\x9C\x94 " : "\xE2\x9C\x96 ") + c.tr("lesson.yours") + ": " + yours + " (" +
+                           c.tr(right ? "lesson.right" : "lesson.wrong") + ")",
+                       right ? Tone::Up : Tone::Down});
+  if (!right) out.lines.push_back({c.tr("lesson.key") + ": " + answer_text(c, q, "answer"), Tone::Muted});
+}
+
+// LessonResults.svelte: each question's wording, the player's answer and, when wrong, the key.
 void lesson_results(const Ctx& c, ScreenModel& m) {
   const json::Value& l = c.d["lessons"];
   const auto& questions = l["questions"].items();
@@ -230,11 +258,7 @@ void lesson_results(const Ctx& c, ScreenModel& m) {
   WidgetLines out{names::kDebriefLessons, {{c.tr("debrief.lessons"), Tone::Title}}};
   out.lines.push_back({c.tr("debrief.lessonsScore", {{"points", l["points"].as_string()}, {"total", l["total"].as_string()}})});
   if (!l["reviewed"].as_bool(false)) out.lines.push_back({c.tr("debrief.lessonsUnreviewed"), Tone::Muted});
-  for (std::size_t i = 0; i < questions.size(); ++i) {
-    const bool right = questions[i]["correct"].as_bool(false);
-    out.lines.push_back({std::to_string(i + 1) + ". " + (right ? "\xE2\x9C\x94 " : "\xE2\x9C\x96 ") + c.tr(right ? "lesson.right" : "lesson.wrong"),
-                         right ? Tone::Up : Tone::Down});
-  }
+  for (std::size_t i = 0; i < questions.size(); ++i) question_lines(c, questions[i], i + 1, out);
   m.lines.push_back(std::move(out));
 }
 
@@ -267,6 +291,37 @@ void greeks(const Ctx& c, ScreenModel& m) {
 void debrief_trades(const AppViewModel& vm, const Snapshot& s, const json::Value& d, ScreenModel& m);
 void debrief_reveal_tables(const AppViewModel& vm, const Snapshot& s, const json::Value& d, ScreenModel& m);
 
+namespace {
+
+// The run's chart (painted by the view from AppViewModel::debrief_scene) and its candle table, a page
+// of 50 closed bars at a time (web ChartTable.svelte).
+void chart_panel(const AppViewModel& vm, const Snapshot& s, ScreenModel& m) {
+  m.text(names::kDebriefChartTitle, vm.tr("desktop.debrief.chart"));
+  m.text(names::kDebriefChartNote, vm.tr("desktop.debrief.chartNote"));
+  m.name(names::kDebriefChart, vm.tr("desktop.debrief.chart"));
+  if (!s.game) return;
+  const GameState& g = *s.game;
+  const game::BarPage p = vm.debrief_bar_page();
+  m.text(names::kDebriefBarsPage, vm.tr("chart.tablePage", {{"from", std::to_string(p.start)},
+                                                           {"to", std::to_string(std::max(p.start, p.end - 1))},
+                                                           {"total", std::to_string(g.bars.size())}}));
+  WidgetTable table{names::kDebriefBars, {"#", "O", "H", "L", "C", "V"}, {}};
+  for (int i = p.start; i < p.end; ++i) {
+    const GameBar& b = g.bars[static_cast<std::size_t>(i)];
+    std::vector<std::string> row{std::to_string(i) + (b.continuity ? " *" : "")};
+    for (auto& cell : game::candle_cells(b, vm.locale())) row.push_back(std::move(cell));
+    table.rows.push_back(std::move(row));
+  }
+  m.tables.push_back(std::move(table));
+  m.name(names::kDebriefBars, vm.tr("chart.table"));
+  m.text(names::kDebriefBarsPrev, "\xE2\x97\x80 " + vm.tr("chart.prevPage"));
+  m.text(names::kDebriefBarsNext, vm.tr("chart.nextPage") + " \xE2\x96\xB6");
+  m.enable(names::kDebriefBarsPrev, p.page > 0);
+  m.enable(names::kDebriefBarsNext, p.page < p.pages - 1);
+}
+
+}  // namespace
+
 ScreenModel debrief(const AppViewModel& vm) {
   ScreenModel m;
   for (auto& b : vm.bindings()) m.text(b.widget, std::move(b.text));
@@ -276,7 +331,10 @@ ScreenModel debrief(const AppViewModel& vm) {
   const bool bankrupt = s->status == "bankrupt";
   m.show(names::kDebriefText, bankrupt);
   m.text(names::kDebriefMission, mission_title(vm, s->mission));
-  m.show(names::kDebriefTags, false);  // intel perks and assisted practice: not on the desktop yet
+  m.show(names::kDebriefTags, false);  // intel perks: not on the desktop yet
+  const bool assisted = vm.run_assisted().has_value();
+  m.show(names::kDebriefAssisted, assisted);
+  m.text(names::kDebriefAssisted, "[" + vm.tr("assist.tag") + "] " + vm.tr("assist.banner"));
   campaign_outcome(c, m);
   campaign_report_panel(c, m);
   outcome_lines(c, m);
@@ -288,8 +346,11 @@ ScreenModel debrief(const AppViewModel& vm) {
   greeks(c, m);
   debrief_trades(vm, *s, c.d, m);
   debrief_reveal_tables(vm, *s, c.d, m);
+  chart_panel(vm, *s, m);
+  assist_panel(vm, names::kDebriefAssist, m);
+  academy_debrief(vm, m);
   m.show(names::kDebriefAgain, !vm.shell().run_campaign);
-  m.text(names::kDebriefAgain, "\xE2\x86\xBB " + vm.tr("debrief.again"));  // ↻
+  m.text(names::kDebriefAgain, "\xE2\x86\xBB " + vm.tr(vm.run_pack().empty() ? "debrief.again" : "debrief.againPack"));  // ↻
   return m;
 }
 

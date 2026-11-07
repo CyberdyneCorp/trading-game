@@ -9,6 +9,7 @@
 // The paths are DEFAULT_PATHS.web* (i18n_lib.mjs); paths absent from `paths` (test fixtures) are skipped.
 
 import { readConsts } from './i18n_lib.mjs';
+import { stripLinks } from './screen_sources.mjs';
 
 const PT = 'pt-BR';
 const TONES = ['pos', 'neu', 'neg'];
@@ -52,7 +53,7 @@ function tutorialRows(ts, file, rows) {
 		cards[PT].forEach((card, i) => {
 			const en = cards.en[i] ?? {};
 			rows.push([`tutorial.${mission}.${i}.title`, card.title, en.title]);
-			rows.push([`tutorial.${mission}.${i}.body`, card.body, en.body]);
+			rows.push([`tutorial.${mission}.${i}.body`, stripLinks(card.body), stripLinks(en.body, 'en')]); // glossary links as plain text
 			rows.push([`tutorial.${mission}.${i}.art`, card.art, en.art]);
 		});
 	}

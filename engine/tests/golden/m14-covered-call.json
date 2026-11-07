@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m14-covered-call",
+  "description": "A covered call: a long perpetual and a call two strikes up written for each of the first two expiries.",
+  "mission": "m14-covered-call",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 1},
+    {"k": "order", "type": "market", "side": "buy", "qty": "40", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "opt", "series": 17, "side": "sell", "type": "market", "qty": "40", "premium": null},
+    {"k": "adv", "n": 24},
+    {"k": "opt", "series": 43, "side": "sell", "type": "market", "qty": "40", "premium": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "856edad39b590391cc6166e9a717bc48b5c29fbe30da4cea73d0d81ba8ccd7ef",
+    "eventsDigest": "12cb8f47b53a6414d788dad0a8dac3ede3bcc27c8f87fbbd7c18c60f69972097",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

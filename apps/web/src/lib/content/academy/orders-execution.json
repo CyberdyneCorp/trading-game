@@ -1,0 +1,161 @@
+{
+	"id": "orders-execution",
+	"stage": "orders",
+	"checks": [
+		{ "kind": "roundTrip", "bid": 99.9, "ask": 100.1, "qty": 10, "expect": 2 },
+		{ "kind": "diff", "a": 100.1, "b": 99.9, "expect": 0.2, "digits": 2 },
+		{ "kind": "diff", "a": 47.5, "b": 46.2, "expect": 1.3, "digits": 2 },
+		{ "kind": "product", "a": 1.3, "b": 20, "expect": 26, "digits": 2 }
+	],
+	"charts": {
+		"thin": {
+			"market": "Q",
+			"interval": "1h",
+			"candles": [
+				{ "o": 48.6, "h": 48.9, "l": 48.1, "c": 48.4, "v": 30 },
+				{ "o": 48.4, "h": 48.7, "l": 47.9, "c": 48.0, "v": 26 },
+				{ "o": 48.0, "h": 48.3, "l": 47.7, "c": 47.9, "v": 34 },
+				{ "o": 46.2, "h": 46.6, "l": 45.8, "c": 46.4, "v": 80 }
+			],
+			"levels": [{ "kind": "stop", "price": 47.5 }]
+		}
+	},
+	"steps": [
+		{
+			"id": "types",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Três tipos de ordem",
+					"body": "Uma [[market-order|ordem a mercado]] executa no próximo preço disponível: garante a execução, não o preço. Uma [[limit-order|limitada]] executa só no seu preço ou melhor: garante o preço, não a execução. Uma [[stop-order|ordem stop]] dorme até o gatilho e então vira ordem a mercado. Aqui toda ordem é aceita agora e só executa na próxima barra: aceita não é executada."
+				},
+				"en": {
+					"title": "Three order types",
+					"body": "A [[market-order|market order]] fills at the next available price: it guarantees the fill, not the price. A [[limit-order|limit order]] fills only at your price or better: it guarantees the price, not the fill. A [[stop-order|stop order]] sleeps until its trigger and then becomes a market order. Here every order is accepted now and fills only on the next bar: accepted is not filled."
+				}
+			}
+		},
+		{
+			"id": "spread",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "K",
+				"columns": [{ "id": "bid", "digits": 2 }, { "id": "ask", "digits": 2 }, { "id": "spread", "digits": 2 }],
+				"rows": [[99.9, 100.1, 0.2]]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "O spread é um custo",
+					"body": "Quem quer vender agora encontra a melhor compra (bid, 99,90); quem quer comprar agora encontra a melhor venda (ask, 100,10). A diferença, 0,20, é o [[spread|spread]]. Uma ordem a mercado paga o spread; ordens grandes ou mercados rápidos ainda pagam [[slippage|slippage]], e uma barra só executa até a sua [[capacity|capacidade]]: o resto espera as próximas barras.",
+					"columns": ["Compra (bid)", "Venda (ask)", "Spread"]
+				},
+				"en": {
+					"title": "The spread is a cost",
+					"body": "Whoever wants to sell now meets the best bid (99.90); whoever wants to buy now meets the best ask (100.10). The difference, 0.20, is the [[spread|spread]]. A market order pays the spread; large orders or fast markets also pay [[slippage|slippage]], and a bar fills only up to its [[capacity|capacity]]: the rest waits for the next bars.",
+					"columns": ["Bid", "Ask", "Spread"]
+				}
+			}
+		},
+		{
+			"id": "roundtrip",
+			"phase": "decision",
+			"widget": {
+				"kind": "table",
+				"market": "K",
+				"columns": [{ "id": "bid", "digits": 2 }, { "id": "ask", "digits": 2 }, { "id": "spread", "digits": 2 }],
+				"rows": [[99.9, 100.1, 0.2]]
+			},
+			"question": { "type": "number", "answer": 2, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o custo de ir e voltar",
+					"body": "Você compra 10 unidades a mercado e vende as 10 logo em seguida, sem o preço mudar. Quanto perdeu, sem contar taxas?",
+					"right": "Compra a 100,10 e venda a 99,90: 0,20 × 10 = 2,00. Cada entrada e saída a mercado paga o spread; uma limitada pode evitá-lo, mas pode não executar.",
+					"wrong": "Compra na venda (ask), vende na compra (bid). Multiplique a diferença pela quantidade.",
+					"columns": ["Compra (bid)", "Venda (ask)", "Spread"]
+				},
+				"en": {
+					"title": "Decision: the cost of a round trip",
+					"body": "You buy 10 units at market and sell the 10 right after, with no change in price. How much did you lose, before fees?",
+					"right": "Bought at 100.10 and sold at 99.90: 0.20 × 10 = 2.00. Every market entry and exit pays the spread; a limit order can avoid it, but may not fill.",
+					"wrong": "You buy at the ask and sell at the bid. Multiply the difference by the quantity.",
+					"columns": ["Bid", "Ask", "Spread"]
+				}
+			}
+		},
+		{
+			"id": "guarantee",
+			"phase": "decision",
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "limit" },
+					{ "kind": "text", "id": "market" },
+					{ "kind": "text", "id": "stop" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: preço ou execução?",
+					"body": "Qual ordem garante o preço, mas não garante que vai executar?",
+					"right": "Isso. A limitada nunca executa pior que o seu preço, e por isso pode ficar sem executar se o mercado não vier até ela.",
+					"wrong": "Pense no que cada ordem promete: uma promete executar, outra promete o preço.",
+					"choices": { "limit": "A limitada", "market": "A ordem a mercado", "stop": "A ordem stop" },
+					"feedback": {
+						"market": "A ordem a mercado garante a execução (havendo liquidez), não o preço: ela paga o spread e o slippage.",
+						"stop": "O stop só dispara no gatilho e então executa a mercado: não garante o preço."
+					}
+				},
+				"en": {
+					"title": "Decision: price or fill?",
+					"body": "Which order guarantees the price but not that it fills?",
+					"right": "A limit order never fills worse than its price, and that is why it can stay unfilled if the market does not come to it.",
+					"wrong": "Think about what each order promises: one promises to fill, another promises the price.",
+					"choices": { "limit": "The limit order", "market": "The market order", "stop": "The stop order" },
+					"feedback": {
+						"market": "A market order guarantees the fill (given liquidity), not the price: it pays the spread and slippage.",
+						"stop": "A stop only fires at its trigger and then fills at market: it does not guarantee the price."
+					}
+				}
+			}
+		},
+		{
+			"id": "slip",
+			"phase": "transfer",
+			"chart": { "ref": "thin" },
+			"question": {
+				"choices": [
+					{ "kind": "text", "id": "open" },
+					{ "kind": "text", "id": "trigger" },
+					{ "kind": "text", "id": "none" }
+				],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: um mercado fino",
+					"body": "Mercado Q, fino. Você está comprado em 20 unidades com stop em 47,50. Depois de uma manchete, a barra 4 abre em 46,20, abaixo do stop. Onde o stop executa?",
+					"right": "Na abertura, perto de 46,20 ou pior: o preço saltou o gatilho. Foram 1,30 de slippage por unidade, 26,00 nas 20 unidades além do risco planejado. Um stop limita o risco quase sempre, não sempre.",
+					"wrong": "O gatilho só faz a ordem virar mercado. Num gap não há negócio entre 47,90 e 46,20.",
+					"choices": { "open": "Perto de 46,20, a abertura (ou pior)", "trigger": "Em 47,50, o gatilho", "none": "Não executa: o preço pulou o stop" },
+					"feedback": {
+						"trigger": "Não houve negócio em 47,50: a barra já abriu em 46,20. O gatilho não é o preço de execução.",
+						"none": "O stop dispara quando o preço passa do gatilho, mesmo num salto, e então executa a mercado."
+					}
+				},
+				"en": {
+					"title": "Transfer: a thin market",
+					"body": "Market Q, thin. You are long 20 units with a stop at 47.50. After a headline, bar 4 opens at 46.20, below the stop. Where does the stop fill?",
+					"right": "At the open, near 46.20 or worse: price jumped the trigger. That is 1.30 of slippage per unit, 26.00 on the 20 units beyond the planned risk. A stop bounds risk almost always, not always.",
+					"wrong": "The trigger only turns the order into a market order. In a gap there are no trades between 47.90 and 46.20.",
+					"choices": { "open": "Near 46.20, the open (or worse)", "trigger": "At 47.50, the trigger", "none": "It does not fill: price jumped the stop" },
+					"feedback": {
+						"trigger": "There was no trade at 47.50: the bar already opened at 46.20. The trigger is not the fill price.",
+						"none": "A stop fires when price passes its trigger, even in a jump, and then fills at market."
+					}
+				}
+			}
+		}
+	]
+}

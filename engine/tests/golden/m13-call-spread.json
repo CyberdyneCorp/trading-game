@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m13-call-spread",
+  "description": "A bull call spread (ATM call bought, the next strike up written) held 25 bars and closed, short leg first.",
+  "mission": "m13-call-spread",
+  "seed": 2026,
+  "actions": [
+    {"k": "adv", "n": 10},
+    {"k": "opt", "series": 9, "side": "buy", "type": "market", "qty": "10", "premium": null},
+    {"k": "opt", "series": 11, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 25},
+    {"k": "opt", "series": 11, "side": "buy", "type": "market", "qty": "10", "premium": null},
+    {"k": "opt", "series": 9, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "6821129ad08a733932d95f2086e2fe4f556eb1886293d03e1bc46bda97e56cde",
+    "eventsDigest": "8b0a3f74575ae2f77bbbde1d16ecc62d3ce5d909c35ed67d6e84ae0c87843433",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

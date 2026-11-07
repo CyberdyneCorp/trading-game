@@ -6,9 +6,11 @@ import { EventNames } from './eventNames.ts';
 import { currentEnginePath, engineBuildLabel } from '#lib/engine/build.ts';
 import { abiMismatch, ENGINE_ABI } from '#lib/engine/abi.ts';
 import { EngineClient } from '#lib/engine/client.ts';
-import type { CsvBuildResult, EngineRequest } from '#lib/engine/protocol.ts';
+import type { Analysis, CsvBuildResult, EngineRequest, EngineResponse } from '#lib/engine/protocol.ts';
 import { DEFAULT_RUN_OPTIONS } from '#lib/engine/defaults.ts';
 import type {
+	ComboPreview,
+	ComboRequest,
 	CommandResult,
 	CsvMeta,
 	CsvValidation,
@@ -22,8 +24,11 @@ import type {
 	OrderView,
 	PackCheck,
 	RunOptionsView,
-	TrustedKey
+	TrustedKey,
+	WhatIfRequest,
+	WhatIfResult
 } from '#lib/engine/types.ts';
+import { combosFromLog, type ComboPort, type ComboRecord, type ComboTag } from './combos.ts';
 import type { PlanEntry } from './analysis';
 import { assistAllowed, rewindPrefix, type AssistedLink } from './assisted.ts';
 import { stepsUntilNextQuestion } from './calibration.ts';
@@ -38,6 +43,7 @@ import {
 import { legReport } from './campaignReport.ts';
 import { CatalogModel, type CatalogHost, type CatalogStore } from './catalog.svelte.ts';
 import { campaignPermissions } from './curriculum.ts';
+import { applyReview, localDay, scheduleOnComplete } from './review.ts';
 import { i18n, t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
 import { distinctFinished, newPerks, perkOptions, perksUsed, unlockedPerks, type PerkId } from './perks.ts';
@@ -61,11 +67,14 @@ export type Screen =
 	| 'curriculum'
 	| 'journal'
 	| 'lesson'
+	| 'academy'
+	| 'glossary'
+	| 'lab'
 	| 'catalog';
 
 type Action =
 	| { k: 'lev'; lev: number }
-	| {
+	| ({
 			k: 'order';
 			type: OrderTypeName;
 			side: OrderSideName;
@@ -76,8 +85,8 @@ type Action =
 			tp?: string | null;
 			trail?: string | null;
 			trailRate?: string | null;
-	  }
-	| { k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null }
+	  } & Partial<ComboTag>)
+	| ({ k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null } & Partial<ComboTag>)
 	| { k: 'margin'; amount: string }
 	| {
 			k: 'plan';
@@ -92,13 +101,13 @@ type Action =
 	  }
 	| { k: 'ans'; pBp: number; skipped: boolean }
 	| { k: 'lesson'; q: number; choice: number; value: string | null; skipped: boolean }
-	| { k: 'cancel'; id: number }
+	| ({ k: 'cancel'; id: number } & Partial<ComboTag>)
 	| { k: 'move'; id: number; price: string }
 	| { k: 'close' }
 	| { k: 'advice' }
 	| { k: 'adv'; n: number };
 
-type CommandAction = Exclude<Action, { k: 'adv' }>;
+export type CommandAction = Exclude<Action, { k: 'adv' }>;
 
 /** A checkpoint every this many logged actions: resume restores it and replays at most this many. */
 export const CHECKPOINT_EVERY = 20;
@@ -133,6 +142,8 @@ export interface OrderExtras {
 	trail?: string | null;
 	/** Trailing stop distance as a rate of the best close: "0.02" = 2%. */
 	trailRate?: string | null;
+	/** The strategy-builder combo this order is a leg of (logged, ignored by replay). */
+	tag?: ComboTag;
 }
 
 export interface Notice {
@@ -202,8 +213,16 @@ export class GameSession implements CatalogHost {
 	runAssisted = $state<AssistedLink | null>(null);
 	/** Run headers for the journal screen (loaded when it opens). */
 	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
+	/** Strategy-builder combos of this run, rebuilt from the action log (tags only; replay ignores them). */
+	combos = $state<ComboRecord[]>([]);
 	/** The Academy lesson open on the 'lesson' screen. */
 	lessonId = $state('');
+	/** A full lesson, or a spaced review of its decision and transfer questions. */
+	lessonMode = $state<'lesson' | 'review'>('lesson');
+	/** Where leaving the lesson goes (the curriculum map, the Academy or the debrief). */
+	lessonReturn = $state<Screen>('curriculum');
+	/** Where leaving the glossary screen goes. */
+	glossaryReturn = $state<Screen>('menu');
 	/** Pack catalog and downloads (catalog screen). */
 	readonly catalog: CatalogModel = new CatalogModel(this);
 
@@ -529,23 +548,72 @@ export class GameSession implements CatalogHost {
 		this.screen = 'curriculum';
 	}
 
-	// ---- Academy lessons (curriculum stages without a mission; web-client task 4.4) ----
+	/** The Academy's options lab (run-less what-if on an illustrative market). */
+	openLab(): void {
+		this.screen = 'lab';
+	}
 
-	openLesson(id: string): void {
+	// ---- Academy (web-client task 4.4; add-academy-and-strategies design D2, D9) ----
+
+	openLesson(id: string, from: Screen = 'curriculum', mode: 'lesson' | 'review' = 'lesson'): void {
 		this.lessonId = id;
+		this.lessonMode = mode;
+		this.lessonReturn = from;
 		this.screen = 'lesson';
 	}
 
+	leaveLesson(): void {
+		this.screen = this.lessonReturn;
+	}
+
+	openAcademy(): void {
+		this.screen = 'academy';
+	}
+
+	openGlossary(from: Screen = this.screen): void {
+		this.glossaryReturn = from === 'glossary' ? this.glossaryReturn : from;
+		this.screen = 'glossary';
+	}
+
+	leaveGlossary(): void {
+		this.screen = this.glossaryReturn;
+	}
+
+	/** Today's local calendar day (the review schedule uses the device clock, never a run's). */
+	today(): string {
+		return localDay(Date.now());
+	}
+
 	/**
-	 * Records a completed lesson in local progress (passes its stage) and returns to the map once the
-	 * write is committed, so a reload right after the map shows the stage passed cannot lose it.
+	 * Records a finished lesson and returns where it was opened once the write is committed, so a
+	 * reload right after the map shows the stage passed cannot lose it. A full lesson is completed
+	 * (passing a lesson-only stage) and scheduled for review; a review moves the schedule by its
+	 * first-try answers.
 	 */
-	async finishLesson(id: string): Promise<void> {
-		if (!this.progress.lessonsDone.includes(id)) {
-			this.progress = { ...this.progress, lessonsDone: [...this.progress.lessonsDone, id] };
-			await this.store?.saveProgress($state.snapshot(this.progress)).catch(() => (this.durable = false));
-		}
-		this.screen = 'curriculum';
+	async finishLesson(id: string, allRightFirstTry = true): Promise<void> {
+		const p = this.progress;
+		const today = this.today();
+		const next =
+			this.lessonMode === 'review'
+				? { ...p, lessonReviews: applyReview(p.lessonReviews, id, allRightFirstTry, today) }
+				: {
+						...p,
+						lessonsDone: p.lessonsDone.includes(id) ? p.lessonsDone : [...p.lessonsDone, id],
+						lessonReviews: scheduleOnComplete(p.lessonReviews, id, today)
+					};
+		this.progress = next;
+		await this.store?.saveProgress($state.snapshot(this.progress)).catch(() => (this.durable = false));
+		this.screen = this.lessonReturn;
+	}
+
+	/** A guided tour finished or skipped on this device (guided-first-trade spec). */
+	markCoachDone(id: string): void {
+		if (!this.progress.coachDone.includes(id)) this.saveProgress({ ...this.progress, coachDone: [...this.progress.coachDone, id] });
+	}
+
+	/** A glossary term opened (only for the "new" mark). */
+	markGlossarySeen(id: string): void {
+		if (!this.progress.glossarySeen.includes(id)) this.saveProgress({ ...this.progress, glossarySeen: [...this.progress.glossarySeen, id] });
 	}
 
 	// ---- pack catalog (web-client tasks 4.4, 5.3, 5.5) ----
@@ -761,6 +829,7 @@ export class GameSession implements CatalogHost {
 		for (const a of run.actions.slice(restored)) await this.exec(a, false);
 		// Keep the replayed history so the next action gets the right sequence number.
 		this.log = [...run.actions];
+		this.refreshCombos();
 		this.journal = r.journal;
 		this.stopWarnings = r.stopWarnings;
 		this.notice = engine.notice ?? this.replayNotice(r, run.actions.length);
@@ -872,7 +941,8 @@ export class GameSession implements CatalogHost {
 			stop: extras.stop ?? null,
 			tp: extras.takeProfit ?? null,
 			trail: extras.trail ?? null,
-			...(extras.trailRate ? { trailRate: extras.trailRate } : {})
+			...(extras.trailRate ? { trailRate: extras.trailRate } : {}),
+			...(extras.tag ?? {})
 		});
 		if (res?.warning === 'stop_beyond_liquidation') this.stopWarnings += 1;
 		return res;
@@ -883,9 +953,10 @@ export class GameSession implements CatalogHost {
 		side: OrderSideName,
 		type: 'market' | 'limit',
 		qty: string,
-		premium: string | null
+		premium: string | null,
+		tag?: ComboTag
 	): Promise<CommandResult | null> {
-		return this.command({ k: 'opt', series, side, type, qty, premium });
+		return this.command({ k: 'opt', series, side, type, qty, premium, ...(tag ?? {}) });
 	}
 
 	/** Adds (positive) or removes (negative) isolated margin; amount is a decimal string. */
@@ -893,8 +964,44 @@ export class GameSession implements CatalogHost {
 		return this.command({ k: 'margin', amount });
 	}
 
-	async cancel(orderId: number): Promise<CommandResult | null> {
-		return this.command({ k: 'cancel', id: orderId });
+	async cancel(orderId: number, tag?: ComboTag): Promise<CommandResult | null> {
+		return this.command({ k: 'cancel', id: orderId, ...(tag ?? {}) });
+	}
+
+	/** The engine calls a combo submission makes: market legs (series 0 = the perpetual) and cancels. */
+	comboPort(): ComboPort {
+		return {
+			place: (leg, tag) =>
+				leg.series === 0 ? this.placeOrder('market', leg.side, leg.qty, null, false, { tag }) : this.placeOptionOrder(leg.series, leg.side, 'market', leg.qty, null, tag),
+			cancel: (id, tag) => this.cancel(id, tag)
+		};
+	}
+
+	/** Run-less what-if valuation (the Academy lab): report only, never logged. */
+	whatIf(request: WhatIfRequest): Promise<Analysis<WhatIfResult>> {
+		return this.analysis({ kind: 'whatif', request });
+	}
+
+	/** The run's what-if valuation (terminal lab, builder): report only, never logged. */
+	runWhatIf(request: WhatIfRequest): Promise<Analysis<WhatIfResult>> {
+		return this.state ? this.analysis({ kind: 'runWhatif', request }) : Promise.resolve({ ok: false, error: 'no_run' });
+	}
+
+	/** Dry run of a combo's legs against the run's state (nothing changes): report only, never logged. */
+	comboPreview(request: ComboRequest): Promise<Analysis<ComboPreview>> {
+		return this.state ? this.analysis({ kind: 'comboPreview', request }) : Promise.resolve({ ok: false, error: 'no_run' });
+	}
+
+	private async analysis<K extends 'whatif' | 'runWhatif' | 'comboPreview'>(
+		req: Extract<EngineRequest, { kind: K }>
+	): Promise<EngineResponse<K>> {
+		if (!this.engine) return { ok: false, error: 'unsupported' } as EngineResponse<K>;
+		try {
+			// Legs may come from reactive state: a proxy cannot cross postMessage.
+			return await this.engine.request($state.snapshot(req) as typeof req);
+		} catch (e) {
+			return { ok: false, error: e instanceof Error ? e.message : String(e) } as EngineResponse<K>;
+		}
 	}
 
 	/**
@@ -942,10 +1049,16 @@ export class GameSession implements CatalogHost {
 		return res;
 	}
 
-	/** Structured plan goes to the engine (scored there); the free text stays in the local journal. */
-	async recordPlan(plan: PlanEntry): Promise<void> {
-		this.journal = [...this.journal, plan];
-		this.persist();
+	/**
+	 * Structured plan goes to the engine (scored there); the free text stays in the local journal. A
+	 * combo records one plan per leg for the engine and one journal entry (`journal`: the entry to keep,
+	 * null for none).
+	 */
+	async recordPlan(plan: PlanEntry, journal: PlanEntry | null = plan): Promise<void> {
+		if (journal) {
+			this.journal = [...this.journal, journal];
+			this.persist();
+		}
 		const price = (v: number | null) => (v != null && v > 0 ? v.toFixed(2) : null);
 		await this.command({
 			k: 'plan',
@@ -1023,7 +1136,12 @@ export class GameSession implements CatalogHost {
 		this.lessonsAnswered = [];
 		this.runPack = null;
 		this.perkChoice = [];
+		this.combos = [];
 		this.names.reset();
+	}
+
+	private refreshCombos(): void {
+		this.combos = combosFromLog(this.log, this.state?.warmupBars ?? 0);
 	}
 
 	private eng(): EngineClient {
@@ -1050,6 +1168,7 @@ export class GameSession implements CatalogHost {
 			// Commit before the engine sees it: an action shown as accepted is never lost.
 			await this.store?.appendAction(this.runId, this.log.length, a).catch(() => (this.durable = false));
 			this.log.push(a);
+			if ('combo' in a && a.combo) this.refreshCombos();
 		}
 		const e = this.eng();
 		let result: CommandResult | null = null;
@@ -1154,7 +1273,7 @@ export class GameSession implements CatalogHost {
 }
 
 // The engine request for one logged command (client ids are assigned in log order).
-function commandRequest(a: CommandAction, clientId: number): Extract<EngineRequest, { clientId: number }> {
+export function commandRequest(a: CommandAction, clientId: number): Extract<EngineRequest, { clientId: number }> {
 	switch (a.k) {
 		case 'lev':
 			return { kind: 'leverage', clientId, leverage: a.lev };

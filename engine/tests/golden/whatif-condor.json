@@ -1,0 +1,60 @@
+{
+  "format": 1,
+  "kind": "whatif",
+  "name": "whatif-condor",
+  "description": "An iron condor 90/95/105/110 for a 3 credit, 2 units: breakevens 92 and 108, bounded loss.",
+  "request": {
+    "forward": "100",
+    "minutesPerStep": 60,
+    "multiplier": "1",
+    "legs": [
+      {"kind": "put", "side": "buy", "qty": "2", "strike": "90", "minutesToExpiry": 20160, "iv": "0.55", "entry": "0.5"},
+      {"kind": "put", "side": "sell", "qty": "2", "strike": "95", "minutesToExpiry": 20160, "iv": "0.55", "entry": "2"},
+      {"kind": "call", "side": "sell", "qty": "2", "strike": "105", "minutesToExpiry": 20160, "iv": "0.55", "entry": "2"},
+      {"kind": "call", "side": "buy", "qty": "2", "strike": "110", "minutesToExpiry": 20160, "iv": "0.55", "entry": "0.5"}
+    ],
+    "shift": {"minutesElapsed": 10080, "ivPoints": "3"},
+    "grid": {"lo": "80", "hi": "120", "points": 9}
+  },
+  "expected": {
+    "result": {
+      "forward": "100.00000000",
+      "atExpiry": false,
+      "legs": [
+        {"kind": "put", "side": "buy", "qty": "2.00000000", "series": 0, "expiryStep": 0, "strike": "90.00000000", "entry": "0.50000000", "value": "0.33816238", "iv": "0.58000000", "ivFloored": false, "delta": "-0.0882037723", "gamma": "0.0199165597", "theta": "-0.00382416", "vega": "0.02215376", "positionValue": "0.67632476", "pnl": "-0.32367524"},
+        {"kind": "put", "side": "sell", "qty": "2.00000000", "series": 0, "expiryStep": 0, "strike": "95.00000000", "entry": "2.00000000", "value": "1.23899639", "iv": "0.58000000", "ivFloored": false, "delta": "-0.2486442581", "gamma": "0.0394489820", "theta": "-0.00757456", "vega": "0.04388024", "positionValue": "-2.47799278", "pnl": "1.52200722"},
+        {"kind": "call", "side": "sell", "qty": "2.00000000", "series": 0, "expiryStep": 0, "strike": "105.00000000", "entry": "2.00000000", "value": "1.37094727", "iv": "0.58000000", "ivFloored": false, "delta": "0.2852629999", "gamma": "0.0422864092", "theta": "-0.00811938", "vega": "0.04703639", "positionValue": "-2.74189454", "pnl": "1.25810546"},
+        {"kind": "call", "side": "buy", "qty": "2.00000000", "series": 0, "expiryStep": 0, "strike": "110.00000000", "entry": "0.50000000", "value": "0.48547882", "iv": "0.58000000", "ivFloored": false, "delta": "0.1258042363", "gamma": "0.0257437547", "theta": "-0.00494304", "vega": "0.02863552", "positionValue": "0.97095764", "pnl": "-0.02904236"}
+      ],
+      "net": {"value": "-3.57260492", "pnl": "2.42739508", "delta": "0.00196345", "gamma": "-0.07215015", "theta": "0.01385348", "vega": "-0.08025470"},
+      "expiry": {
+        "breakevens": ["92.00000000", "108.00000000"],
+        "maxProfit": "6.00000000",
+        "maxLoss": "4.00000000",
+        "curve": [
+          ["80.00000000", "-4.00000000"],
+          ["85.00000000", "-4.00000000"],
+          ["90.00000000", "-4.00000000"],
+          ["95.00000000", "6.00000000"],
+          ["100.00000000", "6.00000000"],
+          ["105.00000000", "6.00000000"],
+          ["110.00000000", "-4.00000000"],
+          ["115.00000000", "-4.00000000"],
+          ["120.00000000", "-4.00000000"]
+        ]
+      },
+      "today": [
+        ["80.00000000", "-3.65149020"],
+        ["85.00000000", "-2.59697388"],
+        ["90.00000000", "-0.58521086"],
+        ["95.00000000", "1.53483850"],
+        ["100.00000000", "2.42739508"],
+        ["105.00000000", "1.62946210"],
+        ["110.00000000", "-0.15055890"],
+        ["115.00000000", "-1.89459048"],
+        ["120.00000000", "-3.06106198"]
+      ]
+    }
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

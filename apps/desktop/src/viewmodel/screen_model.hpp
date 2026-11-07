@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace tradelab::desktop {
@@ -16,8 +17,13 @@ enum class Tone : std::uint8_t { Normal, Muted, Up, Down, Attention, Info, Accen
 std::string_view tone_class(Tone tone);  // theme style class: "", "muted", "up", ...
 
 struct Line {
+  Line() = default;
+  Line(std::string text_, Tone tone_ = Tone::Normal, std::string tip_ = {})  // NOLINT(google-explicit-constructor)
+      : text(std::move(text_)), tone(tone_), tip(std::move(tip_)) {}
   std::string text;
   Tone tone = Tone::Normal;
+  std::string tip;  // a marked glossary term's definition: tooltip and accessible description ("" = none)
+  bool operator==(const Line&) const = default;
 };
 
 struct WidgetText {
@@ -47,6 +53,11 @@ struct WidgetFlag {
   bool on = false;
 };
 
+struct WidgetValue {
+  std::string_view widget;  // ProgressBar: 0..1
+  float value = 0;
+};
+
 struct ScreenModel {
   std::vector<WidgetText> texts;
   std::vector<WidgetText> names;  // accessible names (what a screen reader says)
@@ -56,17 +67,27 @@ struct ScreenModel {
   std::vector<WidgetFlag> visible;
   std::vector<WidgetFlag> enabled;
   std::vector<WidgetFlag> checked;
+  std::vector<WidgetValue> values;
+  // In-place definitions (glossary terms): the widget's tooltip and accessible description.
+  std::vector<WidgetText> tips;
+  // Accessible descriptions only (a coach mark's text describes its target).
+  std::vector<WidgetText> descriptions;
 
   void text(std::string_view w, std::string t) { texts.push_back({w, std::move(t)}); }
   void name(std::string_view w, std::string t) { names.push_back({w, std::move(t)}); }
   void show(std::string_view w, bool on) { visible.push_back({w, on}); }
   void enable(std::string_view w, bool on) { enabled.push_back({w, on}); }
   void check(std::string_view w, bool on) { checked.push_back({w, on}); }
+  void tip(std::string_view w, std::string t) { tips.push_back({w, std::move(t)}); }
+  void describe(std::string_view w, std::string t) { descriptions.push_back({w, std::move(t)}); }
   // The text of a named widget ("" when absent): tests read screens through this.
   [[nodiscard]] std::string text_of(std::string_view w) const;
   [[nodiscard]] const WidgetLines* lines_of(std::string_view w) const;
   [[nodiscard]] const WidgetTable* table_of(std::string_view w) const;
   [[nodiscard]] bool is_visible(std::string_view w, bool fallback = true) const;
+  [[nodiscard]] bool is_enabled(std::string_view w, bool fallback = true) const;
+  [[nodiscard]] const WidgetItems* items_of(std::string_view w) const;
+  [[nodiscard]] std::string tip_of(std::string_view w) const;
 };
 
 }  // namespace tradelab::desktop

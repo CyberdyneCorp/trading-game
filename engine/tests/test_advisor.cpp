@@ -308,7 +308,7 @@ TEST_CASE("C ABI: start options, advice in the state and the debrief, no_advice_
   CHECK(std::string(tl_request_advice(run, 3)).find("no_advice_left") != std::string::npos);
   tl_advance(run, 10000);
   const std::string d = tl_debrief(run);
-  CHECK(d.find("\"score\":{\"version\":12") != std::string::npos);
+  CHECK(d.find("\"score\":{\"version\":13") != std::string::npos);
   CHECK(d.find("\"advisorPointsEarned\":2") != std::string::npos);  // finished, no trades
   CHECK(d.find("\"advice\":[{\"step\":60,") != std::string::npos);
   CHECK(d.find("\"adviceHitBp\":") != std::string::npos);

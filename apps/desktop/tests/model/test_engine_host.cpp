@@ -34,11 +34,12 @@ struct Harness {
 
 }  // namespace
 
-TEST_CASE("engine host: the twelve built-in missions") {
+TEST_CASE("engine host: the seventeen built-in missions") {
   Harness h;
-  REQUIRE(h.host.missions().size() == 12);
+  REQUIRE(h.host.missions().size() == 17);
   CHECK(h.host.missions().front().id == kM01);
-  CHECK(h.host.missions().back().id == "m12-capstone");
+  CHECK(h.host.missions()[11].id == "m12-capstone");
+  CHECK(h.host.missions().back().id == "m17-before-expiry");
 }
 
 TEST_CASE("engine host: start publishes the first decision step") {

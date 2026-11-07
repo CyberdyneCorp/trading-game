@@ -1,5 +1,6 @@
-<!-- Academy lesson (web LessonRunner.svelte + LessonChart.svelte). Texts from screens::lesson(); the
-     chart is painted from lesson_chart_geometry() and listed in the bar table for screen readers. -->
+<!-- Academy lesson (web LessonRunner.svelte + LessonChart / LessonTicket / LessonTable / LessonPayoff /
+     LessonQuestion). Texts from screens::lesson() and screens::lesson_widgets(); the chart and the payoff
+     are painted by the view from the step's data and listed as text for screen readers. -->
 <ScrollBox Name="lesson-scroll">
 <Border Background="#0B1010" Padding="16">
     <VBox Spacing="10">
@@ -12,7 +13,54 @@
                 <Label Name="lesson-title" TextSize="37.5" Class="title" AccessibleRole="Heading"/>
                 <Custom Name="lesson-chart" Height="220" AccessibleRole="Image"/>
                 <Label Name="lesson-chart-note" Class="attention"/>
+                <VBox Name="lesson-levels" Spacing="2"/>
                 <Table Name="lesson-bars" Height="120"/>
+                <Border Name="lesson-payoff-box" Background="#0B1010" BorderColor="#24413A" BorderWidth="1" Padding="8">
+                    <VBox Spacing="4">
+                        <Label Name="lesson-payoff-caption" Class="muted" Wrap="true"/>
+                        <Label Name="lesson-payoff-legs" Wrap="true"/>
+                        <Custom Name="lesson-payoff" Height="200" AccessibleRole="Image"/>
+                        <VBox Name="lesson-payoff-analytics" Spacing="2"/>
+                        <Label Name="lesson-payoff-note" Class="muted" Wrap="true"/>
+                    </VBox>
+                </Border>
+                <Border Name="lesson-table-box" Background="#0B1010" BorderColor="#24413A" BorderWidth="1" Padding="8">
+                    <VBox Spacing="4">
+                        <Label Name="lesson-table-caption" Class="muted" Wrap="true"/>
+                        <Table Name="lesson-table" Height="180"/>
+                    </VBox>
+                </Border>
+                <Border Name="lesson-ticket-box" Background="#0B1010" BorderColor="#24413A" BorderWidth="1" Padding="8">
+                    <VBox Spacing="6">
+                        <Label Name="lesson-sandbox-caption" Class="muted" Wrap="true"/>
+                        <VBox Name="lesson-sandbox-fixed" Spacing="2"/>
+                        <HBox Name="lesson-sandbox-side-row" Spacing="8">
+                            <Button Name="lesson-sandbox-buy" OnClicked="tl.lesson.sandboxBuy"/>
+                            <Button Name="lesson-sandbox-sell" OnClicked="tl.lesson.sandboxSell"/>
+                        </HBox>
+                        <Grid Columns="1,1" Spacing="6">
+                            <VBox Spacing="2" Slot.Column="0" Slot.Row="0">
+                                <Label Name="lesson-sandbox-qty-label" Class="muted"/>
+                                <TextInput Name="lesson-sandbox-qty"/>
+                            </VBox>
+                            <VBox Spacing="2" Slot.Column="1" Slot.Row="0">
+                                <Label Name="lesson-sandbox-lev-label" Class="muted"/>
+                                <TextInput Name="lesson-sandbox-leverage"/>
+                            </VBox>
+                            <VBox Spacing="2" Slot.Column="0" Slot.Row="1">
+                                <Label Name="lesson-sandbox-stop-label" Class="muted"/>
+                                <TextInput Name="lesson-sandbox-stop"/>
+                            </VBox>
+                            <VBox Name="lesson-sandbox-target-row" Spacing="2" Slot.Column="1" Slot.Row="1">
+                                <Label Name="lesson-sandbox-target-label" Class="muted"/>
+                                <TextInput Name="lesson-sandbox-target"/>
+                            </VBox>
+                        </Grid>
+                        <VBox Name="lesson-sandbox-out" Spacing="2"/>
+                        <Label Name="lesson-sandbox-warn" Class="down" Wrap="true"/>
+                        <Label Name="lesson-sandbox-note" Class="muted" Wrap="true"/>
+                    </VBox>
+                </Border>
                 <Label Name="lesson-body" Wrap="true"/>
                 <WrapBox Spacing="8">
                     <Button Name="lesson-choice-0" OnClicked="tl.lesson.choice0"/>
@@ -20,7 +68,28 @@
                     <Button Name="lesson-choice-2" OnClicked="tl.lesson.choice2"/>
                     <Button Name="lesson-choice-3" OnClicked="tl.lesson.choice3"/>
                 </WrapBox>
+                <HBox Name="lesson-number-row" Spacing="8">
+                    <Label Name="lesson-number-label" Slot.VAlign="Center"/>
+                    <TextInput Name="lesson-number" Width="160"/>
+                    <Label Name="lesson-number-unit" Class="muted" Slot.VAlign="Center"/>
+                    <Button Name="lesson-check" OnClicked="tl.lesson.check"/>
+                </HBox>
+                <HBox Name="lesson-set-row" Spacing="8">
+                    <Button Name="lesson-set-check" OnClicked="tl.lesson.checkSet"/>
+                    <Label Name="lesson-set-hint" Class="muted" Wrap="true" Slot.Fill="1" Slot.VAlign="Center"/>
+                </HBox>
                 <Label Name="lesson-feedback" Wrap="true" Class="info"/>
+                <VBox Name="lesson-terms-row" Spacing="4">
+                    <Label Name="lesson-terms-label" Class="muted" Wrap="true"/>
+                    <WrapBox Spacing="6">
+                        <Button Name="lesson-term-0" Style="Flat" OnClicked="tl.lesson.term0"/>
+                        <Button Name="lesson-term-1" Style="Flat" OnClicked="tl.lesson.term1"/>
+                        <Button Name="lesson-term-2" Style="Flat" OnClicked="tl.lesson.term2"/>
+                        <Button Name="lesson-term-3" Style="Flat" OnClicked="tl.lesson.term3"/>
+                        <Button Name="lesson-term-4" Style="Flat" OnClicked="tl.lesson.term4"/>
+                    </WrapBox>
+                    <Label Name="lesson-term-help" Class="info" Wrap="true"/>
+                </VBox>
                 <HBox Spacing="8">
                     <Button Name="lesson-leave" Style="Flat" OnClicked="tl.lesson.leave"/>
                     <Spacer Slot.Fill="1"/>
@@ -34,6 +103,7 @@
                 <Label Name="lesson-done-title" TextSize="50" Class="title" AccessibleRole="Heading"/>
                 <Label Name="lesson-done-name"/>
                 <Label Name="lesson-score" Class="up"/>
+                <Label Name="lesson-done-review" Wrap="true"/>
                 <Label Name="lesson-done-note" Wrap="true" Class="muted"/>
                 <Button Name="lesson-finish" Style="Primary" OnClicked="tl.lesson.finish" Slot.HAlign="Left"/>
             </VBox>

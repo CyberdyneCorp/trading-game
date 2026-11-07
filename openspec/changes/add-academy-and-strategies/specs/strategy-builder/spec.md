@@ -10,11 +10,15 @@ The option ticket SHALL offer a strategy builder with these templates:
 - strangle;
 - iron condor.
 
-Straddle and strangle SHALL also be offered short. Free legs SHALL be allowed too: up to four option legs on one expiry, plus an optional perpetual leg. A template SHALL fill strikes from the listed chain around the last price, and every leg's strike, side and quantity SHALL stay editable. Covered call and protective put SHALL offer to use the player's existing long perpetual position instead of a new perpetual order. Templates that need option writing SHALL be shown disabled when writing is not allowed in the run, naming the reason and the stage that unlocks it. Legs on different expiries SHALL be refused with an explanation.
+Straddle and strangle SHALL also be offered short. Free legs SHALL be allowed too: up to four option legs on one expiry, plus an optional perpetual leg. A template SHALL fill strikes from the listed chain around the last price, and every leg's strike, side and quantity SHALL stay editable. Covered call and protective put SHALL offer to use the player's existing long perpetual position instead of a new perpetual order; when a long is held, that choice SHALL be the default, with as many option contracts as the long's underlying units (down to the option lot). Templates that need option writing SHALL be shown disabled when writing is not allowed in the run, naming the reason and the stage that unlocks it. Legs on different expiries SHALL be refused with an explanation.
 
 #### Scenario: Iron condor from the chain
 - **WHEN** the player picks the iron condor template with the last price at 100 on a chain with strikes 2,5 apart
 - **THEN** the builder SHALL propose four legs: long put, short put, short call and long call with strikes K1 < K2 < 100 < K3 < K4, all on one expiry
+
+#### Scenario: Covered call on a held long
+- **WHEN** the player holds a long of 48.2 units (option multiplier 1, lot 0.1) and picks the covered call template
+- **THEN** the builder SHALL use that long, propose one short call of 48.2 contracts and no perpetual order
 
 #### Scenario: Writing locked
 - **WHEN** the run does not allow option writing
@@ -29,7 +33,7 @@ Before submission the builder SHALL show:
 - the margin required under the mission's margin rule, and the available balance after the combo;
 - the net delta, gamma, theta and vega.
 
-All of these SHALL come from the engine: the what-if valuation at the prices the legs would cross, and a dry run of the legs against the current run state that changes nothing. Submission SHALL be disabled while the dry run refuses any leg, with that leg's reason shown.
+All of these SHALL come from the engine: the what-if valuation at the prices the legs would cross, and a dry run of the legs against the current run state that changes nothing. Submission SHALL be disabled while the dry run refuses any leg, with that leg's reason shown. The plan asked before submission SHALL name the combo's contracts, and when the structure has no maximum loss it SHALL say that the planned risk shown is only the margin required.
 
 #### Scenario: Unbounded loss named
 - **WHEN** the legs are a short call and a short put with no long legs
@@ -57,8 +61,8 @@ A combo SHALL be submitted as ordinary market orders at the current decision ste
 - **THEN** the state digest SHALL be identical
 
 ### Requirement: Combos in the journal and debrief
-The journal and the debrief SHALL group the legs of a combo under its structure name (e.g. "Iron condor · 4 legs") with its net premium and its result, and SHALL list an incomplete combo as incomplete.
+The journal and the debrief SHALL group the legs of a combo under its structure name (e.g. "Iron condor · 4 legs", "Covered call · 1 leg") with its net premium and its result, and SHALL list an incomplete combo as incomplete. The debrief SHALL show one R for the combo, its summed net over the whole plan's risk, and no R on its legs (the plan's risk is split over them).
 
 #### Scenario: Debrief grouping
 - **WHEN** a run's debrief lists trades that came from one combo
-- **THEN** they SHALL be shown under one combo row with the structure name and their summed net result
+- **THEN** they SHALL be shown under one combo row with the structure name, their summed net result and one R for the combo

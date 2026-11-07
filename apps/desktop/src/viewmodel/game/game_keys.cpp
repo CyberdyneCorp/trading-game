@@ -15,6 +15,7 @@ Modal GameViewModel::modal() const {
 void GameViewModel::close_modal() {
   if (modal_ == Modal::Plan) return plan_cancel();
   if (modal_ == Modal::ConfirmMove) return confirm_move(false);
+  if (modal_ == Modal::ConfirmCombo) return combo_close_confirm(false);
   if (modal_ == Modal::Tutorial) return tutorial_step(1'000);
   remap.waiting.reset();
   modal_ = Modal::None;
@@ -88,6 +89,16 @@ void GameViewModel::tutorial_step(int delta) {
   touch();
 }
 
+bool GameViewModel::tutorial_seen(const std::string& mission) const {
+  return std::find(prefs_.tutorials_seen.begin(), prefs_.tutorials_seen.end(), mission) != prefs_.tutorials_seen.end();
+}
+
+void GameViewModel::mark_tutorial_seen(const std::string& mission) {
+  if (tutorial_seen(mission)) return;
+  prefs_.tutorials_seen.push_back(mission);
+  save_prefs();
+}
+
 // ---- intel perks ----
 
 void GameViewModel::open_perks() {
@@ -154,7 +165,7 @@ void GameViewModel::reset_keymap() {
 bool GameViewModel::blocked_for_keys() const {
   const Modal m = modal();
   return m == Modal::Plan || m == Modal::Calibration || m == Modal::ConfirmMove || m == Modal::Lesson ||
-         m == Modal::Tutorial || m == Modal::Perks || pick_ != PickTarget::None;
+         m == Modal::Tutorial || m == Modal::Perks || m == Modal::Lab || m == Modal::ConfirmCombo || pick_ != PickTarget::None;
 }
 
 // The pattern card, the help overlay and the journal are modal: only their own key and Esc act, so the
@@ -179,7 +190,10 @@ void GameViewModel::run_action(Action a) {
     case Action::Advance: autoplay.running ? autoplay.stop() : advance(1); break;
     case Action::Advance5: autoplay.running ? autoplay.stop() : advance(5); break;
     case Action::Auto: autoplay.toggle(!active()); break;
-    case Action::Mute: muted_ = !muted_; break;
+    case Action::Mute:
+      prefs_.audio.muted = !prefs_.audio.muted;
+      save_prefs();
+      break;
     case Action::Buy: ticket.side = Side::Buy; break;
     case Action::Sell: ticket.side = Side::Sell; break;
     case Action::Close: close_position(); break;
@@ -200,7 +214,7 @@ bool GameViewModel::escape() {
     return true;
   }
   const bool closes = modal_ == Modal::Plan || modal_ == Modal::ConfirmMove || modal_ == Modal::Lesson ||
-                      modal_ == Modal::Tutorial || modal_ == Modal::Perks;
+                      modal_ == Modal::Tutorial || modal_ == Modal::Perks || modal_ == Modal::Lab || modal_ == Modal::ConfirmCombo;
   if (closes) close_modal();
   return closes;
 }

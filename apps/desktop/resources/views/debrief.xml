@@ -8,6 +8,7 @@
         <Label Name="debrief-text" Wrap="true" Class="down"/>
         <Label Name="debrief-mission" Class="muted"/>
         <Label Name="debrief-tags" Class="attention"/>
+        <Label Name="debrief-assisted" Wrap="true" Class="attention"/>
         <Border Name="debrief-campaign-panel" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
             <VBox Spacing="6">
                 <VBox Name="debrief-campaign" Spacing="4"/>
@@ -50,8 +51,23 @@
         <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
             <VBox Spacing="4">
                 <Label Name="debrief-findings-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <!-- Guided first trade, last step (web CoachMarks.svelte on the debrief's findings). -->
+                <Border Name="debrief-coach" Background="#0B1010" BorderColor="#39FF88" BorderWidth="2" Padding="10">
+                    <VBox Spacing="4">
+                        <Label Name="debrief-coach-step" Class="muted"/>
+                        <Label Name="debrief-coach-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                        <Label Name="debrief-coach-body" Wrap="true"/>
+                        <HBox Spacing="8">
+                            <Button Name="debrief-coach-skip" Style="Flat" OnClicked="tl.coach.skip"/>
+                            <Spacer Slot.Fill="1"/>
+                            <Button Name="debrief-coach-next" Style="Primary" OnClicked="tl.coach.next"/>
+                        </HBox>
+                    </VBox>
+                </Border>
                 <VBox Name="debrief-findings" Spacing="4"/>
+                <Label Name="debrief-term-help" Wrap="true" Class="info"/>
                 <Label Name="debrief-next-lesson" Wrap="true" Class="info"/>
+                <Button Name="debrief-open-lesson" OnClicked="tl.debrief.lesson" Slot.HAlign="Left"/>
                 <Label Name="debrief-disclaimer" Wrap="true" Class="muted"/>
             </VBox>
         </Border>
@@ -87,7 +103,33 @@
             </VBox>
         </Border>
         <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="debrief-chart-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Custom Name="debrief-chart" Height="320" AccessibleRole="Image"/>
+                <Label Name="debrief-chart-note" Wrap="true" Class="muted"/>
+                <HBox Spacing="6">
+                    <Button Name="debrief-bars-prev" OnClicked="tl.debrief.barsPrev"/>
+                    <Label Name="debrief-bars-page" Class="muted" Slot.VAlign="Center"/>
+                    <Button Name="debrief-bars-next" OnClicked="tl.debrief.barsNext"/>
+                </HBox>
+                <Table Name="debrief-bars" Height="180" Striped="true"/>
+            </VBox>
+        </Border>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
             <VBox Name="debrief-timeline" Spacing="2"/>
+        </Border>
+        <Border Name="debrief-assist" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="4">
+                <Label Name="debrief-assist-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Label Name="debrief-assist-note" Wrap="true" Class="muted" TextSize="12"/>
+                <Label Name="debrief-assist-blocked" Wrap="true" Class="attention" TextSize="12"/>
+                <Label Name="debrief-assist-turn-label" Wrap="true"/>
+                <TextInput Name="debrief-assist-turn" Width="80"/>
+                <WrapBox Spacing="6">
+                    <Button Name="debrief-assist-rewind" OnClicked="tl.assist.rewind"/>
+                    <Button Name="debrief-assist-new-seed" OnClicked="tl.assist.newSeed"/>
+                </WrapBox>
+            </VBox>
         </Border>
     </VBox>
 </Border>

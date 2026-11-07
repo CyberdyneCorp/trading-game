@@ -37,7 +37,12 @@ struct Bar {
   double volume = 0;
 };
 
-enum class CommandKind : std::uint8_t { Start, Advance, Market, Game, Resume, StartPack };
+enum class CommandKind : std::uint8_t { Start, Advance, Market, Game, Resume, StartPack, Rewind };
+
+// Report-only engine calls (design D4 of add-academy-and-strategies): never logged, never change a run.
+// WhatIf is run-less (tl_option_whatif, the Academy lab); RunWhatIf (tl_run_option_whatif) and
+// ComboPreview (tl_combo_preview) read the run in play.
+enum class AnalysisKind : std::uint8_t { WhatIf, RunWhatIf, ComboPreview };
 
 // Terminal commands (CommandKind::Game), one per engine call of the C ABI (model/game_command.hpp).
 enum class GameCommandKind : std::uint8_t {
@@ -93,6 +98,14 @@ struct RunOptions {
   bool operator==(const RunOptions&) const = default;
 };
 
+// Links stored on a new run's record (the web's RunRecord.campaign / .assisted), as their JSON
+// objects: {"id","index"} for a campaign mission, {"from","kind","step"} for an assisted attempt.
+// Empty = none.
+struct RunLinks {
+  std::string campaign;
+  std::string assisted;
+};
+
 struct Snapshot {
   std::uint64_t seq = 0;  // increases with every published snapshot of a host
   std::string mission;
@@ -139,7 +152,13 @@ struct Snapshot {
   // A schema-v2 pack's own mission texts (mission.json, checked by the engine; one per locale), shown
   // in place of the generic pack texts. Empty for missions and packs without them.
   std::vector<PackText> pack_texts;
+  // The stored run this state belongs to ("" without storage) and whether it is an assisted attempt.
+  std::string run_id;
+  bool assisted = false;
   bool durable = true;  // false once a storage write failed: play goes on but may not resume
+  // The run's logged actions so far (the web's session log), shared and immutable: the strategy
+  // builder rebuilds its combos from their tags (combos.hpp). Null before a run.
+  std::shared_ptr<const std::vector<std::string>> log;
 
   [[nodiscard]] bool active() const { return status == "active"; }
 };

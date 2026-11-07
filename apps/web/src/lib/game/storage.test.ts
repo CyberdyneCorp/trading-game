@@ -115,12 +115,15 @@ describe('RunStore (IndexedDB)', () => {
 	it('migrates a version-1 progress record: points and tutorials kept, no campaign, nothing assessed', async () => {
 		await store.saveProgress({ tutorialsSeen: ['m01-false-breakout'], advisorPoints: 7, settledRuns: ['r9'] } as never);
 		expect(await store.progress()).toEqual({
-			version: 2,
+			version: 3,
 			tutorialsSeen: ['m01-false-breakout'],
 			advisorPoints: 7,
 			settledRuns: ['r9'],
 			perksIntroduced: [],
 			lessonsDone: [],
+			lessonReviews: {},
+			coachDone: [],
+			glossarySeen: [],
 			campaign: null,
 			campaignHistory: [],
 			assessed: []
@@ -182,7 +185,7 @@ describe('RunStore (IndexedDB)', () => {
 		await store.clearPartial('d1');
 		expect(await store.partialChunks('d1')).toEqual([]);
 		expect(await store.partialSizes()).toEqual(new Map([['d2', 11]]));
-		expect((await store.progress()).version).toBe(2); // meta rows of other kinds are untouched
+		expect((await store.progress()).version).toBe(3); // meta rows of other kinds are untouched
 	});
 
 	it('keeps the last catalog manifest read online', async () => {

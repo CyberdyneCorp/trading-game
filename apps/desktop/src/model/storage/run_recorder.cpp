@@ -90,8 +90,19 @@ void RunRecorder::begin(const RunRecord& record) {
   });
 }
 
-std::unique_ptr<EngineRun> RunRecorder::start(const std::string& mission, std::uint32_t seed, const RunOptions& options) {
+namespace {
+
+void set_links(RunRecord& r, const RunLinks& links) {
+  if (!links.campaign.empty()) r.campaign = links.campaign;
+  if (!links.assisted.empty()) r.assisted = links.assisted;
+}
+
+}  // namespace
+
+std::unique_ptr<EngineRun> RunRecorder::start(const std::string& mission, std::uint32_t seed, const RunOptions& options,
+                                              const RunLinks& links) {
   RunRecord r;
+  set_links(r, links);
   r.run_id = new_run_id();
   r.mission_id = mission;
   r.seed = seed;
@@ -109,7 +120,8 @@ std::unique_ptr<EngineRun> RunRecorder::start(const std::string& mission, std::u
   return run;
 }
 
-std::unique_ptr<EngineRun> RunRecorder::start_pack(const std::string& digest, std::uint32_t seed, std::string* reason) {
+std::unique_ptr<EngineRun> RunRecorder::start_pack(const std::string& digest, std::uint32_t seed, std::string* reason,
+                                                   const RunLinks& links) {
   auto set_reason = [&](const char* why) {
     if (reason != nullptr) *reason = why;
   };
@@ -136,6 +148,7 @@ std::unique_ptr<EngineRun> RunRecorder::start_pack(const std::string& digest, st
   r.engine = engine_.engine;
   r.engine_abi = engine_.abi;
   r.pack_digest = digest;
+  set_links(r, links);
   const Snapshot s = run->snapshot();
   r.digest = s.digest;
   r.equity = s.equity;
@@ -247,6 +260,8 @@ std::optional<Resumed> RunRecorder::resume() {
   const auto total = static_cast<std::int64_t>(stored->actions.size());
   for (std::int64_t i = restored; i < total; ++i) apply_action(*run, parse_action(stored->actions[static_cast<std::size_t>(i)]));
   out.notice = replay_notice(r, total, state_digest(*run));
+  out.record = r;
+  out.log = stored->actions;
   out.actions = total;
   out.from_checkpoint = restored;
   run_id_ = r.run_id;

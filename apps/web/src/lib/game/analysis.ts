@@ -16,7 +16,8 @@ export interface PlanEntry {
 	plannedRisk: number | null;
 	skipped: boolean;
 	loseScenario?: string;
-	instrument?: string; // option series label; absent = perpetual
+	instrument?: string; // option series label or combo name; absent = perpetual
+	combo?: string; // the strategy-builder combo this plan opened (its id)
 }
 
 const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {

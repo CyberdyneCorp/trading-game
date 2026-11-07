@@ -8,11 +8,14 @@
 //   {"k":"plan","side","skipped","option","lose","inv","target","conf","risk"}  {"k":"ans","pBp","skipped"}
 //   {"k":"lesson","q","choice","value","skipped"}  {"k":"cancel","id"}  {"k":"move","id","price"}
 //   {"k":"close"}  {"k":"advice"}
+// Strategy-builder legs (orders, option orders, the cancels of a withdrawn combo) add "combo" and
+// "strategy" as the web does; replay ignores them, so a tagged log reaches the untagged log's digest.
 #pragma once
 
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "model/engine_run.hpp"
 #include "model/game_command.hpp"
@@ -79,5 +82,11 @@ ApplyResult apply_action(EngineRun& run, const Action& action);
 
 // True for {"k":"adv"} (they take no client id).
 bool is_advance(const json::Value& action);
+
+// Assisted practice (web assisted.ts rewindPrefix): the prefix of a log that brings a run from
+// `start_step` back to the decision at `to_step`, before anything was done there. Commands at earlier
+// steps are kept, an advance that crosses `to_step` is shortened to end on it, nothing after it is kept
+// except lesson answers (given in the briefing, so every rewind keeps them).
+std::vector<std::string> rewind_prefix(const std::vector<std::string>& log, int start_step, int to_step);
 
 }  // namespace tradelab::desktop::storage

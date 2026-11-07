@@ -1,99 +1,101 @@
 <script lang="ts">
-	// Academy lesson runner (spec curriculum "Ordered learning stages"; web-client task 4.4): concept,
-	// demonstration, decisions with feedback after each answer, and a transfer exercise on another
-	// market. A wrong answer explains and lets the player choose again; the first try is what counts
-	// for the score. Finishing records the lesson in local progress.
+	// Academy lesson runner (design D2; spec academy): concept, demonstration, decisions with feedback
+	// after each answer, and a transfer exercise on another market. Each step can show a chart, a
+	// ticket sandbox, a payoff diagram or a table, and ask a choice, a typed number or a target to reach
+	// with the sandbox. A wrong answer explains and lets the player answer again; the first try is what
+	// counts. A spaced review runs only the decision and transfer questions. The lesson file loads
+	// lazily, so lessons stay out of the initial bundle.
+	import { untrack } from 'svelte';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { firstTryScore, lessonById, lessonText, type Choice } from '#lib/game/academy.ts';
-	import { fmtPct } from '#lib/game/format.ts';
+	import { lessonText, loadLesson } from '#lib/content/academy.ts';
+	import { initialInputs, type SandboxInputs } from '#lib/content/ticketSandbox.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { LessonRun } from '#lib/game/lessonRun.svelte.ts';
 	import LessonChart from './LessonChart.svelte';
+	import LessonPayoff from './LessonPayoff.svelte';
+	import LessonQuestion from './LessonQuestion.svelte';
+	import LessonTable from './LessonTable.svelte';
+	import LessonTicket from './LessonTicket.svelte';
+	import RichText from './RichText.svelte';
 
 	let { session }: { session: GameSession } = $props();
 
-	const lesson = $derived(lessonById(session.lessonId));
-	const text = $derived(lessonText(session.lessonId, i18n.locale));
-	let i = $state(0);
-	let picked = $state<number | null>(null);
-	let firstTry = $state(new Map<string, boolean>());
-	let finished = $state(false);
+	let run = $state<LessonRun | null>(null);
+	let missing = $state(false);
+	let inputs = $state<SandboxInputs | null>(null);
 
-	const step = $derived(lesson?.steps[i]);
-	const st = $derived(step ? text.steps[step.id] : null);
-	const solved = $derived(!step?.question || picked === step.question.answer);
-	const last = $derived(!!lesson && i >= lesson.steps.length - 1);
-	const score = $derived(lesson ? firstTryScore(lesson, firstTry) : { right: 0, total: 0 });
+	$effect(() => {
+		const id = session.lessonId;
+		const mode = session.lessonMode;
+		untrack(() => {
+			run = null;
+			missing = false;
+		});
+		void loadLesson(id).then((l) => {
+			if (session.lessonId !== id) return;
+			if (l) run = new LessonRun(l, mode);
+			else missing = true;
+		});
+	});
 
-	function choiceText(c: Choice): string {
-		if (c.kind === 'bar') return t('academy.bar', { n: c.bar });
-		if (c.kind === 'pct') return fmtPct(c.value / 100, i18n.locale, 2, true);
-		return st?.choices?.[c.id] ?? c.id;
-	}
+	const text = $derived(run ? lessonText(run.lesson, i18n.locale) : null);
+	const step = $derived(run?.step);
+	const st = $derived(step && text ? text.steps[step.id] : null);
+	const review = $derived(session.lessonMode === 'review');
 
-	function pick(k: number) {
-		if (!step?.question || solved) return;
-		picked = k;
-		if (!firstTry.has(step.id)) firstTry = new Map(firstTry).set(step.id, k === step.question.answer);
-	}
+	// A fresh sandbox for every step that shows one.
+	$effect(() => {
+		const w = step?.widget;
+		untrack(() => (inputs = w?.kind === 'ticket' ? initialInputs(w) : null));
+	});
 
-	function next() {
-		if (!solved) return;
-		if (last) finished = true;
-		else {
-			i += 1;
-			picked = null;
-		}
-	}
+	const finish = () => run && session.finishLesson(run.lesson.id, run.allRightFirstTry);
 </script>
 
 <main class="lesson">
-	{#if !lesson}
+	{#if missing}
 		<p class="panel down" role="alert">{t('academy.missing')}</p>
-		<button onclick={() => session.openCurriculum()}>{t('academy.leave')}</button>
-	{:else if finished}
+		<button onclick={() => session.leaveLesson()}>{t('academy.leave')}</button>
+	{:else if !run || !text}
+		<p class="muted" role="status">{t('state.loading')}</p>
+	{:else if run.finished}
 		<section class="panel" aria-live="polite" data-testid="lesson-done">
-			<h1>{t('academy.doneTitle')}</h1>
+			<h1>{review ? t('academy.reviewDoneTitle') : t('academy.doneTitle')}</h1>
 			<p>{text.title}</p>
-			<p data-testid="lesson-score">{t('academy.doneScore', { right: score.right, total: score.total })}</p>
+			<p data-testid="lesson-score">{t('academy.doneScore', { right: run.score.right, total: run.score.total })}</p>
+			{#if review}
+				<p data-testid="review-outcome">{run.allRightFirstTry ? t('academy.reviewUp') : t('academy.reviewReset')}</p>
+			{:else}
+				<p class="muted">{t('academy.reviewNext')}</p>
+			{/if}
 			<p class="muted">{t('academy.doneNote')}</p>
-			<button class="primary" onclick={() => session.finishLesson(lesson.id)} data-testid="lesson-finish">{t('academy.finish')}</button>
+			<button class="primary" onclick={finish} data-testid="lesson-finish">{t(session.lessonReturn === 'academy' ? 'academy.backToAcademy' : 'academy.finish')}</button>
 		</section>
 	{:else if step && st}
 		<section class="panel" aria-labelledby="lesson-step-title">
 			<p class="muted head">
-				<span>{text.title} · <span class="tag info" data-testid="lesson-phase">{t(`academy.phase.${step.phase}`)}</span></span>
-				<span data-testid="lesson-step">{t('tut.step', { n: i + 1, total: lesson.steps.length })}</span>
+				<span>{text.title}{review ? ` · ${t('academy.review')}` : ''} · <span class="tag info" data-testid="lesson-phase">{t(`academy.phase.${step.phase}`)}</span></span>
+				<span data-testid="lesson-step">{t('tut.step', { n: run.i + 1, total: run.steps.length })}</span>
 			</p>
 			<h1 id="lesson-step-title">{st.title}</h1>
 			{#if step.chart}<LessonChart chart={step.chart} />{/if}
-			<p class="body">{st.body}</p>
+			{#if step.widget?.kind === 'ticket' && inputs}
+				<LessonTicket widget={step.widget} bind:inputs />
+			{:else if step.widget?.kind === 'payoff'}
+				<LessonPayoff widget={step.widget} />
+			{:else if step.widget?.kind === 'table'}
+				<LessonTable widget={step.widget} text={st} />
+			{/if}
+			<p class="body"><RichText text={st.body} /></p>
 			{#if step.question}
-				<div class="choices" role="group" aria-label={st.title}>
-					{#each step.question.choices as c, k (k)}
-						<button
-							class:right={picked === k && k === step.question.answer}
-							class:wrong={picked === k && k !== step.question.answer}
-							onclick={() => pick(k)}
-							disabled={solved && k !== step.question.answer}
-							data-testid="lesson-choice"
-						>
-							{choiceText(c)}
-						</button>
-					{/each}
-				</div>
-				{#if picked !== null}
-					<p class={solved ? 'up' : 'down'} role="status" data-testid="lesson-feedback">
-						<strong>{solved ? t('academy.right') : t('academy.wrong')}</strong>
-						{solved ? st.right : st.wrong}
-					</p>
-				{/if}
+				{#key step.id}<LessonQuestion {run} {step} {st} {inputs} />{/key}
 			{/if}
 			<div class="actions">
-				<button class="link" onclick={() => session.openCurriculum()}>{t('academy.leave')}</button>
+				<button class="link" onclick={() => session.leaveLesson()}>{t('academy.leave')}</button>
 				<span class="nav">
-					<button onclick={() => ((i -= 1), (picked = null))} disabled={i === 0}>{t('tut.prev')}</button>
-					<button class="primary" onclick={next} disabled={!solved} data-testid="lesson-next">
-						{last ? t('academy.complete') : t('tut.next')}
+					<button onclick={() => run?.prev()} disabled={run.i === 0}>{t('tut.prev')}</button>
+					<button class="primary" onclick={() => run?.next()} disabled={!run.solved} data-testid="lesson-next">
+						{run.last ? t('academy.complete') : t('tut.next')}
 					</button>
 				</span>
 			</div>
@@ -119,20 +121,6 @@
 	}
 	.body {
 		line-height: 1.5;
-	}
-	.choices {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 0.4rem;
-		margin: 0.6rem 0;
-	}
-	.choices button.right {
-		border-color: var(--up);
-		color: var(--up);
-	}
-	.choices button.wrong {
-		border-color: var(--down);
-		color: var(--down);
 	}
 	.actions {
 		display: flex;

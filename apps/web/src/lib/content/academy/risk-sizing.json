@@ -1,0 +1,147 @@
+{
+	"id": "risk-sizing",
+	"stage": "risk",
+	"checks": [
+		{ "kind": "size", "equity": 10000, "riskPct": 1, "entry": 100, "stop": 96, "expect": 25 },
+		{ "kind": "risk", "entry": 100, "stop": 96, "qty": 25, "expect": 100 },
+		{ "kind": "r", "entry": 100, "stop": 96, "target": 108, "expect": 2 },
+		{ "kind": "diff", "a": 108, "b": 100, "expect": 8 },
+		{ "kind": "size", "equity": 10000, "riskPct": 1, "entry": 250, "stop": 260, "expect": 10 },
+		{ "kind": "risk", "entry": 250, "stop": 260, "qty": 10, "expect": 100 },
+		{ "kind": "product", "a": 25, "b": 100, "expect": 2500 },
+		{ "kind": "leverage", "notional": 2500, "margin": 500, "expect": 5 },
+		{ "kind": "leverage", "notional": 2500, "margin": 250, "expect": 10 }
+	],
+	"steps": [
+		{
+			"id": "size",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Primeiro o risco, depois a quantidade",
+					"body": "Decida quanto aceita perder se o [[stop-loss|stop]] executar: o [[risk-budget|orçamento de risco]], por exemplo 1% de 10.000 = 100. Depois, [[position-sizing|quantidade]] = orçamento / distância até o stop. Com entrada 100 e stop 96, a distância é 4 e a quantidade é 25. A ordem é essa: risco, stop, quantidade."
+				},
+				"en": {
+					"title": "Risk first, then quantity",
+					"body": "Decide how much you accept to lose if the [[stop-loss|stop]] fills: the [[risk-budget|risk budget]], for example 1% of 10,000 = 100. Then [[position-sizing|quantity]] = budget / distance to the stop. With entry 100 and stop 96 the distance is 4 and the quantity is 25. The order is: risk, stop, quantity."
+				}
+			}
+		},
+		{
+			"id": "leverage",
+			"phase": "demo",
+			"widget": {
+				"kind": "ticket",
+				"market": "R",
+				"equity": 10000,
+				"entry": 100,
+				"side": "buy",
+				"qty": 25,
+				"leverage": 5,
+				"maxLeverage": 10,
+				"stop": 96,
+				"target": null,
+				"mmr": 0.01,
+				"lot": 1,
+				"edit": ["leverage"]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "A alavancagem não muda o risco",
+					"body": "25 unidades a 100 são 2.500 de nocional. A 5× a margem é 500; a 10×, 250. Mude a alavancagem: o risco até o stop continua 100, porque ele só depende da quantidade e da distância. O que muda é a margem presa e a distância até a liquidação."
+				},
+				"en": {
+					"title": "Leverage does not change the risk",
+					"body": "25 units at 100 are 2,500 notional. At 5× the margin is 500; at 10×, 250. Change the leverage: the risk to the stop stays 100, because it depends only on quantity and distance. What changes is the margin tied up and the distance to liquidation."
+				}
+			}
+		},
+		{
+			"id": "set-size",
+			"phase": "decision",
+			"widget": {
+				"kind": "ticket",
+				"market": "R",
+				"equity": 10000,
+				"entry": 100,
+				"side": "buy",
+				"qty": 10,
+				"leverage": 3,
+				"maxLeverage": 10,
+				"stop": 96,
+				"target": null,
+				"mmr": 0.01,
+				"lot": 1,
+				"edit": ["qty"]
+			},
+			"question": { "type": "set", "field": "riskAtStop", "target": 100, "tolerance": 4 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: dimensione o trade",
+					"body": "Capital de 10.000, risco de 1%, entrada 100, stop 96. Ajuste a quantidade até o risco no stop ser 1% do capital.",
+					"right": "25 unidades × 4 de distância = 100, exatamente 1% de 10.000. Custos (taxas, spread) somam um pouco: o ticket do jogo já os inclui e arredonda para baixo.",
+					"wrong": "O risco no stop ainda não é 100. Quantidade = 100 / (100 − 96)."
+				},
+				"en": {
+					"title": "Decision: size the trade",
+					"body": "Capital 10,000, 1% risk, entry 100, stop 96. Adjust the quantity until the risk at the stop is 1% of capital.",
+					"right": "25 units × a distance of 4 = 100, exactly 1% of 10,000. Costs (fees, spread) add a little: the game's ticket includes them and rounds down.",
+					"wrong": "The risk at the stop is not 100 yet. Quantity = 100 / (100 − 96)."
+				}
+			}
+		},
+		{
+			"id": "r",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 2, "tolerance": 0.001, "unit": "R" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: quantos R?",
+					"body": "No mesmo trade (entrada 100, stop 96), o alvo é 108. Quantos R vale o alvo?",
+					"right": "R é a distância até o stop (4). O alvo está a 8: 8 / 4 = 2R. Medir em [[r-multiple|R]] compara trades de tamanhos diferentes.",
+					"wrong": "R = (alvo − entrada) / (entrada − stop)."
+				},
+				"en": {
+					"title": "Decision: how many R?",
+					"body": "In the same trade (entry 100, stop 96), the target is 108. How many R is the target worth?",
+					"right": "R is the distance to the stop (4). The target is 8 away: 8 / 4 = 2R. Measuring in [[r-multiple|R]] compares trades of different sizes.",
+					"wrong": "R = (target − entry) / (entry − stop)."
+				}
+			}
+		},
+		{
+			"id": "short",
+			"phase": "transfer",
+			"widget": {
+				"kind": "ticket",
+				"market": "J",
+				"equity": 10000,
+				"entry": 250,
+				"side": "sell",
+				"qty": 30,
+				"leverage": 3,
+				"maxLeverage": 10,
+				"stop": 260,
+				"target": null,
+				"mmr": 0.01,
+				"lot": 1,
+				"edit": ["qty"]
+			},
+			"question": { "type": "set", "field": "riskAtStop", "target": 100, "tolerance": 10 },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: um short",
+					"body": "Mercado J, perto de 250. Um short a 250 com stop em 260, capital de 10.000 e risco de 1%. Ajuste a quantidade.",
+					"right": "100 / 10 = 10 unidades. Num short o stop fica acima da entrada, mas a conta é a mesma.",
+					"wrong": "A distância até o stop agora é 260 − 250. Divida o orçamento de 100 por ela."
+				},
+				"en": {
+					"title": "Transfer: a short",
+					"body": "Market J, near 250. A short at 250 with a stop at 260, capital 10,000 and 1% risk. Adjust the quantity.",
+					"right": "100 / 10 = 10 units. For a short the stop sits above the entry, but the arithmetic is the same.",
+					"wrong": "The distance to the stop is now 260 − 250. Divide the budget of 100 by it."
+				}
+			}
+		}
+	]
+}

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "model/engine_run.hpp"
+#include "support/shell_helpers.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -60,6 +61,7 @@ struct Fixture {
   Fixture() {
     std::int64_t t = 1'700'000'000'000;
     vm.set_clock([t]() mutable { return t += 1000; });
+    testing::tutorials_seen(vm);  // the tutorial screen has its own tests
   }
   // Menu -> briefing -> terminal of `run`.
   void enter(RealRun& run) {
@@ -92,16 +94,16 @@ TEST_CASE("shell: menu lists the missions, the campaign and no resume line at st
   Fixture f;
   const ScreenModel m = f.vm.screen_model();
   REQUIRE(m.items.size() == 1);
-  CHECK(m.items[0].items.size() == 12);
+  CHECK(m.items[0].items.size() == 17);
   CHECK(m.items[0].items[0] == "Missão 01 · Range");
   CHECK_FALSE(m.is_visible(names::kMenuResumeRow));
   CHECK(m.text_of(names::kCampaignStart) == "▶ Começar campanha");
   CHECK(m.text_of(names::kMenuCurriculum) == "▦ Currículo e progresso");
   const WidgetLines* steps = m.lines_of(names::kCampaignSteps);
   REQUIRE(steps != nullptr);
-  CHECK(steps->lines.size() == 12);
+  CHECK(steps->lines.size() == 17);
   CHECK(steps->lines[0].text == "· Missão 06 · Livro fino");
-  // Twelve identical buttons on the web: the screen-reader name says which mission.
+  // Identical buttons on the web: the screen-reader name says which mission.
   bool named = false;
   for (const auto& n : m.names) named = named || (n.widget == names::kMenuStart && n.text == "Iniciar missão: Missão 01 · Range");
   CHECK(named);
@@ -212,7 +214,7 @@ TEST_CASE("shell: a campaign starts its first mission with the campaign capital 
   f.enter(run);
   f.vm.back_to_menu();  // from the terminal, back to the menu: the campaign panel offers Continue
   ScreenModel m = f.vm.screen_model();
-  CHECK(m.text_of(names::kCampaignProgress).starts_with("Missão 1 de 12: Missão 06 · Livro fino"));
+  CHECK(m.text_of(names::kCampaignProgress).starts_with("Missão 1 de 17: Missão 06 · Livro fino"));
   CHECK(m.is_visible(names::kCampaignContinue, false));
   f.vm.campaign_continue();  // resumes the mission in play
   CHECK(f.vm.screen() == Screen::Game);
@@ -221,7 +223,7 @@ TEST_CASE("shell: a campaign starts its first mission with the campaign capital 
   REQUIRE(f.vm.screen() == Screen::Debrief);
   const ScreenModel d = f.vm.screen_model();
   CHECK(d.is_visible(names::kDebriefCampaignPanel, false));
-  CHECK(has_line(d, names::kDebriefCampaign, "CAMPANHA 1/12"));
+  CHECK(has_line(d, names::kDebriefCampaign, "CAMPANHA 1/17"));
   CHECK(has_line(d, names::kDebriefCampaign, "Estágios aprovados: Estrutura de mercado, Ordens"));
   CHECK(d.is_visible(names::kDebriefCampaignNext, false));
   CHECK_FALSE(d.is_visible(names::kDebriefAgain));
@@ -261,7 +263,7 @@ TEST_CASE("shell: curriculum map statuses, Academy lesson to completion, stage p
   ScreenModel m = f.vm.screen_model();
   const WidgetTable* stages = m.table_of(names::kCurriculumStages);
   REQUIRE(stages != nullptr);
-  REQUIRE(stages->rows.size() == 13);
+  REQUIRE(stages->rows.size() == 14);
   CHECK(stages->rows[0][1] == "Fundamentos");
   CHECK(stages->rows[0][2] == "DISPONÍVEL");
   CHECK(stages->rows[3][2] == "BLOQUEADO");
@@ -275,11 +277,11 @@ TEST_CASE("shell: curriculum map statuses, Academy lesson to completion, stage p
   CHECK(m.text_of(names::kLessonStep) == "1 de 8");
   while (!f.vm.shell().lesson.finished()) {
     const LessonStep* s = f.vm.shell().lesson.step();
-    if (s->question()) {
-      f.vm.lesson_pick((s->answer + 1) % static_cast<int>(s->choices.size()));  // wrong first
+    if (s->is_question()) {
+      f.vm.lesson_pick((s->question->answer + 1) % static_cast<int>(s->question->choices.size()));  // wrong first
       m = f.vm.screen_model();
       CHECK(m.text_of(names::kLessonFeedback).starts_with("Tente de novo. "));
-      f.vm.lesson_pick(s->answer);
+      f.vm.lesson_pick(s->question->answer);
     }
     f.vm.lesson_next();
   }
@@ -347,7 +349,7 @@ TEST_CASE("shell: journal lists the plans of the runs, newest first, with a miss
   CHECK(m.lines_of(names::kJournalRuns)->lines[0].text.starts_with("Missão 01 · Range"));
 }
 
-TEST_CASE("shell: settings toggle CRT effects, palette, text scale, language and remap shortcuts") {
+TEST_CASE("shell: settings toggle CRT effects, palette, text scale, sound, language and remap shortcuts") {
   Fixture f;
   MemorySettingsRepository repo;
   f.vm.attach_repositories(nullptr, &repo);
@@ -386,6 +388,18 @@ TEST_CASE("shell: settings toggle CRT effects, palette, text scale, language and
   f.vm.reset_keys();
   CHECK(f.vm.shell().keymap.at("buy") == "b");
   CHECK(f.vm.game().keymap().key(game::Action::Buy) == "b");
+
+  // Sound (the web menu's block): on/off and the two volumes, shared with the terminal's mute key.
+  m = f.vm.screen_model();
+  CHECK(m.text_of(names::kSettingsSound) == "Som (música e efeitos)");
+  CHECK(m.text_of(names::kSettingsMusicLabel) == "Música 35%");
+  f.vm.set_sound_on(false);
+  f.vm.set_music_volume(0.6);
+  f.vm.set_sfx_volume(2);
+  CHECK(f.vm.game().muted());
+  m = f.vm.screen_model();
+  CHECK(m.text_of(names::kSettingsMusicLabel) == "Música 60%");
+  CHECK(m.text_of(names::kSettingsSfxLabel) == "Efeitos 100%");
 
   f.vm.set_locale(Locale::En);
   CHECK(repo.load()->locale == Locale::En);

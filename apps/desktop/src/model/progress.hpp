@@ -3,8 +3,8 @@
 // the rules that change them are ported in viewmodel/ (campaign, curriculum, journal, keymap).
 //
 // Repositories: the interfaces below are what viewmodels read and write. The in-memory ones keep
-// the data for the session; the SQLite-backed ones of task 1.9 (meta store) replace them without
-// touching the viewmodels.
+// the data for the session (tests, or no saved-data folder); the app uses the SQLite-backed ones
+// (model/storage/profile_store.hpp).
 #pragma once
 
 #include <cstdint>
@@ -63,6 +63,15 @@ struct CampaignLink {
   bool operator==(const CampaignLink&) const = default;
 };
 
+// How an assisted practice attempt was made (web assisted.ts AssistedLink): rewound to a decision of
+// the run `from`, or the same mission on another market ("seed").
+struct AssistedLink {
+  std::string from;
+  std::string kind = "rewind";  // rewind | seed
+  std::optional<int> step;      // rewind: the decision step the attempt resumes at
+  bool operator==(const AssistedLink&) const = default;
+};
+
 // ---- Runs and their journal (analysis.ts PlanEntry, storage.ts RunRecord) ----
 
 struct PlanEntry {
@@ -75,7 +84,8 @@ struct PlanEntry {
   std::optional<double> planned_risk;
   bool skipped = false;
   std::string lose_scenario;
-  std::string instrument;  // option series label; empty = perpetual
+  std::string instrument;  // option series label or combo name ("Iron condor · 4 legs"); empty = perpetual
+  std::string combo;       // the strategy-builder combo this plan opened ("c1"); empty = none
 };
 
 enum class RunStatus : std::uint8_t { Active, Finished, Bankrupt, Left };
@@ -94,10 +104,23 @@ struct RunRecord {
   std::vector<PlanEntry> journal;
 };
 
+// A lesson's spaced-review schedule (review.ts ReviewEntry): box 1..4 while scheduled, kReviewRetired
+// once retired; `due` is a local calendar day ("YYYY-MM-DD").
+inline constexpr int kReviewRetired = 5;
+struct ReviewEntry {
+  int box = 1;
+  std::string due;
+  bool operator==(const ReviewEntry&) const = default;
+};
+using LessonReviews = std::map<std::string, ReviewEntry, std::less<>>;
+
 struct Progress {
   std::vector<std::string> completed;     // missions played to the end (not bankrupt)
   std::vector<std::string> assessed;      // missions finished in a campaign run: their stages are passed
   std::vector<std::string> lessons_done;  // Academy lessons completed
+  LessonReviews lesson_reviews;           // spaced reviews of completed lessons (progress v3)
+  std::vector<std::string> coach_done;    // guided tours finished or skipped ("first-trade")
+  std::vector<std::string> glossary_seen; // glossary terms opened (the "new" mark)
   std::optional<CampaignRun> campaign;
   std::vector<CampaignRun> campaign_history;  // ended campaign runs, oldest first
   std::vector<RunRecord> runs;
@@ -137,6 +160,8 @@ struct Settings {
   bool colorblind = false;
   float text_scale = 1.0f;
   std::map<std::string, std::string> keymap;  // action -> key; empty = the web's defaults
+  // The day the menu's review prompt was dismissed ("YYYY-MM-DD"; the web's tradelab.reviewDismissed.v1).
+  std::string review_dismissed_on;
 };
 
 class SettingsRepository {

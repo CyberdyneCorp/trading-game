@@ -4,7 +4,7 @@
 	import { fmtMoney, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
-	let { entries }: { entries: readonly PlanEntry[] } = $props();
+	let { entries, comboNote = () => null }: { entries: readonly PlanEntry[]; comboNote?: (id: string) => string | null } = $props();
 	const L = $derived(i18n.locale);
 
 	// Old entries may hold NaN (a decimal comma read before the fix): shown as no level.
@@ -26,6 +26,7 @@
 		<li data-testid="journal-entry">
 			<span class="muted">[{t('journal.bar', { step: p.step })}]</span>
 			<span class={p.side === 'buy' ? 'up' : 'down'}>{p.side === 'buy' ? '▲ LONG' : '▼ SHORT'}{p.instrument ? ` · ${p.instrument}` : ''}</span>
+			{#if p.combo && comboNote(p.combo)}<span class="small" data-testid="journal-combo">{comboNote(p.combo)}</span>{/if}
 			{#if p.skipped}
 				<span class="muted">— {t('journal.skipped')}</span>
 			{:else}

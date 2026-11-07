@@ -31,6 +31,17 @@ int32_t order_type_code(std::string_view type) {
 
 Action finish(JsonWriter& w) { return Action{w.end_object().text()}; }
 
+// The web spreads the ComboTag after the action's own fields ({...action, combo, strategy}).
+Action with_tag(Action a, const GameCommand& c) {
+  if (c.combo.empty() || a.json.empty() || a.json.back() != '}') return a;
+  JsonWriter w;
+  w.begin_object().field("combo", c.combo).field("strategy", c.strategy.empty() ? "custom" : c.strategy);
+  const std::string tag = w.end_object().text();
+  a.json.pop_back();
+  a.json += "," + tag.substr(1);
+  return a;
+}
+
 std::optional<std::string> present(const std::string& s) {
   return s.empty() ? std::nullopt : std::optional<std::string>(s);
 }
@@ -265,10 +276,11 @@ Action advice() {
 
 Action from_game(const GameCommand& c) {
   switch (c.kind) {
-    case GameCommandKind::Order: return order_from(c);
+    case GameCommandKind::Order: return with_tag(order_from(c), c);
     case GameCommandKind::TrailingRate: return trailing_rate_from(c);
-    case GameCommandKind::Option: return option(id_of(c.id), side_of(c.buy), c.type == 1, c.qty, present(c.price));
-    case GameCommandKind::Cancel: return cancel(id_of(c.id));
+    case GameCommandKind::Option:
+      return with_tag(option(id_of(c.id), side_of(c.buy), c.type == 1, c.qty, present(c.price)), c);
+    case GameCommandKind::Cancel: return with_tag(cancel(id_of(c.id)), c);
     case GameCommandKind::Move: return actions::move(id_of(c.id), c.price);
     case GameCommandKind::Leverage: return leverage(c.number);
     case GameCommandKind::Close: return close();
@@ -305,6 +317,28 @@ ApplyResult apply_action(EngineRun& run, const json::Value& action) {
   const auto parsed = json::parse(out.result);
   out.accepted = parsed && (*parsed)["accepted"].as_bool(false);
   out.reason = parsed ? (*parsed)["reason"].as_string("invalid") : "invalid";
+  return out;
+}
+
+std::vector<std::string> rewind_prefix(const std::vector<std::string>& log, int start_step, int to_step) {
+  std::vector<std::string> out;
+  int step = start_step;
+  for (const std::string& text : log) {
+    const auto parsed = json::parse(text);
+    const json::Value a = parsed ? *parsed : json::Value{};
+    const std::string kind = a["k"].as_string();
+    if (step >= to_step) {
+      if (kind == "lesson") out.push_back(text);
+      continue;
+    }
+    if (kind != "adv") {
+      out.push_back(text);
+      continue;
+    }
+    const int n = static_cast<int>(a["n"].as_int(1));
+    out.push_back(step + n > to_step ? actions::advance(to_step - step).json : text);
+    step += n;
+  }
   return out;
 }
 

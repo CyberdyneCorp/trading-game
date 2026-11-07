@@ -79,6 +79,33 @@ void EngineHost::start_pack(const std::string& digest, std::uint32_t seed) {
   enqueue(std::move(c));
 }
 
+void EngineHost::start_linked(const std::string& mission, std::uint32_t seed, const RunOptions& options,
+                              const RunLinks& links) {
+  Command c;
+  c.kind = CommandKind::Start;
+  c.mission = mission;
+  c.seed = seed;
+  c.options = options;
+  c.links = links;
+  enqueue(std::move(c));
+}
+
+void EngineHost::rewind(int to_step, const RunLinks& links) {
+  Command c;
+  c.kind = CommandKind::Rewind;
+  c.steps = to_step;
+  c.links = links;
+  enqueue(std::move(c));
+}
+
+void EngineHost::analyze(AnalysisKind kind, const std::string& request, AnalysisReply reply) {
+  Command c;
+  c.analysis = kind;
+  c.qty = request;
+  c.reply = std::move(reply);
+  enqueue(std::move(c));
+}
+
 void EngineHost::post_storage_job(StorageJob job) {
   // Not a run command: execute() runs the job instead.
   Command c;
@@ -124,6 +151,7 @@ void EngineHost::execute(const Command& c) {
     if (storage_) c.job(*storage_);
     return;
   }
+  if (c.reply) return run_analysis(c);
   switch (c.kind) {
     case CommandKind::Start: run_start(c); break;
     case CommandKind::Advance: run_advance(c.steps); break;
@@ -131,6 +159,7 @@ void EngineHost::execute(const Command& c) {
     case CommandKind::Game: run_game(c); break;
     case CommandKind::Resume: run_resume(); break;
     case CommandKind::StartPack: run_start_pack(c); break;
+    case CommandKind::Rewind: run_rewind(c); break;
   }
 }
 
@@ -148,16 +177,50 @@ void EngineHost::settle(Snapshot& s) {
   s.durable = recorder_->durable();
 }
 
+// A new engine run (and its stored record): a built-in mission, or an installed pack.
+std::unique_ptr<EngineRun> EngineHost::open_run(const Current& next, const RunLinks& links, std::string* reason) {
+  if (!next.pack_digest.empty()) {
+    if (!recorder_) {
+      *reason = "no_storage";
+      return nullptr;
+    }
+    return recorder_->start_pack(next.pack_digest, next.seed, reason, links);
+  }
+  auto run = recorder_ ? recorder_->start(next.mission, next.seed, next.options, links)
+                       : EngineRun::create(next.mission, next.seed, next.options);
+  if (!run) *reason = "unknown_mission";
+  return run;
+}
+
+// Every action applied to the run in play goes through here: logged (and committed first) and kept in
+// memory for an assisted rewind.
+storage::ApplyResult EngineHost::perform(const storage::Action& a) {
+  current_.log.push_back(a.json);
+  return recorder_ ? recorder_->perform(*run_, a) : storage::apply_action(*run_, a);
+}
+
+void EngineHost::stamp(Snapshot& s) {
+  if (recorder_) s.run_id = recorder_->run_id();
+  s.assisted = current_.assisted;
+  // One copy per change of the log (a command, an advance batch), shared by the snapshots after it.
+  if (!shared_log_ || *shared_log_ != current_.log) shared_log_ = std::make_shared<const std::vector<std::string>>(current_.log);
+  s.log = shared_log_;
+}
+
 void EngineHost::run_start(const Command& c) {
-  run_ = recorder_ ? recorder_->start(c.mission, c.seed, c.options) : EngineRun::create(c.mission, c.seed, c.options);
-  if (!run_) {
+  Current next{c.mission, c.seed, c.options, {}, !c.links.assisted.empty(), {}};
+  std::string reason;
+  auto run = open_run(next, c.links, &reason);
+  if (!run) {
     Snapshot s;
     s.mission = c.mission;
     s.status = "invalid";
-    s.results.push_back(CommandResult{CommandKind::Start, false, "unknown_mission"});
+    s.results.push_back(CommandResult{CommandKind::Start, false, reason});
     publish(std::move(s));
     return;
   }
+  run_ = std::move(run);
+  current_ = std::move(next);
   Snapshot s = run_->snapshot();
   settle(s);
   s.results.push_back(CommandResult{CommandKind::Start, true, "none"});
@@ -169,7 +232,9 @@ void EngineHost::run_start(const Command& c) {
 // carries the acknowledgement. The batch is one logged action, committed before the first bar.
 void EngineHost::run_advance(int steps) {
   if (!run_) return;
-  if (recorder_) recorder_->commit(storage::actions::advance(steps));
+  const storage::Action logged = storage::actions::advance(steps);
+  current_.log.push_back(logged.json);
+  if (recorder_) recorder_->commit(logged);
   for (int k = 1; k <= steps; ++k) {
     const bool active = run_->advance(1);
     const bool last = k == steps || !active;
@@ -188,8 +253,7 @@ void EngineHost::run_advance(int steps) {
 
 void EngineHost::run_market(const Command& c) {
   if (!run_) return;
-  const storage::Action a = storage::actions::market(c.side, c.qty);
-  const storage::ApplyResult r = recorder_ ? recorder_->perform(*run_, a) : storage::apply_action(*run_, a);
+  const storage::ApplyResult r = perform(storage::actions::market(c.side, c.qty));
   Snapshot s = run_->snapshot();
   settle(s);
   s.results.push_back(CommandResult{CommandKind::Market, r.accepted, r.reason});
@@ -209,6 +273,9 @@ void EngineHost::run_resume() {
     return publish(std::move(s));
   }
   run_ = std::move(r->run);
+  const storage::RunRecord& rec = r->record;
+  current_ = Current{rec.mission_id, rec.seed, rec.options, rec.pack_digest.value_or(""), rec.assisted.has_value(),
+                     std::move(r->log)};
   Snapshot s = run_->snapshot();
   s.resume_notice = storage::resume_notice_name(r->notice.kind);
   s.resume_detail = r->notice.detail;
@@ -219,9 +286,12 @@ void EngineHost::run_resume() {
 
 void EngineHost::run_start_pack(const Command& c) {
   if (!recorder_) return publish_refusal(CommandKind::StartPack, "no_storage");
+  Current next{{}, c.seed, {}, c.digest, false, {}};
   std::string reason;
-  run_ = recorder_->start_pack(c.digest, c.seed, &reason);
-  if (!run_) return publish_refusal(CommandKind::StartPack, reason);
+  auto run = open_run(next, c.links, &reason);
+  if (!run) return publish_refusal(CommandKind::StartPack, reason);
+  run_ = std::move(run);
+  current_ = std::move(next);
   Snapshot s = run_->snapshot();
   settle(s);
   s.results.push_back(CommandResult{CommandKind::StartPack, true, "none"});
@@ -240,12 +310,48 @@ void EngineHost::run_game(const Command& c) {
     publish(std::move(s));
     return;
   }
-  const storage::Action a = storage::actions::from_game(c.game);
-  const storage::ApplyResult applied = recorder_ ? recorder_->perform(*run_, a) : storage::apply_action(*run_, a);
+  const storage::ApplyResult applied = perform(storage::actions::from_game(c.game));
   Snapshot s = run_->snapshot();
   settle(s);
   s.results.push_back(game_result(c.game.kind, applied.result));
   publish(std::move(s));
+}
+
+// The same market and start options (without the advisor) and the actions logged before `to_step`, as a
+// new stored run flagged assisted; the attempt rewound keeps its record and log.
+void EngineHost::run_rewind(const Command& c) {
+  if (!run_) return publish_refusal(CommandKind::Rewind, "invalid_sequence");
+  const Snapshot now = run_->snapshot();
+  if (c.steps < now.warmup_bars || c.steps >= now.step) return publish_refusal(CommandKind::Rewind, "invalid_step");
+  const std::vector<std::string> prefix = storage::rewind_prefix(current_.log, now.warmup_bars, c.steps);
+  Current next{current_.mission, current_.seed, current_.options, current_.pack_digest, true, {}};
+  next.options.advice_allowance = 0;
+  std::string reason;
+  auto run = open_run(next, c.links, &reason);
+  if (!run) return publish_refusal(CommandKind::Rewind, reason);
+  run_ = std::move(run);
+  current_ = std::move(next);
+  for (const std::string& text : prefix) perform(storage::Action{text});
+  Snapshot s = run_->snapshot();
+  settle(s);
+  s.results.push_back(CommandResult{CommandKind::Rewind, true, "none"});
+  publish(std::move(s));
+}
+
+// Report-only: nothing is logged or published. The answer goes to the UI thread like a snapshot, and is
+// dropped when the host is gone by then.
+void EngineHost::run_analysis(const Command& c) {
+  std::string out = R"({"error":"no_run"})";
+  if (c.analysis == AnalysisKind::WhatIf) out = EngineRun::option_whatif(c.qty);
+  else if (run_ && c.analysis == AnalysisKind::RunWhatIf) out = run_->run_whatif(c.qty);
+  else if (run_) out = run_->combo_preview(c.qty);
+  post_([box = mailbox_, reply = c.reply, text = std::move(out)] {
+    {
+      std::lock_guard lock(box->mu);
+      if (box->closed) return;
+    }
+    reply(text);
+  });
 }
 
 bool EngineHost::delivery_pending() const {
@@ -255,6 +361,7 @@ bool EngineHost::delivery_pending() const {
 
 void EngineHost::publish(Snapshot s) {
   s.seq = ++seq_;
+  if (run_) stamp(s);
   bool need_post = false;
   {
     std::lock_guard lock(mailbox_->mu);

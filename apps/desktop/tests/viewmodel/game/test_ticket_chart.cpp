@@ -7,6 +7,7 @@
 #include "support/fake_engine.hpp"
 #include "viewmodel/format.hpp"
 #include "viewmodel/game/chart_vm.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/panels_vm.hpp"
 #include "viewmodel/game/ticket_vm.hpp"
 
@@ -297,4 +298,87 @@ TEST_CASE("rail and panels: liquidation warning, funding, orders, feed and news 
   CHECK(nv.items[0].text.find("[60]") == 0);
   CHECK(nv.items[0].tone == Tone::Up);
   CHECK(top_bar(x.t, g).turn == "Barra 1 de 79 \xC2\xB7 1h");
+}
+
+TEST_CASE("chart: after the reveal the ended run's chart shows its regimes as named bands") {
+  Texted x;
+  GameState g = base_state();
+  g.status = "finished";
+  ChartViewModel c;
+  const auto count_bands = [](const ChartScene& s) {
+    return std::count_if(s.rects.begin(), s.rects.end(), [](const SceneRect& r) { return r.alpha == 0.6f && r.h == 6; });
+  };
+  CHECK(count_bands(c.build(x.t, g, std::nullopt, false, 1600, 420)) == 0);  // nothing before the reveal
+  const auto spans = json::parse(R"([{"label":"range","direction":0,"start":0,"bars":40},
+                                     {"label":"trend","direction":1,"start":40,"bars":21},
+                                     {"label":"shock","direction":-1,"start":200,"bars":5}])");
+  REQUIRE(spans);
+  c.set_regimes(regime_spans(*spans));
+  REQUIRE(c.regimes().size() == 3);
+  const ChartScene s = c.build(x.t, g, std::nullopt, false, 1600, 420);
+  CHECK(count_bands(s) == 2);  // the third span lies after the last bar
+  const auto has_text = [&](const std::string& t) {
+    return std::any_of(s.texts.begin(), s.texts.end(), [&](const SceneText& st) { return st.text == t; });
+  };
+  CHECK(has_text("Lateral"));
+  CHECK(has_text("Tendência de alta"));
+  // The trend band starts where bar 40 starts.
+  const float slot = c.frame().slot_w;
+  CHECK(std::any_of(s.rects.begin(), s.rects.end(),
+                    [&](const SceneRect& r) { return r.h == 6 && r.ink == Ink::Info && r.x == std::round(40 * slot); }));
+}
+
+TEST_CASE("chart: a branch-mode market marks its first generated bar and tints what follows") {
+  Texted x;
+  GameState g = base_state();
+  ChartViewModel c;
+  const auto marked = [&](const ChartScene& s) {
+    return std::any_of(s.texts.begin(), s.texts.end(), [&](const SceneText& t) { return t.text == x.t.tr("top.branch"); });
+  };
+  for (auto& b : g.bars) b.synthetic = false;
+  g.market_mode = "branch";
+  CHECK_FALSE(marked(c.build(x.t, g, std::nullopt, false, 1600, 420)));  // not branched yet
+  CHECK_FALSE(branch_turn(g));
+  for (std::size_t i = 50; i < g.bars.size(); ++i) g.bars[i].synthetic = true;
+  const ChartScene s = c.build(x.t, g, std::nullopt, false, 1600, 420);
+  CHECK(marked(s));
+  CHECK(std::any_of(s.lines.begin(), s.lines.end(),
+                    [](const SceneLine& l) { return l.ink == Ink::Attention && l.dash == 4 && l.x0 == l.x1; }));
+  REQUIRE(branch_turn(g));
+  CHECK(*branch_turn(g) == 50 - g.warmup_bars + 1);
+  CHECK(top_bar(x.t, g).market == "Mercado K2A SINTÉTICO RAMO SINTÉTICO");
+  g.known_scenario = true;  // a branch pack: KNOWN, then the branch tag (TopBar.svelte shows both)
+  CHECK(top_bar(x.t, g).market == "Mercado K2A " + x.t.tr("top.known") + " RAMO SINTÉTICO");
+  g.market_mode = "synthetic";  // a synthetic mission: every bar is generated, nothing to mark
+  g.known_scenario = false;
+  CHECK_FALSE(marked(c.build(x.t, g, std::nullopt, false, 1600, 420)));
+  CHECK(top_bar(x.t, g).market == "Mercado K2A SINTÉTICO");
+}
+
+TEST_CASE("dock layout: the default keeps the web's column widths; a stored layout loads once; reset") {
+  // 1264 wide: the ticket's 340 px of 1260 (the splitter excluded) is 270 thousandths.
+  const std::string d = default_layout(1264, 704);
+  CHECK(d.starts_with("V("));
+  CHECK(d.find("H(270,T(0;game-panel-ticket)") != std::string::npos);
+  CHECK(d.find("T(0;game-panel-chart),T(0;game-panel-rail)") != std::string::npos);
+  CHECK(default_layout(1012, 704).find("H(337,T(0;game-panel-ticket)") != std::string::npos);
+  CHECK(panel_title_key(kPanelTicket) == "ticket.title");
+
+  DockLayout l;
+  CHECK_FALSE(l.frame(0, 0, "").apply);  // not laid out yet
+  auto step = l.frame(1264, 704, "");
+  CHECK(step.apply);
+  CHECK(step.text == d);
+  CHECK_FALSE(l.frame(1264, 704, "").apply);
+  CHECK(l.frame(1012, 704, "").apply);  // the window changed: the default follows
+  l.changed();
+  CHECK_FALSE(l.frame(1012, 704, "H(500,T(0;a),T(0;b))").apply);  // the player's own, already on screen
+  l.reset();
+  CHECK(l.frame(1012, 704, "").apply);
+
+  DockLayout fresh;  // a new launch with a stored arrangement loads it once, whatever the size
+  step = fresh.frame(800, 600, "H(500,T(0;a),T(0;b))");
+  CHECK(step.apply);
+  CHECK(step.text == "H(500,T(0;a),T(0;b))");
+  CHECK_FALSE(fresh.frame(900, 600, "H(500,T(0;a),T(0;b))").apply);
 }

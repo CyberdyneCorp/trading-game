@@ -37,7 +37,7 @@ void check_run(const JsonValue& fx) {
 
 }  // namespace
 
-TEST_CASE("Golden fixtures: every shared scripted run and reveal replays to its frozen digests") {
+TEST_CASE("Golden fixtures: every shared scripted run, reveal and what-if replays to its frozen output") {
   std::set<std::string> kinds;
   for (const golden::Fixture& f : golden::fixtures()) {
     INFO("fixture ", f.name);
@@ -51,13 +51,16 @@ TEST_CASE("Golden fixtures: every shared scripted run and reveal replays to its 
     kinds.insert(kind);
     if (kind == "reveal") {
       CHECK(golden::reveal_sha256(fx) == golden::text(*fx.find("expected"), "sha256"));
+    } else if (kind == "whatif") {
+      CHECK(golden::whatif_expected(fx).find("\"breakevens\"") != std::string::npos);
+      CHECK(golden::whatif_output(fx) == golden::whatif_expected(fx));
     } else {
       REQUIRE(kind == "run");
       check_run(fx);
     }
   }
-  CHECK(kinds == std::set<std::string>{"reveal", "run"});
-  CHECK(golden::fixtures().size() >= 13);  // m01, m02 (advice), m05-m12, the CSV pack, two reveals
+  CHECK(kinds == std::set<std::string>{"reveal", "run", "whatif"});
+  CHECK(golden::fixtures().size() >= 16);  // m01, m02 (advice), m05-m12, the CSV pack, two reveals, three what-ifs
 }
 
 TEST_CASE("Golden fixtures: replay is deterministic and an unknown action kind is a rejection") {

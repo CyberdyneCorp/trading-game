@@ -10,13 +10,16 @@
 		step,
 		onConfirm,
 		onCancel,
-		optionLabel = null
+		optionLabel = null,
+		riskUnbounded = false
 	}: {
 		draft: OrderDraft;
 		step: number;
 		onConfirm: (p: PlanEntry) => void;
 		onCancel: () => void;
 		optionLabel?: string | null;
+		/** The structure has no maximum loss: the planned risk shown is its margin. */
+		riskUnbounded?: boolean;
 	} = $props();
 	let loseScenario = $state('');
 
@@ -66,6 +69,7 @@
 			{planHeadline(draft, optionLabel, i18n.locale)} ·
 			{t('rail.plannedRisk')}: {draft.estimate.plannedRisk != null ? fmtMoney(draft.estimate.plannedRisk, i18n.locale) : '—'}
 		</p>
+		{#if riskUnbounded}<p class="attention small" data-testid="plan-risk-unbounded">⚠ {t('plan.riskUnbounded')}</p>{/if}
 		<label>
 			{t('plan.thesis')}
 			<!-- svelte-ignore a11y_autofocus -->

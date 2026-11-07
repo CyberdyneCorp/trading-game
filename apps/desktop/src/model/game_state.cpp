@@ -51,6 +51,7 @@ MissionRules rules_from(const Value& r) {
   m.liq_warning_bp = to_int(r["liqWarningBp"], 300);
   m.drawdown_budget_bp = to_int(r["drawdownBudgetBp"]);
   m.confirm_stop_beyond_liq = r["confirmStopBeyondLiq"].as_bool(false);
+  m.spread_margin = r["spreadMargin"].as_bool(false);
   return m;
 }
 
@@ -130,12 +131,14 @@ OptionQuote quote_from(const Value& q) {
   out.expiry_step = to_int(q["expiryStep"]);
   out.bid = dbl(q["bid"]);
   out.ask = dbl(q["ask"]);
+  out.mid = dbl(q["mid"]);
   out.iv = dbl(q["iv"]);
   out.delta = dbl(q["delta"]);
   out.gamma = dbl(q["gamma"]);
   out.theta = dbl(q["theta"]);
   out.vega = dbl(q["vega"]);
   out.settling = q["settling"].as_bool(false);
+  out.listed = q["listed"].as_bool(true);
   return out;
 }
 
@@ -154,7 +157,8 @@ Options options_from(const Value& o) {
   out.maintenance_margin = dbl(o["maintenanceMargin"]);
   for (const auto& q : o["chain"].items()) out.chain.push_back(quote_from(q));
   for (const auto& p : o["positions"].items()) {
-    out.positions.push_back({to_int(p["series"]), dbl(p["qty"]), dbl(p["avgPremium"])});
+    out.positions.push_back(
+        {to_int(p["series"]), dbl(p["qty"]), dbl(p["avgPremium"]), p["qty"].as_string("0"), p["avgPremium"].as_string("0")});
   }
   return out;
 }
@@ -235,7 +239,7 @@ GameState game_state_from_json(const Value& state) {
   s.bars = bars_from(state["bars"]);
   s.account = account_from(state["account"]);
   const Value& p = state["position"];
-  s.position = {dbl(p["qty"]), p["qty"].as_string("0"), dbl(p["entry"]), dbl(p["margin"])};
+  s.position = {dbl(p["qty"]), p["qty"].as_string("0"), dbl(p["entry"]), dbl(p["margin"]), p["entry"].as_string("0")};
   for (const auto& o : state["orders"].items()) s.orders.push_back(order_from(o));
   s.options = options_from(state["options"]);
   s.indicators = indicators_from(state["indicators"]);

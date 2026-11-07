@@ -1,0 +1,52 @@
+{
+  "format": 1,
+  "kind": "whatif",
+  "name": "whatif-covered-call",
+  "description": "A covered call: long perpetual at 100 and a short 105 call for 2, at expiry.",
+  "request": {
+    "forward": "100",
+    "minutesPerStep": 1440,
+    "multiplier": "1",
+    "legs": [
+      {"kind": "perp", "side": "buy", "qty": "1", "entry": "100"},
+      {"kind": "call", "side": "sell", "qty": "1", "strike": "105", "minutesToExpiry": 30240, "iv": "0.5", "entry": "2"}
+    ],
+    "shift": {"forward": "110", "minutesElapsed": 30240},
+    "grid": {"lo": "90", "hi": "120", "points": 7}
+  },
+  "expected": {
+    "result": {
+      "forward": "110.00000000",
+      "atExpiry": true,
+      "legs": [
+        {"kind": "perp", "side": "buy", "qty": "1.00000000", "series": 0, "expiryStep": 0, "strike": null, "entry": "100.00000000", "value": "110.00000000", "iv": null, "ivFloored": false, "delta": "1.0000000000", "gamma": "0.0000000000", "theta": "0.00000000", "vega": "0.00000000", "positionValue": "110.00000000", "pnl": "10.00000000"},
+        {"kind": "call", "side": "sell", "qty": "1.00000000", "series": 0, "expiryStep": 0, "strike": "105.00000000", "entry": "2.00000000", "value": "5.00000000", "iv": "0.50000000", "ivFloored": false, "delta": "1.0000000000", "gamma": "0.0000000000", "theta": "0.00000000", "vega": "0.00000000", "positionValue": "-5.00000000", "pnl": "-3.00000000"}
+      ],
+      "net": {"value": "105.00000000", "pnl": "7.00000000", "delta": "0.00000000", "gamma": "0.00000000", "theta": "0.00000000", "vega": "0.00000000"},
+      "expiry": {
+        "breakevens": ["98.00000000"],
+        "maxProfit": "7.00000000",
+        "maxLoss": "98.00000000",
+        "curve": [
+          ["90.00000000", "-8.00000000"],
+          ["95.00000000", "-3.00000000"],
+          ["100.00000000", "2.00000000"],
+          ["105.00000000", "7.00000000"],
+          ["110.00000000", "7.00000000"],
+          ["115.00000000", "7.00000000"],
+          ["120.00000000", "7.00000000"]
+        ]
+      },
+      "today": [
+        ["90.00000000", "-8.00000000"],
+        ["95.00000000", "-3.00000000"],
+        ["100.00000000", "2.00000000"],
+        ["105.00000000", "7.00000000"],
+        ["110.00000000", "7.00000000"],
+        ["115.00000000", "7.00000000"],
+        ["120.00000000", "7.00000000"]
+      ]
+    }
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+}

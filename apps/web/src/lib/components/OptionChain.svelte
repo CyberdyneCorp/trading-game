@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Chain at the current decision step only (spec terminal-ui "Option chain"). Prices are model-made.
 	import type { GameState, OptionQuoteView } from '#lib/engine/types.ts';
+	import Term from './Term.svelte';
 	import { fmtNum, fmtPct, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
 	import { lastPrice } from '#lib/game/lastPrice.ts';
@@ -39,11 +40,11 @@
 			<thead>
 				<tr>
 					<th colspan="4" class="up">{t('opt.calls')}</th>
-					<th>{t('opt.strike')}</th>
+					<th><Term id="strike">{t('opt.strike')}</Term></th>
 					<th colspan="4" class="down">{t('opt.puts')}</th>
 				</tr>
 				<tr class="muted">
-					<th>{t('opt.delta')}</th><th>{t('opt.iv')}</th><th>{t('opt.bid')}</th><th>{t('opt.ask')}</th>
+					<th><Term id="delta">{t('opt.delta')}</Term></th><th><Term id="implied-volatility">{t('opt.iv')}</Term></th><th><Term id="spread">{t('opt.bid')}</Term></th><th><Term id="spread">{t('opt.ask')}</Term></th>
 					<th></th>
 					<th>{t('opt.bid')}</th><th>{t('opt.ask')}</th><th>{t('opt.iv')}</th><th>{t('opt.delta')}</th>
 				</tr>

@@ -207,6 +207,13 @@ It also reports totals. The copy is discarded; a test checks that `tl_state` and
 
 **Fixtures.** A new shared fixture kind, `"whatif"`, holds an input and its expected output strings. `tests/golden/index.json` lists them. `test_golden.cpp` (native and WASM), the Python golden test and the desktop golden test replay them. Three fixtures: a single call with every shift, an iron condor with breakevens and bounded losses, and a covered call with a perpetual leg.
 
+**As built (D4).**
+- `src/options_kernel.hpp`: `price_unit` (Black-76 and the quote's quantization) and `series_inputs`; `quote()` calls them, OPT01 and every golden unchanged.
+- A sale's requirement in the dry run is what the command checks; option buys still reserve nothing while they work, so the dry run also reports the margins and the balance once the accepted legs fill at today's quotes (`optionMarginAfterFill`, `positionMarginAfterFill`, `availableAfterFill`), which the builder shows.
+- A run leg without `entry` is valued against the price it would cross now (ask, bid, last close). A run-less perpetual leg's units are qty x multiplier.
+- `maxLoss` is reported as a positive amount for a loss (`null` = unbounded, above).
+- The web logs `strategy` (the structure name) next to `combo` on each leg, and tags the cancels of a withdrawn combo; replay ignores both.
+
 ### D5. Engine: defined-risk (vertical spread) margin, declared per mission
 
 `OptionSpec.spread_margin` (bool, default false). When true:
@@ -235,6 +242,8 @@ Why the worst loss at expiry: a covered short cannot lose more than that require
 - Pairing is order-independent for the same positions.
 - A short whose long failed to fill is margined naked at execution.
 - With the flag off, `option_book` is identical to today's on every mission (m05 and m10 goldens).
+
+**As built (D5).** `src/spread_margin.cpp`. A sale's requirement is the holdings' initial margin with the sale minus without it (never below 0), so selling a long that covered a short is charged too. Within the condor rule the side with the smaller sum keeps no paired margin (ties keep the call side), per measure (initial and maintenance). Packs do not carry the flag yet (`instruments.options` has no `spreadMargin`): a mission declaring it must add it to the pack manifest before it can be packed.
 
 ### D6. Guided first trade (coach marks)
 
@@ -402,6 +411,8 @@ The segment values below are starting points, tuned at build time until the band
 - **Tutorial cards** (4): `roll` (new art: closing near, opening next), `decay` (theta speeds up), `chain` (choosing the next expiry), `plan` (decide before the last bars).
 - **Lesson questions:** choice, what happens to the theta of an ATM option in its last bars (it grows in size); choice, what a roll is (closing one position and opening another: two trades).
 
+**Covered writing (scoring v13, report only).** The `wrote_options` finding, and the good-process credit it withholds, apply only to an uncovered short option. After each step with a fill, a short is covered by long options of the same kind and expiry, and a short call also by long perpetual units. A bull call spread, an iron condor or a covered call is defined risk, so its debrief no longer says "you wrote options uncovered" (found by playing m13 through the builder). Closing the long that covered a short leaves it naked and raises the finding.
+
 **Strategy comparison (scoring v13, report only).** Each of m13–m17 declares a comparison: a list of named structures with legs relative to the forward (strike steps, expiry index, quantity rule) and an exit rule. After the run, the debrief values each structure on this seed's path:
 - entry at the next open after the player's first option entry, or at the mission's reference bar if they made none;
 - the same quantity rule;
@@ -421,6 +432,17 @@ The rows go into `debrief.strategyComparison` (name code, entry bar, exit bar, n
 | m17 | On the generated paths, an ATM option's theta per bar 3 bars before expiry is ≥ 2× its theta 20 bars before, and its gamma ≥ 2× (kernel property, every expiry). A short ATM put held to settlement has a mean one-bar P&L swing in its last 5 bars ≥ 2× its swing 20–25 bars before, while the premium still to earn 5 bars before is ≤ 40% of the entry premium. Rolling 5 bars before pays ≥ 1.8× the costs of holding. A long OTM call held to settlement loses its whole time value in > 60% of seeds. Every reference strategy loses in ≥ 15%. Buy-and-hold positive in 35–65% |
 
 The pooled realism bands (indicator 42–58%, news follow < 72%, fat tails, advisor bands) must still hold over the 17 missions. The advisor needs no change: it gives no option-structure advice.
+
+**As built (m13–m17, `engine/src/missions.cpp`, `tests/test_mission_learnability_c.cpp`).** Generator v5, no new capability; every earlier golden is byte-identical and each mission adds its golden. Measured over seeds 1–60:
+
+- **Chains.** As the table, except m14 and m17 list ±6 strikes (not ±3): after a rally or a trend, a call about 5% out of the money (m14's roll) or an at-the-money strike of the next expiry (m17's roll) must still be listed. The last expiry falls on the last bar of every mission (m13 151 bars, m14 181, m15 161, m16 131, m17 156).
+- **Margin.** `MissionDef.spread_margin` is declared for m13, m14, m16 and m17 and copied into `OptionSpec::spread_margin` when the engine has the field (task E4, built in parallel). Until then the missions play with per-leg margin. The goldens trade sizes that both rules accept, so neither changes their digests.
+- **m13.** The reference spread is ATM / **+1 strike** (2.5, not +2 steps): at the first expiry's tenor (about 29 bars), a call two steps up is worth only 15–20% of the ATM call, so the spread would cost 80% of the call, outside the 35–65% band. The lesson's arithmetic (the 100/105 question) is unchanged. The headline's intensity is drawn in 0.4–1.8 with a small transient reaction (drift 0.0015, aligned with p 0.55), so following it stays under the 72% realism band. Measured: the spread costs 57% of the call; rise below the width: spread ≥ call in 27 of 27; rise above twice the width: call > spread in 16 of 16; spread ≥ call in 33 of 60; when both lose the spread loses less in 22 of 22; buy-and-hold positive 62%.
+- **m14.** The rally is a drawn +2 adoption headline (35%) with a strong fair-value impact (0.05) and a quiet reaction (p_none 0.5, p_align 0.5), followed by a segment with no anchor, so a rally keeps its level instead of being pulled back to the range. The headline window is volatile (vol × 2) with implied volatility damped (× 0.6), so the next written call is not priced off the storm. Measured: 23 rally seeds, long only better in 19 (83%); 37 other seeds, the covered call better in 32 (86%); worst seed −782 against −845 (93%); standard deviation 507 against 650; buy-and-hold 67%.
+- **m15.** `iv_premium` 0.25 (insurance is priced rich). Measured: within the floor 60 of 60; no incident in 29 seeds, hedged worse in 28; the put's mean P&L −49; 5% OTM put 39% of the ATM put; the 2×ATR stop gapped more than 2% in 18 of 18 severe seeds; buy-and-hold 50%.
+- **m16.** A margin call buys back the strangle before its loss can grow, so one quantity cannot show both "worst loss ≥ 3× the condor's" and "margin-called in ≥ 25% of early breakouts". The test compares the two structures at 150 units (no margin call cuts the strangle short) and counts the strangle's margin calls at 440 units (per-leg initial margin about 95% of equity). The condor is checked for margin calls at 400 units (maximum loss about 18% of equity) only when the engine has `spread_margin`; under per-leg margin its shorts are margined like the strangle's, so it is checked at 150. `iv_premium` is 0.35: at the default 0.10 the shorts two strikes out (about 1.5 standard deviations at 30 bars) collected about 0.1 per unit, a condor risking 49 to make 1. With it the credit is 0.36–0.87. The breakout moves mostly by jumps (drift 0.007, jump probability 0.12) so return autocorrelation stays under 0.25, and its direction leans only weakly on the rumor (`tilt` 8): with the default tilt the rumor at the break set the direction, and following a severe rumor was right 83% of the time over 100 seeds. Measured: condor within width − credit + costs 60 of 60; wins: condor 65%, strangle 67%; worst loss strangle −3,273 against condor −705 (4.6×); breakout before the first expiry in 27 seeds, the 440-unit strangle margin-called in 10 (37%); buy-and-hold 48%; following the rumor pooled over its outcomes is right 46%.
+- **m17.** The kernel band holds at one implied-volatility level (240 of 240 expiries, the IV of 20 bars before used 3 bars before). On the generated path the IV level moves with the regime, so theta doubles in 233 of 240 and gamma in 213: the test asks ≥ 90% and ≥ 80% there. The swing band is replaced by the swing against the premium still to earn: an ATM put ends in or out of the money, so its one-bar swing barely grows (0.29 to 0.29 per unit), while the premium left 5 bars before is 12% of the entry premium; the swing per unit of premium left grows from 0.15 to over 8. Rolling 5 bars before costs 2.9× holding; the OTM call ends worthless in 43 of 60; buy-and-hold 43%.
+- **Still open (E8).** That the m16 condor at 400 units is never margin-called holds only once `spread_margin` lands; that check runs then (`kSpreadMargin` in the test) and was not measured here.
 
 ### D9. Curriculum, Academy progress and spaced review
 
@@ -448,6 +470,14 @@ The desktop follows the web, with the same content and engine calls:
 
 Windowed reference captures are per platform (macOS and Linux lavapipe, see `apps/desktop/README.md`). Every new screen adds captures on both.
 
+**As built (desktop builder and lab; tasks D2, D4, D5).**
+- **Engine calls.** `EngineCommands::analyze(kind, request, reply)` queues a report-only call (`tl_option_whatif`, `tl_run_option_whatif`, `tl_combo_preview`) on the `EngineHost` worker after the commands sent before it; the reply reaches the UI thread like a snapshot and is dropped once the host is gone. An engine that cannot answer replies `{"error":"unsupported"}` and the lab and builder say so, as the web's feature detection does. Every snapshot carries the run's logged actions (shared, one copy per change), from which the builder rebuilds its combos.
+- **Ports.** `strategies.ts`, `combos.ts` and `whatifLab.ts` are ported (`viewmodel/game/strategies`, `combos`, `whatif_lab`) and checked by the web parity fixtures `strategies.json`, `combos.json` and `whatifLab.json` (the chart geometry from the engine's own `whatif` golden answers). They caught two differences: JavaScript's `toFixed` rounds the exact binary value (87.65 × 0.7 is 61.35499… and gives `61.35`), and the position legs carry `String(Math.abs(q))` ("1.5", not "1.50000000").
+- **Requests and replies.** Each analysis takes a ticket; a reply to an older request (a slider moved meanwhile) is dropped. The builder asks again when its legs or the state they are valued in change (bar, events, available balance).
+- **Builder.** A third tab of the option ticket; template buttons wrap in the 340 px column. A combo's plan is one dialog: the engine gets one plan per leg (the risk split evenly, an option leg named by the combo), the journal one entry with the combo id; the legs then go one at a time with their tags, and a refused leg puts the cancels of the accepted ones first in the queue, so no advance can run in between. The incomplete notice sits in the book panel; its close asks for a confirmation in the terminal's dialog.
+- **Lab.** One `LabPanel` (sliders, summary, payoff, table) serves the terminal's dialog and the Academy lab screen (`views/lab.xml`, from the menu's ⚗ button); the payoff is a display list for the scene painter. The builder shows a compact line per leg (the full table needs the dialog's width).
+- **Debrief and journal.** The trades table puts each combo's row (name, state, net premium, summed result, one R) above its legs; a combo's journal entry shows its state and net premium.
+
 ### D11. Testing
 
 | Layer | Tests |
@@ -457,6 +487,19 @@ Windowed reference captures are per platform (macOS and Linux lavapipe, see `app
 | Web unit | Content schema and both locales present for every lesson, glossary term and tour step; no mission id in a lesson; the arithmetic checks; review scheduling (boxes, due dates, retire, reset); `stagePassed` with lessons; builder ordering, cancel-on-refusal and incomplete-combo detection with a fake worker; templates' legs from a chain; progress v3 migration |
 | Web e2e | A lesson from each stage family (perpetual, options, strategies) to the end with a wrong-then-right answer; the review prompt with a mocked clock; the what-if lab (sliders change engine numbers; zero shift equals the chain); the builder (iron condor previewed, submitted, filled; a refused leg cancels the others; a forced no-bid leg shows the incomplete notice); the tour (shown once on the first campaign mission, skip, replay, keyboard only, axe); the glossary (search, tooltip on focus); m13–m17 played to the debrief |
 | Desktop | Generator drift check; unit tests for each new viewmodel (ported web vectors); headless: every new view loads and binds, a lesson, the lab, the builder flow, the tour by keyboard, the glossary; windowed captures on both platforms; playtest extended to 17 missions; goldens include the `whatif` fixtures |
+
+### As built (web Academy, glossary and tour; tasks W1–W4, W8, W9)
+
+- **Content files.** `academy/index.json` carries each lesson's title and summary as well as its order and stage, so the map and the Academy list lessons without loading them. A lesson may declare `charts` and reuse one per step with `{"ref": …, …overrides}`; the web loader and the desktop generator resolve it the same way. `givens` lists numbers a text gives rather than computes (a convention such as RSI 70, the Black-76 model name).
+- **Number checks.** `content/academy.test.ts` fails on any number in a lesson text (body, feedback, choices, table texts) that no check, widget, chart, answer or given produces; integers up to 31 count as counts (bars, days, steps).
+- **Option lessons before W5.** The `payoff` widget draws the expiry payoff from `content/payoff.ts` (intrinsic value minus premium: exact arithmetic, no model value), and its breakevens and maximum profit and loss are checked by Vitest. No lesson states a model value or a kernel Greek yet: `options-greeks` and `options-iv` give Greeks as labeled hypothetical inputs and ask only arithmetic on them (delta × move, vega × IV points). W5/W6 replace them with the engine's `whatif` widget and add `test_academy_numbers.py`.
+- **Strategies stage.** Added with its lesson and no mission; since W10 merged, m13–m17 assess it and its lesson prepares, like every stage with missions.
+- **Ticket sandbox.** No fees, spread or slippage, so a lesson's arithmetic reads exactly; the widget says so. A `set` question is checked with a Check button against the sandbox's current value.
+- **In-place definitions.** A marked term is a button: hover or focus shows the short definition (also its `aria-describedby`, on a hidden element so it never joins a label's name), the first tap on touch shows it, and a click or Enter is "more" (the glossary dialog at that term). The terminal ignores its shortcuts while the dialog is open.
+- **Coach marks.** Opening a step moves focus to the callout's Next button; when the tour leaves the screen (skipped, ended, or waiting for the debrief) focus returns to the last target. A mark waits while a calibration question is open. The tour counts as done once its terminal part is finished or skipped; leaving the terminal before that ends it without marking it, and a run that ends during the terminal steps jumps to the debrief step.
+- **Review prompt.** The "not today" dismissal is a per-device convenience in localStorage (`tradelab.reviewDismissed.v1`), not a progress key.
+- **Contrast fix.** The ticket's unselected side was drawn at 55% opacity, which failed WCAG AA contrast under axe in the campaign terminal; it is now dashed instead of faded.
+- **Desktop.** The generator now reads the lesson JSON (no TypeScript evaluation of `academy.ts`, which is gone) and strips `[[id|text]]` links; the desktop's `stage_passed` follows the D9 rule. Its viewmodels for the new widgets and question types are task D3.
 
 ## Risks / Trade-offs
 

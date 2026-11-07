@@ -5,6 +5,7 @@
 	import { tutorialFor } from '#lib/game/tutorials.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import TutorialArt from './TutorialArt.svelte';
+	import RichText from './RichText.svelte';
 
 	let { session }: { session: GameSession } = $props();
 
@@ -44,7 +45,7 @@
 		{#if card}
 			<TutorialArt art={card.art} />
 			<h1 id="tut-title">{card.title}</h1>
-			<p class="body">{card.body}</p>
+			<p class="body"><RichText text={card.body} /></p>
 		{/if}
 		<div class="dots" aria-hidden="true">
 			{#each cards as _, k (k)}<span class:on={k === i}></span>{/each}

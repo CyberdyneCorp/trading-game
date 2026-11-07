@@ -98,7 +98,7 @@ TEST_CASE("windowed shell: a campaign mission from the menu to its debrief, then
   app.vm().set_reduce_motion(false);
   d.frames(4);
   REQUIRE(d.click(names::kCampaignStart));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   CHECK(d.text(names::kBriefMode).find("Campanha") != std::string::npos);
   CHECK(d.text(names::kBriefLocked).find("Bloqueado nesta missão da campanha") != std::string::npos);
   CHECK(capture(d, window, "shell-01-campaign-briefing").saved);
@@ -116,9 +116,9 @@ TEST_CASE("windowed shell: a campaign mission from the menu to its debrief, then
   CHECK(debrief.near(0x39, 0xFF, 0x88) > 0);  // phosphor titles
   CHECK(Rwidget_get_visibility(d.widget(names::kDebriefCampaignPanel)) == R_VISIBLE);
   REQUIRE(d.click(names::kDebriefCampaignNext));
-  REQUIRE(d.until([&] { return app.vm().screen() == Screen::Briefing; }));
+  REQUIRE(d.to_briefing());
   CHECK(app.vm().snapshot()->mission == "m01-false-breakout");
-  CHECK(d.text(names::kBriefMode).find("2 de 12") != std::string::npos);
+  CHECK(d.text(names::kBriefMode).find("2 de 17") != std::string::npos);
   REQUIRE(d.click(names::kBriefBack));
   CHECK(capture(d, window, "shell-03-menu-campaign").saved);
   CHECK(d.text(names::kMenuDetailDone).empty() == false);
@@ -140,7 +140,7 @@ TEST_CASE("windowed shell: curriculum map, an Academy lesson with its chart, the
   CHECK(chart.near(0xFF, 0x5F, 0x7A) > 100);  // down candles
   for (int guard = 0; guard < 40 && !app.vm().shell().lesson.finished(); ++guard) {
     const LessonStep* s = app.vm().shell().lesson.step();
-    if (s->question()) REQUIRE(d.click(names::kLessonChoices[static_cast<std::size_t>(s->answer)]));
+    if (s->is_question()) REQUIRE(d.click(names::kLessonChoices[static_cast<std::size_t>(s->question->answer)]));
     REQUIRE(d.click(names::kLessonNext));
   }
   CHECK(capture(d, window, "shell-06-lesson-done").saved);

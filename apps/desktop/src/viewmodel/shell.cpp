@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <utility>
 
 #include "model/content.hpp"
 #include "viewmodel/app_viewmodel.hpp"
@@ -74,16 +75,23 @@ RunRecord* find_run(Progress& p, const std::string& id) {
 
 }  // namespace
 
+// The stored run's id when there is storage (a resumed run keeps its record), else one for the session.
 void AppViewModel::record_started_run() {
-  shell_.run_id = "run-" + std::to_string(++shell_.run_counter) + "-" + std::to_string(shell_.now());
+  const std::string stored = snap_ ? snap_->run_id : std::string();
+  shell_.run_id = stored.empty() ? "run-" + std::to_string(++shell_.run_counter) + "-" + std::to_string(shell_.now()) : stored;
   shell_.run_mission = run_mission_;
   shell_.run_settled = false;
+  shell_.assist_turn = "1";
+  if (find_run(shell_.progress, shell_.run_id) != nullptr) return;
   RunRecord r;
   r.run_id = shell_.run_id;
   r.mission_id = run_mission_;
   r.seed = snap_ ? snap_->seed : 0;
   r.created_at = shell_.now();
   r.campaign = shell_.run_campaign;
+  r.assisted = shell_.run_assisted.has_value();
+  r.pack_digest = shell_.run_pack;
+  r.journal = std::exchange(shell_.pending_journal, {});
   r.equity = snap_ ? snap_->equity : std::string();
   shell_.progress.runs.push_back(std::move(r));
   save_progress();
@@ -92,6 +100,7 @@ void AppViewModel::record_started_run() {
 // Starting another run replaces the one in play: it is stored as left, and a left campaign mission
 // carries the equity it had (the campaign stays on that mission).
 void AppViewModel::leave_active_run() {
+  leave_saved_run();
   if (shell_.run_settled || shell_.run_id.empty() || !snap_ || !snap_->active()) return;
   shell_.run_settled = true;
   if (RunRecord* r = find_run(shell_.progress, shell_.run_id)) {
@@ -101,6 +110,22 @@ void AppViewModel::leave_active_run() {
   if (shell_.run_campaign) {
     shell_.progress = settle_campaign_run(web_content(), shell_.progress, *shell_.run_campaign,
                                           RunOutcome{shell_.run_id, shell_.run_mission, LegResult::Left, snap_->equity, {}});
+  }
+  save_progress();
+}
+
+// A run saved by an earlier launch and replaced by a new one (web settleAbandoned): stored as left, and a
+// campaign mission carries the equity it had (the campaign stays on that mission).
+void AppViewModel::leave_saved_run() {
+  if (!saved_run_) return;
+  const SavedRun s = *std::exchange(saved_run_, std::nullopt);
+  if (RunRecord* r = find_run(shell_.progress, s.run_id)) {
+    r->status = RunStatus::Left;
+    r->equity = s.equity;
+  }
+  if (s.campaign && !s.assisted && !s.equity.empty()) {
+    shell_.progress = settle_campaign_run(web_content(), shell_.progress, *s.campaign,
+                                          RunOutcome{s.run_id, s.mission, LegResult::Left, s.equity, {}});
   }
   save_progress();
 }
@@ -115,6 +140,10 @@ void AppViewModel::settle_ended_run() {
   if (RunRecord* r = find_run(shell_.progress, shell_.run_id)) {
     r->status = bankrupt ? RunStatus::Bankrupt : RunStatus::Finished;
     r->equity = d.final_equity;
+  }
+  if (shell_.run_assisted) {  // assisted practice never counts for progress or the campaign
+    save_progress();
+    return;
   }
   const bool known = snap_->state["knownScenario"].as_bool(false);
   if (!bankrupt && !known && !contains(shell_.progress.completed, shell_.run_mission)) {
@@ -144,12 +173,21 @@ void AppViewModel::resume() {
   if (send([&] { engine_.resume(); })) {
     resume_pending_ = true;
     run_mission_ = saved_run_->mission;
-    shell_.run_campaign.reset();
+    shell_.run_campaign = saved_run_->campaign;
+    shell_.run_assisted = saved_run_->assisted;
+    shell_.run_pack = saved_run_->pack_digest;
     notice_.clear();
   }
 }
 
+// A campaign mission is offered only while its campaign still waits on it; one the campaign has moved
+// past (or ended) stays left.
 void AppViewModel::offer_saved_run(std::optional<SavedRun> run) {
+  if (run && run->campaign) {
+    const auto& c = shell_.progress.campaign;
+    const bool current = c && c->status == CampaignStatus::Active && c->id == run->campaign->id && c->index == run->campaign->index;
+    if (!current) run.reset();
+  }
   saved_run_ = std::move(run);
   touch();
 }
@@ -221,9 +259,15 @@ void AppViewModel::campaign_start() {
   campaign_next();
 }
 
-// Resumes the campaign mission in play, or starts the campaign's next mission.
+// Resumes the campaign mission in play (also one saved by an earlier launch), or starts the campaign's
+// next mission.
 void AppViewModel::campaign_continue() {
   const auto& c = shell_.progress.campaign;
+  if (c && saved_run_ && saved_run_->campaign && saved_run_->campaign->id == c->id &&
+      saved_run_->campaign->index == c->index) {
+    resume();
+    return;
+  }
   if (c && resumable() && shell_.run_campaign && shell_.run_campaign->id == c->id &&
       shell_.run_campaign->index == c->index) {
     resume();
@@ -282,33 +326,8 @@ void AppViewModel::start_selected_lesson() {
   open_lesson(ids[static_cast<std::size_t>(shell_.lesson_selected)]);
 }
 
-void AppViewModel::open_lesson(const std::string& id) {
-  shell_.lesson = LessonRunner(web_content().lesson(id));
-  screen_ = Screen::Lesson;
-  touch();
-}
-
 void AppViewModel::lesson_pick(int choice) {
   if (shell_.lesson.pick(choice)) touch();
-}
-
-void AppViewModel::lesson_next() {
-  if (shell_.lesson.next()) touch();
-}
-
-void AppViewModel::lesson_prev() {
-  if (shell_.lesson.prev()) touch();
-}
-
-void AppViewModel::lesson_leave() { open_curriculum(); }
-
-// Completion is recorded in progress and passes the lesson's stage on the map.
-void AppViewModel::lesson_finish() {
-  const AcademyLesson* l = shell_.lesson.lesson();
-  if (l == nullptr || !shell_.lesson.finished()) return;
-  if (!contains(shell_.progress.lessons_done, l->id)) shell_.progress.lessons_done.push_back(l->id);
-  save_progress();
-  open_curriculum();
 }
 
 // ---- Journal ----
