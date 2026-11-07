@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <string>
 
+#include "support/academy_flows.hpp"
 #include "support/png.hpp"
 #include "support/reference.hpp"
 #include "support/strategy_flows.hpp"
@@ -162,4 +163,23 @@ TEST_CASE("windowed tutorial art: m13-m17's first card drawn like the web's, PT-
       Rpixels_free(rgba);
     }
   }
+}
+
+TEST_CASE("windowed references: m16's tutorial card art and a lesson's strategy builder (1280x800)") {
+  {
+    Session s;
+    s.app.vm().select(testing::mission_index("m16-range-condor"));
+    s.d->frames(2);
+    REQUIRE(s.d->click(names::kMenuStart));
+    REQUIRE(s.d->until([&] { return s.app.vm().screen() == Screen::Tutorial; }));
+    s.reference("tutorial-condor");
+  }
+  Session s;
+  s.app.vm().open_lesson("strategies-shapes", Screen::Menu);
+  s.d->frames(2);
+  testing::walk_to_step(s.app, *s.d, "view", false);
+  REQUIRE(s.d->click(std::string(names::kLessonBuilderTemplatePrefix) + "6"));  // iron condor
+  REQUIRE(s.d->until([&] { return s.app.vm().lesson_builder().result().has_value(); }));
+  Rwidget_scroll_into_view(s.d->widget(names::kLessonBuilderPayoff));
+  s.reference("lesson-builder-condor");
 }
