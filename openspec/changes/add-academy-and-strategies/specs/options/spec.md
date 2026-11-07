@@ -67,3 +67,10 @@ At acceptance, working buy orders placed earlier at the same step SHALL count as
 #### Scenario: Flag off
 - **WHEN** m05 and m10 are replayed from their goldens
 - **THEN** every digest SHALL be unchanged
+
+### Requirement: A held perpetual's stop in the expiry analytics
+A perpetual leg of a what-if request MAY carry its working protective stop. The expiry analytics (breakevens, maximum profit and loss, the expiry curve) SHALL then treat that leg as closed at the stop beyond it, without a gap: a long is worth max(s, stop) at settlement price s, a short min(s, stop). The value, P&L, Greeks and the curve at the shifted time SHALL ignore it, and a stop on an option leg SHALL be refused as invalid input.
+
+#### Scenario: Covered call on a long with a stop
+- **WHEN** the legs are a long of 48 units from 100 with its stop at 97 and a written 105 call for 2
+- **THEN** the maximum loss SHALL be 48 ((100 − 97 − 2) × 48), the maximum profit 336 and the breakeven 98, and without the stop the maximum loss SHALL be 4,704

@@ -84,7 +84,13 @@ tl_run* tl_run_restore(const char* mission_id, uint32_t seed, const char* checkp
 /* Advances up to `steps` bars (stops early if the run ends) and returns the state. */
 const char* tl_advance(tl_run* run, int32_t steps);
 const char* tl_state(tl_run* run);
-/* Available once the run is finished or bankrupt; otherwise {"error":"run_active"}. */
+/* Available once the run is finished or bankrupt; otherwise {"error":"run_active"}. Report-only
+ * blocks never feed the score or a digest; "strategyComparison" (scoring v13, m13-m17, null
+ * otherwise) plays each of the mission's reference structures on a fresh copy of the run (same
+ * scenario, seed and start options) with the engine's commands: entered at the decision step of the
+ * player's first option fill and at its quantity ("basis":"player"), or at the mission's reference step
+ * with 10 contracts ("reference"); per structure the entry and exit bar, net P&L, maximum drawdown,
+ * margin calls, or the reason a leg was refused at entry. */
 const char* tl_debrief(tl_run* run);
 
 /* G4 seeded reveal of a built-in mission (run-less, static buffer): the regime spans as played
@@ -103,7 +109,10 @@ const char* tl_mission_reveal(const char* mission_id, uint32_t seed);
  * unless every option leg shares one expiry) has the exact breakevens, maxProfit and maxLoss (a
  * positive maxLoss is a loss; null = unbounded, always above, since prices stop at 0) and the
  * payoff curve; "today" is the curve at the shifted time and IV. Curves are [price, pnl] pairs on
- * the grid (default forward -30%..+30%, 61 points; at most 401). */
+ * the grid (default forward -30%..+30%, 61 points; at most 401). A perpetual leg may carry "stop"
+ * (its working protective stop): the expiry analytics and curve treat it as closed at the stop beyond
+ * it (no gap), so a combo built on a held position reports its loss to that stop; value, P&L, Greeks
+ * and "today" ignore it; a stop on an option leg is invalid input. */
 
 /* Run-less (the Academy, static buffer): {"forward","minutesPerStep","multiplier",
  * "legs":[{"kind":"call|put|perp","side":"buy|sell","qty","strike","minutesToExpiry","iv","entry"}],
