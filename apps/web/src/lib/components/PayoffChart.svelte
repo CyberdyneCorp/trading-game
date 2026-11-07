@@ -78,17 +78,19 @@
 		stroke-width: 1.5;
 		stroke-dasharray: 5 3;
 	}
-	/* Wraps in a narrow panel instead of running the key into the axis values. */
+	/* The scale ends stay at the box edges; in a narrow panel the key wraps between them instead of
+	   running into the axis values. */
 	.legend {
 		display: flex;
-		flex-wrap: wrap;
 		justify-content: space-between;
-		gap: 0 0.6rem;
+		align-items: flex-start;
+		gap: 0.6rem;
 		color: var(--muted);
 	}
-	/* Narrow: the scale ends stay on the first row, the key wraps under them. */
 	.key {
-		order: 3;
+		flex: 1 1 0;
+		min-width: 0;
+		text-align: center;
 	}
 	.key i {
 		display: inline-block;
