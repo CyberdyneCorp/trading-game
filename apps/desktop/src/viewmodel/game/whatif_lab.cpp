@@ -160,6 +160,17 @@ std::string js_number(double v) {
   return mantissa + "e" + (exp10 < 0 ? "-" : "+") + std::to_string(std::abs(exp10));
 }
 
+std::string leg_label(const WhatIfLeg& l, Locale locale, const std::string& perp_name) {
+  const double q = fmt::num(l.qty);
+  // Intl.NumberFormat with up to 8 fraction digits: as many as the quantity has.
+  const std::string plain = js_number(std::fabs(q));
+  const auto dot = plain.find('.');
+  const int digits = dot == std::string::npos ? 0 : std::min(8, static_cast<int>(plain.size() - dot - 1));
+  const std::string head = std::string(l.buy ? "+" : "\xE2\x88\x92") + fmt::fmt_num(q, locale, digits) + " ";  // −
+  if (l.kind == "perp") return head + perp_name;
+  return head + (l.kind == "call" ? "C" : "P") + " " + fmt::fmt_price(l.strike.value_or("0"), locale);
+}
+
 std::string shifted_forward(double forward, int pct) { return to_fixed(forward * (1 + pct / 100.0), 2); }
 
 std::string academy_request(const std::vector<AcademyLeg>& legs, const LabShift& shift, double forward) {

@@ -41,13 +41,7 @@ Tone sign_tone(const std::string& decimal) {
   return v < 0 ? Tone::Down : Tone::Plain;
 }
 
-std::string leg_label(const Texts& t, const WhatIfLeg& l) {
-  const Locale L = t.locale();
-  const std::string side = l.buy ? "+" : "\xE2\x88\x92";  // −
-  const std::string qty = fmt::fmt_num(fmt::num(l.qty), L, 0);
-  if (l.kind == "perp") return side + qty + " " + t.tr("lab.perp");
-  return side + qty + " " + (l.kind == "call" ? "C" : "P") + " " + fmt::fmt_price(l.strike.value_or("0"), L);
-}
+std::string leg_label(const Texts& t, const WhatIfLeg& l) { return game::leg_label(l, t.locale(), t.tr("lab.perp")); }
 
 std::string greek(const std::string& v, Locale L, int digits = 4) { return fmt::fmt_num(fmt::num(v), L, digits); }
 

@@ -419,6 +419,15 @@ std::map<std::string, Port> lab_ports() {
        }},
       {"strikesOf", [](const Value& a) { return array(result_strikes(result(a[0])), [](double k) { return num(k); }); }},
       {"unboundedAbove", [](const Value& a) { return opt_text(unbounded_above(result(a[0]))); }},
+      {"legLabel",
+       [](const Value& a) {
+         WhatIfLeg l;
+         l.kind = a[0]["kind"].as_string();
+         l.buy = a[0]["side"].as_string() != "sell";
+         l.qty = a[0]["qty"].as_string();
+         if (!a[0]["strike"].is_null()) l.strike = a[0]["strike"].as_string();
+         return text(leg_label(l, a[1].as_string() == "en" ? Locale::En : Locale::PtBR, a[2].as_string()));
+       }},
       {"chartGeometry",
        [](const Value& a) { return json_of(payoff_geometry(result(a[0]), a[1].as_double(), a[2].as_double(), doubles(a[3]))); }},
   };

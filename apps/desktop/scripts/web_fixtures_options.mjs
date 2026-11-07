@@ -325,6 +325,16 @@ export function whatifLabFixture(m, condor, call) {
 		const s = { price: 1, time: 2, iv: 3 };
 		add('setSlider', [s, which, 9, unlocked], m.setSlider(s, which, 9, unlocked));
 	}
+	for (const qty of ['1', '85.4', '47.90000000', '1234.5', '0.12345678', '3']) {
+		for (const locale of ['pt-BR', 'en']) {
+			for (const l of [
+				{ kind: 'call', side: 'buy', qty, strike: '105.00000000' },
+				{ kind: 'perp', side: 'sell', qty, strike: null }
+			]) {
+				add('legLabel', [l, locale, 'perp'], m.legLabel(l, locale, 'perp'));
+			}
+		}
+	}
 	for (const r of [condor, call]) {
 		add('strikesOf', [r], m.strikesOf(r));
 		add('unboundedAbove', [r], m.unboundedAbove(r));
