@@ -48,6 +48,10 @@ test('Academy lab: an illustrative call priced by the engine; sliders change its
 	const lab = page.getByTestId('whatif-lab');
 	await expect(lab.getByText(/Black-76 com taxa de juros zero/)).toBeVisible();
 	await expect(lab.getByTestId('lab-pnl')).toHaveText(/0,00/); // entry = the model's price, no shift
+	// The curve spans the whole chart box, so the scale ends printed at its edges are the curve's ends
+	// (it was drawn in the middle third of a wide box).
+	const [box, curve] = await Promise.all([lab.locator('figure svg').first().boundingBox(), lab.locator('figure path.today').first().boundingBox()]);
+	expect(curve!.width).toBeGreaterThan(box!.width * 0.95);
 	const value = await lab.getByTestId('lab-value').innerText();
 	await slide(page, 'lab-price', 10);
 	await expect(lab.getByTestId('lab-value')).not.toHaveText(value);

@@ -23,7 +23,8 @@
 
 {#if g}
 	<figure class="payoff" data-testid={testid}>
-		<svg viewBox="0 0 {W} {H}" role="img" aria-label={summary}>
+		<!-- Stretched to the box (the legend's scale ends sit at its edges); strokes keep their width. -->
+		<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" role="img" aria-label={summary}>
 			<line x1="0" x2={W} y1={g.zeroY} y2={g.zeroY} class="zero" />
 			{#each g.strikeX as x, i (i)}<line x1={x} x2={x} y1={H - 6} y2={H} class="strike" />{/each}
 			{#each g.breakevenX as x, i (i)}<line x1={x} x2={x} y1="0" y2={H} class="be" />{/each}
@@ -48,6 +49,9 @@
 		height: 140px;
 		background: #081010;
 		border: 1px solid var(--line);
+	}
+	svg :global(*) {
+		vector-effect: non-scaling-stroke;
 	}
 	.zero {
 		stroke: var(--muted);
