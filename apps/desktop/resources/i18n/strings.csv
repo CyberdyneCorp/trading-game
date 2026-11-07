@@ -2263,7 +2263,7 @@ academyLesson.mind-plan.sample.choice.lucky,"Que foi sorte, com certeza","That i
 academyLesson.mind-plan.sample.feedback.lucky,Também não dá para afirmar que foi sorte: uma amostra não prova nada em nenhuma direção.,You cannot claim it was luck either: one sample proves nothing in either direction.
 academyLesson.mind-plan.fomo.title,Transferência: um diário novo,Transfer: a new journal
 academyLesson.mind-plan.fomo.body,"Outro mercado, outro diário. Qual entrada foi por FOMO?","Another market, another journal. Which entry was FOMO?"
-academyLesson.mind-plan.fomo.right,"A entrada 1: comprou depois de uma barra de alta forte, sem stop, com medo de perder o resto. Esperar, como no trade 3, também é uma decisão válida.","Entry 1: bought after a strong up bar, with no stop, afraid of missing the rest. Waiting, as in trade 3, is a valid decision too."
+academyLesson.mind-plan.fomo.right,"O trade 1: comprou depois de uma barra de alta forte, sem stop, com medo de perder o resto. Esperar, como no trade 3, também é uma decisão válida.","Trade 1: bought after a strong up bar, with no stop, afraid of missing the rest. Waiting, as in trade 3, is a valid decision too."
 academyLesson.mind-plan.fomo.wrong,"FOMO é entrar porque o preço já andou, sem plano.","FOMO is entering because the price already moved, with no plan."
 academyLesson.mind-plan.fomo.choice.t1,Trade 1,Trade 1
 academyLesson.mind-plan.fomo.choice.t2,Trade 2,Trade 2
