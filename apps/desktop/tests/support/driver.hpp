@@ -63,12 +63,7 @@ class Driver {
     float x = 0, y = 0, w = 0, h = 0;
     Rwidget_get_rect(widget(name), &x, &y, &w, &h);
     if (w <= 0 || h <= 0) return false;
-    Rwindow_inject_mouse_move(window_, x + w / 2, y + h / 2);
-    frames(1);
-    Rwindow_inject_mouse_button(window_, R_MOUSE_LEFT, R_TRUE);
-    frames(1);
-    Rwindow_inject_mouse_button(window_, R_MOUSE_LEFT, R_FALSE);
-    frames(2);
+    press_release(x + w / 2, y + h / 2);
     return true;
   }
 
@@ -120,11 +115,16 @@ class Driver {
   }
 
   // Left click at a point in window coordinates.
-  void click_at(float x, float y) {
+  void click_at(float x, float y) { press_release(x, y); }
+
+  // Hover first (a frame to show it), then the move, press and release with no frame between them: a
+  // frame polls the system's events, and a real pointer over the window (another app's, or the
+  // developer's) would otherwise move the hover between the press and the release, losing the click.
+  void press_release(float x, float y) {
     Rwindow_inject_mouse_move(window_, x, y);
     frames(1);
+    Rwindow_inject_mouse_move(window_, x, y);
     Rwindow_inject_mouse_button(window_, R_MOUSE_LEFT, R_TRUE);
-    frames(1);
     Rwindow_inject_mouse_button(window_, R_MOUSE_LEFT, R_FALSE);
     frames(2);
   }

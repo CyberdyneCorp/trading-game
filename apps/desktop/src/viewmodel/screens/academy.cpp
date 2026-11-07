@@ -23,6 +23,14 @@ std::string tr_count(const AppViewModel& vm, const std::string& key, std::size_t
 
 std::string lesson_title(const AppViewModel& vm, const std::string& id) { return vm.tr("academyLesson." + id + ".title"); }
 
+// A stage's name without its subtitle ("Futuros II · margem, alavancagem e liquidação" -> "Futuros II"):
+// the full name pushed the lesson title and its status past the list's right edge.
+std::string short_stage(const AppViewModel& vm, const std::string& stage) {
+  std::string name = vm.tr("stage." + stage);
+  if (const auto cut = name.find(kSep); cut != std::string::npos) name.resize(cut);
+  return name;
+}
+
 std::vector<std::pair<std::string, std::string>> academy_rows() {  // stage, lesson
   std::vector<std::pair<std::string, std::string>> out;
   for (const auto& s : web_content().stages) {
@@ -142,14 +150,15 @@ ScreenModel academy(const AppViewModel& vm) {
     const std::string_view status = lesson_status(vm, due, id);
     if (static_cast<int>(i) == selected) selected_status = status;
     const bool retired = academy::is_retired(vm.progress().lesson_reviews, id);
-    list.items.push_back(vm.tr("stage." + stage) + std::string(kSep) + lesson_title(vm, id) + " [" +
+    list.items.push_back(short_stage(vm, stage) + std::string(kSep) + lesson_title(vm, id) + " [" +
                          vm.tr("academy.status." + std::string(status)) + "]" + (retired ? " " + vm.tr("academy.retired") : ""));
   }
   m.items.push_back(std::move(list));
   m.name(names::kAcademyLessons, vm.tr("academy.title"));
   if (selected >= 0 && selected < static_cast<int>(rows.size())) {
-    const std::string& id = rows[static_cast<std::size_t>(selected)].second;
-    m.text(names::kAcademyDetail, lesson_title(vm, id) + ": " + vm.tr("academyLesson." + id + ".summary"));
+    const auto& [stage, id] = rows[static_cast<std::size_t>(selected)];
+    m.text(names::kAcademyDetail,
+           vm.tr("stage." + stage) + "\n" + lesson_title(vm, id) + ": " + vm.tr("academyLesson." + id + ".summary"));
   }
   m.text(names::kAcademyStart, vm.tr(selected_status == "new" ? "curriculum.lessonStart" : "curriculum.lessonRepeat"));
   return m;

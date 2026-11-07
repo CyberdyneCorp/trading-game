@@ -7,10 +7,13 @@
 #include <raven/raven_controls.h>
 #include <raven/raven_widget.h>
 
+#include <utility>
+
 #include "model/storage/storage.hpp"
 #include "support/driver.hpp"
 #include "support/game_flows.hpp"
 #include "support/storage_fixtures.hpp"
+#include "support/text_dump.hpp"
 #include "view/app.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -235,4 +238,79 @@ TEST_CASE("headless shell: a run left mid-mission is offered by the next launch'
   t.advance();
   CHECK(app.vm().game().state()->step == step + 1);
   CHECK_FALSE(app.vm().saved_run().has_value());
+}
+
+namespace {
+
+// The item under a click on the first row a player sees in a list.
+int first_visible_item(Driver& d, std::string_view list) {
+  const Rid w = d.widget(list);
+  Rlist_view_set_selected(w, -1);
+  float x = 0, y = 0, width = 0, h = 0;
+  Rwidget_get_rect(w, &x, &y, &width, &h);
+  d.click_at(x + 20, y + 6);
+  return Rlist_view_get_selected(w);
+}
+
+}  // namespace
+
+// At a large text size the chart's toolbar wrapped onto more rows until the chart had no height left
+// and the top bar pushed Menu out of the 1024 px window. The terminal now lays out as in a window
+// text-scale times larger and scrolls; at 100% it is the window's size.
+TEST_CASE("headless shell: at 150% text the terminal keeps its chart and Menu within reach") {
+  for (float scale : {1.0F, 1.5F, 2.0F}) {
+    RavenSession raven;
+    App app(builtin_catalog(), [] { return 3u; });
+    REQUIRE(app.build(1024, 768));
+    app.vm().set_text_scale(scale);
+    Driver d(app);
+    d.frames(3);
+    testing::Terminal t(app, d);
+    t.open(12);
+    t.skip_question();
+    d.frames(4);
+    INFO("text scale " << scale);
+    float x = 0, y = 0, w = 0, h = 0;
+    Rwidget_get_rect(d.widget(names::kGameChart), &x, &y, &w, &h);
+    CHECK(h >= 150);
+    Rwidget_get_rect(d.widget("game-content"), &x, &y, &w, &h);
+    float sx = 0, sy = 0, sw = 0, sh = 0;
+    Rwidget_get_rect(d.widget("game-scroll"), &sx, &sy, &sw, &sh);
+    if (scale == 1.0F) CHECK((w == sw && h == sh));  // nothing scrolls at 100%
+    Rwidget_get_rect(d.widget(names::kGameMenu), &x, &y, &w, &h);
+    CHECK(x + w <= sw);
+    REQUIRE(d.click(names::kGameMenu));
+    CHECK(app.vm().screen() == Screen::Menu);
+  }
+}
+
+// The menu's subtitle and the selected mission's title were single lines cut by their panel at 150%.
+TEST_CASE("headless shell: at 150% text the menu's subtitle and mission title wrap instead of being cut") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 3u; });
+  REQUIRE(app.build(1024, 768));
+  app.vm().set_text_scale(1.5F);
+  Driver d(app);
+  d.frames(4);
+  const std::string cut = testing::overflow_report(app.view().screen_root(Screen::Menu));
+  INFO(cut);
+  CHECK(cut.find("menu-subtitle") == std::string::npos);
+  CHECK(cut.find("menu-detail-title") == std::string::npos);
+}
+
+// A list filled and given its selection before its screen was laid out used to scroll by one row: the
+// menu opened on "Mission 02" at the top with Mission 01 selected out of sight, the curriculum's lessons
+// on the second lesson.
+TEST_CASE("headless shell: lists open at their first row (menu missions, curriculum lessons)") {
+  for (auto [w, h] : {std::pair{1280, 800}, std::pair{1024, 768}}) {
+    RavenSession raven;
+    App app(builtin_catalog(), [] { return 1u; });
+    REQUIRE(app.build(w, h));
+    Driver d(app);
+    d.frames(3);
+    CHECK(first_visible_item(d, names::kMenuList) == 0);
+    REQUIRE(d.click(names::kMenuCurriculum));
+    d.frames(3);
+    CHECK(first_visible_item(d, names::kCurriculumLessons) == 0);
+  }
 }

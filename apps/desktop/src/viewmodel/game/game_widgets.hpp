@@ -39,6 +39,11 @@ inline constexpr std::string_view kTableLast = "game-table-last";
 
 // Docked panels (viewmodel/game/dock_layout.hpp names the panels) and "Reset layout"
 inline constexpr std::string_view kDock = "game-dock";
+inline constexpr std::string_view kScroll = "game-scroll";    // the terminal, scrolled at a large text size
+inline constexpr std::string_view kContent = "game-content";  // its content, sized by GameView::fit_text_scale
+inline constexpr std::string_view kTop = "game-top";                   // the top bar: one row, or two above 100% text
+inline constexpr std::string_view kTopRow = "game-top-row";
+inline constexpr std::string_view kTopControls = "game-top-controls";  // turn, advance, auto, help, menu
 inline constexpr std::string_view kLayoutReset = "game-layout-reset";
 
 // Rail
