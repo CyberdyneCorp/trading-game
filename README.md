@@ -650,17 +650,17 @@ The free-play briefing lists them: unlocked perks are toggles (on by default), l
 
 ## Specs (OpenSpec)
 
-Requirements live in `openspec/changes/`, one change per area; `openspec list` shows task progress and `openspec validate --all --strict` runs in CI.
+Finished changes are archived: their requirements live in `openspec/specs/` (simulation-core, order-execution, perpetual-futures, options, indicators, mission-tutorial, advisor, progression-rewards) and the change folders in `openspec/changes/archive/`. Changes still in progress live in `openspec/changes/`, one per area; `openspec list` shows task progress and `openspec validate --all --strict` runs in CI.
 
 | Change | Capabilities |
 |---|---|
-| `add-deterministic-engine` | simulation-core, order-execution, perpetual-futures, options, indicators |
+| `add-deterministic-engine` (archived 2026-11-07) | simulation-core, order-execution, perpetual-futures, options, indicators |
 | `add-scenarios-and-gameplay` | market-generator, scenario-packs, gameplay-loop, mission-scoring, curriculum |
 | `add-web-client` | web-client, terminal-ui |
 | `add-cyberdyne-identity-and-backend` | player-identity, game-api, offline-sync |
 | `add-native-clients` | desktop-client, ios-client |
-| `add-advisor-intel-tutorials` | mission-tutorial, advisor, progression-rewards |
-| `add-academy-and-strategies` (planned) | academy, options-whatif, strategy-builder, guided-first-trade, glossary |
+| `add-advisor-intel-tutorials` (archived 2026-11-07) | mission-tutorial, advisor, progression-rewards |
+| `add-academy-and-strategies` | academy, options-whatif, strategy-builder, guided-first-trade, glossary |
 | `add-run-sharing-and-journal-stats` | run-sharing, journal-stats (and a desktop-client delta) |
 
 ## Status and roadmap

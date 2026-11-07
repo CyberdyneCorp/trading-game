@@ -133,7 +133,7 @@ Official historical data comes from **Market4Me** (BTC/ETH/SOL USD-M perps from 
 
 ## 9. Execution, futures and options (summary)
 
-Normative detail: `openspec/changes/add-deterministic-engine/specs/`.
+Normative detail: `openspec/specs/` (archived change: `openspec/changes/archive/2026-11-07-add-deterministic-engine/`).
 
 - Bar-close clock: decide at bar *t*, eligible from *t+1*. No retroactive fills.
 - Orders: market, limit, stop-market, take-profit limit, trailing stop-market, bracket/OCO, reduce-only. Conservative OHLC intrabar policy with `ambiguousIntrabar` flags.

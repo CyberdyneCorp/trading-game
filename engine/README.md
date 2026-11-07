@@ -1,6 +1,6 @@
 # TradeLab engine
 
-Deterministic C++20 simulation core shared by every client (web via WASM, desktop, iOS, server via Python). Normative behavior: `openspec/changes/add-deterministic-engine/`.
+Deterministic C++20 simulation core shared by every client (web via WASM, desktop, iOS, server via Python). Normative behavior: `openspec/specs/` (simulation-core, order-execution, perpetual-futures, options, indicators; archived change in `openspec/changes/archive/2026-11-07-add-deterministic-engine/`).
 
 ## Build and test
 
