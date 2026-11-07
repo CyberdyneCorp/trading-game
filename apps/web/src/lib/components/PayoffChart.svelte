@@ -74,9 +74,12 @@
 		stroke-width: 1.5;
 		stroke-dasharray: 5 3;
 	}
+	/* Wraps in a narrow panel instead of running the key into the axis values. */
 	.legend {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: space-between;
+		gap: 0 0.6rem;
 		color: var(--muted);
 	}
 	.key i {

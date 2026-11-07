@@ -12,10 +12,14 @@
 
 	const label = (l: WhatIfLegView) => legLabel(l, L, t('lab.perp'));
 	const greek = (v: string, d = 4) => fmtNum(Number(v), L, d);
+	const caption = $derived(t(perUnit ? 'lab.tableCaption' : 'lab.tableCaptionNet'));
 </script>
 
+<!-- Wider than the builder's column: the table scrolls on its own (a focusable region), never the panel. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div class="scroll" tabindex="0" role="region" aria-label={caption}>
 <table class="whatif" data-testid="whatif-table">
-	<caption class="muted small">{t(perUnit ? 'lab.tableCaption' : 'lab.tableCaptionNet')}</caption>
+	<caption class="muted small">{caption}</caption>
 	<thead>
 		<tr>
 			<th scope="col">{t('lab.leg')}</th>
@@ -55,9 +59,14 @@
 		</tr>
 	</tfoot>
 </table>
+</div>
 {#if result.legs.some((l) => l.ivFloored)}<p class="muted small">* {t('lab.ivFloored')}</p>{/if}
 
 <style>
+	.scroll {
+		overflow-x: auto;
+		max-width: 100%;
+	}
 	.whatif {
 		width: 100%;
 		border-collapse: collapse;

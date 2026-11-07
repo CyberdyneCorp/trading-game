@@ -104,6 +104,26 @@ test('terminal lab agrees with the chain: zero shift = the engine quote mid, Gre
 	expect(requestKinds(log)).toContain('comboPreview');
 });
 
+test('at 1024 px the builder never scrolls sideways: the Greeks table scrolls on its own, the payoff legend wraps', async ({ page }) => {
+	await page.setViewportSize({ width: 1024, height: 768 });
+	await openBuilder(page);
+	await page.getByTestId('template-iron_condor').click();
+	await expect(page.getByTestId('whatif-table')).toBeVisible();
+	const builder = page.getByTestId('strategy-builder');
+	const overflow = await builder.evaluate((el) => el.scrollWidth - el.clientWidth);
+	expect(overflow).toBeLessThanOrEqual(1); // before: the 463 px table pushed the whole panel sideways
+	const region = page.getByRole('region', { name: /Por perna/ });
+	await expect(region).toHaveAttribute('tabindex', '0'); // a scrolling region keyboard users can reach
+	const spans = await page.getByTestId('builder-payoff').locator('figcaption > span').evaluateAll((els) =>
+		els.map((e) => e.getBoundingClientRect()).map((r) => ({ left: r.left, right: r.right, top: r.top }))
+	);
+	for (let i = 1; i < spans.length; i++) {
+		const [a, b] = [spans[i - 1], spans[i]];
+		if (a.top === b.top) expect(b.left, 'legend items overlap').toBeGreaterThanOrEqual(a.right);
+	}
+	await expectNoViolations(page, 'builder at 1024', '[data-testid="strategy-builder"]');
+});
+
 test('every template (and the short versions) is built from the chain and analysed by the engine', async ({ page }) => {
 	await openBuilder(page);
 	for (const id of TEMPLATE_IDS) {
