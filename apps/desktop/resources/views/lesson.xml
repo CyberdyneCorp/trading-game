@@ -1,5 +1,5 @@
 <!-- Academy lesson (web LessonRunner.svelte + LessonChart / LessonTicket / LessonTable / LessonPayoff /
-     LessonQuestion). Texts from screens::lesson() and screens::lesson_widgets(); the chart and the payoff
+     LessonWhatIf / LessonBuilder / LessonQuestion). Texts from screens::lesson() and screens::lesson_widgets(); the chart and the payoff
      are painted by the view from the step's data and listed as text for screen readers. -->
 <ScrollBox Name="lesson-scroll">
 <Border Background="#0B1010" Padding="16">
@@ -59,6 +59,56 @@
                         <VBox Name="lesson-sandbox-out" Spacing="2"/>
                         <Label Name="lesson-sandbox-warn" Class="down" Wrap="true"/>
                         <Label Name="lesson-sandbox-note" Class="muted" Wrap="true"/>
+                    </VBox>
+                </Border>
+                <Border Name="lesson-whatif-box" Background="#0B1010" BorderColor="#24413A" BorderWidth="1" Padding="8">
+                    <VBox Spacing="5">
+                        <Label Name="lesson-whatif-caption" Class="muted" Wrap="true"/>
+                        <Label Name="lesson-lab-note" Color="#FFC857" Wrap="true" TextSize="12"/>
+                        <HBox Spacing="6">
+                            <Label Name="lesson-lab-price-label" Color="#8FB3A1" TextSize="12" Width="220" Wrap="true" Slot.VAlign="Center"/>
+                            <Slider Name="lesson-lab-price" Min="-30" Max="30" Step="1" Value="0" Slot.Fill="1"/>
+                            <Label Name="lesson-lab-price-value" Color="#E3F5EA" TextSize="12" Width="200" Slot.VAlign="Center"/>
+                        </HBox>
+                        <HBox Spacing="6">
+                            <Label Name="lesson-lab-time-label" Color="#8FB3A1" TextSize="12" Width="220" Wrap="true" Slot.VAlign="Center"/>
+                            <Slider Name="lesson-lab-time" Min="0" Max="30" Step="1" Value="0" Slot.Fill="1"/>
+                            <Label Name="lesson-lab-time-value" Color="#E3F5EA" TextSize="12" Width="200" Slot.VAlign="Center"/>
+                        </HBox>
+                        <HBox Spacing="6">
+                            <Label Name="lesson-lab-iv-label" Color="#8FB3A1" TextSize="12" Width="220" Wrap="true" Slot.VAlign="Center"/>
+                            <Slider Name="lesson-lab-iv" Min="-30" Max="30" Step="1" Value="0" Slot.Fill="1"/>
+                            <Label Name="lesson-lab-iv-value" Color="#E3F5EA" TextSize="12" Width="200" Slot.VAlign="Center"/>
+                        </HBox>
+                        <Button Name="lesson-lab-reset" Slot.HAlign="Left"/>
+                        <Label Name="lesson-lab-error" Color="#FF5F7A" Wrap="true"/>
+                        <Label Name="lesson-lab-summary" Color="#E3F5EA" Wrap="true"/>
+                        <Label Name="lesson-lab-expiry-note" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                        <Custom Name="lesson-lab-payoff" Height="200" AccessibleRole="Image"/>
+                        <Label Name="lesson-lab-legend" Color="#8FB3A1" TextSize="11" Wrap="true"/>
+                        <VBox Name="lesson-lab-table" Spacing="1"/>
+                    </VBox>
+                </Border>
+                <Border Name="lesson-builder-box" Background="#0B1010" BorderColor="#24413A" BorderWidth="1" Padding="8">
+                    <VBox Spacing="5">
+                        <Label Name="lesson-builder-caption" Class="muted" Wrap="true"/>
+                        <WrapBox Name="lesson-builder-templates" Spacing="4" AccessibleRole="Group">
+                            <Button Name="lesson-builder-tpl-0"/>
+                            <Button Name="lesson-builder-tpl-1"/>
+                            <Button Name="lesson-builder-tpl-2"/>
+                            <Button Name="lesson-builder-tpl-3"/>
+                            <Button Name="lesson-builder-tpl-4"/>
+                            <Button Name="lesson-builder-tpl-5"/>
+                            <Button Name="lesson-builder-tpl-6"/>
+                        </WrapBox>
+                        <Checkbox Name="lesson-builder-short"/>
+                        <Label Name="lesson-builder-note" Class="muted" Wrap="true" TextSize="12"/>
+                        <Label Name="lesson-builder-error" Color="#FF5F7A" Wrap="true"/>
+                        <Label Name="lesson-builder-pick" Class="muted" Wrap="true" TextSize="12"/>
+                        <Label Name="lesson-builder-analysis" Color="#E3F5EA" Wrap="true"/>
+                        <Custom Name="lesson-builder-payoff" Height="200" AccessibleRole="Image"/>
+                        <Label Name="lesson-builder-legend" Color="#8FB3A1" TextSize="11" Wrap="true"/>
+                        <VBox Name="lesson-builder-table" Spacing="1"/>
                     </VBox>
                 </Border>
                 <Label Name="lesson-body" Wrap="true"/>

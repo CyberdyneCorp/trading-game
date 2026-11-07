@@ -38,6 +38,23 @@ inline constexpr std::string_view kSandboxTarget = "lesson-sandbox-target";
 inline constexpr std::string_view kSandboxOut = "lesson-sandbox-out";
 inline constexpr std::string_view kSandboxWarn = "lesson-sandbox-warn";
 inline constexpr std::string_view kSandboxNote = "lesson-sandbox-note";
+// The what-if lab on the step's legs (web LessonWhatIf.svelte): the shared lab panel, "lesson-lab-*".
+inline constexpr std::string_view kLessonWhatIfBox = "lesson-whatif-box";
+inline constexpr std::string_view kLessonWhatIfCaption = "lesson-whatif-caption";
+inline constexpr std::string_view kLessonLabPrefix = "lesson-lab-";
+// The strategy builder on a synthetic chain (web LessonBuilder.svelte).
+inline constexpr std::string_view kLessonBuilderBox = "lesson-builder-box";
+inline constexpr std::string_view kLessonBuilderCaption = "lesson-builder-caption";
+inline constexpr std::string_view kLessonBuilderTemplates = "lesson-builder-templates";
+inline constexpr std::string_view kLessonBuilderTemplatePrefix = "lesson-builder-tpl-";  // 0..6, in kTemplates order
+inline constexpr std::string_view kLessonBuilderShort = "lesson-builder-short";
+inline constexpr std::string_view kLessonBuilderNote = "lesson-builder-note";
+inline constexpr std::string_view kLessonBuilderError = "lesson-builder-error";
+inline constexpr std::string_view kLessonBuilderPick = "lesson-builder-pick";
+inline constexpr std::string_view kLessonBuilderAnalysis = "lesson-builder-analysis";
+inline constexpr std::string_view kLessonBuilderPayoff = "lesson-builder-payoff";
+inline constexpr std::string_view kLessonBuilderLegend = "lesson-builder-legend";
+inline constexpr std::string_view kLessonBuilderTable = "lesson-builder-table";
 inline constexpr std::string_view kLessonNumberRow = "lesson-number-row";
 inline constexpr std::string_view kLessonNumberLabel = "lesson-number-label";
 inline constexpr std::string_view kLessonNumber = "lesson-number";
@@ -131,7 +148,9 @@ inline constexpr auto kAcademyWidgets = std::to_array<std::string_view>({
     kLessonPayoffNote, kLessonTableBox, kLessonTableCaption, kLessonTable, kLessonTicketBox, kSandboxCaption, kSandboxFixed,
     kSandboxSideRow, kSandboxBuy, kSandboxSell, kSandboxQtyLabel, kSandboxQty, kSandboxLevLabel, kSandboxLeverage,
     kSandboxStopLabel, kSandboxStop, kSandboxTargetRow, kSandboxTargetLabel, kSandboxTarget, kSandboxOut, kSandboxWarn,
-    kSandboxNote, kLessonNumberRow, kLessonNumberLabel, kLessonNumber, kLessonNumberUnit, kLessonCheck, kLessonSetRow,
+    kSandboxNote, kLessonWhatIfBox, kLessonWhatIfCaption, kLessonBuilderBox, kLessonBuilderCaption, kLessonBuilderTemplates,
+    kLessonBuilderShort, kLessonBuilderNote, kLessonBuilderError, kLessonBuilderPick, kLessonBuilderAnalysis, kLessonBuilderPayoff,
+    kLessonBuilderLegend, kLessonBuilderTable, kLessonNumberRow, kLessonNumberLabel, kLessonNumber, kLessonNumberUnit, kLessonCheck, kLessonSetRow,
     kLessonSetCheck, kLessonSetHint, kLessonTermsRow, kLessonTermsLabel, kLessonTerms[0], kLessonTerms[1], kLessonTerms[2],
     kLessonTerms[3], kLessonTerms[4], kLessonTermHelp, kLessonDoneReview, kAcademyTitle, kAcademyGlossary, kAcademyBack,
     kAcademyIntro, kAcademyDueBox, kAcademyDueTitle, kAcademyDue, kAcademyReviewStart, kAcademyLessons, kAcademyDetail,

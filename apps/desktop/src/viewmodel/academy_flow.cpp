@@ -60,6 +60,7 @@ void AppViewModel::open_lesson(const std::string& id, Screen from, LessonMode mo
 void AppViewModel::reset_sandbox() {
   AcademyState& a = shell_.academy;
   a.typed.clear();
+  reset_lesson_lab();
   const TicketWidget* w = ticket_of(shell_.lesson.step());
   if (w == nullptr) {
     a.sandbox.reset();

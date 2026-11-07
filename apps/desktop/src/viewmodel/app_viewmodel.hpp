@@ -17,6 +17,7 @@
 #include "model/run_sharing.hpp"
 #include "model/snapshot.hpp"
 #include "model/update/update_service.hpp"
+#include "viewmodel/academy/lesson_lab.hpp"
 #include "viewmodel/academy/ticket_sandbox.hpp"
 #include "viewmodel/audio/audio_director.hpp"
 #include "viewmodel/chart_geometry.hpp"
@@ -149,6 +150,14 @@ class AppViewModel {
   void academy_lab_changed();
   // Each option leg's entry becomes the engine's model value now (no shift).
   void academy_lab_price_at_model();
+  // A lesson step's what-if lab (fixed legs, only its unlocked sliders) and strategy builder (templates
+  // on a synthetic chain priced at the model), both valued by tl_option_whatif.
+  [[nodiscard]] game::LabViewModel& lesson_lab() { return lesson_lab_; }
+  [[nodiscard]] const game::LabViewModel& lesson_lab() const { return lesson_lab_; }
+  void lesson_lab_changed();
+  [[nodiscard]] const academy::LessonBuilder& lesson_builder() const { return lesson_builder_; }
+  void lesson_builder_pick(game::Template t);
+  void lesson_builder_short(bool on);
 
   void campaign_start();
   void campaign_continue();
@@ -347,8 +356,11 @@ class AppViewModel {
   void pause_downloads();
   void csv_report(const packs::PackEvent& e);
   void csv_imported(const packs::PackEvent& e);
-  // Academy (academy_flow.cpp).
+  // Academy (academy_flow.cpp, academy_lab.cpp).
   void reset_sandbox();
+  void reset_lesson_lab();
+  void lab_changed(game::LabViewModel& lab);
+  void lesson_builder_changed();
   void start_watch(std::string text, bool imported, std::string id);
   void watch_result(const CommandResult& r);
   void apply_run_file_message(const runfiles::RunFileEvent& e);
@@ -380,6 +392,8 @@ class AppViewModel {
   update::UpdateState update_;
   audio::Soundtrack soundtrack_;
   game::LabViewModel academy_lab_;
+  game::LabViewModel lesson_lab_;
+  academy::LessonBuilder lesson_builder_;
   std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);  // replies of report-only engine calls
 };
 

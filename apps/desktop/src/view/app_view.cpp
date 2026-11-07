@@ -125,6 +125,8 @@ bool AppView::build(int width, int height) {
   coach_view_ = std::make_unique<view::CoachView>(vm_, switcher_, window_);
   lab_screen_ = std::make_unique<view::LabScreen>(vm_, screens_[static_cast<std::size_t>(Screen::Lab)]);
   lab_screen_->bind();
+  lesson_lab_ = std::make_unique<view::LessonLabView>(vm_, screens_[static_cast<std::size_t>(Screen::Lesson)]);
+  lesson_lab_->bind();
   refresh();
   return true;
 }
@@ -181,6 +183,7 @@ void AppView::refresh() {
   shell_->focus_help(window_);
   if (coach_view_) coach_view_->refresh();
   if (lab_screen_) lab_screen_->refresh();
+  if (lesson_lab_) lesson_lab_->refresh();
   if (vm_.revision() == shown_revision_) return;
   shown_revision_ = vm_.revision();
   Rswitcher_set_index(switcher_, static_cast<int>(vm_.screen()));
@@ -224,6 +227,9 @@ std::vector<std::string> AppView::missing_names() const {
   }
   if (lab_screen_) {
     for (auto& m : lab_screen_->missing_names()) missing.push_back(std::move(m));
+  }
+  if (lesson_lab_) {
+    for (auto& m : lesson_lab_->missing_names()) missing.push_back(std::move(m));
   }
   if (find(names::builder::kMenuLab) == R_INVALID_ID) missing.push_back("widget " + std::string(names::builder::kMenuLab));
   return missing;

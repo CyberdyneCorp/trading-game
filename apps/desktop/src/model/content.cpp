@@ -85,11 +85,36 @@ PayoffWidget payoff_of(const json::Value& w) {
   return p;
 }
 
+WhatIfWidget whatif_of(const json::Value& w) {
+  WhatIfWidget out;
+  out.market = w["market"].as_string();
+  out.forward = w["forward"].as_double();
+  for (const auto& l : w["legs"].items()) {
+    out.legs.push_back({l["kind"].as_string(), l["side"].as_string() != "sell", l["strike"].as_double(), l["qty"].as_double(1),
+                        l["days"].as_double(), l["ivPct"].as_double(), l["entry"].as_double()});
+  }
+  out.unlocked = strings(w["unlocked"]);
+  return out;
+}
+
+BuilderWidget builder_of(const json::Value& w) {
+  BuilderWidget out;
+  out.market = w["market"].as_string();
+  out.forward = w["forward"].as_double();
+  for (const auto& k : w["strikes"].items()) out.strikes.push_back(k.as_double());
+  out.days = w["days"].as_double();
+  out.iv_pct = w["ivPct"].as_double();
+  out.tmpl = w["template"].as_string();
+  return out;
+}
+
 LessonWidget widget_of(const json::Value& w) {
   const std::string kind = w["kind"].as_string();
   if (kind == "ticket") return ticket_of(w);
   if (kind == "table") return table_of(w);
   if (kind == "payoff") return payoff_of(w);
+  if (kind == "whatif") return whatif_of(w);
+  if (kind == "builder") return builder_of(w);
   return std::monostate{};
 }
 
