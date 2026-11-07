@@ -314,19 +314,40 @@ void ShellView::apply_table(const WidgetTable& t) {
   tables_[std::string(t.widget)] = t;
 }
 
+namespace {
+
+void fill_combo(Rid w, const WidgetItems& items, bool same) {
+  if (!same) {
+    Rcombo_box_clear_items(w);
+    for (const auto& text : items.items) Rcombo_box_add_item(w, text.c_str());
+  }
+  if (!same || Rcombo_box_get_selected(w) != items.selected) Rcombo_box_set_selected(w, items.selected);
+}
+
+void fill_list(Rid w, const WidgetItems& items, bool same) {
+  if (!same) {
+    Rlist_view_clear_items(w);
+    for (const auto& text : items.items) Rlist_view_add_item(w, text.c_str());
+  }
+  if (same && Rlist_view_get_selected(w) == items.selected) return;
+  Rlist_view_set_selected(w, items.selected);
+  // A list selected before its screen was laid out has no height yet, and Raven then scrolls it so the
+  // row ends at its top (the menu showed Mission 02 first, Mission 01 selected out of sight): reveal the
+  // row again on the laid-out list.
+  Rlist_view_scroll_to_item(w, items.selected);
+}
+
+}  // namespace
+
 void ShellView::apply_items(const WidgetItems& items) {
   const Rid w = find(items.widget);
   if (w == R_INVALID_ID) return;
   auto it = items_.find(items.widget);
   const bool same = it != items_.end() && it->second.items == items.items;
-  const bool combo = Rwidget_get_type(w) == R_WIDGET_COMBO_BOX;
-  if (!same) {
-    combo ? Rcombo_box_clear_items(w) : Rlist_view_clear_items(w);
-    for (const auto& text : items.items) combo ? Rcombo_box_add_item(w, text.c_str()) : Rlist_view_add_item(w, text.c_str());
-  }
-  const int current = combo ? Rcombo_box_get_selected(w) : Rlist_view_get_selected(w);
-  if (!same || current != items.selected) {
-    combo ? Rcombo_box_set_selected(w, items.selected) : Rlist_view_set_selected(w, items.selected);
+  if (Rwidget_get_type(w) == R_WIDGET_COMBO_BOX) {
+    fill_combo(w, items, same);
+  } else {
+    fill_list(w, items, same);
   }
   items_[std::string(items.widget)] = items;
 }
