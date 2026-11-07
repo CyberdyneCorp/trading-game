@@ -19,6 +19,7 @@
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/academy_names.hpp"
 #include "viewmodel/game/builder_widgets.hpp"
+#include "viewmodel/run_file_names.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -211,11 +212,13 @@ std::vector<std::string> AppView::missing_names() const {
   missing_widgets(names::kShellWidgets, missing);
   missing_widgets(names::kFlowWidgets, missing);
   missing_widgets(names::kAcademyWidgets, missing);
+  missing_widgets(names::kRunFileWidgets, missing);
   if (shell_->look().overlay() == R_INVALID_ID) missing.push_back("widget " + std::string(names::kCrtOverlay));
   missing_actions(names::kActions, missing);
   missing_actions(names::kShellActions, missing);
   missing_actions(names::kFlowActions, missing);
   missing_actions(names::kAcademyActions, missing);
+  missing_actions(names::kRunFileActions, missing);
   if (game_view_) {
     for (auto& m : game_view_->missing_names()) missing.push_back(std::move(m));
   }

@@ -24,6 +24,7 @@ import type {
 	PlaceOptionOrderCommand,
 	PlaceOrderCommand,
 	RecordPlanCommand,
+	RunFileVerdict,
 	RunOptionsView,
 	SetLeverageCommand,
 	TrustedKey,
@@ -48,6 +49,9 @@ export type EngineRequest =
 	| { kind: 'whatif'; request: WhatIfRequest }
 	| { kind: 'runWhatif'; request: WhatIfRequest }
 	| { kind: 'comboPreview'; request: ComboRequest }
+	// Run files (add-run-sharing-and-journal-stats D2): run-less, never touch the current run.
+	| { kind: 'verifyRun'; text: string; pack?: Uint8Array; keys?: TrustedKey[] }
+	| { kind: 'sealRun'; text: string; pack?: Uint8Array; keys?: TrustedKey[] }
 	// Player commands: payload shapes generated from engine/idl (one C ABI call each).
 	| ({ kind: 'order' } & PlaceOrderCommand)
 	| ({ kind: 'option' } & PlaceOptionOrderCommand)
@@ -111,7 +115,12 @@ interface ResponseMap {
 	comboPreview: Analysis<ComboPreview>;
 	/** Null for runs on imported packs (their reveal is in the debrief). */
 	reveal: MissionReveal | null;
+	verifyRun: RunFileReply;
+	sealRun: RunFileReply;
 }
+
+/** A run-file verdict, or `unsupported` from a build that predates run files. */
+export type RunFileReply = Omit<RunFileVerdict, 'reason'> & { reason?: RunFileVerdict['reason'] | 'unsupported' };
 
 export type EngineResponse<K extends EngineRequest['kind']> = K extends keyof ResponseMap ? ResponseMap[K] : CommandResponse;
 

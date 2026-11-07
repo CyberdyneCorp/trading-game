@@ -88,6 +88,11 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         fn = getattr(lib, name)
         fn.restype = restype
         fn.argtypes = argtypes
+    # Run files (add-run-sharing-and-journal-stats D2): optional, older policy builds predate it.
+    for name in ("tl_run_file_verify", "tl_run_file_seal"):
+        if hasattr(lib, name):
+            getattr(lib, name).restype = c_char_p
+            getattr(lib, name).argtypes = [c_char_p, c_char_p, u32, c_char_p]
     return lib
 
 
@@ -155,6 +160,27 @@ def build_csv_pack(csv: str, meta: dict[str, Any], seed_hex: str) -> tuple[dict[
 def pack_validate(pack: bytes, trusted: TrustedKeys, *, publish: bool = False) -> dict[str, Any]:
     """Verifies a pack for install or publishing (LIC01): {"ok", "reason", "detail", "pack"}."""
     return _json(load_library().tl_pack_validate(pack, len(pack), json.dumps(trusted).encode(), int(publish)))
+
+
+def verify_run_file(text: str, pack: bytes | None = None, trusted: TrustedKeys | None = None) -> dict[str, Any]:
+    """Verifies a run file (add-run-sharing-and-journal-stats D2): strict parse and schema, then a
+    replay that must reproduce its recorded status and digests. {"ok": True, ..., "run", "fileDigest",
+    "debrief"} or {"ok": False, "reason", "path", "pack", "detail"}."""
+    return _run_file_call("tl_run_file_verify", text, pack, trusted)
+
+
+def seal_run_file(text: str, pack: bytes | None = None, trusted: TrustedKeys | None = None) -> dict[str, Any]:
+    """The exporter's call: a run file whose "result" may be absent, replayed; the accepted verdict's
+    "run" carries the replay's result. Refusals as verify_run_file (never digest_mismatch)."""
+    return _run_file_call("tl_run_file_seal", text, pack, trusted)
+
+
+def _run_file_call(name: str, text: str, pack: bytes | None, trusted: TrustedKeys | None) -> dict[str, Any]:
+    lib = load_library()
+    if not hasattr(lib, name):
+        raise EngineError(f"this engine build has no {name}")
+    keys = json.dumps(trusted or []).encode()
+    return _json(getattr(lib, name)(text.encode("utf-8"), pack, len(pack or b""), keys))
 
 
 # ---- pack authoring (tools/packer, design D5) ----

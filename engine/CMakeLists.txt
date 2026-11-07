@@ -45,6 +45,8 @@ add_library(tradelab_engine STATIC
   src/c_api.cpp
   src/c_api_pack.cpp
   src/c_api_whatif.cpp
+  src/c_api_run_file.cpp
+  src/run_file.cpp
   src/combo_preview.cpp
   src/options_whatif.cpp
   src/checkpoint.cpp
@@ -107,7 +109,7 @@ if(EMSCRIPTEN)
   target_link_options(tradelab_wasm PRIVATE
     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createTradelab -sSINGLE_FILE=1
     -sENVIRONMENT=web,worker -sALLOW_MEMORY_GROWTH=1 -sFILESYSTEM=0
-    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_abi_version','_tl_missions','_tl_run_create','_tl_run_create_ex','_tl_run_destroy','_tl_request_advice','_tl_place_order','_tl_place_order_ex','_tl_place_trailing_rate','_tl_place_option_order','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_answer_lesson','_tl_lesson','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_move_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_tl_mission_reveal','_tl_option_whatif','_tl_run_option_whatif','_tl_combo_preview','_tl_csv_validate','_tl_pack_build_csv','_tl_pack_validate','_tl_run_create_pack','_tl_run_restore_pack','_tl_device_key','_tl_blob_data','_tl_blob_size','_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_abi_version','_tl_missions','_tl_run_create','_tl_run_create_ex','_tl_run_destroy','_tl_request_advice','_tl_place_order','_tl_place_order_ex','_tl_place_trailing_rate','_tl_place_option_order','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_answer_lesson','_tl_lesson','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_move_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_tl_mission_reveal','_tl_option_whatif','_tl_run_option_whatif','_tl_combo_preview','_tl_csv_validate','_tl_pack_build_csv','_tl_pack_validate','_tl_run_create_pack','_tl_run_restore_pack','_tl_device_key','_tl_blob_data','_tl_blob_size','_tl_run_file_verify','_tl_run_file_seal','_malloc','_free']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','HEAPU8']")
 endif()
 
@@ -145,10 +147,35 @@ if(TRADELAB_BUILD_TESTS)
   file(CONFIGURE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/generated/golden_fixtures.inc
        CONTENT "${TRADELAB_GOLDEN_INC}" @ONLY)
 
+  # Shared run-file fixtures (tests/runfiles, design D9 of add-run-sharing-and-journal-stats): index.json
+  # and every file it lists, embedded the same way; files and index must match.
+  set(TRADELAB_RUNFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests/runfiles)
+  file(GLOB TRADELAB_RUNFILE_FILES CONFIGURE_DEPENDS ${TRADELAB_RUNFILE_DIR}/*.tlrun)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TRADELAB_RUNFILE_FILES} ${TRADELAB_RUNFILE_DIR}/index.json)
+  file(READ ${TRADELAB_RUNFILE_DIR}/index.json TRADELAB_RUNFILE_INDEX)
+  string(JSON TRADELAB_RUNFILE_COUNT LENGTH "${TRADELAB_RUNFILE_INDEX}" files)
+  math(EXPR TRADELAB_RUNFILE_LAST "${TRADELAB_RUNFILE_COUNT} - 1")
+  set(TRADELAB_RUNFILE_INC "{\"index.json\", R\"tlrun(${TRADELAB_RUNFILE_INDEX})tlrun\"},\n")
+  set(TRADELAB_RUNFILE_LISTED "")
+  foreach(i RANGE ${TRADELAB_RUNFILE_LAST})
+    string(JSON name GET "${TRADELAB_RUNFILE_INDEX}" files ${i} name)
+    list(APPEND TRADELAB_RUNFILE_LISTED ${TRADELAB_RUNFILE_DIR}/${name})
+    file(READ ${TRADELAB_RUNFILE_DIR}/${name} body)
+    string(APPEND TRADELAB_RUNFILE_INC "{\"${name}\", R\"tlrun(${body})tlrun\"},\n")
+  endforeach()
+  list(SORT TRADELAB_RUNFILE_LISTED)
+  list(SORT TRADELAB_RUNFILE_FILES)
+  if(NOT TRADELAB_RUNFILE_LISTED STREQUAL TRADELAB_RUNFILE_FILES)
+    message(FATAL_ERROR "tests/runfiles/index.json does not list exactly the .tlrun files in tests/runfiles")
+  endif()
+  file(CONFIGURE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/generated/run_files.inc
+       CONTENT "${TRADELAB_RUNFILE_INC}" @ONLY)
+
   add_executable(tradelab_engine_tests
     tests/main.cpp
     tests/golden.cpp
     tests/test_golden.cpp
+    tests/test_run_file.cpp
     tests/test_fixed.cpp
     tests/test_det_math.cpp
     tests/test_advisor.cpp
@@ -221,7 +248,7 @@ if(TRADELAB_BUILD_FUZZERS AND NOT EMSCRIPTEN)
   # address may be dropped where the toolchain's ASan runtime does not start (some macOS releases).
   set(TRADELAB_FUZZ_SANITIZERS "address,undefined" CACHE STRING "Sanitizers added to the fuzz build")
   set(fuzz_flags -fsanitize=fuzzer,${TRADELAB_FUZZ_SANITIZERS} -fno-sanitize-recover=all)
-  foreach(target fuzz_csv fuzz_pack fuzz_json)
+  foreach(target fuzz_csv fuzz_pack fuzz_json fuzz_runfile)
     add_executable(${target} fuzz/${target}.cpp)
     target_link_libraries(${target} PRIVATE tradelab::engine tradelab_vendor)
     target_compile_options(${target} PRIVATE ${fuzz_flags})

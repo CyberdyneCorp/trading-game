@@ -18,6 +18,8 @@
 	import { glossaryUi } from '#lib/game/glossaryUi.svelte.ts';
 	import LabScreen from '#lib/components/LabScreen.svelte';
 	import Journal from '#lib/components/Journal.svelte';
+	import JournalStats from '#lib/components/JournalStats.svelte';
+	import ReplayScreen from '#lib/components/ReplayScreen.svelte';
 	import Tutorial from '#lib/components/Tutorial.svelte';
 	import CrtOverlay from '#lib/components/CrtOverlay.svelte';
 	import Debrief from '#lib/components/Debrief.svelte';
@@ -87,6 +89,10 @@
 	<Catalog {session} />
 {:else if session.screen === 'journal'}
 	<Journal {session} />
+{:else if session.screen === 'stats'}
+	<JournalStats {session} />
+{:else if session.screen === 'replay' && session.viewing && session.state}
+	<ReplayScreen {session} />
 {:else if session.screen === 'tutorial'}
 	<Tutorial {session} />
 {:else if session.screen === 'briefing'}

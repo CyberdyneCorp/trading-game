@@ -10,6 +10,7 @@
 #include "support/shell_helpers.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 #include "viewmodel/screen_names.hpp"
+#include "viewmodel/screens/screens.hpp"
 #include "viewmodel/widget_names.hpp"
 
 using namespace tradelab::desktop;
@@ -404,4 +405,67 @@ TEST_CASE("shell: settings toggle CRT effects, palette, text scale, sound, langu
   f.vm.set_locale(Locale::En);
   CHECK(repo.load()->locale == Locale::En);
   CHECK(f.vm.screen_model().text_of(names::kSettingsTitle) == "Settings");
+}
+
+TEST_CASE("shell: older runs without a summary are recomputed from the statistics screen") {
+  struct FakeRunFiles final : runfiles::RunFileCommands {
+    int recomputes = 0;
+    void list_imports() override {}
+    void import_file(const std::string&) override {}
+    void export_run(const std::string&, bool, const std::string&) override {}
+    void remove_import(const std::string&) override {}
+    void own_file(const std::string&) override {}
+    void recompute() override { ++recomputes; }
+  };
+  Fixture f;
+  Progress old;
+  RunRecord r;
+  r.run_id = "r-old";
+  r.mission_id = "m01-false-breakout";
+  r.status = RunStatus::Finished;
+  old.runs.push_back(r);
+  MemoryProgressRepository repo(old);
+  MemorySettingsRepository settings;
+  f.vm.attach_repositories(&repo, &settings);
+  FakeRunFiles files;
+  f.vm.attach_run_files(&files);
+  f.vm.open_stats();
+  ScreenModel m = f.vm.screen_model();
+  CHECK(m.text_of(names::kStatsMissing) == "1 partida antiga ainda sem resumo.");
+  REQUIRE(m.is_visible(names::kStatsRecompute, false));
+  f.vm.stats_recompute();
+  CHECK(files.recomputes == 1);
+  runfiles::RunFileEvent e;
+  e.kind = runfiles::RunFileEvent::Kind::Recomputed;
+  e.recomputed.done = 1;
+  e.recomputed.summaries = {{"r-old", R"({"v":1,"mission":"m01-false-breakout","status":"finished","initial":10000,"net":5,"score":60,"trades":[],"findings":[]})"}};
+  f.vm.on_run_file_event(e);
+  m = f.vm.screen_model();
+  CHECK_FALSE(m.is_visible(names::kStatsMissing, true));
+  CHECK(m.text_of(names::kStatsMessage).starts_with("1 calculadas"));
+  CHECK(screens::stats_runs(f.vm.progress()).size() == 1);
+  CHECK_FALSE(repo.load().runs[0].summary.empty());  // saved
+}
+
+TEST_CASE("shell: a debrief stores the run's summary and the statistics screen counts it (journal stats D7)") {
+  Fixture f;
+  f.vm.open_stats();
+  CHECK(f.vm.screen() == Screen::Stats);
+  CHECK(f.vm.screen_model().is_visible(names::kStatsEmpty));
+  f.vm.back_to_menu();
+  RealRun run;
+  f.play_selected(run);
+  REQUIRE(f.vm.progress().runs.size() == 1);
+  const std::string summary = f.vm.progress().runs[0].summary;
+  REQUIRE_FALSE(summary.empty());
+  CHECK(summary.find(R"("mission":"m01-false-breakout")") != std::string::npos);
+  CHECK(summary.find(R"("movedAway":0)") != std::string::npos);
+  REQUIRE(screens::stats_runs(f.vm.progress()).size() == 1);
+  f.vm.back_to_menu();
+  f.vm.open_stats();
+  const ScreenModel m = f.vm.screen_model();
+  CHECK_FALSE(m.is_visible(names::kStatsEmpty, true));
+  CHECK(has_line(m, names::kStatsLines, "Só 1 trade fechado"));
+  CHECK(has_line(m, names::kStatsLines, "Lição: Dimensionar pelo stop"));
+  CHECK(has_line(m, names::kStatsLines, "Entrada sem stop"));
 }

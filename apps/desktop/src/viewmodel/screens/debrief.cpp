@@ -351,6 +351,7 @@ ScreenModel debrief(const AppViewModel& vm) {
   academy_debrief(vm, m);
   m.show(names::kDebriefAgain, !vm.shell().run_campaign);
   m.text(names::kDebriefAgain, "\xE2\x86\xBB " + vm.tr(vm.run_pack().empty() ? "debrief.again" : "debrief.againPack"));  // ↻
+  debrief_replay(vm, m);
   return m;
 }
 

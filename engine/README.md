@@ -68,6 +68,34 @@ A client replays a `run` fixture through the same C ABI the engine tests use (`t
 
 Regeneration: `python3 tools/regen_golden.py` replays every fixture through the Python binding (`libtradelab` from `engine/build/native-release`, or `TRADELAB_LIB`) and exits 1 when an `expected` or `versions` block, or the file layout, differs (CI runs it in the Python job); `--write` rewrites them. It never touches the inputs (market, seed, options, actions, description). To add a fixture, write those inputs to `tests/golden/<name>.json` (with `"format": 1` and `"kind"`), add the name to `index.json`, run `--write`, and check that every earlier fixture is unchanged.
 
+## Run files (export, import, verification)
+
+A run file (`.tlrun`, openspec `add-run-sharing-and-journal-stats` design D1) is versioned JSON. It has:
+- `format` `"tradelab-run"` and `version` 1;
+- the mission (or the catalog pack's digest), the seed and the start options;
+- the recording engine's versions;
+- campaign and assisted labels;
+- the action log in the shared format above;
+- optional plan notes;
+- `result`: status, `digest` and `eventsDigest`.
+
+It holds no run id, timestamps or device identity. Every price, quantity and amount is a decimal string.
+
+- `tl_run_file_verify(file, pack, pack_len, keys)` parses the file with the strict reader (1 MiB, depth 8, at most 20,000 actions and 500 notes) and checks every member and action against the schema (`src/run_file.cpp`; unknown members are refused). It then refuses another execution policy, replays the log from a fresh run with the same applier as the goldens, and accepts the file only when the replay reproduces `result`. The verdict carries the canonical file (RFC 8785), its SHA-256 (`fileDigest`) and the debrief when the run ended. Refusal reasons (`RunFileReason` in the IDL): `too_large`, `malformed`, `not_a_run_file`, `unsupported_version`, `invalid_field` (with the member's path), `policy_mismatch`, `unknown_mission`, `invalid_options`, `pack_required` (with the digest to supply), `pack_invalid`, `pack_mismatch`, `digest_mismatch`.
+- `tl_run_file_seal` is the exporter's call. It runs the same checks and replay on a file whose `result` may be absent and writes the replay's result into it, so every client writes the same file for the same run.
+
+Both are run-less and touch no other run. `kAbiVersion` stays 1, because both are additions.
+
+**Shared fixtures** `tests/runfiles/` hold the files with their expected verdicts in `index.json`:
+- valid runs built from the scripted goldens: finished, in progress, with start options and notes, with rejected commands, with option legs;
+- tampered files: an action changed, the digest changed, the status changed;
+- another policy;
+- malformed files.
+
+`tools/make_run_files.py` regenerates them through the Python binding (`--write`), or checks them (CI). They are embedded in the test binary (`tests/test_run_file.cpp`, native and WASM). The web unit tests and the Python binding (`verify_run_file`, `seal_run_file`) check the same files. Hostile input is covered by a deterministic mutation loop in the tests and by the libFuzzer target `fuzz_runfile`.
+
+**Debrief `stopMovedAway`** (report-only, design D8): on each perpetual trade, the number of accepted moves of a reduce-only stop that took its trigger away from the entry while the trade was open. No score, digest or version changes.
+
 ## Option analysis: what-if, combo dry run and spread margin
 
 Design D4 and D5 of `openspec/changes/add-academy-and-strategies/`. The calls are report-only: they never change a run, its log, a checkpoint or a digest, read nothing after the current step, and are additions to the C ABI (`kAbiVersion` stays 1, `kExecutionPolicyVersion` stays 17).
@@ -223,7 +251,7 @@ Each column is range-checked before narrowing (`malformed_data`); semantic check
 ```bash
 cmake -S . -B build/fuzz -G Ninja -DTRADELAB_BUILD_FUZZERS=ON -DTRADELAB_BUILD_TESTS=OFF \
   -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18   # macOS: Homebrew llvm@18
-cmake --build build/fuzz --target fuzz_csv fuzz_pack fuzz_json
+cmake --build build/fuzz --target fuzz_csv fuzz_pack fuzz_json fuzz_runfile
 mkdir -p /tmp/corpus && cp fuzz/corpus/csv/* /tmp/corpus/ && build/fuzz/fuzz_csv -max_total_time=60 /tmp/corpus
 ```
 

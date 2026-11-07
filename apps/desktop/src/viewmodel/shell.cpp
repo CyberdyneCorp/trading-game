@@ -13,6 +13,7 @@
 #include "viewmodel/campaign.hpp"
 #include "viewmodel/curriculum.hpp"
 #include "viewmodel/journal.hpp"
+#include "viewmodel/journal_stats.hpp"
 
 namespace tradelab::desktop {
 
@@ -77,6 +78,7 @@ RunRecord* find_run(Progress& p, const std::string& id) {
 
 // The stored run's id when there is storage (a resumed run keeps its record), else one for the session.
 void AppViewModel::record_started_run() {
+  shell_.run_files.viewing.reset();  // a new or resumed run leaves the replay viewer
   const std::string stored = snap_ ? snap_->run_id : std::string();
   shell_.run_id = stored.empty() ? "run-" + std::to_string(++shell_.run_counter) + "-" + std::to_string(shell_.now()) : stored;
   shell_.run_mission = run_mission_;
@@ -140,6 +142,8 @@ void AppViewModel::settle_ended_run() {
   if (RunRecord* r = find_run(shell_.progress, shell_.run_id)) {
     r->status = bankrupt ? RunStatus::Bankrupt : RunStatus::Finished;
     r->equity = d.final_equity;
+    // The journal statistics read this compact debrief later (add-run-sharing-and-journal-stats D7).
+    if (const auto summary = summarize(d.raw)) r->summary = summary_json(*summary);
   }
   if (shell_.run_assisted) {  // assisted practice never counts for progress or the campaign
     save_progress();
@@ -232,8 +236,16 @@ void AppViewModel::open_curriculum() {
   touch();
 }
 
+void AppViewModel::open_stats() {
+  shell_.run_files.stats_message.clear();
+  screen_ = Screen::Stats;
+  touch();
+}
+
 void AppViewModel::open_journal() {
   shell_.journal_filter = 0;
+  shell_.run_files.message.clear();
+  if (run_files_ != nullptr) run_files_->list_imports();
   screen_ = Screen::Journal;
   touch();
 }

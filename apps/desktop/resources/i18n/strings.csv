@@ -1108,6 +1108,147 @@ combo.state.not_executed,não executado,not executed
 combo.state.withdrawn,cancelado no envio,cancelled at submission
 combo.state.working,aguardando,working
 combo.premium,prêmio líquido {amount},net premium {amount}
+menu.stats,Estatísticas do diário,Journal statistics
+runfile.import,Importar partida (.tlrun),Import run (.tlrun)
+runfile.imported,"Partida importada e verificada pelo motor: {mission}, semente {seed}.","Run imported and verified by the engine: {mission}, seed {seed}."
+runfile.watch,Assistir,Watch
+runfile.export,Exportar partida,Export run
+runfile.includeNotes,incluir minhas notas de plano,include my plan notes
+runfile.notesHint,"O arquivo leva a missão, a semente, as opções e suas ações — nada que identifique você ou o aparelho. As notas de plano são texto seu: só vão se você marcar.","The file carries the mission, seed, options and your actions — nothing that identifies you or the device. Plan notes are your own text: they go only if you tick this."
+runfile.exported,Arquivo salvo: {name},File saved: {name}
+runfile.mismatch,Atenção: o registro local desta partida não reproduz mais o estado salvo; o arquivo traz o que o motor reproduz.,Warning: this run's local log no longer reproduces its saved state; the file holds what the engine reproduces.
+runfile.block.private_pack,Partidas em mercados privados (CSV importado) não podem ser compartilhadas: o mercado é seu e fica neste aparelho.,Runs on private markets (imported CSV) cannot be shared: the market is yours and stays on this device.
+runfile.block.pack_missing,O pacote desta partida não está mais neste aparelho.,This run's pack is no longer on this device.
+runfile.block.no_actions,Nada para exportar ainda: a partida não tem ações.,Nothing to export yet: the run has no actions.
+runfile.refused,Arquivo recusado: {reason},File refused: {reason}
+runfile.reason.too_large,maior que 1 MB.,larger than 1 MB.
+runfile.reason.malformed,não é um JSON de partida válido (corrompido ou cortado).,not valid run JSON (damaged or cut short).
+runfile.reason.not_a_run_file,não é um arquivo de partida do TradeLab.,not a TradeLab run file.
+runfile.reason.unsupported_version,formato mais novo que esta versão do jogo.,a newer format than this version of the game.
+runfile.reason.invalid_field,campo inválido: {path}.,invalid field: {path}.
+runfile.reason.policy_mismatch,gravada com a política de execução v{file}; este motor é v{engine} e a reprodução seria diferente.,recorded under execution policy v{file}; this engine is v{engine} and the replay would differ.
+runfile.reason.unknown_mission,missão que esta versão do jogo não tem.,a mission this version of the game does not have.
+runfile.reason.invalid_options,opções de início inválidas.,invalid start options.
+runfile.reason.pack_required,usa um pacote do catálogo que não está neste aparelho; instale-o pelo catálogo e importe de novo.,it uses a catalog pack that is not on this device; install it from the catalog and import again.
+runfile.reason.pack_invalid,o pacote da partida não passou na verificação.,the run's pack failed verification.
+runfile.reason.pack_mismatch,o pacote instalado não é o desta partida.,the installed pack is not this run's.
+runfile.reason.digest_mismatch,a reprodução não chega ao resultado gravado: o arquivo foi alterado ou está corrompido.,the replay does not reach the recorded result: the file was edited or is damaged.
+runfile.reason.unreadable,não foi possível ler o arquivo.,the file could not be read.
+runfile.reason.unsupported,esta versão do motor não lê arquivos de partida.,this engine version cannot read run files.
+runfile.remove,Remover,Remove
+runfile.tagImported,IMPORTADA,IMPORTED
+journal.imports,Partidas importadas,Imported runs
+journal.importsNote,"Partidas de outros aparelhos ou de outras pessoas. Nunca contam para missões, campanha, pontos, intel ou estatísticas.","Runs from other devices or other people. They never count for missions, the campaign, points, intel or statistics."
+journal.importsEmpty,Nenhuma partida importada.,No imported runs.
+journal.watchOwn,Replay,Replay
+replay.title,Replay,Replay
+replay.imported,Partida importada — não conta para o seu progresso.,Imported run — it does not count for your progress.
+replay.own,"Sua partida, reproduzida pelo motor.","Your run, replayed by the engine."
+replay.bar,Barra {bar} de {bars},Bar {bar} of {bars}
+replay.next,Próxima barra ▶,Next bar ▶
+replay.play,▶ Reproduzir,▶ Play
+replay.pause,⏸ Pausar,⏸ Pause
+replay.end,Até o fim ⏭,To the end ⏭
+replay.debrief,Ver debrief,Open debrief
+replay.back,Sair do replay,Leave replay
+replay.endActive,Fim do que foi gravado: a partida estava em andamento quando foi exportada.,End of the recording: the run was still in progress when it was exported.
+replay.notes,Notas de plano,Plan notes
+replay.notesNone,O arquivo não traz notas de plano.,The file has no plan notes.
+replay.labelCampaign,jogada na campanha,played in the campaign
+replay.labelAssisted,tentativa assistida,assisted attempt
+replay.events,Eventos,Events
+replay.account,Conta,Account
+replay.equity,Patrimônio,Equity
+replay.position,Posição,Position
+replay.flat,sem posição,flat
+debrief.viewing,Debrief de um replay: nada aqui muda o seu progresso.,Debrief of a replay: nothing here changes your progress.
+stats.title,Estatísticas do diário,Journal statistics
+stats.note,"Calculadas das suas partidas que chegaram ao debrief (campanha, livre e treino). Tentativas assistidas e partidas importadas ficam de fora. Medem o seu processo; não preveem o mercado.","Computed from your runs that reached a debrief (campaign, free play and practice). Assisted attempts and imported runs are left out. They measure your process; they do not predict the market."
+stats.empty,Nenhuma partida com debrief ainda. Jogue uma missão até o fim.,No run with a debrief yet. Play a mission to the end.
+stats.missing,{n} partidas antigas ainda sem resumo.,{n} older runs have no summary yet.
+stats.missingOne,1 partida antiga ainda sem resumo.,1 older run has no summary yet.
+stats.recompute,Calcular pelo motor,Compute with the engine
+stats.recomputing,Calculando {done} de {total}…,Computing {done} of {total}…
+stats.recomputed,{done} calculadas; {skipped} não puderam ser recalculadas (outra política de execução ou mercado ausente).,{done} computed; {skipped} could not be recomputed (another execution policy or a missing market).
+stats.tooFew,Só {n} trades fechados: cedo demais para concluir qualquer coisa (o mínimo é 30).,Only {n} closed trades: too early to conclude anything (the minimum is 30).
+stats.tooFewOne,Só 1 trade fechado: cedo demais para concluir qualquer coisa (o mínimo é 30).,Only 1 closed trade: too early to conclude anything (the minimum is 30).
+stats.runs,Partidas,Runs
+stats.trades,Trades fechados,Closed trades
+stats.outcome,Resultado em R,Results in R
+stats.winRate,Taxa de acerto,Win rate
+stats.expectancy,Expectativa (R médio por trade),Expectancy (mean R per trade)
+stats.avgWin,R médio dos ganhos,Average winning R
+stats.avgLoss,R médio das perdas,Average losing R
+stats.withoutR,Trades sem risco planejado (sem R),Trades without a planned risk (no R)
+stats.outcomeLesson,Taxa de acerto sozinha não diz nada: conta quanto você ganha quando acerta contra quanto perde quando erra.,A win rate alone says nothing: what counts is how much you make when right against how much you lose when wrong.
+stats.distribution,Distribuição de R,Distribution of R
+stats.bucket.le-2,≤ −2R,≤ −2R
+stats.bucket.-2..-1,−2R a −1R,−2R to −1R
+stats.bucket.-1..0,−1R a 0,−1R to 0
+stats.bucket.0..1,0 a 1R,0 to 1R
+stats.bucket.1..2,1R a 2R,1R to 2R
+stats.bucket.gt2,> 2R,> 2R
+stats.stops,Stops,Stops
+stats.respected,Planos respeitados na saída,Plans respected at the exit
+stats.movedAway,Trades com stop afastado da entrada,Trades with a stop moved away from the entry
+stats.stopsLesson,Afastar o stop transforma uma perda planejada numa perda maior. O plano vale justamente quando o mercado vai contra você.,Moving a stop away turns a planned loss into a bigger one. The plan matters exactly when the market goes against you.
+stats.risk,Risco por trade,Risk per trade
+stats.avgRisk,Risco médio por trade,Average risk per trade
+stats.below1,abaixo de 1%,below 1%
+stats.within,entre 1% e 2%,between 1% and 2%
+stats.above2,acima de 2%,above 2%
+stats.oversizedRuns,Partidas com alerta de tamanho,Runs warned for size
+stats.riskLesson,Arriscar 1–2% do capital por ideia torna sobrevivível uma sequência de perdas. Dimensione pelo stop.,Risking 1–2% of capital per idea makes a losing streak survivable. Size from the stop.
+stats.liquidations,Liquidações e chamadas de margem,Liquidations and margin calls
+stats.liq,Liquidações,Liquidations
+stats.marginCalls,Chamadas de margem,Margin calls
+stats.liqLesson,Uma liquidação leva a margem inteira. Alavancagem menor coloca o stop antes da liquidação; quem vende opção precisa de margem para o pior movimento.,A liquidation takes the whole margin. Lower leverage puts the stop before the liquidation; an option writer needs margin for the worst move.
+stats.mistakes,Erros que se repetem,Mistakes that repeat
+stats.mistakesNone,Nenhum alerta nos seus debriefs.,No warnings in your debriefs.
+stats.mistakeRuns,em {n} partidas,in {n} runs
+stats.mistakeRunsOne,em 1 partida,in 1 run
+stats.repeats,REPETE,REPEATS
+stats.byMission,Por missão,By mission
+stats.byStage,Por etapa do currículo,By curriculum stage
+stats.practice,Treino em pacotes,Practice on packs
+stats.col.group,Grupo,Group
+stats.col.runs,Partidas,Runs
+stats.col.trades,Trades,Trades
+stats.col.winRate,Acerto,Win rate
+stats.col.expectancy,Expectativa,Expectancy
+stats.col.date,Data,Date
+stats.col.mission,Missão,Mission
+stats.col.score,Nota,Score
+stats.col.respected,Planos,Plans
+stats.trend,Tendência,Trend
+stats.trendNote,Últimas {n} partidas contra as {n} anteriores.,Last {n} runs against the {n} before them.
+stats.recent,Recentes,Recent
+stats.previous,Anteriores,Previous
+stats.trendFew,Ainda não há partidas anteriores para comparar.,No earlier runs to compare with yet.
+stats.runsTable,Partidas contadas,Runs counted
+stats.lesson,Lição: {title},Lesson: {title}
+statsFinding.waited,Esperou sem operar,Waited without trading
+statsFinding.liquidated,Liquidação,Liquidation
+statsFinding.stop_beyond_liq,Stop além da liquidação,Stop beyond liquidation
+statsFinding.no_stop,Entrada sem stop,Entry without a stop
+statsFinding.gap_slippage,Stop executado com gap,Stop filled through a gap
+statsFinding.funding_cost,Funding pesado,Heavy funding
+statsFinding.ambiguous,Execução intrabar ambígua,Ambiguous intrabar fill
+statsFinding.capacity,Limitado pela capacidade da barra,Limited by bar capacity
+statsFinding.good_process_loss,Perda com bom processo,Loss with good process
+statsFinding.lucky_win,Ganho sem processo completo,Win without a full process
+statsFinding.no_plan,Entrada sem plano,Entry without a plan
+statsFinding.oversized,Risco acima de 2%,Risk above 2%
+statsFinding.bankrupt,Falência,Bankruptcy
+statsFinding.margin_called,Chamada de margem,Margin call
+statsFinding.theta_decay,Perda para o theta,Lost to theta
+statsFinding.iv_crush,Queda da volatilidade implícita,Implied volatility fell
+statsFinding.good_process_win,Ganho com bom processo,Win with good process
+statsFinding.iv_rise,Alta da volatilidade implícita (vendido),Implied volatility rose (short)
+statsFinding.wrote_options,Opção vendida descoberta,Uncovered written option
+statsFinding.leverage_vs_stop,Alavancagem alta para o stop,Leverage too high for the stop
+statsFinding.liq_buffer,Liquidação perto demais,Liquidation too close
+statsFinding.drawdown_budget,Drawdown acima do orçamento,Drawdown above budget
 mission.m01-false-breakout.title,Missão 01 · Range,Mission 01 · Range
 mission.m01-false-breakout.tagline,O mercado passou semanas andando de lado. O que vem a seguir é com você.,The market has been moving sideways for weeks. What comes next is up to you.
 mission.m01-false-breakout.topic,"Futuros I · long e short, ordens e stops","Futures I · long and short, orders and stops"
@@ -2650,6 +2791,13 @@ desktop.alreadyRunning.title,O TradeLab já está aberto,TradeLab is already ope
 desktop.alreadyRunning.body,Outra janela do TradeLab está usando os dados salvos deste usuário. Use essa janela ou feche-a antes de abrir o TradeLab de novo.,"Another TradeLab window is using this user's saved data. Use that window, or close it before opening TradeLab again."
 desktop.storageUnavailable,Não foi possível abrir os dados salvos ({detail}): esta sessão não será salva.,The saved data could not be opened ({detail}): this session will not be saved.
 desktop.csv.path,Caminho do arquivo CSV neste computador,CSV file path on this computer
+desktop.runfile.title,Arquivos de partida (.tlrun),Run files (.tlrun)
+desktop.runfile.note,Exporte uma partida para abri-la em outro aparelho (web ou desktop) ou importe uma partida exportada lá. O motor verifica cada arquivo reproduzindo a partida até o resultado gravado.,"Export a run to open it on another device (web or desktop), or import a run exported there. The engine checks each file by replaying the run to its recorded result."
+desktop.runfile.path,"Arquivo para importar, ou pasta para exportar (vazio = pasta de dados/exports)","File to import, or folder to export to (empty = data folder/exports)"
+desktop.runfile.run,Partida,Run
+desktop.runfile.import,Importar,Import
+desktop.runfile.written,Arquivo salvo em {path},File saved to {path}
+desktop.runfile.writeFailed,Não foi possível gravar {name}: confira a pasta.,{name} could not be written: check the folder.
 desktop.csv.open,Abrir arquivo,Open file
 desktop.csv.unreadable,Não foi possível ler o arquivo: confira o caminho.,The file could not be read: check the path.
 desktop.pack.missingFile,O arquivo deste pacote não está mais na pasta de dados. Remova-o e baixe ou importe de novo.,This pack's file is no longer in the data folder. Remove it and download or import it again.

@@ -23,6 +23,7 @@
 	import { describeEvent } from './EventFeed.svelte';
 	import type { EngineTrade } from '#lib/engine/types.ts';
 	import { comboStatus, groupTrades, netPremium } from '#lib/game/combos.ts';
+	import RunExport from './RunExport.svelte';
 
 	let { session }: { session: GameSession } = $props();
 	const s = $derived(session.state!);
@@ -132,6 +133,12 @@
 		<h1>{t('debrief.finished')}</h1>
 	{/if}
 	<p class="muted">{missionText(s.mission, L, session.runPackOrigin, session.runPackTexts).title}</p>
+	{#if session.viewing}
+		<p class="assisted" data-testid="debrief-viewing">
+			{#if session.viewing.kind === 'import'}<span class="tag attention">{t('runfile.tagImported')}</span>{/if}
+			{t('debrief.viewing')}
+		</p>
+	{/if}
 	{#if session.runAssisted}
 		<p class="assisted" data-testid="debrief-assisted"><span class="tag attention">{t('assist.tag')}</span> {t('assist.banner')}</p>
 	{/if}
@@ -305,8 +312,10 @@
 					<p class="muted">{t('debrief.adviceHit', { pct: pctFromBp(d.adviceHitBp), n: judged })}</p>
 				{/if}
 			{/if}
-			<p data-testid="debrief-points">{t('debrief.points', points)}</p>
-			<p class="muted small">{t('debrief.pointsHow')}</p>
+			{#if !session.viewing}
+				<p data-testid="debrief-points">{t('debrief.points', points)}</p>
+				<p class="muted small">{t('debrief.pointsHow')}</p>
+			{/if}
 		</section>
 	{/if}
 
@@ -329,9 +338,15 @@
 
 	<AssistPanel {session} />
 
+	<RunExport {session} />
+
 	<div class="actions">
+		{#if session.viewing}
+			<button class="primary" onclick={() => session.leaveReplay()} data-testid="debrief-leave-replay">{t('replay.back')}</button>
+		{:else}
 		<button onclick={() => session.backToMenu()}>{t('debrief.menu')}</button>
-		{#if !session.runCampaign}
+		{/if}
+		{#if !session.runCampaign && !session.viewing}
 			<button class="primary" onclick={() => session.playAgain()} data-testid="debrief-again">
 				↻ {t(session.runPack ? 'debrief.againPack' : 'debrief.again')}
 			</button>

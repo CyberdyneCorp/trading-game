@@ -20,6 +20,26 @@ describe('RunStore (IndexedDB)', () => {
 		store = new RunStore(await openDb());
 	});
 
+	it('keeps imported run files apart, one row per file digest, and never as a finished mission', async () => {
+		const rec = { id: 'f1', text: '{}', mission: 'm01-false-breakout', seed: 7, pack: null, status: 'finished' as const, importedAt: 10 };
+		await store.saveImport(rec);
+		await store.saveImport({ ...rec, importedAt: 99 }); // the same file again: one row, first date kept
+		await store.saveImport({ ...rec, id: 'f2', importedAt: 20 });
+		expect((await store.imports()).map((r) => [r.id, r.importedAt])).toEqual([['f2', 20], ['f1', 10]]);
+		expect(await store.finishedMissions()).toEqual([]);
+		expect(await store.runs()).toEqual([]);
+		await store.deleteImport('f1');
+		expect((await store.imports()).map((r) => r.id)).toEqual(['f2']);
+	});
+
+	it('reads any run with its action log (export), not only the active one', async () => {
+		await store.createRun(record('a'));
+		await store.appendAction('a', 0, { k: 'adv', n: 2 });
+		await store.createRun(record('b'));
+		expect((await store.storedRun('a'))?.actions).toEqual([{ k: 'adv', n: 2 }]);
+		expect(await store.storedRun('nope')).toBeNull();
+	});
+
 	it('returns no active run on a fresh database', async () => {
 		expect(await store.activeRun()).toBeNull();
 	});

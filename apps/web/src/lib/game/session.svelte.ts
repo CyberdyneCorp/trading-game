@@ -55,6 +55,11 @@ import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type PackOrigin, type Progr
 import { tutorialFor } from './tutorials.ts';
 import { packOriginOf, packTextsOf } from './missions.ts';
 import type { PackText } from '#lib/engine/types.ts';
+import type { RunFileReply } from '#lib/engine/protocol.ts';
+import { RunSharing, type ExportOutcome, type SharingHost } from './runSharing.svelte.ts';
+import { loggedBars, nextStep, REPLAY_START, replayDone, type ReplayCursor } from './replay.ts';
+import { noteFromFile, parseRunFile, runFileName, type EngineStamp, type RunFile } from './runFile.ts';
+import { summarize } from './runSummary.ts';
 
 export type Screen =
 	| 'loading'
@@ -70,7 +75,9 @@ export type Screen =
 	| 'academy'
 	| 'glossary'
 	| 'lab'
-	| 'catalog';
+	| 'catalog'
+	| 'replay'
+	| 'stats';
 
 type Action =
 	| { k: 'lev'; lev: number }
@@ -126,6 +133,25 @@ export interface RunSummary {
 	packDigest: string | null;
 }
 
+/**
+ * The run the replay viewer shows (add-run-sharing-and-journal-stats design D6): an imported file or
+ * one of the player's runs, rebuilt in the engine from its canonical file. Nothing is logged,
+ * persisted or settled while it is set.
+ */
+export interface ViewedRun {
+	kind: 'import' | 'own';
+	/** The import's file digest, or the run id. */
+	id: string;
+	/** The canonical file text (exported again as is). */
+	text: string;
+	file: RunFile;
+	cursor: ReplayCursor;
+	/** Bars played so far, and bars the log advances in all. */
+	bar: number;
+	bars: number;
+	returnTo: Screen;
+}
+
 /** A run left behind by starting another one (it never reaches its debrief). */
 interface AbandonedRun {
 	runId: string;
@@ -151,7 +177,7 @@ export interface Notice {
 	text: string;
 }
 
-export class GameSession implements CatalogHost {
+export class GameSession implements CatalogHost, SharingHost {
 	screen = $state<Screen>('loading');
 	error = $state<string | null>(null);
 	missions = $state<MissionInfo[]>([]);
@@ -225,6 +251,12 @@ export class GameSession implements CatalogHost {
 	glossaryReturn = $state<Screen>('menu');
 	/** Pack catalog and downloads (catalog screen). */
 	readonly catalog: CatalogModel = new CatalogModel(this);
+	/** Run files: export, import and older runs' summaries (add-run-sharing-and-journal-stats). */
+	readonly sharing: RunSharing = new RunSharing(this);
+	/** The replay viewer's run; null outside it (raw: the file's action log is not made reactive). */
+	viewing = $state.raw<ViewedRun | null>(null);
+	/** This version's engine release (tl_version), stamped on exported files. */
+	private engineVersion = '';
 
 	private engine: EngineClient | null = null;
 	/** This version's engine build (path) and the build loaded in the worker (differs while a pinned run plays). */
@@ -251,6 +283,7 @@ export class GameSession implements CatalogHost {
 			const info = await this.engine.request({ kind: 'init', engineUrl: engineUrl(this.enginePath) });
 			this.loadedEngine = this.enginePath;
 			this.missions = info.missions;
+			this.engineVersion = info.version.engine;
 			this.policy = info.version.executionPolicy;
 			await this.openStore();
 			await this.refreshSaved();
@@ -475,7 +508,7 @@ export class GameSession implements CatalogHost {
 
 	/** Rewind and another market are offered outside a campaign mission in progress. */
 	get assistAllowed(): boolean {
-		return !!this.state && assistAllowed(!!this.runCampaign, this.state.status);
+		return !!this.state && !this.viewing && assistAllowed(!!this.runCampaign, this.state.status);
 	}
 
 	/**
@@ -637,7 +670,134 @@ export class GameSession implements CatalogHost {
 
 	async openJournal(): Promise<void> {
 		this.journalRecords = (await this.store?.runs().catch(() => null)) ?? [];
+		await this.sharing.loadImports();
 		this.screen = 'journal';
+	}
+
+	/** Journal statistics over the player's own runs (add-run-sharing-and-journal-stats design D7). */
+	async openStats(): Promise<void> {
+		this.journalRecords = (await this.store?.runs().catch(() => null)) ?? [];
+		this.screen = 'stats';
+	}
+
+	/** Summaries for ended runs that predate the statistics, computed through the engine. */
+	async recomputeSummaries(onProgress?: (done: number, total: number) => void): Promise<{ done: number; skipped: number }> {
+		const result = await this.sharing.recomputeSummaries(this.journalRecords, onProgress);
+		this.journalRecords = (await this.store?.runs().catch(() => null)) ?? [];
+		return result;
+	}
+
+	// ---- run files (add-run-sharing-and-journal-stats design D2, D6) ----
+
+	get sharingStore(): RunStore<Action, PlanEntry, never> | null {
+		return this.store;
+	}
+
+	engineStamp(): EngineStamp {
+		return { executionPolicy: this.policy, abi: ENGINE_ABI, version: this.engineVersion };
+	}
+
+	/** Run-less verification or sealing on this version's engine, with the pack and trusted keys a pack run needs. */
+	async runFileCall(kind: 'verifyRun' | 'sealRun', text: string, pack: string | null): Promise<RunFileReply> {
+		if (!this.engine) return { ok: false, reason: 'unsupported', pack: '' };
+		await this.useCurrentEngine();
+		const bytes = pack ? await this.packBytes(pack) : null;
+		const extra = bytes ? { pack: bytes, keys: await this.trusted() } : {};
+		return this.eng().request({ kind, text, ...extra });
+	}
+
+	/** The run on screen as a file: the viewed one, else the current run (its digest as shown checks the seal). */
+	async exportShown(includeNotes: boolean): Promise<ExportOutcome> {
+		const v = this.viewing;
+		if (v?.kind === 'import') return { ok: true, name: runFileName(v.file.mission, v.file.seed), text: v.text + '\n', status: v.file.result.status, mismatch: false };
+		return this.sharing.exportRun(v?.id ?? this.runId, includeNotes, v ? undefined : this.state?.digest);
+	}
+
+	async watchImport(id: string, returnTo: Screen = this.screen): Promise<boolean> {
+		const rec = this.sharing.imports.find((r) => r.id === id) ?? (await this.store?.importById(id).catch(() => null));
+		return rec ? this.startViewing(rec.text, 'import', id, returnTo) : false;
+	}
+
+	/** One of the player's runs in the viewer, from its own sealed file (plan notes included: it stays local). */
+	async watchOwnRun(runId: string, returnTo: Screen = this.screen): Promise<RunFileReply> {
+		const { v, block } = await this.sharing.sealOwn(runId, true);
+		if (block || !v.ok || !v.run) return block ? { ok: false, pack: '', detail: block } : v;
+		await this.startViewing(v.run, 'own', runId, returnTo);
+		return v;
+	}
+
+	private async startViewing(text: string, kind: ViewedRun['kind'], id: string, returnTo: Screen): Promise<boolean> {
+		const file = parseRunFile(text);
+		let started = false;
+		await this.exclusive(async () => {
+			await this.useCurrentEngine();
+			this.resetRun(file.mission, file.seed);
+			this.runId = ''; // no run record: nothing below is logged, persisted or settled
+			this.options = { ...DEFAULT_RUN_OPTIONS, ...file.options };
+			this.perkChoice = perksUsed(this.options);
+			this.runPack = file.pack;
+			const state = await this.startEngine(file.mission, file.seed, file.pack ?? undefined);
+			if (!state) return void (this.menuAlert = t('pack.missing'));
+			this.state = state;
+			this.lessonInfo = null;
+			this.journal = file.journal.map(noteFromFile);
+			this.viewing = { kind, id, text, file, cursor: REPLAY_START, bar: 0, bars: loggedBars(file.actions as Action[]), returnTo };
+			this.screen = 'replay';
+			started = true;
+		});
+		return started;
+	}
+
+	/** True when the viewer has applied the whole log, or the run ended. */
+	get replayFinished(): boolean {
+		const v = this.viewing;
+		return !v || replayDone(v.file.actions as Action[], v.cursor) || this.state?.status !== 'active';
+	}
+
+	/** Next bar of the viewed run: the commands logged before the next advance, then one bar of it. */
+	async replayStep(): Promise<void> {
+		const v = this.viewing;
+		if (!v || this.busy || this.replayFinished) return;
+		this.busy = true;
+		try {
+			const step = nextStep(v.file.actions as Action[], v.cursor);
+			for (const a of step.commands) await this.viewAction(a);
+			if (step.bar) await this.viewAction({ k: 'adv', n: 1 });
+			this.viewing = { ...v, cursor: step.next, bar: v.bar + (step.bar ? 1 : 0) };
+		} finally {
+			this.busy = false;
+		}
+		if (this.state && this.state.status !== 'active') await this.openReplayDebrief();
+	}
+
+	/** Plays the rest of the viewed run (its debrief opens if it ended). */
+	async replayToEnd(): Promise<void> {
+		while (this.viewing && this.screen === 'replay' && !this.replayFinished) await this.replayStep();
+	}
+
+	private async viewAction(a: Action): Promise<void> {
+		await this.exec(a, false);
+		this.log.push(a); // in memory only: the debrief groups strategy combos from it
+	}
+
+	async openReplayDebrief(): Promise<void> {
+		if (!this.viewing || this.state?.status === 'active') return;
+		this.refreshCombos();
+		await this.loadDebrief();
+		this.screen = 'debrief';
+	}
+
+	/** Leaves the viewer for the screen it was opened from; the player's resumable run is untouched. */
+	leaveReplay(): void {
+		const to = this.viewing?.returnTo ?? 'menu';
+		this.viewing = null;
+		this.state = null;
+		this.debrief = null;
+		this.reveal = null;
+		if (to === 'menu' || to === 'replay' || to === 'debrief') this.backToMenu();
+		else if (to === 'journal') void this.openJournal();
+		else if (to === 'stats') void this.openStats();
+		else this.screen = to;
 	}
 
 	/** Practice run on an installed pack (e.g. an imported CSV); the pack is verified again on start. */
@@ -1074,7 +1234,7 @@ export class GameSession implements CatalogHost {
 	}
 
 	async advance(n: number): Promise<void> {
-		if (!this.state || this.state.status !== 'active' || this.pendingQuestion) return;
+		if (!this.state || this.state.status !== 'active' || this.pendingQuestion || this.viewing) return;
 		if (this.busy) {
 			this.queued += n; // e.g. Space pressed while an order is in flight: run it afterwards
 			return;
@@ -1120,6 +1280,7 @@ export class GameSession implements CatalogHost {
 	}
 
 	private resetRun(missionId: string, seed: number): void {
+		this.viewing = null; // any new or resumed run leaves the replay viewer
 		this.menuAlert = null;
 		this.missionId = missionId;
 		this.seed = seed;
@@ -1150,7 +1311,7 @@ export class GameSession implements CatalogHost {
 	}
 
 	private async command(a: Action): Promise<CommandResult | null> {
-		if (!this.state || this.state.status !== 'active' || this.busy) return null;
+		if (!this.state || this.state.status !== 'active' || this.busy || this.viewing) return null;
 		this.busy = true;
 		try {
 			const res = await this.exec(a, true);
@@ -1195,7 +1356,15 @@ export class GameSession implements CatalogHost {
 	private async loadDebrief(): Promise<void> {
 		this.debrief = await this.eng().request({ kind: 'debrief' });
 		this.reveal = await this.eng().request({ kind: 'reveal' });
+		if (this.viewing) return; // a watched run settles nothing and keeps no summary
 		this.settleEnded();
+		this.saveSummary();
+	}
+
+	// The run's compact debrief for the journal statistics (design D7), kept on its run record.
+	private saveSummary(): void {
+		const summary = this.debrief ? summarize(this.debrief) : null;
+		if (summary && this.runId) void this.store?.updateRun(this.runId, { summary }).catch(() => (this.durable = false));
 	}
 
 	// Spec progression-rewards "Local point balance": balance - used + earned, once per run id.
@@ -1247,7 +1416,7 @@ export class GameSession implements CatalogHost {
 			return { runId: r.runId, missionId: r.missionId, used: adviceUsed(stored.actions), campaign: r.campaign ?? null, equity };
 		}
 		const s = this.state;
-		if (!s || s.status !== 'active' || s.knownScenario || !this.runId || this.runAssisted) return null;
+		if (!s || s.status !== 'active' || s.knownScenario || !this.runId || this.runAssisted || this.viewing) return null;
 		return { runId: this.runId, missionId: this.missionId, used: s.advisor.advice.length, campaign: this.runCampaign, equity: s.account.equity };
 	}
 

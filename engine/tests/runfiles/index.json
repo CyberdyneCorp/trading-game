@@ -1,0 +1,190 @@
+{
+ "format": 1,
+ "files": [
+  {
+   "name": "m01-finished.tlrun",
+   "description": "A finished m01 run (golden m01-false-breakout).",
+   "expected": {
+    "ok": true,
+    "status": "finished",
+    "digest": "0296b3e88ee2cc9697a1d904530457a71bde1f58ba1b52136c154e5c2e0907f1",
+    "eventsDigest": "ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19",
+    "fileDigest": "76b70f3d86072602985e7f6321a1658b35f540673c660ac06a601827c16bef09",
+    "actions": 10,
+    "rejected": 0
+   }
+  },
+  {
+   "name": "m02-advice-notes.tlrun",
+   "description": "Start options (advice, fast wire, calendar) and two plan notes included.",
+   "expected": {
+    "ok": true,
+    "status": "finished",
+    "digest": "b4b86bfad81a81b303c7833879798fd8d2db50b783f8409a587b0e171d7c5963",
+    "eventsDigest": "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f",
+    "fileDigest": "d4904dd50cc47c984ef6908e176569e75d9215c004ff01fd2d9d5d28800002ee",
+    "actions": 7,
+    "rejected": 0
+   }
+  },
+  {
+   "name": "m08-rejections.tlrun",
+   "description": "A run whose log has commands the engine rejected (they are part of the run).",
+   "expected": {
+    "ok": true,
+    "status": "finished",
+    "digest": "9cca2b0bb58cba31fb272c72780e4d0937dd784538d28bb36869c74e82fea9d8",
+    "eventsDigest": "e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb",
+    "fileDigest": "248042f6dbd5197c7edd879ed655ed605b26f9a681a5c74cdd2627145b9af677",
+    "actions": 7,
+    "rejected": 2
+   }
+  },
+  {
+   "name": "m13-call-spread.tlrun",
+   "description": "Option legs (golden m13-call-spread).",
+   "expected": {
+    "ok": true,
+    "status": "finished",
+    "digest": "6821129ad08a733932d95f2086e2fe4f556eb1886293d03e1bc46bda97e56cde",
+    "eventsDigest": "8b0a3f74575ae2f77bbbde1d16ecc62d3ce5d909c35ed67d6e84ae0c87843433",
+    "fileDigest": "0700bce964a857631fc9154a4318597a408a6a9eec75742b1b351463021dac15",
+    "actions": 7,
+    "rejected": 0
+   }
+  },
+  {
+   "name": "m07-active.tlrun",
+   "description": "A run still in progress: the first 5 actions of golden m07-trend-trailing.",
+   "expected": {
+    "ok": true,
+    "status": "active",
+    "digest": "68f8312b599c4a893c17cc4c21853aac98d4c227e99bae4975260c992bd5370f",
+    "eventsDigest": "d20eecf973a4700fcdf507175d5498bcadf91b6bc689459288ec6f4b42e520b0",
+    "fileDigest": "6252c71d4ec8736bc5ceb9a97dbb517b350a8db4384c2509b556cc72fa692f4f",
+    "actions": 5,
+    "rejected": 0
+   }
+  },
+  {
+   "name": "tampered-action.tlrun",
+   "description": "One order quantity doubled: the replay no longer reproduces the result.",
+   "expected": {
+    "ok": false,
+    "reason": "digest_mismatch"
+   }
+  },
+  {
+   "name": "tampered-digest.tlrun",
+   "description": "The recorded digest edited.",
+   "expected": {
+    "ok": false,
+    "reason": "digest_mismatch"
+   }
+  },
+  {
+   "name": "tampered-status.tlrun",
+   "description": "A finished run claiming to be bankrupt.",
+   "expected": {
+    "ok": false,
+    "reason": "digest_mismatch"
+   }
+  },
+  {
+   "name": "other-policy.tlrun",
+   "description": "Recorded under execution policy 16.",
+   "expected": {
+    "ok": false,
+    "reason": "policy_mismatch",
+    "path": "engine.executionPolicy",
+    "detail": "16"
+   }
+  },
+  {
+   "name": "unknown-mission.tlrun",
+   "description": "A mission this engine does not have.",
+   "expected": {
+    "ok": false,
+    "reason": "unknown_mission"
+   }
+  },
+  {
+   "name": "not-a-run-file.tlrun",
+   "description": "Another document type.",
+   "expected": {
+    "ok": false,
+    "reason": "not_a_run_file"
+   }
+  },
+  {
+   "name": "future-version.tlrun",
+   "description": "Format version 2.",
+   "expected": {
+    "ok": false,
+    "reason": "unsupported_version",
+    "path": "version"
+   }
+  },
+  {
+   "name": "unknown-member.tlrun",
+   "description": "An extra top-level member (a device id).",
+   "expected": {
+    "ok": false,
+    "reason": "invalid_field",
+    "path": "device"
+   }
+  },
+  {
+   "name": "bad-decimal.tlrun",
+   "description": "A quantity in exponent notation.",
+   "expected": {
+    "ok": false,
+    "reason": "invalid_field",
+    "path": "actions[1].qty"
+   }
+  },
+  {
+   "name": "unknown-action.tlrun",
+   "description": "An action kind the format does not have.",
+   "expected": {
+    "ok": false,
+    "reason": "invalid_field",
+    "path": "actions[0].k"
+   }
+  },
+  {
+   "name": "long-note.tlrun",
+   "description": "A plan note longer than 1,000 bytes.",
+   "expected": {
+    "ok": false,
+    "reason": "invalid_field",
+    "path": "journal[0].thesis"
+   }
+  },
+  {
+   "name": "pack-missing.tlrun",
+   "description": "A catalog pack run verified without its pack.",
+   "expected": {
+    "ok": false,
+    "reason": "pack_required",
+    "pack": "abababababababababababababababababababababababababababababababab"
+   }
+  },
+  {
+   "name": "float-seed.tlrun",
+   "description": "A non-integer number.",
+   "expected": {
+    "ok": false,
+    "reason": "malformed"
+   }
+  },
+  {
+   "name": "truncated.tlrun",
+   "description": "The first half of a valid file.",
+   "expected": {
+    "ok": false,
+    "reason": "malformed"
+   }
+  }
+ ]
+}

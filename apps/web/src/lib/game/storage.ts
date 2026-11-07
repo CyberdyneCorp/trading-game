@@ -12,6 +12,7 @@ import { readReviews, type LessonReviews } from './review.ts';
 import type { PartialStore } from './download.ts';
 import type { SeriesKey } from './eventNames.ts';
 import { START_POINTS } from './points.ts';
+import type { RunSummary } from './runSummary.ts';
 
 export interface RunRecord<J = unknown, Q = unknown> {
 	runId: string;
@@ -44,6 +45,27 @@ export interface RunRecord<J = unknown, Q = unknown> {
 	 * runs recorded before pinning, which resume on the current build.
 	 */
 	engine?: string;
+	/**
+	 * Compact copy of the run's engine debrief for the journal statistics (runSummary.ts), written when
+	 * its debrief loads; absent on runs that never reached one or ended before statistics existed.
+	 */
+	summary?: RunSummary;
+}
+
+/**
+ * A run file imported on this device (add-run-sharing-and-journal-stats design D5), keyed by the
+ * engine's `fileDigest`. It lives in its own store, which no progress reader opens, so an imported
+ * run can never count for missions, perks, points, the campaign or the statistics.
+ */
+export interface ImportRecord {
+	id: string;
+	/** The canonical file as the engine returned it (exported again as is). */
+	text: string;
+	mission: string;
+	seed: number;
+	pack: string | null;
+	status: 'active' | 'finished' | 'bankrupt';
+	importedAt: number;
 }
 
 /**
@@ -171,7 +193,7 @@ export function migrateProgress(row: Record<string, unknown> | undefined): Progr
 }
 
 const DB_NAME = 'tradelab';
-const DB_VERSION = 3; // v2: packs store; v3: checkpoints store
+const DB_VERSION = 4; // v2: packs store; v3: checkpoints store; v4: imports store (imported run files)
 const LEGACY_KEY = 'tradelab.run.v1';
 
 function req<T>(r: IDBRequest<T>): Promise<T> {
@@ -208,6 +230,7 @@ export function openDb(factory: IDBFactory = indexedDB): Promise<IDBDatabase> {
 			if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
 			if (!db.objectStoreNames.contains('packs')) db.createObjectStore('packs', { keyPath: 'digest' });
 			if (!db.objectStoreNames.contains('checkpoints')) db.createObjectStore('checkpoints', { keyPath: 'runId' });
+			if (!db.objectStoreNames.contains('imports')) db.createObjectStore('imports', { keyPath: 'id' });
 		};
 		open.onsuccess = () => resolve(open.result);
 		open.onerror = () => reject(open.error);
@@ -276,6 +299,46 @@ export class RunStore<A, J, Q> implements PartialStore {
 		const actions: A[] = [];
 		for (let i = 0; i < rows.length && rows[i].seq === i; i++) actions.push(rows[i].action);
 		return { record, actions };
+	}
+
+	/** Any run's header and gap-free action log (export, statistics); null for an unknown run. */
+	async storedRun(runId: string): Promise<StoredRun<A, J, Q> | null> {
+		const tx = this.db.transaction(['runs', 'actions'], 'readonly');
+		const record = (await req(tx.objectStore('runs').get(runId))) as RunRecord<J, Q> | undefined;
+		if (!record) return null;
+		const range = IDBKeyRange.bound([runId, 0], [runId, Number.MAX_SAFE_INTEGER]);
+		const rows = (await req(tx.objectStore('actions').getAll(range))) as { seq: number; action: A }[];
+		rows.sort((a, b) => a.seq - b.seq);
+		const actions: A[] = [];
+		for (let i = 0; i < rows.length && rows[i].seq === i; i++) actions.push(rows[i].action);
+		return { record, actions };
+	}
+
+	/** Stores an imported run file; importing the same canonical file again keeps one row. */
+	async saveImport(rec: ImportRecord): Promise<void> {
+		const tx = this.db.transaction('imports', 'readwrite');
+		const store = tx.objectStore('imports');
+		const prev = (await req(store.get(rec.id))) as ImportRecord | undefined;
+		store.put(prev ? { ...rec, importedAt: prev.importedAt } : rec);
+		await done(tx);
+	}
+
+	/** Imported runs, newest first. */
+	async imports(): Promise<ImportRecord[]> {
+		const tx = this.db.transaction('imports', 'readonly');
+		const all = (await req(tx.objectStore('imports').getAll())) as ImportRecord[];
+		return all.sort((a, b) => b.importedAt - a.importedAt);
+	}
+
+	async importById(id: string): Promise<ImportRecord | null> {
+		const tx = this.db.transaction('imports', 'readonly');
+		return ((await req(tx.objectStore('imports').get(id))) as ImportRecord | undefined) ?? null;
+	}
+
+	async deleteImport(id: string): Promise<void> {
+		const tx = this.db.transaction('imports', 'readwrite');
+		tx.objectStore('imports').delete(id);
+		await done(tx);
 	}
 
 	/** Keeps only the run's latest checkpoint (an older one is never needed to resume). */

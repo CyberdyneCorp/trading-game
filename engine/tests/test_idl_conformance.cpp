@@ -321,3 +321,26 @@ TEST_CASE("IDL conformance: what-if valuation and combo dry run") {
   conforms(tl_combo_preview(run, "[]"), "EngineError");
   tl_run_destroy(run);
 }
+
+TEST_CASE("IDL conformance: run file verdicts (accepted active, accepted finished, refused)") {
+  const auto file = [](const std::string& actions, tl_run* run) {
+    const JsonValue state = parse(tl_state(run));
+    return std::string(R"({"format":"tradelab-run","version":1,"mission":"m01-false-breakout","pack":null,"seed":3,)") +
+           R"("options":{"adviceAllowance":0,"newsLead":0,"calendar":false},"engine":{"executionPolicy":17,"abi":1,"version":"0.1.0"},)" +
+           R"("labels":{"campaign":false,"assisted":false},"actions":)" + actions + R"(,"journal":[],"result":{"status":")" +
+           state.find("status")->text + R"(","digest":")" + state.find("digest")->text + R"(","eventsDigest":")" +
+           state.find("eventsDigest")->text + "\"}}";
+  };
+  tl_run* run = tl_run_create("m01-false-breakout", 3);
+  REQUIRE(run != nullptr);
+  const std::string active = file("[]", run);
+  tl_advance(run, 10000);
+  const std::string finished = file(R"([{"k":"adv","n":10000}])", run);
+  tl_run_destroy(run);
+  conforms(tl_run_file_verify(active.c_str(), nullptr, 0, nullptr), "RunFileVerdict");
+  const std::string done = tl_run_file_verify(finished.c_str(), nullptr, 0, nullptr);
+  CHECK(done.find("\"debrief\":{") != std::string::npos);
+  conforms(done, "RunFileVerdict");
+  conforms(tl_run_file_verify("{}", nullptr, 0, nullptr), "RunFileVerdict");
+  conforms(tl_run_file_seal(active.c_str(), nullptr, 0, nullptr), "RunFileVerdict");
+}

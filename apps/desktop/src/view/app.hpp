@@ -10,6 +10,7 @@
 #include "model/engine_host.hpp"
 #include "model/i18n.hpp"
 #include "model/packs/pack_service.hpp"
+#include "model/run_sharing.hpp"
 #include "model/storage/profile_store.hpp"
 #include "model/update/update_service.hpp"
 #include "platform/audio_out.hpp"
@@ -56,6 +57,7 @@ class App {
   std::unique_ptr<platform::MiniaudioOut> audio_;  // outlives the viewmodel, whose soundtrack plays on it
   std::unique_ptr<EngineHost> engine_;
   std::unique_ptr<packs::PackService> packs_;
+  std::unique_ptr<runfiles::RunFileService> run_files_;
   std::unique_ptr<AppViewModel> vm_;
   std::unique_ptr<AppView> view_;
   std::unique_ptr<update::UpdateService> updates_;

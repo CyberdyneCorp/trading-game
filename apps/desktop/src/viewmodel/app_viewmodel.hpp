@@ -14,6 +14,7 @@
 #include "model/engine_host.hpp"
 #include "model/i18n.hpp"
 #include "model/packs/pack_service.hpp"
+#include "model/run_sharing.hpp"
 #include "model/snapshot.hpp"
 #include "model/update/update_service.hpp"
 #include "viewmodel/academy/ticket_sandbox.hpp"
@@ -41,7 +42,8 @@ enum class Screen : std::uint8_t {
   Import = 10,
   Academy = 11,  // lessons by stage, status, retake, reviews due (add-academy-and-strategies D8)
   Glossary = 12,  // the glossary's search and terms (D6)
-  Lab = 13  // the Academy's options lab (web LabScreen.svelte; viewmodel/academy_lab.cpp)
+  Lab = 13,  // the Academy's options lab (web LabScreen.svelte; viewmodel/academy_lab.cpp)
+  Stats = 14  // journal statistics (web JournalStats.svelte; add-run-sharing-and-journal-stats D7)
 };
 
 // A run left unfinished in an earlier launch (the active run of the store), offered by the menu: a
@@ -136,6 +138,7 @@ class AppViewModel {
   [[nodiscard]] const std::optional<SavedRun>& saved_run() const { return saved_run_; }
   void open_curriculum();
   void open_journal();
+  void open_stats();
   void open_settings();
 
   // ---- The Academy's what-if lab (viewmodel/academy_lab.cpp): an illustrative market, no run needed ----
@@ -272,6 +275,26 @@ class AppViewModel {
   void import_create();
   void import_cancel();
 
+  // ---- Run files and the replay viewer (viewmodel/run_sharing_vm.cpp; add-run-sharing-and-journal-stats) ----
+  void attach_run_files(runfiles::RunFileCommands* commands);
+  void on_run_file_event(const runfiles::RunFileEvent& e);  // UI thread
+  [[nodiscard]] bool run_files_available() const { return run_files_ != nullptr; }
+  [[nodiscard]] const RunFileState& run_files() const { return shell_.run_files; }
+  // The player's runs the run-file panel offers (newest first).
+  [[nodiscard]] std::vector<const RunRecord*> exportable_runs() const;
+  void set_run_file_path(std::string path);
+  void set_run_file_notes(bool on);
+  void pick_run(int index);
+  void pick_import(int index);
+  void run_file_import();         // the file at the typed path
+  void run_file_export();         // the picked run into the typed folder
+  void run_file_watch_own();      // the picked run in the replay viewer
+  void run_file_watch_import();   // the picked import in the replay viewer
+  void run_file_remove_import();
+  [[nodiscard]] bool viewing() const { return shell_.run_files.viewing.has_value(); }
+  void leave_replay();
+  void stats_recompute();         // summaries of runs that ended before they were kept
+
   // ---- Sound (viewmodel/audio): the web's soundtrack; mute and volumes live in the terminal's prefs ----
   void attach_audio(audio::AudioOut* out) { soundtrack_ = audio::Soundtrack(out); }
   // Once per frame: music by screen and danger, stings of trades that closed, fades.
@@ -326,6 +349,9 @@ class AppViewModel {
   void csv_imported(const packs::PackEvent& e);
   // Academy (academy_flow.cpp).
   void reset_sandbox();
+  void start_watch(std::string text, bool imported, std::string id);
+  void watch_result(const CommandResult& r);
+  void apply_run_file_message(const runfiles::RunFileEvent& e);
   void mark_coach_done();
   void coach_watch_terminal();
 
@@ -348,6 +374,7 @@ class AppViewModel {
   ShellState shell_;
   PackScreens packs_;
   packs::PackCommands* pack_commands_ = nullptr;
+  runfiles::RunFileCommands* run_files_ = nullptr;
   game::ChartViewModel debrief_chart_;
   update::UpdateCommands* updates_ = nullptr;
   update::UpdateState update_;

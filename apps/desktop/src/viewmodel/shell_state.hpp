@@ -8,6 +8,7 @@
 #include <string>
 
 #include "model/progress.hpp"
+#include "model/storage/run_store.hpp"
 #include "viewmodel/academy/academy_state.hpp"
 #include "viewmodel/keymap.hpp"
 #include "viewmodel/lesson_runner.hpp"
@@ -29,6 +30,30 @@ inline constexpr float kTextScaleMin = 1.0f;
 inline constexpr float kTextScaleMax = 2.0f;
 inline constexpr float kTextScaleStep = 0.25f;
 float clamp_text_scale(float scale);
+
+// The replay viewer's run (add-run-sharing-and-journal-stats D6): an imported file or an own run,
+// rebuilt by the engine without storage. Nothing is settled or saved while it is set.
+struct Viewing {
+  bool imported = false;
+  std::string id;          // the import's file digest, or the run id
+  std::string text;        // the canonical file
+  std::uint8_t return_to = 0;  // the Screen the viewer was opened from
+};
+
+// The journal's run-file panel and the statistics' recomputation.
+struct RunFileState {
+  std::vector<storage::ImportRecord> imports;  // newest first
+  std::string path;          // a .tlrun to import, or the folder exports go to ("" = the data folder)
+  bool notes = false;        // include plan notes in an export
+  int run = 0;               // the own run picked (index in the journal's newest-first list)
+  int imported = 0;          // the import picked
+  std::string message;
+  bool message_ok = true;
+  std::optional<Viewing> viewing;
+  bool watch_pending = false;
+  std::string stats_message;
+  bool recomputing = false;
+};
 
 struct ShellState {
   MemoryProgressRepository own_progress;
@@ -60,6 +85,7 @@ struct ShellState {
 
   bool confirming_end = false;  // campaign: the second, explicit click
   int journal_filter = 0;       // 0 = every mission, else journal_missions()[i - 1]
+  RunFileState run_files;
   int lesson_selected = 0;
   LessonRunner lesson;
   AcademyState academy;  // Academy, lesson widgets, glossary, review prompt, guided first trade

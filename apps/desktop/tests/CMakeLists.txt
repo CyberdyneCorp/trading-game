@@ -28,7 +28,10 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/test_web_parity.cpp
   viewmodel/test_academy_parity.cpp
   viewmodel/test_academy.cpp
-  viewmodel/test_audio.cpp)
+  viewmodel/test_audio.cpp
+  viewmodel/test_journal_stats.cpp
+  model/test_run_files.cpp
+  model/test_run_sharing.cpp)
 target_include_directories(tradelab_desktop_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_unit_tests PRIVATE tradelab_desktop_viewmodel)
@@ -55,7 +58,9 @@ add_dependencies(tradelab_desktop_unit_tests tradelab_desktop_crash_child)
 target_compile_definitions(tradelab_desktop_unit_tests PRIVATE
   TRADELAB_CRASH_CHILD="$<TARGET_FILE:tradelab_desktop_crash_child>"
   TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog"
-  TRADELAB_WEB_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/web")
+  TRADELAB_WEB_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/web"
+  TRADELAB_RUNFILES_DIR="${DESKTOP_DIR}/../../engine/tests/runfiles"
+  TRADELAB_GOLDEN_DIR="${DESKTOP_DIR}/../../engine/tests/golden")
 
 # ---- Goldens (task 1.6): the engine's shared fixtures replayed through the desktop build. ----
 # Its own binary so a universal macOS build can run it on each slice (arch -arm64 / -x86_64).
@@ -72,11 +77,12 @@ set_tests_properties(desktop_golden PROPERTIES LABELS golden)
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
 add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp
   headless/test_headless_shell.cpp headless/test_headless_flows.cpp headless/test_headless_academy.cpp
-  headless/test_headless_strategies.cpp)
+  headless/test_headless_strategies.cpp headless/test_headless_run_files.cpp)
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)
 target_compile_definitions(tradelab_desktop_headless_tests PRIVATE TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog"
+  TRADELAB_RUNFILES_DIR="${DESKTOP_DIR}/../../engine/tests/runfiles"
   TRADELAB_WEB_AUDIO_DIR="${DESKTOP_DIR}/../web/static/audio")
 add_test(NAME desktop_headless COMMAND tradelab_desktop_headless_tests)
 # TRADELAB_AUDIO=null: the app's soundtrack runs on miniaudio's null device (decoded and mixed, not heard).
@@ -91,6 +97,7 @@ if(RAVEN_BACKEND_VULKAN)
     support/png.cpp support/reference.cpp)
   target_compile_definitions(tradelab_desktop_windowed_tests PRIVATE
     TRADELAB_REFERENCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/windowed/reference"
+    TRADELAB_RUNFILES_DIR="${DESKTOP_DIR}/../../engine/tests/runfiles"
     TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog")
   target_include_directories(tradelab_desktop_windowed_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
   target_include_directories(tradelab_desktop_windowed_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

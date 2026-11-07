@@ -3,7 +3,9 @@
 #pragma once
 
 #include "viewmodel/app_viewmodel.hpp"
+#include "viewmodel/journal_stats.hpp"
 #include "viewmodel/screen_model.hpp"
+#include "viewmodel/run_file_names.hpp"
 #include "viewmodel/screen_names.hpp"
 
 namespace tradelab::desktop::screens {
@@ -21,6 +23,10 @@ ScreenModel csv_import(const AppViewModel& vm);  // CsvImport.svelte
 ScreenModel game(const AppViewModel& vm);        // the terminal's shell parts: assisted tag and AssistPanel.svelte
 ScreenModel academy(const AppViewModel& vm);     // Academy.svelte
 ScreenModel glossary(const AppViewModel& vm);    // Glossary.svelte + GlossaryList.svelte
+ScreenModel stats(const AppViewModel& vm);       // JournalStats.svelte (add-run-sharing-and-journal-stats D7)
+
+// The runs the journal statistics count: own runs with a summary, never assisted, oldest first.
+std::vector<StatsRun> stats_runs(const Progress& p);
 
 // A marked glossary term's in-place definition (Term.svelte): "<term>: <short definition>" ("" when
 // the glossary has no such term). The view shows it as the tooltip and the accessible description.
@@ -38,6 +44,13 @@ void academy_debrief(const AppViewModel& vm, ScreenModel& m);
 void academy_game(const AppViewModel& vm, ScreenModel& m);
 // The guided first trade's callout (CoachMarks.svelte) in the terminal or the debrief.
 void coach_callout(const AppViewModel& vm, bool debrief, ScreenModel& m);
+
+// Run files (screens/run_files.cpp): the journal's run-file panel and imports, the statistics'
+// recomputation, and the replay viewer's parts of the terminal and the debrief.
+void journal_run_files(const AppViewModel& vm, ScreenModel& m);
+void stats_run_files(const AppViewModel& vm, ScreenModel& m);
+void game_replay(const AppViewModel& vm, ScreenModel& m);
+void debrief_replay(const AppViewModel& vm, ScreenModel& m);
 
 // AssistPanel.svelte, shown in the terminal and in the debrief under their own widget names.
 void assist_panel(const AppViewModel& vm, const names::AssistNames& n, ScreenModel& m);

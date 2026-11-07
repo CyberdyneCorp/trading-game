@@ -459,6 +459,63 @@ function glossaryFixture(m) {
 	return { helper: 'content/glossary.ts', cases: list };
 }
 
+// Journal statistics (add-run-sharing-and-journal-stats D7): a deterministic set of summarized runs over
+// several missions, a pack and every trade shape (open, without R, liquidation, margin call, options).
+function statsRuns() {
+	const reasons = ['stop', 'target', 'manual', 'liquidation', 'trailing', 'margin_call', 'expiry', 'open'];
+	const missions = ['m01-false-breakout', 'm06-thin-book', 'm04-options-buyer', 'csv-practice', 'm07-trend-trailing'];
+	const findings = [['no_stop', 'bad'], ['oversized', 'warn'], ['no_plan', 'warn'], ['waited', 'info'], ['good_process_win', 'good'], ['funding_cost', 'warn']];
+	const runs = [];
+	for (let i = 0; i < 26; i++) {
+		const trades = [];
+		for (let k = 0; k < (i % 4) + 1; k++) {
+			const j = i * 7 + k * 3;
+			const reason = reasons[j % reasons.length];
+			const rBp = reason === 'open' || j % 5 === 0 ? null : ((j * 3137) % 50000) - 22000;
+			trades.push({
+				net: rBp == null ? (j % 3) - 1 : rBp / 100,
+				rBp,
+				riskPct: j % 6 === 0 ? null : ((j * 37) % 400) / 100,
+				reason,
+				respected: j % 4 === 0 ? null : j % 3 !== 0,
+				movedAway: j % 7 === 0 ? null : j % 3,
+				option: j % 7 === 0
+			});
+		}
+		const f = [findings[i % findings.length], findings[(i * 5) % findings.length], findings[(i + 1) % findings.length]];
+		runs.push({
+			runId: `r${i}`,
+			missionId: missions[i % missions.length],
+			createdAt: 1000 + i * 10 - (i % 3),
+			summary: { v: 1, mission: missions[i % missions.length], status: i % 9 === 8 ? 'bankrupt' : 'finished', initial: 10000, net: 0, score: i % 5 === 0 ? null : 40 + i, trades, findings: f.map(([code, tone]) => ({ code, tone })) }
+		});
+	}
+	return runs.sort((a, b) => a.createdAt - b.createdAt);
+}
+
+function journalStatsFixture(m, summary) {
+	const { list, add } = cases();
+	const runs = statsRuns();
+	for (const r of [-3, -2, -1.99, -1, -0.5, 0, 0.01, 1, 1.5, 2, 2.0001, 7]) add('rBucket', [r], m.rBucket(r));
+	for (const n of [0, 1, 4, 26]) add('coreStats', [runs.slice(0, n)], m.coreStats(runs.slice(0, n)));
+	add('mistakes', [runs], m.mistakes(runs));
+	add('byMission', [runs], m.byMission(runs));
+	add('byStage', [runs], m.byStage(runs));
+	for (const n of [3, 12, 26]) add('trend', [runs.slice(0, n)], m.trend(runs.slice(0, n)));
+	for (const mission of [null, 'm06-thin-book']) {
+		const s = m.journalStats(runs, mission);
+		add('journalStats', [runs, mission], { trades: s.core.trades, runs: s.core.runs, tooFew: s.tooFew });
+	}
+	const trade = (p) => ({ n: 1, series: 0, side: 'long', entryStep: 1, exitStep: 5, qty: '1', entryAvg: '100', exitAvg: '98', pnl: '-2', fees: '0.1', funding: '0', net: '-150.25', bars: 4, reason: 'stop', plannedRisk: '150', rBp: -10017, planRespected: true, stopMovedAway: 1, ...p });
+	const debriefs = [
+		{ mission: 'm07-trend-trailing', status: 'finished', finalEquity: '9849.75', netPnl: '-150.25', score: { total: 64 }, findings: [{ code: 'no_plan', tone: 'warn' }], trades: [trade({}), trade({ series: 4, plannedRisk: '0', rBp: null, planRespected: null, stopMovedAway: undefined, reason: 'expiry' })] },
+		{ mission: 'm01-false-breakout', status: 'bankrupt', finalEquity: '12.5', netPnl: '-9987.5', score: { total: null }, findings: [], trades: [trade({ reason: 'liquidation', plannedRisk: '600', stopMovedAway: undefined })] },
+		{ mission: 'm01-false-breakout', status: 'active', finalEquity: '10000', netPnl: '0', score: { total: null }, findings: [], trades: [] }
+	];
+	for (const d of debriefs) add('summarize', [d], summary.summarize(d));
+	return { helper: 'journalStats.ts', cases: list };
+}
+
 // `golden(name)`: an engine what-if golden fixture's expected result (real engine answers).
 export async function buildFixtures(load, golden) {
 	const i18n = await load('i18n.svelte.ts');
@@ -481,6 +538,7 @@ export async function buildFixtures(load, golden) {
 		glossary: glossaryFixture(await load('content/glossary.ts')),
 		strategies: strategiesFixture(await load('strategies.ts')),
 		combos: combosFixture(await load('combos.ts')),
-		whatifLab: whatifLabFixture(await load('whatifLab.ts'), golden('whatif-condor'), golden('whatif-call'))
+		whatifLab: whatifLabFixture(await load('whatifLab.ts'), golden('whatif-condor'), golden('whatif-call')),
+		journalStats: journalStatsFixture(await load('journalStats.ts'), await load('runSummary.ts'))
 	};
 }

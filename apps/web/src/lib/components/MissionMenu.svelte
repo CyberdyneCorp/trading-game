@@ -11,6 +11,7 @@
 	import { formatBytes, type PackEntry } from '#lib/game/packStore.ts';
 	import CampaignPanel from './CampaignPanel.svelte';
 	import ShortcutSettings from './ShortcutSettings.svelte';
+	import RunImport from './RunImport.svelte';
 
 	let { session }: { session: GameSession } = $props();
 	let packMessage = $state<{ ok: boolean; text: string } | null>(null);
@@ -98,8 +99,10 @@
 		<button onclick={() => session.openGlossary('menu')} data-testid="open-glossary">📖 {t('glossary.open')}</button>
 		<button onclick={() => session.openLab()} data-testid="open-lab">⚗ {t('lab.open')}</button>
 		<button onclick={() => session.openJournal()} data-testid="open-journal">✎ {t('journal.open')}</button>
+		<button onclick={() => session.openStats()} data-testid="open-stats">∑ {t('menu.stats')}</button>
 		<button onclick={() => session.openCatalog()} data-testid="open-catalog">⇩ {t('catalog.open')}</button>
 	</nav>
+	<RunImport {session} from="menu" />
 
 	<CampaignPanel {session} />
 

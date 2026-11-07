@@ -5,6 +5,9 @@
 	import { journalMissions, journalRuns } from '#lib/game/journal.ts';
 	import { missionText, packOriginOf, packTextsOf } from '#lib/game/missions.ts';
 	import JournalEntries from './JournalEntries.svelte';
+	import RunExport from './RunExport.svelte';
+	import RunImport from './RunImport.svelte';
+	import { importLabels } from '#lib/game/runSharing.svelte.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const L = $derived(i18n.locale);
@@ -47,8 +50,34 @@
 				<span class="muted small">{new Date(run.createdAt).toLocaleString(L)} · seed {run.seed} · {t(`journal.status.${run.status}`)}</span>
 			</h2>
 			<JournalEntries entries={run.entries} />
+			<div class="run-actions">
+				<button onclick={() => session.watchOwnRun(run.runId, 'journal')} data-testid="journal-watch">▶ {t('journal.watchOwn')}</button>
+				<RunExport {session} runId={run.runId} compact />
+			</div>
 		</section>
 	{/each}
+
+	<section class="panel imports" data-testid="journal-imports">
+		<h2 class="panel-title">{t('journal.imports')}</h2>
+		<p class="muted small">{t('journal.importsNote')}</p>
+		<RunImport {session} from="journal" />
+		{#if session.sharing.imports.length === 0}
+			<p class="muted" data-testid="journal-imports-empty">{t('journal.importsEmpty')}</p>
+		{/if}
+		<ul>
+			{#each session.sharing.imports as rec (rec.id)}
+				{@const labels = importLabels(rec)}
+				<li data-testid="journal-import">
+					<span class="tag attention">{t('runfile.tagImported')}</span>
+					{titleOf(rec.mission, rec.pack)} · seed {rec.seed} · {t(`journal.status.${rec.status}`)}
+					{#if labels.campaign}<span class="tag info">{t('replay.labelCampaign')}</span>{/if}
+					{#if labels.assisted}<span class="tag attention">{t('replay.labelAssisted')}</span>{/if}
+					<button class="primary" onclick={() => session.watchImport(rec.id, 'journal')} data-testid="journal-import-watch">▶ {t('runfile.watch')}</button>
+					<button onclick={() => session.sharing.removeImport(rec.id)} data-testid="journal-import-remove">{t('runfile.remove')}</button>
+				</li>
+			{/each}
+		</ul>
+	</section>
 </main>
 
 <style>
@@ -85,5 +114,25 @@
 	}
 	.small {
 		font-size: 0.8rem;
+	}
+	.run-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		align-items: center;
+		margin-top: 0.5rem;
+	}
+	.imports ul {
+		list-style: none;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+	.imports li {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		align-items: center;
 	}
 </style>

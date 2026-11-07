@@ -14,6 +14,8 @@
 #include <vector>
 
 #include "support/png.hpp"
+#include "model/json.hpp"
+#include "support/run_file_flows.hpp"
 #include "support/shell_flows.hpp"
 
 using namespace tradelab::desktop;
@@ -147,4 +149,19 @@ TEST_CASE("windowed flows: a pack run saved in one launch resumes in the next") 
   testing::TempDir dir;
   const auto csv = testing::write_gap_csv(dir.path());
   testing::flow_relaunch_pack<RavenSession>(dir.path() / "data", csv);
+}
+
+TEST_CASE("windowed flows: run files, a tampered file refused, the shared file replayed on the terminal to its debrief") {
+  testing::TempDir dir;
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 11u; }, std::make_unique<storage::Storage>(dir.path() / "data"));
+  REQUIRE(app.build(1280, 800));
+  Driver d(app);
+  d.frames(4);
+  const auto index = json::parse(testing::read_text(testing::runfile_path("index.json")));
+  std::string digest;
+  for (const json::Value& e : (*index)["files"].items()) {
+    if (e["name"].as_string() == "m01-finished.tlrun") digest = e["expected"]["digest"].as_string();
+  }
+  testing::flow_run_files(app, d, digest, shooter(d));
 }

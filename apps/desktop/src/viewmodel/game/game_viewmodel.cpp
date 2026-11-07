@@ -93,7 +93,8 @@ bool starts_run(const CommandResult& r) {
     case CommandKind::Start:
     case CommandKind::StartPack:
     case CommandKind::Resume:  // a run saved in an earlier launch is a new run for the terminal
-    case CommandKind::Rewind: return r.accepted;
+    case CommandKind::Rewind:
+    case CommandKind::Watch: return r.accepted;  // the replay viewer's run
     default: return false;
   }
 }
@@ -109,6 +110,7 @@ void GameViewModel::on_snapshot(const Snapshot& s) {
   }
   if (s.game) {
     if (started) begin_run(s, rewound);
+    replay_ = s.watching;
     state_ = s.game;
     if (s.log) log_ = s.log;
     names_.observe(*state_);
@@ -197,7 +199,7 @@ void GameViewModel::send_next() {
 }
 
 void GameViewModel::flush_queue() {
-  if (queued_ <= 0 || busy() || !active() || state_->calibration.due) return;
+  if (queued_ <= 0 || busy() || !active() || question_due()) return;
   const int n = queued_;
   queued_ = 0;
   advance(n);
@@ -229,14 +231,14 @@ void GameViewModel::notify(const std::string& reason, const RejectionFacts& fact
 }
 
 void GameViewModel::advance(int steps) {
-  if (!active() || state_->calibration.due || steps <= 0) return;
+  if (!active() || question_due() || steps <= 0) return;
   if (busy()) {
     queued_ += steps;  // e.g. Space pressed while an order is in flight: run it afterwards
     return;
   }
   in_flight_ = InFlight::Advance;
   ++actions_;
-  engine_.advance(steps_until_next_question(*state_, steps));
+  engine_.advance(replay_ ? steps : steps_until_next_question(*state_, steps));  // a replay asks nothing
   touch();
 }
 

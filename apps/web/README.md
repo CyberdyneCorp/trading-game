@@ -83,6 +83,39 @@ The briefing renders the engine's `missionRules` (task 4.1): objectives (`object
 - **Accessible chart:** `ChartTable` holds every closed bar in pages of 50 (the default page ends with the current bar, UX01) plus a text summary; it is visually hidden until "Table" opens it (Esc closes) or keyboard focus enters it. The canvas box is a keyboard slider: arrows, Page Up/Down and Home/End move the focused candle, its OHLCV and patterns are announced (`aria-valuetext`; a continuity bar, a data gap without trading, is tagged in the announcement and in its table row), Enter opens its pattern card, and Space still advances.
 - **Shortcuts:** defaults in `shortcuts.ts` (Space, Shift+Space, B, S, X, P, A, M, O option chain, J run journal, ?), remappable in the menu settings and from the help overlay (`ShortcutSettings`), saved per viewer in localStorage (`tradelab.keymap.v1`). A key used by another action is refused naming it; Enter, Esc, Tab, arrows and Home/End/Page keys are reserved, with or without Shift. The help overlay and button hints show the current keys.
 
+## Run files, replay viewer and journal statistics
+
+openspec `add-run-sharing-and-journal-stats`. The engine checks and replays every file; the client only gathers members and translates codes.
+
+- **Export** (`RunExport`): offered on the debrief, on each journal run and in the statistics screen's run list.
+  - `runFile.ts` drafts the file from the run record and its action log: plan notes only when "include my plan notes" is ticked; no run id, timestamps or device key.
+  - The worker's run-less `sealRun` (`tl_run_file_seal`) writes the replay's result into the file.
+  - A sealed digest that differs from the one shown warns that the local log no longer reproduces the run.
+  - Runs on private (CSV-imported) packs cannot be exported.
+- **Import** (`RunImport`): in the menu and the journal.
+  - `verifyRun` (`tl_run_file_verify`) checks the file. A file naming a catalog pack is retried with the installed pack. Refusals are explained per engine reason (`runfile.reason.*`).
+  - Accepted files go to the `imports` IndexedDB store (database version 4), keyed by `fileDigest`, so the same file imported twice keeps one row.
+  - No progress reader opens that store, so imported runs never count for missions, perks, points, the campaign or statistics.
+- **Replay viewer** (`ReplayScreen`, the session's `viewing` mode): rebuilds an imported run, or one of the player's own (sealed from its log), in the session's engine.
+  - Controls: next bar (`replay.ts`: the commands before the next advance, then one bar; an `adv n` plays as n single bars), play/pause and to the end.
+  - The run's debrief then opens without points, rewind, play again or campaign.
+  - While viewing, every command path, persistence and settlement is closed. Leaving resumes nothing: the player's saved run stays as it was.
+- **Statistics** (`JournalStats`, menu "Estatísticas do diário"):
+  - When a debrief loads, the run record gets `summary` (`runSummary.ts`: the engine's trades, R, planned risk as a share of initial capital, exit reasons, plan respected, `stopMovedAway`, findings).
+  - `journalStats.ts` aggregates the summaries of own, non-assisted runs:
+    - win rate, expectancy, average win and loss R, the R distribution;
+    - stops respected and moved away;
+    - risk bands against 1–2%, oversized runs;
+    - liquidations and margin calls;
+    - repeated finding codes;
+    - per mission and per stage;
+    - the last 10 runs against the 10 before them.
+  - Each card links its Academy lesson. Older runs without a summary are recomputed on request by sealing them through the engine.
+- **Tests:** `runFile.test.ts` (the shared `engine/tests/runfiles` fixtures through the WASM build, and the exporter writing the fixtures' canonical files from the goldens), `journalStats.test.ts`, `replay.test.ts`, `storage.test.ts` (imports store), and `e2e/run-sharing.spec.ts`:
+  - export, import in a fresh context, step bar by bar, debrief, re-export identical, not counted;
+  - tampered and malformed files refused;
+  - statistics over two runs with axe, and watching one of them.
+
 ## Campaign, curriculum map and journal
 
 The menu offers the campaign (missions in `campaignMissions()` order, capital carried through the engine's `startingBalance` start option, bankruptcy or less than `CAMPAIGN_MIN_CAPITAL` left ends the campaign run; ending it by choice asks first and leaves its mission in progress), free play (any mission, its own rules), the curriculum map (`CurriculumMap.svelte`: stage statuses from `curriculum.ts`, progress summary) and the journal (`Journal.svelte`: every run's plan entries from the `runs` store, newest first, filterable by mission; a run replaced by another before its end is stored as `left`). The curriculum's unlock rules are data in `curriculum.ts`; in a campaign mission a locked "leverage above 2×" becomes the engine's `leverageCap` start option, and the briefing lists what stays locked and which stage unlocks it.

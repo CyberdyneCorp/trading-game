@@ -1,8 +1,13 @@
 #include "model/engine_host.hpp"
 
+#include <algorithm>
 #include <utility>
 
+#include <tradelab/c_api.h>
+
+#include "model/storage/json_writer.hpp"
 #include "model/storage/run_recorder.hpp"
+#include "model/storage/run_store.hpp"
 
 namespace tradelab::desktop {
 
@@ -106,6 +111,13 @@ void EngineHost::analyze(AnalysisKind kind, const std::string& request, Analysis
   enqueue(std::move(c));
 }
 
+void EngineHost::watch(const std::string& file_text) {
+  Command c;
+  c.kind = CommandKind::Watch;
+  c.qty = file_text;
+  enqueue(std::move(c));
+}
+
 void EngineHost::post_storage_job(StorageJob job) {
   // Not a run command: execute() runs the job instead.
   Command c;
@@ -160,6 +172,7 @@ void EngineHost::execute(const Command& c) {
     case CommandKind::Resume: run_resume(); break;
     case CommandKind::StartPack: run_start_pack(c); break;
     case CommandKind::Rewind: run_rewind(c); break;
+    case CommandKind::Watch: run_watch(c); break;
   }
 }
 
@@ -172,7 +185,7 @@ void EngineHost::publish_refusal(CommandKind kind, const std::string& reason) {
 
 // Header digest/status/equity (and a checkpoint every 20 actions) are written before the acknowledgement.
 void EngineHost::settle(Snapshot& s) {
-  if (!recorder_ || !run_) return;
+  if (!recorder_ || !run_ || watching_) return;
   recorder_->settle(*run_, s);
   s.durable = recorder_->durable();
 }
@@ -200,7 +213,8 @@ storage::ApplyResult EngineHost::perform(const storage::Action& a) {
 }
 
 void EngineHost::stamp(Snapshot& s) {
-  if (recorder_) s.run_id = recorder_->run_id();
+  if (recorder_ && !watching_) s.run_id = recorder_->run_id();
+  stamp_watch(s);
   s.assisted = current_.assisted;
   // One copy per change of the log (a command, an advance batch), shared by the snapshots after it.
   if (!shared_log_ || *shared_log_ != current_.log) shared_log_ = std::make_shared<const std::vector<std::string>>(current_.log);
@@ -208,6 +222,7 @@ void EngineHost::stamp(Snapshot& s) {
 }
 
 void EngineHost::run_start(const Command& c) {
+  watching_.reset();
   Current next{c.mission, c.seed, c.options, {}, !c.links.assisted.empty(), {}};
   std::string reason;
   auto run = open_run(next, c.links, &reason);
@@ -232,6 +247,7 @@ void EngineHost::run_start(const Command& c) {
 // carries the acknowledgement. The batch is one logged action, committed before the first bar.
 void EngineHost::run_advance(int steps) {
   if (!run_) return;
+  if (watching_) return run_watch_steps(steps);
   const storage::Action logged = storage::actions::advance(steps);
   current_.log.push_back(logged.json);
   if (recorder_) recorder_->commit(logged);
@@ -253,6 +269,7 @@ void EngineHost::run_advance(int steps) {
 
 void EngineHost::run_market(const Command& c) {
   if (!run_) return;
+  if (watching_) return publish_refusal(CommandKind::Market, "replay");
   const storage::ApplyResult r = perform(storage::actions::market(c.side, c.qty));
   Snapshot s = run_->snapshot();
   settle(s);
@@ -261,6 +278,7 @@ void EngineHost::run_market(const Command& c) {
 }
 
 void EngineHost::run_resume() {
+  watching_.reset();
   if (!recorder_) return publish_refusal(CommandKind::Resume, "no_storage");
   std::optional<storage::Resumed> r = recorder_->resume();
   if (!r) return publish_refusal(CommandKind::Resume, "no_saved_run");
@@ -285,6 +303,7 @@ void EngineHost::run_resume() {
 }
 
 void EngineHost::run_start_pack(const Command& c) {
+  watching_.reset();
   if (!recorder_) return publish_refusal(CommandKind::StartPack, "no_storage");
   Current next{{}, c.seed, {}, c.digest, false, {}};
   std::string reason;
@@ -301,10 +320,10 @@ void EngineHost::run_start_pack(const Command& c) {
 // A command without a run (or with no kind) is still acknowledged, so the viewmodel never waits for it
 // forever; it is not logged. Every other terminal command is a logged action, like the market order.
 void EngineHost::run_game(const Command& c) {
-  if (!run_ || c.game.kind == GameCommandKind::None) {
+  if (!run_ || c.game.kind == GameCommandKind::None || watching_) {
     Snapshot s;
     s.status = "invalid";
-    CommandResult r{CommandKind::Game, false, "invalid_sequence"};
+    CommandResult r{CommandKind::Game, false, watching_ ? "replay" : "invalid_sequence"};
     r.game = c.game.kind;
     s.results.push_back(std::move(r));
     publish(std::move(s));
@@ -320,7 +339,7 @@ void EngineHost::run_game(const Command& c) {
 // The same market and start options (without the advisor) and the actions logged before `to_step`, as a
 // new stored run flagged assisted; the attempt rewound keeps its record and log.
 void EngineHost::run_rewind(const Command& c) {
-  if (!run_) return publish_refusal(CommandKind::Rewind, "invalid_sequence");
+  if (!run_ || watching_) return publish_refusal(CommandKind::Rewind, "invalid_sequence");
   const Snapshot now = run_->snapshot();
   if (c.steps < now.warmup_bars || c.steps >= now.step) return publish_refusal(CommandKind::Rewind, "invalid_step");
   const std::vector<std::string> prefix = storage::rewind_prefix(current_.log, now.warmup_bars, c.steps);
@@ -352,6 +371,90 @@ void EngineHost::run_analysis(const Command& c) {
     }
     reply(text);
   });
+}
+
+// ---- replay viewer (add-run-sharing-and-journal-stats D6) ----
+
+namespace {
+
+int logged_bars(const std::vector<std::string>& actions) {
+  int bars = 0;
+  for (const std::string& a : actions) {
+    const auto v = json::parse(a);
+    if (v && (*v)["k"].as_string() == "adv") bars += static_cast<int>(std::max<std::int64_t>(1, (*v)["n"].as_int(1)));
+  }
+  return bars;
+}
+
+}  // namespace
+
+// A verified run file's run, rebuilt without storage: the stored active run and the recorder stay as
+// they are, so the player's saved run resumes exactly as before once the viewer is left.
+void EngineHost::run_watch(const Command& c) {
+  const auto file = json::parse(c.qty);
+  if (!file || (*file)["format"].as_string() != "tradelab-run") return publish_refusal(CommandKind::Watch, "malformed");
+  const std::string pack = (*file)["pack"].as_string();
+  const auto seed = static_cast<std::uint32_t>((*file)["seed"].as_int());
+  std::unique_ptr<EngineRun> run;
+  if (!pack.empty()) {
+    const auto bytes = storage_ ? storage_->packs().bytes(pack) : std::nullopt;
+    const std::string keys = storage_ ? storage_->packs().trusted_keys_json() : "[]";
+    if (bytes) run = EngineRun::adopt(tl_run_create_pack(bytes->data(), static_cast<uint32_t>(bytes->size()), keys.c_str(), seed), seed);
+  } else {
+    run = EngineRun::create((*file)["mission"].as_string(), seed, storage::options_from_json(storage::dump((*file)["options"])));
+  }
+  if (!run) return publish_refusal(CommandKind::Watch, pack.empty() ? "unknown_mission" : "pack_required");
+  Watching w;
+  for (const json::Value& a : (*file)["actions"].items()) w.actions.push_back(storage::dump(a));
+  run_ = std::move(run);
+  Snapshot s = run_->snapshot();
+  // A logged advance may ask for more bars than the market has left (the engine stops at its end).
+  w.bars = std::min(logged_bars(w.actions), std::max(0, s.total_bars - 1 - s.step));
+  current_ = Current{(*file)["mission"].as_string(), seed, {}, pack, false, {}};
+  watching_ = std::move(w);
+  stamp_watch(s);
+  s.results.push_back(CommandResult{CommandKind::Watch, true, "none"});
+  publish(std::move(s));
+}
+
+// The next viewer step: the commands logged before the next advance, then one bar of it. False when
+// no bar was played (the whole log is applied) or the run ended on it.
+bool EngineHost::watch_step() {
+  Watching& w = *watching_;
+  while (w.index < w.actions.size()) {
+    const auto a = json::parse(w.actions[w.index]);
+    if (a && (*a)["k"].as_string() == "adv") break;
+    current_.log.push_back(w.actions[w.index]);
+    if (a) storage::apply_action(*run_, *a);
+    ++w.index;
+  }
+  if (w.index >= w.actions.size()) return false;
+  if (w.left == 0) w.left = static_cast<int>(std::max<std::int64_t>(1, json::parse(w.actions[w.index])->operator[]("n").as_int(1)));
+  const bool active = run_->advance(1);
+  current_.log.push_back(storage::actions::advance(1).json);
+  w.bar += 1;
+  if (--w.left == 0) ++w.index;
+  return active;
+}
+
+void EngineHost::run_watch_steps(int steps) {
+  for (int k = 1; k <= steps; ++k) {
+    const bool more = watch_step();
+    const bool last = k == steps || !more;
+    if (!last && delivery_pending()) continue;
+    Snapshot s = run_->snapshot();
+    if (last) s.results.push_back(CommandResult{CommandKind::Advance, true, "none"});
+    publish(std::move(s));
+    if (last) return;
+  }
+}
+
+void EngineHost::stamp_watch(Snapshot& s) const {
+  if (!watching_) return;
+  s.watching = true;
+  s.watch_bar = watching_->bar;
+  s.watch_bars = watching_->bars;
+  s.watch_done = watching_->done() || !s.active();  // the rest of a log played past the end changes nothing
 }
 
 bool EngineHost::delivery_pending() const {

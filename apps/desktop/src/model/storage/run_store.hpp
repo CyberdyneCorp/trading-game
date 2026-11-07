@@ -14,6 +14,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "model/snapshot.hpp"
@@ -88,6 +89,18 @@ struct StoredPack {
   std::optional<std::string> mode;
 };
 
+// An imported run file (web ImportRecord, add-run-sharing-and-journal-stats D5): its own table, which
+// no progress reader opens, so an imported run never counts for anything.
+struct ImportRecord {
+  std::string id;    // the engine's fileDigest
+  std::string text;  // the canonical file
+  std::string mission;
+  std::uint32_t seed = 0;
+  std::optional<std::string> pack;
+  std::string status = "active";  // active | finished | bankrupt
+  std::int64_t imported_at = 0;
+};
+
 struct Download {
   std::string digest;
   std::string url;
@@ -113,6 +126,17 @@ class RunStore {
   [[nodiscard]] std::vector<RunRecord> runs();
   // Missions with a run played to the end (no pack practice, no assisted attempt).
   [[nodiscard]] std::vector<std::string> finished_missions();
+  // Any run with its gap-free action log (export, statistics); nullopt for an unknown run.
+  [[nodiscard]] std::optional<StoredRun> stored_run(const std::string& run_id);
+  // The run's journal-statistics summary (web RunRecord.summary, JSON); runs without one are absent.
+  void set_summary(const std::string& run_id, const std::string& summary_json);
+  [[nodiscard]] std::vector<std::pair<std::string, std::string>> summaries();  // (run_id, JSON)
+
+  // ---- imported run files ----
+  // Stores an imported file; the same file again keeps one row and its first import date.
+  void save_import(const ImportRecord& r);
+  [[nodiscard]] std::vector<ImportRecord> imports();  // newest first
+  void delete_import(const std::string& id);
 
   // ---- checkpoints ----
   // Keeps only the latest checkpoint of a run (an older one is never needed to resume).

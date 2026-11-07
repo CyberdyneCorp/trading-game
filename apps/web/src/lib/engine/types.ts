@@ -717,6 +717,8 @@ export interface EngineTrade {
 	stopBeyondLiq?: boolean;
 	/** Highest leverage that would have kept the stop in front of liquidation (0 = not even 1x); null when it was in front. */
 	safeLeverage?: number | null;
+	/** Perpetual rows only (report-only): moves of a reduce-only stop away from the entry while the trade was open. */
+	stopMovedAway?: number;
 }
 
 export type TradeSide = 'long' | 'short';
@@ -1026,6 +1028,47 @@ export interface TrustedKey {
 	id: string;
 	key: string;
 }
+
+/**
+ * tl_run_file_verify (add-run-sharing-and-journal-stats D2). Refused: ok false with reason, path
+ * (the first invalid member), pack (the digest a pack_required file needs) and detail (the file's
+ * policy for policy_mismatch). Accepted: ok true and every optional field below.
+ */
+export interface RunFileVerdict {
+	ok: boolean;
+	reason?: RunFileReason;
+	path?: string;
+	pack: string;
+	detail?: string;
+	mission?: string;
+	seed?: number;
+	status?: RunStatus;
+	step?: number;
+	digest?: string;
+	eventsDigest?: string;
+	actions?: number;
+	rejected?: number;
+	/** SHA-256 of `run`: the id of an imported run. */
+	fileDigest?: string;
+	/** The canonical file (RFC 8785 text): what a client stores and exports again. */
+	run?: string;
+	/** tl_debrief of the replayed run; null while it is active. */
+	debrief?: DebriefData | null;
+}
+
+export type RunFileReason =
+	| 'too_large'
+	| 'malformed'
+	| 'not_a_run_file'
+	| 'unsupported_version'
+	| 'invalid_field'
+	| 'policy_mismatch'
+	| 'unknown_mission'
+	| 'invalid_options'
+	| 'pack_required'
+	| 'pack_invalid'
+	| 'pack_mismatch'
+	| 'digest_mismatch';
 
 /** tl_device_key: this device's signing key for its own imports; tl_signing_key: a publisher key. */
 export interface DeviceKey {

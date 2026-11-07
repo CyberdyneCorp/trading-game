@@ -15,6 +15,7 @@
 #include "viewmodel/format.hpp"
 #include "viewmodel/keymap.hpp"
 #include "viewmodel/report_texts.hpp"
+#include "viewmodel/run_file_names.hpp"
 #include "viewmodel/screen_names.hpp"
 
 namespace tradelab::desktop {
@@ -129,6 +130,10 @@ void on_lesson_activated(Rid, int index, void* user_data) {
 }
 
 void on_journal_filter(Rid, int index, void* user_data) { vm_of(user_data).set_journal_filter(index); }
+void on_files_path(Rid, const char* text, void* user_data) { vm_of(user_data).set_run_file_path(text != nullptr ? text : ""); }
+void on_files_run(Rid, int index, void* user_data) { vm_of(user_data).pick_run(index); }
+void on_files_notes(Rid, int checked, void* user_data) { vm_of(user_data).set_run_file_notes(checked != 0); }
+void on_import_pick(Rid, int index, void* user_data) { vm_of(user_data).pick_import(index); }
 
 void on_key_row(Rid, int row, void* user_data) { vm_of(user_data).select_key_row(row); }
 
@@ -201,6 +206,14 @@ void ShellView::bind() {
   ui::bind_action(names::kActUpdateInstall, [&vm] { vm.install_update(); });
   ui::bind_action(names::kActOpenCurriculum, [&vm] { vm.open_curriculum(); });
   ui::bind_action(names::kActOpenJournal, [&vm] { vm.open_journal(); });
+  ui::bind_action(names::kActOpenStats, [&vm] { vm.open_stats(); });
+  ui::bind_action(names::kActFilesExport, [&vm] { vm.run_file_export(); });
+  ui::bind_action(names::kActFilesWatch, [&vm] { vm.run_file_watch_own(); });
+  ui::bind_action(names::kActFilesImport, [&vm] { vm.run_file_import(); });
+  ui::bind_action(names::kActImportWatch, [&vm] { vm.run_file_watch_import(); });
+  ui::bind_action(names::kActImportRemove, [&vm] { vm.run_file_remove_import(); });
+  ui::bind_action(names::kActStatsRecompute, [&vm] { vm.stats_recompute(); });
+  ui::bind_action(names::kActReplayLeave, [&vm] { vm.leave_replay(); });
   ui::bind_action(names::kActOpenSettings, [&vm] { vm.open_settings(); });
   ui::bind_action(names::kActCampaignStart, [&vm] { vm.campaign_start(); });
   ui::bind_action(names::kActCampaignContinue, [&vm] { vm.campaign_continue(); });
@@ -240,6 +253,10 @@ void ShellView::bind_callbacks() {
   Rslider_set_changed_callback(find(names::kSettingsSfx), on_sfx, &vm_);
   Rtable_set_selection_changed_callback(find(names::kSettingsKeys), on_key_row, &vm_);
   Rcombo_box_set_changed_callback(find(names::kJournalFilter), on_journal_filter, &vm_);
+  Rtext_input_set_changed_callback(find(names::kFilesPath), on_files_path, &vm_);
+  Rcombo_box_set_changed_callback(find(names::kFilesRun), on_files_run, &vm_);
+  Rcheckbox_set_changed_callback(find(names::kFilesNotes), on_files_notes, &vm_);
+  Rcombo_box_set_changed_callback(find(names::kImports), on_import_pick, &vm_);
   Rlist_view_set_selection_changed_callback(find(names::kCurriculumLessons), on_lesson_selected, &vm_);
   Rlist_view_set_activated_callback(find(names::kCurriculumLessons), on_lesson_activated, &vm_);
   Rcustom_set_paint_callback(find(names::kLessonChart), paint_lesson_chart, &vm_);

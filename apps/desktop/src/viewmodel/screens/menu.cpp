@@ -159,6 +159,7 @@ ScreenModel menu(const AppViewModel& vm) {
   update_line(vm, m);
   m.text(names::kMenuCurriculum, "\xE2\x96\xA6 " + vm.tr("curriculum.open"));  // ▦
   m.text(names::kMenuJournal, "\xE2\x9C\x8E " + vm.tr("journal.open"));        // ✎
+  m.text(names::kMenuStats, "\xE2\x88\x91 " + vm.tr("menu.stats"));             // ∑
   m.text(names::kMenuSettings, "\xE2\x9A\x99 " + vm.tr("menu.settings"));      // ⚙
   m.text(names::kMenuCatalog, "\xE2\x87\xA9 " + vm.tr("catalog.open"));         // ⇩
   m.text(names::kMenuImport, vm.tr("menu.importCsv"));

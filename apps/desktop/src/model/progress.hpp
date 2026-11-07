@@ -102,6 +102,8 @@ struct RunRecord {
   std::string pack_digest;  // empty for a built-in mission
   std::string equity;       // last known equity (a left campaign mission carries it)
   std::vector<PlanEntry> journal;
+  // The journal statistics' summary of the run's debrief (web RunRecord.summary JSON); empty = none.
+  std::string summary;
 };
 
 // A lesson's spaced-review schedule (review.ts ReviewEntry): box 1..4 while scheduled, kReviewRetired

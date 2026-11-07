@@ -17,6 +17,7 @@ inline constexpr std::string_view kMenuUpdateText = "menu-update-text";
 inline constexpr std::string_view kMenuUpdateInstall = "menu-update-install";
 inline constexpr std::string_view kMenuCurriculum = "menu-curriculum";
 inline constexpr std::string_view kMenuJournal = "menu-journal";
+inline constexpr std::string_view kMenuStats = "menu-stats";
 inline constexpr std::string_view kMenuSettings = "menu-settings";
 inline constexpr std::string_view kMenuDetailDone = "menu-detail-done";
 inline constexpr std::string_view kCampaignTitle = "campaign-title";
@@ -107,6 +108,13 @@ inline constexpr std::string_view kJournalFilter = "journal-filter";
 inline constexpr std::string_view kJournalEmpty = "journal-empty";
 inline constexpr std::string_view kJournalRuns = "journal-runs";
 
+// ---- Journal statistics (web JournalStats.svelte) ----
+inline constexpr std::string_view kStatsTitle = "stats-title";
+inline constexpr std::string_view kStatsBack = "stats-back";
+inline constexpr std::string_view kStatsNote = "stats-note";
+inline constexpr std::string_view kStatsEmpty = "stats-empty";
+inline constexpr std::string_view kStatsLines = "stats-lines";
+
 // ---- Academy lesson (web LessonRunner.svelte + LessonChart.svelte) ----
 inline constexpr std::string_view kLessonRunPanel = "lesson-run-panel";
 inline constexpr std::string_view kLessonHead = "lesson-head";
@@ -159,7 +167,7 @@ inline constexpr std::string_view kSettingsAbout = "settings-about";
 inline constexpr std::string_view kCrtOverlay = "crt-overlay";
 
 inline constexpr auto kShellWidgets = std::to_array<std::string_view>({
-    kMenuResumeRow, kMenuResumeText, kMenuResume, kMenuUpdateRow, kMenuUpdateText, kMenuUpdateInstall, kMenuCurriculum, kMenuJournal, kMenuSettings, kMenuDetailDone,
+    kMenuResumeRow, kMenuResumeText, kMenuResume, kMenuUpdateRow, kMenuUpdateText, kMenuUpdateInstall, kMenuCurriculum, kMenuJournal, kMenuStats, kMenuSettings, kMenuDetailDone,
     kCampaignTitle, kCampaignNote, kCampaignSteps, kCampaignProgress, kCampaignEnded, kCampaignStart, kCampaignContinue,
     kCampaignEnd, kCampaignConfirmRow, kCampaignConfirm, kCampaignEndYes, kCampaignEndNo, kCampaignPlayed,
     kBriefPermissions, kBriefNotAllowed, kBriefLimits, kBriefMmr, kBriefTiers, kBriefMark, kBriefCosts, kBriefShocks,
@@ -172,7 +180,8 @@ inline constexpr auto kShellWidgets = std::to_array<std::string_view>({
     kDebriefRegimes, kDebriefRegimesNote, kDebriefRegimesTitle, kDebriefReleasesTitle, kDebriefReleasesPanel, kDebriefReleases, kDebriefReleasesNote,
     kDebriefTimeline, kCurriculumTitle, kCurriculumBack, kCurriculumNote, kCurriculumProgress, kCurriculumStages,
     kCurriculumLessons, kCurriculumLessonStart, kJournalTitle, kJournalBack, kJournalNote, kJournalFilterRow,
-    kJournalFilterLabel, kJournalFilter, kJournalEmpty, kJournalRuns, kLessonRunPanel, kLessonHead, kLessonStep,
+    kJournalFilterLabel, kJournalFilter, kJournalEmpty, kJournalRuns, kStatsTitle, kStatsBack, kStatsNote, kStatsEmpty,
+    kStatsLines, kLessonRunPanel, kLessonHead, kLessonStep,
     kLessonTitle, kLessonChart, kLessonChartNote, kLessonBars, kLessonBody, kLessonChoices[0], kLessonChoices[1],
     kLessonChoices[2], kLessonChoices[3], kLessonFeedback, kLessonLeave, kLessonPrev, kLessonNext, kLessonDonePanel,
     kLessonDoneTitle, kLessonDoneName, kLessonScore, kLessonDoneNote, kLessonFinish, kSettingsTitle, kSettingsBack,
@@ -187,6 +196,7 @@ inline constexpr std::string_view kActResume = "tl.menu.resume";
 inline constexpr std::string_view kActUpdateInstall = "tl.menu.updateInstall";
 inline constexpr std::string_view kActOpenCurriculum = "tl.menu.curriculum";
 inline constexpr std::string_view kActOpenJournal = "tl.menu.journal";
+inline constexpr std::string_view kActOpenStats = "tl.menu.stats";
 inline constexpr std::string_view kActOpenSettings = "tl.menu.settings";
 inline constexpr std::string_view kActCampaignStart = "tl.campaign.start";
 inline constexpr std::string_view kActCampaignContinue = "tl.campaign.continue";
@@ -208,7 +218,7 @@ inline constexpr std::string_view kActKeyChange = "tl.settings.keyChange";
 inline constexpr std::string_view kActKeyReset = "tl.settings.keyReset";
 
 inline constexpr auto kShellActions = std::to_array<std::string_view>(
-    {kActResume, kActUpdateInstall, kActOpenCurriculum, kActOpenJournal, kActOpenSettings, kActCampaignStart, kActCampaignContinue,
+    {kActResume, kActUpdateInstall, kActOpenCurriculum, kActOpenJournal, kActOpenStats, kActOpenSettings, kActCampaignStart, kActCampaignContinue,
      kActCampaignEnd, kActCampaignEndYes, kActCampaignEndNo, kActCampaignNext, kActBackToMenu, kActLessonStart,
      kActLessonLeave, kActLessonPrev, kActLessonNext, kActLessonFinish, kActLessonChoices[0], kActLessonChoices[1],
      kActLessonChoices[2], kActLessonChoices[3], kActLangPt, kActLangEn, kActKeyChange, kActKeyReset});

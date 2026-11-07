@@ -152,6 +152,27 @@ tl_run* tl_run_create_pack(const uint8_t* data, uint32_t size, const char* trust
 tl_run* tl_run_restore_pack(const uint8_t* data, uint32_t size, const char* trusted_keys_json, uint32_t seed,
                             const char* checkpoint_hex);
 
+/* ---- Run files (add-run-sharing-and-journal-stats design D1, D2; run-less, static buffer). ----
+ * Verifies an untrusted run file (JSON, format "tradelab-run" version 1, at most 1 MiB): strict
+ * parse, schema of every member and action, the file's execution policy equal to this engine's,
+ * then a replay from a fresh run (its mission with its start options, or the catalog pack in
+ * pack/pack_len verified against trusted_keys_json; NULL/0/NULL for a mission) with the shared
+ * action applier, accepted only when the final status, digest and eventsDigest equal "result".
+ * Accepted: {"ok":true,"mission","seed","pack","status","step","digest","eventsDigest","actions",
+ * "rejected","fileDigest","run":<the canonical file (RFC 8785)>,"debrief":<tl_debrief> | null}.
+ * Refused: {"ok":false,"reason","path","pack","detail"}: reason too_large, malformed,
+ * not_a_run_file, unsupported_version, invalid_field (path of the first bad member, e.g.
+ * "actions[3].qty"), policy_mismatch (detail = the file's policy), unknown_mission,
+ * invalid_options, pack_required (pack = the digest to supply), pack_invalid, pack_mismatch or
+ * digest_mismatch. No other run is touched. */
+const char* tl_run_file_verify(const char* file_json, const uint8_t* pack, uint32_t pack_len, const char* trusted_keys_json);
+/* The exporter's call: the same checks and replay for a run file whose "result" may be absent (or
+ * stale); the accepted verdict's "run" carries the replay's status and digests as its "result".
+ * Clients build the other members from their run record and action log and never compute a result
+ * themselves, so every client writes the same file for the same run. Refusals as tl_run_file_verify
+ * (never digest_mismatch). */
+const char* tl_run_file_seal(const char* file_json, const uint8_t* pack, uint32_t pack_len, const char* trusted_keys_json);
+
 /* ---- Pack authoring (tools/packer; native only, not exported to WASM). ----
  * A pack source is an uncompressed archive of manifest.json and the raw data files, read with
  * tl_blob_data/tl_blob_size. The packer compresses the .bin files (zstd frames declaring their

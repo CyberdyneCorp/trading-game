@@ -40,7 +40,7 @@ list(APPEND TRADELAB_DESKTOP_RESOURCES
   fonts/VT323-Regular.ttf fonts/IBMPlexMono-Regular.ttf shaders/crt.spv
   web/content.json)
 # Academy and glossary screens (add-academy-and-strategies).
-list(APPEND TRADELAB_DESKTOP_RESOURCES views/academy.xml views/glossary.xml)
+list(APPEND TRADELAB_DESKTOP_RESOURCES views/academy.xml views/glossary.xml views/stats.xml)
 tradelab_embed_resources(${CMAKE_BINARY_DIR}/generated/resources.cpp ${CMAKE_CURRENT_SOURCE_DIR}/resources
   ${TRADELAB_DESKTOP_RESOURCES})
 
@@ -116,6 +116,9 @@ target_sources(tradelab_desktop_model PRIVATE
   src/model/storage/progress.cpp
   src/model/storage/run_recorder.cpp
   src/model/storage/run_store.cpp
+  src/model/run_files.cpp
+  src/model/run_summary.cpp
+  src/model/run_sharing.cpp
   src/model/storage/schema.cpp
   src/model/storage/sqlite.cpp
   src/model/packs/catalog.cpp
@@ -154,6 +157,10 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/campaign.cpp
   src/viewmodel/curriculum.cpp
   src/viewmodel/journal.cpp
+  src/viewmodel/journal_stats.cpp
+  src/viewmodel/run_sharing_vm.cpp
+  src/viewmodel/screens/stats.cpp
+  src/viewmodel/screens/run_files.cpp
   src/viewmodel/keymap.cpp
   src/viewmodel/lesson_runner.cpp
   src/viewmodel/report_texts.cpp

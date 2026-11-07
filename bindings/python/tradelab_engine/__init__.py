@@ -23,7 +23,9 @@ from .engine import (
     pack_source_mission,
     pack_validate,
     pack_write,
+    seal_run_file,
     signing_key,
+    verify_run_file,
 )
 from .replay import ACTION_KINDS, InvalidAction, ReplayResult, replay, replay_on
 
@@ -49,7 +51,9 @@ __all__ = [
     "pack_source_mission",
     "pack_validate",
     "pack_write",
+    "seal_run_file",
     "replay",
     "replay_on",
     "signing_key",
+    "verify_run_file",
 ]

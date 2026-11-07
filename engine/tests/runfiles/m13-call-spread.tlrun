@@ -1,0 +1,73 @@
+{
+ "format": "tradelab-run",
+ "version": 1,
+ "mission": "m13-call-spread",
+ "pack": null,
+ "seed": 2026,
+ "options": {
+  "adviceAllowance": 0,
+  "newsLead": 0,
+  "calendar": false
+ },
+ "engine": {
+  "executionPolicy": 17,
+  "abi": 1,
+  "version": "0.1.0"
+ },
+ "labels": {
+  "campaign": false,
+  "assisted": false
+ },
+ "actions": [
+  {
+   "k": "adv",
+   "n": 10
+  },
+  {
+   "k": "opt",
+   "series": 9,
+   "side": "buy",
+   "type": "market",
+   "qty": "10",
+   "premium": null
+  },
+  {
+   "k": "opt",
+   "series": 11,
+   "side": "sell",
+   "type": "market",
+   "qty": "10",
+   "premium": null
+  },
+  {
+   "k": "adv",
+   "n": 25
+  },
+  {
+   "k": "opt",
+   "series": 11,
+   "side": "buy",
+   "type": "market",
+   "qty": "10",
+   "premium": null
+  },
+  {
+   "k": "opt",
+   "series": 9,
+   "side": "sell",
+   "type": "market",
+   "qty": "10",
+   "premium": null
+  },
+  {
+   "k": "adv",
+   "n": 1000
+  }
+ ],
+ "journal": [],
+ "result": {
+  "status": "finished",
+  "digest": "6821129ad08a733932d95f2086e2fe4f556eb1886293d03e1bc46bda97e56cde",
+  "eventsDigest": "8b0a3f74575ae2f77bbbde1d16ecc62d3ce5d909c35ed67d6e84ae0c87843433"
+ }
+}

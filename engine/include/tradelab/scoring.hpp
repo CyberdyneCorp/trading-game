@@ -76,6 +76,9 @@ struct TradeRow {
   // When the stop sat at or beyond liquidation: the highest whole leverage (>= 1) that would have kept
   // it in front; 0 when even 1x would not have.
   std::int32_t safe_leverage = 0;
+  // Perpetual rows only, report-only (add-run-sharing-and-journal-stats D8): accepted moves of a
+  // reduce-only stop that took its trigger away from the entry while the trade was open.
+  std::uint32_t stop_moved_away = 0;
 };
 
 // Option P&L attribution (spec gameplay-loop "Debrief"), by full revaluation per bar and held series:

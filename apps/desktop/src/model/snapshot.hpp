@@ -37,7 +37,8 @@ struct Bar {
   double volume = 0;
 };
 
-enum class CommandKind : std::uint8_t { Start, Advance, Market, Game, Resume, StartPack, Rewind };
+// Watch: the replay viewer opened a run file (add-run-sharing-and-journal-stats D6).
+enum class CommandKind : std::uint8_t { Start, Advance, Market, Game, Resume, StartPack, Rewind, Watch };
 
 // Report-only engine calls (design D4 of add-academy-and-strategies): never logged, never change a run.
 // WhatIf is run-less (tl_option_whatif, the Academy lab); RunWhatIf (tl_run_option_whatif) and
@@ -159,6 +160,12 @@ struct Snapshot {
   // The run's logged actions so far (the web's session log), shared and immutable: the strategy
   // builder rebuilds its combos from their tags (combos.hpp). Null before a run.
   std::shared_ptr<const std::vector<std::string>> log;
+  // The replay viewer (design D6): a run rebuilt from a run file, never stored. `watch_bar` bars
+  // played of the `watch_bars` its log advances; `watch_done` once the whole log is applied.
+  bool watching = false;
+  int watch_bar = 0;
+  int watch_bars = 0;
+  bool watch_done = false;
 
   [[nodiscard]] bool active() const { return status == "active"; }
 };
