@@ -59,3 +59,13 @@ test('options terminal (m05): chain, option ticket on both sides and the perpetu
 	await page.locator('.sides button.sell').click();
 	await expectNoViolations(page, 'perpetual ticket, sell'); // the Enter hint on the red submit button
 });
+
+test('reflow: on a 390 px phone the menu and the terminal never scroll sideways', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	const sideways = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+	await page.goto('/?seed=4242');
+	await expect(page.getByTestId('open-catalog')).toBeVisible();
+	expect(await sideways()).toBeLessThanOrEqual(0); // the six screen buttons wrap (they made the page 640 px wide)
+	await startFirstMission(page);
+	expect(await sideways()).toBeLessThanOrEqual(0); // the stacked grid columns shrink to the screen
+});

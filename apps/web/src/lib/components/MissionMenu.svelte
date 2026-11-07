@@ -249,8 +249,10 @@
 		gap: 1rem;
 		margin: 0.6rem 0;
 	}
+	/* Wraps on a phone instead of pushing the page sideways. */
 	.screens {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 0.5rem;
 		margin: 0.8rem 0;
 	}
