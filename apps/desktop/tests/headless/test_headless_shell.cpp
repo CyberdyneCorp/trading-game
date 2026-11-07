@@ -7,6 +7,8 @@
 #include <raven/raven_controls.h>
 #include <raven/raven_widget.h>
 
+#include <utility>
+
 #include "model/storage/storage.hpp"
 #include "support/driver.hpp"
 #include "support/game_flows.hpp"
@@ -235,4 +237,35 @@ TEST_CASE("headless shell: a run left mid-mission is offered by the next launch'
   t.advance();
   CHECK(app.vm().game().state()->step == step + 1);
   CHECK_FALSE(app.vm().saved_run().has_value());
+}
+
+namespace {
+
+// The item under a click on the first row a player sees in a list.
+int first_visible_item(Driver& d, std::string_view list) {
+  const Rid w = d.widget(list);
+  Rlist_view_set_selected(w, -1);
+  float x = 0, y = 0, width = 0, h = 0;
+  Rwidget_get_rect(w, &x, &y, &width, &h);
+  d.click_at(x + 20, y + 6);
+  return Rlist_view_get_selected(w);
+}
+
+}  // namespace
+
+// A list filled and given its selection before its screen was laid out used to scroll by one row: the
+// menu opened on "Mission 02" at the top with Mission 01 selected out of sight, the curriculum's lessons
+// on the second lesson.
+TEST_CASE("headless shell: lists open at their first row (menu missions, curriculum lessons)") {
+  for (auto [w, h] : {std::pair{1280, 800}, std::pair{1024, 768}}) {
+    RavenSession raven;
+    App app(builtin_catalog(), [] { return 1u; });
+    REQUIRE(app.build(w, h));
+    Driver d(app);
+    d.frames(3);
+    CHECK(first_visible_item(d, names::kMenuList) == 0);
+    REQUIRE(d.click(names::kMenuCurriculum));
+    d.frames(3);
+    CHECK(first_visible_item(d, names::kCurriculumLessons) == 0);
+  }
 }

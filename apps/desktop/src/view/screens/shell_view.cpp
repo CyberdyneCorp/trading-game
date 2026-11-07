@@ -326,6 +326,10 @@ void ShellView::apply_items(const WidgetItems& items) {
   const int current = combo ? Rcombo_box_get_selected(w) : Rlist_view_get_selected(w);
   if (!same || current != items.selected) {
     combo ? Rcombo_box_set_selected(w, items.selected) : Rlist_view_set_selected(w, items.selected);
+    // A list selected before its screen was laid out has no height yet, and Raven then scrolls it so the
+    // row ends at its top (the menu showed Mission 02 first, Mission 01 selected out of sight): reveal
+    // the row again on the laid-out list.
+    if (!combo) Rlist_view_scroll_to_item(w, items.selected);
   }
   items_[std::string(items.widget)] = items;
 }
