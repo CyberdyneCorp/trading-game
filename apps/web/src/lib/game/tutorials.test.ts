@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TUTORIAL_MISSIONS, tutorialFor } from './tutorials.ts';
+import { CHAIN_ART, TUTORIAL_MISSIONS, tutorialFor } from './tutorials.ts';
 
 import { campaignMissions } from './curriculum.ts';
 import { liquidationPrice, type Costs } from './sizing.ts';
@@ -108,6 +108,15 @@ describe('mission tutorials', () => {
 		const card = (loc: 'pt-BR' | 'en') => tutorialFor('m03-volatility-shock', loc).find((c) => c.art === 'leverage')?.body;
 		expect(card('pt-BR')).toMatch(/cerca de 4,5% contra você/);
 		expect(card('en')).toMatch(/about 4\.5% against you/);
+	});
+
+	it('the drawn option chain obeys intrinsic value and put-call parity (it priced the 90 call at 3.2 with money at 100)', () => {
+		expect(CHAIN_ART.map((q) => q.strike)).toEqual([90, 95, 100, 105, 110]);
+		for (const q of CHAIN_ART) {
+			expect(q.call, `call ${q.strike}`).toBeGreaterThanOrEqual(Math.max(0, 100 - q.strike));
+			expect(q.put, `put ${q.strike}`).toBeGreaterThanOrEqual(Math.max(0, q.strike - 100));
+			expect(q.call - q.put).toBeCloseTo(100 - q.strike, 9);
+		}
 	});
 
 	it("m12's cards: the campaign report is a campaign thing, and no capital carries past the last mission", () => {

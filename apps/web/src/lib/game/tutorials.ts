@@ -41,6 +41,19 @@ export interface TutorialCard {
 
 type Cards = Record<Locale, TutorialCard[]>;
 
+/**
+ * The option chain drawn on the 'chain' card (money at 100): call and put premiums per strike. They
+ * obey the rules the chain teaches: each premium is at least its intrinsic value and call − put =
+ * 100 − strike (put-call parity at zero rate).
+ */
+export const CHAIN_ART: readonly { strike: number; call: number; put: number }[] = [
+	{ strike: 90, call: 10.4, put: 0.4 },
+	{ strike: 95, call: 6.1, put: 1.1 },
+	{ strike: 100, call: 2.9, put: 2.9 },
+	{ strike: 105, call: 1.0, put: 6.0 },
+	{ strike: 110, call: 0.3, put: 10.3 }
+];
+
 const m01: Cards = {
 	'pt-BR': [
 		{

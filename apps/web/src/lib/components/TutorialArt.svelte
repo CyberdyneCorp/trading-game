@@ -1,7 +1,8 @@
 <script lang="ts">
 	// Small schematic drawings for tutorial cards (one per art key), in the terminal palette.
-	import type { TutorialArt } from '#lib/game/tutorials.ts';
-	import { t } from '#lib/game/i18n.svelte.ts';
+	import { CHAIN_ART, type TutorialArt } from '#lib/game/tutorials.ts';
+	import { fmtNum } from '#lib/game/format.ts';
+	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
 	let { art }: { art: TutorialArt } = $props();
 
@@ -91,11 +92,11 @@
 		<text x="84" y="94" class="small muted">strike</text>
 		<text x="12" y="92" class="small down-fill">−{t('tut.art.premium')}</text>
 	{:else if art === 'chain'}
-		{#each [0, 1, 2, 3, 4] as r (r)}
-			<rect class="row" class:atm={r === 2} x="14" y={12 + r * 16} width="132" height="13" />
-			<text x="30" y={22 + r * 16} class="small up-fill">{(0.8 + (4 - r) * 0.6).toFixed(1)}</text>
-			<text x="80" y={22 + r * 16} class="small" text-anchor="middle">{90 + r * 5}</text>
-			<text x="124" y={22 + r * 16} class="small down-fill">{(0.8 + r * 0.6).toFixed(1)}</text>
+		{#each CHAIN_ART as q, r (q.strike)}
+			<rect class="row" class:atm={q.strike === 100} x="14" y={12 + r * 16} width="132" height="13" />
+			<text x="30" y={22 + r * 16} class="small up-fill">{fmtNum(q.call, i18n.locale, 1)}</text>
+			<text x="80" y={22 + r * 16} class="small" text-anchor="middle">{q.strike}</text>
+			<text x="124" y={22 + r * 16} class="small down-fill">{fmtNum(q.put, i18n.locale, 1)}</text>
 		{/each}
 	{:else if art === 'advisor'}
 		<rect class="box" x="14" y="12" width="94" height="76" />
