@@ -4,6 +4,10 @@
 #include <raven/raven_controls.h>
 #include <raven/raven_widget.h>
 
+#include <string>
+#include <utility>
+#include <variant>
+
 #include "view/game/scene_painter.hpp"
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/academy_names.hpp"

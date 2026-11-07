@@ -103,6 +103,13 @@ std::string opt_int(const std::optional<int>& v) { return v ? std::to_string(*v)
 
 // ---- inputs ----
 
+std::optional<HeldLong> held_of(const Value& h) {
+  if (h.is_null()) return std::nullopt;
+  HeldLong out{h["qty"].as_string(), h["entry"].as_string(), std::nullopt};
+  if (h.has("stop")) out.stop = h["stop"].as_string();
+  return out;
+}
+
 GameState game(const Value& g) { return game_state_from_json(g); }
 
 std::vector<OptionQuote> chain(const Value& c) {
@@ -344,12 +351,7 @@ std::map<std::string, Port> strategy_ports() {
       {"comboLegs", [](const Value& a) { return legs_json(combo_legs(order_legs_of(a[0]))); }},
       {"whatifLegs",
        [](const Value& a) {
-         std::optional<HeldLong> held;
-         if (!a[1].is_null()) {
-           held = HeldLong{a[1]["qty"].as_string(), a[1]["entry"].as_string(), std::nullopt};
-           if (a[1].has("stop")) held->stop = a[1]["stop"].as_string();
-         }
-         return legs_json(whatif_legs(order_legs_of(a[0]), held));
+         return legs_json(whatif_legs(order_legs_of(a[0]), held_of(a[1])));
        }},
   };
 }

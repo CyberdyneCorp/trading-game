@@ -8,6 +8,7 @@
 #include <raven/raven_resources.h>
 #include <raven/raven_window.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <string>

@@ -4,6 +4,7 @@
 // sizing.ts briefTiers. The engine is authoritative: these only render its codes and numbers.
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 

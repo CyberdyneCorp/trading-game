@@ -1,5 +1,7 @@
 #include "viewmodel/academy/lesson_lab.hpp"
 
+#include <utility>
+
 #include "viewmodel/format.hpp"
 
 namespace tradelab::desktop::academy {

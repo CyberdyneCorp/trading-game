@@ -3,6 +3,7 @@
 // state and the seeded reveal (tl_mission_reveal); these functions only format them.
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "model/content.hpp"
 #include "viewmodel/campaign.hpp"

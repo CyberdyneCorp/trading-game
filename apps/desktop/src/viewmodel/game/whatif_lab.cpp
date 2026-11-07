@@ -134,6 +134,20 @@ std::string to_fixed(double v, int digits) {
 }
 
 // The shortest text that reads back as the same double (JavaScript's String(number) for the ranges used).
+namespace {
+
+// Number#toString's exponential form from C's "1.50e-07": trailing zeros and the exponent's padding go.
+std::string js_exponential(const std::string& c_text, int exp10) {
+  std::string mantissa = c_text.substr(0, c_text.find('e'));
+  if (mantissa.find('.') != std::string::npos) {
+    mantissa.erase(mantissa.find_last_not_of('0') + 1);
+    if (mantissa.back() == '.') mantissa.pop_back();
+  }
+  return mantissa + "e" + (exp10 < 0 ? "-" : "+") + std::to_string(std::abs(exp10));
+}
+
+}  // namespace
+
 // Number#toString: the shortest digits that read back as `v`, in plain notation from 1e-7 up to 1e21
 // ("30", "0.004", "2.5"), else exponential ("1e+21", "1.5e-7").
 std::string js_number(double v) {
@@ -150,14 +164,7 @@ std::string js_number(double v) {
     std::snprintf(buf, sizeof buf, "%.*f", std::max(0, p - 1 - exp10), v);
     return buf;
   }
-  std::string s = buf;  // "1.5e-07" -> "1.5e-7"
-  const auto e = s.find('e');
-  std::string mantissa = s.substr(0, e);
-  if (mantissa.find('.') != std::string::npos) {
-    mantissa.erase(mantissa.find_last_not_of('0') + 1);
-    if (mantissa.back() == '.') mantissa.pop_back();
-  }
-  return mantissa + "e" + (exp10 < 0 ? "-" : "+") + std::to_string(std::abs(exp10));
+  return js_exponential(buf, exp10);
 }
 
 std::string leg_label(const WhatIfLeg& l, Locale locale, const std::string& perp_name) {
