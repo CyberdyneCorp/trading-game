@@ -400,14 +400,14 @@
 				"pt-BR": {
 					"term": "Spread (compra/venda)",
 					"aliases": ["spread", "bid/ask", "bid", "ask", "compra", "venda"],
-					"short": "A diferença entre o melhor preço de venda (ask) e o de compra (bid). Quem executa a mercado paga essa diferença.",
+					"short": "A diferença entre o ask (o menor preço pedido por quem vende) e o bid (o maior preço oferecido por quem compra). Quem compra a mercado paga o ask e quem vende recebe o bid: uma ida e volta perde essa diferença.",
 					"long": "Comprar a mercado e vender logo em seguida custa o spread vezes a quantidade, antes das taxas. Mercados finos têm spreads largos, e choques de liquidez os alargam ainda mais.",
 					"example": "Bid 99,90 e ask 100,10: ida e volta de 10 unidades custa 2,00."
 				},
 				"en": {
 					"term": "Bid/ask spread",
 					"aliases": ["spread", "bid", "ask"],
-					"short": "The gap between the best selling price (ask) and the best buying price (bid). A market order pays it.",
+					"short": "The gap between the ask (the lowest price sellers ask) and the bid (the highest price buyers offer). A market buy pays the ask and a market sell gets the bid: a round trip loses the gap.",
 					"long": "Buying at market and selling right after costs the spread times the quantity, before fees. Thin markets have wide spreads, and liquidity shocks widen them further.",
 					"example": "Bid 99.90 and ask 100.10: a round trip of 10 units costs 2.00."
 				}

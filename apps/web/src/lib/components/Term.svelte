@@ -7,6 +7,7 @@
 	import { termById } from '#lib/content/glossary.ts';
 	import { glossaryUi, termUid } from '#lib/game/glossaryUi.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { tipPlacement, type TipPlacement } from '#lib/game/termTip.ts';
 
 	let { id, children }: { id: string; children: Snippet } = $props();
 
@@ -16,6 +17,10 @@
 	let focused = $state(false);
 	let touched = $state(false);
 	const open = $derived(hover || focused || touched);
+	let button = $state<HTMLButtonElement>();
+	// Fixed to the viewport (scrolling panels would clip it) and kept on screen; placed when it opens.
+	const place = $derived<TipPlacement | null>(open && button ? tipPlacement(button.getBoundingClientRect(), innerWidth, innerHeight) : null);
+	const px = (v: number | undefined) => (v == null ? 'auto' : `${v}px`);
 
 	function onPointerDown(e: PointerEvent) {
 		if (e.pointerType !== 'touch' || touched) return;
@@ -40,6 +45,7 @@
 	<!-- No whitespace between the tags: the term sits inside a sentence ("o strike;", "(lançamento)"). -->
 	<span class="term-wrap" role="presentation" onmouseenter={() => (hover = true)} onmouseleave={() => (hover = false)}
 		><button
+			bind:this={button}
 			type="button"
 			class="term"
 			aria-describedby={desc}
@@ -50,7 +56,14 @@
 			onclick={more}
 			onkeydown={onKeydown}>{@render children()}</button
 		><span id={desc} hidden>{term.text[i18n.locale].short}</span
-		>{#if open}<span class="term-tip" aria-hidden="true" data-testid="term-tip"
+		>{#if place}<span
+				class="term-tip"
+				aria-hidden="true"
+				data-testid="term-tip"
+				style:left={px(place.left)}
+				style:top={px(place.top)}
+				style:bottom={px(place.bottom)}
+				style:max-width={px(place.maxWidth)}
 				>{term.text[i18n.locale].short}
 				<span class="more">{t('glossary.more')}</span></span
 			>{/if}</span
@@ -74,12 +87,9 @@
 		outline-offset: 1px;
 	}
 	.term-tip {
-		position: absolute;
-		left: 0;
-		top: calc(100% + 4px);
+		position: fixed;
 		z-index: 40;
 		width: max-content;
-		max-width: min(320px, 80vw);
 		padding: 0.4rem 0.6rem;
 		background: var(--panel, var(--bg));
 		color: var(--text);

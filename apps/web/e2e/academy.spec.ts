@@ -208,6 +208,23 @@ test('glossary: search without accents, related terms, axe; Definition on focus 
 	await liq.focus();
 	await expect(page.locator('.ticket [data-testid=term-tip]')).toContainText('O preço em que a margem da posição chega à manutenção');
 	await expect(liq).toHaveAccessibleDescription(/O preço em que a margem da posição chega à manutenção/);
+	// Regression: a definition never ends past the screen or under the panel it sits in (the rail's ran
+	// to x=1465 on a 1440 px screen; the ticket's was cut by its scrolling panel).
+	for (const term of [page.locator('aside [data-term], .rail [data-term]').first(), liq]) {
+		await term.hover();
+		const tip = term.locator('xpath=..').locator('[data-testid=term-tip]');
+		await expect(tip).toBeVisible();
+		const box = (await tip.boundingBox())!;
+		expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+		const onTop = await tip.evaluate((el) => {
+			(el as HTMLElement).style.pointerEvents = 'auto'; // hit-testable for elementFromPoint
+			const r = el.getBoundingClientRect();
+			return [[r.left + 4, r.top + 4], [r.right - 4, r.bottom - 4]].every(([x, y]) => el.contains(document.elementFromPoint(x, y)));
+		});
+		expect(onTop, 'the definition is not clipped').toBe(true);
+		await page.mouse.move(0, 0);
+	}
+	await liq.focus();
 	const turn = await page.locator('.turn strong').innerText();
 	await page.keyboard.press('Enter');
 	const dialog = page.getByTestId('glossary-dialog');

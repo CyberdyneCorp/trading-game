@@ -17,6 +17,7 @@ import {
 	type LessonStep,
 	type StepText
 } from './academy.ts';
+import type { ChoiceQuestion } from './academy.ts';
 import { checkProblem, numbersIn, type Check } from './checks.ts';
 import { linkedTerms, plainText, termById } from './glossary.ts';
 
@@ -46,6 +47,16 @@ describe('Academy content (design D1, D2)', () => {
 		expect(files.sort()).toEqual(LESSON_INDEX.map((m) => m.id).sort());
 		for (const l of lessons) expect(lessonProblems(l), l.id).toEqual([]);
 		expect(await loadLesson('no-such-lesson')).toBeNull();
+	});
+
+	it('regression: mind-plan transfer feedback names the right choice as the choices do ("Trade 1", not "Entry 1")', () => {
+		const isT1 = (q: unknown) => ((q as ChoiceQuestion | undefined)?.choices ?? []).some((c) => c.kind === 'text' && c.id === 't1');
+		const step = byId('mind-plan').steps.find((s) => isT1(s.question))!;
+		const key = (step.question as ChoiceQuestion).answer;
+		for (const loc of ['pt-BR', 'en'] as const) {
+			const choice = step.text[loc].choices![`t${key + 1}`];
+			expect(step.text[loc].right!.toLowerCase(), loc).toContain(choice.toLowerCase());
+		}
 	});
 
 	it('A lesson for every stage: each stage lists its index lessons, in order, and every lesson names its stage', () => {

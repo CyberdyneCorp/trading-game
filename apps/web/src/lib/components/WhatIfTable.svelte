@@ -3,22 +3,23 @@
 	import type { WhatIfLegView, WhatIfResult } from '#lib/engine/types.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
+	import { legLabel } from '#lib/game/whatifLab.ts';
 
 	// `step`: what one unit of time is (a day in the Academy lab, a bar in a run); theta is per step.
 	let { result, perUnit = true, step = 'bar' }: { result: WhatIfResult; perUnit?: boolean; step?: 'day' | 'bar' } = $props();
 	const unit = $derived(t(step === 'day' ? 'lab.perDay' : 'lab.perBar'));
 	const L = $derived(i18n.locale);
 
-	function label(l: WhatIfLegView): string {
-		const side = l.side === 'buy' ? '+' : '−';
-		if (l.kind === 'perp') return `${side}${fmtNum(Number(l.qty), L, 0)} ${t('lab.perp')}`;
-		return `${side}${fmtNum(Number(l.qty), L, 0)} ${l.kind === 'call' ? 'C' : 'P'} ${fmtPrice(l.strike, L)}`;
-	}
+	const label = (l: WhatIfLegView) => legLabel(l, L, t('lab.perp'));
 	const greek = (v: string, d = 4) => fmtNum(Number(v), L, d);
+	const caption = $derived(t(perUnit ? 'lab.tableCaption' : 'lab.tableCaptionNet'));
 </script>
 
+<!-- Wider than the builder's column: the table scrolls on its own (a focusable region), never the panel. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div class="scroll" tabindex="0" role="region" aria-label={caption}>
 <table class="whatif" data-testid="whatif-table">
-	<caption class="muted small">{t(perUnit ? 'lab.tableCaption' : 'lab.tableCaptionNet')}</caption>
+	<caption class="muted small">{caption}</caption>
 	<thead>
 		<tr>
 			<th scope="col">{t('lab.leg')}</th>
@@ -58,9 +59,14 @@
 		</tr>
 	</tfoot>
 </table>
+</div>
 {#if result.legs.some((l) => l.ivFloored)}<p class="muted small">* {t('lab.ivFloored')}</p>{/if}
 
 <style>
+	.scroll {
+		overflow-x: auto;
+		max-width: 100%;
+	}
 	.whatif {
 		width: 100%;
 		border-collapse: collapse;

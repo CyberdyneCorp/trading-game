@@ -3,7 +3,7 @@
 	import type { Locale } from '#lib/game/i18n.svelte.ts';
 	import { fmtMoney, fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { reasonText, t } from '#lib/game/i18n.svelte.ts';
-	import { EventNames, ORDER_TYPE_LABEL } from '#lib/game/eventNames.ts';
+	import { EventNames, ORDER_TYPE_LABEL, sideLabel } from '#lib/game/eventNames.ts';
 
 	const NO_NAMES = new EventNames();
 
@@ -18,7 +18,7 @@
 
 	function fillLine(e: EngineEvent, L: Locale): string {
 		// Fills without an order are the engine's forced buy-backs of written options (margin call).
-		const vars = { id: e.orderId, side: e.side.toUpperCase(), qty: fmtQty(e.qty, L), price: fmtPrice(e.price, L) };
+		const vars = { id: e.orderId, side: sideLabel(e.side), qty: fmtQty(e.qty, L), price: fmtPrice(e.price, L) };
 		const base = t(e.orderId ? 'feed.filled' : 'feed.forcedFill', vars);
 		const parts = [base];
 		if (Number(e.requested) > 0 && e.requested !== e.price) parts.push(t('feed.requested', { price: fmtPrice(e.requested, L) }));

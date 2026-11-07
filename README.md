@@ -5,13 +5,35 @@ Educational trading game: learn **perpetual futures** (long/short, leverage, fun
 | Where | What |
 |---|---|
 | `docs/product-spec.md` | Product vision and roadmap |
-| `openspec/changes/` | Normative requirements (OpenSpec), one change per area — see [Specs](#specs-openspec) |
+| `openspec/` | Normative requirements (OpenSpec): `specs/` for finished capabilities, `changes/` for work in progress — see [Specs](#specs-openspec) |
 | `engine/` | Deterministic C++20 simulation core — [`engine/README.md`](engine/README.md) |
 | `bindings/python/` | Python (ctypes) binding over the engine C ABI, used by the API |
 | `apps/web/` | SvelteKit web client (PWA, works offline) — [`apps/web/README.md`](apps/web/README.md) |
 | `apps/desktop/` | C++20 desktop client on Raven for Linux and macOS (the web's screens incl. the pack catalog, CSV import and assisted practice, the full terminal in docked panels, the web's soundtrack, SQLite action log, progress and settings, `.app` and AppImage, signed updates) — [`apps/desktop/README.md`](apps/desktop/README.md) |
 | `services/api/` | FastAPI backend: sync, server-side replay (older execution policies side by side), progress and achievements, preferences, pack catalog with resumable downloads — [`services/api/README.md`](services/api/README.md) |
+| `docs/` | Product spec and the [screenshots](#screenshots) of both clients |
 | `tools/` | Lint helpers (banned-API check for the engine), golden regeneration, the packer, `build_policy_cache.py` (older engine libraries for the API) |
+
+## Screenshots
+
+The same game on the web (PWA, 1440×900) and on the desktop client (Raven, 1280×800). Click an image for full size. Regenerate them with `apps/web/scripts/screenshots.mjs` (web) and `TRADELAB_SCREENSHOT_DIR` (desktop; see each README).
+
+| | Web | Desktop |
+|---|---|---|
+| **Menu and campaign** | <a href="docs/screenshots/web/01-menu.png"><img src="docs/screenshots/web/01-menu.png" width="420" alt="Web: Menu and campaign"></a> | <a href="docs/screenshots/desktop/01-menu.png"><img src="docs/screenshots/desktop/01-menu.png" width="420" alt="Desktop: Menu and campaign"></a> |
+| **Briefing** | <a href="docs/screenshots/web/02-briefing.png"><img src="docs/screenshots/web/02-briefing.png" width="420" alt="Web: Briefing"></a> | <a href="docs/screenshots/desktop/02-briefing.png"><img src="docs/screenshots/desktop/02-briefing.png" width="420" alt="Desktop: Briefing"></a> |
+| **Terminal mid-trade (m01)** | <a href="docs/screenshots/web/03-terminal-m01.png"><img src="docs/screenshots/web/03-terminal-m01.png" width="420" alt="Web: Terminal mid-trade (m01)"></a> | <a href="docs/screenshots/desktop/03-terminal.png"><img src="docs/screenshots/desktop/03-terminal.png" width="420" alt="Desktop: Terminal mid-trade (m01)"></a> |
+| **Options chain (m05)** | <a href="docs/screenshots/web/04-options-chain-m05.png"><img src="docs/screenshots/web/04-options-chain-m05.png" width="420" alt="Web: Options chain (m05)"></a> | <a href="docs/screenshots/desktop/04-options.png"><img src="docs/screenshots/desktop/04-options.png" width="420" alt="Desktop: Options chain (m05)"></a> |
+| **Strategy builder: iron condor** | <a href="docs/screenshots/web/05-strategy-builder-m16.png"><img src="docs/screenshots/web/05-strategy-builder-m16.png" width="420" alt="Web: Strategy builder: iron condor"></a> | <a href="docs/screenshots/desktop/05-strategy-builder.png"><img src="docs/screenshots/desktop/05-strategy-builder.png" width="420" alt="Desktop: Strategy builder: iron condor"></a> |
+| **Options what-if lab** | <a href="docs/screenshots/web/06-whatif-lab.png"><img src="docs/screenshots/web/06-whatif-lab.png" width="420" alt="Web: Options what-if lab"></a> | <a href="docs/screenshots/desktop/06-options-lab.png"><img src="docs/screenshots/desktop/06-options-lab.png" width="420" alt="Desktop: Options what-if lab"></a> |
+| **Debrief** | <a href="docs/screenshots/web/07-debrief.png"><img src="docs/screenshots/web/07-debrief.png" width="420" alt="Web: Debrief"></a> | <a href="docs/screenshots/desktop/07-debrief.png"><img src="docs/screenshots/desktop/07-debrief.png" width="420" alt="Desktop: Debrief"></a> |
+| **Academy lesson** | <a href="docs/screenshots/web/08-academy-lesson.png"><img src="docs/screenshots/web/08-academy-lesson.png" width="420" alt="Web: Academy lesson"></a> | <a href="docs/screenshots/desktop/08-academy-lesson.png"><img src="docs/screenshots/desktop/08-academy-lesson.png" width="420" alt="Desktop: Academy lesson"></a> |
+| **Curriculum map** | <a href="docs/screenshots/web/09-curriculum.png"><img src="docs/screenshots/web/09-curriculum.png" width="420" alt="Web: Curriculum map"></a> | <a href="docs/screenshots/desktop/09-curriculum.png"><img src="docs/screenshots/desktop/09-curriculum.png" width="420" alt="Desktop: Curriculum map"></a> |
+| **Glossary** | <a href="docs/screenshots/web/10-glossary.png"><img src="docs/screenshots/web/10-glossary.png" width="420" alt="Web: Glossary"></a> | <a href="docs/screenshots/desktop/10-glossary.png"><img src="docs/screenshots/desktop/10-glossary.png" width="420" alt="Desktop: Glossary"></a> |
+
+On a phone (390×844), the web terminal stacks its panels:
+
+<a href="docs/screenshots/web/11-phone-terminal.png"><img src="docs/screenshots/web/11-phone-terminal.png" width="220" alt="Web terminal at phone width"></a>
 
 ## Play locally
 

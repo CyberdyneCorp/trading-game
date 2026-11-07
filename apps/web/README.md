@@ -15,7 +15,10 @@ npm run engine:size    # fails when that module is 400 KB gzipped or more (CI ru
 npm run engine:types   # regenerates src/lib/engine/types.ts from engine/idl/tradelab.idl
 npm run dev            # http://localhost:5173 ; append ?seed=123 for a reproducible market
 npm run build && npm run preview   # production build incl. service worker (offline mode)
+node scripts/screenshots.mjs http://localhost:4173   # with a build served: README screenshots -> docs/screenshots/web/
 ```
+
+`scripts/screenshots.mjs` plays fixed seeds in English at 1440×900 (plus one 390×844 phone shot) with Playwright's Chromium and writes `docs/screenshots/web/NN-name.png`; with Python and Pillow installed it reduces each PNG to a 256-colour palette.
 
 Rebuild the engine (`npm run engine:build`) after any change under `engine/`, and regenerate the types (`npm run engine:types`) after any change to `engine/idl/tradelab.idl`; CI fails on stale generated types.
 
@@ -60,7 +63,7 @@ e2e/                       Playwright: mission.spec.ts (gameplay), missions-batc
                            packs.spec.ts (CSV import, practice packs), catalog.spec.ts (catalog, resumable download, Academy lesson), academy.spec.ts (every lesson to its end, sandbox/payoff/table with axe, spaced review with a mocked clock, glossary search and definition on focus, guided first trade), catalog-api.spec.ts (the same download from services/api, E2E_API_PORT only), branch-pack.spec.ts (packer-built branch and synthetic packs),
                            offline.spec.ts (OFF01-web), storage.spec.ts (no future bars on the main thread or in storage, checkpoints),
                            updates.spec.ts (evicted pack, old-engine resume), deploy.spec.ts (update mid-mission),
-                           strategies.spec.ts (what-if lab, every builder template, condor filled and grouped, refused leg, incomplete combo), a11y.spec.ts (axe), keyboard.spec.ts (keyboard-only play, screen-reader names), browser-support.spec.ts, budgets.spec.ts (performance); helpers.ts
+                           strategies.spec.ts (what-if lab, every builder template, condor filled and grouped, refused leg, incomplete combo), a11y.spec.ts (axe, incl. the m05 options terminal on both sides, and 390 px reflow), keyboard.spec.ts (keyboard-only play, screen-reader names), browser-support.spec.ts, budgets.spec.ts (performance); helpers.ts
 scripts/                   check-budgets.mjs (size budget), check-wasm-size.mjs (WASM gzip budget), previewDeploy.ts (E2E deploy simulator, `vite preview` only),
                            build-engine.sh (Emscripten), make-icons.py (PWA icons), build-sample-catalog.py (sample pack catalog)
 static/                    manifest.webmanifest, icons, catalog/ (catalog.json + packs/<digest>.tlpack)

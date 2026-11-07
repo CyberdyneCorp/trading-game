@@ -1009,6 +1009,7 @@ lab.days,+{n} dias,+{n} days
 lab.unsupported,"A análise de opções não existe na versão do motor desta partida (uma versão mais antiga, fixada no início dela).","Option analysis does not exist in this run's engine version (an older one, pinned when the run started)."
 lab.error,"O motor não conseguiu avaliar estas pernas (confira strikes, quantidades e preços).","The engine could not value these legs (check strikes, quantities and prices)."
 lab.positionValue,Valor da posição agora,Position value now
+lab.positionValueScenario,Valor da posição nesse cenário,Position value in this scenario
 lab.pnlNow,P&L nesse cenário,P&L in this scenario
 lab.maxProfit,Lucro máximo no vencimento,Max profit at expiry
 lab.maxLoss,Perda máxima no vencimento,Max loss at expiry
@@ -1552,7 +1553,7 @@ tutorial.m02-funding-squeeze.3.title,Posição lotada,Crowded trades
 tutorial.m02-funding-squeeze.3.body,"Funding muito alto significa que um lado está lotado. A multidão pode estar certa por muito tempo, mas um aperto contra ela fica possível. É um alerta, não um sinal de entrada.","Very high funding means one side is crowded. The crowd can be right for a long time, but a squeeze against it becomes possible. It is a warning, not an entry signal."
 tutorial.m02-funding-squeeze.3.art,funding,funding
 tutorial.m03-volatility-shock.0.title,O que a alavancagem muda,What leverage changes
-tutorial.m03-volatility-shock.0.body,"Alavancagem não muda quanto você ganha ou perde por contrato quando o preço anda. Ela muda a margem que você deposita e o quão perto fica a liquidação. A 20×, um movimento de cerca de 5% contra você liquida.","Leverage does not change how much you gain or lose per contract when price moves. It changes the margin you post and how close liquidation is. At 20×, a move of about 5% against you liquidates."
+tutorial.m03-volatility-shock.0.body,"Alavancagem não muda quanto você ganha ou perde por contrato quando o preço anda. Ela muda a margem que você deposita e o quão perto fica a liquidação. A 20×, a margem é 5% do nocional, mas a de manutenção (0,5%) precisa ficar: um movimento de cerca de 4,5% contra você já liquida.","Leverage does not change how much you gain or lose per contract when price moves. It changes the margin you post and how close liquidation is. At 20×, the margin is 5% of the notional, but the maintenance margin (0.5%) must stay: a move of about 4.5% against you already liquidates."
 tutorial.m03-volatility-shock.0.art,leverage,leverage
 tutorial.m03-volatility-shock.1.title,Volatilidade,Volatility
 tutorial.m03-volatility-shock.1.body,"O ATR mede o tamanho típico de uma barra. Mercados quietos não ficam quietos para sempre: bandas de Bollinger apertadas costumam vir antes de um movimento grande, de direção desconhecida.","ATR measures the typical size of a bar. Quiet markets do not stay quiet forever: tight Bollinger bands often come before a large move, in an unknown direction."
@@ -1567,7 +1568,7 @@ tutorial.m04-options-buyer.0.title,Calls e puts,Calls and puts
 tutorial.m04-options-buyer.0.body,"Uma call ganha se o preço terminar acima do strike; uma put, se terminar abaixo. Quem compra paga o prêmio, e esse prêmio é a perda máxima.","A call gains if price ends above the strike; a put, if it ends below. The buyer pays the premium, and that premium is the maximum loss."
 tutorial.m04-options-buyer.0.art,payoff,payoff
 tutorial.m04-options-buyer.1.title,A cadeia de opções,The option chain
-tutorial.m04-options-buyer.1.body,"Na aba Opções, cada linha é um strike e cada bloco um vencimento. Compre clicando no ask (o preço de venda). A volatilidade implícita (IV) é o preço do seguro: IV alta, opção cara.","In the Options tab, each row is a strike and each block an expiry. Buy by clicking the ask (the selling price). Implied volatility (IV) is the price of insurance: high IV, expensive option."
+tutorial.m04-options-buyer.1.body,"Na aba Opções, cada linha é um strike e cada bloco um vencimento. Compre clicando no ask, o preço pedido por quem vende: é o que você paga. A volatilidade implícita (IV) é o preço do seguro: IV alta, opção cara.","In the Options tab, each row is a strike and each block an expiry. Buy by clicking the ask, the price sellers ask: it is what you pay. Implied volatility (IV) is the price of insurance: high IV, expensive option."
 tutorial.m04-options-buyer.1.art,chain,chain
 tutorial.m04-options-buyer.2.title,O tempo corre contra o comprador,Time works against the buyer
 tutorial.m04-options-buyer.2.body,A cada barra a opção perde um pouco de valor (theta). Você precisa do movimento e precisa dele a tempo. Delta diz quanto a opção anda quando o preço anda 1.,"Every bar the option loses a little value (theta). You need the move, and you need it in time. Delta says how much the option moves when price moves by 1."
@@ -1577,12 +1578,12 @@ tutorial.m04-options-buyer.3.body,"O risco de uma opção comprada é o prêmio 
 tutorial.m04-options-buyer.3.art,risk,risk
 tutorial.m05-options-writer.0.title,Vender prêmio,Selling premium
 tutorial.m05-options-writer.0.body,Quem vende a opção recebe o prêmio na hora. O ganho máximo é esse prêmio; a perda pode ser muitas vezes maior se o preço passar do strike.,The option seller receives the premium up front. The maximum gain is that premium; the loss can be many times larger if price moves past the strike.
-tutorial.m05-options-writer.0.art,payoff,payoff
+tutorial.m05-options-writer.0.art,written,written
 tutorial.m05-options-writer.1.title,Margem e chamada de margem,Margin and margin calls
 tutorial.m05-options-writer.1.body,"Opção vendida exige margem, e ela cresce quando a opção anda contra você. Se a margem não cobre, há chamada de margem e recompra forçada, no pior momento.","A sold option needs margin, and it grows when the option moves against you. If the margin does not cover it, there is a margin call and a forced buyback, at the worst moment."
 tutorial.m05-options-writer.1.art,margin,margin
 tutorial.m05-options-writer.2.title,"IV alta, prêmio alto","High IV, high premium"
-tutorial.m05-options-writer.2.body,"IV alta paga mais prêmio porque o mercado espera movimentos maiores. Venda pelo bid (o preço de compra). O prêmio recebido é pagamento por um risco, não lucro garantido.","High IV pays more premium because the market expects bigger moves. Sell at the bid (the buying price). The premium received is payment for a risk, not a guaranteed profit."
+tutorial.m05-options-writer.2.body,"IV alta paga mais prêmio porque o mercado espera movimentos maiores. Venda pelo bid, o preço oferecido por quem compra: é o que você recebe. O prêmio recebido é pagamento por um risco, não lucro garantido.","High IV pays more premium because the market expects bigger moves. Sell at the bid, the price buyers offer: it is what you receive. The premium received is payment for a risk, not a guaranteed profit."
 tutorial.m05-options-writer.2.art,chain,chain
 tutorial.m05-options-writer.3.title,Poucos contratos,Few contracts
 tutorial.m05-options-writer.3.body,"Pense no pior movimento plausível, não no prêmio. Venda poucos contratos e saiba antes em que ponto você recompra.","Think about the worst plausible move, not the premium. Sell few contracts and know in advance at which point you buy back."
@@ -1672,7 +1673,7 @@ tutorial.m11-news-calendar.4.title,Por que o assessor espera,Why the advisor wai
 tutorial.m11-news-calendar.4.body,"Com uma divulgação anunciada a até 3 barras, o assessor puxa a leitura para esperar. Ele não sabe o resultado, assim como você.","With an announced release up to 3 bars away, the advisor pulls its read toward wait. It does not know the outcome, and neither do you."
 tutorial.m11-news-calendar.4.art,advisor,advisor
 tutorial.m12-capstone.0.title,Expectativa e amostra,Expectancy and sample size
-tutorial.m12-capstone.0.body,"Expectativa é o resultado médio por trade em R: taxa de acerto vezes ganho médio, menos taxa de erro vezes perda média. Com poucos trades ela é quase só sorte. O debrief desta missão traz o relatório de toda a campanha.","Expectancy is the average result per trade in R: win rate times average win, minus loss rate times average loss. With few trades it is mostly luck. This mission’s debrief carries the report of the whole campaign run."
+tutorial.m12-capstone.0.body,"Expectativa é o resultado médio por trade em R: taxa de acerto vezes ganho médio, menos taxa de erro vezes perda média. Com poucos trades ela é quase só sorte. Na campanha, o debrief desta missão traz o relatório de todas as missões.","Expectancy is the average result per trade in R: win rate times average win, minus loss rate times average loss. With few trades it is mostly luck. In a campaign, this mission’s debrief carries the report of the whole run."
 tutorial.m12-capstone.0.art,report,report
 tutorial.m12-capstone.1.title,Primeiro o regime,The regime first
 tutorial.m12-capstone.1.body,"Antes da ferramenta, identifique o regime: lateral, tendência, volatilidade alta ou livro fino. Cada ferramenta serve a um regime e perde nos outros.","Before the tool, identify the regime: range, trend, high volatility or a thin book. Each tool fits one regime and loses in the others."
@@ -1684,7 +1685,7 @@ tutorial.m12-capstone.3.title,Receber para carregar,Paid to carry
 tutorial.m12-capstone.3.body,"Quando os shorts estão lotados, quem fica comprado recebe funding a cada intervalo. O ganho é pequeno e certo; a perda, se o preço cair, não é.","When shorts are crowded, longs collect funding every interval. The gain is small and steady; the loss, if price falls, is not."
 tutorial.m12-capstone.3.art,funding,funding
 tutorial.m12-capstone.4.title,Um trade não pode acabar com a campanha,One trade must not end the campaign
-tutorial.m12-capstone.4.body,"Dimensione pelo pior caso, contando gaps e saltos. Sem liquidação e sem chamada de margem: o capital que sobra segue para a próxima campanha.","Size for the worst case, counting gaps and jumps. No liquidation and no margin call: what is left carries on."
+tutorial.m12-capstone.4.body,"Dimensione pelo pior caso, contando gaps e saltos. Sem liquidação e sem chamada de margem: o capital que sobra é o resultado final da campanha.","Size for the worst case, counting gaps and jumps. No liquidation and no margin call: what is left is the campaign’s final result."
 tutorial.m12-capstone.4.art,risk,risk
 tutorial.m13-call-spread.0.title,Trava de alta,Bull call spread
 tutorial.m13-call-spread.0.body,"Compre uma call e venda outra de strike maior, no mesmo vencimento. O prêmio da vendida paga parte da comprada: você arrisca menos, mas o ganho para no strike de cima. Lucro máximo = largura − débito; perda máxima = o débito.","Buy a call and sell another with a higher strike, same expiry. The written call’s premium pays for part of the bought one: you risk less, but the gain stops at the upper strike. Maximum profit = width − debit; maximum loss = the debit."
@@ -2403,7 +2404,7 @@ academyLesson.mind-plan.sample.choice.lucky,"Que foi sorte, com certeza","That i
 academyLesson.mind-plan.sample.feedback.lucky,Também não dá para afirmar que foi sorte: uma amostra não prova nada em nenhuma direção.,You cannot claim it was luck either: one sample proves nothing in either direction.
 academyLesson.mind-plan.fomo.title,Transferência: um diário novo,Transfer: a new journal
 academyLesson.mind-plan.fomo.body,"Outro mercado, outro diário. Qual entrada foi por FOMO?","Another market, another journal. Which entry was FOMO?"
-academyLesson.mind-plan.fomo.right,"A entrada 1: comprou depois de uma barra de alta forte, sem stop, com medo de perder o resto. Esperar, como no trade 3, também é uma decisão válida.","Entry 1: bought after a strong up bar, with no stop, afraid of missing the rest. Waiting, as in trade 3, is a valid decision too."
+academyLesson.mind-plan.fomo.right,"O trade 1: comprou depois de uma barra de alta forte, sem stop, com medo de perder o resto. Esperar, como no trade 3, também é uma decisão válida.","Trade 1: bought after a strong up bar, with no stop, afraid of missing the rest. Waiting, as in trade 3, is a valid decision too."
 academyLesson.mind-plan.fomo.wrong,"FOMO é entrar porque o preço já andou, sem plano.","FOMO is entering because the price already moved, with no plan."
 academyLesson.mind-plan.fomo.choice.t1,Trade 1,Trade 1
 academyLesson.mind-plan.fomo.choice.t2,Trade 2,Trade 2
@@ -2498,7 +2499,7 @@ glossary.trailing-stop.short,"Um stop que acompanha o preço a uma distância fi
 glossary.trailing-stop.long,"O stop móvel deixa uma tendência correr e protege parte do ganho. Num mercado lateral, ele sai cedo com frequência: a ferramenta depende do regime.",A trailing stop lets a trend run and protects part of the gain. In a range it often exits early: the tool depends on the regime.
 glossary.trailing-stop.aliases,trailing; stop móvel,trailing
 glossary.spread.term,Spread (compra/venda),Bid/ask spread
-glossary.spread.short,A diferença entre o melhor preço de venda (ask) e o de compra (bid). Quem executa a mercado paga essa diferença.,The gap between the best selling price (ask) and the best buying price (bid). A market order pays it.
+glossary.spread.short,A diferença entre o ask (o menor preço pedido por quem vende) e o bid (o maior preço oferecido por quem compra). Quem compra a mercado paga o ask e quem vende recebe o bid: uma ida e volta perde essa diferença.,The gap between the ask (the lowest price sellers ask) and the bid (the highest price buyers offer). A market buy pays the ask and a market sell gets the bid: a round trip loses the gap.
 glossary.spread.long,"Comprar a mercado e vender logo em seguida custa o spread vezes a quantidade, antes das taxas. Mercados finos têm spreads largos, e choques de liquidez os alargam ainda mais.","Buying at market and selling right after costs the spread times the quantity, before fees. Thin markets have wide spreads, and liquidity shocks widen them further."
 glossary.spread.example,"Bid 99,90 e ask 100,10: ida e volta de 10 unidades custa 2,00.",Bid 99.90 and ask 100.10: a round trip of 10 units costs 2.00.
 glossary.spread.aliases,spread; bid/ask; bid; ask; compra; venda,spread; bid; ask

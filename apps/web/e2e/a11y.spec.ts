@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { marketOrder, playToEnd, startFirstMission } from './helpers.ts';
+import { answerIfAsked, marketOrder, playToEnd, startFirstMission } from './helpers.ts';
 
 // Accessibility (spec terminal-ui accessibility requirements; task 1.1): axe finds no WCAG 2.1 A/AA
 // violation on the menu, briefing, game, debrief, journal and curriculum map.
@@ -40,4 +40,32 @@ test('briefing, game and debrief', async ({ page }) => {
 	await playToEnd(page);
 	await expect(page.getByText(/Revelação do mercado/i)).toBeVisible();
 	await expectNoViolations(page, 'debrief');
+});
+
+test('options terminal (m05): chain, option ticket on both sides and the perpetual ticket on the sell side', async ({ page }) => {
+	await page.goto('/?seed=4242');
+	await page.getByRole('button', { name: /Iniciar missão/ }).nth(4).click();
+	await page.getByRole('button', { name: 'Pular tutorial' }).click();
+	await page.getByRole('button', { name: /Abrir terminal/ }).click();
+	await expect(page.locator('.turn')).toBeVisible();
+	await answerIfAsked(page);
+	await page.getByRole('tab', { name: 'Opções' }).click();
+	await page.locator('.chain table').first().locator('tbody tr').nth(4).locator('td').nth(3).getByRole('button').click();
+	await expect(page.getByRole('button', { name: /Enviar ordem de opção/ })).toBeVisible();
+	await expectNoViolations(page, 'option ticket, buy'); // the side not chosen (Sell) stays readable
+	await page.locator('.chain table').first().locator('tbody tr').nth(4).locator('td').nth(2).getByRole('button').click();
+	await expectNoViolations(page, 'option ticket, sell'); // the open-orders panel scrolls: it must take keyboard focus
+	await page.getByRole('tab', { name: 'Perpétuo' }).click();
+	await page.locator('.sides button.sell').click();
+	await expectNoViolations(page, 'perpetual ticket, sell'); // the Enter hint on the red submit button
+});
+
+test('reflow: on a 390 px phone the menu and the terminal never scroll sideways', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	const sideways = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+	await page.goto('/?seed=4242');
+	await expect(page.getByTestId('open-catalog')).toBeVisible();
+	expect(await sideways()).toBeLessThanOrEqual(0); // the six screen buttons wrap (they made the page 640 px wide)
+	await startFirstMission(page);
+	expect(await sideways()).toBeLessThanOrEqual(0); // the stacked grid columns shrink to the screen
 });

@@ -184,8 +184,15 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 0.3rem;
 	}
+	/* The side not chosen is dashed, not faded (as in OrderTicket): a faded Sell failed WCAG AA contrast. */
 	.sides button:not(.active) {
-		opacity: 0.55;
+		border-style: dashed;
+	}
+	.sides button.active.buy {
+		background: rgba(57, 255, 136, 0.15);
+	}
+	.sides button.active.sell {
+		background: rgba(255, 95, 122, 0.15);
 	}
 	.grid {
 		display: grid;
