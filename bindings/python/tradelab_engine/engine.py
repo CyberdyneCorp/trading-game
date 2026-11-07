@@ -89,9 +89,10 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         fn.restype = restype
         fn.argtypes = argtypes
     # Run files (add-run-sharing-and-journal-stats D2): optional, older policy builds predate it.
-    if hasattr(lib, "tl_run_file_verify"):
-        lib.tl_run_file_verify.restype = c_char_p
-        lib.tl_run_file_verify.argtypes = [c_char_p, c_char_p, u32, c_char_p]
+    for name in ("tl_run_file_verify", "tl_run_file_seal"):
+        if hasattr(lib, name):
+            getattr(lib, name).restype = c_char_p
+            getattr(lib, name).argtypes = [c_char_p, c_char_p, u32, c_char_p]
     return lib
 
 
@@ -165,11 +166,21 @@ def verify_run_file(text: str, pack: bytes | None = None, trusted: TrustedKeys |
     """Verifies a run file (add-run-sharing-and-journal-stats D2): strict parse and schema, then a
     replay that must reproduce its recorded status and digests. {"ok": True, ..., "run", "fileDigest",
     "debrief"} or {"ok": False, "reason", "path", "pack", "detail"}."""
+    return _run_file_call("tl_run_file_verify", text, pack, trusted)
+
+
+def seal_run_file(text: str, pack: bytes | None = None, trusted: TrustedKeys | None = None) -> dict[str, Any]:
+    """The exporter's call: a run file whose "result" may be absent, replayed; the accepted verdict's
+    "run" carries the replay's result. Refusals as verify_run_file (never digest_mismatch)."""
+    return _run_file_call("tl_run_file_seal", text, pack, trusted)
+
+
+def _run_file_call(name: str, text: str, pack: bytes | None, trusted: TrustedKeys | None) -> dict[str, Any]:
     lib = load_library()
-    if not hasattr(lib, "tl_run_file_verify"):
-        raise EngineError("this engine build has no tl_run_file_verify")
+    if not hasattr(lib, name):
+        raise EngineError(f"this engine build has no {name}")
     keys = json.dumps(trusted or []).encode()
-    return _json(lib.tl_run_file_verify(text.encode("utf-8"), pack, len(pack or b""), keys))
+    return _json(getattr(lib, name)(text.encode("utf-8"), pack, len(pack or b""), keys))
 
 
 # ---- pack authoring (tools/packer, design D5) ----

@@ -342,4 +342,5 @@ TEST_CASE("IDL conformance: run file verdicts (accepted active, accepted finishe
   CHECK(done.find("\"debrief\":{") != std::string::npos);
   conforms(done, "RunFileVerdict");
   conforms(tl_run_file_verify("{}", nullptr, 0, nullptr), "RunFileVerdict");
+  conforms(tl_run_file_seal(active.c_str(), nullptr, 0, nullptr), "RunFileVerdict");
 }

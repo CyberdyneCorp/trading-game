@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from tradelab_engine import verify_run_file
+from tradelab_engine import seal_run_file, verify_run_file
 
 RUNFILES = Path(__file__).resolve().parents[3] / "engine" / "tests" / "runfiles"
 INDEX = json.loads((RUNFILES / "index.json").read_text())
@@ -22,6 +22,14 @@ def test_shared_run_file_verdict(entry: dict) -> None:
     if verdict["ok"]:
         again = verify_run_file(verdict["run"])
         assert again["ok"] and again["fileDigest"] == verdict["fileDigest"]
+
+
+def test_seal_fills_the_result_the_fixture_records() -> None:
+    entry = next(e for e in INDEX["files"] if e["name"] == "m01-finished.tlrun")
+    data = json.loads((RUNFILES / entry["name"]).read_text())
+    del data["result"]
+    sealed = seal_run_file(json.dumps(data))
+    assert sealed["ok"] and sealed["fileDigest"] == entry["expected"]["fileDigest"]
 
 
 def test_index_lists_every_file() -> None:

@@ -166,6 +166,12 @@ tl_run* tl_run_restore_pack(const uint8_t* data, uint32_t size, const char* trus
  * invalid_options, pack_required (pack = the digest to supply), pack_invalid, pack_mismatch or
  * digest_mismatch. No other run is touched. */
 const char* tl_run_file_verify(const char* file_json, const uint8_t* pack, uint32_t pack_len, const char* trusted_keys_json);
+/* The exporter's call: the same checks and replay for a run file whose "result" may be absent (or
+ * stale); the accepted verdict's "run" carries the replay's status and digests as its "result".
+ * Clients build the other members from their run record and action log and never compute a result
+ * themselves, so every client writes the same file for the same run. Refusals as tl_run_file_verify
+ * (never digest_mismatch). */
+const char* tl_run_file_seal(const char* file_json, const uint8_t* pack, uint32_t pack_len, const char* trusted_keys_json);
 
 /* ---- Pack authoring (tools/packer; native only, not exported to WASM). ----
  * A pack source is an uncompressed archive of manifest.json and the raw data files, read with

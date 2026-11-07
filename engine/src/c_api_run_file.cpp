@@ -124,19 +124,45 @@ const char* accept(tl_run* run, const JsonValue& file, std::uint32_t rejected) {
   return emit(j.end_obj());
 }
 
-}  // namespace
-}  // namespace tradelab
+JsonValue text_value(std::string s) {
+  JsonValue v;
+  v.kind = Kind::String;
+  v.text = std::move(s);
+  return v;
+}
 
-using namespace tradelab;
+// Sets the file's "result" member (replacing it, or appending it when absent).
+void set_result(JsonValue& file, std::string status, std::string digest, std::string events) {
+  JsonValue result;
+  result.kind = Kind::Object;
+  result.members = {{"status", text_value(std::move(status))}, {"digest", text_value(std::move(digest))},
+                    {"eventsDigest", text_value(std::move(events))}};
+  for (detail::JsonMember& m : file.members) {
+    if (m.key == "result") {
+      m.value = std::move(result);
+      return;
+    }
+  }
+  file.members.push_back({"result", std::move(result)});
+}
 
-extern "C" {
-
-const char* tl_run_file_verify(const char* file_json, const uint8_t* pack, uint32_t pack_len, const char* keys_json) {
+// Parses the text; nullptr on success, otherwise the refusal to return.
+const char* parse_file(const char* file_json, JsonValue& out) {
   if (file_json == nullptr) return refuse("malformed");
   if (std::strlen(file_json) > detail::kRunFileMaxBytes) return refuse("too_large");
-  const detail::JsonParse parsed = detail::parse_json(file_json, detail::run_file_limits());
+  detail::JsonParse parsed = detail::parse_json(file_json, detail::run_file_limits());
   if (!parsed.ok) return refuse(parsed.error == "too_large" ? "too_large" : "malformed");
-  const JsonValue& file = parsed.value;
+  out = std::move(parsed.value);
+  return nullptr;
+}
+
+// Verify and seal share every step but the last: verify compares the replay with the recorded
+// result, seal writes the replay's result into the file (the exporter's path: a client never
+// computes a result itself, so both clients write the same file for the same run).
+const char* process(const char* file_json, const std::uint8_t* pack, std::uint32_t pack_len, const char* keys_json, bool seal) {
+  JsonValue file;
+  if (const char* refused = parse_file(file_json, file)) return refused;
+  if (seal && file.is(Kind::Object)) set_result(file, "active", std::string(64, '0'), std::string(64, '0'));  // placeholder
   const detail::RunFileProblem problem = detail::check_run_file(file);
   if (!problem.reason.empty()) return refuse(problem.reason, problem.path);
   const std::int64_t policy = member(member(file, "engine"), "executionPolicy").integer;
@@ -145,8 +171,25 @@ const char* tl_run_file_verify(const char* file_json, const uint8_t* pack, uint3
   Start start = on_pack ? start_pack(file, pack, pack_len, keys_json) : start_mission(file);
   if (!start.run) return refuse(start.why, {}, text_of(file, "pack"));
   const std::uint32_t rejected = replay(start.run.get(), file);
-  if (!reproduces(start.run->state, member(file, "result"))) return refuse("digest_mismatch");
+  const RunState& st = start.run->state;
+  if (seal) set_result(file, std::string(json_name(st.status)), to_hex(state_digest(st)), to_hex(events_digest(st)));
+  else if (!reproduces(st, member(file, "result"))) return refuse("digest_mismatch");
   return accept(start.run.get(), file, rejected);
+}
+
+}  // namespace
+}  // namespace tradelab
+
+using namespace tradelab;
+
+extern "C" {
+
+const char* tl_run_file_verify(const char* file_json, const uint8_t* pack, uint32_t pack_len, const char* keys_json) {
+  return process(file_json, pack, pack_len, keys_json, false);
+}
+
+const char* tl_run_file_seal(const char* file_json, const uint8_t* pack, uint32_t pack_len, const char* keys_json) {
+  return process(file_json, pack, pack_len, keys_json, true);
 }
 
 }  // extern "C"

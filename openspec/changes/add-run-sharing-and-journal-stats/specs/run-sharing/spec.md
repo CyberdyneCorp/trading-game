@@ -25,6 +25,12 @@ A run file SHALL NOT contain a run id, timestamps, a device key or signing seed,
 ### Requirement: The engine verifies run files
 The engine SHALL expose `tl_run_file_verify(file, pack, pack_len, keys)`, which does not affect any other run. It SHALL parse the file with the strict JSON reader within the limits of design D2 and validate every member and every action against the format. It SHALL refuse a file whose execution policy differs from the engine's, then replay the actions from a fresh run, assigning client ids as the golden tests do. It SHALL accept the file only when the final status, state digest and events digest equal the recorded `result`. On success it SHALL return the canonical file, its SHA-256 (`fileDigest`), the counts of actions and rejected commands, and the debrief when the run ended. On failure it SHALL return a reason code from design D2 and, for an invalid member, its path. Malformed input of any kind SHALL be refused without crashing, without unbounded memory or time, and without reaching a run command.
 
+The engine SHALL also expose `tl_run_file_seal` with the same arguments and checks, for a file whose `result` may be absent. It SHALL return the accepted verdict, with the replay's status and digests written as the file's `result`. Clients SHALL export through it, so the same run exported by the web or the desktop is the same canonical file.
+
+#### Scenario: Same file from both clients
+- **WHEN** the same run is exported by the web and by the desktop
+- **THEN** both canonical files SHALL have the same `fileDigest`
+
 #### Scenario: Tampered action
 - **WHEN** one order quantity in a valid run file is changed and the file is verified
 - **THEN** the result SHALL be `{"ok":false,"reason":"digest_mismatch"}`

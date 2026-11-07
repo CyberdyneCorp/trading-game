@@ -74,6 +74,8 @@ On failure: `{"ok":false,"reason","path","pack"}`. Reasons: `too_large`, `malfor
 
 The applier moves from `tests/golden.cpp` to `src/run_file.cpp`. The golden test now calls it, so the run files and the goldens replay through one implementation.
 
+**Sealing (the exporter's call).** `tl_run_file_seal` takes the same arguments and runs the same checks and replay on a file whose `result` may be absent. It returns the accepted verdict, with the replay's status and digests written into `run`. A client builds the other members from its run record and action log and seals them. It never computes a result itself (the web's run record keeps only the state digest, not the events digest), so the web and the desktop write byte-identical canonical files for the same run. The client compares the sealed digest with the digest stored on its record and warns when they differ, which means a damaged local log.
+
 **Rejected alternatives.**
 - *Validate in each client.* Two validators in two languages would drift, and the desktop would need its own fuzzing. The CSV importer set the precedent: the engine checks, the clients translate codes.
 - *A separate `tl_run_file_check` (parse only).* `verify` reports `pack_required` with the digest before any replay, which is all a client needs to ask for the pack.

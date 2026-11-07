@@ -172,6 +172,32 @@ TEST_CASE("Run files: limits and malformed input are refused with a reason") {
   CHECK(str(empty_key, "path") == "options.");
 }
 
+TEST_CASE("Run files: seal writes the replay's result, so a sealed file verifies and equals the fixture") {
+  const JsonValue index = parse(embedded("index.json"));
+  for (const JsonValue& entry : index.find("files")->items) {
+    const JsonValue& expected = *entry.find("expected");
+    if (!ok(expected)) continue;
+    const std::string name = str(entry, "name");
+    INFO("run file ", name);
+    JsonValue file = parse(embedded(name));
+    std::erase_if(file.members, [](const detail::JsonMember& m) { return m.key == "result"; });
+    const std::string without_result = detail::canonical_json(file);
+    const JsonValue sealed = parse(tl_run_file_seal(without_result.c_str(), nullptr, 0, nullptr));
+    REQUIRE(ok(sealed));
+    CHECK(str(sealed, "fileDigest") == str(expected, "fileDigest"));
+    CHECK(ok(verify(str(sealed, "run"))));
+  }
+  // A stale or forged result is overwritten; an edited action gives another (self-consistent) file.
+  const std::string tampered = embedded("tampered-action.tlrun");
+  const JsonValue resealed = parse(tl_run_file_seal(tampered.c_str(), nullptr, 0, nullptr));
+  REQUIRE(ok(resealed));
+  CHECK(str(resealed, "digest") != str(verify(embedded("m01-finished.tlrun")), "digest"));
+  CHECK(ok(verify(str(resealed, "run"))));
+  const std::string policy = embedded("other-policy.tlrun");
+  CHECK(str(parse(tl_run_file_seal(policy.c_str(), nullptr, 0, nullptr)), "reason") == "policy_mismatch");
+  CHECK(str(parse(tl_run_file_seal("{}", nullptr, 0, nullptr)), "reason") == "not_a_run_file");
+}
+
 TEST_CASE("Run files: verification never touches another run") {
   tl_run* run = tl_run_create("m03-volatility-shock", 9);
   REQUIRE(run != nullptr);
