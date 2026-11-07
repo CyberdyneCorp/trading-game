@@ -215,6 +215,13 @@ jobs:
         with:
           name: TradeLab-macos-universal-unsigned
           path: apps/desktop/dist/TradeLab-macos.zip
+      # A crashed test binary leaves a macOS crash report (every thread's stack) for the next diagnosis.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: desktop-crash-reports-macos
+          path: ~/Library/Logs/DiagnosticReports/tradelab_desktop_*
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         if: always()
         with:
