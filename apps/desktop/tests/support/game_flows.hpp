@@ -9,6 +9,7 @@
 #include <raven/raven_window.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <optional>
@@ -89,10 +90,8 @@ class Terminal {
   }
 
   // Drags a level of the chart to `price`, aimed as a player aims: at the line as it is drawn now. The
-  // chart lays out again under the pointer: hovering shows the bar readout and grabbing focuses the chart,
-  // which shows the focused candle's text under it; in a 1024-wide window those texts wrap and the chart
-  // gets shorter (16 px when grabbed). So the line is read after the hover and the target after the press,
-  // from the frame drawn with the drag's frozen price range. A level under kAimPx from its target first
+  // line is read after the hover and the target after the press, from the frame drawn with the drag's
+  // frozen price range (the chart keeps its rect when grabbed: flow_grab_keeps_chart). A level under kAimPx from its target first
   // gets a taller chart (enlarge_chart): in the hosted macOS runners' 1024x645 window the price pane is
   // a few pixels tall and no drag there can land on a chosen price.
   bool drag_level_to(const std::function<bool(const game::DragZone&)>& which, double price) {
@@ -161,6 +160,29 @@ class Terminal {
   // Price covered by one pixel of the chart's price pane.
   double price_per_pixel() { return std::abs(vm().chart.price_at(1) - vm().chart.price_at(0)); }
 
+  // The chart's window rect (x, y, width, height).
+  std::array<float, 4> chart_rect() {
+    std::array<float, 4> r{};
+    Rwidget_get_rect(d_.widget(names::kGameChart), &r[0], &r[1], &r[2], &r[3]);
+    return r;
+  }
+
+  // Hovers a level's line and presses on it, then releases where it was: a grab without a move.
+  // The chart's rect once hovered and once grabbed (none without the level).
+  std::optional<std::pair<std::array<float, 4>, std::array<float, 4>>> grab_level(
+      const std::function<bool(const game::DragZone&)>& which) {
+    float x = 0;
+    if (!hover_level(which, x)) return std::nullopt;
+    const auto hovered = chart_rect();
+    Rwindow_inject_mouse_button(d_.window(), R_MOUSE_LEFT, R_TRUE);
+    d_.settle(d_.widget(names::kGameChart));
+    REQUIRE(vm().chart.dragging());
+    const auto grabbed = chart_rect();
+    Rwindow_inject_mouse_button(d_.window(), R_MOUSE_LEFT, R_FALSE);
+    d_.frames(2);
+    return std::pair{hovered, grabbed};
+  }
+
   float chart_y(double price) {
     float x = 0, y = 0, w = 0, h = 0;
     Rwidget_get_rect(d_.widget(names::kGameChart), &x, &y, &w, &h);
@@ -183,6 +205,34 @@ inline bool has_event(const GameState& g, std::string_view type) {
 inline const Order* find_order(const GameState& g, std::string_view type) {
   const auto it = std::find_if(g.orders.begin(), g.orders.end(), [&](const Order& o) { return o.type == type; });
   return it == g.orders.end() ? nullptr : &*it;
+}
+
+// m01: a long with its stop, then the stop grabbed on the chart. Hovering the line and grabbing it fill
+// the texts around the chart (bar readout, focused candle); the chart keeps its place and size, so the
+// line stays under the pointer.
+inline void flow_grab_keeps_chart(Driver& d, Terminal& t) {
+  t.open(0);
+  t.skip_question();
+  d.choose(gn::kSizeBy, 1);  // quantity
+  t.type(names::kGameQty, "1");
+  REQUIRE(d.click("game-stop-chip-4"));
+  t.submit_with_plan("rompimento com volume");
+  t.advance();
+  const Order* stop = find_order(t.g(), "stop_market");
+  REQUIRE(stop != nullptr);
+  const int stop_id = stop->id;
+  d.frames(2);
+  const auto before = t.chart_rect();
+  const auto rects = t.grab_level([&](const game::DragZone& z) { return !z.target.draft && z.target.order_id == stop_id; });
+  REQUIRE(rects.has_value());
+  float sx = 0, sy = 0, sw = 0, sh = 0;
+  Rwidget_get_rect(d.widget(gn::kChartStatus), &sx, &sy, &sw, &sh);
+  INFO("chart y/height before " << before[1] << "/" << before[3] << ", hovered " << rects->first[1] << "/"
+       << rects->first[3] << ", grabbed " << rects->second[1] << "/" << rects->second[3]
+       << ", status height " << sh);
+  CHECK(rects->first == before);
+  CHECK(rects->second == before);
+  CHECK_FALSE(d.text(gn::kChartStatus).empty());  // the focused candle is announced
 }
 
 // m01: a market buy sized by quantity with comma input and a preset stop, a written plan, the fill,

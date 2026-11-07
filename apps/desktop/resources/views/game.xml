@@ -45,7 +45,8 @@
                     <Label Name="game-readout" Color="#E3F5EA" TextSize="12"/>
                     <Label Name="game-pattern-line" Color="#FFC857" TextSize="12"/>
                     <Custom Name="game-chart" Focusable="true" Slot.Fill="1"/>
-                    <Label Name="game-chart-status" Color="#8FB3A1" TextSize="12" Wrap="true"/>
+                    <!-- Two lines kept for the focused candle's text, so grabbing or focusing the chart never resizes it. -->
+                    <Label Name="game-chart-status" Color="#8FB3A1" TextSize="12" Wrap="true" MinHeight="32"/>
                     <Label Name="game-term-help" Color="#4FD8FF" TextSize="12" Wrap="true"/>
                     <VBox Name="game-table-box" Spacing="3" Visibility="Collapsed">
                         <HBox Spacing="6">
