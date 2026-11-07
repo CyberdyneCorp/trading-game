@@ -116,6 +116,11 @@ TEST_CASE("academy: every lesson is played from the Academy screen, wrong then r
   REQUIRE(list != nullptr);
   REQUIRE(list->items.size() == web_content().lessons.size());
   CHECK(list->items[0] == "Fundamentos · Ler uma barra [NOVA]");
+  // A stage's subtitle stays in the detail: the full name pushed the title and status out of the list.
+  CHECK(list->items[4] == "Futuros II · Margem, alavancagem e liquidação [NOVA]");
+  f.vm.academy_select(4);
+  CHECK(f.vm.screen_model().text_of(names::kAcademyDetail).starts_with("Futuros II · margem, alavancagem e liquidação\nMargem"));
+  for (const auto& row : list->items) CHECK(row.size() <= 64);
   CHECK_FALSE(m.is_visible(names::kAcademyDueBox));
   const int count = static_cast<int>(list->items.size());
   for (int i = 0; i < count; ++i) {
