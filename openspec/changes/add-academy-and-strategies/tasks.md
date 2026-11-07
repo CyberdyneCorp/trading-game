@@ -153,23 +153,35 @@ Suggested PRs, in order:
 
 ## D. Desktop
 
-- [ ] D1 Generator, needs W1: `gen_i18n.mjs` reads `content/academy/*.json`, `glossary.json` and `coach.json` into `strings.csv` (`academyLesson.*`, `glossary.*`, `coach.*`) and `content.json`, replacing the TypeScript evaluation of `academy.ts`; `check_i18n.mjs` drift; script tests updated; the Foundations lesson renders as before (headless and windowed captures unchanged).
-- [ ] D2 Engine adapter, needs E2–E4 and E6: `tl_option_whatif`, `tl_run_option_whatif` and `tl_combo_preview` on the `EngineHost` worker; the `combo` field in `storage::Action` and replay; the `whatif` fixtures in `tradelab_desktop_golden_tests`.
+- [x] D1 Generator, needs W1: `gen_i18n.mjs` reads `content/academy/*.json`, `glossary.json` and `coach.json` into `strings.csv` (`academyLesson.*`, `glossary.*`, `coach.*`) and `content.json`, replacing the TypeScript evaluation of `academy.ts`; `check_i18n.mjs` drift; script tests updated; the Foundations lesson renders as before (headless and windowed captures unchanged).
+
+  As built: content.json also carries the glossary's structure (id, stage, related), the coach steps (id, target, completes), each lesson step's linked glossary ids (`terms`) and `glossary.ts` `FINDING_TERMS` (`findingTerms`); script tests in `tests/scripts/screen_sources.test.mjs`.
+- [x] D2 Engine adapter, needs E2–E4 and E6: `tl_option_whatif`, `tl_run_option_whatif` and `tl_combo_preview` on the `EngineHost` worker; the `combo` field in `storage::Action` and replay; the `whatif` fixtures in `tradelab_desktop_golden_tests`.
 - [ ] D3 Lesson runner widgets and question types, needs D1 and D2:
   - viewmodels for `chart` levels, `ticket` sandbox, `table`, `payoff`, `whatif` and `builder`, plus the `number` and `set` questions;
   - painters in the view layer;
   - unit tests with the web's vectors;
   - headless lesson by keyboard.
-- [ ] D4 What-if lab screen (Academy and terminal), needs D2; unit and headless tests; zero shift equals the chain.
-- [ ] D5 Strategy builder panel in the option ticket, needs D2: templates, analysis, submission order with `combo`, cancel on refusal, incomplete notice, journal and debrief grouping; viewmodel tests with a fake engine; a headless flow.
-- [ ] D6 Glossary screen and tooltips, needs D1: `Rwidget_set_tooltip` on hover, the help line and accessible description on focus; screen-reader names; headless test.
-- [ ] D7 Coach marks overlay, needs D1: anchored to the named widgets; skip, `Esc`, replay from help and briefing; `prefs.json` `coachDone`; keys never advance from the callout; headless keyboard test.
-- [ ] D8 Academy screen, curriculum Strategies stage and lessons x/y, the review prompt (`prefs.json` `lessonReviews`), and the recommended lesson from the debrief; tests with a fake clock.
+
+  Progress: `chart` levels (painted and listed as text), the `ticket` sandbox (port of `ticketSandbox.ts`), `table`, `payoff` (port of `payoff.ts`, painted from `payoff_geometry`), `number` (either decimal mark, units; port of `readTypedNumber`) and `set` questions, review mode, with web parity fixtures (`payoff`, `ticketSandbox`, `lessonRun`), viewmodel tests and every lesson played headless from the keyboard and windowed with the mouse. Open: the `whatif` and `builder` widgets (needs D2 and the web's W5/W6 widgets, not written on the web yet).
+- [x] D4 What-if lab screen (Academy and terminal), needs D2; unit and headless tests; zero shift equals the chain.
+- [x] D5 Strategy builder panel in the option ticket, needs D2: templates, analysis, submission order with `combo`, cancel on refusal, incomplete notice, journal and debrief grouping; viewmodel tests with a fake engine; a headless flow.
+- [x] D6 Glossary screen and tooltips, needs D1: `Rwidget_set_tooltip` on hover, the help line and accessible description on focus; screen-reader names; headless test.
+
+  As built: marked terms in the lesson sandbox and payoff analytics, the terminal's ticket, rail and option chain, and the debrief findings (`findingTerms`); each step's linked terms are buttons that open the glossary at the term; the focused term's definition shows on the screen's help line; search folds Latin-1 accents and case (web parity fixture `glossary`).
+- [x] D7 Coach marks overlay, needs D1: anchored to the named widgets; skip, `Esc`, replay from help and briefing; `prefs.json` `coachDone`; keys never advance from the callout; headless keyboard test.
+
+  As built: `coachDone` is stored with the rest of the progress (SQLite progress v3) instead of `prefs.json`; the callout is placed next to its docked target every frame (`academy::callout_box`), waits while a terminal dialog (calibration, plan) is open, describes its target for screen readers and is announced; the debrief step is inline over that run's findings. Windowed test with captures.
+- [x] D8 Academy screen, curriculum Strategies stage and lessons x/y, the review prompt (`prefs.json` `lessonReviews`), and the recommended lesson from the debrief; tests with a fake clock.
+
+  As built: `lessonReviews` lives in SQLite progress v3 (not `prefs.json`); the review prompt's dismissal is a display setting (`reviewDismissed`, the web's localStorage key); the curriculum stages (Strategies included) come from content.json, and the map shows each stage's lessons x/y.
 - [ ] D9 Missions m13–m17 in the menu, campaign, briefing margin rule, tutorials (new art) and debrief comparison:
   - the playtest extended to 17 missions (strategies played with the builder);
   - windowed reference captures for every new screen on macOS and on Linux (lavapipe in docker; say so if docker is unavailable);
   - complexity ≤ 15;
   - desktop README.
+
+  Progress: m13–m17 are in the menu, the campaign order and the curriculum's Strategies stage (generated from the web; fixtures regenerated), with their mission texts, tutorial cards (text; the desktop draws no card art yet), lesson questions and goldens (`tradelab_desktop_golden_tests` replays them and the `whatif` fixtures); each is played to the debrief with a builder structure in `tests/headless/test_headless_strategies.cpp` and `tests/windowed/test_windowed_strategies.cpp` (captures `strategy-*.png`), and the debrief groups a combo's trades under one row. The playtest suite plays the Strategies stage too (`tests/windowed/test_playtest_strategies.cpp`: the seven templates, the terminal and Academy labs, m13–m17 each with a structure, a campaign through the Strategies stage; PT-BR and en, 1280x800 and 1024x768). New reference images (`builder-condor-m13`, `academy-lab`, and `menu` with the Academy, glossary and lab buttons) were made on macOS only: docker did not respond on the development machine, so the Linux lavapipe run is open. Open: the briefing's margin rule and the debrief's strategy comparison (both wait for the web's W10 and the engine's E9), the new tutorial art, and the Linux reference images.
 
 ## X. Cross-checks and docs
 
@@ -183,6 +195,13 @@ Played as a new player (guided first trade, every lesson right and wrong, glossa
 - glossary links rendered "strike ;" and "( writing )" (whitespace in `Term`), and bare `[[id]]` links showed the headword mid-sentence ("Uma Call", "o Spread (compra/venda)");
 - theta in the what-if table now names its unit (a day in the Academy lab, a bar in a run), vega its point;
 - builder outputs are marked glossary terms (W7 listed them, none were); "1 termo", "1 leg", localized leg quantities, the condor art label.
+
+### Playtest of the merged desktop build (as built)
+
+Played on macOS (MoltenVK) by injected input with the frames read: the guided first trade, every Academy lesson, the glossary, the Academy and terminal labs, every builder template, m13–m17 to the debrief, a campaign through the Strategies stage; PT-BR and en; 1280x800 and 1024x768. The same inputs on the web (same seed, mission, template, sliders) gave the same numbers: the builder's dry run, totals and analysis for all seven templates on m13 seed 3, both labs before and after their sliders, and m13–m17 (seed 3) to the debrief (result, fees, Greek attribution, the combo row and its legs, score). Linux was not run (docker did not respond). Fixed, each with a regression test:
+- the menu's row of eight screen buttons ran past a 1024-wide window in English (the lab button cut); it wraps now, as the web's menu does (the playtest's clipping check at 1024x768);
+- the builder's per-leg lines left out what the web's table shows in the same panel: each leg's IV, the position's value and P&L, the IV-floor note; and its payoff chart had neither the lab's legend (price range, line styles) nor an accessible description;
+- the content generator wrote the bare id for a `[[id]]` glossary link without display text (the web shows the term's name in each locale); no such link exists in the content yet.
 
 - [ ] X1 Same numbers: the playtest report for one m16 seed, played with the same legs on web and desktop, shows identical builder analysis, fills and debrief comparison.
 - [ ] X2 Root README ("What can the player predict?" for m13–m17, the features table, the curriculum), `docs/product-spec.md` (Strategies stage, Academy, glossary, tour), and the "As built" notes in this design.

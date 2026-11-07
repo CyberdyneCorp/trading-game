@@ -10,6 +10,7 @@
 #include "viewmodel/format.hpp"
 #include "viewmodel/report_texts.hpp"
 #include "viewmodel/screen_names.hpp"
+#include "viewmodel/academy/glossary.hpp"
 #include "viewmodel/screens/screens.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -214,7 +215,9 @@ void findings_lines(const Ctx& c, ScreenModel& m) {
   WidgetLines out{names::kDebriefFindings, {}};
   for (std::size_t i = 0; i < texts.size(); ++i) {
     const Tone tone = finding_tone(findings[i]["tone"].as_string());
-    out.lines.push_back({std::string(finding_mark(tone)) + texts[i], tone});
+    // The finding's glossary term, marked in place (glossary.ts FINDING_TERMS).
+    const auto term = academy::finding_term(web_content(), findings[i]["code"].as_string());
+    out.lines.push_back({std::string(finding_mark(tone)) + texts[i], tone, term ? term_tip(c.vm, *term) : std::string()});
   }
   m.lines.push_back(std::move(out));
   m.text(names::kDebriefNextLesson, c.tr("debrief.nextLesson") + ": " + describe_lesson(c.vm.catalog(), c.d["lesson"].as_string()));
@@ -345,6 +348,7 @@ ScreenModel debrief(const AppViewModel& vm) {
   debrief_reveal_tables(vm, *s, c.d, m);
   chart_panel(vm, *s, m);
   assist_panel(vm, names::kDebriefAssist, m);
+  academy_debrief(vm, m);
   m.show(names::kDebriefAgain, !vm.shell().run_campaign);
   m.text(names::kDebriefAgain, "\xE2\x86\xBB " + vm.tr(vm.run_pack().empty() ? "debrief.again" : "debrief.againPack"));  // ↻
   return m;

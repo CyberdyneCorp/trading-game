@@ -326,33 +326,8 @@ void AppViewModel::start_selected_lesson() {
   open_lesson(ids[static_cast<std::size_t>(shell_.lesson_selected)]);
 }
 
-void AppViewModel::open_lesson(const std::string& id) {
-  shell_.lesson = LessonRunner(web_content().lesson(id));
-  screen_ = Screen::Lesson;
-  touch();
-}
-
 void AppViewModel::lesson_pick(int choice) {
   if (shell_.lesson.pick(choice)) touch();
-}
-
-void AppViewModel::lesson_next() {
-  if (shell_.lesson.next()) touch();
-}
-
-void AppViewModel::lesson_prev() {
-  if (shell_.lesson.prev()) touch();
-}
-
-void AppViewModel::lesson_leave() { open_curriculum(); }
-
-// Completion is recorded in progress and passes the lesson's stage on the map.
-void AppViewModel::lesson_finish() {
-  const AcademyLesson* l = shell_.lesson.lesson();
-  if (l == nullptr || !shell_.lesson.finished()) return;
-  if (!contains(shell_.progress.lessons_done, l->id)) shell_.progress.lessons_done.push_back(l->id);
-  save_progress();
-  open_curriculum();
 }
 
 // ---- Journal ----

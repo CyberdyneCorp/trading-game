@@ -16,6 +16,9 @@ const WEB_CONTENT = path.resolve(DESKTOP_DIR, '../web/src/lib/content');
 export const SCREEN_PATHS = {
 	webAnalysis: path.join(WEB_GAME, 'analysis.ts'),
 	webAcademy: path.join(WEB_CONTENT, 'academy'),
+	webGlossary: path.join(WEB_CONTENT, 'glossary.json'),
+	webGlossaryTs: path.join(WEB_CONTENT, 'glossary.ts'),
+	webCoach: path.join(WEB_CONTENT, 'coach.json'),
 	webCurriculum: path.join(WEB_GAME, 'curriculum.ts'),
 	webCampaign: path.join(WEB_GAME, 'campaign.ts'),
 	webCampaignReport: path.join(WEB_GAME, 'campaignReport.ts'),
@@ -45,9 +48,32 @@ function analysisRows(ts, file, readConsts, out) {
 	return c.duplicates;
 }
 
-/** Lesson and tutorial texts link glossary terms as [[id|text]]; the desktop shows the plain text. */
-export const stripLinks = (text) =>
-	typeof text === 'string' ? text.replace(/\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]/g, (_, id, shown) => shown ?? id) : text;
+const LINK = /\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]/g;
+
+/** Glossary ids a step's PT-BR texts link, in order of first appearance (the desktop lists them as terms). */
+export function stepTerms(step) {
+	const pt = step.text?.['pt-BR'] ?? {};
+	const texts = [pt.body, pt.right, pt.wrong, ...Object.values(pt.feedback ?? {}), ...Object.values(pt.choices ?? {})];
+	return [...new Set(texts.flatMap((t) => (typeof t === 'string' ? [...t.matchAll(LINK)].map((m) => m[1]) : [])))];
+}
+
+let headwords; // locale -> Map(id -> the term's name), read once from the web's glossary
+function headword(id, locale) {
+	if (!headwords) {
+		const terms = existsSync(SCREEN_PATHS.webGlossary) ? JSON.parse(readFileSync(SCREEN_PATHS.webGlossary, 'utf8')).terms : [];
+		headwords = Object.fromEntries(LOCALES.map((l) => [l, new Map(terms.map((t) => [t.id, t.text[l]?.term]))]));
+	}
+	return headwords[locale]?.get(id);
+}
+
+/**
+ * Lesson and tutorial texts link glossary terms as [[id|text]], or [[id]] for the term's own name; the
+ * desktop shows the plain text, as the web's glossary.ts plainText does (the name in `locale`).
+ */
+export const stripLinks = (text, locale = 'pt-BR') =>
+	typeof text === 'string'
+		? text.replace(/\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]/g, (_, id, shown) => shown ?? headword(id, locale) ?? id)
+		: text;
 
 const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
 
@@ -70,11 +96,11 @@ const STEP_MAPS = { choices: 'choice', feedback: 'feedback', cells: 'cell' };
 function stepRows(base, step, out) {
 	const [pt, en] = LOCALES.map((l) => step.text[l] ?? {});
 	for (const field of STEP_FIELDS) {
-		if (pt[field] !== undefined) out.push([`${base}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? ''), 'web academy']);
+		if (pt[field] !== undefined) out.push([`${base}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? '', 'en'), 'web academy']);
 	}
 	for (const [map, key] of Object.entries(STEP_MAPS)) {
 		for (const [id, label] of Object.entries(pt[map] ?? {})) {
-			out.push([`${base}.${key}.${id}`, stripLinks(label), stripLinks(en[map]?.[id] ?? ''), 'web academy']);
+			out.push([`${base}.${key}.${id}`, stripLinks(label), stripLinks(en[map]?.[id] ?? '', 'en'), 'web academy']);
 		}
 	}
 	(pt.columns ?? []).forEach((label, i) => out.push([`${base}.column.${i}`, label, en.columns?.[i] ?? '', 'web academy']));
@@ -89,10 +115,36 @@ function academyRows(_ts, dir, _readConsts, out) {
 	return [];
 }
 
+const TERM_FIELDS = ['term', 'short', 'long', 'example'];
+
+/** glossary.json (design D7) -> glossary.<id>.term/short/long/example and .aliases ("; "-joined). */
+function glossaryRows(_ts, file, _readConsts, out) {
+	for (const term of readJson(file).terms) {
+		const [pt, en] = LOCALES.map((l) => term.text[l] ?? {});
+		const base = `glossary.${term.id}`;
+		for (const field of TERM_FIELDS) {
+			if (pt[field] !== undefined) out.push([`${base}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? '', 'en'), 'web glossary']);
+		}
+		out.push([`${base}.aliases`, (pt.aliases ?? []).join('; '), (en.aliases ?? []).join('; '), 'web glossary']);
+	}
+	return [];
+}
+
+/** coach.json (design D6) -> coach.<step>.title/body. */
+function coachRows(_ts, file, _readConsts, out) {
+	for (const step of readJson(file).steps) {
+		const [pt, en] = LOCALES.map((l) => step.text[l] ?? {});
+		for (const field of ['title', 'body']) out.push([`coach.${step.id}.${field}`, stripLinks(pt[field]), stripLinks(en[field] ?? '', 'en'), 'web coach']);
+	}
+	return [];
+}
+
 // objectives.ts (objective.*) and news.ts (news.kind.*, news.level.*) are read once, by i18n_game.mjs.
 const ROW_SOURCES = [
 	['webAnalysis', analysisRows],
-	['webAcademy', academyRows]
+	['webAcademy', academyRows],
+	['webGlossary', glossaryRows],
+	['webCoach', coachRows]
 ];
 
 /** Catalog rows [key, pt-BR, en, origin] from the optional screen sources, and their problems. */
@@ -122,8 +174,17 @@ function contentOf(ts, paths, readConsts) {
 		// Structure only: the texts are the academyLesson.* rows.
 		lessons: academyLessons(paths.webAcademy).map(({ lesson }) => ({
 			...lesson,
-			steps: lesson.steps.map(({ text: _text, ...step }) => step)
-		}))
+			steps: lesson.steps.map((step) => {
+				const { text: _text, ...rest } = step;
+				const terms = stepTerms(step);
+				return terms.length ? { ...rest, terms } : rest;
+			})
+		})),
+		// Structure only: the texts are the glossary.* and coach.* rows.
+		glossary: has(paths, 'webGlossary') ? readJson(paths.webGlossary).terms.map(({ id, stage, related }) => ({ id, stage, related })) : [],
+		coach: has(paths, 'webCoach') ? readJson(paths.webCoach).steps.map(({ id, target, completes }) => ({ id, target, completes })) : [],
+		// The glossary term each debrief finding is about (glossary.ts FINDING_TERMS).
+		findingTerms: has(paths, 'webGlossaryTs') ? readConsts(ts, paths.webGlossaryTs).get('FINDING_TERMS') : {}
 	};
 }
 

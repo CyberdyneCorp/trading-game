@@ -39,6 +39,11 @@ struct Bar {
 
 enum class CommandKind : std::uint8_t { Start, Advance, Market, Game, Resume, StartPack, Rewind };
 
+// Report-only engine calls (design D4 of add-academy-and-strategies): never logged, never change a run.
+// WhatIf is run-less (tl_option_whatif, the Academy lab); RunWhatIf (tl_run_option_whatif) and
+// ComboPreview (tl_combo_preview) read the run in play.
+enum class AnalysisKind : std::uint8_t { WhatIf, RunWhatIf, ComboPreview };
+
 // Terminal commands (CommandKind::Game), one per engine call of the C ABI (model/game_command.hpp).
 enum class GameCommandKind : std::uint8_t {
   None,
@@ -151,6 +156,9 @@ struct Snapshot {
   std::string run_id;
   bool assisted = false;
   bool durable = true;  // false once a storage write failed: play goes on but may not resume
+  // The run's logged actions so far (the web's session log), shared and immutable: the strategy
+  // builder rebuilds its combos from their tags (combos.hpp). Null before a run.
+  std::shared_ptr<const std::vector<std::string>> log;
 
   [[nodiscard]] bool active() const { return status == "active"; }
 };

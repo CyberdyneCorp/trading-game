@@ -86,6 +86,7 @@ void PlanDialog::open(bool buy, std::string qty, int leverage, std::optional<dou
   invalidation = stop;
   target = take_profit;
   confidence = 60;
+  risk_unbounded = false;
 }
 
 bool PlanDialog::can_save() const { return trim(thesis).size() >= 3; }
@@ -93,7 +94,9 @@ bool PlanDialog::can_save() const { return trim(thesis).size() >= 3; }
 std::string PlanDialog::headline(const Texts& t) const {
   const Locale L = t.locale();
   const std::string risk = risk_ ? fmt::fmt_money(*risk_, L) : std::string("\xE2\x80\x94");
-  return fmt::plan_headline(buy_, qty_, leverage_, option_label_, L) + " \xC2\xB7 " + t.tr("rail.plannedRisk") + ": " + risk;
+  const std::string unbounded = risk_unbounded ? "\n\xE2\x9A\xA0 " + t.tr("plan.riskUnbounded") : std::string();
+  return fmt::plan_headline(buy_, qty_, leverage_, option_label_, L) + " \xC2\xB7 " + t.tr("rail.plannedRisk") + ": " + risk +
+         unbounded;
 }
 
 PlanEntry PlanDialog::entry(int step, bool skipped) const {

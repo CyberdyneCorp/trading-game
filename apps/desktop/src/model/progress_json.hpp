@@ -29,6 +29,10 @@ std::vector<PlanEntry> journal_from(const json::Value& v);
 std::string settings(const Settings& s);  // without the key map (its own row)
 Settings settings_from(const json::Value& v);
 
+// Progress v3 `lessonReviews` (review.ts readReviews: damaged entries are dropped).
+std::string reviews(const LessonReviews& r);
+LessonReviews reviews_from(const json::Value& v);
+
 std::string keymap(const std::map<std::string, std::string>& map);
 std::map<std::string, std::string> keymap_from(const json::Value& v);
 

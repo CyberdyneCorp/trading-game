@@ -34,6 +34,7 @@
     <HBox Spacing="12">
         <Button Name="brief-back" OnClicked="tl.brief.back"/>
         <Button Name="brief-tutorial" OnClicked="tl.brief.tutorial"/>
+        <Button Name="brief-tour" OnClicked="tl.brief.tour"/>
         <Spacer Slot.Fill="1"/>
         <Button Name="brief-go" Style="Primary" OnClicked="tl.brief.go"/>
     </HBox>

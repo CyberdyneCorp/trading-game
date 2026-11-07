@@ -115,6 +115,7 @@ ScreenModel briefing(const AppViewModel& vm) {
   m.show(names::kBriefTutorial, !game::tutorial_cards(vm.game().texts(), s->mission).empty());
   m.text(names::kBriefTutorial, vm.tr("brief.tutorial"));
   m.text(names::kBriefGo, "\xE2\x96\xB6 " + vm.tr("brief.go"));
+  academy_briefing(vm, m);
   return m;
 }
 

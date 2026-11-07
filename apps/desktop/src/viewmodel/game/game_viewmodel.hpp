@@ -18,7 +18,9 @@
 #include "model/game_prefs.hpp"
 #include "model/i18n.hpp"
 #include "model/snapshot.hpp"
+#include "viewmodel/game/builder_vm.hpp"
 #include "viewmodel/game/chart_vm.hpp"
+#include "viewmodel/game/combos.hpp"
 #include "viewmodel/game/dialogs_vm.hpp"
 #include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/game/options_vm.hpp"
@@ -26,13 +28,14 @@
 #include "viewmodel/game/progress.hpp"
 #include "viewmodel/game/shortcuts.hpp"
 #include "viewmodel/game/texts.hpp"
+#include "viewmodel/game/lab_vm.hpp"
 #include "viewmodel/game/ticket_vm.hpp"
 
 namespace tradelab::desktop::game {
 
-enum class Modal : std::uint8_t { None, Plan, Calibration, ConfirmMove, Help, Journal, Pattern, Lesson, Tutorial, Perks };
+enum class Modal : std::uint8_t { None, Plan, Calibration, ConfirmMove, Help, Journal, Pattern, Lesson, Tutorial, Perks, Lab, ConfirmCombo };
 enum class PickTarget : std::uint8_t { None, Stop, Target, ProtStop, ProtTarget };
-enum class Tab : std::uint8_t { Perp, Options };
+enum class Tab : std::uint8_t { Perp, Options, Builder };
 
 // A key press as the web names it (shortcuts.ts keyName): "Space", "Shift+Space", "b", "?", "Escape",
 // "Enter", "ArrowLeft"... `typing`: a text field has the focus; `chord`: Ctrl, Alt or Super is held.
@@ -165,6 +168,34 @@ class GameViewModel {
   [[nodiscard]] const GamePrefs& prefs() const { return prefs_; }
   [[nodiscard]] const std::string& run_id() const { return run_id_; }
 
+  // ---- strategy builder and what-if lab (game_combos.cpp; add-academy-and-strategies D3, D4) ----
+  BuilderViewModel builder;
+  LabViewModel lab;
+  // The view edited `builder` (a template, a leg, the expiry): asks the engine for the new analysis.
+  void builder_changed();
+  // Opens the plan of the builder's combo; its legs are sent once the plan is recorded.
+  void builder_submit();
+  [[nodiscard]] BuilderView builder_view() const;
+  // The terminal lab over the player's positions, or over the builder's legs.
+  void open_lab_positions();
+  void open_lab_builder();
+  // A lab slider moved (the view set `lab.shift` through lab.slide): asks for the new valuation.
+  void lab_changed();
+  // The run's combos (from the action log's tags) and how their legs went.
+  [[nodiscard]] std::vector<ComboRecord> combos() const;
+  [[nodiscard]] std::vector<ComboStatus> combo_statuses() const;
+  struct ComboNotice {
+    std::string id, title, open_legs, cancelled_legs, risk, legging;
+  };
+  // The latest incomplete combo the player has not dismissed (ComboNotice.svelte).
+  [[nodiscard]] std::optional<ComboNotice> combo_notice() const;
+  void combo_keep();
+  void combo_close();  // asks for a confirmation first
+  void combo_close_confirm(bool yes);
+  [[nodiscard]] std::string combo_close_text() const;
+  // The journal line of a combo: its state and net premium so far (RunJournal's comboNote).
+  [[nodiscard]] std::string combo_note(const std::string& id) const;
+
  private:
   enum class InFlight : std::uint8_t { None, Advance, Game, Start };
   using Done = std::function<void(GameViewModel&, const CommandResult&)>;
@@ -231,6 +262,28 @@ class GameViewModel {
   std::function<void(const PlanEntry&)> plan_sink_;
   SeriesNames names_;
   std::uint64_t revision_ = 1;
+
+  // Strategy builder combos (game_combos.cpp).
+  struct ComboRun {
+    ComboDraft draft;
+    std::vector<int> accepted;  // order ids of the legs accepted so far
+  };
+  void plan_combo(const PlanEntry& e);
+  void place_combo_leg(const std::shared_ptr<ComboRun>& run, std::size_t i);
+  void withdraw_combo(const ComboRun& run, std::size_t refused, const std::string& reason);
+  void reset_combos();
+  void refresh_analysis();
+  void request_lab();
+  void request_combo_risk();
+  // Replies of report-only engine calls reach this object only while it lives.
+  [[nodiscard]] EngineCommands::AnalysisReply guarded(std::function<void(GameViewModel&, const std::string&)> fn);
+  std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);
+  std::shared_ptr<const std::vector<std::string>> log_;
+  std::optional<ComboDraft> pending_combo_;
+  std::vector<std::string> dismissed_;
+  std::string risk_combo_;  // the incomplete combo whose risk was asked
+  std::optional<WhatIfResult> combo_risk_;
+  AnalysisTicket risk_ticket_;
 };
 
 }  // namespace tradelab::desktop::game

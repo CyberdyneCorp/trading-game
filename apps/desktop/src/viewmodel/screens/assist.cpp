@@ -43,6 +43,7 @@ ScreenModel game(const AppViewModel& vm) {
   // Practice packs and assisted attempts start without the advisor (Terminal.svelte): the panel is
   // shown for every run this session knows.
   assist_panel(vm, names::kGameAssist, m);
+  academy_game(vm, m);
   return m;
 }
 

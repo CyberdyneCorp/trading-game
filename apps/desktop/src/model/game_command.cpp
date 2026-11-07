@@ -128,4 +128,11 @@ GameCommand GameCommand::advice() {
   return c;
 }
 
+GameCommand GameCommand::tagged(std::string combo_id, std::string strategy_name) const {
+  GameCommand c = *this;
+  c.combo = std::move(combo_id);
+  c.strategy = std::move(strategy_name);
+  return c;
+}
+
 }  // namespace tradelab::desktop

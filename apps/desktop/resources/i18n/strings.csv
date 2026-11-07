@@ -2272,6 +2272,351 @@ academyLesson.mind-plan.fomo.cell.planned,"plano escrito, stop abaixo do suporte
 academyLesson.mind-plan.fomo.cell.waited,sem sinal claro: esperei,no clear signal: waited
 academyLesson.mind-plan.fomo.column.0,Trade,Trade
 academyLesson.mind-plan.fomo.column.1,Anotação,Note
+glossary.perpetual.term,Futuro perpétuo,Perpetual future
+glossary.perpetual.short,Contrato que acompanha o preço de um ativo e não vence. Você ganha ou perde a diferença de preço vezes a quantidade.,A contract that tracks an asset's price and never expires. You gain or lose the price change times the quantity.
+glossary.perpetual.long,"Um perpétuo é linear: cada unidade ganha o que o preço sobe (long) ou o que ele cai (short). Como não vence, uma taxa periódica, o funding, mantém o contrato perto do preço do ativo. Aqui ele usa margem isolada: só a margem da posição está em risco.","A perpetual is linear: each unit earns what the price rises (long) or what it falls (short). Since it never expires, a periodic payment, funding, keeps it close to the asset's price. Here it uses isolated margin: only the position's margin is at risk."
+glossary.perpetual.aliases,perpétuo; perp,perpetual; perp
+glossary.long.term,Long (comprado),Long
+glossary.long.short,Posição que ganha quando o preço sobe. Resultado = (saída − entrada) × quantidade.,A position that gains when the price rises. Result = (exit − entry) × quantity.
+glossary.long.long,"Estar long é ter comprado o contrato. Cada ponto de alta rende um ponto por unidade; cada ponto de queda custa o mesmo. Num perpétuo a perda de um long é limitada pela margem isolada, que a liquidação consome.","Being long means having bought the contract. Each point up earns one point per unit; each point down costs the same. In a perpetual a long's loss is bounded by its isolated margin, which liquidation consumes."
+glossary.long.aliases,comprado; compra; long,buy; bought
+glossary.short.term,Short (vendido),Short
+glossary.short.short,Posição que ganha quando o preço cai. Resultado = (entrada − saída) × quantidade.,A position that gains when the price falls. Result = (entry − exit) × quantity.
+glossary.short.long,"Estar short é ter vendido o contrato sem tê-lo antes. A alta do preço é a perda, e ela não tem teto natural: por isso o stop e a margem importam ainda mais. Com funding negativo, quem está short paga.","Being short means having sold the contract without owning it first. A rising price is the loss, and it has no natural ceiling: that is why the stop and the margin matter even more. With negative funding, shorts pay."
+glossary.short.aliases,vendido; venda; short,sell; sold
+glossary.notional.term,Nocional,Notional
+glossary.notional.short,"O tamanho da posição em dinheiro: preço × quantidade. É sobre ele que se calculam taxas, funding e margem.","The position's size in money: price × quantity. Fees, funding and margin are computed on it."
+glossary.notional.long,"O nocional mede quanto você está exposto, não quanto colocou de margem. Cinco unidades a 120 são 600 de nocional, com qualquer alavancagem.","Notional measures how much you are exposed, not how much margin you posted. Five units at 120 are 600 of notional, at any leverage."
+glossary.notional.example,5 unidades a 120 = 600 de nocional.,5 units at 120 = 600 notional.
+glossary.notional.aliases,valor nocional; exposição,notional value; exposure
+glossary.leverage.term,Alavancagem,Leverage
+glossary.leverage.short,Nocional dividido pela margem. Mais alavancagem usa menos margem e põe a liquidação mais perto da entrada.,Notional divided by margin. More leverage uses less margin and puts liquidation closer to the entry.
+glossary.leverage.long,Alavancagem não muda o risco até o stop: ele depende da quantidade e da distância. Ela muda quanto da sua margem fica presa e a que distância a liquidação está. 1.000 de nocional com 100 de margem é 10×.,"Leverage does not change the risk to the stop: that depends on quantity and distance. It changes how much of your margin is tied up and how far away liquidation is. 1,000 notional with 100 margin is 10×."
+glossary.leverage.example,1.000 de nocional / 100 de margem = 10×.,"1,000 notional / 100 margin = 10×."
+glossary.leverage.aliases,alavancagem; lev,lev
+glossary.initial-margin.term,Margem inicial,Initial margin
+glossary.initial-margin.short,O dinheiro reservado para abrir a posição: nocional / alavancagem.,The money reserved to open the position: notional / leverage.
+glossary.initial-margin.long,A margem inicial é a garantia que a posição precisa para existir. Ela sai do saldo disponível e volta (com o resultado) quando a posição fecha.,Initial margin is the collateral a position needs to exist. It leaves the available balance and comes back (with the result) when the position closes.
+glossary.initial-margin.aliases,margem; margem de entrada,margin
+glossary.maintenance-margin.term,Margem de manutenção,Maintenance margin
+glossary.maintenance-margin.short,"O mínimo de margem que a posição precisa manter. Abaixo dele, a posição é liquidada.","The least margin a position must keep. Below it, the position is liquidated."
+glossary.maintenance-margin.long,"A margem de manutenção é uma fração do nocional, menor que a inicial. Quando as perdas consomem a margem até esse mínimo, o preço chegou à liquidação. Posições maiores podem ter taxas maiores (faixas por tamanho).","Maintenance margin is a fraction of notional, smaller than the initial one. When losses eat the margin down to that minimum, the price has reached liquidation. Larger positions can have higher rates (size tiers)."
+glossary.maintenance-margin.aliases,manutenção,maintenance
+glossary.isolated-margin.term,Margem isolada,Isolated margin
+glossary.isolated-margin.short,"Cada posição usa só a sua própria margem. Uma liquidação perde essa margem, não a conta inteira.","Each position uses only its own margin. A liquidation loses that margin, not the whole account."
+glossary.isolated-margin.long,"Com margem isolada, a perda máxima de uma posição é a margem que ela reservou. Você pode adicionar margem para afastar a liquidação, mas isso também aumenta o que está em jogo.","With isolated margin, a position's largest loss is the margin it reserved. You can add margin to push liquidation away, but that also raises what is at stake."
+glossary.isolated-margin.aliases,isolada,isolated
+glossary.liquidation-price.term,Preço de liquidação,Liquidation price
+glossary.liquidation-price.short,O preço em que a margem da posição chega à manutenção e a posição é fechada à força. O stop deve ficar antes dele.,The price at which the position's margin reaches maintenance and the position is closed by force. The stop must sit before it.
+glossary.liquidation-price.long,"Num long, a liquidação fica perto de entrada × (1 − 1/alavancagem) / (1 − taxa de manutenção). Ela usa o preço de marcação quando existe. Uma liquidação perde a margem inteira, então um stop além dela não protege nada.","For a long, liquidation sits near entry × (1 − 1/leverage) / (1 − maintenance rate). It uses the mark price when there is one. A liquidation loses the whole margin, so a stop beyond it protects nothing."
+glossary.liquidation-price.example,"Long a 100 com 10× e manutenção de 1%: liquidação perto de 90,91.",Long at 100 with 10× and 1% maintenance: liquidation near 90.91.
+glossary.liquidation-price.aliases,liquidação; liq.,liquidation; liq.
+glossary.mark-price.term,Preço de marcação,Mark price
+glossary.mark-price.short,"Um preço de referência mais estável que o último negócio. Margem, liquidação e funding usam a marcação; execuções usam o último preço.","A reference price steadier than the last trade. Margin, liquidation and funding use the mark; fills use the last price."
+glossary.mark-price.long,"A marcação evita que um pavio isolado no último preço liquide posições. Quando o cenário não tem série de marcação, o jogo usa o último preço para tudo, e o briefing avisa.","The mark keeps a single wick in the last price from liquidating positions. When a scenario has no mark series, the game uses the last price for everything, and the briefing says so."
+glossary.mark-price.aliases,marcação; mark,mark
+glossary.last-price.term,Último preço,Last price
+glossary.last-price.short,O preço do último negócio. É o que o gráfico desenha e onde as ordens executam.,The price of the latest trade. It is what the chart draws and where orders fill.
+glossary.last-price.long,"O último preço pode ter pavios que a marcação não segue. Ordens, stops e alvos executam pelo último preço; a margem olha a marcação.","The last price can have wicks the mark does not follow. Orders, stops and targets fill on the last price; margin looks at the mark."
+glossary.last-price.aliases,last; último negócio,last; last trade
+glossary.funding-rate.term,Funding,Funding
+glossary.funding-rate.short,"Pagamento periódico entre longs e shorts: nocional × taxa. Taxa positiva, longs pagam; negativa, shorts pagam.","A periodic payment between longs and shorts: notional × rate. A positive rate, longs pay; negative, shorts pay."
+glossary.funding-rate.long,O funding mantém o perpétuo perto do preço do ativo. Uma taxa positiva por muito tempo mostra longs lotados. Ele é um custo de carregar a posição: some ao longo de muitos intervalos.,Funding keeps the perpetual close to the asset's price. A rate that stays positive shows crowded longs. It is a cost of carrying a position: it adds up over many intervals.
+glossary.funding-rate.example,"10.000 de nocional a +0,05%: o long paga 5 por intervalo.","10,000 notional at +0.05%: the long pays 5 per interval."
+glossary.funding-rate.aliases,taxa de funding; financiamento,funding rate
+glossary.equity.term,Patrimônio,Equity
+glossary.equity.short,Saldo mais o resultado aberto das posições. O saldo disponível é o que sobra livre para novas ordens.,Balance plus the open result of positions. The available balance is what is left free for new orders.
+glossary.equity.long,"O patrimônio é o que a conta vale agora, marcando as posições. O disponível desconta a margem já reservada e é o que limita uma nova ordem.","Equity is what the account is worth now, marking positions. Available subtracts the margin already reserved and is what limits a new order."
+glossary.equity.aliases,equity; capital; disponível; saldo disponível,capital; available; available balance
+glossary.fee.term,Taxa,Fee
+glossary.fee.short,"O custo cobrado em cada execução, uma fração do nocional. Paga-se na entrada e na saída.","The cost charged on each fill, a fraction of notional. It is paid on entry and on exit."
+glossary.fee.long,"Taxas parecem pequenas por ordem, mas somam: muitas entradas e saídas, ou estratégias com várias pernas, pagam várias vezes. Ordens que tiram liquidez (taker) pagam mais que as que a oferecem (maker).","Fees look small per order but add up: many entries and exits, or strategies with several legs, pay many times. Orders that take liquidity (taker) pay more than those that provide it (maker)."
+glossary.fee.aliases,taxas; taker; maker; custos,fees; taker; maker; costs
+glossary.pnl.term,Resultado (P&L),Profit and loss (P&L)
+glossary.pnl.short,Quanto a posição ganhou ou perdeu. Aberto enquanto a posição existe; realizado quando ela fecha.,How much the position gained or lost. Unrealized while it is open; realized when it closes.
+glossary.pnl.long,"Num perpétuo, o resultado é (saída − entrada) × quantidade para um long e o inverso para um short, menos taxas e funding. O resultado aberto muda a cada barra; só o realizado entra no saldo.","In a perpetual, the result is (exit − entry) × quantity for a long and the reverse for a short, minus fees and funding. Unrealized P&L moves every bar; only realized P&L reaches the balance."
+glossary.pnl.aliases,P&L; lucro; prejuízo; resultado aberto; realizado,P&L; profit; loss; unrealized; realized
+glossary.market-order.term,Ordem a mercado,Market order
+glossary.market-order.short,"Executa no próximo preço disponível. Garante a execução (havendo liquidez), não o preço.","Fills at the next available price. It guarantees the fill (given liquidity), not the price."
+glossary.market-order.long,"Uma ordem a mercado compra na ponta vendedora e vende na compradora, então paga o spread e o slippage. Aqui ela executa na abertura da próxima barra: aceita não significa executada.","A market order buys at the ask and sells at the bid, so it pays the spread and slippage. Here it fills at the next bar's open: accepted does not mean filled."
+glossary.market-order.aliases,a mercado; mercado,market
+glossary.limit-order.term,Ordem limitada,Limit order
+glossary.limit-order.short,"Executa só no preço pedido ou melhor. Garante o preço, não a execução.","Fills only at the stated price or better. It guarantees the price, not the fill."
+glossary.limit-order.long,"Uma compra limitada abaixo do preço atual espera o preço vir até ela. Se ele não vier, nada acontece: você pode perder o movimento que queria.","A buy limit below the current price waits for the price to come to it. If it never does, nothing happens: you can miss the move you wanted."
+glossary.limit-order.aliases,limite; limitada,limit
+glossary.stop-order.term,Ordem stop,Stop order
+glossary.stop-order.short,Fica dormente até o preço tocar o gatilho; então vira uma ordem a mercado. O gatilho não é o preço de execução.,Sleeps until the price touches the trigger; then it becomes a market order. The trigger is not the fill price.
+glossary.stop-order.long,"Num gap, o preço pula o gatilho e a ordem executa na abertura, que pode estar bem além. Por isso um stop limita o risco na maior parte do tempo, mas não sempre.","In a gap the price jumps over the trigger and the order fills at the open, which can be far beyond. That is why a stop bounds risk most of the time, but not always."
+glossary.stop-order.aliases,stop; gatilho,stop; trigger
+glossary.take-profit.term,Alvo (take profit),Take profit
+glossary.take-profit.short,Ordem que fecha a posição com lucro num preço definido antes da entrada.,An order that closes the position at a profit at a price set before the entry.
+glossary.take-profit.long,"Junto com o stop, o alvo define a relação retorno/risco do trade em múltiplos de R. Stop e alvo presos à posição se cancelam um ao outro quando um executa.","Together with the stop, the target sets the trade's reward to risk in R multiples. A stop and target attached to the position cancel each other when one fills."
+glossary.take-profit.aliases,alvo; take profit; TP,target; TP
+glossary.trailing-stop.term,Stop móvel,Trailing stop
+glossary.trailing-stop.short,"Um stop que acompanha o preço a uma distância fixa (ou percentual) quando ele anda a seu favor, e nunca recua.","A stop that follows the price at a fixed (or percent) distance when it moves your way, and never moves back."
+glossary.trailing-stop.long,"O stop móvel deixa uma tendência correr e protege parte do ganho. Num mercado lateral, ele sai cedo com frequência: a ferramenta depende do regime.",A trailing stop lets a trend run and protects part of the gain. In a range it often exits early: the tool depends on the regime.
+glossary.trailing-stop.aliases,trailing; stop móvel,trailing
+glossary.spread.term,Spread (compra/venda),Bid/ask spread
+glossary.spread.short,A diferença entre o melhor preço de venda (ask) e o de compra (bid). Quem executa a mercado paga essa diferença.,The gap between the best selling price (ask) and the best buying price (bid). A market order pays it.
+glossary.spread.long,"Comprar a mercado e vender logo em seguida custa o spread vezes a quantidade, antes das taxas. Mercados finos têm spreads largos, e choques de liquidez os alargam ainda mais.","Buying at market and selling right after costs the spread times the quantity, before fees. Thin markets have wide spreads, and liquidity shocks widen them further."
+glossary.spread.example,"Bid 99,90 e ask 100,10: ida e volta de 10 unidades custa 2,00.",Bid 99.90 and ask 100.10: a round trip of 10 units costs 2.00.
+glossary.spread.aliases,spread; bid/ask; bid; ask; compra; venda,spread; bid; ask
+glossary.slippage.term,Slippage,Slippage
+glossary.slippage.short,"A diferença entre o preço esperado e o executado, contra você.","The difference between the expected and the filled price, against you."
+glossary.slippage.long,"Slippage cresce com o tamanho da ordem, com mercados finos e com movimentos rápidos. Um stop num gap pode escorregar muito além do gatilho.","Slippage grows with order size, thin markets and fast moves. A stop in a gap can slip far beyond its trigger."
+glossary.slippage.aliases,deslizamento; escorregamento,slipped
+glossary.capacity.term,Capacidade,Capacity
+glossary.capacity.short,"Quanto uma barra consegue executar. Uma ordem maior executa em pedaços, em várias barras.","How much one bar can fill. A larger order fills in pieces, over several bars."
+glossary.capacity.long,"A capacidade simulada é uma fração do volume da barra. Num mercado fino, uma ordem grande pode levar várias barras para executar, a preços diferentes.","The simulated capacity is a fraction of the bar's volume. In a thin market a large order can take several bars to fill, at different prices."
+glossary.capacity.aliases,liquidez; capacidade da barra,liquidity; bar capacity
+glossary.gap.term,Gap,Gap
+glossary.gap.short,"Quando a barra abre longe do fechamento anterior, sem negócios no meio. Stops no caminho executam na abertura.","When a bar opens far from the previous close, with no trades in between. Stops in the way fill at the open."
+glossary.gap.long,"Gaps acontecem em notícias e divulgações. Nenhum stop executa no meio do salto: ele executa no primeiro preço depois dele. Tamanho menor ou uma put limitam esse risco; um stop sozinho, não.",Gaps come with news and releases. No stop fills inside the jump: it fills at the first price after it. Smaller size or a put bound that risk; a stop alone does not.
+glossary.gap.aliases,salto; gaps,gaps
+glossary.stop-loss.term,Stop de proteção,Stop loss
+glossary.stop-loss.short,A ordem que fecha a posição no ponto onde a ideia está errada. Defina antes de entrar.,The order that closes the position where the idea is wrong. Set it before entering.
+glossary.stop-loss.long,O stop transforma a invalidação da hipótese numa perda conhecida: distância × quantidade. Ele deve ficar antes da liquidação e num lugar que o mercado só alcança se a ideia falhar.,"The stop turns the idea's invalidation into a known loss: distance × quantity. It must sit before liquidation, at a place the market only reaches if the idea fails."
+glossary.stop-loss.aliases,stop loss; stop; stop de proteção,stop; protective stop
+glossary.risk-budget.term,Orçamento de risco,Risk budget
+glossary.risk-budget.short,"Quanto do capital você aceita perder se o stop executar, por exemplo 1%.","How much of your capital you accept to lose if the stop fills, for example 1%."
+glossary.risk-budget.long,"Um orçamento pequeno e fixo por trade deixa sobreviver às sequências de perdas, que são normais. Ele vem antes da quantidade: a quantidade sai dele.","A small, fixed budget per trade lets you survive losing streaks, which are normal. It comes before the quantity: the quantity follows from it."
+glossary.risk-budget.aliases,risco por trade; risco %; risco planejado,risk per trade; risk %; planned risk
+glossary.position-sizing.term,Dimensionamento,Position sizing
+glossary.position-sizing.short,Quantidade = orçamento de risco / distância até o stop. A alavancagem não entra na conta.,Quantity = risk budget / distance to the stop. Leverage is not part of it.
+glossary.position-sizing.long,"Com 10.000 de capital, 1% de risco e stop a 4 da entrada, a quantidade é 25. Alavancagem maior só reduz a margem usada; o risco até o stop continua 100.","With 10,000 capital, 1% risk and a stop 4 from the entry, the quantity is 25. Higher leverage only lowers the margin used; the risk to the stop stays 100."
+glossary.position-sizing.example,10.000 × 1% / 4 = 25 unidades.,"10,000 × 1% / 4 = 25 units."
+glossary.position-sizing.aliases,tamanho da posição; quantidade; dimensionar,position size; quantity; size
+glossary.r-multiple.term,Múltiplo de R,R multiple
+glossary.r-multiple.short,Um resultado medido em unidades do risco inicial (R = distância até o stop). Ganhar 2R é ganhar o dobro do que se arriscou.,A result measured in units of the initial risk (R = distance to the stop). Gaining 2R is gaining twice what you risked.
+glossary.r-multiple.long,"Medir em R deixa comparar trades de tamanhos e mercados diferentes. Entrada 100, stop 96 e alvo 108: o alvo vale 2R.","Measuring in R compares trades of different sizes and markets. Entry 100, stop 96 and target 108: the target is worth 2R."
+glossary.r-multiple.example,(108 − 100) / (100 − 96) = 2R.,(108 − 100) / (100 − 96) = 2R.
+glossary.r-multiple.aliases,R; retorno/risco,R; reward/risk
+glossary.expectancy.term,Expectativa,Expectancy
+glossary.expectancy.short,O resultado médio por trade: % de acertos × ganho médio − % de erros × perda média.,The average result per trade: win rate × average win − loss rate × average loss.
+glossary.expectancy.long,"Uma estratégia que acerta 40% com ganho médio de 2R e perda média de 1R tem expectativa de +0,2R por trade. Poucos trades não bastam para saber a expectativa: a amostra engana.",A strategy that wins 40% with an average win of 2R and an average loss of 1R has an expectancy of +0.2R per trade. A few trades are not enough to know it: small samples mislead.
+glossary.expectancy.example,"40% × 2R − 60% × 1R = +0,2R.",40% × 2R − 60% × 1R = +0.2R.
+glossary.expectancy.aliases,valor esperado; edge,expected value; edge
+glossary.drawdown.term,Drawdown,Drawdown
+glossary.drawdown.short,A queda do capital desde o seu pico. Recuperar exige um ganho maior que a queda.,The fall of capital from its peak. Recovering needs a gain larger than the fall.
+glossary.drawdown.long,"Depois de −20%, é preciso +25% para voltar; depois de −50%, +100%. Por isso proteger o capital pesa mais que buscar o ganho máximo.","After −20% you need +25% to get back; after −50%, +100%. That is why protecting capital weighs more than chasing the largest gain."
+glossary.drawdown.example,−50% pede +100% para voltar.,−50% needs +100% to get back.
+glossary.drawdown.aliases,rebaixamento; queda do capital,peak-to-trough
+glossary.risk-of-ruin.term,Risco de ruína,Risk of ruin
+glossary.risk-of-ruin.short,A chance de perder tanto que não dá mais para continuar. Cresce rápido com o risco por trade.,The chance of losing so much you cannot go on. It grows fast with the risk per trade.
+glossary.risk-of-ruin.long,"Mesmo com expectativa positiva, arriscar muito por trade torna provável uma sequência de perdas que quebra a conta. Com 60% de trades perdedores, 5 perdas seguidas têm chance de cerca de 7,8%.","Even with a positive expectancy, risking a lot per trade makes a losing streak that breaks the account likely. With 60% losing trades, 5 losses in a row have about a 7.8% chance."
+glossary.risk-of-ruin.aliases,ruína,ruin
+glossary.support.term,Suporte,Support
+glossary.support.short,"Uma zona de preço onde compradores apareceram antes e a queda parou. É uma faixa, não uma linha exata.","A price zone where buyers showed up before and the fall stopped. It is a band, not an exact line."
+glossary.support.long,"Um suporte testado várias vezes é informação sobre o passado, não garantia. Quando ele cede, o rompimento costuma ser rápido, e um suporte rompido pode virar resistência.","A support tested several times is information about the past, not a guarantee. When it gives way the break is often fast, and broken support can turn into resistance."
+glossary.support.aliases,zona de suporte,support zone
+glossary.resistance.term,Resistência,Resistance
+glossary.resistance.short,Uma zona de preço onde vendedores apareceram antes e a alta parou.,A price zone where sellers showed up before and the rise stopped.
+glossary.resistance.long,"Como o suporte, é uma faixa. Uma resistência rompida e depois testada por cima (reteste) que segura vira suporte.","Like support, it is a band. A broken resistance that is retested from above and holds becomes support."
+glossary.resistance.aliases,zona de resistência,resistance zone
+glossary.trend.term,Tendência,Trend
+glossary.trend.short,Alta: topos e fundos ascendentes; baixa: topos e fundos descendentes. Um fechamento além do último fundo (ou topo) quebra a estrutura.,Up: higher highs and higher lows; down: lower highs and lower lows. A close beyond the last low (or high) breaks the structure.
+glossary.trend.long,A estrutura de topos e fundos diz se o mercado está em tendência. A quebra da estrutura não prevê a próxima barra: só diz que a sequência anterior acabou.,The structure of highs and lows says whether the market is trending. A break of structure does not predict the next bar: it only says the previous sequence ended.
+glossary.trend.aliases,topos e fundos; estrutura,higher highs; market structure
+glossary.range.term,Lateralidade (range),Range
+glossary.range.short,Um mercado que oscila entre um suporte e uma resistência sem tendência clara.,A market swinging between a support and a resistance without a clear trend.
+glossary.range.long,"Em ranges, ferramentas de reversão funcionam melhor e as de tendência (cruzamentos de médias) dão sinais falsos. O range termina num rompimento, que pode falhar.","In ranges, mean-reversion tools work better and trend tools (moving-average crosses) give false signals. A range ends in a breakout, which can fail."
+glossary.range.aliases,range; lateral; faixa,sideways; range-bound
+glossary.breakout.term,Rompimento,Breakout
+glossary.breakout.short,"Um fechamento além de um suporte ou resistência. O reteste é a volta à zona rompida, pelo outro lado.","A close beyond a support or resistance. The retest is the return to the broken zone, from the other side."
+glossary.breakout.long,"Rompimentos falsos são comuns: o preço fura a zona e volta. Esperar o fechamento ou o reteste reduz os falsos, ao custo de entrar mais tarde.","False breakouts are common: price pierces the zone and comes back. Waiting for the close or the retest filters some of them, at the cost of a later entry."
+glossary.breakout.aliases,breakout; reteste,break; retest
+glossary.option.term,Opção,Option
+glossary.option.short,"Um contrato que dá o direito, não a obrigação, de comprar (call) ou vender (put) a um preço (strike) numa data (vencimento).","A contract giving the right, not the obligation, to buy (call) or sell (put) at a price (strike) on a date (expiry)."
+glossary.option.long,Quem compra paga o prêmio e não pode perder mais que ele. Quem vende (lança) recebe o prêmio e assume a obrigação. Aqui as opções são europeias e liquidadas em dinheiro no vencimento.,The buyer pays the premium and cannot lose more than it. The seller (writer) receives the premium and takes on the obligation. Here options are European and settled in cash at expiry.
+glossary.option.aliases,opções,options
+glossary.call.term,Call,Call
+glossary.call.short,"O direito de comprar no strike. No vencimento vale max(0, preço − strike).","The right to buy at the strike. At expiry it is worth max(0, price − strike)."
+glossary.call.long,"Uma call ganha com a alta acima do strike mais o prêmio. Abaixo do strike, ela vence sem valor e o comprador perde o prêmio.",A call profits from a rise above the strike plus the premium. Below the strike it expires worthless and the buyer loses the premium.
+glossary.call.aliases,opção de compra; calls,call option; calls
+glossary.put.term,Put,Put
+glossary.put.short,"O direito de vender no strike. No vencimento vale max(0, strike − preço).","The right to sell at the strike. At expiry it is worth max(0, strike − price)."
+glossary.put.long,"Uma put ganha com a queda abaixo do strike menos o prêmio. Comprada junto com o ativo, ela funciona como um seguro.","A put profits from a fall below the strike minus the premium. Bought together with the asset, it works as insurance."
+glossary.put.aliases,opção de venda; puts,put option; puts
+glossary.strike.term,Strike,Strike
+glossary.strike.short,O preço fixado no contrato da opção. O valor no vencimento é a distância entre o preço e o strike.,The price fixed in the option contract. Its value at expiry is the distance between the price and the strike.
+glossary.strike.long,Strikes mais distantes do preço são mais baratos e precisam de movimentos maiores para valer algo no vencimento.,Strikes farther from the price are cheaper and need larger moves to be worth anything at expiry.
+glossary.strike.aliases,preço de exercício; exercício,strike price; exercise price
+glossary.expiry.term,Vencimento,Expiry
+glossary.expiry.short,A data em que a opção é liquidada e deixa de existir.,The date the option is settled and stops existing.
+glossary.expiry.long,"Quanto mais perto do vencimento, menos valor de tempo resta e mais rápido ele cai. Perto do vencimento, pequenos movimentos mudam muito o delta.","The closer to expiry, the less time value is left and the faster it falls. Near expiry, small moves change the delta a lot."
+glossary.expiry.aliases,expiração; venc.,expiration; exp.
+glossary.premium.term,Prêmio,Premium
+glossary.premium.short,"O preço da opção: o comprador paga, o vendedor recebe. É a perda máxima de quem compra.","The option's price: the buyer pays, the seller receives. It is the buyer's largest loss."
+glossary.premium.long,O prêmio é valor intrínseco mais valor de tempo. Ele sobe com a volatilidade implícita e com o tempo até o vencimento.,The premium is intrinsic value plus time value. It rises with implied volatility and with the time to expiry.
+glossary.premium.aliases,preço da opção,option price
+glossary.intrinsic-value.term,Valor intrínseco,Intrinsic value
+glossary.intrinsic-value.short,"O que a opção valeria se vencesse agora: max(0, preço − strike) numa call.","What the option would be worth if it expired now: max(0, price − strike) for a call."
+glossary.intrinsic-value.long,"Uma call de strike 100 com o preço em 103 tem 3 de valor intrínseco. Se ela custa 5, os outros 2 são valor de tempo.","A 100-strike call with the price at 103 has 3 of intrinsic value. If it costs 5, the other 2 are time value."
+glossary.intrinsic-value.example,"Call 100, preço 103: intrínseco 3.","Call 100, price 103: intrinsic 3."
+glossary.intrinsic-value.aliases,intrínseco,intrinsic
+glossary.time-value.term,Valor de tempo,Time value
+glossary.time-value.short,A parte do prêmio acima do valor intrínseco: o preço da chance de o movimento ainda acontecer.,The part of the premium above intrinsic value: the price of the chance that the move still happens.
+glossary.time-value.long,O valor de tempo vai a zero no vencimento. Ele cai devagar no começo e cada vez mais rápido no fim: isso é o theta.,Time value goes to zero at expiry. It falls slowly at first and faster and faster near the end: that is theta.
+glossary.time-value.aliases,valor extrínseco,extrinsic value
+glossary.moneyness.term,No/dentro/fora do dinheiro,"Moneyness (ATM, ITM, OTM)"
+glossary.moneyness.short,ATM: strike perto do preço; ITM: já tem valor intrínseco; OTM: só tem valor de tempo.,ATM: strike near the price; ITM: it already has intrinsic value; OTM: it has only time value.
+glossary.moneyness.long,"Uma call com strike abaixo do preço está dentro do dinheiro; acima, fora. Opções fora do dinheiro são baratas porque quase sempre vencem sem valor.","A call with a strike below the price is in the money; above, out of the money. Out-of-the-money options are cheap because they usually expire worthless."
+glossary.moneyness.aliases,ATM; ITM; OTM; no dinheiro; fora do dinheiro; dentro do dinheiro,ATM; ITM; OTM; at the money; in the money; out of the money
+glossary.breakeven.term,Ponto de equilíbrio,Breakeven
+glossary.breakeven.short,O preço no vencimento em que a posição não ganha nem perde. Call comprada: strike + prêmio.,The price at expiry where the position neither gains nor loses. Bought call: strike + premium.
+glossary.breakeven.long,Uma call 100 comprada por 4 empata em 104; uma put 100 comprada por 3 empata em 97. Taxas empurram o ponto um pouco mais longe.,A 100 call bought for 4 breaks even at 104; a 100 put bought for 3 breaks even at 97. Fees push it a little further.
+glossary.breakeven.example,Call 100 por 4: equilíbrio em 104.,Call 100 for 4: breakeven at 104.
+glossary.breakeven.aliases,breakeven; equilíbrio,break-even
+glossary.delta.term,Delta,Delta
+glossary.delta.short,"Quanto o valor da opção muda quando o preço sobe 1. Calls de 0 a 1, puts de −1 a 0.","How much the option's value changes when the price rises by 1. Calls 0 to 1, puts −1 to 0."
+glossary.delta.long,"Uma call ATM tem delta perto de 0,5: sobe cerca de meio ponto por ponto de alta. O delta também é a quantidade de ativo que equivale à opção, por isso serve como razão de hedge.","An ATM call has a delta near 0.5: it rises about half a point per point up. Delta is also the amount of the asset that behaves like the option, so it works as a hedge ratio."
+glossary.delta.aliases,Δ,Δ
+glossary.gamma.term,Gamma,Gamma
+glossary.gamma.short,Quanto o delta muda quando o preço anda 1. É maior no dinheiro e perto do vencimento.,How much delta changes when the price moves by 1. It is largest at the money and near expiry.
+glossary.gamma.long,"Gamma alto faz o delta saltar: perto do vencimento, uma opção ATM passa de quase 0 a quase 1 com um movimento pequeno. Para quem vende, gamma alto é risco.","High gamma makes delta jump: near expiry an ATM option goes from almost 0 to almost 1 on a small move. For a seller, high gamma is risk."
+glossary.gamma.aliases,Γ,Γ
+glossary.theta.term,Theta,Theta
+glossary.theta.short,O valor que a opção perde por barra quando nada mais muda. Custa para quem compra e rende para quem vende.,The value the option loses per bar when nothing else changes. It costs the buyer and pays the seller.
+glossary.theta.long,"O theta de uma opção ATM cresce perto do vencimento. Se o preço ficou parado e a opção comprada perdeu valor, foi o theta.","An ATM option's theta grows near expiry. If the price stood still and a bought option lost value, that was theta."
+glossary.theta.aliases,Θ; decaimento,Θ; time decay
+glossary.vega.term,Vega,Vega
+glossary.vega.short,Quanto o valor da opção muda por 1 ponto de volatilidade implícita.,How much the option's value changes per 1 point of implied volatility.
+glossary.vega.long,"Com vega 0,20, uma queda de 15 pontos na IV tira cerca de 3,00 da opção, mesmo sem o preço andar. Opções mais longas têm mais vega.","With a vega of 0.20, a 15-point drop in IV takes about 3.00 off the option, even if the price does not move. Longer options have more vega."
+glossary.vega.example,"0,20 × −15 = −3,00.",0.20 × −15 = −3.00.
+glossary.vega.aliases,ν,ν
+glossary.implied-volatility.term,Volatilidade implícita (IV),Implied volatility (IV)
+glossary.implied-volatility.short,A volatilidade que o preço da opção embute: quanto movimento o mercado está cobrando.,The volatility the option's price implies: how much movement the market is charging for.
+glossary.implied-volatility.long,"IV alta deixa opções caras; baixa, baratas. Ela não diz para onde o preço vai, só quanto ele deve se mexer. Aqui as opções são precificadas por Black-76 com juros zero.","High IV makes options expensive; low IV, cheap. It does not say where the price goes, only how much it should move. Here options are priced with Black-76 at a zero rate."
+glossary.implied-volatility.aliases,IV; volatilidade implícita; vol implícita,IV; implied vol
+glossary.realized-volatility.term,Volatilidade realizada,Realized volatility
+glossary.realized-volatility.short,O quanto o preço de fato se mexeu num período.,How much the price actually moved over a period.
+glossary.realized-volatility.long,"Quando a IV fica acima da realizada, quem vende opções tende a ganhar com o tempo; quando a realizada supera a IV, quem compra ganha. Nenhum dos dois é garantido numa amostra.","When IV stays above realized, option sellers tend to gain over time; when realized beats IV, buyers gain. Neither is guaranteed in one sample."
+glossary.realized-volatility.aliases,vol realizada; volatilidade histórica,realized vol; historical volatility
+glossary.iv-crush.term,Queda da IV (IV crush),IV crush
+glossary.iv-crush.short,A queda da volatilidade implícita depois de um evento esperado. Opções compradas perdem valor mesmo com algum movimento.,The fall in implied volatility after an expected event. Bought options lose value even with some movement.
+glossary.iv-crush.long,"Antes de uma divulgação, a IV embute o movimento esperado. Depois, a incerteza some e a IV cai. Quem comprou precisa de um movimento maior do que o já cobrado.","Before a release, IV holds the expected move. After it, the uncertainty is gone and IV falls. A buyer needs a move larger than the one already priced."
+glossary.iv-crush.aliases,IV crush; esmagamento da IV,volatility crush
+glossary.option-chain.term,Cadeia de opções,Option chain
+glossary.option-chain.short,"A tabela de calls e puts disponíveis, por vencimento e strike, com compra, venda, IV e delta.","The table of available calls and puts, by expiry and strike, with bid, ask, IV and delta."
+glossary.option-chain.long,Na cadeia você escolhe o vencimento (quanto tempo) e o strike (quão longe). O spread entre compra e venda de cada série também é custo.,In the chain you choose the expiry (how much time) and the strike (how far). The bid/ask spread of each series is a cost too.
+glossary.option-chain.aliases,cadeia; grade de opções,chain
+glossary.writing.term,Venda de opções (lançamento),Writing options
+glossary.writing.short,Vender uma opção: receber o prêmio e assumir a obrigação. O ganho máximo é o prêmio; a perda pode ser grande.,Selling an option: receiving the premium and taking on the obligation. The largest gain is the premium; the loss can be large.
+glossary.writing.long,"Uma call vendida sem proteção tem perda sem teto na alta. Vendas exigem margem, conferida a cada barra; abaixo da manutenção, a opção é recomprada à força (chamada de margem).","A call sold without cover has an unbounded loss on the upside. Writing needs margin, checked every bar; below maintenance the option is bought back by force (margin call)."
+glossary.writing.aliases,lançar; vender opção; opção vendida; lançamento,write; sell an option; short option
+glossary.settlement.term,Liquidação no vencimento,Settlement
+glossary.settlement.short,"Aqui as opções são europeias e liquidadas em dinheiro no vencimento, pela média de preço das últimas barras (TWAP). Não há exercício antecipado.","Here options are European and settled in cash at expiry, at the average price of the last bars (TWAP). There is no early exercise."
+glossary.settlement.long,"No vencimento, cada opção paga o seu valor intrínseco calculado pelo TWAP. Ninguém entrega o ativo e ninguém é exercido antes da data.",At expiry each option pays its intrinsic value computed from the TWAP. Nobody delivers the asset and nobody is exercised before the date.
+glossary.settlement.aliases,liquidação em dinheiro; settlement; exercício,cash settlement; exercise
+glossary.twap.term,TWAP,TWAP
+glossary.twap.short,Preço médio ponderado pelo tempo de um período. Uma média é mais difícil de manipular que um único preço.,The time-weighted average price over a period. An average is harder to push around than a single price.
+glossary.twap.long,"O preço de liquidação das opções é o TWAP das últimas barras antes do vencimento, não o fechamento de uma única barra.","Options settle at the TWAP of the last bars before expiry, not at the close of a single bar."
+glossary.twap.aliases,média ponderada pelo tempo,time-weighted average price
+glossary.margin-call.term,Chamada de margem,Margin call
+glossary.margin-call.short,"Quando a margem das opções vendidas fica abaixo da manutenção, elas são recompradas à força.","When the margin of written options falls below maintenance, they are bought back by force."
+glossary.margin-call.long,"A recompra acontece no preço do momento, quase sempre ruim. Uma folga acima da manutenção evita que um movimento normal force a saída.","The buy-back happens at the price of the moment, almost always a bad one. A buffer above maintenance keeps a normal move from forcing the exit."
+glossary.margin-call.aliases,margin call; recompra forçada,forced buy-back
+glossary.vertical-spread.term,Trava (spread vertical),Vertical spread
+glossary.vertical-spread.short,Comprar uma opção e vender outra do mesmo tipo e vencimento em outro strike. Ganho e perda ficam limitados.,Buying one option and selling another of the same kind and expiry at another strike. Gain and loss are both bounded.
+glossary.vertical-spread.long,"Uma trava de alta com calls 100/110 por 4 de débito ganha no máximo 6 e perde no máximo 4, com equilíbrio em 104. Vender a perna de cima financia a compra e abre mão da alta além dela.","A 100/110 bull call spread for a 4 debit gains at most 6 and loses at most 4, breaking even at 104. Selling the upper leg pays for part of the purchase and gives up the rise beyond it."
+glossary.vertical-spread.example,"Calls 100/110 por 4: ganho máximo 6, perda máxima 4.","Calls 100/110 for 4: max gain 6, max loss 4."
+glossary.vertical-spread.aliases,trava de alta; trava de baixa; bull call spread; bear put spread; trava,bull call spread; bear put spread; debit spread; credit spread
+glossary.covered-call.term,Venda coberta (covered call),Covered call
+glossary.covered-call.short,"Ter o ativo e vender uma call acima do preço. O prêmio baixa o ponto de equilíbrio, mas a alta fica limitada no strike.","Holding the asset and selling a call above the price. The premium lowers the breakeven, but the upside is capped at the strike."
+glossary.covered-call.long,"Comprado a 100 e vendido numa call 105 por 2: ganho máximo 7, equilíbrio em 98. A queda continua quase toda sua: o prêmio é só um colchão. Aqui a call vendida precisa de margem própria, porque o perpétuo tem margem separada.","Long at 100 and short a 105 call for 2: max gain 7, breakeven 98. Almost all the downside stays yours: the premium is only a cushion. Here the short call needs its own margin, because the perpetual is margined separately."
+glossary.covered-call.aliases,covered call; venda coberta,buy-write
+glossary.protective-put.term,Put de proteção,Protective put
+glossary.protective-put.short,"Ter o ativo e comprar uma put: um piso para a perda, pago com o prêmio.","Holding the asset and buying a put: a floor for the loss, paid with the premium."
+glossary.protective-put.long,"Comprado a 100 com uma put 95 por 2, a perda máxima é 7 (5 até o strike mais 2 de prêmio). O strike é a franquia: quanto mais longe, mais barato e mais baixo o piso. Na maior parte do tempo o prêmio se perde, como um seguro.","Long at 100 with a 95 put for 2, the largest loss is 7 (5 to the strike plus 2 of premium). The strike is the deductible: the farther, the cheaper and the lower the floor. Most of the time the premium is lost, like insurance."
+glossary.protective-put.aliases,protective put; seguro,married put; insurance
+glossary.straddle.term,Straddle,Straddle
+glossary.straddle.short,Comprar uma call e uma put no mesmo strike. Ganha com um movimento grande para qualquer lado.,Buying a call and a put at the same strike. It gains from a large move either way.
+glossary.straddle.long,O preço de um straddle no dinheiro é quase o movimento que o mercado espera até o vencimento. Ele perde se o preço ficar perto do strike ou se a IV cair.,The price of an at-the-money straddle is close to the move the market expects by expiry. It loses if the price stays near the strike or if IV falls.
+glossary.straddle.aliases,compra de volatilidade,long volatility
+glossary.strangle.term,Strangle,Strangle
+glossary.strangle.short,"Uma call acima e uma put abaixo do preço. Comprado, ganha com movimentos grandes; vendido, ganha se o preço ficar entre os strikes.","A call above and a put below the price. Bought, it gains from large moves; sold, it gains if the price stays between the strikes."
+glossary.strangle.long,Um strangle vendido 95/105 por 4 empata em 91 e 109 e tem perda sem teto na alta. Ele ganha na maioria das vezes e perde muito às vezes.,A 95/105 short strangle for 4 breaks even at 91 and 109 and has an unbounded loss on the upside. It wins most of the time and sometimes loses a lot.
+glossary.strangle.aliases,strangle vendido; strangle comprado,short strangle; long strangle
+glossary.iron-condor.term,Iron condor,Iron condor
+glossary.iron-condor.short,"Um strangle vendido com asas compradas mais longe. Recebe menos prêmio, mas a perda máxima fica limitada.","A short strangle with long wings farther out. It collects less premium, but the largest loss is bounded."
+glossary.iron-condor.long,Um condor 90/95/105/110 com 3 de crédito empata em 92 e 108; a perda máxima é a largura de uma asa (5) menos o crédito: 2. Quatro pernas pagam quatro spreads.,A 90/95/105/110 condor for a 3 credit breaks even at 92 and 108; its largest loss is one wing's width (5) minus the credit: 2. Four legs pay four spreads.
+glossary.iron-condor.aliases,condor,condor
+glossary.defined-risk.term,Risco definido,Defined risk
+glossary.defined-risk.short,Uma estrutura cuja perda máxima é conhecida antes da entrada. Risco indefinido: a perda não tem teto.,A structure whose largest loss is known before entry. Undefined risk: the loss has no ceiling.
+glossary.defined-risk.long,"Com risco definido você dimensiona pelo pior caso. Algumas missões margeiam travas pelo que elas ainda podem perder (margem de trava); as outras margeiam cada perna vendida sozinha, e o briefing diz qual regra vale.","With defined risk you size by the worst case. Some missions margin spreads by what they can still lose (spread margin); the others margin each short leg on its own, and the briefing says which rule applies."
+glossary.defined-risk.aliases,risco limitado; risco indefinido; perda máxima,limited risk; undefined risk; max loss
+glossary.legging-risk.term,Risco de perna,Legging risk
+glossary.legging-risk.short,"O risco de só parte das pernas de uma estrutura executar, deixando uma posição diferente da planejada.","The risk that only some legs of a structure fill, leaving a position other than the one planned."
+glossary.legging-risk.long,"Se a perna comprada não executa e a vendida sim, a trava vira uma venda descoberta. Execute as proteções primeiro e confira o que ficou aberto depois de cada avanço.","If the long leg does not fill and the short one does, a spread turns into a naked short. Fill the protection first and check what is open after each advance."
+glossary.legging-risk.aliases,legging; combinação incompleta,legging; incomplete combo
+glossary.roll.term,Rolagem,Roll
+glossary.roll.short,Fechar uma opção perto do vencimento e abrir outra mais longa: duas operações e uma decisão nova.,Closing an option near expiry and opening a longer one: two trades and a new decision.
+glossary.roll.long,Rolar paga dois spreads e duas taxas. Rolar uma posição perdedora para esperar que ela volte só acrescenta tempo e custo: julgue a nova posição como se abrisse do zero.,Rolling pays two spreads and two fees. Rolling a loser to wait for it to come back only adds time and cost: judge the new position as if opening it fresh.
+glossary.roll.aliases,rolar; roll,rolling
+glossary.regime.term,Regime,Regime
+glossary.regime.short,"O estado do mercado: em tendência, lateral ou agitado. Cada ferramenta funciona num regime e falha em outro.","The state of the market: trending, ranging or choppy. Each tool works in one regime and fails in another."
+glossary.regime.long,Identifique o regime antes de escolher a ferramenta. O regime muda sem aviso; uma regra que ganhou num regime pode perder no seguinte.,Identify the regime before choosing the tool. Regimes change without warning; a rule that won in one can lose in the next.
+glossary.regime.aliases,regime de mercado,market regime
+glossary.indicator.term,Indicador,Indicator
+glossary.indicator.short,Um resumo calculado das barras passadas. Ele descreve o passado e reage com atraso.,A computed summary of past bars. It describes the past and reacts with a lag.
+glossary.indicator.long,"Indicadores não sabem nada que as barras não mostrem. Eles ajudam a ler o regime e a padronizar decisões, mas falham com frequência: confira sempre o custo de errar.","Indicators know nothing the bars do not show. They help read the regime and standardize decisions, but they fail often: always weigh the cost of being wrong."
+glossary.indicator.aliases,indicadores,indicators
+glossary.moving-average.term,Média móvel,Moving average
+glossary.moving-average.short,A média dos últimos fechamentos (SMA) ou uma média que pesa mais os recentes (EMA). Segue o preço com atraso.,The average of the last closes (SMA) or one that weighs recent closes more (EMA). It follows the price with a lag.
+glossary.moving-average.long,Cruzamentos de médias funcionam em tendências e dão sinais falsos em mercados laterais. A VWAP pondera o preço pelo volume.,Moving-average crosses work in trends and give false signals in ranges. VWAP weighs price by volume.
+glossary.moving-average.aliases,SMA; EMA; média; VWAP,SMA; EMA; average; VWAP
+glossary.rsi.term,RSI,RSI
+glossary.rsi.short,"Um oscilador de 0 a 100 que compara altas e quedas recentes. Acima de 70 se diz sobrecomprado; abaixo de 30, sobrevendido.","An oscillator from 0 to 100 comparing recent rises and falls. Above 70 is called overbought; below 30, oversold."
+glossary.rsi.long,"Numa tendência forte o RSI pode ficar sobrecomprado por muito tempo: não é um sinal de venda por si só. Em mercados laterais, os extremos funcionam melhor.",In a strong trend RSI can stay overbought for a long time: it is not a sell signal by itself. In ranges the extremes work better.
+glossary.rsi.aliases,IFR; sobrecomprado; sobrevendido; oscilador,overbought; oversold; oscillator
+glossary.consensus.term,Consenso,Consensus
+glossary.consensus.short,O valor que o mercado espera de uma divulgação. Ele já está no preço antes da notícia.,The value the market expects from a release. It is already in the price before the news.
+glossary.consensus.long,"Se o número sai igual ao consenso, quase nada muda: a informação já era conhecida. O calendário mostra o consenso antes da divulgação.","If the number matches the consensus, little changes: the information was already known. The calendar shows the consensus before the release."
+glossary.consensus.aliases,expectativa do mercado; previsão,market expectation; forecast
+glossary.surprise.term,Surpresa,Surprise
+glossary.surprise.short,"A diferença entre o número divulgado e o consenso. É a surpresa, não o número, que move o preço.","The difference between the released number and the consensus. The surprise, not the number, moves the price."
+glossary.surprise.long,Uma notícia boa pode derrubar o preço se veio menos boa que o esperado. Surpresas grandes costumam vir com gaps.,Good news can sell off if it is less good than expected. Large surprises often come with gaps.
+glossary.surprise.aliases,surpresa da divulgação,release surprise
+glossary.thesis.term,Hipótese,Thesis
+glossary.thesis.short,"Por que você espera que o trade funcione, escrito antes da entrada.","Why you expect the trade to work, written before the entry."
+glossary.thesis.long,"Uma hipótese clara diz o que precisa acontecer e o que mostraria que você está errado. Sem ela, não há como aprender com o resultado.",A clear thesis says what must happen and what would show you are wrong. Without it there is nothing to learn from the result.
+glossary.thesis.aliases,tese; plano,hypothesis; plan
+glossary.invalidation.term,Invalidação,Invalidation
+glossary.invalidation.short,O preço ou fato que mostra que a hipótese está errada. É onde o stop deve ficar.,The price or fact that shows the thesis is wrong. It is where the stop belongs.
+glossary.invalidation.long,"Defina a invalidação antes de entrar, enquanto você ainda não tem uma posição para defender.","Set the invalidation before entering, while you have no position to defend yet."
+glossary.invalidation.aliases,ponto de invalidação,invalidation level
+glossary.journal.term,Diário,Journal
+glossary.journal.short,"O registro de cada trade: plano, confiança, resultado e o que você faria diferente.","The record of each trade: plan, confidence, result and what you would do differently."
+glossary.journal.long,"O diário separa processo de resultado: um trade bom pode perder e um ruim pode ganhar. Só muitas entradas mostram padrões, inclusive os seus vieses.","A journal separates process from outcome: a good trade can lose and a bad one can win. Only many entries show patterns, your biases included."
+glossary.journal.aliases,diário de trades; registro,trade journal; log
+glossary.fomo.term,FOMO,FOMO
+glossary.fomo.short,"Entrar porque o preço já andou e dá medo de perder o resto, sem plano.","Entering because the price already moved and you fear missing the rest, with no plan."
+glossary.fomo.long,"Entradas por FOMO costumam vir tarde, com stop longe ou sem stop. Esperar é uma decisão válida.","FOMO entries tend to come late, with a far stop or none. Waiting is a valid decision."
+glossary.fomo.aliases,medo de ficar de fora,fear of missing out
+glossary.revenge-trading.term,Trade de vingança,Revenge trading
+glossary.revenge-trading.short,"Aumentar o tamanho ou abandonar o plano logo depois de perdas, para recuperar rápido.","Raising the size or dropping the plan right after losses, to win it back quickly."
+glossary.revenge-trading.long,"Depois de uma sequência de perdas, o próximo trade não tem mais chance de ganhar. Dobrar o risco nessa hora é o caminho mais curto para o drawdown grande.",After a losing streak the next trade is no more likely to win. Doubling the risk then is the shortest way to a large drawdown.
+glossary.revenge-trading.aliases,vingança; revenge trading,revenge
+glossary.overconfidence.term,Excesso de confiança,Overconfidence
+glossary.overconfidence.short,Acreditar que suas previsões acertam mais do que de fato acertam.,Believing your forecasts are right more often than they are.
+glossary.overconfidence.long,O excesso de confiança leva a tamanhos grandes e stops ignorados. A calibração mede isso: compare a confiança declarada com a frequência real de acerto.,Overconfidence leads to large sizes and ignored stops. Calibration measures it: compare your stated confidence with how often you are actually right.
+glossary.overconfidence.aliases,overconfidence,overconfident
+glossary.calibration.term,Calibração,Calibration
+glossary.calibration.short,Previsões feitas com 70% de confiança devem acertar cerca de 70% das vezes.,Forecasts made with 70% confidence should come true about 70% of the time.
+glossary.calibration.long,"Se você diz 70% e acerta 4 de 10, está confiante demais. A calibração só aparece em muitas previsões: uma partida é uma amostra só.","If you say 70% and get 4 out of 10 right, you are overconfident. Calibration only shows over many forecasts: one run is one sample."
+glossary.calibration.aliases,calibrado,calibrated
+coach.chart.title,O gráfico,The chart
+coach.chart.body,"Cada barra fechada é informação; a próxima ainda não existe. Comece lendo a última barra: onde abriu, até onde foi e onde fechou.","Every closed bar is information; the next one does not exist yet. Start by reading the last bar: where it opened, how far it went and where it closed."
+coach.ticket.title,A boleta,The ticket
+coach.ticket.body,"Aqui você escolhe o lado (comprar ou vender), o tamanho e o tipo de ordem. Uma ordem aceita ainda não foi executada: ela executa na próxima barra.","Here you choose the side (buy or sell), the size and the order type. An accepted order is not filled yet: it fills on the next bar."
+coach.stop.title,"O stop, antes da entrada","The stop, before the entry"
+coach.stop.body,Defina o stop antes de entrar: é o preço em que a sua ideia está errada. Digite um preço ou use um dos atalhos.,Set the stop before entering: it is the price where your idea is wrong. Type a price or use one of the shortcuts.
+coach.risk.title,O risco até o stop,The risk to the stop
+coach.risk.body,Esta linha mostra quanto você perde se o stop executar. Compare com o seu capital: mantenha cada trade perto de 1% ou menos.,This line shows how much you lose if the stop fills. Compare it with your capital: keep each trade near 1% or less.
+coach.advance.title,O tempo só anda quando você avança,Time moves only when you advance
+coach.advance.body,Nada acontece até você avançar uma barra. Esperar também é uma decisão: avance quando estiver pronto.,Nothing happens until you advance a bar. Waiting is a decision too: advance when you are ready.
+coach.debrief.title,O debrief,The debrief
+coach.debrief.body,"Aqui o resultado vem depois do processo: confira primeiro os achados (plano, stop, tamanho), depois o lucro ou o prejuízo.","Here the process comes before the result: read the findings first (plan, stop, size), then the profit or loss."
 desktop.vulkanMissing.title,TradeLab: driver Vulkan não encontrado,TradeLab: no Vulkan driver found
 desktop.vulkanMissing.body,O TradeLab precisa de um driver Vulkan para desenhar a janela e nenhum foi encontrado.,TradeLab needs a Vulkan driver to draw its window and none was found.
 desktop.vulkanMissing.linux,Instale `libvulkan1` e o driver Vulkan da sua placa de vídeo (por exemplo `mesa-vulkan-drivers`) e abra o TradeLab de novo.,Install `libvulkan1` and your graphics card's Vulkan driver (for example `mesa-vulkan-drivers`) and open TradeLab again.
@@ -2315,3 +2660,4 @@ desktop.panel.book,Opções e ordens,Options and orders
 desktop.panel.feed,"Assessor, notícias e eventos","Advisor, news and events"
 desktop.layout.reset,Restaurar painéis,Reset layout
 desktop.layout.resetHint,Arraste a aba de um painel para movê-lo e a borda entre painéis para mudar o tamanho; o arranjo fica salvo. Este botão volta ao arranjo padrão.,Drag a panel's tab to move it and the border between panels to resize; the arrangement is saved. This button puts the default back.
+desktop.academy.terms,Termos desta etapa (passe o mouse ou foque para ver a definição; Enter abre o glossário):,Terms in this step (hover or focus to see the definition; Enter opens the glossary):

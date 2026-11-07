@@ -43,8 +43,8 @@ TEST_CASE("web content: stages, lessons, shortcuts and constants come from the w
   const auto& steps = C().lesson("foundations-bar")->steps;
   CHECK(steps.size() == 8);
   CHECK(steps[3].id == "wick");
-  CHECK(steps[3].choices.size() == 4);
-  CHECK(steps[3].answer == 2);
+  CHECK(steps[3].question->choices.size() == 4);
+  CHECK(steps[3].question->answer == 2);
   CHECK(default_keymap(C()).at("advance5") == "Shift+Space");
   CHECK(C().shortcut_actions.size() == 11);
 }
@@ -193,7 +193,7 @@ TEST_CASE("Academy runner: a wrong first try explains, lets the player choose ag
   CHECK_FALSE(r.pick(1));  // solved: further picks ignored
   while (!r.finished()) {
     const LessonStep* s = r.step();
-    if (s->question()) r.pick(s->answer);
+    if (s->is_question()) r.pick(s->question->answer);
     REQUIRE(r.next());
   }
   CHECK(r.score().total == 5);

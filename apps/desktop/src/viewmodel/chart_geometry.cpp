@@ -11,7 +11,8 @@ float ChartGeometry::y_of(double price, float height) const {
   return static_cast<float>((price_max - price) / span * height);
 }
 
-ChartGeometry chart_geometry(const std::vector<Bar>& bars, float width, float height, int max_bars) {
+ChartGeometry chart_geometry(const std::vector<Bar>& bars, float width, float height, int max_bars,
+                             const std::vector<double>& extra_prices) {
   ChartGeometry g;
   if (bars.empty() || width <= 0 || height <= 0 || max_bars <= 0) return g;
   const std::size_t count = std::min(bars.size(), static_cast<std::size_t>(max_bars));
@@ -22,6 +23,10 @@ ChartGeometry chart_geometry(const std::vector<Bar>& bars, float width, float he
   for (auto it = first; it != bars.end(); ++it) {
     lo = std::min(lo, it->low);
     hi = std::max(hi, it->high);
+  }
+  for (double p : extra_prices) {
+    lo = std::min(lo, p);
+    hi = std::max(hi, p);
   }
   const double pad = std::max((hi - lo) * 0.05, std::fabs(hi) * 1e-4);
   g.price_min = lo - pad;

@@ -46,6 +46,7 @@
                     <Label Name="game-pattern-line" Color="#FFC857" TextSize="12"/>
                     <Custom Name="game-chart" Focusable="true" Slot.Fill="1"/>
                     <Label Name="game-chart-status" Color="#8FB3A1" TextSize="12" Wrap="true"/>
+                    <Label Name="game-term-help" Color="#4FD8FF" TextSize="12" Wrap="true"/>
                     <VBox Name="game-table-box" Spacing="3" Visibility="Collapsed">
                         <HBox Spacing="6">
                             <Button Name="game-table-prev" Text="◀"/>
@@ -100,10 +101,11 @@
             <Border Name="game-panel-ticket" Slot.Title="Ticket" Slot.Dock="Bottom" Slot.DockSize="0.45" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6">
                 <ScrollBox>
                     <VBox Spacing="4">
-                        <HBox Name="game-tabs" Spacing="4">
+                        <WrapBox Name="game-tabs" Spacing="4">
                             <Button Name="game-tab-perp" Slot.Fill="1"/>
                             <Button Name="game-tab-options" Slot.Fill="1"/>
-                        </HBox>
+                            <Button Name="game-tab-builder" Slot.Fill="1"/>
+                        </WrapBox>
                         <Switcher Name="game-ticket-switch">
                             <VBox Spacing="4">
                                 <HBox Spacing="4">
@@ -208,6 +210,51 @@
                                 <Custom Name="game-opt-payoff" Height="90"/>
                                 <Button Name="game-opt-submit" Style="Primary"/>
                             </VBox>
+                            <!-- Strategy builder (web StrategyBuilder.svelte; viewmodel/game/builder_vm.hpp). -->
+                            <VBox Spacing="4">
+                                <Label Name="game-builder-title" Color="#39FF88" Wrap="true"/>
+                                <Button Name="game-builder-lab-positions"/>
+                                <Label Name="game-builder-none" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                                <VBox Name="game-builder-body" Spacing="4">
+                                    <HBox Spacing="4">
+                                        <Label Name="game-builder-expiry-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                        <ComboBox Name="game-builder-expiry" Slot.Fill="1"/>
+                                    </HBox>
+                                    <HBox Spacing="4">
+                                        <Label Name="game-builder-qty-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                        <TextInput Name="game-builder-qty" Slot.Fill="1"/>
+                                    </HBox>
+                                    <Checkbox Name="game-builder-short"/>
+                                    <WrapBox Spacing="3">
+                                        <Button Name="game-builder-tpl-0"/>
+                                        <Button Name="game-builder-tpl-1"/>
+                                        <Button Name="game-builder-tpl-2"/>
+                                        <Button Name="game-builder-tpl-3"/>
+                                        <Button Name="game-builder-tpl-4"/>
+                                        <Button Name="game-builder-tpl-5"/>
+                                        <Button Name="game-builder-tpl-6"/>
+                                    </WrapBox>
+                                    <Label Name="game-builder-write-locked" Color="#FFC857" Wrap="true" TextSize="12"/>
+                                    <Label Name="game-builder-caption" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                                    <VBox Name="game-builder-legs" Spacing="3"/>
+                                    <Button Name="game-builder-add-leg"/>
+                                    <HBox Name="game-builder-use-long-row" Spacing="4">
+                                        <Checkbox Name="game-builder-use-long" Slot.VAlign="Center"/>
+                                        <Label Name="game-builder-use-long-text" Color="#E3F5EA" Wrap="true" TextSize="12" Slot.Fill="1"/>
+                                    </HBox>
+                                    <Label Name="game-builder-problem" Color="#FF5F7A" Wrap="true" TextSize="12"/>
+                                    <Label Name="game-builder-no-analysis" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                                    <VBox Name="game-builder-preview" Spacing="1"/>
+                                    <Label Name="game-builder-totals" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                                    <Label Name="game-builder-analysis" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                                    <Custom Name="game-builder-payoff" Height="110"/>
+                                    <Label Name="game-builder-legend" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                                    <VBox Name="game-builder-table" Spacing="1"/>
+                                    <Button Name="game-builder-open-lab"/>
+                                    <Label Name="game-builder-legging" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                                    <Button Name="game-builder-submit" Style="Primary"/>
+                                </VBox>
+                            </VBox>
                         </Switcher>
                     </VBox>
                 </ScrollBox>
@@ -218,6 +265,20 @@
                     <ScrollBox>
                         <VBox Name="game-chain" Spacing="2"/>
                     </ScrollBox>
+                </Border>
+                <!-- An incomplete combo (web ComboNotice.svelte): its open legs, their risk, keep or close. -->
+                <Border Name="game-combo-notice" Background="#121C1B" BorderColor="#FFC857" BorderWidth="1" Padding="6" Visibility="Collapsed">
+                    <VBox Spacing="3">
+                        <Label Name="game-combo-title" Color="#FFC857" Wrap="true" AccessibleRole="Heading"/>
+                        <Label Name="game-combo-open" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                        <Label Name="game-combo-cancelled" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                        <Label Name="game-combo-risk" Color="#FF5F7A" Wrap="true" TextSize="12"/>
+                        <Label Name="game-combo-legging" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                        <WrapBox Spacing="4">
+                            <Button Name="game-combo-keep"/>
+                            <Button Name="game-combo-close" Style="Primary"/>
+                        </WrapBox>
+                    </VBox>
                 </Border>
                 <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6" Slot.Fill="1">
                     <ScrollBox>
@@ -258,7 +319,7 @@
 </Border>
 
 <Border Name="game-modal" Background="#000000B8" Visibility="Collapsed">
-    <Border Background="#121C1B" BorderColor="#39FF88" BorderWidth="1" Padding="16" Width="600" Slot.HAlign="Center" Slot.VAlign="Center">
+    <Border Name="game-modal-box" Background="#121C1B" BorderColor="#39FF88" BorderWidth="1" Padding="16" Width="600" Slot.HAlign="Center" Slot.VAlign="Center">
         <Switcher Name="game-modal-switch">
             <VBox Spacing="6">
                 <Label Name="game-plan-title" Color="#39FF88" TextSize="18"/>
@@ -315,6 +376,7 @@
                 <VBox Name="game-help-rows" Spacing="2"/>
                 <Label Name="game-help-message" Wrap="true"/>
                 <Label Name="game-help-note" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                <Button Name="game-help-tour" OnClicked="tl.game.helpTour" Slot.HAlign="Left"/>
                 <HBox Spacing="6">
                     <Button Name="game-help-reset"/>
                     <Spacer Slot.Fill="1"/>
@@ -354,7 +416,64 @@
                 <Label Name="game-perk-note" Color="#8FB3A1" Wrap="true" TextSize="12"/>
                 <Button Name="game-perk-close" Text="OK" Style="Primary" Slot.HAlign="Right"/>
             </VBox>
+            <!-- The what-if lab over positions or builder legs (web WhatIfLab.svelte, terminal mode). -->
+            <ScrollBox Name="game-lab" Height="620">
+                <VBox Spacing="5">
+                    <Label Name="game-lab-title" Color="#39FF88" TextSize="18" AccessibleRole="Heading"/>
+                    <Label Name="game-lab-note" Color="#FFC857" Wrap="true" TextSize="12"/>
+                    <HBox Spacing="6">
+                        <Label Name="game-lab-price-label" Color="#8FB3A1" TextSize="12" Width="200" Wrap="true" Slot.VAlign="Center"/>
+                        <Slider Name="game-lab-price" Min="-30" Max="30" Step="1" Value="0" Slot.Fill="1"/>
+                        <Label Name="game-lab-price-value" Color="#E3F5EA" TextSize="12" Width="190" Slot.VAlign="Center"/>
+                    </HBox>
+                    <HBox Spacing="6">
+                        <Label Name="game-lab-time-label" Color="#8FB3A1" TextSize="12" Width="200" Wrap="true" Slot.VAlign="Center"/>
+                        <Slider Name="game-lab-time" Min="0" Max="1" Step="1" Value="0" Slot.Fill="1"/>
+                        <Label Name="game-lab-time-value" Color="#E3F5EA" TextSize="12" Width="190" Slot.VAlign="Center"/>
+                    </HBox>
+                    <HBox Spacing="6">
+                        <Label Name="game-lab-iv-label" Color="#8FB3A1" TextSize="12" Width="200" Wrap="true" Slot.VAlign="Center"/>
+                        <Slider Name="game-lab-iv" Min="-30" Max="30" Step="1" Value="0" Slot.Fill="1"/>
+                        <Label Name="game-lab-iv-value" Color="#E3F5EA" TextSize="12" Width="190" Slot.VAlign="Center"/>
+                    </HBox>
+                    <Button Name="game-lab-reset" Slot.HAlign="Left"/>
+                    <Label Name="game-lab-error" Color="#FF5F7A" Wrap="true"/>
+                    <Label Name="game-lab-summary" Color="#E3F5EA" Wrap="true" TextSize="13"/>
+                    <Label Name="game-lab-expiry-note" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                    <Custom Name="game-lab-payoff" Height="150"/>
+                    <Label Name="game-lab-legend" Color="#8FB3A1" TextSize="11"/>
+                    <VBox Name="game-lab-table" Spacing="1"/>
+                    <Button Name="game-lab-close" Style="Primary" Slot.HAlign="Right"/>
+                </VBox>
+            </ScrollBox>
+            <VBox Spacing="8">
+                <Label Name="game-combo-close-title" Color="#FF5F7A" TextSize="18"/>
+                <Label Name="game-combo-close-text" Color="#E3F5EA" Wrap="true"/>
+                <HBox Spacing="6">
+                    <Spacer Slot.Fill="1"/>
+                    <Button Name="game-combo-close-no"/>
+                    <Button Name="game-combo-close-yes" Style="Primary"/>
+                </HBox>
+            </VBox>
         </Switcher>
     </Border>
 </Border>
+<!-- Guided first trade (web CoachMarks.svelte): a non-modal callout placed next to its target (the
+     view reads the target's rect each frame) and an outline over the target; the rest of the terminal
+     stays usable, so the layer lets the pointer through. -->
+<Canvas Name="game-coach-layer" HitTestable="false" Visibility="Collapsed">
+    <Border Name="game-coach-outline" BorderColor="#39FF88" BorderWidth="2" HitTestable="false"/>
+    <Border Name="game-coach" Background="#121C1B" BorderColor="#39FF88" BorderWidth="1" Padding="12" Width="340" AccessibleRole="Dialog">
+        <VBox Spacing="6">
+            <Label Name="game-coach-step" Color="#8FB3A1" TextSize="12"/>
+            <Label Name="game-coach-title" Color="#39FF88" TextSize="18" AccessibleRole="Heading"/>
+            <Label Name="game-coach-body" Color="#E3F5EA" Wrap="true"/>
+            <HBox Spacing="6">
+                <Button Name="game-coach-skip" Style="Flat" OnClicked="tl.coach.skip"/>
+                <Spacer Slot.Fill="1"/>
+                <Button Name="game-coach-next" Style="Primary" OnClicked="tl.coach.next"/>
+            </HBox>
+        </VBox>
+    </Border>
+</Canvas>
 </Overlay>

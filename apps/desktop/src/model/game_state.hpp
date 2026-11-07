@@ -51,6 +51,7 @@ struct MissionRules {
   int liq_warning_bp = 300;
   int drawdown_budget_bp = 0;
   bool confirm_stop_beyond_liq = false;
+  bool spread_margin = false;  // defined-risk margin for paired shorts (add-academy-and-strategies D5)
 };
 
 struct GameBar {
@@ -72,6 +73,7 @@ struct Position {
   std::string qty_text;
   double entry = 0;
   double margin = 0;
+  std::string entry_text;  // the engine's decimal (what-if legs valued from the entry)
 };
 
 struct Order {
@@ -115,13 +117,17 @@ struct OptionQuote {
   std::string strike_text;
   int expiry_step = 0;
   double bid = 0, ask = 0, iv = 0, delta = 0, gamma = 0, theta = 0, vega = 0;
+  double mid = 0;  // the model value on the premium tick (the what-if at zero shift rounds to it)
   bool settling = false;
+  bool listed = true;  // false: shown for its open positions only, no new orders
 };
 
 struct OptionPosition {
   int series = 0;
   double qty = 0;
   double avg_premium = 0;
+  std::string qty_text;  // the engine's decimals (what-if legs from positions)
+  std::string avg_premium_text;
 };
 
 struct Options {

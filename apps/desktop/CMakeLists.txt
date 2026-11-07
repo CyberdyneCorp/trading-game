@@ -35,10 +35,12 @@ set(TRADELAB_DESKTOP_RESOURCES
 # Shell screens, retro look and the web's screen data (README "Retro look").
 list(APPEND TRADELAB_DESKTOP_RESOURCES
   views/curriculum.xml views/journal.xml views/lesson.xml views/settings.xml
-  views/tutorial.xml views/catalog.xml views/import.xml
+  views/tutorial.xml views/catalog.xml views/import.xml views/lab.xml
   theme/tradelab.theme.xml theme/tradelab-cb.theme.xml
   fonts/VT323-Regular.ttf fonts/IBMPlexMono-Regular.ttf shaders/crt.spv
   web/content.json)
+# Academy and glossary screens (add-academy-and-strategies).
+list(APPEND TRADELAB_DESKTOP_RESOURCES views/academy.xml views/glossary.xml)
 tradelab_embed_resources(${CMAKE_BINARY_DIR}/generated/resources.cpp ${CMAKE_CURRENT_SOURCE_DIR}/resources
   ${TRADELAB_DESKTOP_RESOURCES})
 
@@ -46,25 +48,33 @@ tradelab_embed_resources(${CMAKE_BINARY_DIR}/generated/resources.cpp ${CMAKE_CUR
 set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/chart_input.cpp
   src/viewmodel/game/chart_scale.cpp
+  src/viewmodel/game/builder_vm.cpp
   src/viewmodel/game/chart_vm.cpp
+  src/viewmodel/game/combos.cpp
   src/viewmodel/game/dialogs_vm.cpp
   src/viewmodel/game/dock_layout.cpp
+  src/viewmodel/game/game_combos.cpp
   src/viewmodel/game/game_keys.cpp
   src/viewmodel/game/game_viewmodel.cpp
   src/viewmodel/game/hotkeys.cpp
+  src/viewmodel/game/lab_vm.cpp
   src/viewmodel/game/options_math.cpp
   src/viewmodel/game/options_vm.cpp
   src/viewmodel/game/panels_vm.cpp
   src/viewmodel/game/progress.cpp
   src/viewmodel/game/shortcuts.cpp
   src/viewmodel/game/sizing.cpp
+  src/viewmodel/game/strategies.cpp
   src/viewmodel/game/texts.cpp
-  src/viewmodel/game/ticket_vm.cpp)
+  src/viewmodel/game/ticket_vm.cpp
+  src/viewmodel/game/whatif_lab.cpp)
 set(TRADELAB_DESKTOP_GAME_VIEW_SOURCES
   src/view/game/game_view.cpp
+  src/view/game/game_view_builder.cpp
   src/view/game/game_view_dialogs.cpp
   src/view/game/game_view_panels.cpp
   src/view/game/game_view_ticket.cpp
+  src/view/game/lab_panel.cpp
   src/view/game/scene_painter.cpp
   src/view/game/widgets.cpp)
 
@@ -120,8 +130,20 @@ target_sources(tradelab_desktop_model PRIVATE
 # libcurl is opened at run time (dlopen), never linked.
 target_link_libraries(tradelab_desktop_model PRIVATE tradelab_sqlite ${CMAKE_DL_LIBS})
 
+# Academy (add-academy-and-strategies D3, D6-D8): lesson widgets, review, glossary, guided first trade.
+set(TRADELAB_DESKTOP_ACADEMY_VIEWMODEL_SOURCES
+  src/viewmodel/academy/coach.cpp
+  src/viewmodel/academy/glossary.cpp
+  src/viewmodel/academy/payoff.cpp
+  src/viewmodel/academy/review.cpp
+  src/viewmodel/academy/ticket_sandbox.cpp
+  src/viewmodel/academy_flow.cpp
+  src/viewmodel/screens/academy.cpp
+  src/viewmodel/screens/lesson_widgets.cpp)
+
 add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/app_viewmodel.cpp
+  src/viewmodel/academy_lab.cpp
   src/viewmodel/assisted.cpp
   src/viewmodel/chart_geometry.cpp
   src/viewmodel/pack_screens.cpp
@@ -152,7 +174,8 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/updates.cpp
   src/viewmodel/audio/audio_director.cpp
   src/viewmodel/audio/audio_rules.cpp
-  ${TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES})
+  ${TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES}
+  ${TRADELAB_DESKTOP_ACADEMY_VIEWMODEL_SOURCES})
 target_link_libraries(tradelab_desktop_viewmodel PUBLIC tradelab_desktop_model)
 target_compile_options(tradelab_desktop_viewmodel PRIVATE ${TRADELAB_DESKTOP_WARNINGS} ${TRADELAB_DESKTOP_FLOAT_FLAGS})
 
@@ -181,8 +204,11 @@ add_library(tradelab_desktop_view STATIC
   src/view/app_view.cpp
   src/view/chart_painter.cpp
   src/view/screens/retro_look.cpp
+  src/view/screens/lab_screen.cpp
   src/view/screens/shell_view.cpp
   src/view/screens/shell_view_flows.cpp
+  src/view/screens/shell_view_academy.cpp
+  src/view/game/coach_view.cpp
   src/view/raven/raven_ui.cpp
   ${TRADELAB_DESKTOP_GAME_VIEW_SOURCES})
 target_link_libraries(tradelab_desktop_view PUBLIC tradelab_desktop_viewmodel tradelab_desktop_platform raven::raven)

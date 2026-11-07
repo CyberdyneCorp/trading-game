@@ -1,0 +1,45 @@
+<!-- Glossary (web Glossary.svelte + GlossaryList.svelte): the terms of the shown language alphabetically,
+     search ignoring accents and case, and the selected term with its stage, definition, example,
+     aliases and related terms. Texts from screens::glossary(). -->
+<ScrollBox Name="glossary-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="glossary-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="glossary-back" OnClicked="tl.glossary.back" Slot.VAlign="Center"/>
+        </HBox>
+        <Label Name="glossary-note" Wrap="true" Class="muted"/>
+        <HBox Spacing="8">
+            <Label Name="glossary-search-label" Slot.VAlign="Center"/>
+            <TextInput Name="glossary-search" Width="320"/>
+            <Label Name="glossary-count" Class="muted" Slot.VAlign="Center"/>
+        </HBox>
+        <HBox Spacing="12">
+            <ListView Name="glossary-list" Width="340" Height="460"/>
+            <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12" Slot.Fill="1">
+                <VBox Spacing="8">
+                    <Label Name="glossary-pick" Class="muted" Wrap="true"/>
+                    <VBox Name="glossary-entry" Spacing="8">
+                        <Label Name="glossary-term" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                        <Label Name="glossary-stage" Class="info"/>
+                        <Label Name="glossary-short" Wrap="true" Class="accent"/>
+                        <Label Name="glossary-long" Wrap="true"/>
+                        <Label Name="glossary-example" Wrap="true" Class="attention"/>
+                        <Label Name="glossary-aliases" Wrap="true" Class="muted"/>
+                        <VBox Name="glossary-related-row" Spacing="4">
+                            <Label Name="glossary-related-label" Class="muted"/>
+                            <WrapBox Spacing="6">
+                                <Button Name="glossary-related-0" Style="Flat" OnClicked="tl.glossary.related0"/>
+                                <Button Name="glossary-related-1" Style="Flat" OnClicked="tl.glossary.related1"/>
+                                <Button Name="glossary-related-2" Style="Flat" OnClicked="tl.glossary.related2"/>
+                                <Button Name="glossary-related-3" Style="Flat" OnClicked="tl.glossary.related3"/>
+                                <Button Name="glossary-related-4" Style="Flat" OnClicked="tl.glossary.related4"/>
+                            </WrapBox>
+                        </VBox>
+                    </VBox>
+                </VBox>
+            </Border>
+        </HBox>
+    </VBox>
+</Border>
+</ScrollBox>

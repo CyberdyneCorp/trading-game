@@ -110,11 +110,14 @@ void GameViewModel::on_snapshot(const Snapshot& s) {
   if (s.game) {
     if (started) begin_run(s, rewound);
     state_ = s.game;
+    if (s.log) log_ = s.log;
     names_.observe(*state_);
     ticket.sync(*state_);
   }
   for (const auto& r : s.results) on_result(r);
   if (state_ && !state_->active() && s.debrief) on_run_end(s);
+  refresh_analysis();
+  request_combo_risk();
   touch();
 }
 
@@ -146,6 +149,7 @@ void GameViewModel::reset_run(const GameState& g) {
     option_ticket = OptionTicketViewModel{};
     lessons = LessonDialog{};
     chart = ChartViewModel{};
+    reset_combos();
     autoplay.stop();
     notice_ = {};
     tab_ = Tab::Perp;
@@ -250,6 +254,7 @@ void GameViewModel::submit() {
   if (!d->increases) return send_order(*d);
   pending_order_ = d;
   pending_option_.reset();
+  pending_combo_.reset();
   plan.open(is_buy(d->side), d->qty, d->leverage, d->estimate.planned_risk, d->stop, d->take_profit, std::nullopt);
   modal_ = Modal::Plan;
   touch();
@@ -327,8 +332,9 @@ void GameViewModel::apply_advice() {
 }
 
 void GameViewModel::set_tab(Tab t) {
-  if (t == Tab::Options && (!state_ || !state_->options.enabled)) return;
+  if (t != Tab::Perp && (!state_ || !state_->options.enabled)) return;
   tab_ = t;
+  refresh_analysis();
   touch();
 }
 
@@ -350,6 +356,7 @@ void GameViewModel::submit_option() {
   if (!d->opens_exposure) return send_option(*d);
   pending_option_ = d;
   pending_order_.reset();
+  pending_combo_.reset();
   plan.open(d->buy, d->qty, 1, d->risk, {}, {}, d->label);
   modal_ = Modal::Plan;
   touch();
@@ -455,10 +462,12 @@ void GameViewModel::confirm_move(bool yes) {
 void GameViewModel::plan_confirm(bool skipped) {
   if (modal_ != Modal::Plan || !state_) return;
   if (!skipped && !plan.can_save()) return;
-  const PlanEntry e = plan.entry(state_->step, skipped);
+  PlanEntry e = plan.entry(state_->step, skipped);
+  if (pending_combo_) e.combo = pending_combo_->combo;
   journal_.push_back(e);
   if (plan_sink_) plan_sink_(e);
   modal_ = Modal::None;
+  if (pending_combo_) return plan_combo(e);
   chain_.push_back(Step{plan.command(e), false, {}});
   if (pending_order_) {
     const OrderDraft d = *pending_order_;
@@ -479,6 +488,7 @@ void GameViewModel::plan_confirm(bool skipped) {
 void GameViewModel::plan_cancel() {
   pending_order_.reset();
   pending_option_.reset();
+  pending_combo_.reset();
   if (modal_ == Modal::Plan) modal_ = Modal::None;
   touch();
 }

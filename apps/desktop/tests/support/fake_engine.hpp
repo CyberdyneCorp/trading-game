@@ -22,7 +22,14 @@ inline std::string describe_order(const GameCommand& c) {
          optional_part(" trail ", c.trail);
 }
 
+inline std::string describe_untagged(const GameCommand& c);
+
+// A strategy-builder leg names its combo: "option 9 buy 1.0 [c1 iron_condor]".
 inline std::string describe(const GameCommand& c) {
+  return describe_untagged(c) + (c.combo.empty() ? "" : " [" + c.combo + " " + c.strategy + "]");
+}
+
+inline std::string describe_untagged(const GameCommand& c) {
   const std::string side = c.buy ? "buy" : "sell";
   switch (c.kind) {
     case GameCommandKind::Order: return describe_order(c);
@@ -79,6 +86,16 @@ struct FakeEngine final : EngineCommands {
     log.push_back("rewind " + std::to_string(to_step));
   }
   void resume() override { log.push_back("resume"); }
+  // Report-only engine calls wait here for the test to answer them (reply), in order.
+  struct Analysis {
+    AnalysisKind kind = AnalysisKind::WhatIf;
+    std::string request;
+    AnalysisReply reply;
+  };
+  std::vector<Analysis> analyses;
+  void analyze(AnalysisKind kind, const std::string& request, AnalysisReply reply) override {
+    analyses.push_back({kind, request, std::move(reply)});
+  }
 };
 
 // A terminal state at the first decision step of a 140-bar mission: price ~100, flat, 10,000 cr.
