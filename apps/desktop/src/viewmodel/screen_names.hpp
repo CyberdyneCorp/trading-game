@@ -240,6 +240,7 @@ inline constexpr std::string_view kMenuNotice = "menu-notice";
 inline constexpr std::string_view kTutHead = "tut-head";
 inline constexpr std::string_view kTutStep = "tut-step";
 inline constexpr std::string_view kTutTitle = "tut-title";
+inline constexpr std::string_view kTutArt = "tut-art";
 inline constexpr std::string_view kTutBody = "tut-body";
 inline constexpr std::string_view kTutSkip = "tut-skip";
 inline constexpr std::string_view kTutPrev = "tut-prev";
@@ -332,7 +333,7 @@ inline constexpr std::string_view kDebriefBarsPrev = "debrief-bars-prev";
 inline constexpr std::string_view kDebriefBarsNext = "debrief-bars-next";
 
 inline constexpr auto kFlowWidgets = std::to_array<std::string_view>({
-    kMenuCatalog, kMenuImport, kMenuNotice, kTutHead, kTutStep, kTutTitle, kTutBody, kTutSkip, kTutPrev, kTutNext,
+    kMenuCatalog, kMenuImport, kMenuNotice, kTutHead, kTutStep, kTutTitle, kTutArt, kTutBody, kTutSkip, kTutPrev, kTutNext,
     kBriefTutorial, kCatalogTitle, kCatalogBack, kCatalogNote, kCatalogState, kCatalogRetry, kCatalogCached,
     kCatalogList, kCatalogDetail, kCatalogEntryTitle, kCatalogEntryTags, kCatalogEntrySummary, kCatalogDownloadState,
     kCatalogProgress, kCatalogDownload, kCatalogPause, kCatalogPlay, kCatalogNeedsConnection, kLibraryTitle,

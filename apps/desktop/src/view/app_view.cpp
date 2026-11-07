@@ -193,6 +193,7 @@ void AppView::refresh() {
   Rwidget_invalidate(find(names::kGameChart));
   if (vm_.screen() == Screen::Debrief) Rwidget_invalidate(find(names::kDebriefChart));
   if (vm_.screen() == Screen::Lesson) Rwidget_invalidate(find(names::kLessonPayoff));
+  if (vm_.screen() == Screen::Tutorial) Rwidget_invalidate(find(names::kTutArt));
   if (coach_view_) coach_view_->refresh();
 }
 

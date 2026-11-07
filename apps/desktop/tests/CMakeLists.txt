@@ -14,6 +14,7 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/test_app_viewmodel.cpp
   viewmodel/test_vulkan_message.cpp
   viewmodel/game/test_builder.cpp
+  viewmodel/game/test_tutorial_art.cpp
   viewmodel/test_lesson_lab.cpp
   viewmodel/game/test_game_viewmodel.cpp
   viewmodel/game/test_options_parity.cpp

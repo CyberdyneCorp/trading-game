@@ -52,6 +52,7 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/chart_vm.cpp
   src/viewmodel/game/combos.cpp
   src/viewmodel/game/dialogs_vm.cpp
+  src/viewmodel/game/tutorial_art.cpp
   src/viewmodel/game/dock_layout.cpp
   src/viewmodel/game/game_combos.cpp
   src/viewmodel/game/game_keys.cpp

@@ -5,11 +5,14 @@
 #include <raven/raven_widget.h>
 #include <raven/raven_window.h>
 
+#include <algorithm>
 #include <array>
 
 #include "view/game/scene_painter.hpp"
 #include "view/raven/raven_ui.hpp"
 #include "view/screens/shell_view.hpp"
+#include "viewmodel/game/dialogs_vm.hpp"
+#include "viewmodel/game/tutorial_art.hpp"
 #include "viewmodel/screen_names.hpp"
 
 namespace tradelab::desktop {
@@ -22,6 +25,16 @@ std::string text_or_empty(const char* text) { return text != nullptr ? text : ""
 
 void paint_debrief_chart(Rid /*w*/, RPainter* p, float width, float height, void* user_data) {
   view::paint_scene(p, vm_of(user_data).debrief_scene(width, height));
+}
+
+// The current tutorial card's drawing.
+void paint_tutorial_art(Rid /*w*/, RPainter* p, float width, float height, void* user_data) {
+  const AppViewModel& vm = vm_of(user_data);
+  const game::Texts t = vm.game().texts();
+  const auto cards = game::tutorial_cards(t, vm.shell().run_mission);
+  if (cards.empty()) return;
+  const auto i = static_cast<std::size_t>(std::clamp(vm.tutorial_index(), 0, static_cast<int>(cards.size()) - 1));
+  view::paint_scene(p, game::tutorial_art_scene(t, cards[i].art, width, height));
 }
 
 void on_catalog_selected(Rid, int index, void* user_data) { vm_of(user_data).catalog_select(index); }
@@ -110,6 +123,7 @@ void ShellView::bind_flow_callbacks() {
   Rtext_input_set_changed_callback(find(names::kGameAssist.turn), on_assist_turn, &vm_);
   Rtext_input_set_changed_callback(find(names::kDebriefAssist.turn), on_assist_turn, &vm_);
   Rcustom_set_paint_callback(find(names::kDebriefChart), paint_debrief_chart, &vm_);
+  Rcustom_set_paint_callback(find(names::kTutArt), paint_tutorial_art, &vm_);
 }
 
 void ShellView::apply_values(const ScreenModel& m) {

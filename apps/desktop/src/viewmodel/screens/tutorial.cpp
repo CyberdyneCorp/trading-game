@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "viewmodel/game/dialogs_vm.hpp"
+#include "viewmodel/game/tutorial_art.hpp"
 #include "viewmodel/screens/screens.hpp"
 
 namespace tradelab::desktop::screens {
@@ -20,6 +21,8 @@ ScreenModel tutorial(const AppViewModel& vm) {
     m.text(names::kTutTitle, cards[static_cast<std::size_t>(i)].title);
     m.text(names::kTutBody, cards[static_cast<std::size_t>(i)].body);
   }
+  // The card's drawing (web TutorialArt.svelte, decorative: aria-hidden there, no name here).
+  m.show(names::kTutArt, count > 0 && game::has_tutorial_art(cards[static_cast<std::size_t>(i)].art));
   m.text(names::kTutSkip, vm.tr("tut.skip"));
   m.text(names::kTutPrev, vm.tr("tut.prev"));
   m.text(names::kTutNext, vm.tr(last ? "tut.done" : "tut.next"));

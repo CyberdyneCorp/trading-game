@@ -230,6 +230,11 @@ inline void play_strategy_mission(App& app, Driver& d, Terminal& t, std::string_
   CHECK(grouped == filled);
   check_comparison(app, d);
   if (shot) shot(std::string(mission) + "-debrief");
+  if (shot) {
+    Rwidget_scroll_into_view(d.widget(names::kDebriefComparisonPanel));
+    d.frames(3);
+    shot(std::string(mission) + "-comparison");
+  }
 }
 
 }  // namespace tradelab::desktop::testing
