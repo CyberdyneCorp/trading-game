@@ -110,7 +110,8 @@ TEST_CASE("windowed strategy missions: m13–m17 played with a builder structure
   const std::pair<const char*, std::size_t> plays[] = {{"m13-call-spread", 0},   {"m14-covered-call", 2}, {"m15-protective-put", 3},
                                                        {"m16-range-condor", 6}, {"m17-before-expiry", 1}};
   for (const auto& [mission, tpl] : plays) {
-    INFO(mission);
+    const std::string id = mission;
+    INFO(id);
     Session s;
     testing::play_strategy_mission(s.app, *s.d, *s.t, mission, tpl, s.shot());
   }

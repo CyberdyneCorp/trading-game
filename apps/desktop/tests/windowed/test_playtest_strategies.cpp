@@ -11,9 +11,11 @@
 #include <string>
 #include <utility>
 
+#include "support/academy_flows.hpp"
 #include "support/playtest_run.hpp"
 #include "support/strategy_flows.hpp"
 #include "viewmodel/game/builder_widgets.hpp"
+#include "viewmodel/game/dock_layout.hpp"
 #include "viewmodel/widget_names.hpp"
 
 using namespace tradelab::desktop;
@@ -182,4 +184,80 @@ TEST_CASE("playtest strategies: a campaign through the Strategies stage (pt-BR, 
   p.run->clipping("curriculum");
   p.dump("curriculum", names::kCurriculumStages);
   p.run->finish();
+}
+
+// X1: one m16 seed played with the same legs on the web and the desktop. The report lists the builder's
+// analysis at 1 contract, the size the sizing aid gives for 1% of equity, the analysis at that size, the
+// fills and the debrief's strategy comparison (README "Playtest": the web shows the same numbers).
+TEST_CASE("playtest strategies: m16's iron condor sized at 1% by the sizing aid, filled, and the debrief comparison (X1)") {
+  for (const Window w : {Window{Locale::PtBR, 1280, 800}, Window{Locale::En, 1024, 768}}) {
+    Player p(3, w, std::string("m16-sized-") + (w.locale == Locale::En ? "en" : "pt"));
+    testing::Terminal t(p.app, *p.d);
+    t.open(testing::mission_index("m16-range-condor"));
+    t.skip_question();
+    game::GameViewModel& vm = p.app.vm().game();
+    testing::pick_template(p.app, *p.d, 6);
+    p.dump("condor at 1 contract", bn::kBody);
+    REQUIRE(testing::shown(*p.d, bn::kSizing));
+    t.type(bn::kSizeRisk, "1");
+    p.d->frames(2);
+    REQUIRE(p.d->click(bn::kSizeApply));
+    REQUIRE(p.d->until([&] { return testing::analysis_ready(vm); }));
+    CHECK(vm.builder.legs.front().qty > 1);
+    Rwidget_scroll_into_view(p.d->widget(bn::kSizeHint));
+    p.run->shot("sized");
+    p.run->clipping("sized");
+    p.dump("condor sized at 1%", bn::kBody);
+    testing::submit_combo(p.app, *p.d);
+    t.advance();
+    p.run->note("filled");
+    REQUIRE(vm.combo_statuses().front().state == game::ComboState::Filled);
+    p.run->report() << "---- fills\n" << testing::dump_texts(p.d->widget(game::kPanelBook));
+    p.run->play_to_debrief();
+    testing::check_comparison(p.app, *p.d);
+    Rwidget_scroll_into_view(p.d->widget(names::kDebriefComparisonPanel));
+    p.run->shot("comparison");
+    p.run->clipping("comparison");
+    p.dump("strategy comparison", names::kDebriefComparisonPanel);
+    p.run->finish();
+  }
+}
+
+// The teaching fix: a covered call on a long with a stop plans the loss to that stop, not the long's value.
+TEST_CASE("playtest strategies: m14 covered call on a stopped long, its risk to the long's stop (pt-BR, 1280x800)") {
+  Player p(3, {Locale::PtBR, 1280, 800}, "m14-stopped-long");
+  testing::Terminal t(p.app, *p.d);
+  t.open(testing::mission_index("m14-covered-call"));
+  game::GameViewModel& vm = p.app.vm().game();
+  p.run->order(true, "10", 3);
+  for (int i = 0; i < 3 && vm.state()->position.qty <= 0; ++i) t.advance();
+  p.run->note("long filled");
+  INFO(p.d->text(names::kGameNotice) << " orders " << vm.state()->orders.size() << " step " << vm.state()->step);
+  REQUIRE(vm.state()->position.qty > 0);
+  REQUIRE(game::long_stop(*vm.state()).has_value());
+  testing::pick_template(p.app, *p.d, 2);
+  CHECK(vm.builder.use_long);
+  REQUIRE(testing::shown(*p.d, bn::kSizeHeld));
+  CHECK(p.d->text(bn::kSizeHeld).find(fmt::fmt_price(*game::long_stop(*vm.state()), Locale::PtBR)) != std::string::npos);
+  CHECK_FALSE(testing::shown(*p.d, bn::kSizing));
+  Rwidget_scroll_into_view(p.d->widget(bn::kSizeHeld));
+  p.run->shot("covered-call");
+  p.run->clipping("covered call");
+  p.dump("covered call on the stopped long", bn::kBody);
+  testing::submit_combo(p.app, *p.d);
+  p.run->report() << "  plan notice: " << p.d->text(names::kGameNotice) << "\n";
+  p.run->finish();
+}
+
+// The lesson what-if lab and builder played as a player, no text cut, in both languages and sizes.
+TEST_CASE("playtest strategies: the lesson what-if lab and builder (PT-BR 1024x768, en 1280x800)") {
+  for (const Window w : {Window{Locale::PtBR, 1024, 768}, Window{Locale::En, 1280, 800}}) {
+    Player p(1, w, std::string("lesson-widgets-") + (w.locale == Locale::En ? "en" : "pt"));
+    testing::flow_lesson_engine_widgets(p.app, *p.d, false, [&](const std::string& label) {
+      p.run->shot(label);
+      p.run->clipping(label);
+      p.dump(label, "lesson-scroll");
+    });
+    p.run->finish();
+  }
 }

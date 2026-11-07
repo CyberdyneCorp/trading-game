@@ -81,7 +81,7 @@ inline constexpr std::string_view kDebriefComparisonPanel = "debrief-comparison-
 inline constexpr std::string_view kDebriefComparisonTitle = "debrief-comparison-title";
 inline constexpr std::string_view kDebriefComparisonBasis = "debrief-comparison-basis";
 inline constexpr std::string_view kDebriefComparison = "debrief-comparison";
-inline constexpr std::string_view kDebriefComparisonRefused = "debrief-comparison-refused";
+inline constexpr std::string_view kDebriefComparisonNotes = "debrief-comparison-notes";
 inline constexpr std::string_view kDebriefComparisonNote = "debrief-comparison-note";
 inline constexpr std::string_view kDebriefAdvisorPanel = "debrief-advisor-panel";
 inline constexpr std::string_view kDebriefAdvisor = "debrief-advisor";
@@ -184,7 +184,7 @@ inline constexpr auto kShellWidgets = std::to_array<std::string_view>({
     kDebriefReveal, kDebriefFindingsTitle, kDebriefFindings, kDebriefNextLesson, kDebriefDisclaimer, kDebriefLessons,
     kDebriefDecisions, kDebriefGreeksPanel, kDebriefGreeks, kDebriefTradesTitle, kDebriefTrades, kDebriefTradeNotes,
     kDebriefCalibration, kDebriefComparisonPanel, kDebriefComparisonTitle, kDebriefComparisonBasis, kDebriefComparison,
-    kDebriefComparisonRefused, kDebriefComparisonNote, kDebriefAdvisorPanel, kDebriefAdvisor, kDebriefRegimesPanel, kDebriefRegimeBand,
+    kDebriefComparisonNotes, kDebriefComparisonNote, kDebriefAdvisorPanel, kDebriefAdvisor, kDebriefRegimesPanel, kDebriefRegimeBand,
     kDebriefRegimes, kDebriefRegimesNote, kDebriefRegimesTitle, kDebriefReleasesTitle, kDebriefReleasesPanel, kDebriefReleases, kDebriefReleasesNote,
     kDebriefTimeline, kCurriculumTitle, kCurriculumBack, kCurriculumNote, kCurriculumProgress, kCurriculumStages,
     kCurriculumLessons, kCurriculumLessonStart, kJournalTitle, kJournalBack, kJournalNote, kJournalFilterRow,

@@ -100,12 +100,15 @@ void paint_regime_band(Rid /*w*/, RPainter* p, float width, float height, void* 
 
 // ---- Tables ----
 
-// A "#" column keeps a narrow fixed width; the others share the rest.
-void set_columns(Rid table, const std::vector<std::string>& columns) {
+// A "#" column keeps a narrow fixed width; the others share the rest (equally, or by the given fills).
+void set_columns(Rid table, const std::vector<std::string>& columns, const std::vector<float>& fills) {
   Rtable_clear_columns(table);
   for (const auto& c : columns) Rtable_add_column(table, c.c_str(), 0);
   const bool index = !columns.empty() && columns[0] == "#";
-  for (int c = 0; c < static_cast<int>(columns.size()); ++c) Rtable_set_column_fill(table, c, index && c == 0 ? 0.0f : 1.0f);
+  for (std::size_t c = 0; c < columns.size(); ++c) {
+    const float fill = c < fills.size() ? fills[c] : 1.0f;
+    Rtable_set_column_fill(table, static_cast<int>(c), index && c == 0 ? 0.0f : fill);
+  }
   if (index) Rtable_set_column_width(table, 0, 44);
 }
 
@@ -325,7 +328,7 @@ void ShellView::apply_table(const WidgetTable& t) {
   if (it != tables_.end() && it->second.columns == t.columns && it->second.rows == t.rows) return;
   const Rid table = find(t.widget);
   if (table == R_INVALID_ID) return;
-  if (it == tables_.end() || it->second.columns != t.columns) set_columns(table, t.columns);
+  if (it == tables_.end() || it->second.columns != t.columns) set_columns(table, t.columns, t.fills);
   set_rows(table, t.rows);
   tables_[std::string(t.widget)] = t;
 }

@@ -66,6 +66,7 @@ inline void pick_template(App& app, Driver& d, std::size_t index) {
 // The combo's plan skipped, its legs sent one by one.
 inline void submit_combo(App& app, Driver& d) {
   game::GameViewModel& vm = app.vm().game();
+  INFO("can_submit " << vm.builder_view().can_submit << " notice " << vm.notice().text << " modal " << static_cast<int>(vm.modal()) << " busy " << vm.busy());
   REQUIRE(d.click(bn::kSubmit));
   REQUIRE(vm.modal() == game::Modal::Plan);
   REQUIRE(d.click(names::game::kPlanSkip));
