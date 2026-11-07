@@ -7,7 +7,7 @@
     <VBox Spacing="10">
         <HBox Spacing="12">
             <Label Text="TRADELAB" TextSize="50" Class="title" AccessibleRole="Heading"/>
-            <Label Name="menu-subtitle" Class="muted" Slot.Fill="1" Slot.VAlign="Center"/>
+            <Label Name="menu-subtitle" Class="muted" Wrap="true" Slot.Fill="1" Slot.VAlign="Center"/>
             <Button Name="menu-language" Style="Flat" OnClicked="tl.menu.language" Slot.VAlign="Center"/>
         </HBox>
         <HBox Name="menu-update-row" Spacing="12">
@@ -44,7 +44,7 @@
                     <ListView Name="menu-list" Width="300" Height="330"/>
                     <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12" Slot.Fill="1">
                         <VBox Spacing="8">
-                            <Label Name="menu-detail-title" TextSize="25" Class="title"/>
+                            <Label Name="menu-detail-title" TextSize="25" Class="title" Wrap="true"/>
                             <Label Name="menu-detail-done" Class="up"/>
                             <Label Name="menu-detail-tagline" Wrap="true"/>
                             <Label Name="menu-detail-topic" Wrap="true" Class="muted"/>

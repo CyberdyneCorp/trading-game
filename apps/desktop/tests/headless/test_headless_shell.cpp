@@ -13,6 +13,7 @@
 #include "support/driver.hpp"
 #include "support/game_flows.hpp"
 #include "support/storage_fixtures.hpp"
+#include "support/text_dump.hpp"
 #include "view/app.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -281,6 +282,20 @@ TEST_CASE("headless shell: at 150% text the terminal keeps its chart and Menu wi
     REQUIRE(d.click(names::kGameMenu));
     CHECK(app.vm().screen() == Screen::Menu);
   }
+}
+
+// The menu's subtitle and the selected mission's title were single lines cut by their panel at 150%.
+TEST_CASE("headless shell: at 150% text the menu's subtitle and mission title wrap instead of being cut") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 3u; });
+  REQUIRE(app.build(1024, 768));
+  app.vm().set_text_scale(1.5F);
+  Driver d(app);
+  d.frames(4);
+  const std::string cut = testing::overflow_report(app.view().screen_root(Screen::Menu));
+  INFO(cut);
+  CHECK(cut.find("menu-subtitle") == std::string::npos);
+  CHECK(cut.find("menu-detail-title") == std::string::npos);
 }
 
 // A list filled and given its selection before its screen was laid out used to scroll by one row: the
