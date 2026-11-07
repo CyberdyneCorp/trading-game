@@ -252,7 +252,7 @@ std::span<const Field> action_spec(std::string_view kind) {
 struct Checker {
   RunFileProblem problem;
 
-  bool ok() const { return problem.reason.empty(); }
+  [[nodiscard]] bool ok() const { return problem.reason.empty(); }
 
   void fail(std::string path) {
     if (ok()) problem = {"invalid_field", std::move(path)};

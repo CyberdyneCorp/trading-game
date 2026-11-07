@@ -725,7 +725,7 @@ std::vector<StopMove> stop_moves(const RunState& st) {
     if (e.type != EventType::OrderUpdate) continue;
     auto it = std::find_if(last.begin(), last.end(), [&e](const auto& p) { return p.first == e.order_id; });
     if (e.reason == Reason::OrderMoved && it != last.end() && movable_stop(find_order(st, e.order_id))) {
-      moves.push_back({e.step, (e.requested.raw > it->second) - (e.requested.raw < it->second)});
+      moves.push_back({e.step, static_cast<int>(e.requested.raw > it->second) - static_cast<int>(e.requested.raw < it->second)});
     }
     if (it == last.end()) last.emplace_back(e.order_id, e.requested.raw);
     else it->second = e.requested.raw;

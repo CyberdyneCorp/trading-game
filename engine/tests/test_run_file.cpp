@@ -61,7 +61,7 @@ std::string file_for(const JsonValue& fx) {
   const JsonValue& expected = *fx.find("expected");
   const JsonValue* options = fx.find("options");
   return std::string(R"({"format":"tradelab-run","version":1,"mission":")") + golden::text(fx, "mission") + R"(","pack":null,"seed":)" +
-         std::to_string(fx.find("seed")->integer) + R"(,"options":)" + (options ? detail::canonical_json(*options) : std::string(kDefaults)) +
+         std::to_string(fx.find("seed")->integer) + R"(,"options":)" + (options != nullptr ? detail::canonical_json(*options) : std::string(kDefaults)) +
          R"(,"engine":{"executionPolicy":17,"abi":1,"version":"0.1.0"},"labels":{"campaign":false,"assisted":false},"actions":)" +
          detail::canonical_json(*fx.find("actions")) + R"(,"journal":[],"result":{"status":")" + golden::text(expected, "status") +
          R"(","digest":")" + golden::text(expected, "digest") + R"(","eventsDigest":")" + golden::text(expected, "eventsDigest") + "\"}}";
@@ -72,6 +72,30 @@ std::string replace_once(std::string s, std::string_view from, std::string_view 
   REQUIRE(at != std::string::npos);
   return s.replace(at, from.size(), to);
 }
+
+// One random mutation of a file (a byte changed, a range deleted or duplicated, a JSON character
+// inserted, or a cut), from a deterministic xorshift64: the same mutants on every target.
+struct Mutator {
+  std::uint64_t x = 0x9E3779B97F4A7C15ULL;
+  std::uint64_t next(std::uint64_t n) {
+    x ^= x << 13U;
+    x ^= x >> 7U;
+    x ^= x << 17U;
+    return n == 0 ? 0 : x % n;
+  }
+  std::string operator()(std::string m) {
+    const std::size_t at = next(m.size());
+    switch (next(5)) {
+      case 0: m[at] = static_cast<char>(next(256)); break;
+      case 1: m.erase(at, 1 + next(16)); break;
+      case 2: m.insert(at, m.substr(at, 1 + next(32))); break;
+      case 3: m.insert(at, 1, std::string_view(" {}[],:\"0-.e\\")[next(13)]); break;
+      default: m.resize(at); break;
+    }
+    if (m.find('\0') != std::string::npos) m.resize(m.find('\0'));  // C strings end at NUL
+    return m;
+  }
+};
 
 }  // namespace
 
@@ -231,26 +255,10 @@ TEST_CASE("Run files: random mutations never crash and never change the market o
   const std::string id = str(original, "fileDigest");
   const JsonValue base_run = parse(str(original, "run"));
   int changed = 0;
-  std::uint64_t x = 0x9E3779B97F4A7C15ULL;  // xorshift64: deterministic, the same on every target
-  const auto next = [&x](std::uint64_t n) {
-    x ^= x << 13U;
-    x ^= x >> 7U;
-    x ^= x << 17U;
-    return n == 0 ? 0 : x % n;
-  };
+  Mutator mutate;
   int accepted = 0;
   for (int i = 0; i < 2500; ++i) {
-    std::string m = base;
-    const std::size_t at = next(m.size());
-    switch (next(5)) {
-      case 0: m[at] = static_cast<char>(next(256)); break;
-      case 1: m.erase(at, 1 + next(16)); break;
-      case 2: m.insert(at, m.substr(at, 1 + next(32))); break;
-      case 3: m.insert(at, 1, " {}[],:\"0-.e\\"[next(13)]); break;
-      default: m.resize(at); break;
-    }
-    if (m.find('\0') != std::string::npos) m.resize(m.find('\0'));  // C strings end at NUL
-    const JsonValue v = verify(m);
+    const JsonValue v = verify(mutate(base));
     REQUIRE(v.find("ok") != nullptr);
     if (ok(v)) {
       // Accepted only when the market and the recorded result are untouched: the change was layout,
