@@ -2,21 +2,29 @@
      OptionChain, OrdersPanel, AdvisorPanel, NewsPanel, EventFeed, and the dialogs). Texts come from
      the viewmodels (src/viewmodel/game); names are in src/viewmodel/game/game_widgets.hpp. -->
 <Overlay>
-<Border Background="#0B1010" Padding="6">
+<!-- Above 100% text the terminal is laid out text-scale times taller and scrolls, and the top bar's
+     controls take a second row (GameView::fit_text_scale): the chart's toolbar rows no longer squeeze
+     the chart out and Menu stays inside the window. At 100% the content is the window's size. -->
+<ScrollBox Name="game-scroll">
+<Border Name="game-content" Background="#0B1010" Padding="6">
     <VBox Spacing="6">
         <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6">
-            <HBox Spacing="10">
-                <Label Text="TRADELAB" Color="#39FF88" Slot.VAlign="Center"/>
-                <Label Name="game-market" Color="#FFC857" Slot.VAlign="Center"/>
-                <Label Name="game-mission" Color="#8FB3A1" Slot.Fill="1" Slot.VAlign="Center"/>
-                <Label Name="game-assisted-tag" Class="attention" Slot.VAlign="Center"/>
-                <Label Name="game-turn" Color="#E3F5EA" Slot.VAlign="Center"/>
-                <Label Name="game-interval" Color="#8FB3A1" Slot.VAlign="Center"/>
-                <Button Name="game-advance" Style="Primary" OnClicked="tl.game.advance"/>
-                <Button Name="game-auto"/>
-                <Button Name="game-help" Text="?"/>
-                <Button Name="game-menu" Style="Flat" OnClicked="tl.game.menu"/>
-            </HBox>
+            <VBox Name="game-top" Spacing="6">
+                <HBox Name="game-top-row" Spacing="10">
+                    <Label Text="TRADELAB" Color="#39FF88" Slot.VAlign="Center"/>
+                    <Label Name="game-market" Color="#FFC857" Slot.VAlign="Center"/>
+                    <Label Name="game-mission" Color="#8FB3A1" Slot.Fill="1" Slot.VAlign="Center"/>
+                    <Label Name="game-assisted-tag" Class="attention" Slot.VAlign="Center"/>
+                    <HBox Name="game-top-controls" Spacing="10" Slot.HAlign="Right">
+                        <Label Name="game-turn" Color="#E3F5EA" Slot.VAlign="Center"/>
+                        <Label Name="game-interval" Color="#8FB3A1" Slot.VAlign="Center"/>
+                        <Button Name="game-advance" Style="Primary" OnClicked="tl.game.advance"/>
+                        <Button Name="game-auto"/>
+                        <Button Name="game-help" Text="?"/>
+                        <Button Name="game-menu" Style="Flat" OnClicked="tl.game.menu"/>
+                    </HBox>
+                </HBox>
+            </VBox>
         </Border>
 
         <!-- Docked panels (viewmodel/game/dock_layout.hpp): tabs move them, borders resize them; the view
@@ -318,6 +326,7 @@
         </DockArea>
     </VBox>
 </Border>
+</ScrollBox>
 
 <Border Name="game-modal" Background="#000000B8" Visibility="Collapsed">
     <Border Name="game-modal-box" Background="#121C1B" BorderColor="#39FF88" BorderWidth="1" Padding="16" Width="600" Slot.HAlign="Center" Slot.VAlign="Center">

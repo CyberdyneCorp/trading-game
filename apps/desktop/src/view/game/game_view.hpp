@@ -61,6 +61,7 @@ class GameView {
 
   void bind_dock();
   void apply_dock();
+  void fit_text_scale();
   void apply_labels();
   void apply_top(const game::Texts& t, const GameState& g);
   void apply_chart(const game::Texts& t, const GameState& g);
@@ -112,6 +113,7 @@ class GameView {
   std::uint64_t shown_ = 0;
   Locale shown_locale_ = Locale::PtBR;
   bool labels_done_ = false;
+  float content_height_ = 0;
   std::string cell_;
   std::chrono::steady_clock::time_point last_tick_ = std::chrono::steady_clock::now();
   LineList builder_preview_, builder_table_;

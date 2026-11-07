@@ -253,6 +253,36 @@ int first_visible_item(Driver& d, std::string_view list) {
 
 }  // namespace
 
+// At a large text size the chart's toolbar wrapped onto more rows until the chart had no height left
+// and the top bar pushed Menu out of the 1024 px window. The terminal now lays out as in a window
+// text-scale times larger and scrolls; at 100% it is the window's size.
+TEST_CASE("headless shell: at 150% text the terminal keeps its chart and Menu within reach") {
+  for (float scale : {1.0F, 1.5F, 2.0F}) {
+    RavenSession raven;
+    App app(builtin_catalog(), [] { return 3u; });
+    REQUIRE(app.build(1024, 768));
+    app.vm().set_text_scale(scale);
+    Driver d(app);
+    d.frames(3);
+    testing::Terminal t(app, d);
+    t.open(12);
+    t.skip_question();
+    d.frames(4);
+    INFO("text scale " << scale);
+    float x = 0, y = 0, w = 0, h = 0;
+    Rwidget_get_rect(d.widget(names::kGameChart), &x, &y, &w, &h);
+    CHECK(h >= 150);
+    Rwidget_get_rect(d.widget("game-content"), &x, &y, &w, &h);
+    float sx = 0, sy = 0, sw = 0, sh = 0;
+    Rwidget_get_rect(d.widget("game-scroll"), &sx, &sy, &sw, &sh);
+    if (scale == 1.0F) CHECK((w == sw && h == sh));  // nothing scrolls at 100%
+    Rwidget_get_rect(d.widget(names::kGameMenu), &x, &y, &w, &h);
+    CHECK(x + w <= sw);
+    REQUIRE(d.click(names::kGameMenu));
+    CHECK(app.vm().screen() == Screen::Menu);
+  }
+}
+
 // A list filled and given its selection before its screen was laid out used to scroll by one row: the
 // menu opened on "Mission 02" at the top with Mission 01 selected out of sight, the curriculum's lessons
 // on the second lesson.

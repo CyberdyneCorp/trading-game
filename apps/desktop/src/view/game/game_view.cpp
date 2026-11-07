@@ -10,6 +10,7 @@
 #include <raven/raven_window.h>
 
 #include <cctype>
+#include <cmath>
 
 #include "view/game/scene_painter.hpp"
 #include "view/raven/raven_ui.hpp"
@@ -263,8 +264,26 @@ void GameView::on_dock_changed(Rid area, void* self) {
   view->vm().set_layout(Rdock_area_save_layout(area));
 }
 
+// Above 100% text the terminal's content is laid out text-scale times taller, in a ScrollBox, so the
+// chart's toolbar wrapping onto more rows no longer squeezes the chart to nothing; the top bar's
+// controls move to a second row so Menu stays inside the window. At 100% nothing moves or scrolls.
+void GameView::fit_text_scale() {
+  float x = 0, y = 0, w = 0, h = 0;
+  Rwidget_get_rect(find(n::kScroll), &x, &y, &w, &h);
+  const float scale = std::max(Raccessibility_get_text_scale(), 1.0F);
+  const float height = std::floor(h * scale);
+  if (height != content_height_) {
+    content_height_ = height;
+    Rwidget_set_min_size(find(n::kContent), 0, height);
+  }
+  const Rid controls = find(n::kTopControls);
+  const Rid row = scale > 1.0F ? find(n::kTop) : find(n::kTopRow);
+  if (Rwidget_get_parent(controls) != row) Rwidget_add_child(row, controls);
+}
+
 // Each frame: the stored arrangement once, else the default for the area's size whenever it changes.
 void GameView::apply_dock() {
+  fit_text_scale();
   const Rid area = find(n::kDock);
   float x = 0, y = 0, w = 0, h = 0;
   Rwidget_get_rect(area, &x, &y, &w, &h);
