@@ -137,11 +137,38 @@ jobs:
             -DCMAKE_C_FLAGS=-fsanitize=thread -DCMAKE_CXX_FLAGS=-fsanitize=thread \
             -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread
           cmake --build build/tsan -j 4 --target tradelab_desktop_unit_tests
-      - name: EngineHost and storage host tests under TSan
+      - name: EngineHost, storage host and pack service tests under TSan
         working-directory: apps/desktop
         env:
           TSAN_OPTIONS: halt_on_error=1 second_deadlock_stack=1
-        run: build/tsan/tests/tradelab_desktop_unit_tests -tc="engine host*,storage host*"
+        run: build/tsan/tests/tradelab_desktop_unit_tests -tc="engine host*,storage host*,pack service*"
+
+  # AddressSanitizer + UBSan over the unit and headless suites: a test helper that kept a reference into a
+  # GameState across a frame (freed by the next snapshot) read freed memory, which only a sanitizer sees
+  # every time. Leaks are not checked (Raven's caches live until exit).
+  asan:
+    name: asan (unit + headless)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang cmake zlib1g-dev
+      - name: Build the unit and headless tests with -fsanitize=address,undefined
+        working-directory: apps/desktop
+        run: |
+          cmake --preset linux-headless -B build/asan -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            "-DCMAKE_C_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined
+          cmake --build build/asan -j 4 --target tradelab_desktop_unit_tests tradelab_desktop_headless_tests
+      - name: Unit and headless tests under ASan + UBSan
+        working-directory: apps/desktop
+        env:
+          ASAN_OPTIONS: detect_leaks=0
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: ctest --test-dir build/asan -R "^desktop_(unit|headless)$" --output-on-failure
 
   macos:
     name: "macos (universal: arm64 + x86_64 under Rosetta, .app)"
@@ -188,6 +215,13 @@ jobs:
         with:
           name: TradeLab-macos-universal-unsigned
           path: apps/desktop/dist/TradeLab-macos.zip
+      # A crashed test binary leaves a macOS crash report (every thread's stack) for the next diagnosis.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: desktop-crash-reports-macos
+          path: ~/Library/Logs/DiagnosticReports/tradelab_desktop_*
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         if: always()
         with:

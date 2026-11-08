@@ -136,14 +136,17 @@ DownloadResult PackDownloader::install(const CatalogEntry& entry, const std::str
 std::optional<Catalog> PackDownloader::fetch_catalog(const std::string& url) { return read_catalog(url).catalog; }
 
 PackDownloader::CatalogRead PackDownloader::read_catalog(const std::string& url) {
+  return read_catalog(url.empty() ? HttpResponse{} : http_.get(url, std::nullopt), url, store_);
+}
+
+PackDownloader::CatalogRead PackDownloader::read_catalog(const HttpResponse& r, const std::string& url, storage::RunStore& store) {
   CatalogRead out;
-  const HttpResponse r = url.empty() ? HttpResponse{} : http_.get(url, std::nullopt);
   if (r.status == 200) {
     const std::string text(r.body.begin(), r.body.end());
     if (auto c = parse_catalog(text, url)) {
       try {
-        store_.set_meta("catalog.url", url);
-        store_.set_meta("catalog.json", text);
+        store.set_meta("catalog.url", url);
+        store.set_meta("catalog.json", text);
       } catch (const storage::Error&) {  // shown now; just not cached for offline use
       }
       out.catalog = std::move(c);
@@ -152,8 +155,8 @@ PackDownloader::CatalogRead PackDownloader::read_catalog(const std::string& url)
     }
   }
   out.offline = r.status == 0 && !url.empty();
-  const auto cached_url = store_.meta("catalog.url");
-  const auto cached = store_.meta("catalog.json");
+  const auto cached_url = store.meta("catalog.url");
+  const auto cached = store.meta("catalog.json");
   if (cached_url && cached) out.catalog = parse_catalog(*cached, *cached_url);
   return out;
 }

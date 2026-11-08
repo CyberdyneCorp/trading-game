@@ -118,6 +118,9 @@ App::App(Catalog catalog, AppViewModel::SeedSource seeds, std::unique_ptr<storag
 App::~App() {
   Rset_frame_callback(nullptr, nullptr);
   updates_.reset();  // joins a running check or download; its late reports do nothing
+  // The window and its widgets go first, while the views and viewmodels their callbacks point to are
+  // still here (closing the window does the same); else Rshutdown would destroy them afterwards.
+  if (view_ && Rwindow_is_valid(view_->window()) != 0) Rwindow_destroy(view_->window());
   view_.reset();
   if (packs_) packs_->stop_downloads();  // a download in progress stops at its next chunk
   engine_.reset();  // joins the worker; posted deliveries become no-ops

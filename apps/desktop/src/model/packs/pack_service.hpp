@@ -3,6 +3,9 @@
 // (EngineHost::post_storage_job: the engine's run-less pack calls share one buffer) and reports back on
 // the UI thread through `Post` as a PackEvent, so the viewmodel never blocks.
 //
+// The catalog manifest is the exception: its HTTP read runs on a FetchQueue thread and only its caching
+// (or the offline copy) on the worker, so a slow catalog server never holds a run's start behind it.
+//
 // Downloads go in 64 KB ranges (PackDownloader): each committed chunk is reported, pause() stops after
 // the current chunk and keeps what arrived, and a later download() resumes from the committed offset,
 // also after a restart. A complete file is checked (size, SHA-256) and verified by the engine before it
@@ -19,6 +22,7 @@
 #include <vector>
 
 #include "model/packs/catalog.hpp"
+#include "model/packs/fetch_queue.hpp"
 #include "model/packs/http.hpp"
 #include "model/storage/run_store.hpp"
 
@@ -94,7 +98,8 @@ class PackService final : public PackCommands {
   void remove(const std::string& digest) override;
   void validate_csv(const std::string& csv, const std::string& meta_json) override;
   void import_csv(const std::string& csv, const std::string& meta_json, const std::string& label) override;
-  // Asks every running download to stop after its current chunk (shutdown: before the worker is joined).
+  // Asks every running download to stop after its current chunk and waits for a catalog read in
+  // progress (shutdown: before the worker is joined).
   void stop_downloads();
 
  private:
@@ -114,6 +119,7 @@ class PackService final : public PackCommands {
   std::shared_ptr<Shared> shared_;
   std::mutex flags_mu_;
   std::map<std::string, std::shared_ptr<std::atomic<bool>>> stop_;
+  FetchQueue fetches_;  // last member: joined first, while what its job uses is still there
 };
 
 // The library state (installed, missing, partial) read on the worker.
