@@ -51,6 +51,27 @@ TEST_CASE("headless: every view loads and binds its widgets and actions") {
   }
 }
 
+// Every widget callback points at the views and viewmodels (GameView, AppViewModel): the App destroys its
+// window with them still alive, instead of leaving the widgets for Rshutdown after they are freed.
+TEST_CASE("headless: the app takes its window and widgets with it, before Rshutdown") {
+  RavenSession raven;
+  Rid window = R_INVALID_ID;
+  Rid chart = R_INVALID_ID;
+  {
+    App app(builtin_catalog(), [] { return 1u; });
+    REQUIRE(app.build());
+    Driver d(app);
+    d.frames(2);
+    Terminal(app, d).open(0);
+    window = app.view().window();
+    chart = app.view().find(names::kGameChart);
+    REQUIRE(Rwindow_is_valid(window) != 0);
+    REQUIRE(Rwidget_is_valid(chart) != 0);
+  }
+  CHECK(Rwindow_is_valid(window) == 0);
+  CHECK(Rwidget_is_valid(chart) == 0);
+}
+
 TEST_CASE("headless: mission 01 from the menu to the debrief with injected input") {
   RavenSession raven;
   App app(builtin_catalog(), [] { return 1u; });

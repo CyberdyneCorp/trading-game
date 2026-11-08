@@ -108,9 +108,10 @@ inline void flow_assisted(App& app, Driver& d, Terminal& t, const Shot& shot = {
 inline void flow_debrief_chart_and_lessons(App& app, Driver& d, Terminal& t, const Shot& shot = {}) {
   t.open(0);
   REQUIRE(d.click(names::game::kLessons));
-  const auto& info = t.g().lesson;
-  REQUIRE_FALSE(info.questions.empty());
-  for (int q = 0; q < static_cast<int>(info.questions.size()); ++q) {
+  // A count, not a reference into the state: each skip delivers a new snapshot and frees the old state.
+  const int questions = static_cast<int>(t.g().lesson.questions.size());
+  REQUIRE(questions > 0);
+  for (int q = 0; q < questions; ++q) {
     app.vm().game().lesson_skip(q);  // the dialog's Skip of each question
     REQUIRE(d.idle());
   }

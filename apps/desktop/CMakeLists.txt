@@ -124,6 +124,7 @@ target_sources(tradelab_desktop_model PRIVATE
   src/model/storage/sqlite.cpp
   src/model/packs/catalog.cpp
   src/model/packs/download.cpp
+  src/model/packs/fetch_queue.cpp
   src/model/packs/files.cpp
   src/model/packs/http_curl.cpp
   src/model/packs/pack_library.cpp
