@@ -692,6 +692,7 @@ Finished changes are archived: their requirements live in `openspec/specs/` (sim
 | `add-advisor-intel-tutorials` (archived 2026-11-07) | mission-tutorial, advisor, progression-rewards |
 | `add-academy-and-strategies` | academy, options-whatif, strategy-builder, guided-first-trade, glossary |
 | `add-run-sharing-and-journal-stats` | run-sharing, journal-stats (and a desktop-client delta) |
+| `add-practice-and-advanced-strategies` (planned) | portfolio-risk, daily-drills, daily-challenge, guess-rounds, coach-review, mistake-replay (and deltas to order-execution, options, options-whatif, strategy-builder, terminal-ui, web-client, market-generator, mission-scoring, gameplay-loop, curriculum, mission-tutorial, academy, glossary, game-api, desktop-client) |
 
 ## Status and roadmap
 
@@ -706,6 +707,7 @@ Built:
 
 Next:
 
+- Practice formats and advanced strategies (`openspec/changes/add-practice-and-advanced-strategies`): builder and terminal upgrades (execution policy v18 for time in force and OCO groups), missions m18–m25, and daily drills, a daily challenge, guess rounds, coach mode and mistake replay, on web and desktop.
 - Login and sync through Cyberdyne Auth: web sign-in through a BFF and the client's sync, the desktop's loopback sign-in and sync (they need TradeLab clients registered in CyberdyneAuth).
 - Historical packs from Market4Me (needs the packer registered as a CyberdyneAuth client, Market4Me allowlisting and a legal review of vendor-derived data).
 - iPad/iPhone (SwiftUI over the engine; plan in `openspec/changes/add-native-clients`).
