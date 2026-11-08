@@ -18,6 +18,10 @@ struct WhatIfLeg {
   Qty qty;                     // contracts (options) or perpetual contracts
   Price entry;                 // per unit; for a run leg without one, the price it would cross now
   bool has_entry = false;
+  // Perpetual legs: a working protective stop. The expiry analytics treat the leg as closed at the stop
+  // beyond it (a long is worth max(s, stop), a short min(s, stop); no gap), so a combo built on a held
+  // position reports its loss to that stop. 0 = none. The value, P&L, Greeks and "today" curve ignore it.
+  Price stop;
   // Run-less legs.
   Price strike;
   std::uint32_t minutes_to_expiry = 0;

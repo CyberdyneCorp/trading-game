@@ -20,6 +20,7 @@
 #include "view/app.hpp"
 #include "viewmodel/game/builder_widgets.hpp"
 #include "viewmodel/game/game_widgets.hpp"
+#include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
 
 namespace tradelab::desktop::testing {
@@ -65,6 +66,7 @@ inline void pick_template(App& app, Driver& d, std::size_t index) {
 // The combo's plan skipped, its legs sent one by one.
 inline void submit_combo(App& app, Driver& d) {
   game::GameViewModel& vm = app.vm().game();
+  INFO("can_submit " << vm.builder_view().can_submit << " notice " << vm.notice().text << " modal " << static_cast<int>(vm.modal()) << " busy " << vm.busy());
   REQUIRE(d.click(bn::kSubmit));
   REQUIRE(vm.modal() == game::Modal::Plan);
   REQUIRE(d.click(names::game::kPlanSkip));
@@ -164,11 +166,50 @@ inline void flow_academy_lab(App& app, Driver& d, const StrategyShot& shot = {})
   CHECK(app.vm().screen() == Screen::Menu);
 }
 
+// The briefing's option margin rule (web Briefing.svelte): where writing is allowed, spread margin or
+// per leg as the engine's missionRules declare it; not shown where options cannot be written.
+inline void check_margin_rule(App& app, Driver& d) {
+  const Snapshot* s = app.vm().snapshot();
+  REQUIRE(s != nullptr);
+  const json::Value& rules = s->state["missionRules"];
+  const bool writes = rules["permissions"]["optionsWrite"].as_bool(false);
+  CHECK(shown(d, names::kBriefMarginRule) == writes);
+  if (!writes) return;
+  const std::string rule = d.text(names::kBriefMarginRule);
+  CHECK(rule.rfind(app.vm().tr("brief.marginRule"), 0) == 0);
+  CHECK(rule.find(app.vm().tr(rules["spreadMargin"].as_bool() ? "brief.marginRuleSpread" : "brief.marginRulePerLeg")) != std::string::npos);
+}
+
+// The debrief's strategy comparison (web StrategyComparison.svelte): the player's row first, then each
+// reference structure the engine played on this seed, the best net marked.
+inline void check_comparison(App& app, Driver& d) {
+  const json::Value& cmp = app.vm().snapshot()->debrief->raw["strategyComparison"];
+  REQUIRE_FALSE(cmp.is_null());
+  CHECK(shown(d, names::kDebriefComparisonPanel));
+  CHECK(d.text(names::kDebriefComparisonTitle) == app.vm().tr("comparison.title"));
+  CHECK(d.text(names::kDebriefComparisonBasis).find(cmp["entryStep"].as_string()) != std::string::npos);
+  const ScreenModel model = app.vm().screen_model();
+  const WidgetTable* table = model.table_of(names::kDebriefComparison);
+  REQUIRE(table != nullptr);
+  REQUIRE(table->rows.size() == cmp["rows"].size() + 1);
+  CHECK(table->rows[0][0].rfind(app.vm().tr("comparison.you"), 0) == 0);
+  const std::string best = "[" + app.vm().tr("comparison.best") + "]";
+  CHECK(std::any_of(table->rows.begin(), table->rows.end(), [&](const auto& r) { return r[0].find(best) != std::string::npos; }));
+}
+
 // One strategy mission (m13–m17) played to its debrief with a structure from the builder: the combo
 // sent at the first decision, then Shift+Space to the end.
 inline void play_strategy_mission(App& app, Driver& d, Terminal& t, std::string_view mission, std::size_t tpl,
                                   const StrategyShot& shot = {}) {
-  t.open(mission_index(mission));
+  app.vm().select(mission_index(mission));
+  d.frames(2);
+  REQUIRE(d.click(names::kMenuStart));
+  REQUIRE(d.to_briefing());
+  check_margin_rule(app, d);
+  if (shot) shot(std::string(mission) + "-briefing");
+  REQUIRE(d.click(names::kBriefGo));
+  REQUIRE(app.vm().screen() == Screen::Game);
+  d.frames(3);
   t.skip_question();
   game::GameViewModel& vm = app.vm().game();
   pick_template(app, d, tpl);
@@ -188,7 +229,13 @@ inline void play_strategy_mission(App& app, Driver& d, Terminal& t, std::string_
   const bool grouped = std::any_of(trades->rows.begin(), trades->rows.end(),
                                    [](const auto& r) { return r.size() > 1 && r[1].rfind("\xE2\x97\x86 ", 0) == 0; });
   CHECK(grouped == filled);
+  check_comparison(app, d);
   if (shot) shot(std::string(mission) + "-debrief");
+  if (shot) {
+    Rwidget_scroll_into_view(d.widget(names::kDebriefComparisonPanel));
+    d.frames(3);
+    shot(std::string(mission) + "-comparison");
+  }
 }
 
 }  // namespace tradelab::desktop::testing

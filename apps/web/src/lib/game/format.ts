@@ -64,6 +64,12 @@ export function fmtPct(fraction: number, locale: Locale, digits = 2, signed = fa
 }
 
 /** Sign marker so gains/losses never rely on color alone. */
+/** Sign of an amount as shown in cents: -0.004 cr reads "0,00 cr", so it is neither up nor down. */
+export function centsSign(d: Decimal | number): -1 | 0 | 1 {
+	const cents = Math.round((typeof d === 'number' ? d : num(d)) * 100);
+	return cents > 0 ? 1 : cents < 0 ? -1 : 0;
+}
+
 export function signMark(v: number): string {
 	if (v > 0) return '▲';
 	if (v < 0) return '▼';

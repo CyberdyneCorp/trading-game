@@ -32,12 +32,53 @@ function chainOf() {
 }
 
 // A GameState as far as the builder reads it (the engine's tl_state shape).
-function gameOf({ multiplier = '1', optMultiplier = '1', lot = '0.1', optLot = '0.1', posQty = '0', posEntry = '0', positions = [] } = {}) {
+function gameOf({ multiplier = '1', optMultiplier = '1', lot = '0.1', optLot = '0.1', posQty = '0', posEntry = '0', positions = [], orders = [] } = {}) {
 	return {
 		contract: { multiplier, lotSize: lot },
 		position: { qty: posQty, entry: posEntry },
+		...(orders.length ? { orders } : {}),
 		options: { multiplier: optMultiplier, lotSize: optLot, chain: chainOf(), positions }
 	};
+}
+
+// Working orders around a held long of 4.8: which reduce-only sell stops close all of it.
+const order = (id, type, price, qty, extra = {}) => ({ id, type, side: 'sell', qty, filled: '0', price, reduceOnly: true, series: 0, ...extra });
+const STOPS = [
+	order(1, 'stop_market', '97.50000000', '4.80000000'),
+	order(2, 'trailing_stop', '98.20000000', '5.00000000'),
+	order(3, 'stop_market', '99.00000000', '4.80000000', { filled: '1.00000000' }),
+	order(4, 'take_profit', '105.00000000', '4.80000000'),
+	order(5, 'stop_market', '99.10000000', '4.80000000', { reduceOnly: false }),
+	order(6, 'stop_market', '99.20000000', '4.80000000', { series: 3 }),
+	order(7, 'stop_market', '99.30000000', '4.80000000', { side: 'buy' }),
+	order(8, 'stop_market', '0', '4.80000000')
+];
+
+function stopCases(m, add) {
+	for (const g of [
+		gameOf({ posQty: '4.8', posEntry: '99.5', orders: STOPS }),
+		gameOf({ posQty: '4.8', posEntry: '99.5', orders: STOPS.slice(2) }),
+		gameOf({ posQty: '4.8', posEntry: '99.5', orders: [STOPS[0]] }),
+		gameOf({ posQty: '-4.8', posEntry: '99.5', orders: STOPS }),
+		gameOf({ orders: STOPS })
+	]) {
+		add('longStop', [g], m.longStop(g));
+		add('heldLong', [g], m.heldLong(g));
+	}
+	for (const args of [
+		[10000, 1, 99.89, 1, 0.1],
+		[10000, 1, 99.89, 88.4, 0.1],
+		[2500, 2.5, 46.49, 44.7, 0.1],
+		[10000, 1, 0.37, 1, 1],
+		[10000, 1, null, 1, 0.1],
+		[10000, 1, 0, 1, 0.1],
+		[10000, 0, 99.89, 1, 0.1],
+		[0, 1, 99.89, 1, 0.1],
+		[10000, 1, 99.89, 0, 0.1],
+		[10000, 0.01, 99.89, 1, 0.1]
+	]) {
+		add('contractsForRisk', args, m.contractsForRisk(...args));
+	}
 }
 
 function templateCases(m, add, games) {
@@ -114,7 +155,8 @@ export function strategiesFixture(m) {
 			{ series: 12, qty: '-1.50000000', avgPremium: '0.80000000' }
 		]
 	});
-	for (const g of [pos, games[0], games[2]]) add('positionLegs', [g], m.positionLegs(g));
+	const tens = gameOf({ posQty: '10.00000000', posEntry: '620.00000000', positions: [{ series: 9, qty: '-20.00000000', avgPremium: '13.46000000' }] });
+	for (const g of [pos, games[0], games[2], tens]) add('positionLegs', [g], m.positionLegs(g));
 	const orders = [
 		{ series: 9, side: 'buy', qty: '1.0' },
 		{ series: 0, side: 'buy', qty: '2.5' },
@@ -124,7 +166,28 @@ export function strategiesFixture(m) {
 	add('whatifLegs', [orders, null], m.whatifLegs(orders, null));
 	const held = { qty: '4.80000000', entry: '99.50000000' };
 	add('whatifLegs', [orders, held], m.whatifLegs(orders, held));
+	const stopped = { ...held, stop: '98.20000000' };
+	add('whatifLegs', [orders.filter((o) => o.series !== 0), stopped], m.whatifLegs(orders.filter((o) => o.series !== 0), stopped));
+	stopCases(m, add);
 	return { helper: 'strategies.ts', cases: list };
+}
+
+// The debrief's strategy comparison (debrief.ts comparisonLines): the player's row first, the best net
+// marked (ties too), refused structures without numbers.
+const row = (name, netPnl, extra = {}) => ({ name, entryStep: 62, exitStep: 140, netPnl, maxDrawdown: '35.20000000', marginCalls: 0, refused: null, ...extra });
+
+export function comparisonFixture(m) {
+	const { list, add } = cases();
+	const comparisons = [
+		{ basis: 'player', entryStep: 62, qty: '88.4', rows: [row('iron_condor', '121.11000000'), row('short_strangle', '-310.50000000', { marginCalls: 2, exitStep: 97 })] },
+		{ basis: 'reference', entryStep: 60, qty: '10', rows: [row('naked_call', '50.00000000'), row('bull_call_spread', '50.00000000')] },
+		{ basis: 'reference', entryStep: 60, qty: '10', rows: [row('iron_condor', '0', { refused: 'insufficient_margin', netPnl: '0', exitStep: 60 }), row('short_strangle', '-12.50000000')] },
+		{ basis: 'player', entryStep: 70, qty: '1', rows: [] }
+	];
+	for (const c of comparisons) {
+		for (const net of [0, 121.11, -40.25, 50]) add('comparisonLines', [c, net], m.comparisonLines(c, net));
+	}
+	return { helper: 'debrief.ts', cases: list };
 }
 
 const COMBO_LOG = [
@@ -227,6 +290,13 @@ function requestCases(m, add) {
 		add('runRequest', [run, shift, 101.37], m.runRequest(run, shift, 101.37));
 	}
 	for (const ls of [legs, legs.slice(2), [], [{ ...legs[0], days: -2 }]]) add('academyMaxDays', [ls], m.academyMaxDays(ls));
+	// Whole quantities of 10 and more are written as String(n) writes them ("10", never "1e+01").
+	const round = [
+		{ ...legs[0], qty: 10, strike: 620 },
+		{ ...legs[1], qty: 20, strike: 600 },
+		{ ...legs[2], qty: 100, entry: 620 }
+	];
+	add('academyRequest', [round, { price: 0, time: 0, iv: 0 }, 620], m.academyRequest(round, { price: 0, time: 0, iv: 0 }, 620));
 }
 
 export function whatifLabFixture(m, condor, call) {
@@ -254,6 +324,16 @@ export function whatifLabFixture(m, condor, call) {
 	]) {
 		const s = { price: 1, time: 2, iv: 3 };
 		add('setSlider', [s, which, 9, unlocked], m.setSlider(s, which, 9, unlocked));
+	}
+	for (const qty of ['1', '85.4', '47.90000000', '1234.5', '0.12345678', '3']) {
+		for (const locale of ['pt-BR', 'en']) {
+			for (const l of [
+				{ kind: 'call', side: 'buy', qty, strike: '105.00000000' },
+				{ kind: 'perp', side: 'sell', qty, strike: null }
+			]) {
+				add('legLabel', [l, locale, 'perp'], m.legLabel(l, locale, 'perp'));
+			}
+		}
 	}
 	for (const r of [condor, call]) {
 		add('strikesOf', [r], m.strikesOf(r));

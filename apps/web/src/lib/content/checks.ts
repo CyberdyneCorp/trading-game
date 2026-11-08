@@ -1,10 +1,14 @@
 // Correct numbers by construction (design D2): a lesson or glossary example declares each number its
 // text states as a check, and the unit tests recompute every check here. The arithmetic kinds use the
 // web's display mirrors (sizing.ts for liquidation); the expiry option kinds use content/payoff.ts.
-// Option model values and Greeks are not stated by any lesson until the engine's what-if call is
-// available to the client (task W5); bindings/python/tests/test_academy_numbers.py will check those.
+// Option model values and Greeks come only from the engine: a `whatif` check names a step's `whatif`
+// widget, a slider position and a field of the engine's result. bindings/python/tests/
+// test_academy_numbers.py checks them (and the expiry kinds) through the Python binding's
+// option_whatif, and content/academyEngine.test.ts through the WASM build (whatifCheckRequest).
 
+import type { WhatIfRequest } from '#lib/engine/types.ts';
 import { liquidationPrice } from '#lib/game/sizing.ts';
+import { academyRequest, ZERO_SHIFT, type AcademyLeg, type LabShift } from '#lib/game/whatifLab.ts';
 import type { PayoffLeg } from './academy.ts';
 import { breakevens, maxLoss, maxProfit, pnlAt } from './payoff.ts';
 import { sandboxCosts } from './ticketSandbox.ts';
@@ -38,7 +42,34 @@ export type Check = Base &
 		| { kind: 'breakeven'; legs: PayoffLeg[]; expect: number[] }
 		| { kind: 'maxProfit'; legs: PayoffLeg[]; expect: number | null }
 		| { kind: 'maxLoss'; legs: PayoffLeg[]; expect: number | null }
+		| WhatIfCheck
 	);
+
+/**
+ * An engine number: the step `step`'s what-if widget with its sliders at `shift`, valued by
+ * tl_option_whatif; `field` is a path into the result ("legs.0.value", "net.pnl", "expiry.maxLoss").
+ */
+export interface WhatIfCheck {
+	kind: 'whatif';
+	step: string;
+	shift?: Partial<LabShift>;
+	field: string;
+	expect: number;
+}
+
+/** Kinds only the engine computes (verified by the engine tests, not by computeCheck). */
+export const isEngineCheck = (c: Check): c is Base & WhatIfCheck => c.kind === 'whatif';
+
+/** The request a `whatif` check values: exactly what the step's widget sends at that slider position. */
+export function whatifCheckRequest(c: WhatIfCheck, widget: { forward: number; legs: AcademyLeg[] }): WhatIfRequest {
+	return academyRequest(widget.legs, { ...ZERO_SHIFT, ...c.shift }, widget.forward);
+}
+
+/** A field of an engine result by its path; null when absent. */
+export function fieldOf(result: unknown, path: string): number | null {
+	const v = path.split('.').reduce<unknown>((o, k) => (o != null && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined), result);
+	return v == null ? null : Number(v);
+}
 
 const roundTo = (v: number, digits: number) => Math.round(v * 10 ** digits) / 10 ** digits;
 const dir = (side: Side) => (side === 'buy' ? 1 : -1);
@@ -98,8 +129,9 @@ export function computeCheck(c: Check): number | number[] | null {
 	return v == null ? null : roundTo(v, digits);
 }
 
-/** Null when the stated value matches the computed one, else a message naming both. */
+/** Null when the stated value matches the computed one, else a message naming both (engine kinds: see isEngineCheck). */
 export function checkProblem(c: Check): string | null {
+	if (isEngineCheck(c)) return null;
 	const got = computeCheck(c);
 	const same = JSON.stringify(got) === JSON.stringify(c.expect);
 	return same ? null : `${c.kind}: states ${JSON.stringify(c.expect)}, computed ${JSON.stringify(got)}`;

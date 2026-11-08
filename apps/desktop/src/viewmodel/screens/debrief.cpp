@@ -3,11 +3,13 @@
 // state and the seeded reveal (tl_mission_reveal); these functions only format them.
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "model/content.hpp"
 #include "viewmodel/campaign.hpp"
 #include "viewmodel/curriculum.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/texts.hpp"
 #include "viewmodel/report_texts.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/academy/glossary.hpp"
@@ -285,6 +287,57 @@ void greeks(const Ctx& c, ScreenModel& m) {
   m.lines.push_back(std::move(out));
 }
 
+// ---- StrategyComparison.svelte ----
+
+// A structure's name and its rule: "Iron condor (asas 4 strikes fora)" -> {"Iron condor", "asas 4 strikes fora"}.
+// The table keeps the short name (a cell cannot wrap); the rule is listed under it.
+// The player's own row ("Você (esta partida)") stays whole.
+std::pair<std::string, std::string> name_parts(const Ctx& c, const ComparisonLine& l) {
+  const std::string full = c.tr(l.name);
+  const auto open = full.find(" (");
+  if (l.key == "you") return {full, ""};
+  if (open == std::string::npos || full.back() != ')') return {full, ""};
+  return {full.substr(0, open), full.substr(open + 2, full.size() - open - 3)};
+}
+
+std::vector<std::string> comparison_cells(const Ctx& c, const ComparisonLine& l) {
+  std::string name = name_parts(c, l).first + (l.best ? " [" + c.tr("comparison.best") + "]" : "");
+  if (!l.refused.empty()) return {"\xE2\x9C\x96 " + name, std::string(kDash), std::string(kDash), std::string(kDash), std::string(kDash)};
+  const std::string bars = l.entry_step ? str(*l.entry_step) + " \xE2\x86\x92 " + str(l.exit_step.value_or(0)) : std::string(kDash);  // →
+  return {std::move(name), bars, l.net ? c.money(*l.net, true) : std::string(kDash), l.drawdown ? c.money(*l.drawdown) : std::string(kDash),
+          l.margin_calls ? str(*l.margin_calls) : std::string(kDash)};
+}
+
+void comparison(const Ctx& c, ScreenModel& m) {
+  const json::Value& cmp = c.d["strategyComparison"];
+  m.show(names::kDebriefComparisonPanel, !cmp.is_null());
+  if (cmp.is_null()) return;
+  m.text(names::kDebriefComparisonTitle, c.tr("comparison.title"));
+  const bool player = cmp["basis"].as_string() == "player";
+  m.text(names::kDebriefComparisonBasis, c.tr(player ? "comparison.basisPlayer" : "comparison.basisReference",
+                                              {{"step", cmp["entryStep"].as_string()}, {"qty", fmt::fmt_qty(cmp["qty"].as_string(), c.L)}}));
+  WidgetTable t{names::kDebriefComparison,
+                {c.tr("comparison.col.structure"), c.tr("comparison.col.bars"), c.tr("comparison.col.net"), c.tr("comparison.col.drawdown"),
+                 c.tr("comparison.col.calls")},
+                {},
+                {2.4f, 1, 1.2f, 1.2f, 1}};
+  WidgetLines notes{names::kDebriefComparisonNotes, {}};
+  for (const auto& l : comparison_lines(cmp, fmt::num(c.d["netPnl"].as_string()))) {
+    t.rows.push_back(comparison_cells(c, l));
+    const auto [name, rule] = name_parts(c, l);
+    if (!rule.empty()) notes.lines.push_back({name + ": " + rule, Tone::Muted});
+    if (!l.refused.empty()) {
+      notes.lines.push_back({"\xE2\x9C\x96 " + name + ": " + c.tr("comparison.refused", {{"reason", game::rejection_text(c.vm.game().texts(), l.refused)}}),
+                             Tone::Attention});
+    }
+  }
+  m.name(names::kDebriefComparison, c.tr("comparison.title"));
+  m.tables.push_back(std::move(t));
+  m.show(names::kDebriefComparisonNotes, !notes.lines.empty());
+  m.lines.push_back(std::move(notes));
+  m.text(names::kDebriefComparisonNote, c.tr("comparison.note"));
+}
+
 }  // namespace
 
 // Defined in debrief_tables.cpp.
@@ -345,6 +398,7 @@ ScreenModel debrief(const AppViewModel& vm) {
   decisions(c, m);
   greeks(c, m);
   debrief_trades(vm, *s, c.d, m);
+  comparison(c, m);
   debrief_reveal_tables(vm, *s, c.d, m);
   chart_panel(vm, *s, m);
   assist_panel(vm, names::kDebriefAssist, m);

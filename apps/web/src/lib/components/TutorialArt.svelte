@@ -205,9 +205,9 @@
 		<path class="strike" d="M8,88 L152,14" />
 		<path class="payoff" d="M8,80 L96,34 L152,34" />
 		<line class="strike" x1="96" x2="96" y1="8" y2="92" />
-		<text x="150" y="28" class="small up-fill" text-anchor="end">{t('tut.art.cap')}</text>
+		<text x="150" y="44" class="small up-fill" text-anchor="end">{t('tut.art.cap')}</text>
 		<text x="150" y="12" class="small muted" text-anchor="end">long</text>
-		<text x="12" y="96" class="small down-fill">+{t('tut.art.premium')}</text>
+		<text x="12" y="96" class="small up-fill">+{t('tut.art.premium')}</text>
 	{:else if art === 'insurance'}
 		<!-- Long + put at expiry: a floor below the strike, the long's open loss (dashed) without it. -->
 		<line class="axis" x1="8" x2="152" y1="50" y2="50" />
@@ -216,7 +216,7 @@
 		<line class="strike" x1="64" x2="64" y1="8" y2="92" />
 		<text x="10" y="64" class="small attention">{t('tut.art.floor')}</text>
 		<text x="68" y="96" class="small muted">strike</text>
-		<text x="150" y="44" class="small down-fill" text-anchor="end">−{t('tut.art.premium')}</text>
+		<text x="150" y="64" class="small down-fill" text-anchor="end">−{t('tut.art.premium')}</text>
 	{:else if art === 'condor'}
 		<!-- Iron condor (solid, flat wings) against a short strangle (dashed, open on both sides). -->
 		<line class="axis" x1="8" x2="152" y1="44" y2="44" />
@@ -224,7 +224,7 @@
 		<path class="payoff" d="M8,66 L30,66 L49,38 L111,38 L130,66 L152,66" />
 		<text x="80" y="24" class="small up-fill" text-anchor="middle">+{t('tut.art.premium')}</text>
 		<text x="80" y="58" class="small attention" text-anchor="middle">{t('tut.art.condor')}</text>
-		<text x="150" y="92" class="small danger" text-anchor="end">{t('tut.art.strangle')} · {t('tut.art.open')}</text>
+		<text x="80" y="92" class="small danger" text-anchor="middle">{t('tut.art.strangle')} · {t('tut.art.open')}</text>
 		<line class="bracket" x1="140" x2="140" y1="44" y2="66" />
 	{:else if art === 'roll'}
 		<!-- A roll: close the near expiry's option, open the next one's — two trades. -->
@@ -239,7 +239,7 @@
 		<text x="107" y="53" class="small info" text-anchor="middle">+</text>
 		<line class="arrow" x1="56" x2="84" y1="49" y2="49" />
 		<path class="arrow-head" d="M84,45 L90,49 L84,53 Z" />
-		<text x="72" y="34" class="small attention" text-anchor="middle">2 × {t('tut.art.spread')}</text>
+		<text x="98" y="34" class="small attention" text-anchor="middle">2 × {t('tut.art.spread')}</text>
 		<text x="150" y="14" class="small muted" text-anchor="end">{t('tut.art.expiry')}</text>
 	{/if}
 </svg>

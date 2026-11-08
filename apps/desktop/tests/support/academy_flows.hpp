@@ -19,6 +19,7 @@
 #include "view/app.hpp"
 #include "viewmodel/academy_names.hpp"
 #include "viewmodel/curriculum.hpp"
+#include "viewmodel/format.hpp"
 #include "viewmodel/screen_names.hpp"
 
 namespace tradelab::desktop::testing {
@@ -132,6 +133,96 @@ inline void flow_every_lesson(App& app, Driver& d, bool wrong_first, bool keyboa
   CHECK(app.vm().progress().lessons_done.size() == web_content().lessons.size());
   if (shot) shot("academy-all-done");
   REQUIRE(d.click(names::kAcademyBack));
+}
+
+// Walks the open lesson to a step, answering each question right on the way.
+inline void walk_to_step(App& app, Driver& d, std::string_view step, bool keyboard) {
+  for (int guard = 0; guard < 40 && app.vm().shell().lesson.step()->id != step; ++guard) {
+    if (app.vm().shell().lesson.step()->is_question()) give_answer(app, d, true, keyboard);
+    REQUIRE(press(d, names::kLessonNext, keyboard));
+  }
+  REQUIRE(app.vm().shell().lesson.step()->id == step);
+}
+
+// Moves a slider with the arrow keys, `n` steps (negative: left).
+inline void slide_keys(Driver& d, std::string_view slider, int n) {
+  d.focus(slider);
+  for (int i = 0; i < (n < 0 ? -n : n); ++i) d.key(n < 0 ? R_KEY_LEFT : R_KEY_RIGHT);
+  d.frames(2);
+}
+
+inline std::string lab_name(std::string_view suffix) { return std::string(names::kLessonLabPrefix) + std::string(suffix); }
+
+// LessonWhatIf.svelte and LessonBuilder.svelte: the lab on options-greeks' call (the engine's 5,71 and
+// Greeks the text states, only the unlocked sliders move, +2% gives 6,83), the vega transfer answered
+// from the lab's P&L at +4 points, and strategies-shapes' builder (a template priced and analysed by the
+// engine, the short straddle from its checkbox), all from the keyboard or the mouse.
+inline void flow_lesson_engine_widgets(App& app, Driver& d, bool keyboard, const AcademyShot& shot = {}) {
+  AppViewModel& vm = app.vm();
+  vm.open_lesson("options-greeks", Screen::Menu);
+  d.frames(2);
+  walk_to_step(app, d, "move", keyboard);
+  REQUIRE(d.until([&] { return vm.lesson_lab().result().has_value(); }));
+  d.frames(2);
+  CHECK(visible(d, names::kLessonWhatIfBox));
+  CHECK_FALSE(visible(d, names::kLessonBuilderBox));
+  CHECK(d.text(lab_name("summary")).find(fmt::fmt_num(5.71, vm.locale(), 2)) != std::string::npos);
+  CHECK(Rwidget_is_enabled(d.widget(lab_name("iv"))) == 0);  // fixed in this lesson
+  CHECK(Rwidget_is_enabled(d.widget(lab_name("price"))) != 0);
+  if (shot) shot("lesson-whatif-zero");
+  slide_keys(d, lab_name("price"), 2);
+  REQUIRE(d.until([&] { return vm.lesson_lab().shift.price == 2 && vm.lesson_lab().result() && fmt::num(vm.lesson_lab().result()->legs[0].value) > 6.8; }));
+  d.frames(2);
+  CHECK(d.text(lab_name("price-value")).rfind("+2%", 0) == 0);
+  CHECK(d.text(lab_name("summary")).find(fmt::fmt_num(6.83, vm.locale(), 2)) != std::string::npos);
+  if (shot) shot("lesson-whatif-price");
+  walk_to_step(app, d, "vega", keyboard);
+  REQUIRE(d.until([&] { return vm.lesson_lab().result().has_value() && vm.lesson_lab().shift == game::LabShift{}; }));
+  slide_keys(d, lab_name("iv"), 4);
+  REQUIRE(d.until([&] { return vm.lesson_lab().shift.iv == 4 && vm.lesson_lab().result() && fmt::num(vm.lesson_lab().result()->net.pnl) > 1.5; }));
+  d.frames(2);
+  CHECK(d.text(lab_name("summary")).find("+" + fmt::fmt_num(1.54, vm.locale(), 2)) != std::string::npos);
+  if (shot) shot("lesson-whatif-vega");
+  give_answer(app, d, true, keyboard);  // the number the lab shows
+  CHECK(vm.shell().lesson.status() == AnswerStatus::Right);
+  REQUIRE(press(d, names::kLessonLeave, keyboard));
+
+  vm.open_lesson("strategies-shapes", Screen::Menu);
+  d.frames(2);
+  walk_to_step(app, d, "view", keyboard);
+  d.frames(2);
+  CHECK(visible(d, names::kLessonBuilderBox));
+  CHECK(visible(d, names::kLessonBuilderPick));
+  CHECK_FALSE(visible(d, names::kLessonBuilderPayoff));
+  const std::string bull = std::string(names::kLessonBuilderTemplatePrefix) + "0";
+  REQUIRE(press(d, bull, keyboard));
+  REQUIRE(d.until([&] { return vm.lesson_builder().result().has_value(); }));
+  d.frames(3);
+  CHECK(visible(d, names::kLessonBuilderPayoff));
+  CHECK_FALSE(visible(d, names::kLessonBuilderPick));
+  CHECK(d.text(names::kLessonBuilderAnalysis).find(vm.tr("lab.maxLoss")) != std::string::npos);
+  const auto name_of = [&](const std::string& w) { return std::string(Rwidget_get_accessible_name(d.widget(w))); };
+  CHECK(name_of(bull) == vm.tr("strategy.bull_call") + " \xE2\x9C\x93");  // the picked template is marked
+  if (shot) shot("lesson-builder-bull");
+  const std::string straddle = std::string(names::kLessonBuilderTemplatePrefix) + "4";
+  REQUIRE(press(d, straddle, keyboard));
+  REQUIRE(d.until([&] { return vm.lesson_builder().tmpl() == game::Template::Straddle && vm.lesson_builder().result().has_value(); }));
+  d.frames(2);
+  REQUIRE(Rwidget_is_enabled(d.widget(names::kLessonBuilderShort)) != 0);
+  if (keyboard) {
+    d.focus(names::kLessonBuilderShort);
+    d.key(R_KEY_SPACE);
+    d.frames(2);
+  } else {
+    REQUIRE(d.click(names::kLessonBuilderShort));
+  }
+  REQUIRE(d.until([&] { return vm.lesson_builder().short_side() && vm.lesson_builder().result().has_value(); }));
+  d.frames(3);
+  CHECK(name_of(straddle) == vm.tr("strategy.short_straddle") + " \xE2\x9C\x93");
+  CHECK(name_of(bull) == vm.tr("strategy.bull_call"));
+  if (shot) shot("lesson-builder-short-straddle");
+  give_answer(app, d, true, keyboard);
+  REQUIRE(press(d, names::kLessonLeave, keyboard));
 }
 
 // Glossary.svelte: opened from the menu, search without accents, a term opened (its "new" mark goes),

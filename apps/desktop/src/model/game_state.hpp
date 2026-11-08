@@ -81,6 +81,7 @@ struct Order {
   std::string type;  // market | limit | stop_market | take_profit | trailing_stop
   std::string side;  // buy | sell
   double qty = 0;
+  double filled = 0;
   std::string price_text;
   double price = 0;
   bool reduce_only = false;

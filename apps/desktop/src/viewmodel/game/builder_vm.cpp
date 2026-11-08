@@ -121,6 +121,29 @@ void BuilderViewModel::add_leg(const GameState& g, Locale L) {
   strategy = "custom";
 }
 
+bool BuilderViewModel::same_qty(Locale L) const {
+  const double n = contracts(L);
+  return !legs.empty() && std::all_of(legs.begin(), legs.end(), [n](const BuilderLeg& l) { return l.qty == n; });
+}
+
+std::optional<double> BuilderViewModel::max_loss_now() const {
+  if (!whatif_ || !whatif_->ok() || !whatif_->value->expiry || !whatif_->value->expiry->max_loss) return std::nullopt;
+  return fmt::num(*whatif_->value->expiry->max_loss);
+}
+
+std::optional<double> BuilderViewModel::sized(const GameState& g, Locale L) const {
+  if (covered(g) || !same_qty(L)) return std::nullopt;
+  return contracts_for_risk(g.account.equity, fmt::parse_decimal(risk_pct), max_loss_now(), contracts(L), g.options.lot);
+}
+
+bool BuilderViewModel::apply_size(const GameState& g, Locale L) {
+  const auto q = sized(g, L);  // read before the quantity changes: the size follows it
+  if (!q || *q <= 0) return false;
+  for (auto& l : legs) l.qty = *q;
+  qty = fmt::fmt_num(*q, L, 1);
+  return true;
+}
+
 std::optional<HeldLong> BuilderViewModel::covered(const GameState& g) const {
   return use_long ? held_long(g) : std::nullopt;
 }
@@ -292,6 +315,26 @@ void BuilderViewModel::view_analysis(const Texts& t, const GameState& g, Builder
   }
   v.table = whatif_compact(t, w);
   chart_texts(t, w, v.chart_summary, v.chart_legend);
+  view_sizing(t, g, v);
+}
+
+void BuilderViewModel::view_sizing(const Texts& t, const GameState& g, BuilderView& v) const {
+  const Locale L = t.locale();
+  const auto held = covered(g);
+  if (held) {
+    v.size_held = held->stop ? t.tr("builder.sizeHeld", {{"stop", fmt::fmt_price(*held->stop, L)}}) : t.tr("builder.sizeNoStop");
+    return;
+  }
+  const auto loss = max_loss_now();
+  if (!loss || !same_qty(L)) return;
+  const auto q = sized(g, L);
+  v.sizing = true;
+  v.size_label = t.tr("builder.sizeRisk");
+  v.size_apply = t.tr("builder.sizeApply", {{"n", q ? fmt::fmt_num(*q, L, 1) : std::string("\xE2\x80\x94")}});
+  v.can_size = q && *q > 0;
+  if (!pending()) {
+    v.size_hint = t.tr("builder.sizeHint", {{"n", fmt::fmt_num(contracts(L), L, 1)}, {"risk", fmt::fmt_money(*loss, L)}});
+  }
 }
 
 }  // namespace tradelab::desktop::game

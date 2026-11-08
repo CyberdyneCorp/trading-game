@@ -10,7 +10,12 @@
 		{ "kind": "product", "a": 0.2, "b": -15, "expect": -3, "digits": 2 },
 		{ "kind": "product", "a": 75, "b": 2, "expect": 150 },
 		{ "kind": "breakeven", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 2400, "price": 75 }, { "kind": "put", "side": "buy", "qty": 1, "strike": 2400, "price": 75 }], "expect": [2250, 2550] },
-		{ "kind": "return", "from": 2400, "to": 2550, "expect": 6.25 }
+		{ "kind": "return", "from": 2400, "to": 2550, "expect": 6.25 },
+		{ "kind": "whatif", "step": "decay", "field": "legs.0.value", "expect": 5.71, "digits": 2 },
+		{ "kind": "whatif", "step": "decay", "shift": { "time": 20 }, "field": "legs.0.value", "expect": 3.3, "digits": 2 },
+		{ "kind": "whatif", "step": "decay", "shift": { "time": 29 }, "field": "legs.0.value", "expect": 1.04, "digits": 2 },
+		{ "kind": "whatif", "step": "decay", "field": "legs.0.theta", "expect": -0.095, "digits": 3 },
+		{ "kind": "whatif", "step": "decay", "shift": { "time": 29 }, "field": "legs.0.theta", "expect": -0.522, "digits": 3 }
 	],
 	"steps": [
 		{
@@ -33,12 +38,21 @@
 			"text": {
 				"pt-BR": {
 					"title": "Tempo e eventos",
-					"body": "O [[time-value|valor de tempo]] cai devagar no começo e cada vez mais rápido perto do vencimento. Antes de um evento esperado, a IV sobe porque embute o movimento da notícia; depois que ele sai, a incerteza some e a IV cai: a [[iv-crush|queda da IV]]. Opções compradas perdem valor nessa queda mesmo que o preço ande um pouco."
+					"body": "O [[time-value|valor de tempo]] cai devagar no começo e cada vez mais rápido perto do vencimento. No laboratório acima (uma call no dinheiro, 30 dias, IV de 50%), o motor dá 5,71 com 30 dias pela frente, 3,30 com 10 e 1,04 com 1: o theta vai de −0,095 para −0,522 por dia. Antes de um evento esperado, a IV sobe porque embute o movimento da notícia; depois que ele sai, a incerteza some e a IV cai: a [[iv-crush|queda da IV]]. Opções compradas perdem valor nessa queda mesmo que o preço ande um pouco."
 				},
 				"en": {
 					"title": "Time and events",
-					"body": "[[time-value|Time value]] falls slowly at first and faster and faster near expiry. Before an expected event IV rises, because it holds the news move; once the news is out the uncertainty is gone and IV falls: the [[iv-crush|IV crush]]. Bought options lose value in that fall even if the price moves a little."
+					"body": "[[time-value|Time value]] falls slowly at first and faster and faster near expiry. In the lab above (an at-the-money call, 30 days, IV 50%), the engine gives 5.71 with 30 days left, 3.30 with 10 and 1.04 with 1: theta goes from −0.095 to −0.522 per day. Before an expected event IV rises, because it holds the news move; once the news is out the uncertainty is gone and IV falls: the [[iv-crush|IV crush]]. Bought options lose value in that fall even if the price moves a little."
 				}
+			},
+			"widget": {
+				"kind": "whatif",
+				"market": "E",
+				"forward": 100,
+				"legs": [
+					{ "kind": "call", "side": "buy", "strike": 100, "qty": 1, "days": 30, "ivPct": 50, "entry": 5.71 }
+				],
+				"unlocked": ["time"]
 			}
 		},
 		{

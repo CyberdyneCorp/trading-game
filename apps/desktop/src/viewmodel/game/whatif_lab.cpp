@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <set>
 
 #include "model/storage/json_writer.hpp"
@@ -133,15 +134,48 @@ std::string to_fixed(double v, int digits) {
 }
 
 // The shortest text that reads back as the same double (JavaScript's String(number) for the ranges used).
+namespace {
+
+// Number#toString's exponential form from C's "1.50e-07": trailing zeros and the exponent's padding go.
+std::string js_exponential(const std::string& c_text, int exp10) {
+  std::string mantissa = c_text.substr(0, c_text.find('e'));
+  if (mantissa.find('.') != std::string::npos) {
+    mantissa.erase(mantissa.find_last_not_of('0') + 1);
+    if (mantissa.back() == '.') mantissa.pop_back();
+  }
+  return mantissa + "e" + (exp10 < 0 ? "-" : "+") + std::to_string(std::abs(exp10));
+}
+
+}  // namespace
+
+// Number#toString: the shortest digits that read back as `v`, in plain notation from 1e-7 up to 1e21
+// ("30", "0.004", "2.5"), else exponential ("1e+21", "1.5e-7").
 std::string js_number(double v) {
   if (!std::isfinite(v)) return std::isnan(v) ? "NaN" : (v > 0 ? "Infinity" : "-Infinity");
   if (v == 0) return "0";
   char buf[64];
-  for (int p = 1; p <= 17; ++p) {
-    std::snprintf(buf, sizeof buf, "%.*g", p, v);
+  int p = 1;
+  for (; p <= 17; ++p) {
+    std::snprintf(buf, sizeof buf, "%.*e", p - 1, v);
     if (std::strtod(buf, nullptr) == v) break;
   }
-  return buf;
+  const int exp10 = std::atoi(std::strchr(buf, 'e') + 1);
+  if (exp10 >= -7 && exp10 < 21) {
+    std::snprintf(buf, sizeof buf, "%.*f", std::max(0, p - 1 - exp10), v);
+    return buf;
+  }
+  return js_exponential(buf, exp10);
+}
+
+std::string leg_label(const WhatIfLeg& l, Locale locale, const std::string& perp_name) {
+  const double q = fmt::num(l.qty);
+  // Intl.NumberFormat with up to 8 fraction digits: as many as the quantity has.
+  const std::string plain = js_number(std::fabs(q));
+  const auto dot = plain.find('.');
+  const int digits = dot == std::string::npos ? 0 : std::min(8, static_cast<int>(plain.size() - dot - 1));
+  const std::string head = std::string(l.buy ? "+" : "\xE2\x88\x92") + fmt::fmt_num(q, locale, digits) + " ";  // −
+  if (l.kind == "perp") return head + perp_name;
+  return head + (l.kind == "call" ? "C" : "P") + " " + fmt::fmt_price(l.strike.value_or("0"), locale);
 }
 
 std::string shifted_forward(double forward, int pct) { return to_fixed(forward * (1 + pct / 100.0), 2); }

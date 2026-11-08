@@ -114,3 +114,25 @@ TEST_CASE("windowed academy: the guided first trade on the real terminal: start,
     CHECK(capture(d, "coach-" + name, names::kGameCoachOutline) > 20);  // the target's outline is drawn
   });
 }
+
+TEST_CASE("windowed academy: a lesson's what-if lab and builder, PT-BR and en, 1280x800 and 1024x768") {
+  for (const auto& [w, h] : {std::pair{1280, 800}, std::pair{1024, 768}}) {
+    for (const bool en : {false, true}) {
+      INFO(w << "x" << h << (en ? " en" : " pt-BR"));
+      RavenSession raven;
+      App app(builtin_catalog(), [] { return 1u; });
+      REQUIRE(app.build(w, h));
+      app.vm().set_crt(CrtSettings{false, false, false, false});
+      if (en) app.vm().toggle_locale();
+      Driver d(app);
+      d.frames(4);
+      const std::string tag = std::to_string(w) + (en ? "-en-" : "-pt-");
+      testing::flow_lesson_engine_widgets(app, d, false, [&](const std::string& name) {
+        const bool builder = name.starts_with("lesson-builder");
+        const std::string chart = builder ? std::string(names::kLessonBuilderPayoff) : testing::lab_name("payoff");
+        Rwidget_scroll_into_view(d.widget(chart));
+        CHECK(capture(d, tag + name, chart) > 50);  // the expiry curve is painted
+      });
+    }
+  }
+}

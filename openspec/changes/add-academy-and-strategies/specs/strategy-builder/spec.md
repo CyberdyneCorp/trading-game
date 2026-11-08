@@ -66,3 +66,14 @@ The journal and the debrief SHALL group the legs of a combo under its structure 
 #### Scenario: Debrief grouping
 - **WHEN** a run's debrief lists trades that came from one combo
 - **THEN** they SHALL be shown under one combo row with the structure name, their summed net result and one R for the combo
+
+### Requirement: Sizing and planned risk from the engine's maximum loss
+The builder SHALL offer to size a structure with a bounded maximum loss from a risk budget in % of equity: the contracts per leg whose engine maximum loss is that budget, down to the option lot. When a covered call or protective put uses the player's held long and a working reduce-only stop closes all of it, the what-if SHALL carry that stop, so the maximum loss and the combo's planned risk run to it rather than to a price of 0; the builder SHALL say so, or SHALL say that the long has no stop.
+
+#### Scenario: Condor sized at 1%
+- **WHEN** an iron condor's engine maximum loss is 1.13 per contract, equity is 10,000 and the risk budget is 1%
+- **THEN** the builder SHALL propose 88.4 contracts and, once applied, show a maximum loss of about 100
+
+#### Scenario: Covered call on a stopped long (playtest regression)
+- **WHEN** the player holds a 44.7-unit long with a stop 2% below its entry and builds a covered call on it
+- **THEN** the planned risk SHALL be the loss to that stop less the premium (tens of credits), not the long's whole value, and the debrief SHALL NOT report an entry risking more than 2%

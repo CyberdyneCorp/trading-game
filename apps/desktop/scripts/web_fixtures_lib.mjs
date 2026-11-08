@@ -3,7 +3,7 @@
 // tests/viewmodel/test_web_parity.cpp calls the C++ port of `fn` with `args` and compares with `out`
 // (numbers with a 1e-9 relative tolerance, everything else exactly).
 
-import { combosFixture, strategiesFixture, whatifLabFixture } from './web_fixtures_options.mjs';
+import { combosFixture, comparisonFixture, strategiesFixture, whatifLabFixture } from './web_fixtures_options.mjs';
 
 const SIDES = ['buy', 'sell'];
 const LOCALES = ['pt-BR', 'en'];
@@ -538,6 +538,7 @@ export async function buildFixtures(load, golden) {
 		glossary: glossaryFixture(await load('content/glossary.ts')),
 		strategies: strategiesFixture(await load('strategies.ts')),
 		combos: combosFixture(await load('combos.ts')),
+		comparison: comparisonFixture(await load('debrief.ts')),
 		whatifLab: whatifLabFixture(await load('whatifLab.ts'), golden('whatif-condor'), golden('whatif-call')),
 		journalStats: journalStatsFixture(await load('journalStats.ts'), await load('runSummary.ts'))
 	};

@@ -62,6 +62,14 @@ struct BuilderView {
   std::vector<std::pair<std::string, std::string>> totals;
   std::vector<std::pair<std::string, std::string>> analysis;
   std::vector<Line> table;
+  // Sizing aid (web StrategyBuilder.svelte): contracts whose maximum loss is a share of equity; on a
+  // held long, a note that the size follows the long and its risk runs to the long's stop.
+  std::string size_held;     // the note, "" unless "use my long" covers a held long
+  bool sizing = false;       // the risk field and its button are shown
+  std::string size_label;    // "Risco (% patrimônio)"
+  std::string size_apply;    // "Usar 88,4 contratos"
+  bool can_size = false;
+  std::string size_hint;     // "Com 1 contratos a perda máxima no vencimento é ≈ 99,89 cr" ("" while re-analysing)
   std::string chart_summary;  // the payoff chart's accessible description
   std::string chart_legend;   // its price range and line styles, as in the lab
   bool has_whatif = false;
@@ -76,6 +84,7 @@ class BuilderViewModel {
   std::optional<Template> tmpl;
   bool short_side = false;
   std::string qty = "1";  // contracts per leg as typed
+  std::string risk_pct = "1";  // the sizing aid's risk, % of equity, as typed
   std::vector<BuilderLeg> legs;
   std::string strategy = "custom";
   bool use_long = false;
@@ -93,6 +102,11 @@ class BuilderViewModel {
   void set_leg_qty(std::size_t i, const std::string& text);
   void remove_leg(std::size_t i);
   void add_leg(const GameState& g, Locale L);
+  // The sizing aid: contracts per leg whose maximum loss at expiry is `risk_pct` % of equity (nullopt when
+  // the legs differ in size, "use my long" covers a held long, or there is no bounded maximum loss).
+  [[nodiscard]] std::optional<double> sized(const GameState& g, Locale L) const;
+  // Every leg (and the quantity field) takes the sized contracts; false when there is no size.
+  bool apply_size(const GameState& g, Locale L);
 
   [[nodiscard]] double contracts(Locale L) const;
   [[nodiscard]] std::optional<HeldLong> covered(const GameState& g) const;  // the held long "use my long" covers
@@ -127,6 +141,9 @@ class BuilderViewModel {
   [[nodiscard]] std::optional<double> risk() const;
   void view_legs(const Texts& t, const GameState& g, BuilderView& v) const;
   void view_analysis(const Texts& t, const GameState& g, BuilderView& v) const;
+  void view_sizing(const Texts& t, const GameState& g, BuilderView& v) const;
+  [[nodiscard]] bool same_qty(Locale L) const;
+  [[nodiscard]] std::optional<double> max_loss_now() const;
 
   std::optional<Analysis<WhatIfResult>> whatif_;
   std::optional<Analysis<ComboPreview>> preview_;

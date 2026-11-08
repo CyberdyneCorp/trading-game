@@ -81,3 +81,12 @@ TEST_CASE("headless academy: the guided first trade by keyboard: start, Space on
   d.frames(4);
   testing::flow_coach(app, d);
 }
+
+TEST_CASE("headless academy: a lesson's what-if lab and strategy builder from the keyboard, valued by the engine") {
+  RavenSession raven;
+  App app(builtin_catalog(), [] { return 1u; });
+  REQUIRE(app.build(1280, 800));
+  Driver d(app);
+  d.frames(4);
+  testing::flow_lesson_engine_widgets(app, d, true);
+}

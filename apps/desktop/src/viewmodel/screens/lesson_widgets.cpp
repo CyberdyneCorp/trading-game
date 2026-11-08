@@ -8,6 +8,7 @@
 #include "viewmodel/academy/payoff.hpp"
 #include "viewmodel/academy_names.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/game/whatif_lab.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/screens/screens.hpp"
 
@@ -169,6 +170,20 @@ void ticket(const AppViewModel& vm, const TicketWidget& w, ScreenModel& m) {
   m.text(names::kSandboxNote, vm.tr("academy.ticket.noCosts"));
 }
 
+// ---- what-if lab and builder (LessonWhatIf.svelte, LessonBuilder.svelte): the boxes and captions here;
+// the lab panel and the builder's texts come from AppViewModel::lesson_lab() / lesson_builder() ----
+
+void engine_widgets(const AppViewModel& vm, const LessonStep& step, ScreenModel& m) {
+  const auto* w = std::get_if<WhatIfWidget>(&step.widget);
+  const auto* b = std::get_if<BuilderWidget>(&step.widget);
+  m.show(names::kLessonWhatIfBox, w != nullptr);
+  m.show(names::kLessonBuilderBox, b != nullptr);
+  if (w != nullptr) m.text(names::kLessonWhatIfCaption, caption(vm, w->market, vm.tr("academy.whatif.caption")));
+  if (b != nullptr) {
+    m.text(names::kLessonBuilderCaption, caption(vm, b->market, vm.tr("academy.builder.caption", {{"days", game::js_number(b->days)}})));
+  }
+}
+
 // ---- question rows that are not choices (StepQuestion.svelte) ----
 
 void question_rows(const AppViewModel& vm, const LessonStep& step, ScreenModel& m) {
@@ -207,6 +222,7 @@ void lesson_widgets(const AppViewModel& vm, const std::string& base, const Lesso
   if (p != nullptr) payoff(vm, *p, m);
   if (t != nullptr) table(vm, step_base, *t, m);
   if (k != nullptr) ticket(vm, *k, m);
+  engine_widgets(vm, step, m);
   question_rows(vm, step, m);
 }
 

@@ -97,7 +97,37 @@ struct PayoffWidget {
   bool hide_analytics = false;  // a question asks for the breakevens or the maximum profit and loss
 };
 
-using LessonWidget = std::variant<std::monostate, TicketWidget, TableWidget, PayoffWidget>;
+// A leg of a lesson's what-if lab (academy.ts AcademyLeg): an illustrative market, valued by the engine.
+struct LessonOptionLeg {
+  std::string kind;  // call, put, perp
+  bool buy = true;
+  double strike = 0;  // options only
+  double qty = 1;
+  double days = 0;    // days to expiry (options)
+  double iv_pct = 0;  // implied volatility in % (options)
+  double entry = 0;   // premium per unit, or the perpetual's entry
+};
+
+// The what-if lab on fixed legs (academy.ts WhatIfWidget): only the `unlocked` sliders move.
+struct WhatIfWidget {
+  std::string market;
+  double forward = 0;
+  std::vector<LessonOptionLeg> legs;
+  std::vector<std::string> unlocked;  // price, time, iv
+};
+
+// The strategy builder on a synthetic chain of one expiry (academy.ts BuilderWidget): templates to try,
+// each leg priced at the engine's model value; analysis only, nothing is sent.
+struct BuilderWidget {
+  std::string market;
+  double forward = 0;
+  std::vector<double> strikes;  // ascending
+  double days = 0;              // to the chain's single expiry
+  double iv_pct = 0;            // every strike's implied volatility, in %
+  std::string tmpl;             // template shown first ("" = the player picks)
+};
+
+using LessonWidget = std::variant<std::monostate, TicketWidget, TableWidget, PayoffWidget, WhatIfWidget, BuilderWidget>;
 
 struct LessonChoice {
   enum class Kind : std::uint8_t { Bar, Pct, Text };

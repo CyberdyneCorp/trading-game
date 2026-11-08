@@ -1,12 +1,25 @@
 {
 	"id": "options-greeks",
 	"stage": "options2",
+	"givens": [0.5],
 	"checks": [
-		{ "kind": "product", "a": 0.5, "b": 2, "expect": 1 },
-		{ "kind": "diff", "a": 4.2, "b": 3.2, "expect": 1, "digits": 2 },
-		{ "kind": "product", "a": 0.08, "b": 5, "expect": 0.4, "digits": 2 },
 		{ "kind": "product", "a": -0.4, "b": 3, "expect": -1.2, "digits": 2 },
-		{ "kind": "product", "a": 0.25, "b": 4, "expect": 1, "digits": 2 }
+		{ "kind": "whatif", "step": "move", "field": "legs.0.value", "expect": 5.71, "digits": 2 },
+		{ "kind": "whatif", "step": "move", "field": "legs.0.delta", "expect": 0.53, "digits": 2 },
+		{ "kind": "whatif", "step": "move", "field": "legs.0.gamma", "expect": 0.028, "digits": 3 },
+		{ "kind": "whatif", "step": "move", "field": "legs.0.theta", "expect": -0.095, "digits": 3 },
+		{ "kind": "whatif", "step": "move", "field": "legs.0.vega", "expect": 0.114, "digits": 3 },
+		{ "kind": "product", "a": 100, "b": 1.02, "expect": 102 },
+		{ "kind": "product", "a": 0.53, "b": 2, "expect": 1.06, "digits": 2 },
+		{ "kind": "whatif", "step": "move", "shift": { "price": 2 }, "field": "legs.0.value", "expect": 6.83, "digits": 2 },
+		{ "kind": "diff", "a": 6.83, "b": 5.71, "expect": 1.12, "digits": 2 },
+		{ "kind": "whatif", "step": "move", "shift": { "price": 2 }, "field": "legs.0.delta", "expect": 0.58, "digits": 2 },
+		{ "kind": "product", "a": 0.095, "b": 5, "expect": 0.475, "digits": 3 },
+		{ "kind": "whatif", "step": "move", "shift": { "time": 5 }, "field": "legs.0.value", "expect": 5.22, "digits": 2 },
+		{ "kind": "whatif", "step": "vega", "field": "legs.0.value", "expect": 11.33, "digits": 2 },
+		{ "kind": "whatif", "step": "vega", "field": "legs.0.vega", "expect": 0.383, "digits": 3 },
+		{ "kind": "whatif", "step": "vega", "shift": { "iv": 4 }, "field": "net.pnl", "expect": 1.54, "digits": 2 },
+		{ "kind": "product", "a": 0.383, "b": 4, "expect": 1.53, "digits": 2 }
 	],
 	"steps": [
 		{
@@ -41,27 +54,22 @@
 			"id": "move",
 			"phase": "demo",
 			"widget": {
-				"kind": "table",
+				"kind": "whatif",
 				"market": "A",
-				"columns": [
-					{ "id": "value", "digits": 2 },
-					{ "id": "delta", "digits": 2 },
-					{ "id": "gamma", "digits": 2 },
-					{ "id": "theta", "digits": 2 },
-					{ "id": "vega", "digits": 2 }
+				"forward": 100,
+				"legs": [
+					{ "kind": "call", "side": "buy", "strike": 100, "qty": 1, "days": 30, "ivPct": 50, "entry": 5.71 }
 				],
-				"rows": [[3.2, 0.5, 0.04, -0.08, 0.15]]
+				"unlocked": ["price", "time"]
 			},
 			"text": {
 				"pt-BR": {
-					"title": "Lendo as gregas de uma call",
-					"body": "Valores hipotéticos de uma call ilustrativa, dados como ponto de partida. Se o ativo sobe 2, a call ganha cerca de 0,50 × 2 = 1,00 e vai para perto de 4,20; o gamma faz o delta crescer no caminho, então o ganho real é um pouco maior. Se o preço fica parado 5 barras, o theta tira cerca de 0,08 × 5 = 0,40.",
-					"columns": ["Valor", "Delta", "Gamma", "Theta/barra", "Vega/ponto"]
+					"title": "Lendo as gregas de uma call no laboratório",
+					"body": "Uma call no dinheiro ilustrativa no mercado A: strike 100, 30 dias até o vencimento, IV de 50%. O motor do jogo a avalia em 5,71, com [[delta|delta]] 0,53, [[gamma|gamma]] 0,028, [[theta|theta]] de −0,095 por dia e [[vega|vega]] de 0,114 por ponto (tabela do laboratório). Leve o preço a +2% (102): só o delta prevê um ganho de 0,53 × 2 = 1,06; o motor dá 6,83, um ganho de 1,12, porque o gamma faz o delta crescer no caminho (0,58 em 102). Volte o preço e avance 5 dias: o theta prevê 0,095 × 5 = 0,475 a menos; o motor dá 5,22."
 				},
 				"en": {
-					"title": "Reading a call's Greeks",
-					"body": "Hypothetical values of an illustrative call, given as a starting point. If the asset rises 2, the call gains about 0.50 × 2 = 1.00 and goes to near 4.20; gamma makes the delta grow along the way, so the real gain is a little larger. If the price stands still for 5 bars, theta takes about 0.08 × 5 = 0.40.",
-					"columns": ["Value", "Delta", "Gamma", "Theta/bar", "Vega/point"]
+					"title": "Reading a call's Greeks in the lab",
+					"body": "An illustrative at-the-money call on market A: strike 100, 30 days to expiry, IV 50%. The game's engine values it at 5.71, with a [[delta|delta]] of 0.53, a [[gamma|gamma]] of 0.028, a [[theta|theta]] of −0.095 per day and a [[vega|vega]] of 0.114 per point (the lab's table). Move the price to +2% (102): delta alone predicts a gain of 0.53 × 2 = 1.06; the engine gives 6.83, a gain of 1.12, because gamma grows the delta on the way (0.58 at 102). Put the price back and move 5 days on: theta predicts 0.095 × 5 = 0.475 less; the engine gives 5.22."
 				}
 			}
 		},
@@ -160,30 +168,27 @@
 			"id": "vega",
 			"phase": "transfer",
 			"widget": {
-				"kind": "table",
+				"kind": "whatif",
 				"market": "B",
-				"columns": [
-					{ "id": "delta", "digits": 2 },
-					{ "id": "theta", "digits": 2 },
-					{ "id": "vega", "digits": 2 }
+				"forward": 250,
+				"legs": [
+					{ "kind": "put", "side": "buy", "strike": 240, "qty": 1, "days": 60, "ivPct": 40, "entry": 11.33 }
 				],
-				"rows": [[-0.3, -0.05, 0.25]]
+				"unlocked": ["iv"]
 			},
-			"question": { "type": "number", "answer": 1, "tolerance": 0.001 },
+			"question": { "type": "number", "answer": 1.54, "tolerance": 0.05 },
 			"text": {
 				"pt-BR": {
 					"title": "Transferência: outra opção, outro vencimento",
-					"body": "Mercado B: uma put mais longa, com os valores hipotéticos da tabela. O preço não anda e a volatilidade implícita sobe 4 pontos. Aproximadamente quanto a put ganha?",
-					"right": "0,25 × 4 = +1,00. Vega é positivo para quem compra, seja call ou put: as duas ficam mais caras quando a IV sobe.",
-					"wrong": "Variação ≈ vega × pontos de IV. O delta não entra, porque o preço não andou.",
-					"columns": ["Delta", "Theta/barra", "Vega/ponto"]
+					"body": "Mercado B, perto de 250: uma put de strike 240 com 60 dias até o vencimento e IV de 40%, comprada por 11,33 (o valor do motor). O vega dela é 0,383 por ponto. O preço não anda e a volatilidade implícita sobe 4 pontos. Quanto a put ganha? O controle de IV deixa conferir no motor.",
+					"right": "O motor dá +1,54: vega × 4 = 0,383 × 4 ≈ 1,53, e o próprio vega cresce um pouco quando a IV sobe. Vega é positivo para quem compra, seja call ou put: as duas ficam mais caras quando a IV sobe.",
+					"wrong": "Variação ≈ vega × pontos de IV. O delta não entra, porque o preço não andou."
 				},
 				"en": {
 					"title": "Transfer: another option, another expiry",
-					"body": "Market B: a longer put, with the hypothetical values in the table. The price does not move and implied volatility rises 4 points. Roughly how much does the put gain?",
-					"right": "0.25 × 4 = +1.00. Vega is positive for the buyer, call or put: both get more expensive when IV rises.",
-					"wrong": "Change ≈ vega × IV points. Delta does not enter, because the price did not move.",
-					"columns": ["Delta", "Theta/bar", "Vega/point"]
+					"body": "Market B, near 250: a put with strike 240 and 60 days to expiry, IV 40%, bought for 11.33 (the engine's value). Its vega is 0.383 per point. The price does not move and implied volatility rises 4 points. How much does the put gain? The IV slider lets you check it in the engine.",
+					"right": "The engine gives +1.54: vega × 4 = 0.383 × 4 ≈ 1.53, and vega itself grows a little as IV rises. Vega is positive for the buyer, call or put: both get more expensive when IV rises.",
+					"wrong": "Change ≈ vega × IV points. Delta does not enter, because the price did not move."
 				}
 			}
 		}

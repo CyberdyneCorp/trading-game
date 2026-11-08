@@ -215,6 +215,21 @@ export type ExitReason =
 	| 'margin_call'
 	| 'trailing';
 
+/** A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8). */
+export type ComparisonStrategy =
+	| 'naked_call'
+	| 'bull_call_spread'
+	| 'long_only'
+	| 'covered_call'
+	| 'atr_stop'
+	| 'atm_put'
+	| 'otm_put'
+	| 'short_strangle'
+	| 'iron_condor'
+	| 'hold_to_settlement'
+	| 'close_before_expiry'
+	| 'roll_before_expiry';
+
 /** Advice in the debrief: a long or short read is right when the close 5 bars after the next open moved its way. */
 export type AdviceOutcome = 'right' | 'wrong' | 'wait' | 'open';
 
@@ -887,6 +902,42 @@ export interface DebriefData {
 	decisions: DecisionView[];
 	/** Scoring v11: the lesson questions; null for a mission without a rubric. */
 	lessons: LessonResults | null;
+	/**
+	 * Scoring v13 (report-only): the mission's reference structures on this seed; null for a mission
+	 * without a comparison (every mission but m13-m17) and for pack runs.
+	 */
+	strategyComparison: StrategyComparison | null;
+}
+
+export type ComparisonBasis = 'player' | 'reference';
+
+/** One reference structure valued on this seed's path by the engine (its quotes, fees and margin). */
+export interface StrategyComparisonRow {
+	name: ComparisonStrategy;
+	/** Decision step whose next open filled the entry. */
+	entryStep: number;
+	/** Bar of the last fill or settlement that closed it; the run's last bar when still open. */
+	exitStep: number;
+	/** Equity at the end minus the run's initial capital, fees and funding included. */
+	netPnl: Decimal;
+	/** Largest peak-to-trough drop of equity (a positive amount). */
+	maxDrawdown: Decimal;
+	marginCalls: number;
+	/** The command reason of a leg refused at entry (nothing was placed, every amount is 0); null otherwise. */
+	refused: ReasonCode | null;
+}
+
+/** Debrief (scoring v13, report-only): computed after the run, never a score input or a digest input. */
+export interface StrategyComparison {
+	/**
+	 * "player": entered at the decision step of the player's first option fill, at its quantity;
+	 * "reference": the mission's reference step and quantity (no option traded).
+	 */
+	basis: ComparisonBasis;
+	entryStep: number;
+	/** Option contracts per leg; a perpetual leg trades qty x the option multiplier units. */
+	qty: Decimal;
+	rows: StrategyComparisonRow[];
 }
 
 /** One release as it played: the drawn outcome (G2) and what the market did with it. */
@@ -1118,6 +1169,12 @@ export interface WhatIfLegInput {
 	/** Annualized implied volatility, e.g. "0.6". */
 	iv?: string;
 	entry?: string;
+	/**
+	 * Perpetual legs only: a working protective stop. The expiry analytics (breakevens, maxProfit,
+	 * maxLoss, the expiry curve) treat the leg as closed at the stop beyond it, without a gap; value,
+	 * P&L, Greeks and the "today" curve ignore it. A stop on an option leg is invalid input.
+	 */
+	stop?: string;
 }
 
 /**

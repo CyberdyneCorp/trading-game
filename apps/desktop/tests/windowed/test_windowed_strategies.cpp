@@ -8,10 +8,12 @@
 #include <raven/raven_resources.h>
 #include <raven/raven_window.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <string>
 
+#include "support/academy_flows.hpp"
 #include "support/png.hpp"
 #include "support/reference.hpp"
 #include "support/strategy_flows.hpp"
@@ -110,8 +112,75 @@ TEST_CASE("windowed strategy missions: m13–m17 played with a builder structure
   const std::pair<const char*, std::size_t> plays[] = {{"m13-call-spread", 0},   {"m14-covered-call", 2}, {"m15-protective-put", 3},
                                                        {"m16-range-condor", 6}, {"m17-before-expiry", 1}};
   for (const auto& [mission, tpl] : plays) {
-    INFO(mission);
+    const std::string id = mission;
+    INFO(id);
     Session s;
     testing::play_strategy_mission(s.app, *s.d, *s.t, mission, tpl, s.shot());
   }
+}
+
+namespace {
+
+// Accent-green or attention-amber pixels inside the named widget of a frame (window points scaled to pixels).
+int accent_pixels(Driver& d, std::string_view widget, const std::uint8_t* rgba, int width, int height) {
+  float x = 0, y = 0, w = 0, h = 0;
+  Rwidget_get_rect(d.widget(widget), &x, &y, &w, &h);
+  int ww = 0, wh = 0;
+  Rwindow_get_size(d.window(), &ww, &wh);
+  const float sx = static_cast<float>(width) / static_cast<float>(std::max(1, ww));
+  const float sy = static_cast<float>(height) / static_cast<float>(std::max(1, wh));
+  int n = 0;
+  for (int py = static_cast<int>(y * sy); py < std::min(height, static_cast<int>((y + h) * sy)); ++py) {
+    for (int px = static_cast<int>(x * sx); px < std::min(width, static_cast<int>((x + w) * sx)); ++px) {
+      const std::uint8_t* p = rgba + (static_cast<std::ptrdiff_t>(py) * width + px) * 4;
+      const bool accent = std::abs(p[0] - 0x39) < 40 && std::abs(p[1] - 0xFF) < 40 && std::abs(p[2] - 0x88) < 40;
+      const bool attention = std::abs(p[0] - 0xFF) < 40 && std::abs(p[1] - 0xC8) < 40 && std::abs(p[2] - 0x57) < 40;
+      n += accent || attention ? 1 : 0;
+    }
+  }
+  return n;
+}
+
+}  // namespace
+
+TEST_CASE("windowed tutorial art: m13-m17's first card drawn like the web's, PT-BR and en") {
+  for (const bool en : {false, true}) {
+    for (const char* mission : {"m13-call-spread", "m14-covered-call", "m15-protective-put", "m16-range-condor", "m17-before-expiry"}) {
+      const std::string label = std::string(mission) + (en ? " en" : " pt-BR");
+      INFO(label);
+      Session s;
+      if (en) s.app.vm().toggle_locale();
+      s.app.vm().select(testing::mission_index(mission));
+      s.d->frames(2);
+      REQUIRE(s.d->click(names::kMenuStart));
+      REQUIRE(s.d->until([&] { return s.app.vm().screen() == Screen::Tutorial; }));
+      s.d->frames(4);
+      REQUIRE(Rwidget_get_visibility(s.d->widget(names::kTutArt)) == R_VISIBLE);
+      int w = 0, h = 0;
+      std::uint8_t* rgba = Rwindow_capture(s.d->window(), &w, &h);
+      REQUIRE(rgba != nullptr);
+      CHECK(testing::write_png((capture_dir() / ("strategy-tutorial-" + std::string(mission) + (en ? "-en" : "-pt") + ".png")).string(), rgba, w, h));
+      CHECK(accent_pixels(*s.d, names::kTutArt, rgba, w, h) > 50);  // the payoff curve (the roll: its arrow) is drawn
+      Rpixels_free(rgba);
+    }
+  }
+}
+
+TEST_CASE("windowed references: m16's tutorial card art and a lesson's strategy builder (1280x800)") {
+  {
+    Session s;
+    s.app.vm().select(testing::mission_index("m16-range-condor"));
+    s.d->frames(2);
+    REQUIRE(s.d->click(names::kMenuStart));
+    REQUIRE(s.d->until([&] { return s.app.vm().screen() == Screen::Tutorial; }));
+    s.reference("tutorial-condor");
+  }
+  Session s;
+  s.app.vm().open_lesson("strategies-shapes", Screen::Menu);
+  s.d->frames(2);
+  testing::walk_to_step(s.app, *s.d, "view", false);
+  REQUIRE(s.d->click(std::string(names::kLessonBuilderTemplatePrefix) + "6"));  // iron condor
+  REQUIRE(s.d->until([&] { return s.app.vm().lesson_builder().result().has_value(); }));
+  Rwidget_scroll_into_view(s.d->widget(names::kLessonBuilderPayoff));
+  s.reference("lesson-builder-condor");
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { EngineFinding, EngineTrade, NewsView, PackReveal, RegimeSpan } from '#lib/engine/types.ts';
+import type { ComparisonStrategy, EngineFinding, EngineTrade, NewsView, PackReveal, RegimeSpan } from '#lib/engine/types.ts';
 import { describeFinding, describeFindings, describeLesson } from './analysis.ts';
-import { decisionCounts, entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from './debrief.ts';
+import { comparisonLines, decisionCounts, entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from './debrief.ts';
 import { headline } from './news.ts';
 import { missionText, packModeKey } from './missions.ts';
 import { i18n } from './i18n.svelte.ts';
@@ -232,3 +232,42 @@ describe('scoring v11 risk findings', () => {
 		expect(text).toContain('96,00');
 	});
 });
+
+describe('strategy comparison (scoring v13, report-only)', () => {
+	const row = (name: string, net: string, extra: Record<string, unknown> = {}) => ({
+		name, entryStep: 60, exitStep: 90, netPnl: net, maxDrawdown: '12.5', marginCalls: 0, refused: null, ...extra
+	});
+
+	it('puts the player first, the engine rows after, and marks the best net result', () => {
+		const lines = comparisonLines(
+			{ basis: 'reference', entryStep: 60, qty: '10', rows: [row('short_strangle', '5.52'), row('iron_condor', '4.62')] } as never,
+			-3
+		);
+		expect(lines.map((l) => [l.name, l.net, l.best])).toEqual([
+			['comparison.you', -3, false],
+			['comparison.short_strangle', 5.52, true],
+			['comparison.iron_condor', 4.62, false]
+		]);
+		expect(lines[0].drawdown).toBeNull();
+		expect(lines[1].drawdown).toBe(12.5);
+	});
+
+	it('a structure refused at entry has no numbers and is never the best', () => {
+		const lines = comparisonLines(
+			{ basis: 'player', entryStep: 61, qty: '2000', rows: [row('short_strangle', '0', { refused: 'insufficient_margin' })] } as never,
+			-10
+		);
+		expect(lines[1]).toMatchObject({ net: null, drawdown: null, marginCalls: null, exitStep: null, refused: 'insufficient_margin', best: false });
+		expect(lines[0].best).toBe(true);
+	});
+
+	it('every structure the engine names has a label in both locales', async () => {
+		const names: ComparisonStrategy[] = ['naked_call', 'bull_call_spread', 'long_only', 'covered_call', 'atr_stop', 'atm_put', 'otm_put', 'short_strangle', 'iron_condor', 'hold_to_settlement', 'close_before_expiry', 'roll_before_expiry'];
+		const { t } = await import('./i18n.svelte.ts');
+		for (const locale of ['pt-BR', 'en'] as const) {
+			i18n.locale = locale;
+			for (const n of names) expect(t(`comparison.${n}`)).not.toBe(`comparison.${n}`);
+		}
+	});
+});
+

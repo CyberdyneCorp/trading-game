@@ -19,6 +19,7 @@
 #include "viewmodel/game/combos.hpp"
 #include "viewmodel/game/strategies.hpp"
 #include "viewmodel/game/whatif_lab.hpp"
+#include "viewmodel/report_texts.hpp"
 
 using namespace tradelab::desktop;
 using namespace tradelab::desktop::game;
@@ -102,6 +103,13 @@ std::string opt_int(const std::optional<int>& v) { return v ? std::to_string(*v)
 
 // ---- inputs ----
 
+std::optional<HeldLong> held_of(const Value& h) {
+  if (h.is_null()) return std::nullopt;
+  HeldLong out{h["qty"].as_string(), h["entry"].as_string(), std::nullopt};
+  if (h.has("stop")) out.stop = h["stop"].as_string();
+  return out;
+}
+
 GameState game(const Value& g) { return game_state_from_json(g); }
 
 std::vector<OptionQuote> chain(const Value& c) {
@@ -145,6 +153,7 @@ AnalysisLeg analysis_leg(const Value& l) {
   out.buy = l["side"].as_string() != "sell";
   out.qty = l["qty"].as_string();
   if (l.has("entry")) out.entry = l["entry"].as_string();
+  if (l.has("stop")) out.stop = l["stop"].as_string();
   return out;
 }
 
@@ -327,17 +336,22 @@ std::map<std::string, Port> strategy_ports() {
       {"heldLong",
        [](const Value& a) {
          const auto h = held_long(game(a[0]));
-         return h ? "{\"qty\":" + text(h->qty) + ",\"entry\":" + text(h->entry) + "}" : std::string("null");
+         if (!h) return std::string("null");
+         return "{\"qty\":" + text(h->qty) + ",\"entry\":" + text(h->entry) + (h->stop ? ",\"stop\":" + text(*h->stop) : "") + "}";
+       }},
+      {"longStop", [](const Value& a) { return opt_text(long_stop(game(a[0]))); }},
+      {"contractsForRisk",
+       [](const Value& a) {
+         const std::optional<double> loss = a[2].is_null() ? std::nullopt : std::optional<double>(a[2].as_double());
+         return opt_num(contracts_for_risk(a[0].as_double(), a[1].as_double(), loss, a[3].as_double(), a[4].as_double()));
        }},
       {"coverContracts",
-       [](const Value& a) { return num(cover_contracts(game(a[0]), HeldLong{a[1]["qty"].as_string(), "0"})); }},
+       [](const Value& a) { return num(cover_contracts(game(a[0]), HeldLong{a[1]["qty"].as_string(), "0", std::nullopt})); }},
       {"positionLegs", [](const Value& a) { return legs_json(position_legs(game(a[0]))); }},
       {"comboLegs", [](const Value& a) { return legs_json(combo_legs(order_legs_of(a[0]))); }},
       {"whatifLegs",
        [](const Value& a) {
-         std::optional<HeldLong> held;
-         if (!a[1].is_null()) held = HeldLong{a[1]["qty"].as_string(), a[1]["entry"].as_string()};
-         return legs_json(whatif_legs(order_legs_of(a[0]), held));
+         return legs_json(whatif_legs(order_legs_of(a[0]), held_of(a[1])));
        }},
   };
 }
@@ -407,6 +421,15 @@ std::map<std::string, Port> lab_ports() {
        }},
       {"strikesOf", [](const Value& a) { return array(result_strikes(result(a[0])), [](double k) { return num(k); }); }},
       {"unboundedAbove", [](const Value& a) { return opt_text(unbounded_above(result(a[0]))); }},
+      {"legLabel",
+       [](const Value& a) {
+         WhatIfLeg l;
+         l.kind = a[0]["kind"].as_string();
+         l.buy = a[0]["side"].as_string() != "sell";
+         l.qty = a[0]["qty"].as_string();
+         if (!a[0]["strike"].is_null()) l.strike = a[0]["strike"].as_string();
+         return text(leg_label(l, a[1].as_string() == "en" ? Locale::En : Locale::PtBR, a[2].as_string()));
+       }},
       {"chartGeometry",
        [](const Value& a) { return json_of(payoff_geometry(result(a[0]), a[1].as_double(), a[2].as_double(), doubles(a[3]))); }},
   };
@@ -420,6 +443,23 @@ TEST_CASE("web parity: strategies.ts (templates, legs, submission order, orders,
 
 TEST_CASE("web parity: combos.ts (log, legs followed through events, premium, R, grouped trades)") {
   replay("combos", combo_ports());
+}
+
+namespace {
+
+std::string comparison_json(const std::vector<ComparisonLine>& lines) {
+  const auto opt_i = [](const std::optional<int>& v) { return v ? std::to_string(*v) : std::string("null"); };
+  return array(lines, [&](const ComparisonLine& l) {
+    return "{\"key\":" + text(l.key) + ",\"name\":" + text(l.name) + ",\"net\":" + opt_num(l.net) + ",\"drawdown\":" + opt_num(l.drawdown) +
+           ",\"marginCalls\":" + opt_i(l.margin_calls) + ",\"entryStep\":" + opt_i(l.entry_step) + ",\"exitStep\":" + opt_i(l.exit_step) +
+           ",\"refused\":" + (l.refused.empty() ? std::string("null") : text(l.refused)) + ",\"best\":" + boolean(l.best) + "}";
+  });
+}
+
+}  // namespace
+
+TEST_CASE("web parity: debrief.ts comparisonLines (the player's row, the best net, refused structures)") {
+  replay("comparison", {{"comparisonLines", [](const Value& a) { return comparison_json(comparison_lines(a[0], a[1].as_double())); }}});
 }
 
 TEST_CASE("web parity: whatifLab.ts (requests, sliders, the payoff chart's geometry from engine answers)") {

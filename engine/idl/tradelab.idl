@@ -343,6 +343,34 @@ enum ExitReason : u8 {
   Trailing = 7
 }
 
+/// A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8).
+enum ComparisonStrategy : u8 {
+  /// m13: a call at the money.
+  NakedCall = 0
+  /// m13: that call bought, the next strike up written.
+  BullCallSpread = 1
+  /// m14, m15: the perpetual long alone, held to the end.
+  LongOnly = 2
+  /// m14: the long plus a call about 5% out of the money written, written again at each settlement.
+  CoveredCall = 3
+  /// m15: the long with a protective stop 2 x ATR(14) below the entry close.
+  AtrStop = 4
+  /// m15: the long plus a put at the money of the second expiry.
+  AtmPut = 5
+  /// m15: the long plus a put about 5% out of the money of the second expiry.
+  OtmPut = 6
+  /// m16: a put and a call 2 strikes out written, held to settlement.
+  ShortStrangle = 7
+  /// m16: the strangle plus the strikes 4 out bought (wings), held to settlement.
+  IronCondor = 8
+  /// m17: a put at the money written and held to settlement.
+  HoldToSettlement = 9
+  /// m17: the same put bought back 5 bars before its expiry.
+  CloseBeforeExpiry = 10
+  /// m17: the same put rolled 5 bars before each expiry into the next expiry's put at the money.
+  RollBeforeExpiry = 11
+}
+
 /// Advice in the debrief: a long or short read is right when the close 5 bars after the next open moved its way.
 enum AdviceOutcome : u8 {
   Right = 0
@@ -1022,6 +1050,38 @@ struct DebriefData {
   decisions: DecisionView[]
   /// Scoring v11: the lesson questions; null for a mission without a rubric.
   lessons: LessonResults | null
+  /// Scoring v13 (report-only): the mission's reference structures on this seed; null for a mission
+  /// without a comparison (every mission but m13-m17) and for pack runs.
+  strategyComparison: StrategyComparison | null
+}
+
+union ComparisonBasis = "player" | "reference"
+
+/// One reference structure valued on this seed's path by the engine (its quotes, fees and margin).
+struct StrategyComparisonRow {
+  name: ComparisonStrategy
+  /// Decision step whose next open filled the entry.
+  entryStep: int
+  /// Bar of the last fill or settlement that closed it; the run's last bar when still open.
+  exitStep: int
+  /// Equity at the end minus the run's initial capital, fees and funding included.
+  netPnl: Decimal
+  /// Largest peak-to-trough drop of equity (a positive amount).
+  maxDrawdown: Decimal
+  marginCalls: int
+  /// The command reason of a leg refused at entry (nothing was placed, every amount is 0); null otherwise.
+  refused: Reason | null
+}
+
+/// Debrief (scoring v13, report-only): computed after the run, never a score input or a digest input.
+struct StrategyComparison {
+  /// "player": entered at the decision step of the player's first option fill, at its quantity;
+  /// "reference": the mission's reference step and quantity (no option traded).
+  basis: ComparisonBasis
+  entryStep: int
+  /// Option contracts per leg; a perpetual leg trades qty x the option multiplier units.
+  qty: Decimal
+  rows: StrategyComparisonRow[]
 }
 
 # --- Seeded reveal (tl_mission_reveal) --------------------------------------------------------
@@ -1237,6 +1297,10 @@ struct WhatIfLegInput {
   /// Annualized implied volatility, e.g. "0.6".
   iv?: string
   entry?: string
+  /// Perpetual legs only: a working protective stop. The expiry analytics (breakevens, maxProfit,
+  /// maxLoss, the expiry curve) treat the leg as closed at the stop beyond it, without a gap; value,
+  /// P&L, Greeks and the "today" curve ignore it. A stop on an option leg is invalid input.
+  stop?: string
 }
 
 /// Shifts: forward (absent = unchanged), time (run-less minutesElapsed, run bars) and IV in

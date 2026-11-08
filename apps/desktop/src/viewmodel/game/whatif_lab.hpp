@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "model/i18n.hpp"
 #include "model/json.hpp"
 #include "viewmodel/game/strategies.hpp"
 
@@ -125,6 +126,10 @@ struct Analysis {
 
 Analysis<WhatIfResult> whatif_from_json(const std::string& text);
 Analysis<ComboPreview> preview_from_json(const std::string& text);
+
+// whatifLab.ts legLabel: side, quantity as held (47,9 stays 47,9, never rounded to a whole contract),
+// then the option ("C 105,00") or the perpetual's name.
+std::string leg_label(const WhatIfLeg& l, Locale locale, const std::string& perp_name);
 
 // Which way an unbounded loss runs: always above the upper breakeven (prices stop at 0).
 std::optional<std::string> unbounded_above(const WhatIfResult& r);

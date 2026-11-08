@@ -186,13 +186,23 @@ export function comboLegs(orders: readonly OrderLeg[]): ComboLegInput[] {
 	return orders.map((o) => (o.series === 0 ? { kind: 'perp', side: o.side, qty: o.qty } : { series: o.series, side: o.side, qty: o.qty }));
 }
 
+/** A held long perpetual: its units, entry and the working stop that protects all of it, if any. */
+export interface HeldLong {
+	qty: string;
+	entry: string;
+	/** Trigger of the reduce-only stop covering the whole long (the highest when several do). */
+	stop?: string;
+}
+
 /**
  * The what-if legs of a combo: its orders at the prices they would cross (the engine's default), plus
  * the player's long perpetual when "use my long" replaces the perpetual order (valued from its entry).
+ * The long carries its stop, so the engine's maximum loss (the combo's planned risk) is the loss to
+ * that stop, not the long's whole value down to a price of 0: the long's own risk was already planned.
  */
-export function whatifLegs(orders: readonly OrderLeg[], held: { qty: string; entry: string } | null): WhatIfLegInput[] {
+export function whatifLegs(orders: readonly OrderLeg[], held: HeldLong | null): WhatIfLegInput[] {
 	const legs: WhatIfLegInput[] = comboLegs(orders);
-	if (held) legs.push({ kind: 'perp', side: 'buy', qty: held.qty, entry: held.entry });
+	if (held) legs.push({ kind: 'perp', side: 'buy', qty: held.qty, entry: held.entry, ...(held.stop ? { stop: held.stop } : {}) });
 	return legs;
 }
 
@@ -209,9 +219,34 @@ export function coverContracts(game: GameState, held: { qty: string }): number {
 	return Number(qtyToLot(units / Number(game.options.multiplier), Number(game.options.lotSize)));
 }
 
+const STOP_TYPES: ReadonlySet<string> = new Set(['stop_market', 'trailing_stop']);
+
+/** The highest trigger of the working reduce-only sell stops that close the whole long (null: none). */
+export function longStop(game: GameState): string | null {
+	const units = Number(game.position.qty);
+	const covering = (game.orders ?? []).filter(
+		(o) => o.series === 0 && o.reduceOnly && o.side === 'sell' && STOP_TYPES.has(o.type) && Number(o.price) > 0 && Number(o.qty) - Number(o.filled) >= units
+	);
+	if (units <= 0 || covering.length === 0) return null;
+	return covering.reduce((best, o) => (Number(o.price) > Number(best.price) ? o : best)).price;
+}
+
 /** The player's long perpetual, when "use my long" can cover a template's perpetual leg. */
-export function heldLong(game: GameState): { qty: string; entry: string } | null {
-	return Number(game.position.qty) > 0 ? { qty: game.position.qty, entry: game.position.entry } : null;
+export function heldLong(game: GameState): HeldLong | null {
+	if (Number(game.position.qty) <= 0) return null;
+	const stop = longStop(game);
+	return { qty: game.position.qty, entry: game.position.entry, ...(stop ? { stop } : {}) };
+}
+
+/**
+ * Contracts per leg so that the structure's maximum loss is `riskPct` % of equity (the builder's
+ * sizing aid, like the perpetual ticket's risk sizing): the engine's maximum loss at `n` contracts
+ * scaled to the budget, down to the option lot. Null without a bounded, positive maximum loss.
+ */
+export function contractsForRisk(equity: number, riskPct: number, maxLoss: number | null, n: number, lot: number): number | null {
+	if (maxLoss == null || !(maxLoss > 0) || !(n > 0) || !(riskPct > 0) || !(equity > 0) || !(lot > 0)) return null;
+	const perContract = maxLoss / n;
+	return Number(qtyToLot((equity * riskPct) / 100 / perContract, lot));
 }
 
 /** The player's open positions as what-if legs at their entries (the terminal lab "from positions"). */

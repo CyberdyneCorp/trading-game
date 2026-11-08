@@ -79,6 +79,13 @@ void GameView::bind_builder() {
     changed([this](GameViewModel& m, const GameState& g) { m.builder.add_leg(g, vm().texts().locale()); });
   });
   cb_.check(find(b::kUseLong), [changed](bool on) { changed([on](GameViewModel& m, const GameState&) { m.builder.use_long = on; }); });
+  cb_.text(find(b::kSizeRisk), [this](const std::string& text) {
+    vm().builder.risk_pct = text;
+    vm().builder_changed();
+  });
+  cb_.click(find(b::kSizeApply), [changed, this] {
+    changed([this](GameViewModel& m, const GameState& g) { m.builder.apply_size(g, vm().texts().locale()); });
+  });
   cb_.click(find(b::kOpenLab), [this] { vm().open_lab_builder(); });
   cb_.click(find(b::kLabPositions), [this] { vm().open_lab_positions(); });
   cb_.click(find(b::kSubmit), [this] { vm().builder_submit(); });
@@ -145,6 +152,7 @@ void GameView::apply_builder(const game::Texts& t, const GameState& g) {
   builder_preview_.set(v.preview);
   set_label(find(b::kTotals), kv(v.totals));
   set_label(find(b::kAnalysis), kv(v.analysis));
+  apply_sizing(t, v);
   set_visible(find(b::kPayoff), v.has_whatif);
   Rwidget_set_accessible_name(find(b::kPayoff), v.chart_summary.c_str());
   set_label(find(b::kLegend), v.chart_legend);
@@ -266,6 +274,21 @@ void GameView::apply_leg_rows(const game::BuilderView& v) {
     if (Rwidget_is_focused(qty) == 0) ui::set_text(qty, l.qty);
     set_visible(Rwidget_get_child(leg, 1), l.no_bid);
   }
+}
+
+void GameView::apply_sizing(const game::Texts& t, const game::BuilderView& v) {
+  set_label(find(b::kSizeHeld), v.size_held);
+  set_visible(find(b::kSizeHeld), !v.size_held.empty());
+  set_visible(find(b::kSizing), v.sizing);
+  Rwidget_set_accessible_name(find(b::kSizing), t.tr("builder.sizeTitle").c_str());
+  set_label(find(b::kSizeLabel), v.size_label);
+  Rwidget_set_accessible_name(find(b::kSizeRisk), v.size_label.c_str());
+  const Rid risk = find(b::kSizeRisk);
+  if (Rwidget_is_focused(risk) == 0) ui::set_text(risk, vm().builder.risk_pct);
+  ui::set_text(find(b::kSizeApply), v.size_apply);
+  set_enabled(find(b::kSizeApply), v.can_size);
+  set_label(find(b::kSizeHint), v.size_hint);
+  set_visible(find(b::kSizeHint), !v.size_hint.empty());
 }
 
 void GameView::apply_combo_notice() {

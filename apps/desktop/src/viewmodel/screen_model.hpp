@@ -40,6 +40,7 @@ struct WidgetTable {
   std::string_view widget;
   std::vector<std::string> columns;
   std::vector<std::vector<std::string>> rows;
+  std::vector<float> fills = {};  // each column's share of the width; empty: equal shares ("#" stays narrow)
 };
 
 struct WidgetItems {

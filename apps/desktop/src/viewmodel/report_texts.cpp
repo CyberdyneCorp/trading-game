@@ -211,6 +211,36 @@ std::vector<GreekRow> greek_rows(const json::Value& g) {
   return out;
 }
 
+namespace {
+
+ComparisonLine comparison_row(const json::Value& r) {
+  ComparisonLine l;
+  l.key = r["name"].as_string();
+  l.name = "comparison." + l.key;
+  l.refused = r["refused"].is_null() ? std::string() : r["refused"].as_string();
+  l.entry_step = static_cast<int>(r["entryStep"].as_int());
+  if (!l.refused.empty()) return l;
+  l.net = fmt::num(r["netPnl"].as_string());
+  l.drawdown = fmt::num(r["maxDrawdown"].as_string());
+  l.margin_calls = static_cast<int>(r["marginCalls"].as_int());
+  l.exit_step = static_cast<int>(r["exitStep"].as_int());
+  return l;
+}
+
+}  // namespace
+
+std::vector<ComparisonLine> comparison_lines(const json::Value& comparison, double player_net) {
+  std::vector<ComparisonLine> lines;
+  lines.push_back({"you", "comparison.you", player_net, std::nullopt, std::nullopt, std::nullopt, std::nullopt, "", false});
+  for (const auto& r : comparison["rows"].items()) lines.push_back(comparison_row(r));
+  std::optional<double> top;
+  for (const auto& l : lines) {
+    if (l.net && (!top || *l.net > *top)) top = l.net;
+  }
+  for (auto& l : lines) l.best = top && l.net == top;
+  return lines;
+}
+
 DecisionCounts decision_counts(const json::Value& decisions) {
   DecisionCounts out;
   for (const auto& d : decisions.items()) {

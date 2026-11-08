@@ -31,6 +31,9 @@ brief.costsValue,Taker {taker} · Maker {maker} · Spread+slippage {slip} · Fun
 brief.costsShock,"Este mercado tem choques de liquidez: depois de certas manchetes, spread e slippage aumentam e a capacidade cai por algumas barras. A boleta avisa e estima com esses custos.","This market has liquidity shocks: after some headlines, spread and slippage widen and capacity drops for a few bars. The ticket warns and estimates with those costs."
 brief.mmr,Margem de manutenção,Maintenance margin
 brief.tiers,Faixas por tamanho,Tiers by size
+brief.marginRule,Regra de margem das opções,Option margin rule
+brief.marginRuleSpread,"Margem de spread: uma opção vendida coberta por uma comprada do mesmo tipo e vencimento paga só o que o par ainda pode perder no vencimento (uma trava de débito, nada; um iron condor, a largura de uma asa).","Spread margin: a written option covered by a bought one of the same kind and expiry pays only what the pair can still lose at expiry (a debit spread, nothing; an iron condor, one wing's width)."
+brief.marginRulePerLeg,"Por perna: cada opção vendida paga a sua margem sozinha, mesmo coberta por uma comprada.","Per leg: every written option pays its own margin, even when a bought one covers it."
 brief.mark,Preço de marcação,Mark price
 brief.markLast,Margem e liquidação usam o último preço: este cenário não tem série de preço de marcação.,Margin and liquidation use the last price: this scenario has no mark-price series.
 brief.markSeries,"Margem, liquidação e funding usam o preço de marcação; as execuções usam o último preço.","Margin, liquidation and funding use the mark price; fills use the last price."
@@ -281,6 +284,30 @@ debrief.gameOver,GAME OVER,GAME OVER
 debrief.gameOverText,O capital acabou. A partida termina aqui — suas lições e desbloqueios continuam.,You ran out of capital. The run ends here — your lessons and unlocks stay.
 debrief.finished,Missão concluída,Mission complete
 debrief.reveal,Revelação do mercado,Market reveal
+comparison.title,Comparação de estruturas (calculada neste seed),Structures compared (computed on this seed)
+comparison.basisPlayer,"O motor montou cada estrutura na barra {step} (a da sua primeira entrada em opções), com {qty} contratos por perna, e a seguiu pelo mesmo caminho até a regra de saída.","The engine built each structure at bar {step} (your first option entry), with {qty} contracts per leg, and followed it along the same path to its exit rule."
+comparison.basisReference,"Você não negociou opções: o motor montou cada estrutura na barra de referência da missão ({step}), com {qty} contratos por perna, e a seguiu até a regra de saída.","You traded no options: the engine built each structure at the mission's reference bar ({step}), with {qty} contracts per leg, and followed it to its exit rule."
+comparison.col.structure,Estrutura,Structure
+comparison.col.bars,Barras,Bars
+comparison.col.net,Resultado líquido,Net result
+comparison.col.drawdown,Rebaixamento máx.,Max drawdown
+comparison.col.calls,Chamadas de margem,Margin calls
+comparison.you,Você (esta partida),You (this run)
+comparison.best,melhor aqui,best here
+comparison.refused,Não coube: {reason},Did not fit: {reason}
+comparison.note,"Calculado depois do fim, com as cotações, custos e margem do próprio motor, só para este seed: em outro seed a ordem pode mudar. Não entra na pontuação.","Computed after the end, with the engine's own quotes, costs and margin, for this seed only: on another seed the order can change. Not part of the score."
+comparison.naked_call,Call comprada (no dinheiro),Call bought (at the money)
+comparison.bull_call_spread,Trava de alta (call no dinheiro + call um strike acima vendida),Bull call spread (ATM call + the next strike up written)
+comparison.long_only,Só a posição comprada,The long alone
+comparison.covered_call,"Venda coberta (call ~5% fora, vendida de novo a cada vencimento)","Covered call (~5% OTM call, written again each expiry)"
+comparison.atr_stop,Comprada com stop a 2 × ATR,Long with a 2 × ATR stop
+comparison.atm_put,Comprada + put no dinheiro (2º vencimento),Long + an at-the-money put (2nd expiry)
+comparison.otm_put,Comprada + put ~5% fora (2º vencimento),Long + a ~5% OTM put (2nd expiry)
+comparison.short_strangle,Strangle vendido (2 strikes de cada lado),Short strangle (2 strikes each side)
+comparison.iron_condor,Iron condor (asas 4 strikes fora),Iron condor (wings 4 strikes out)
+comparison.hold_to_settlement,Put vendida até a liquidação,"Put written, held to settlement"
+comparison.close_before_expiry,"Put vendida, recomprada 5 barras antes","Put written, bought back 5 bars before"
+comparison.roll_before_expiry,"Put vendida, rolada 5 barras antes de cada vencimento","Put written, rolled 5 bars before each expiry"
 debrief.revealSynthetic,Mercado {alias} foi gerado sinteticamente (semente {seed}). Preços simulados; não representam um ativo real.,Market {alias} was generated synthetically (seed {seed}). Simulated prices; not a real asset.
 debrief.outcome,Resultado,Outcome
 debrief.netPnl,P&L líquido,Net P&L
@@ -800,6 +827,10 @@ academy.phase.demo,DEMONSTRAÇÃO,DEMONSTRATION
 academy.phase.decision,DECISÃO,DECISION
 academy.phase.transfer,TRANSFERÊNCIA,TRANSFER
 academy.market,Mercado {market} · {interval},Market {market} · {interval}
+academy.whatif.caption,laboratório (motor do jogo),lab (the game's engine)
+academy.builder.caption,um vencimento em {days} dias,one expiry in {days} days
+academy.builder.note,"Cada perna custa o valor do modelo do motor (Black-76, IV de {iv}% em todos os strikes), arredondado ao centavo. Só análise: nada é enviado.","Each leg costs the engine's model value (Black-76, IV {iv}% at every strike), rounded to the cent. Analysis only: nothing is sent."
+academy.builder.pick,Escolha um modelo para ver o payoff e a análise do motor.,Pick a template to see the payoff and the engine's analysis.
 academy.illustrative,ILUSTRATIVO,ILLUSTRATIVE
 academy.future,futuro,future
 academy.bar,Barra {n},Bar {n}
@@ -1069,6 +1100,12 @@ builder.marginSpread,Margem exigida (venda coberta paga só a perda máxima do p
 plan.riskUnbounded,"A perda máxima desta estrutura é ilimitada: o risco acima é só a margem exigida, não o pior caso.","This structure has no maximum loss: the risk above is only the margin required, not the worst case."
 builder.marginPerLeg,Margem exigida (cada venda separada),Margin required (each sale on its own)
 builder.availableAfter,Disponível depois das execuções,Available after the fills
+builder.sizeTitle,Dimensionar pela perda máxima,Size by the maximum loss
+builder.sizeRisk,Risco (% patrimônio),Risk (% of equity)
+builder.sizeApply,Usar {n} contratos,Use {n} contracts
+builder.sizeHint,Com {n} contratos a perda máxima no vencimento é ≈ {risk}.,At {n} contracts the maximum loss at expiry is ≈ {risk}.
+builder.sizeHeld,"A quantidade segue a sua posição comprada. O risco planejado vai até o stop dela ({stop}), sem gap.","The size follows your long position. The planned risk runs to its stop ({stop}), without a gap."
+builder.sizeNoStop,Sua posição comprada não tem stop: a perda máxima vai até o preço 0. Ponha um stop nela para planejar o risco.,Your long has no stop: the maximum loss runs down to a price of 0. Give it a stop to plan the risk.
 builder.openLab,Abrir no laboratório,Open in the lab
 builder.labPositions,Laboratório com minhas posições,Lab with my positions
 builder.legging,"As pernas viram ordens a mercado separadas, enviadas nesta barra: compras de opção primeiro, depois o perpétuo, depois as vendas. Se uma for recusada agora, as outras são canceladas. Na abertura, uma perna ainda pode ser cancelada (sem comprador, margem): o combo fica incompleto e você decide o que fazer.","The legs become separate market orders, sent at this bar: option buys first, then the perpetual, then the sales. If one is refused now, the others are cancelled. At the open a leg can still be cancelled (no buyer, margin): the combo is then incomplete and you decide what to do."
@@ -2156,13 +2193,8 @@ academyLesson.options-greeks.delta.title,Delta,Delta
 academyLesson.options-greeks.delta.body,"O delta diz quanto o valor da opção muda quando o preço do ativo sobe 1. Calls vão de 0 a 1; puts, de −1 a 0. Uma call no dinheiro tem delta perto de 0,5: ela se move como meia unidade do ativo. Por isso o delta também serve como razão de hedge.","Delta says how much the option's value changes when the asset's price rises by 1. Calls go from 0 to 1; puts, from −1 to 0. An at-the-money call has a delta near 0.5: it moves like half a unit of the asset. That is why delta also works as a hedge ratio."
 academyLesson.options-greeks.others.title,"Gamma, theta e vega","Gamma, theta and vega"
 academyLesson.options-greeks.others.body,"O gamma diz quanto o delta muda quando o preço anda 1; ele é maior no dinheiro e perto do vencimento. O theta é o valor que a opção perde por barra quando nada mais muda. O vega é quanto o valor muda por 1 ponto de volatilidade implícita. Cada grega isola uma causa: preço, curvatura, tempo e volatilidade.","Gamma says how much delta changes when the price moves by 1; it is largest at the money and near expiry. Theta is the value the option loses per bar when nothing else changes. Vega is how much the value changes per 1 point of implied volatility. Each Greek isolates one cause: price, curvature, time and volatility."
-academyLesson.options-greeks.move.title,Lendo as gregas de uma call,Reading a call's Greeks
-academyLesson.options-greeks.move.body,"Valores hipotéticos de uma call ilustrativa, dados como ponto de partida. Se o ativo sobe 2, a call ganha cerca de 0,50 × 2 = 1,00 e vai para perto de 4,20; o gamma faz o delta crescer no caminho, então o ganho real é um pouco maior. Se o preço fica parado 5 barras, o theta tira cerca de 0,08 × 5 = 0,40.","Hypothetical values of an illustrative call, given as a starting point. If the asset rises 2, the call gains about 0.50 × 2 = 1.00 and goes to near 4.20; gamma makes the delta grow along the way, so the real gain is a little larger. If the price stands still for 5 bars, theta takes about 0.08 × 5 = 0.40."
-academyLesson.options-greeks.move.column.0,Valor,Value
-academyLesson.options-greeks.move.column.1,Delta,Delta
-academyLesson.options-greeks.move.column.2,Gamma,Gamma
-academyLesson.options-greeks.move.column.3,Theta/barra,Theta/bar
-academyLesson.options-greeks.move.column.4,Vega/ponto,Vega/point
+academyLesson.options-greeks.move.title,Lendo as gregas de uma call no laboratório,Reading a call's Greeks in the lab
+academyLesson.options-greeks.move.body,"Uma call no dinheiro ilustrativa no mercado A: strike 100, 30 dias até o vencimento, IV de 50%. O motor do jogo a avalia em 5,71, com delta 0,53, gamma 0,028, theta de −0,095 por dia e vega de 0,114 por ponto (tabela do laboratório). Leve o preço a +2% (102): só o delta prevê um ganho de 0,53 × 2 = 1,06; o motor dá 6,83, um ganho de 1,12, porque o gamma faz o delta crescer no caminho (0,58 em 102). Volte o preço e avance 5 dias: o theta prevê 0,095 × 5 = 0,475 a menos; o motor dá 5,22.","An illustrative at-the-money call on market A: strike 100, 30 days to expiry, IV 50%. The game's engine values it at 5.71, with a delta of 0.53, a gamma of 0.028, a theta of −0.095 per day and a vega of 0.114 per point (the lab's table). Move the price to +2% (102): delta alone predicts a gain of 0.53 × 2 = 1.06; the engine gives 6.83, a gain of 1.12, because gamma grows the delta on the way (0.58 at 102). Put the price back and move 5 days on: theta predicts 0.095 × 5 = 0.475 less; the engine gives 5.22."
 academyLesson.options-greeks.which.title,Decisão: qual grega explica a perda?,Decision: which Greek explains the loss?
 academyLesson.options-greeks.which.body,"Você comprou uma call. O preço ficou parado e a volatilidade implícita não mudou, mas a call perdeu valor. Qual grega explica isso?","You bought a call. The price stood still and implied volatility did not change, but the call lost value. Which Greek explains it?"
 academyLesson.options-greeks.which.right,"O theta: o valor de tempo diminui a cada barra, mesmo sem nada acontecer. É o custo de esperar com uma opção comprada.","Theta: time value shrinks every bar, even when nothing happens. It is the cost of waiting with a bought option."
@@ -2184,18 +2216,15 @@ academyLesson.options-greeks.gamma.choice.atmNear,"No dinheiro, perto do vencime
 academyLesson.options-greeks.gamma.choice.otmFar,"Fora do dinheiro, longe do vencimento","Out of the money, far from expiry"
 academyLesson.options-greeks.gamma.choice.itmFar,"Dentro do dinheiro, longe do vencimento","In the money, far from expiry"
 academyLesson.options-greeks.vega.title,"Transferência: outra opção, outro vencimento","Transfer: another option, another expiry"
-academyLesson.options-greeks.vega.body,"Mercado B: uma put mais longa, com os valores hipotéticos da tabela. O preço não anda e a volatilidade implícita sobe 4 pontos. Aproximadamente quanto a put ganha?","Market B: a longer put, with the hypothetical values in the table. The price does not move and implied volatility rises 4 points. Roughly how much does the put gain?"
-academyLesson.options-greeks.vega.right,"0,25 × 4 = +1,00. Vega é positivo para quem compra, seja call ou put: as duas ficam mais caras quando a IV sobe.","0.25 × 4 = +1.00. Vega is positive for the buyer, call or put: both get more expensive when IV rises."
+academyLesson.options-greeks.vega.body,"Mercado B, perto de 250: uma put de strike 240 com 60 dias até o vencimento e IV de 40%, comprada por 11,33 (o valor do motor). O vega dela é 0,383 por ponto. O preço não anda e a volatilidade implícita sobe 4 pontos. Quanto a put ganha? O controle de IV deixa conferir no motor.","Market B, near 250: a put with strike 240 and 60 days to expiry, IV 40%, bought for 11.33 (the engine's value). Its vega is 0.383 per point. The price does not move and implied volatility rises 4 points. How much does the put gain? The IV slider lets you check it in the engine."
+academyLesson.options-greeks.vega.right,"O motor dá +1,54: vega × 4 = 0,383 × 4 ≈ 1,53, e o próprio vega cresce um pouco quando a IV sobe. Vega é positivo para quem compra, seja call ou put: as duas ficam mais caras quando a IV sobe.","The engine gives +1.54: vega × 4 = 0.383 × 4 ≈ 1.53, and vega itself grows a little as IV rises. Vega is positive for the buyer, call or put: both get more expensive when IV rises."
 academyLesson.options-greeks.vega.wrong,"Variação ≈ vega × pontos de IV. O delta não entra, porque o preço não andou.","Change ≈ vega × IV points. Delta does not enter, because the price did not move."
-academyLesson.options-greeks.vega.column.0,Delta,Delta
-academyLesson.options-greeks.vega.column.1,Theta/barra,Theta/bar
-academyLesson.options-greeks.vega.column.2,Vega/ponto,Vega/point
 academyLesson.options-iv.title,Volatilidade implícita,Implied volatility
 academyLesson.options-iv.summary,"IV contra volatilidade realizada, o movimento que o preço da opção embute, o decaimento e a queda da IV depois de eventos.","IV against realized volatility, the move an option's price implies, time decay and IV crush after events."
 academyLesson.options-iv.iv.title,Implícita contra realizada,Implied against realized
 academyLesson.options-iv.iv.body,"A volatilidade implícita (IV) é a volatilidade que o preço da opção embute: quanto movimento o mercado está cobrando. A volatilidade realizada é quanto o preço de fato andou. Quem compra opções ganha quando o movimento realizado supera o que pagou; quem vende, quando fica abaixo. Aqui as opções são precificadas por Black-76 com juros zero.","Implied volatility (IV) is the volatility an option's price implies: how much movement the market is charging for. Realized volatility is how much the price actually moved. Option buyers gain when the realized move beats what they paid; sellers, when it falls short. Here options are priced with Black-76 at a zero rate."
 academyLesson.options-iv.decay.title,Tempo e eventos,Time and events
-academyLesson.options-iv.decay.body,"O valor de tempo cai devagar no começo e cada vez mais rápido perto do vencimento. Antes de um evento esperado, a IV sobe porque embute o movimento da notícia; depois que ele sai, a incerteza some e a IV cai: a queda da IV. Opções compradas perdem valor nessa queda mesmo que o preço ande um pouco.","Time value falls slowly at first and faster and faster near expiry. Before an expected event IV rises, because it holds the news move; once the news is out the uncertainty is gone and IV falls: the IV crush. Bought options lose value in that fall even if the price moves a little."
+academyLesson.options-iv.decay.body,"O valor de tempo cai devagar no começo e cada vez mais rápido perto do vencimento. No laboratório acima (uma call no dinheiro, 30 dias, IV de 50%), o motor dá 5,71 com 30 dias pela frente, 3,30 com 10 e 1,04 com 1: o theta vai de −0,095 para −0,522 por dia. Antes de um evento esperado, a IV sobe porque embute o movimento da notícia; depois que ele sai, a incerteza some e a IV cai: a queda da IV. Opções compradas perdem valor nessa queda mesmo que o preço ande um pouco.","Time value falls slowly at first and faster and faster near expiry. In the lab above (an at-the-money call, 30 days, IV 50%), the engine gives 5.71 with 30 days left, 3.30 with 10 and 1.04 with 1: theta goes from −0.095 to −0.522 per day. Before an expected event IV rises, because it holds the news move; once the news is out the uncertainty is gone and IV falls: the IV crush. Bought options lose value in that fall even if the price moves a little."
 academyLesson.options-iv.straddle.title,O movimento que o preço embute,The move the price implies
 academyLesson.options-iv.straddle.body,"Um straddle no dinheiro (call e put de strike 100, cada uma por 4) custa 8. Ele empata em 92 e 108 no vencimento: o mercado está cobrando um movimento de cerca de 8% para qualquer lado. O preço de um straddle no dinheiro é uma leitura rápida do movimento esperado.","An at-the-money straddle (a call and a put at strike 100, each for 4) costs 8. It breaks even at 92 and 108 at expiry: the market is charging for a move of about 8% either way. The price of an at-the-money straddle is a quick read of the expected move."
 academyLesson.options-iv.crush.title,Decisão: comprou antes da notícia,Decision: bought before the news
@@ -2278,7 +2307,7 @@ academyLesson.strategies-shapes.legging.choice.flat,Nada: a estrutura é cancela
 academyLesson.strategies-shapes.legging.feedback.condor,Sem as asas não há condor: a perda volta a ser sem teto.,Without the wings there is no condor: the loss has no ceiling again.
 academyLesson.strategies-shapes.legging.feedback.flat,Ordens executadas não se desfazem sozinhas. Só você pode fechar o que ficou aberto.,Filled orders do not undo themselves. Only you can close what is left open.
 academyLesson.strategies-shapes.view.title,Transferência: escolha a estrutura,Transfer: pick the structure
-academyLesson.strategies-shapes.view.body,"Mercado Y, entre 606 e 633, sobe devagar. Sua visão: alta moderada até o vencimento, e você quer saber a perda máxima antes de entrar. Qual estrutura combina com essa visão?","Market Y, between 606 and 633, rises slowly. Your view: a moderate rise by expiry, and you want to know the largest loss before entering. Which structure fits that view?"
+academyLesson.strategies-shapes.view.body,"Mercado Y, entre 606 e 633, sobe devagar. Sua visão: alta moderada até o vencimento, e você quer saber a perda máxima antes de entrar. Qual estrutura combina com essa visão? Experimente os modelos no construtor acima antes de responder: ele precifica cada perna com o motor do jogo.","Market Y, between 606 and 633, rises slowly. Your view: a moderate rise by expiry, and you want to know the largest loss before entering. Which structure fits that view? Try the templates in the builder above before answering: it prices each leg with the game's engine."
 academyLesson.strategies-shapes.view.right,"Uma trava de alta com calls: ganha com a alta até o strike de cima, custa menos que a call sozinha e a perda máxima é o débito. A estrutura vem da visão, não o contrário.","A bull call spread: it gains from the rise up to the upper strike, costs less than the call alone and its largest loss is the debit. The structure follows from the view, not the other way round."
 academyLesson.strategies-shapes.view.wrong,Procure a forma que ganha com alta moderada e tem perda máxima conhecida.,Look for the shape that gains from a moderate rise and has a known largest loss.
 academyLesson.strategies-shapes.view.choice.bull,Trava de alta com calls,Bull call spread

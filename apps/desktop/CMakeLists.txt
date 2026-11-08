@@ -52,6 +52,7 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/chart_vm.cpp
   src/viewmodel/game/combos.cpp
   src/viewmodel/game/dialogs_vm.cpp
+  src/viewmodel/game/tutorial_art.cpp
   src/viewmodel/game/dock_layout.cpp
   src/viewmodel/game/game_combos.cpp
   src/viewmodel/game/game_keys.cpp
@@ -138,6 +139,7 @@ target_link_libraries(tradelab_desktop_model PRIVATE tradelab_sqlite ${CMAKE_DL_
 set(TRADELAB_DESKTOP_ACADEMY_VIEWMODEL_SOURCES
   src/viewmodel/academy/coach.cpp
   src/viewmodel/academy/glossary.cpp
+  src/viewmodel/academy/lesson_lab.cpp
   src/viewmodel/academy/payoff.cpp
   src/viewmodel/academy/review.cpp
   src/viewmodel/academy/ticket_sandbox.cpp
@@ -213,6 +215,7 @@ add_library(tradelab_desktop_view STATIC
   src/view/chart_painter.cpp
   src/view/screens/retro_look.cpp
   src/view/screens/lab_screen.cpp
+  src/view/screens/lesson_lab_view.cpp
   src/view/screens/shell_view.cpp
   src/view/screens/shell_view_flows.cpp
   src/view/screens/shell_view_academy.cpp

@@ -18,6 +18,8 @@ export interface NodeEngine {
 	runWhatif(run: number, request: unknown): unknown;
 	comboPreview(run: number, request: unknown): unknown;
 	state(run: number): unknown;
+	advance(run: number, steps: number): unknown;
+	debrief(run: number): unknown;
 }
 
 export async function loadEngine(): Promise<NodeEngine> {
@@ -33,6 +35,8 @@ export async function loadEngine(): Promise<NodeEngine> {
 		createRun: (mission, seed) => mod.cwrap('tl_run_create', 'number', ['string', 'number'])(mission, seed),
 		runWhatif: (run, r) => call('tl_run_option_whatif', [run, JSON.stringify(r)], ['number', 'string']),
 		comboPreview: (run, r) => call('tl_combo_preview', [run, JSON.stringify(r)], ['number', 'string']),
-		state: (run) => call('tl_state', [run], ['number'])
+		state: (run) => call('tl_state', [run], ['number']),
+		advance: (run, steps) => call('tl_advance', [run, steps], ['number', 'number']),
+		debrief: (run) => call('tl_debrief', [run], ['number'])
 	};
 }

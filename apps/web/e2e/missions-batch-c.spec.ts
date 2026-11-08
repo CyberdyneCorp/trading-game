@@ -26,7 +26,10 @@ async function playToEnd(page: Page) {
 	await expect(page.getByText(/Missão concluída|GAME OVER/)).toBeVisible();
 }
 
-/** Opens a mission in free play: its tutorial (the new art first), then the briefing with the engine's objectives. */
+/**
+ * Opens a mission in free play: its tutorial (the new art first), then the briefing with the engine's
+ * objectives and the option margin rule (missionRules.spreadMargin; none when writing is off).
+ */
 async function startMission(page: Page, seed: number, index: number, title: RegExp, art: string) {
 	await page.goto(`/?seed=${seed}`);
 	await page.getByRole('button', { name: /Iniciar missão/ }).nth(index).click();
@@ -34,6 +37,8 @@ async function startMission(page: Page, seed: number, index: number, title: RegE
 	await page.getByRole('button', { name: 'Pular tutorial' }).click();
 	await expect(page.getByRole('heading', { name: title })).toBeVisible();
 	await expect(page.getByText('1x – 3x')).toBeVisible(); // the perpetual at 3x, from the engine
+	if (art === 'insurance') await expect(page.getByTestId('brief-margin-rule')).toHaveCount(0);
+	else await expect(page.getByTestId('brief-margin-rule')).toContainText(/Margem de spread: uma opção vendida coberta/);
 	await page.getByRole('button', { name: /Abrir terminal/ }).click();
 	await answerIfAsked(page);
 }
@@ -77,6 +82,14 @@ test('m13 spread: a bull call spread placed leg by leg; the reveal compares it w
 	await expect(page.getByText(/TRAVA contra CALL A SECO/)).toBeVisible();
 	await expect(page.getByTestId('debrief-regimes')).toBeVisible();
 	await expect(page.getByTestId('release-row')).toContainText(/Adoção institucional · sem aviso/);
+	// The engine's strategy comparison, from the player's first option entry, next to the player's result.
+	const cmp = page.getByTestId('debrief-comparison');
+	await expect(cmp).toContainText(/a da sua primeira entrada em opções/);
+	await expect(cmp.getByTestId('comparison-row')).toHaveCount(3);
+	await expect(cmp.getByTestId('comparison-row').nth(0)).toContainText(/Você \(esta partida\)/);
+	await expect(cmp.getByTestId('comparison-row').nth(1)).toContainText(/Call comprada/);
+	await expect(cmp.getByTestId('comparison-row').nth(2)).toContainText(/Trava de alta/);
+	await expect(cmp.getByTestId('comparison-net').nth(1)).toHaveText(/^[+-−]?[\d.]+,\d{2} cr$/);
 	expect(errors).toEqual([]);
 });
 
@@ -111,6 +124,7 @@ test('m15 insurance: buying only; a long with an at-the-money put of the second 
 
 	await expect(page.getByText(/foi desenhado como um SEGURO/)).toBeVisible();
 	await expect(page.getByTestId('release-row')).toContainText(/Incidente em exchange · sem aviso/);
+	await expect(page.getByTestId('debrief-comparison').getByTestId('comparison-row')).toHaveCount(5); // you, long, stop, ATM put, OTM put
 });
 
 test('m16 premium: an iron condor placed leg by leg, wings first; the reveal shows the breakout', async ({ page }) => {
@@ -141,6 +155,7 @@ test('m17 expiry: a written put rolled before its last bars into the next expiry
 	await expect(page.getByText(/GESTÃO ANTES DO VENCIMENTO/)).toBeVisible();
 	await expect(page.getByTestId('debrief-regimes')).toBeVisible();
 	await expect(page.getByTestId('debrief-releases')).toHaveCount(0);
+	await expect(page.getByTestId('debrief-comparison')).toContainText(/rolada 5 barras antes/);
 });
 
 // The same missions with the strategy builder (the terminal's "Estratégias" tab): the template's legs,
@@ -185,6 +200,13 @@ test('m14 through the builder: the covered call writes against the held long, al
 	const label = await page.getByText(/Usar minha posição comprada \(\d+,\d\)/).innerText();
 	await expect(page.getByTestId('builder-qty')).toHaveValue(label.match(/\((\d+,\d)\)/)![1]);
 	await expect(page.getByTestId('builder-preview').locator('li')).toHaveCount(1); // only the call: the long is already held
+	// Regression: the planned risk runs to the long's own stop (2% away), not down to a price of 0.
+	await expect(page.getByTestId('builder-size-held')).toContainText(/vai até o stop dela/);
+	await page.getByTestId('builder-submit').click();
+	const headline = await page.getByTestId('plan-headline').innerText();
+	const risk = Number(headline.match(/Risco planejado: ([\d.]+,\d{2})/)![1].replace(/\./g, '').replace(',', '.'));
+	expect(risk).toBeLessThan(200); // within 2% of 10.000: no oversized warning for the covered call
+	await page.getByRole('button', { name: /^Voltar$/ }).click();
 	await submitTemplate(page, 'covered_call', 'Renda sobre o long');
 	await advance(page);
 	await playToEnd(page);
@@ -202,6 +224,19 @@ test('m16 through the builder: an iron condor fills complete; a short strangle w
 	await expect(page.getByTestId('plan-risk-unbounded')).toBeVisible(); // the planned risk shown is only the margin
 	await page.getByRole('button', { name: /^Voltar$/ }).click();
 	await page.getByTestId('builder-short').uncheck();
+	// Sizing aid: contracts from the engine's maximum loss at 1% of equity (not the default 1 contract).
+	await page.getByTestId('template-iron_condor').click();
+	await expect(page.getByTestId('builder-sizing')).toBeVisible();
+	await page.getByTestId('builder-size-risk').fill('1');
+	await page.getByTestId('builder-size-apply').click();
+	await expect(page.getByTestId('builder-qty')).not.toHaveValue('1');
+	// The engine re-analyses the sized legs: their maximum loss is now about 1% of 10.000.
+	const loss = async () => {
+		const hint = await page.getByTestId('builder-size-hint').innerText();
+		return Number(hint.match(/≈ ([\d.]+,\d{2})/)![1].replace(/\./g, '').replace(',', '.'));
+	};
+	await expect.poll(loss).toBeGreaterThan(80);
+	expect(await loss()).toBeLessThanOrEqual(100);
 	await submitTemplate(page, 'iron_condor', 'Range até o vencimento');
 	await advance(page);
 	await expect(page.getByTestId('combo-incomplete')).toHaveCount(0);
@@ -209,4 +244,36 @@ test('m16 through the builder: an iron condor fills complete; a short strangle w
 	await expect(page.getByTestId('debrief-combo')).toContainText(/Iron condor · 4 pernas · completo/);
 	await expect(page.getByText(/vendeu opções a descoberto/)).toHaveCount(0);
 	await expect(page.getByTestId('release-row')).toContainText(/Rumor regulatório · sem aviso/);
+});
+
+// Regression: the insurance card's "−prêmio" sat on the payoff line and the condor card's "strangle ·
+// aberta" on the strangle's dashed line. No label of the strategy cards may cross a drawn stroke.
+test('strategy tutorial art: no label crosses a line, in both locales', async ({ page }) => {
+	const crossings = () =>
+		page.locator('svg[data-art]').evaluate((svg) => {
+			const out: string[] = [];
+			const strokes = Array.from(svg.querySelectorAll<SVGGeometryElement>('path, line'));
+			const pt = (svg as SVGSVGElement).createSVGPoint();
+			for (const text of Array.from(svg.querySelectorAll<SVGTextElement>('text'))) {
+				const b = text.getBBox();
+				for (let x = b.x + 1; x <= b.x + b.width - 1; x += 1)
+					for (let y = b.y + b.height * 0.3; y <= b.y + b.height - 1; y += 1) {
+						pt.x = x;
+						pt.y = y;
+						const hit = strokes.find((s) => s.isPointInStroke(pt));
+						if (hit) out.push(`"${text.textContent}" crosses ${hit.getAttribute('class')}`);
+					}
+			}
+			return [...new Set(out)];
+		});
+	for (const locale of ['PT-BR', 'EN']) {
+		await page.goto('/');
+		await page.getByRole('button', { name: locale, exact: true }).click();
+		for (const index of Object.values(INDEX)) {
+			await page.getByRole('button', { name: /Iniciar missão|Start mission/ }).nth(index).click();
+			await expect(page.locator('svg[data-art]')).toBeVisible();
+			expect(await crossings(), `${locale} mission index ${index}`).toEqual([]);
+			await page.goto('/');
+		}
+	}
 });

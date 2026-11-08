@@ -30,6 +30,7 @@
 		MAX_OPTION_LEGS,
 		TEMPLATES,
 		comboLegs,
+		contractsForRisk,
 		coverContracts,
 		expiriesOf,
 		heldLong,
@@ -155,6 +156,21 @@
 		return preview?.ok ? Number(preview.value.required) : null;
 	}
 
+	// Sizing aid (like the perpetual ticket's risk sizing): contracts whose maximum loss is a share of equity.
+	let riskInput = $state('1');
+	const sameQty = $derived(legs.length > 0 && legs.every((l) => l.qty === n));
+	const maxLossNow = $derived(whatif?.ok && whatif.value.expiry?.maxLoss != null ? Number(whatif.value.expiry.maxLoss) : null);
+	const sized = $derived(
+		covers || !sameQty ? null : contractsForRisk(Number(game.account.equity), parseDecimal(riskInput), maxLossNow, n, Number(game.options.lotSize))
+	);
+
+	function applySize() {
+		const q = sized; // read before nInput changes: the derived size follows it
+		if (q == null || q <= 0) return;
+		legs = legs.map((l) => ({ ...l, qty: q }));
+		nInput = fmtNum(q, L, 1);
+	}
+
 	function submit() {
 		if (!canSubmit || !orders) return;
 		const name = t(`strategy.${strategy}`);
@@ -172,6 +188,9 @@
 		const q = seriesFor(chain, expiry, l.kind, l.strike ?? NaN);
 		return !!q && Number(q.bid) <= 0;
 	}
+
+	// A leg's contracts as typed in this locale (88,4 in PT-BR), never rounded to the lot shown elsewhere.
+	const qtyText = (q: number) => new Intl.NumberFormat(L, { maximumFractionDigits: 8, useGrouping: false }).format(q);
 
 	const legName = (o: { series: number; side: string; qty: string }) => {
 		const q = chain.find((x) => x.id === o.series);
@@ -234,7 +253,7 @@
 									</select>
 								{/if}
 							</td>
-							<td><input aria-label={t('opt.qty')} inputmode="decimal" value={l.qty} onchange={(e) => edit(i, { qty: Math.max(0, parseDecimal((e.currentTarget as HTMLInputElement).value) || 0) })} /></td>
+							<td><input aria-label={t('opt.qty')} inputmode="decimal" value={qtyText(l.qty)} onchange={(e) => edit(i, { qty: Math.max(0, parseDecimal((e.currentTarget as HTMLInputElement).value) || 0) })} /></td>
 							<td><button aria-label={t('lab.remove')} onclick={() => ((legs = legs.filter((_, j) => j !== i)), (strategy = 'custom'))}>✕</button></td>
 						</tr>
 						{#if noBid(l)}<tr><td colspan="5" class="attention small" data-testid="builder-no-bid">⚠ <Term id="legging-risk">{t('builder.noBid')}</Term></td></tr>{/if}
@@ -280,6 +299,15 @@
 					<dt>{t('lab.maxProfit')}</dt><dd>{w.expiry.maxProfit != null ? fmtMoney(w.expiry.maxProfit, L) : t('lab.unbounded')}</dd>
 					<dt><Term id="defined-risk">{t('lab.maxLoss')}</Term></dt><dd data-testid="builder-max-loss">{w.expiry.maxLoss != null ? fmtMoney(w.expiry.maxLoss, L) : t('lab.unboundedAbove', { price: above ? fmtPrice(above, L) : '—' })}</dd>
 				</dl>
+				{#if covers && held}
+					<p class="muted small" data-testid="builder-size-held">{held.stop ? t('builder.sizeHeld', { stop: fmtPrice(held.stop, L) }) : t('builder.sizeNoStop')}</p>
+				{:else if w.expiry.maxLoss != null && sameQty}
+					<div class="row sizing" role="group" aria-label={t('builder.sizeTitle')} data-testid="builder-sizing">
+						<label><Term id="risk-budget">{t('builder.sizeRisk')}</Term><input inputmode="decimal" bind:value={riskInput} data-testid="builder-size-risk" /></label>
+						<button onclick={applySize} disabled={sized == null || sized <= 0} data-testid="builder-size-apply">{t('builder.sizeApply', { n: sized != null ? fmtNum(sized, L, 1) : '—' })}</button>
+					</div>
+					{#if !pending}<p class="muted small" data-testid="builder-size-hint">{t('builder.sizeHint', { n: fmtNum(n, L, 1), risk: fmtMoney(w.expiry.maxLoss, L) })}</p>{/if}
+				{/if}
 			{/if}
 			<PayoffChart result={w} testid="builder-payoff" />
 			<WhatIfTable result={w} />
@@ -359,5 +387,8 @@
 	}
 	.submit {
 		width: 100%;
+	}
+	.sizing input {
+		width: 4rem;
 	}
 </style>

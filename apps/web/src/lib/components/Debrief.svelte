@@ -9,6 +9,7 @@
 	import { pctFromBp } from '#lib/game/advisor.ts';
 	import RegimeReveal from './RegimeReveal.svelte';
 	import ReleaseReveal from './ReleaseReveal.svelte';
+	import StrategyComparison from './StrategyComparison.svelte';
 	import CampaignReport from './CampaignReport.svelte';
 	import { entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
@@ -322,6 +323,9 @@
 	<section class="panel chart-panel">
 		<Chart game={s} />
 	</section>
+	{#if d.strategyComparison}
+		<StrategyComparison comparison={d.strategyComparison} playerNet={a.netPnl} />
+	{/if}
 	{#if session.reveal}
 		<RegimeReveal spans={session.reveal.spans} rows={d.regimes} from={s.warmupBars} to={s.step} />
 		<ReleaseReveal events={session.reveal.events} trades={d.trades} lastStep={s.step} />

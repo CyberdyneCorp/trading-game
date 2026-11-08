@@ -195,9 +195,28 @@ std::optional<std::vector<OrderLeg>> order_legs(const GameState& g, int expiry, 
   return out;
 }
 
+namespace {
+
+bool closes_long(const Order& o, double units) {
+  const bool stop_type = o.type == "stop_market" || o.type == "trailing_stop";
+  return o.series == 0 && o.reduce_only && o.side == "sell" && stop_type && o.price > 0 && o.qty - o.filled >= units;
+}
+
+}  // namespace
+
+std::optional<std::string> long_stop(const GameState& g) {
+  const double units = g.position.qty;
+  if (units <= 0) return std::nullopt;
+  const Order* best = nullptr;
+  for (const auto& o : g.orders) {
+    if (closes_long(o, units) && (best == nullptr || o.price > best->price)) best = &o;
+  }
+  return best != nullptr ? std::optional<std::string>(best->price_text) : std::nullopt;
+}
+
 std::optional<HeldLong> held_long(const GameState& g) {
   if (g.position.qty <= 0) return std::nullopt;
-  return HeldLong{g.position.qty_text, g.position.entry_text};
+  return HeldLong{g.position.qty_text, g.position.entry_text, long_stop(g)};
 }
 
 double cover_contracts(const GameState& g, const HeldLong& held) {
@@ -210,14 +229,21 @@ bool covers_long(Template t) { return t == Template::CoveredCall || t == Templat
 std::vector<AnalysisLeg> combo_legs(const std::vector<OrderLeg>& orders) {
   std::vector<AnalysisLeg> out;
   out.reserve(orders.size());
-  for (const auto& o : orders) out.push_back({o.series, o.buy, o.qty, std::nullopt});
+  for (const auto& o : orders) out.push_back({o.series, o.buy, o.qty, std::nullopt, std::nullopt});
   return out;
 }
 
 std::vector<AnalysisLeg> whatif_legs(const std::vector<OrderLeg>& orders, const std::optional<HeldLong>& held) {
   std::vector<AnalysisLeg> out = combo_legs(orders);
-  if (held) out.push_back({0, true, held->qty, held->entry});
+  if (held) out.push_back({0, true, held->qty, held->entry, held->stop});
   return out;
+}
+
+std::optional<double> contracts_for_risk(double equity, double risk_pct, std::optional<double> max_loss, double n, double lot) {
+  const bool usable = max_loss && *max_loss > 0 && n > 0 && risk_pct > 0 && equity > 0 && lot > 0;
+  if (!usable) return std::nullopt;
+  const double per_contract = *max_loss / n;
+  return fmt::num(fmt::qty_to_lot(equity * risk_pct / 100 / per_contract, lot));
 }
 
 namespace {
@@ -230,10 +256,10 @@ std::string unsigned_text(const std::string& decimal) { return js_number(std::fa
 std::vector<AnalysisLeg> position_legs(const GameState& g) {
   std::vector<AnalysisLeg> out;
   for (const auto& p : g.options.positions) {
-    out.push_back({p.series, p.qty > 0, unsigned_text(p.qty_text), p.avg_premium_text});
+    out.push_back({p.series, p.qty > 0, unsigned_text(p.qty_text), p.avg_premium_text, std::nullopt});
   }
   if (g.position.qty != 0) {
-    out.push_back({0, g.position.qty > 0, unsigned_text(g.position.qty_text), g.position.entry_text});
+    out.push_back({0, g.position.qty > 0, unsigned_text(g.position.qty_text), g.position.entry_text, std::nullopt});
   }
   return out;
 }
@@ -247,6 +273,7 @@ std::string legs_json(const std::vector<AnalysisLeg>& legs) {
     else w.field("series", l.series);
     w.field("side", l.buy ? "buy" : "sell").field("qty", l.qty);
     if (l.entry) w.field("entry", *l.entry);
+    if (l.stop) w.field("stop", *l.stop);
     w.end_object();
   }
   return w.end_array().text();

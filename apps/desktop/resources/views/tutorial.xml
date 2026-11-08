@@ -9,6 +9,7 @@
                     <Label Name="tut-head" Class="muted" Slot.Fill="1"/>
                     <Label Name="tut-step" Class="muted"/>
                 </HBox>
+                <Custom Name="tut-art" Width="240" Height="150" Slot.HAlign="Center"/>
                 <Label Name="tut-title" TextSize="37.5" Class="title" Wrap="true" AccessibleRole="Heading"/>
                 <Label Name="tut-body" Wrap="true"/>
                 <HBox Spacing="8">
