@@ -75,9 +75,9 @@ void covered(Canvas& c, const Texts& t) {
   c.line(8, 88, 152, 14, Ink::Muted, 1, true);
   c.path({{8, 80}, {96, 34}, {152, 34}}, Ink::Up, 2);
   c.line(96, 8, 96, 92, Ink::Muted, 1, true);
-  c.text(150, 28, tr(t, "cap"), Ink::Up, Anchor::Right);
+  c.text(150, 44, tr(t, "cap"), Ink::Up, Anchor::Right);
   c.text(150, 12, "long", Ink::Muted, Anchor::Right);
-  c.text(12, 96, "+" + tr(t, "premium"), Ink::Down);
+  c.text(12, 96, "+" + tr(t, "premium"), Ink::Up);
 }
 
 // Long + put at expiry: a floor below the strike, the long's open loss (dashed) without it.
@@ -88,7 +88,7 @@ void insurance(Canvas& c, const Texts& t) {
   c.line(64, 8, 64, 92, Ink::Muted, 1, true);
   c.text(10, 64, tr(t, "floor"), Ink::Attention);
   c.text(68, 96, "strike", Ink::Muted);
-  c.text(150, 44, "\xE2\x88\x92" + tr(t, "premium"), Ink::Down, Anchor::Right);
+  c.text(150, 64, "\xE2\x88\x92" + tr(t, "premium"), Ink::Down, Anchor::Right);
 }
 
 // Iron condor (solid, flat wings) against a short strangle (dashed, open on both sides).
@@ -98,7 +98,7 @@ void condor(Canvas& c, const Texts& t) {
   c.path({{8, 66}, {30, 66}, {49, 38}, {111, 38}, {130, 66}, {152, 66}}, Ink::Up, 2);
   c.text(80, 24, "+" + tr(t, "premium"), Ink::Up, Anchor::Center);
   c.text(80, 58, tr(t, "condor"), Ink::Attention, Anchor::Center);
-  c.text(150, 92, tr(t, "strangle") + " \xC2\xB7 " + tr(t, "open"), Ink::Danger, Anchor::Right);
+  c.text(80, 92, tr(t, "strangle") + " \xC2\xB7 " + tr(t, "open"), Ink::Danger, Anchor::Center);
   c.line(140, 44, 140, 66, Ink::Attention, 1, true);
 }
 
@@ -115,7 +115,7 @@ void roll(Canvas& c, const Texts& t) {
   c.text(107, 53, "+", Ink::Info, Anchor::Center);
   c.line(56, 49, 84, 49, Ink::Attention, 2);
   c.path({{84, 45}, {90, 49}, {84, 53}, {84, 45}}, Ink::Attention, 1.5f);  // the arrow head
-  c.text(72, 34, "2 \xC3\x97 " + tr(t, "spread"), Ink::Attention, Anchor::Center);
+  c.text(98, 34, "2 \xC3\x97 " + tr(t, "spread"), Ink::Attention, Anchor::Center);
   c.text(150, 14, tr(t, "expiry"), Ink::Muted, Anchor::Right);
 }
 

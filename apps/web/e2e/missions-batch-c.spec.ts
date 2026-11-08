@@ -245,3 +245,35 @@ test('m16 through the builder: an iron condor fills complete; a short strangle w
 	await expect(page.getByText(/vendeu opções a descoberto/)).toHaveCount(0);
 	await expect(page.getByTestId('release-row')).toContainText(/Rumor regulatório · sem aviso/);
 });
+
+// Regression: the insurance card's "−prêmio" sat on the payoff line and the condor card's "strangle ·
+// aberta" on the strangle's dashed line. No label of the strategy cards may cross a drawn stroke.
+test('strategy tutorial art: no label crosses a line, in both locales', async ({ page }) => {
+	const crossings = () =>
+		page.locator('svg[data-art]').evaluate((svg) => {
+			const out: string[] = [];
+			const strokes = Array.from(svg.querySelectorAll<SVGGeometryElement>('path, line'));
+			const pt = (svg as SVGSVGElement).createSVGPoint();
+			for (const text of Array.from(svg.querySelectorAll<SVGTextElement>('text'))) {
+				const b = text.getBBox();
+				for (let x = b.x + 1; x <= b.x + b.width - 1; x += 1)
+					for (let y = b.y + b.height * 0.3; y <= b.y + b.height - 1; y += 1) {
+						pt.x = x;
+						pt.y = y;
+						const hit = strokes.find((s) => s.isPointInStroke(pt));
+						if (hit) out.push(`"${text.textContent}" crosses ${hit.getAttribute('class')}`);
+					}
+			}
+			return [...new Set(out)];
+		});
+	for (const locale of ['PT-BR', 'EN']) {
+		await page.goto('/');
+		await page.getByRole('button', { name: locale, exact: true }).click();
+		for (const index of Object.values(INDEX)) {
+			await page.getByRole('button', { name: /Iniciar missão|Start mission/ }).nth(index).click();
+			await expect(page.locator('svg[data-art]')).toBeVisible();
+			expect(await crossings(), `${locale} mission index ${index}`).toEqual([]);
+			await page.goto('/');
+		}
+	}
+});
