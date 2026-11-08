@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Each leg's and the position's value, P&L and Greeks, exactly as the engine's what-if returned them.
 	import type { WhatIfLegView, WhatIfResult } from '#lib/engine/types.ts';
-	import { fmtMoney, fmtNum, fmtPct, fmtPrice } from '#lib/game/format.ts';
+	import { centsSign, fmtMoney, fmtNum, fmtPct, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { legLabel } from '#lib/game/whatifLab.ts';
 
@@ -42,7 +42,7 @@
 				<td class="num">{greek(l.gamma)}</td>
 				<td class="num">{greek(l.theta)}</td>
 				<td class="num">{greek(l.vega)}</td>
-				<td class="num" class:up={Number(l.pnl) > 0} class:down={Number(l.pnl) < 0}>{fmtMoney(l.pnl, L, true)}</td>
+				<td class="num" class:up={centsSign(l.pnl) > 0} class:down={centsSign(l.pnl) < 0}>{fmtMoney(l.pnl, L, true)}</td>
 			</tr>
 		{/each}
 	</tbody>
@@ -55,7 +55,7 @@
 			<td class="num">{greek(result.net.gamma, 4)}</td>
 			<td class="num">{fmtMoney(result.net.theta, L)}</td>
 			<td class="num">{fmtMoney(result.net.vega, L)}</td>
-			<td class="num" class:up={Number(result.net.pnl) > 0} class:down={Number(result.net.pnl) < 0} data-testid="whatif-net-pnl">{fmtMoney(result.net.pnl, L, true)}</td>
+			<td class="num" class:up={centsSign(result.net.pnl) > 0} class:down={centsSign(result.net.pnl) < 0} data-testid="whatif-net-pnl">{fmtMoney(result.net.pnl, L, true)}</td>
 		</tr>
 	</tfoot>
 </table>

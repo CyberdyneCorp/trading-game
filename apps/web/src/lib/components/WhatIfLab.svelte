@@ -5,7 +5,7 @@
 	// series and IV model at today's level (tl_run_option_whatif), which agrees with the chain at zero.
 	import type { WhatIfLegInput, WhatIfResult } from '#lib/engine/types.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { fmtMoney, fmtPrice } from '#lib/game/format.ts';
+	import { centsSign, fmtMoney, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import {
 		ACADEMY_FORWARD,
@@ -127,7 +127,7 @@
 		{@const above = unboundedAbove(result)}
 		<dl class="kv summary" aria-live="polite">
 			<dt>{t(isZero(shift) ? 'lab.positionValue' : 'lab.positionValueScenario')}</dt><dd data-testid="lab-value">{fmtMoney(result.net.value, L)}</dd>
-			<dt>{t('lab.pnlNow')}</dt><dd data-testid="lab-pnl" class:up={Number(result.net.pnl) > 0} class:down={Number(result.net.pnl) < 0}>{fmtMoney(result.net.pnl, L, true)}</dd>
+			<dt>{t('lab.pnlNow')}</dt><dd data-testid="lab-pnl" class:up={centsSign(result.net.pnl) > 0} class:down={centsSign(result.net.pnl) < 0}>{fmtMoney(result.net.pnl, L, true)}</dd>
 			{#if result.expiry}
 				<dt>{t('opt.breakeven')}</dt><dd data-testid="lab-breakevens">{result.expiry.breakevens.map((b) => fmtPrice(b, L)).join(' · ') || '—'}</dd>
 				<dt>{t('lab.maxProfit')}</dt><dd>{result.expiry.maxProfit != null ? fmtMoney(result.expiry.maxProfit, L) : t('lab.unbounded')}</dd>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtNum, inputText, parseAmount, parseDecimal, planHeadline, priceInputText, priceToTick, qtyInputText, qtyToLot, signMark } from './format.ts';
+import { centsSign, fmtNum, inputText, parseAmount, parseDecimal, planHeadline, priceInputText, priceToTick, qtyInputText, qtyToLot, signMark } from './format.ts';
 
 describe('format', () => {
 	it('floors quantities to the lot and emits engine decimal strings', () => {
@@ -56,6 +56,8 @@ describe('format', () => {
 	});
 	it('never relies on color alone', () => {
 		expect([signMark(1), signMark(-1), signMark(0)]).toEqual(['▲', '▼', '•']);
+		// Regression: a what-if P&L of -0.004 showed "0,00 cr" in the loss colour.
+		expect([centsSign('-0.004'), centsSign('0.004'), centsSign('-0.006'), centsSign(0.01), centsSign('0')]).toEqual([0, 0, -1, 1, 0]);
 	});
 });
 

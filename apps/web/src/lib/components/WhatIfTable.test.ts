@@ -26,4 +26,14 @@ describe('WhatIfTable', () => {
 		expect(run).toContain('Θ/barra');
 		expect(run).toContain('ν/ponto');
 	});
+
+	it('colours a P&L by what it shows: -0.004 reads 0,00 cr and is neither a gain nor a loss', () => {
+		const leg = { ...result.legs[0], pnl: '-0.004' };
+		const tiny = { ...result, legs: [leg], net: { ...result.net, pnl: '-0.004' } } as unknown as WhatIfResult;
+		const body = render(WhatIfTable, { props: { result: tiny } }).body;
+		expect(body).toContain('0,00 cr');
+		expect(body).not.toMatch(/class="[^"]*\bdown\b/);
+		const loss = { ...result, legs: [{ ...leg, pnl: '-0.01' }], net: { ...result.net, pnl: '-0.01' } } as unknown as WhatIfResult;
+		expect(render(WhatIfTable, { props: { result: loss } }).body).toMatch(/class="[^"]*\bdown\b/);
+	});
 });
