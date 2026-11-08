@@ -70,11 +70,13 @@ TEST_CASE("Checkpoint: other scenario, damaged data and other policy versions ar
   auto bad_magic = bytes;
   bad_magic[0] = 0;
   CHECK(load_checkpoint(bad_magic, sc.id).error() == ErrorCode::NonCanonicalEncoding);
-  // Format 4 (policy v16, before lesson answers and decision records) is refused, never read as 5.
-  REQUIRE(kCheckpointFormat == 5);
-  auto format4 = bytes;
-  format4[4] = 4;  // format u32 (little endian) at offset 4
-  CHECK(load_checkpoint(format4, sc.id).error() == ErrorCode::NonCanonicalEncoding);
+  // Formats 4 and 5 (before lesson answers, before the policy v18 order fields) are refused, never read as 6.
+  REQUIRE(kCheckpointFormat == 6);
+  for (const std::uint8_t old : {std::uint8_t{4}, std::uint8_t{5}}) {
+    auto earlier = bytes;
+    earlier[4] = old;  // format u32 (little endian) at offset 4
+    CHECK(load_checkpoint(earlier, sc.id).error() == ErrorCode::NonCanonicalEncoding);
+  }
 }
 
 TEST_CASE("C ABI: checkpoint and restore continue identically") {

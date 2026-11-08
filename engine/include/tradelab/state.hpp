@@ -31,6 +31,11 @@ struct Order {
   Price trail_distance;         // TrailingStop: distance from the best close
   std::uint32_t series = 0;     // 0 = perpetual; otherwise an option series id
   Rate trail_rate;              // TrailingStop (policy v16): distance as a rate of the best close; 0 = fixed
+  // Policy v18 (design D6, D7 of add-practice-and-advanced-strategies).
+  TimeInForce tif = TimeInForce::Gtc;
+  std::uint32_t tif_bars = 0;     // N of a bars time in force
+  std::uint32_t expire_step = 0;  // last bar it may execute on (bars: placed + N; ioc/fok: placed + 1); 0 = none
+  std::uint32_t link_group = 0;   // player-built OCO pair: the lower order id; 0 = not linked (apart from oco_group)
 
   [[nodiscard]] bool active() const {
     return status == OrderStatus::Accepted || status == OrderStatus::PartiallyFilled ||
@@ -200,6 +205,9 @@ struct RunState {
 
   std::vector<LessonAnswer> lesson_answers;  // in the state digest only when present (a run without answers hashes as before)
   std::vector<DecisionRecord> decisions;     // one per advanced decision step; not a digest input (derived)
+  // Policy v18: the decision step of the last accepted LinkOco (a link emits no event, yet the step's
+  // decision is `act`). Checkpointed, not hashed, like the decision records it feeds. -1 = none.
+  std::int64_t last_link_step = -1;
 };
 
 }  // namespace tradelab

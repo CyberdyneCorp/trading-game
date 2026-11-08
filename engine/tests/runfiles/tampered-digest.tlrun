@@ -10,7 +10,7 @@
   "calendar": false
  },
  "engine": {
-  "executionPolicy": 17,
+  "executionPolicy": 18,
   "abi": 1,
   "version": "0.1.0"
  },

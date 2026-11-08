@@ -40,6 +40,7 @@ constexpr std::array<std::string_view, 2> kSides = {"buy", "sell"};
 constexpr std::array<std::string_view, 5> kOrderTypes = {"market", "limit", "stop_market", "take_profit", "trailing_stop"};
 constexpr std::array<std::string_view, 2> kOptionTypes = {"market", "limit"};
 constexpr std::array<std::string_view, 3> kStatuses = {"active", "finished", "bankrupt"};
+constexpr std::array<std::string_view, 4> kTifs = {"gtc", "bars", "ioc", "fok"};  // TimeInForce (policy v18)
 
 // -1 for an unknown name: the engine rejects it.
 std::int32_t code_of(const JsonValue& obj, std::string_view key, std::span<const std::string_view> names) {
@@ -50,19 +51,22 @@ std::int32_t code_of(const JsonValue& obj, std::string_view key, std::span<const
 
 std::int32_t side(const JsonValue& a) { return code_of(a, "side", kSides); }
 
+// Policy v18: "tif" (absent = gtc) and "tifBars" (absent = 0).
+std::int32_t tif_of(const JsonValue& a) { return member(a, "tif").is(Kind::String) ? code_of(a, "tif", kTifs) : 0; }
+
 const char* place_order(tl_run* run, std::uint32_t cid, const JsonValue& a) {
   const std::int32_t type = code_of(a, "type", kOrderTypes);
   const char* rate = opt_text(a, "trailRate");
-  if (type == 4 && rate != nullptr && *rate != '\0') {
+  if (type == 4 && rate != nullptr && *rate != '\0' && tif_of(a) == 0) {
     return tl_place_trailing_rate(run, cid, side(a), opt_text(a, "qty"), flag(a, "ro"), rate);
   }
-  return tl_place_order_ex(run, cid, type, side(a), opt_text(a, "qty"), opt_text(a, "price"), flag(a, "ro"),
-                           opt_text(a, "stop"), opt_text(a, "tp"), opt_text(a, "trail"));
+  return tl_place_order_tif(run, cid, type, side(a), opt_text(a, "qty"), opt_text(a, "price"), flag(a, "ro"), opt_text(a, "stop"),
+                            opt_text(a, "tp"), opt_text(a, "trail"), rate, tif_of(a), uint_of(a, "tifBars"));
 }
 
 const char* place_option(tl_run* run, std::uint32_t cid, const JsonValue& a) {
-  return tl_place_option_order(run, cid, uint_of(a, "series"), side(a), code_of(a, "type", kOptionTypes), opt_text(a, "qty"),
-                               opt_text(a, "premium"));
+  return tl_place_option_order_tif(run, cid, uint_of(a, "series"), side(a), code_of(a, "type", kOptionTypes), opt_text(a, "qty"),
+                                   opt_text(a, "premium"), tif_of(a), uint_of(a, "tifBars"));
 }
 
 const char* record_plan(tl_run* run, std::uint32_t cid, const JsonValue& a) {
@@ -88,6 +92,7 @@ const std::map<std::string_view, Handler>& handlers() {
       {"cancel", [](tl_run* r, std::uint32_t c, const JsonValue& a) { return tl_cancel_order(r, c, uint_of(a, "id")); }},
       {"move", [](tl_run* r, std::uint32_t c, const JsonValue& a) { return tl_move_order(r, c, uint_of(a, "id"), opt_text(a, "price")); }},
       {"close", [](tl_run* r, std::uint32_t c, const JsonValue&) { return tl_close_position(r, c); }},
+      {"oco", [](tl_run* r, std::uint32_t c, const JsonValue& a) { return tl_link_oco(r, c, uint_of(a, "a"), uint_of(a, "b")); }},
       {"advice", [](tl_run* r, std::uint32_t c, const JsonValue&) { return tl_request_advice(r, c); }},
   };
   return table;
@@ -105,6 +110,7 @@ enum class F : std::uint8_t {
   OrderType,
   OptionType,
   Status,
+  Tif,        // gtc, bars, ioc, fok (policy v18)
   Tag,        // 1..32 of [A-Za-z0-9_-]
   Text,       // any string of at most hi bytes
   Mission,    // 1..64 of [a-z0-9._-]
@@ -154,6 +160,7 @@ bool string_ok(const std::string& s, const Field& f) {
     case F::OrderType: return in(s, kOrderTypes);
     case F::OptionType: return in(s, kOptionTypes);
     case F::Status: return in(s, kStatuses);
+    case F::Tif: return in(s, kTifs);
     case F::Tag: return charset(s, 32, tag_char);
     case F::Text: return s.size() <= static_cast<std::size_t>(f.hi);
     case F::Mission: return charset(s, 64, mission_char);
@@ -212,19 +219,25 @@ constexpr std::array kJournal = {
     Field{"instrument", F::Text, false, 0, 64}, Field{"combo", F::Tag, false},
 };
 
-// Action kinds (replay.py): the members each one has. `combo`/`strategy` tag strategy-builder legs.
+// Action kinds (replay.py): the members each one has. `combo`/`strategy` tag strategy-builder legs,
+// `roll`/`adjust` a roll or an adjustment of a live combo (add-practice-and-advanced-strategies D3);
+// replay ignores every tag. `tif`/`tifBars` are the order's time in force (policy v18).
 constexpr Field kKind{"k", F::Text, true, 0, 16};
 constexpr Field kCombo{"combo", F::Tag, false};
 constexpr Field kStrategy{"strategy", F::Tag, false};
+constexpr Field kRoll{"roll", F::Tag, false};
+constexpr Field kAdjust{"adjust", F::Tag, false};
+constexpr Field kTif{"tif", F::Tif, false};
+constexpr Field kTifBars{"tifBars", F::Int, false, 0, 1'000'000};
 constexpr std::array kLev = {kKind, Field{"lev", F::Int, true, 1, 1000}};
 constexpr std::array kOrder = {
     kKind, Field{"type", F::OrderType}, Field{"side", F::Side}, Field{"qty", F::Dec}, Field{"price", F::DecOrNull},
     Field{"ro", F::Bool}, Field{"stop", F::DecOrNull, false}, Field{"tp", F::DecOrNull, false}, Field{"trail", F::DecOrNull, false},
-    Field{"trailRate", F::Dec, false}, kCombo, kStrategy,
+    Field{"trailRate", F::Dec, false}, kCombo, kStrategy, kRoll, kAdjust, kTif, kTifBars,
 };
 constexpr std::array kOpt = {
     kKind, Field{"series", F::Int, true, 1, kU32}, Field{"side", F::Side}, Field{"type", F::OptionType}, Field{"qty", F::Dec},
-    Field{"premium", F::DecOrNull}, kCombo, kStrategy,
+    Field{"premium", F::DecOrNull}, kCombo, kStrategy, kRoll, kAdjust, kTif, kTifBars,
 };
 constexpr std::array kMargin = {kKind, Field{"amount", F::SignedDec}};
 constexpr std::array kPlan = {
@@ -235,7 +248,8 @@ constexpr std::array kAns = {kKind, Field{"pBp", F::Int, true, 0, 10'000}, Field
 constexpr std::array kLesson = {
     kKind, Field{"q", F::Int, true, 0, 255}, Field{"choice", F::Int, true, 0, 255}, Field{"value", F::DecOrNull}, Field{"skipped", F::Bool},
 };
-constexpr std::array kCancel = {kKind, Field{"id", F::Int, true, 0, kU32}, kCombo, kStrategy};
+constexpr std::array kCancel = {kKind, Field{"id", F::Int, true, 0, kU32}, kCombo, kStrategy, kRoll, kAdjust};
+constexpr std::array kOco = {kKind, Field{"a", F::Int, true, 0, kU32}, Field{"b", F::Int, true, 0, kU32}};
 constexpr std::array kMove = {kKind, Field{"id", F::Int, true, 0, kU32}, Field{"price", F::Dec}};
 constexpr std::array kBare = {kKind};
 constexpr std::array kAdv = {kKind, Field{"n", F::Int, true, 1, kMaxAdvance}};
@@ -244,6 +258,7 @@ std::span<const Field> action_spec(std::string_view kind) {
   static const std::map<std::string_view, std::span<const Field>> specs = {
       {"lev", kLev},     {"order", kOrder}, {"opt", kOpt},        {"margin", kMargin}, {"plan", kPlan},  {"ans", kAns},
       {"lesson", kLesson}, {"cancel", kCancel}, {"move", kMove}, {"close", kBare},    {"advice", kBare}, {"adv", kAdv},
+      {"oco", kOco},
   };
   const auto it = specs.find(kind);
   return it == specs.end() ? std::span<const Field>{} : it->second;

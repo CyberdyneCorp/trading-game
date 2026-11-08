@@ -59,7 +59,13 @@ export type ReasonCode =
 	| 'series_settling'
 	| 'unknown_question'
 	| 'already_answered'
-	| 'invalid_answer';
+	| 'invalid_answer'
+	| 'time_in_force'
+	| 'invalid_time_in_force'
+	| 'invalid_oco';
+
+/** How long an order works (execution policy v18). An absent value is gtc. */
+export type TimeInForceName = 'gtc' | 'bars' | 'ioc' | 'fok';
 
 export type EventTypeName =
 	| 'order'
@@ -322,6 +328,14 @@ export interface OrderView {
 	bracketStop: Decimal;
 	bracketTp: Decimal;
 	series: number;
+	/** Policy v18: how long the order works (absent from builds that predate it: gtc). */
+	tif?: TimeInForceName;
+	/** Policy v18: the N of a bars time in force; 0 otherwise. */
+	tifBars?: number;
+	/** Policy v18: the last bar the order can execute on (bars: placedStep + N; ioc/fok: placedStep + 1); 0 = none. */
+	expireStep?: number;
+	/** Policy v18: a player-built OCO link (the lower order id of the pair); 0 = not linked. Separate from ocoGroup. */
+	linkGroup?: number;
 }
 
 export interface EngineEvent {
@@ -590,6 +604,10 @@ export interface PlaceOrderCommand {
 	trailDistance: string | null;
 	/** Policy v16: a trailing stop at this rate of the best close ("0.02" = 2%) instead of a distance. */
 	trailRate?: string | null;
+	/** Policy v18 (tl_place_order_tif): time in force, absent = gtc. */
+	tif?: TimeInForceName;
+	/** Policy v18: N for tif "bars". */
+	tifBars?: number;
 }
 
 export type OptionOrderType = 'market' | 'limit';
@@ -602,6 +620,17 @@ export interface PlaceOptionOrderCommand {
 	type: OptionOrderType;
 	qty: string;
 	premium: string | null;
+	/** Policy v18 (tl_place_option_order_tif): time in force, absent = gtc (ioc/fok need a limit). */
+	tif?: TimeInForceName;
+	/** Policy v18: N for tif "bars". */
+	tifBars?: number;
+}
+
+/** tl_link_oco (policy v18): two working orders, either filling first cancels the other. */
+export interface LinkOcoCommand {
+	clientId: number;
+	orderA: number;
+	orderB: number;
 }
 
 /** tl_adjust_margin: add (> 0) or remove (< 0) isolated margin. */

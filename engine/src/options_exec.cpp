@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "accounting.hpp"
+#include "order_rules.hpp"
 #include "spread_margin.hpp"
 
 namespace tradelab::detail {
@@ -133,7 +134,7 @@ Reason validate_option(const Scenario& sc, const RunState& st, const Command& c,
     return Reason::InvalidTick;
   }
   if (!o.allow_short && opening_short_qty(st, s->id, c.side, c.qty).raw > 0) return Reason::ShortOptionsNotAllowed;
-  return Reason::None;
+  return tif_refusal(sc, st, c, true);
 }
 
 void cancel_order(RunState& st, Order& o, Reason r) {
@@ -173,6 +174,7 @@ void execute_option_order(const Scenario& sc, RunState& st, Order& o, std::uint3
   o.filled = o.qty;
   o.status = OrderStatus::Filled;
   emit_order_update(st, o, Reason::None);
+  resolve_link(st, o, q_fill);
 }
 
 void settle_series(const Scenario& sc, RunState& st, const OptionSeries& s, std::uint32_t bar) {
@@ -298,6 +300,7 @@ CommandResult place_option_order(const Scenario& sc, RunState& st, const Command
   o.price = c.order_type == OrderType::Limit ? c.price : Price{};
   o.placed_step = st.step;
   o.series = s->id;
+  set_tif(o, c);
   st.orders.push_back(o);
   emit_order_update(st, o, Reason::None);
   return CommandResult{true, Reason::None, o.id, Reason::None};

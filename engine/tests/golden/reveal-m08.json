@@ -6,5 +6,5 @@
   "mission": "m08-regime-switch",
   "seed": 7,
   "expected": {"sha256": "5ac2b53bfc31fa0cdf7d25d56bda08345c3bde8978808ef514f9ba76af9ee02f"},
-  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
 }

@@ -24,6 +24,7 @@
 
 #include "accounting.hpp"
 #include "options_exec.hpp"
+#include "order_rules.hpp"
 
 namespace tradelab {
 namespace {
@@ -158,6 +159,7 @@ bool execute(BarCtx& c, Order& o, const Exec& ex) {
   o.status = o.remaining().raw == 0 ? OrderStatus::Filled : OrderStatus::PartiallyFilled;
   detail::emit_order_update(c.st, o, Reason::None);
   reduce_oco_siblings(c.st, o, q);
+  detail::resolve_link(c.st, o, q);  // policy v18
   // An exit larger than the position it just closed has nothing left to reduce (policy v14).
   if (o.reduce_only && o.active() && c.st.position.flat()) cancel(c.st, o, Reason::PositionClosed);
   const Qty inc = exposure_increase(before, c.st.position);
@@ -246,6 +248,16 @@ bool gapped_through(const BarCtx& c, const Order& o) {
   return buy ? open <= o.price : open >= o.price;
 }
 
+// Policy v18: a fill-or-kill limit that cannot fill its whole quantity at its turn (capacity left by
+// the orders served before it, or a smaller position for a reduce-only one) is cancelled unfilled.
+bool fok_short(BarCtx& c, Order& o) {
+  if (o.tif != TimeInForce::Fok) return false;
+  bool limited = false;
+  if (executable_qty(c, o, &limited) == o.remaining()) return false;
+  cancel(c.st, o, Reason::TimeInForce);
+  return true;
+}
+
 void open_gap_orders(BarCtx& c, std::uint32_t index) {
   // The gap runs from the previous close to the open: levels along it are reached in that direction.
   const Price from = c.sc.bars[index - 1].close;
@@ -254,7 +266,7 @@ void open_gap_orders(BarCtx& c, std::uint32_t index) {
   const auto eligible = [&](const Order& o) { return gapped_through(c, o); };
   priority_pass(c, eligible, key, [&](Order& o) {
     if (is_stop(o)) execute_stop(c, o, {taker_price(c, c.bar.open, o.side), false, kFlagGapFill});
-    else execute(c, o, {c.bar.open, true, kFlagGapFill});
+    else if (!fok_short(c, o)) execute(c, o, {c.bar.open, true, kFlagGapFill});
   });
 }
 
@@ -437,6 +449,7 @@ void close_phase(BarCtx& c, std::uint32_t index) {
   close_liquidation(c);
   detail::option_close_phase(c.sc, c.st, index);
   update_trailing(c);
+  detail::expire_time_in_force(c.st, index);  // policy v18: after the close phase's fills
   update_metrics(c);
   finish_or_bankrupt(c);
 }
@@ -474,7 +487,8 @@ namespace {
 bool player_acted(const RunState& st) {
   const std::uint32_t s = st.step;
   const bool placed = std::any_of(st.orders.begin(), st.orders.end(), [s](const Order& o) { return o.placed_step == s && o.parent_id == 0; });
-  return placed || std::any_of(st.events.begin(), st.events.end(), [s](const Event& e) {
+  const bool linked = st.last_link_step == static_cast<std::int64_t>(s);  // policy v18: a LinkOco emits no event
+  return placed || linked || std::any_of(st.events.begin(), st.events.end(), [s](const Event& e) {
            if (e.step != s) return false;
            const bool user_update = e.type == EventType::OrderUpdate && (e.reason == Reason::UserCancelled || e.reason == Reason::OrderMoved);
            return user_update || e.type == EventType::LeverageChanged || e.type == EventType::MarginAdjusted;
@@ -505,8 +519,13 @@ void advance(const Scenario& sc, RunState& st) {
   BarCtx c{sc, st, bar, mark_bar(sc, index), costs, bar_capacity(sc, bar, costs)};
   if (!bar.continuity) {
     open_phase(c, index);
+    detail::cancel_immediate(st, false);  // policy v18: ioc/fok remainders after their open phase
     detail::option_open_phase(sc, st, index);
+    detail::cancel_immediate(st, true);
     intrabar_phase(c);
+  } else {
+    detail::cancel_immediate(st, false);  // no open phase on a bar without trading
+    detail::cancel_immediate(st, true);
   }
   close_phase(c, index);
 }

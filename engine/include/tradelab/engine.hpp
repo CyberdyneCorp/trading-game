@@ -20,7 +20,7 @@ inline constexpr const char* kEngineVersion = "0.1.0";
 // Builds older than tl_abi_version have no number (clients treat them as ABI 0).
 constexpr std::uint32_t kAbiVersion = 1;
 
-constexpr std::uint32_t kExecutionPolicyVersion = 17;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap); v13 MoveOrder (a working exit moved in place, OCO link kept); v14 an exit that closes the position cancels its own remainder on the same bar; v15 a stop cut short by capacity executes its remainder at the next opens (it is a market order once triggered); v16 capacity served by price then sequence within each phase, percentage trailing stops, maintenance-margin tiers by notional; v17 mark-price bars for margin, liquidation and funding (markFromLastPrice without them), option settlement window in market time (sub-bar TWAP, series_settling), continuity bars (no trading, indicator gap policy)
+constexpr std::uint32_t kExecutionPolicyVersion = 18;  // v2 brackets/OCO, trailing; v3 options; v4 plans/answers; v5 generator v2; v6 fill-before-orphan-cancel event order; v7 reduce-only market remainder keeps working, m05 jump before first expiry; v8 smoothed/capped generator IV, term-structure floor; v9 funding uses the last closed bar's segment; v10 news priced on arrival (opening gap), per-seed mission schedule; v11 start options (advice allowance, perks) and RequestAdvice; v12 campaign start options (starting balance, leverage cap); v13 MoveOrder (a working exit moved in place, OCO link kept); v14 an exit that closes the position cancels its own remainder on the same bar; v15 a stop cut short by capacity executes its remainder at the next opens (it is a market order once triggered); v16 capacity served by price then sequence within each phase, percentage trailing stops, maintenance-margin tiers by notional; v17 mark-price bars for margin, liquidation and funding (markFromLastPrice without them), option settlement window in market time (sub-bar TWAP, series_settling), continuity bars (no trading, indicator gap policy); v18 time in force (gtc, bars:N, ioc and fok at the next open) and player-built OCO links (first fill cancels the sibling; two reduce-only exits reduce it), checkpoint format 6
 
 // Calibration questions (spec mission-scoring "Calibration"): asked every kQuestionEvery steps from
 // the first decision step while the resolving bar exists; resolved kQuestionHorizon bars later.
@@ -51,6 +51,9 @@ struct Command {
   std::uint32_t question = 0;  // AnswerLesson: index into the mission's rubric
   std::uint32_t choice = 0;    // AnswerLesson: multiple-choice option
   Money value;                 // AnswerLesson: numeric answer
+  TimeInForce tif = TimeInForce::Gtc;  // PlaceOrder / PlaceOptionOrder (policy v18)
+  std::uint32_t tif_bars = 0;          // N for TimeInForce::Bars
+  std::uint32_t order_id_b = 0;        // LinkOco: the second order (order_id is the first)
 };
 
 // Live account figures at the current decision point (all derived, never stored).

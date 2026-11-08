@@ -88,12 +88,35 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         fn = getattr(lib, name)
         fn.restype = restype
         fn.argtypes = argtypes
+    # Policy v18 (add-practice-and-advanced-strategies D6, D7): optional, older policy builds predate them.
+    optional: dict[str, tuple[Any, list[Any]]] = {
+        "tl_place_order_tif": (c_char_p, [c_void_p, u32, i32, i32, c_char_p, c_char_p, i32, c_char_p, c_char_p, c_char_p,
+                                          c_char_p, i32, u32]),
+        "tl_place_option_order_tif": (c_char_p, [c_void_p, u32, u32, i32, i32, c_char_p, c_char_p, i32, u32]),
+        "tl_link_oco": (c_char_p, [c_void_p, u32, u32, u32]),
+    }
+    for name, (restype, argtypes) in optional.items():
+        if hasattr(lib, name):
+            getattr(lib, name).restype = restype
+            getattr(lib, name).argtypes = argtypes
     # Run files (add-run-sharing-and-journal-stats D2): optional, older policy builds predate it.
     for name in ("tl_run_file_verify", "tl_run_file_seal"):
         if hasattr(lib, name):
             getattr(lib, name).restype = c_char_p
             getattr(lib, name).argtypes = [c_char_p, c_char_p, u32, c_char_p]
     return lib
+
+
+# Time in force (policy v18): TimeInForce in the IDL.
+TIF_CODES = {"gtc": 0, "bars": 1, "ioc": 2, "fok": 3}
+
+
+def _tif(tif: str | None) -> int:
+    if tif is None:
+        return 0
+    if tif not in TIF_CODES:
+        raise ValueError(f"unknown time in force {tif!r}")
+    return TIF_CODES[tif]
 
 
 def _json(raw: bytes) -> Any:
@@ -298,16 +321,30 @@ class Run:
 
     # --- commands (client_id is the idempotency key, assigned by the caller) ---
     def place_order(self, cid: int, type_: int, side: int, qty: str, price: str | None, reduce_only: bool,
-                    stop: str | None = None, tp: str | None = None, trail: str | None = None) -> Any:
-        return _json(self._lib.tl_place_order_ex(self._h, cid, type_, side, _s(qty), _s(price), int(reduce_only),
-                                                 _s(stop), _s(tp), _s(trail)))
+                    stop: str | None = None, tp: str | None = None, trail: str | None = None,
+                    tif: str | None = None, tif_bars: int | None = None, trail_rate: str | None = None) -> Any:
+        """tif "gtc" | "bars" (tif_bars = N) | "ioc" | "fok" (policy v18; None = gtc, the old call)."""
+        if tif is None and tif_bars is None and trail_rate is None:
+            return _json(self._lib.tl_place_order_ex(self._h, cid, type_, side, _s(qty), _s(price), int(reduce_only),
+                                                     _s(stop), _s(tp), _s(trail)))
+        return _json(self._lib.tl_place_order_tif(self._h, cid, type_, side, _s(qty), _s(price), int(reduce_only),
+                                                  _s(stop), _s(tp), _s(trail), _s(trail_rate), _tif(tif),
+                                                  int(tif_bars or 0)))
 
     def place_trailing_rate(self, cid: int, side: int, qty: str, reduce_only: bool, rate: str) -> Any:
         """Trailing stop at a rate of the best close ("0.02" = 2%; policy v16)."""
         return _json(self._lib.tl_place_trailing_rate(self._h, cid, side, _s(qty), int(reduce_only), _s(rate)))
 
-    def place_option_order(self, cid: int, series: int, side: int, type_: int, qty: str, premium: str | None) -> Any:
-        return _json(self._lib.tl_place_option_order(self._h, cid, series, side, type_, _s(qty), _s(premium)))
+    def place_option_order(self, cid: int, series: int, side: int, type_: int, qty: str, premium: str | None,
+                           tif: str | None = None, tif_bars: int | None = None) -> Any:
+        if tif is None and tif_bars is None:
+            return _json(self._lib.tl_place_option_order(self._h, cid, series, side, type_, _s(qty), _s(premium)))
+        return _json(self._lib.tl_place_option_order_tif(self._h, cid, series, side, type_, _s(qty), _s(premium),
+                                                         _tif(tif), int(tif_bars or 0)))
+
+    def link_oco(self, cid: int, order_a: int, order_b: int) -> Any:
+        """Links two working orders as one-cancels-the-other (tl_link_oco, policy v18)."""
+        return _json(self._lib.tl_link_oco(self._h, cid, order_a, order_b))
 
     def cancel(self, cid: int, order_id: int) -> Any:
         return _json(self._lib.tl_cancel_order(self._h, cid, order_id))

@@ -16,10 +16,10 @@
     {"k": "adv", "n": 1000}
   ],
   "expected": {
-    "digest": "7bef8536703594ef7e1c7d20a5bf72a486e2165d09cfec01fcf2b72cf85d25a4",
+    "digest": "de20872dbc87f53ed17e2cf68c49ad929fbb288ce92365ceea6eadc7c485c4b0",
     "eventsDigest": "911e8dce2b537d94c11f7c8a8af67a1472f169032d0c6e98d137b4bb95488bd0",
     "status": "finished",
     "rejected": []
   },
-  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
 }

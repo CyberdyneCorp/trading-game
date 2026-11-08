@@ -15,7 +15,7 @@
 
 namespace tradelab {
 
-constexpr std::uint32_t kCheckpointFormat = 5;  // v2: start options and advice (policy v11); v3: starting balance, leverage cap (policy v12); v4: percentage trailing rate (policy v16); v5: lesson answers and decision records (scoring v11)
+constexpr std::uint32_t kCheckpointFormat = 6;  // v2: start options and advice (policy v11); v3: starting balance, leverage cap (policy v12); v4: percentage trailing rate (policy v16); v5: lesson answers and decision records (scoring v11); v6: time in force and OCO links on orders, the last link step (policy v18)
 
 std::vector<std::uint8_t> save_checkpoint(const RunState& st, std::string_view scenario_id);
 

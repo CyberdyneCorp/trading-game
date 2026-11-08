@@ -15,6 +15,7 @@
 #include "../src/json_in.hpp"
 #include "pack_fixtures.hpp"
 #include "tradelab/c_api.h"
+#include "tradelab/engine.hpp"
 
 using tradelab::detail::JsonParse;
 using tradelab::detail::JsonValue;
@@ -177,8 +178,17 @@ void play_some(tl_run* run, std::uint32_t& id) {
   command(tl_adjust_margin(run, ++id, "1"));
   command(tl_cancel_order(run, ++id, 999));
   command(tl_move_order(run, ++id, 999, "1"));
+  // Policy v18: time in force and an OCO link (the state's orders then carry tif and linkGroup).
+  command(tl_place_order_tif(run, ++id, 1, 0, "0.1", "1", 0, nullptr, nullptr, nullptr, nullptr, 1, 3));
+  command(tl_place_order_tif(run, ++id, 1, 0, "0.1", "2", 0, nullptr, nullptr, nullptr, nullptr, 0, 0));
+  const JsonValue orders = *parse(tl_state(run)).find("orders");
+  if (orders.items.size() >= 2) {
+    const auto last = static_cast<std::uint32_t>(orders.items.back().find("id")->integer);
+    command(tl_link_oco(run, ++id, last - 1, last));
+  }
   const std::uint32_t series = first_option_series(tl_state(run));
   if (series != 0) command(tl_place_option_order(run, ++id, series, 0, 0, "1", nullptr));
+  if (series != 0) command(tl_place_option_order_tif(run, ++id, series, 0, 1, "1", "0.01", 2, 0));
 }
 
 }  // namespace
@@ -326,7 +336,7 @@ TEST_CASE("IDL conformance: run file verdicts (accepted active, accepted finishe
   const auto file = [](const std::string& actions, tl_run* run) {
     const JsonValue state = parse(tl_state(run));
     return std::string(R"({"format":"tradelab-run","version":1,"mission":"m01-false-breakout","pack":null,"seed":3,)") +
-           R"("options":{"adviceAllowance":0,"newsLead":0,"calendar":false},"engine":{"executionPolicy":17,"abi":1,"version":"0.1.0"},)" +
+           R"("options":{"adviceAllowance":0,"newsLead":0,"calendar":false},"engine":{"executionPolicy":)" + std::to_string(tradelab::kExecutionPolicyVersion) + R"(,"abi":1,"version":"0.1.0"},)" +
            R"("labels":{"campaign":false,"assisted":false},"actions":)" + actions + R"(,"journal":[],"result":{"status":")" +
            state.find("status")->text + R"(","digest":")" + state.find("digest")->text + R"(","eventsDigest":")" +
            state.find("eventsDigest")->text + "\"}}";

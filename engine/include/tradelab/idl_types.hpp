@@ -114,6 +114,14 @@ enum class Reason : std::uint8_t {
   AlreadyAnswered = 36,
   // AnswerLesson: choice out of range or a negative numeric answer.
   InvalidAnswer = 37,
+  // OrderUpdate reason (policy v18): the order's time in force ended (bars elapsed, or an ioc/fok
+  // remainder after its one open phase).
+  TimeInForce = 38,
+  // A time in force the order cannot take: ioc/fok on a non-limit order, bars 0 or beyond the run's
+  // last bar, or a bars value without the bars kind (policy v18).
+  InvalidTimeInForce = 39,
+  // LinkOco: the same order twice, an unknown or inactive order, a bracket child or an order already linked (policy v18).
+  InvalidOco = 40,
 };
 
 constexpr const char* json_name(Reason v) {
@@ -156,6 +164,31 @@ constexpr const char* json_name(Reason v) {
     case Reason::UnknownQuestion: return "unknown_question";
     case Reason::AlreadyAnswered: return "already_answered";
     case Reason::InvalidAnswer: return "invalid_answer";
+    case Reason::TimeInForce: return "time_in_force";
+    case Reason::InvalidTimeInForce: return "invalid_time_in_force";
+    case Reason::InvalidOco: return "invalid_oco";
+  }
+  return "unknown";
+}
+
+// How long an order works (execution policy v18). An absent value is gtc.
+enum class TimeInForce : std::uint8_t {
+  // Until filled, cancelled, the run ends or (options) its series settles.
+  Gtc = 0,
+  // Eligible on bars placedStep+1 .. placedStep+tifBars; the remainder expires at the close of the last one.
+  Bars = 1,
+  // Limit only: eligible only in the next bar's open phase; the remainder is cancelled after it.
+  Ioc = 2,
+  // Limit only: the whole quantity in the next bar's open phase, or nothing.
+  Fok = 3,
+};
+
+constexpr const char* json_name(TimeInForce v) {
+  switch (v) {
+    case TimeInForce::Gtc: return "gtc";
+    case TimeInForce::Bars: return "bars";
+    case TimeInForce::Ioc: return "ioc";
+    case TimeInForce::Fok: return "fok";
   }
   return "unknown";
 }
@@ -225,6 +258,8 @@ enum class CommandType : std::uint8_t {
   MoveOrder = 9,
   // question + choice or value: a structured lesson answer (understanding dimension, scoring v11).
   AnswerLesson = 10,
+  // order_id + order_id_b: links two working orders as one-cancels-the-other (policy v18).
+  LinkOco = 11,
 };
 
 constexpr const char* json_name(CommandType v) {
@@ -240,6 +275,7 @@ constexpr const char* json_name(CommandType v) {
     case CommandType::RequestAdvice: return "request_advice";
     case CommandType::MoveOrder: return "move_order";
     case CommandType::AnswerLesson: return "answer_lesson";
+    case CommandType::LinkOco: return "link_oco";
   }
   return "unknown";
 }

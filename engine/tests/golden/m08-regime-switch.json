@@ -15,10 +15,10 @@
     {"k": "adv", "n": 1000}
   ],
   "expected": {
-    "digest": "9cca2b0bb58cba31fb272c72780e4d0937dd784538d28bb36869c74e82fea9d8",
+    "digest": "1e58d1640dfba345403f65ecac29fec6950ea5215ac443b55f6b6361b3b4491e",
     "eventsDigest": "e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb",
     "status": "finished",
     "rejected": [{"action": 1, "reason": "invalid_bracket"}, {"action": 3, "reason": "position_closed"}]
   },
-  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
 }

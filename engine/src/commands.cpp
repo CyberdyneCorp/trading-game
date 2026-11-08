@@ -6,6 +6,7 @@
 #include "tradelab/advisor.hpp"
 #include "tradelab/lessons.hpp"
 #include "options_exec.hpp"
+#include "order_rules.hpp"
 
 namespace tradelab {
 namespace {
@@ -123,12 +124,14 @@ Order make_order(const Scenario& sc, const RunState& st, const Command& c) {
     // Initial trigger from the decision-step close.
     o.price = detail::trail_trigger(sc, c.side, sc.bars[st.step].close, c.trail_distance, c.trail_rate);
   }
+  detail::set_tif(o, c);
   return o;
 }
 
 CommandResult place_order(const Scenario& sc, RunState& st, const Command& c) {
   if (const Reason r = validate_shape(sc, c); r != Reason::None) return reject(r);
   if (const Reason r = check_reduce_only(st, c); r != Reason::None) return reject(r);
+  if (const Reason r = detail::tif_refusal(sc, st, c, false); r != Reason::None) return reject(r);
   const Order o = make_order(sc, st, c);
   if (const Reason r = validate_bracket(sc, st, c, o); r != Reason::None) return reject(r);
   if (!magnitude_ok(sc, c.qty, reference_price(sc, st, o))) return reject(Reason::NumericOverflow);
@@ -287,6 +290,7 @@ CommandResult dispatch(const Scenario& sc, RunState& st, const Command& c) {
     case CommandType::RequestAdvice: return request_advice(sc, st);
     case CommandType::MoveOrder: return move_order(sc, st, c);
     case CommandType::AnswerLesson: return answer_lesson(sc, st, c);
+    case CommandType::LinkOco: return detail::link_oco(st, c);
   }
   return reject(Reason::UnsupportedOrderType);
 }
@@ -362,6 +366,7 @@ void emit_order_update(RunState& st, const Order& o, Reason reason) {
   ev.qty = o.remaining();
   ev.requested = o.price;
   push_event(st, ev);
+  dissolve_link(st, o);  // policy v18: every unfilled end of an order passes here
 }
 
 }  // namespace detail
