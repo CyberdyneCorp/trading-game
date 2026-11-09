@@ -71,7 +71,7 @@ struct Objective {
 
 // The objectives of a mission that declares none (imported packs): plan, 2% risk, no liquidation.
 // The highest objective code this engine knows (validation of missions and pack manifests).
-constexpr ObjectiveCode kLastObjectiveCode = ObjectiveCode::NoRollWithoutThesis;
+constexpr ObjectiveCode kLastObjectiveCode = ObjectiveCode::NoAddBeyondPlan;
 
 inline std::vector<Objective> common_objectives() {
   return {{ObjectiveCode::PlanEveryEntry, 0}, {ObjectiveCode::RiskPerIdea, 200}, {ObjectiveCode::NoLiquidationWaitOk, 0}};

@@ -1,0 +1,26 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m22-scale-manage",
+  "description": "A long with a plan and a 2 x ATR stop, half offered at +1R by a reduce-only limit, the stop moved to breakeven 10 bars later.",
+  "mission": "m22-scale-manage",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 5},
+    {"k": "adv", "n": 14},
+    {"k": "plan", "side": "buy", "skipped": false, "option": false, "lose": true, "inv": "97.67", "target": "101.64", "conf": 60, "risk": "99.88"},
+    {"k": "order", "type": "market", "side": "buy", "qty": "75.5", "price": null, "ro": false, "stop": "97.67", "tp": null, "trail": null},
+    {"k": "adv", "n": 1},
+    {"k": "order", "type": "limit", "side": "sell", "qty": "37.7", "price": "100.31", "ro": true, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 10},
+    {"k": "move", "id": 2, "price": "98.99"},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "1b1e089a2f6191c6c7d39af6ee963d5ed29e109965f3f58e3be075c155e9850f",
+    "eventsDigest": "4dc2185c5d8b41bd0d172d081996a0d6521fdfbc16a10c5d8a23fdad47f033ae",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

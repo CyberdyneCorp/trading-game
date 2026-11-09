@@ -586,6 +586,33 @@ enum class ObjectiveCode : std::uint8_t {
   DecideBeforeExpiry = 41,
   // Do not roll without a new thesis.
   NoRollWithoutThesis = 42,
+  // Missions m18-m25 (add-practice-and-advanced-strategies D12). Keep |delta| within valueBp of
+  // equity (the mission's risk limit).
+  DeltaWithinLimit = 43,
+  // Before entering, record the rehedge rule (every N bars or a delta band).
+  RehedgeRuleFirst = 44,
+  // Before entering, write the carry break-even: the funding needed to pay the costs.
+  CarryBreakevenFirst = 45,
+  // Keep |vega| within valueBp of equity per volatility point (the mission's risk limit).
+  VegaWithinLimit = 46,
+  // Before the release bar, decide whether to hold through it, and record why.
+  HoldThroughDecision = 47,
+  // Before entering, write the net debit: the maximum loss at the near expiry.
+  NetDebitFirst = 48,
+  // Keep the gamma of a 1% move within valueBp of equity (the mission's risk limit).
+  GammaWithinLimit = 49,
+  // Total planned risk of at most valueBp across all entries of one idea.
+  TotalRiskAllEntries = 50,
+  // Use at least one partial exit or a trailing stop.
+  PartialExitOrTrail = 51,
+  // Never move a stop away from the entry.
+  NeverStopAway = 52,
+  // No new entry within 3 bars of a stop-out without a new plan.
+  CooldownAfterStop = 53,
+  // Every entry with a plan recorded before it and a stop within 2 x ATR.
+  PlanBeforeEntryAtrStop = 54,
+  // No add to a losing position beyond the planned total risk.
+  NoAddBeyondPlan = 55,
 };
 
 constexpr const char* json_name(ObjectiveCode v) {
@@ -633,6 +660,19 @@ constexpr const char* json_name(ObjectiveCode v) {
     case ObjectiveCode::BreakoutExitRule: return "breakout_exit_rule";
     case ObjectiveCode::DecideBeforeExpiry: return "decide_before_expiry";
     case ObjectiveCode::NoRollWithoutThesis: return "no_roll_without_thesis";
+    case ObjectiveCode::DeltaWithinLimit: return "delta_within_limit";
+    case ObjectiveCode::RehedgeRuleFirst: return "rehedge_rule_first";
+    case ObjectiveCode::CarryBreakevenFirst: return "carry_breakeven_first";
+    case ObjectiveCode::VegaWithinLimit: return "vega_within_limit";
+    case ObjectiveCode::HoldThroughDecision: return "hold_through_decision";
+    case ObjectiveCode::NetDebitFirst: return "net_debit_first";
+    case ObjectiveCode::GammaWithinLimit: return "gamma_within_limit";
+    case ObjectiveCode::TotalRiskAllEntries: return "total_risk_all_entries";
+    case ObjectiveCode::PartialExitOrTrail: return "partial_exit_or_trail";
+    case ObjectiveCode::NeverStopAway: return "never_stop_away";
+    case ObjectiveCode::CooldownAfterStop: return "cooldown_after_stop";
+    case ObjectiveCode::PlanBeforeEntryAtrStop: return "plan_before_entry_atr_stop";
+    case ObjectiveCode::NoAddBeyondPlan: return "no_add_beyond_plan";
   }
   return "unknown";
 }

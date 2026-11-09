@@ -341,6 +341,33 @@ enum ObjectiveCode : u8 {
   DecideBeforeExpiry = 41
   /// Do not roll without a new thesis.
   NoRollWithoutThesis = 42
+  /// Missions m18-m25 (add-practice-and-advanced-strategies D12). Keep |delta| within valueBp of
+  /// equity (the mission's risk limit).
+  DeltaWithinLimit = 43
+  /// Before entering, record the rehedge rule (every N bars or a delta band).
+  RehedgeRuleFirst = 44
+  /// Before entering, write the carry break-even: the funding needed to pay the costs.
+  CarryBreakevenFirst = 45
+  /// Keep |vega| within valueBp of equity per volatility point (the mission's risk limit).
+  VegaWithinLimit = 46
+  /// Before the release bar, decide whether to hold through it, and record why.
+  HoldThroughDecision = 47
+  /// Before entering, write the net debit: the maximum loss at the near expiry.
+  NetDebitFirst = 48
+  /// Keep the gamma of a 1% move within valueBp of equity (the mission's risk limit).
+  GammaWithinLimit = 49
+  /// Total planned risk of at most valueBp across all entries of one idea.
+  TotalRiskAllEntries = 50
+  /// Use at least one partial exit or a trailing stop.
+  PartialExitOrTrail = 51
+  /// Never move a stop away from the entry.
+  NeverStopAway = 52
+  /// No new entry within 3 bars of a stop-out without a new plan.
+  CooldownAfterStop = 53
+  /// Every entry with a plan recorded before it and a stop within 2 x ATR.
+  PlanBeforeEntryAtrStop = 54
+  /// No add to a losing position beyond the planned total risk.
+  NoAddBeyondPlan = 55
 }
 
 /// What the player did at a decision point (task 4.2, spec gameplay-loop "Waiting is a decision").

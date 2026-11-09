@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m18-gamma-scalp",
+  "description": "A long ATM straddle of the first expiry (30 contracts) delta-hedged with the perpetual every 8 bars, held to the end.",
+  "mission": "m18-gamma-scalp",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 3},
+    {"k": "opt", "series": 9, "side": "buy", "type": "market", "qty": "30", "premium": null},
+    {"k": "opt", "series": 10, "side": "buy", "type": "market", "qty": "30", "premium": null},
+    {"k": "adv", "n": 8},
+    {"k": "order", "type": "market", "side": "buy", "qty": "5.2", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 8},
+    {"k": "order", "type": "market", "side": "buy", "qty": "10.7", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 8},
+    {"k": "order", "type": "market", "side": "sell", "qty": "12.8", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 8},
+    {"k": "order", "type": "market", "side": "buy", "qty": "19.7", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "fe2ab1ec96afd34145a974e2d440d5615a22d9a07b24591d98c690299a91f073",
+    "eventsDigest": "8f56b3cae3a7286ceb610841f49518611a98d4b046594ad6dd64b394841a2e67",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

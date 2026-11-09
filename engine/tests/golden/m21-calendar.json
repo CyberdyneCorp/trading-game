@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m21-calendar",
+  "description": "A call calendar at the money (near written, middle bought, 10 contracts) closed at the near expiry.",
+  "mission": "m21-calendar",
+  "seed": 2026,
+  "actions": [
+    {"k": "opt", "series": 33, "side": "buy", "type": "market", "qty": "10", "premium": null},
+    {"k": "opt", "series": 11, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 20},
+    {"k": "opt", "series": 33, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "0b7c5ae63cee8a4e0b5f124349e7e6be841571915b70f5611159377a2b89ec8e",
+    "eventsDigest": "a25546b0a931f4cd6d5b3d34622d5f9c47c96a2b70b24a56ccf80041c77ab585",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

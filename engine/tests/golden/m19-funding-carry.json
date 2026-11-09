@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m19-funding-carry",
+  "description": "A short perpetual of 20 at 5x hedged by a synthetic long (call bought, put written at the money of the last expiry), held to the end.",
+  "mission": "m19-funding-carry",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 5},
+    {"k": "opt", "series": 27, "side": "buy", "type": "market", "qty": "20", "premium": null},
+    {"k": "opt", "series": 28, "side": "sell", "type": "market", "qty": "20", "premium": null},
+    {"k": "order", "type": "market", "side": "sell", "qty": "20", "price": null, "ro": false, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "9e02d0bc3fa82163dc416d5c4bdc09607a201c0dbbf97b13c247b3d518e6ce59",
+    "eventsDigest": "f68d1d0e94828a60a3b8efab733dacbb7c3b70fd441309278af60b0e5fa94841",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

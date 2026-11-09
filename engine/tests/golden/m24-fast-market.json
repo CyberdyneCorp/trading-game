@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m24-fast-market",
+  "description": "A long bought late in the rally without a plan, with a 3 x ATR stop.",
+  "mission": "m24-fast-market",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 3},
+    {"k": "adv", "n": 35},
+    {"k": "order", "type": "market", "side": "buy", "qty": "30", "price": null, "ro": false, "stop": "98.02", "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "ee2dedea2e4babeac08123723a93327896fe7ab103c791275e917771b8bb9d62",
+    "eventsDigest": "cb84a897ffba6cf9b102b8f09bc7bdff262639bcc619aa848c06f85a56015c05",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

@@ -153,6 +153,78 @@
         {"id": "theta-near-expiry", "kind": "choice", "choices": 3, "answer": 0, "points": 1},
         {"id": "what-is-roll", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
       ]
+    },
+    {
+      "mission": "m18-gamma-scalp",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "hedge-units", "kind": "numeric", "answer": "10", "tolerance": "0", "points": 1},
+        {"id": "what-pays-theta", "kind": "choice", "choices": 3, "answer": 2, "points": 1}
+      ]
+    },
+    {
+      "mission": "m19-funding-carry",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "funding-one-day", "kind": "numeric", "answer": "1.8", "tolerance": "0", "points": 1},
+        {"id": "carry-turns", "kind": "choice", "choices": 3, "answer": 0, "points": 1}
+      ]
+    },
+    {
+      "mission": "m20-event-vol",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "straddle-upper-breakeven", "kind": "numeric", "answer": "106", "tolerance": "0", "points": 1},
+        {"id": "iv-after-release", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m21-calendar",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "calendar-debit", "kind": "numeric", "answer": "1.5", "tolerance": "0", "points": 1},
+        {"id": "calendar-best-price", "kind": "choice", "choices": 3, "answer": 0, "points": 1}
+      ]
+    },
+    {
+      "mission": "m22-scale-manage",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "risk-after-partial", "kind": "numeric", "answer": "60", "tolerance": "0", "points": 1},
+        {"id": "breakeven-stop-cost", "kind": "choice", "choices": 3, "answer": 2, "points": 1}
+      ]
+    },
+    {
+      "mission": "m23-second-chance",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "drawdown-after-doubling", "kind": "numeric", "answer": "4", "tolerance": "0", "points": 1},
+        {"id": "after-stop-out", "kind": "choice", "choices": 3, "answer": 1, "points": 1}
+      ]
+    },
+    {
+      "mission": "m24-fast-market",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "chase-quantity", "kind": "numeric", "answer": "12.5", "tolerance": "0", "points": 1},
+        {"id": "why-chase-worse", "kind": "choice", "choices": 3, "answer": 0, "points": 1}
+      ]
+    },
+    {
+      "mission": "m25-the-dip",
+      "reviewed": false,
+      "reviewer": "",
+      "questions": [
+        {"id": "average-down-loss", "kind": "numeric", "answer": "200", "tolerance": "0", "points": 1},
+        {"id": "consistent-add", "kind": "choice", "choices": 3, "answer": 2, "points": 1}
+      ]
     }
   ]
 }

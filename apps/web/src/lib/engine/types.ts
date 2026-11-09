@@ -205,7 +205,20 @@ export type ObjectiveCode =
 	| 'size_by_max_loss'
 	| 'breakout_exit_rule'
 	| 'decide_before_expiry'
-	| 'no_roll_without_thesis';
+	| 'no_roll_without_thesis'
+	| 'delta_within_limit'
+	| 'rehedge_rule_first'
+	| 'carry_breakeven_first'
+	| 'vega_within_limit'
+	| 'hold_through_decision'
+	| 'net_debit_first'
+	| 'gamma_within_limit'
+	| 'total_risk_all_entries'
+	| 'partial_exit_or_trail'
+	| 'never_stop_away'
+	| 'cooldown_after_stop'
+	| 'plan_before_entry_atr_stop'
+	| 'no_add_beyond_plan';
 
 /** What the player did at a decision point (task 4.2, spec gameplay-loop "Waiting is a decision"). */
 export type DecisionKind = 'wait' | 'hold' | 'act';

@@ -606,10 +606,260 @@ MissionDef before_expiry() {
   return m;
 }
 
+// ---- Advanced options and carry, management, psychology (add-practice-and-advanced-strategies D11,
+// D12): m18-m25. Common: hourly synthetic bars, warm-up 60, the perpetual at 3x (m19 and m22 at 5x),
+// funding every 8 bars, existing generator capabilities only (generator v5).
+
+MissionDef advanced_base(const char* id, std::uint32_t bars, std::int32_t leverage) {
+  MissionDef m;
+  m.info = {id, bars, 60, leverage, true};
+  return m;
+}
+
+// m18 Hedge: a drawn path (G1) of chop that moves more than its options price in (realized above
+// implied: iv_mult 0.75) and quiet stretches priced above what they realize (iv_mult 1.25). Long
+// visits, so most seeds sit mainly in one of them. Buying options only: a long straddle, hedged.
+MissionDef gamma_scalp() {
+  MissionDef m = advanced_base("m18-gamma-scalp", 181, 3);
+  RegimeChain c;
+  c.states = {{.vol = 0.0110, .volume_mult = 1.4, .iv_mult = 0.75, .label = HighVol},
+              {.vol = 0.0045, .volume_mult = 0.8, .iv_mult = 1.25, .label = Calm}};
+  c.transitions = {{0, 1000}, {1000, 0}};
+  c.initial = {500, 500};
+  c.min_dwell = 70;
+  c.max_dwell = 140;
+  c.bars = 121;
+  c.at = 1;
+  m.gen.chain = c;
+  m.gen.segments = {{.bars = 60, .vol = 0.0070, .anchor = Anchor::Level, .reversion = 0.01, .band = 0.025, .label = Range}};
+  m.objectives = {{ObjectiveCode::DeltaWithinLimit, 1500}, {ObjectiveCode::RehedgeRuleFirst, 0}, {ObjectiveCode::PremiumBudget, 300}};
+  m.options = true;
+  m.allow_short_options = false;
+  m.risk_limits.delta_bp = 1500;
+  m.chain = {0, {40, 80}, 4, 2.5};
+  return m;
+}
+
+// m19 Carry: longs are crowded and pay funding (shorts collect it). A drawn path (G1) starts crowded;
+// in some seeds the crowd unwinds before the end: funding turns negative (shorts pay) and squeezes
+// hit the short side. Buying and writing, spread margin; the perpetual at 5x.
+MissionDef funding_carry() {
+  MissionDef m = advanced_base("m19-funding-carry", 181, 5);
+  m.gen.funding_base = 0.0002;
+  m.gen.squeeze_prob = 0.08;
+  m.gen.squeeze_size = 0.02;
+  RegimeChain c;
+  c.states = {{.drift = 0.0002, .vol = 0.0050, .volume_mult = 1.2, .funding_bias = 0.0005, .anchor = Anchor::Trend, .reversion = 0.03,
+               .momentum = 0.03, .label = Crowded},
+              {.drift = 0.0015, .vol = 0.0110, .volume_mult = 1.8, .funding_bias = -0.0012, .momentum = 0.03, .label = HighVol}};
+  c.transitions = {{0, 1000}, {1000, 0}};
+  c.initial = {1000, 0};
+  c.min_dwell = 40;
+  c.max_dwell = 200;
+  c.bars = 121;
+  c.at = 1;
+  m.gen.chain = c;
+  m.gen.segments = {{.bars = 60, .drift = 0.0003, .vol = 0.0050, .funding_bias = 0.0004, .anchor = Anchor::Trend, .reversion = 0.03,
+                     .momentum = 0.03, .label = Crowded}};
+  m.objectives = {{ObjectiveCode::CarryBreakevenFirst, 0}, {ObjectiveCode::LiqDistance, 1500}, {ObjectiveCode::DeltaWithinLimit, 1000}};
+  m.liq_warning_bp = 1500;
+  m.options = true;
+  m.allow_short_options = true;
+  m.spread_margin = true;
+  m.risk_limits.delta_bp = 1000;
+  m.chain = {0, {60, 120}, 4, 2.5};
+  return m;
+}
+
+// m20 Announcement: a release announced 35 bars ahead (G3). Implied volatility is bid in two steps
+// before it (iv_mult 1.3, then 1.6) and collapses at the release (the event's iv_mult 0.6 over its
+// duration on top of 0.8); the actual is drawn (G2) and the move after it leans on the surprise. The
+// first expiry falls 7-13 bars after the release.
+MissionDef event_vol() {
+  MissionDef m = advanced_base("m20-event-vol", 161, 3);
+  m.gen.lead_jitter_min = -3;
+  m.gen.lead_jitter_max = 3;
+  m.gen.segments = {
+      {.bars = 85, .vol = 0.0050, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.02, .label = Range},
+      {.bars = 8, .vol = 0.0050, .iv_mult = 1.4, .anchor = Anchor::Level, .reversion = 0.01, .band = 0.015, .vol_decay = 0.95,
+       .label = Calm},
+      {.bars = 8, .vol = 0.0040, .iv_mult = 1.8, .anchor = Anchor::Level, .reversion = 0.01, .band = 0.015, .vol_decay = 0.95,
+       .label = Calm},
+      {.bars = 20, .drift = 0.0015, .vol = 0.0070, .volume_mult = 1.5, .iv_mult = 0.8, .momentum = 0.05, .random_direction = true,
+       .label = Trend},
+      {.bars = 40, .vol = 0.0055, .iv_mult = 0.8, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03, .label = Range},
+  };
+  m.gen.events = {{.item = {100, NewsKind::MacroData, 0, 90, 0, 0, 35},
+                   .p_none = 0.2,
+                   .p_align = 0.7,
+                   .drift = 0.003,
+                   .duration = 6,
+                   .vol_mult = 1.5,
+                   .iv_mult = 0.6,
+                   .fair_impact = 0.025,
+                   .actual_weights = Weights{100, 200, 400, 200, 100},
+                   .intensity_min = 0.6,
+                   .intensity_max = 1.5}};
+  m.objectives = {{ObjectiveCode::StraddleBreakevens, 0}, {ObjectiveCode::HoldThroughDecision, 0}, {ObjectiveCode::VegaWithinLimit, 150}};
+  m.options = true;
+  m.allow_short_options = true;
+  m.spread_margin = true;
+  m.risk_limits.vega_bp = 150;
+  m.chain = {0, {50, 100}, 5, 2.5};
+  return m;
+}
+
+// m21 Calendar: a range with steady implied volatility, then a breakout of drawn direction whose bar
+// (66-96) falls before or after the near expiry (bar 80). Calendar
+// margin: a far long covers a near short of the same kind.
+MissionDef calendar_spread() {
+  MissionDef m = advanced_base("m21-calendar", 131, 3);
+  m.gen.lead_jitter_min = -15;
+  m.gen.lead_jitter_max = 15;
+  m.gen.segments = {
+      {.bars = 81, .vol = 0.0045, .anchor = Anchor::Level, .reversion = 0.008, .band = 0.02, .label = Range},
+      {.bars = 16, .drift = 0.0060, .vol = 0.0090, .jump_prob = 0.06, .jump_mean = 0.02, .volume_mult = 1.8, .momentum = 0.05,
+       .random_direction = true, .label = Trend},
+      {.bars = 34, .vol = 0.0060, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03, .label = Range},
+  };
+  m.objectives = {{ObjectiveCode::NetDebitFirst, 0}, {ObjectiveCode::DecideBeforeExpiry, 0}, {ObjectiveCode::GammaWithinLimit, 50}};
+  m.options = true;
+  m.allow_short_options = true;
+  m.spread_margin = true;
+  m.calendar_margin = true;
+  m.risk_limits.gamma_bp = 50;
+  m.chain = {0, {20, 45, 70}, 5, 2.5};
+  return m;
+}
+
+// m22 Management: a range, then an unannounced headline of drawn sign and strength (G2) starts a
+// trend that follows it with pullbacks; the second leg is drawn again, tilted by the fair value, so
+// some seeds trend far, some stall and some fail. The perpetual at 5x, no options.
+MissionDef scale_manage() {
+  MissionDef m = advanced_base("m22-scale-manage", 180, 5);
+  m.gen.lead_jitter_min = -8;
+  m.gen.lead_jitter_max = 8;
+  m.gen.tilt = 12.0;
+  m.gen.segments = {
+      {.bars = 70, .vol = 0.0050, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.02, .label = Range},
+      {.bars = 35, .drift = 0.0012, .vol = 0.0065, .volume_mult = 1.4, .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.04,
+       .random_direction = true, .label = Trend},
+      {.bars = 35, .drift = 0.0015, .vol = 0.0075, .jump_prob = 0.02, .jump_mean = 0.012, .volume_mult = 1.3, .anchor = Anchor::Trend,
+       .reversion = 0.03, .momentum = 0.03, .random_direction = true, .label = Trend},
+      {.bars = 40, .vol = 0.0060, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03, .label = Range},
+  };
+  m.gen.events = {{.item = {69, NewsKind::InstitutionalAdoption, 0, 75, 0, 0},
+                   .p_none = 0.3,
+                   .p_align = 0.6,
+                   .drift = 0.002,
+                   .duration = 5,
+                   .vol_mult = 1.3,
+                   .iv_mult = 1.0,
+                   .fair_impact = 0.03,
+                   .actual_weights = Weights{250, 250, 0, 250, 250},
+                   .intensity_min = 0.6,
+                   .intensity_max = 1.6}};
+  m.objectives = {{ObjectiveCode::TotalRiskAllEntries, 100}, {ObjectiveCode::PartialExitOrTrail, 0}, {ObjectiveCode::NeverStopAway, 0}};
+  return m;
+}
+
+// m23 Restart: a range, a clean-looking breakout up on volume that fails fast (a drop through the
+// range on an unannounced denial), chop, then a real move of drawn direction later.
+MissionDef second_chance() {
+  MissionDef m = advanced_base("m23-second-chance", 180, 3);
+  m.gen.lead_jitter_min = -8;
+  m.gen.lead_jitter_max = 8;
+  m.gen.segments = {
+      {.bars = 70, .vol = 0.0050, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.02, .label = Range},
+      {.bars = 5, .drift = 0.0050, .vol = 0.0060, .volume_mult = 2.0, .funding_bias = 0.0002, .momentum = 0.1, .label = Trend},
+      {.bars = 3, .drift = -0.0070, .vol = 0.0100, .jump_prob = 0.10, .jump_mean = -0.015, .volume_mult = 1.8, .label = HighVol},
+      {.bars = 42, .vol = 0.0090, .volume_mult = 1.3, .anchor = Anchor::Level, .reversion = 0.012, .band = 0.025, .label = HighVol},
+      {.bars = 25, .drift = 0.0035, .vol = 0.0065, .volume_mult = 1.4, .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.06,
+       .random_direction = true, .label = Trend},
+      {.bars = 35, .vol = 0.0060, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03, .label = Range},
+  };
+  m.gen.events = {{.item = {75, NewsKind::RumorDenied, -1, 80, 0, -1},
+                   .p_none = 0.2,
+                   .p_align = 0.45,
+                   .drift = 0.002,
+                   .duration = 3,
+                   .vol_mult = 1.5,
+                   .iv_mult = 1.0,
+                   .fair_impact = 0.01,
+                   .jump_prob = 0.25,
+                   .jump_size = 0.012}};
+  m.objectives = {{ObjectiveCode::CooldownAfterStop, 0}, {ObjectiveCode::RiskPerIdea, 100}, {ObjectiveCode::PlanEveryEntry, 0}};
+  return m;
+}
+
+// m24 Rally: a quiet range, then a steep rally on heavy volume and extreme funding (crowded longs, so
+// squeezes against them become possible); a drawn path (G1, one visit) decides the next leg: it gives
+// the rally back in about 70% of seeds and keeps going in about 30%.
+MissionDef fast_market() {
+  MissionDef m = advanced_base("m24-fast-market", 180, 3);
+  m.gen.lead_jitter_min = -8;
+  m.gen.lead_jitter_max = 8;
+  m.gen.squeeze_prob = 0.06;
+  const Segment reversal{.drift = -0.0030, .vol = 0.0110, .jump_prob = 0.06, .jump_mean = -0.02, .volume_mult = 2.0,
+                         .funding_bias = 0.0004, .momentum = 0.03, .label = HighVol};
+  Segment continuation = reversal;
+  continuation.drift = 0.0040;
+  continuation.jump_mean = 0.02;
+  RegimeChain c;
+  c.states = {reversal, continuation};
+  c.transitions = {{0, 1000}, {1000, 0}};
+  c.initial = {700, 300};
+  c.min_dwell = 100;
+  c.max_dwell = 100;
+  c.bars = 25;
+  c.at = 2;
+  m.gen.chain = c;
+  m.gen.segments = {
+      {.bars = 90, .vol = 0.0045, .volume_mult = 0.8, .anchor = Anchor::Level, .reversion = 0.012, .band = 0.012, .vol_decay = 0.995,
+       .label = Range},
+      {.bars = 14, .drift = 0.0075, .vol = 0.0080, .volume_mult = 2.6, .funding_bias = 0.0012, .momentum = 0.12, .label = Crowded},
+      {.bars = 51, .vol = 0.0070, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.03, .label = Range},
+  };
+  m.objectives = {{ObjectiveCode::PlanBeforeEntryAtrStop, 0}, {ObjectiveCode::RiskPerIdea, 100}, {ObjectiveCode::NoLiquidationWaitOk, 0}};
+  return m;
+}
+
+// m25 Dip: a range, then an uptrend with sharp drops along the way (dips that recover); a drawn path
+// (G1, one visit) decides the rest: the uptrend with its dips goes on in about 70% of seeds, and in
+// about 30% one drop does not recover and the market turns down for good.
+MissionDef the_dip() {
+  MissionDef m = advanced_base("m25-the-dip", 180, 3);
+  m.gen.lead_jitter_min = -8;
+  m.gen.lead_jitter_max = 8;
+  const Segment dips{.drift = 0.0016, .vol = 0.0070, .jump_prob = 0.05, .jump_mean = -0.019, .volume_mult = 1.3,
+                     .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.03, .label = Trend};
+  RegimeChain c;
+  Segment down = dips;
+  down.drift = -0.0030;
+  down.jump_mean = 0.015;
+  down.vol = 0.0095;
+  down.label = HighVol;
+  c.states = {dips, down};
+  c.transitions = {{0, 1000}, {1000, 0}};
+  c.initial = {700, 300};
+  c.min_dwell = 200;
+  c.max_dwell = 200;
+  c.bars = 60;
+  c.at = 2;
+  m.gen.chain = c;
+  Segment first = dips;
+  first.bars = 56;
+  m.gen.segments = {{.bars = 64, .vol = 0.0050, .anchor = Anchor::Level, .reversion = 0.006, .band = 0.02, .label = Range}, first};
+  m.objectives = {{ObjectiveCode::NoAddBeyondPlan, 0}, {ObjectiveCode::RiskPerIdea, 100}, {ObjectiveCode::PlanAndStopEveryEntry, 0}};
+  return m;
+}
+
 std::vector<MissionDef> all_missions() {
-  return {false_breakout(), funding_squeeze(), volatility_shock(), options_buyer(), options_writer(), thin_book(),
-          trend_trailing(), regime_switch(),   event_straddle(),   hedged_book(),   news_calendar(),  capstone(),
-          call_spread(),    covered_call(),    protective_put(),   range_condor(),  before_expiry()};
+  return {false_breakout(), funding_squeeze(), volatility_shock(), options_buyer(),     options_writer(), thin_book(),
+          trend_trailing(), regime_switch(),   event_straddle(),   hedged_book(),       news_calendar(),  capstone(),
+          call_spread(),    covered_call(),    protective_put(),   range_condor(),      before_expiry(),  gamma_scalp(),
+          funding_carry(),  event_vol(),       calendar_spread(),  scale_manage(),      second_chance(),  fast_market(),
+          the_dip()};
 }
 
 OptionSpec default_option_spec(bool allow_short) {
