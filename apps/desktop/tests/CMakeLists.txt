@@ -19,6 +19,7 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/game/test_game_viewmodel.cpp
   viewmodel/game/test_options_parity.cpp
   viewmodel/game/test_wave1_parity.cpp
+  viewmodel/game/test_wave1.cpp
   viewmodel/game/test_rules.cpp
   viewmodel/game/test_sizing.cpp
   viewmodel/game/test_ticket_chart.cpp
@@ -80,7 +81,7 @@ set_tests_properties(desktop_golden PROPERTIES LABELS golden)
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
 add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp
   headless/test_headless_shell.cpp headless/test_headless_flows.cpp headless/test_headless_academy.cpp
-  headless/test_headless_strategies.cpp headless/test_headless_run_files.cpp)
+  headless/test_headless_strategies.cpp headless/test_headless_run_files.cpp headless/test_headless_wave1.cpp)
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)

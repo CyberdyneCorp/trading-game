@@ -399,6 +399,7 @@ class GameViewModel {
   void refresh_live();
   [[nodiscard]] const PlanEntry* trail_plan() const;
   [[nodiscard]] std::optional<OrderLeg> hedge_now() const;
+  void send_hedge();
   // The live combo being rolled or adjusted.
   struct Live {
     std::string id;

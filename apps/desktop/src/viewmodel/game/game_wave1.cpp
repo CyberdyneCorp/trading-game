@@ -177,7 +177,7 @@ GameViewModel::ConfirmView GameViewModel::confirm_view() const {
 void GameViewModel::confirm_answer(bool yes) {
   const ConfirmKind kind = confirm_;
   confirm_ = ConfirmKind::None;
-  modal_ = kind == ConfirmKind::Hedge ? Modal::Portfolio : Modal::None;
+  modal_ = kind == ConfirmKind::Hedge && !yes ? Modal::Portfolio : Modal::None;
   if (yes && kind == ConfirmKind::LinkOco && link_picks_.size() == 2) {
     const int a = link_picks_[0];
     const int b = link_picks_[1];
@@ -187,7 +187,7 @@ void GameViewModel::confirm_answer(bool yes) {
             vm.set_notice({vm.texts().tr("orders.linkedOk", {{"a", std::to_string(a)}, {"b", std::to_string(b)}}), Tone::Ok});
           }}});
   }
-  if (yes && kind == ConfirmKind::Hedge) hedge_delta();
+  if (yes && kind == ConfirmKind::Hedge) send_hedge();
   if (yes && kind == ConfirmKind::Uncovered) send_live();
   touch();
 }
@@ -231,13 +231,15 @@ std::optional<OrderLeg> GameViewModel::hedge_now() const {
 // The hedge asks first (Modal::Confirm), then goes out as a normal perpetual market ticket: through
 // the plan dialog when it adds exposure.
 void GameViewModel::hedge_delta() {
+  if (!hedge_now() || !active() || busy()) return;
+  confirm_ = ConfirmKind::Hedge;
+  modal_ = Modal::Confirm;
+  touch();
+}
+
+void GameViewModel::send_hedge() {
   const auto h = hedge_now();
-  if (!h || !active() || busy()) return;
-  if (modal_ == Modal::Portfolio) {
-    confirm_ = ConfirmKind::Hedge;
-    modal_ = Modal::Confirm;
-    return touch();
-  }
+  if (!h || !active()) return;
   OrderDraft d;
   d.side = h->buy ? Side::Buy : Side::Sell;
   d.type = OrderType::Market;

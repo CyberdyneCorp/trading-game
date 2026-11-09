@@ -24,10 +24,19 @@ inline std::string describe_order(const GameCommand& c) {
 
 inline std::string describe_untagged(const GameCommand& c);
 
-// A strategy-builder leg names its combo: "option 9 buy 1.0 [c1 iron_condor]".
-inline std::string describe(const GameCommand& c) {
-  return describe_untagged(c) + (c.combo.empty() ? "" : " [" + c.combo + " " + c.strategy + "]");
+inline std::string describe_tif(const GameCommand& c) {
+  if (c.tif.empty() || c.tif == "gtc") return {};
+  return " tif " + c.tif + (c.tif == "bars" ? ":" + std::to_string(c.tif_bars) : "");
 }
+
+inline std::string describe_tag(const GameCommand& c) {
+  if (c.combo.empty()) return {};
+  return " [" + c.combo + " " + c.strategy + optional_part(" roll ", c.roll) + optional_part(" adjust ", c.adjust) + "]";
+}
+
+// A strategy-builder leg names its combo: "option 9 buy 1.0 [c1 iron_condor]"; a time in force follows
+// the order: "order 1 buy 10 @100 tif ioc".
+inline std::string describe(const GameCommand& c) { return describe_untagged(c) + describe_tif(c) + describe_tag(c); }
 
 inline std::string describe_untagged(const GameCommand& c) {
   const std::string side = c.buy ? "buy" : "sell";
@@ -45,6 +54,7 @@ inline std::string describe_untagged(const GameCommand& c) {
     case GameCommandKind::Answer: return c.skipped ? "answer skipped" : "answer " + std::to_string(c.number);
     case GameCommandKind::Lesson: return "lesson " + std::to_string(c.id) + (c.skipped ? " skipped" : " " + std::to_string(c.number) + " " + c.amount);
     case GameCommandKind::Advice: return "advice";
+    case GameCommandKind::LinkOco: return "oco " + std::to_string(c.id) + " " + std::to_string(c.number);
     case GameCommandKind::None: break;
   }
   return "?";
