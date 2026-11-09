@@ -8,6 +8,7 @@
 #include <cmath>
 #include <functional>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "scenario_builder.hpp"
@@ -393,3 +394,27 @@ TEST_CASE("Coach review through the C ABI: refused while active, the same answer
   tl_run_destroy(run);
 }
 
+
+TEST_CASE("Coach review: each code links an Academy lesson and a glossary term (pinned; the web test checks they exist)") {
+  // Mirrored in apps/web/src/lib/game/coachReview.test.ts (ENGINE_LINKS), which checks the ids in the content.
+  const std::vector<std::tuple<CoachMomentCode, std::string, std::string>> links = {
+      {EntryWithoutStop, "risk-sizing", "stop-loss"},
+      {StopMovedAway, "mind-plan", "stop-loss"},
+      {AddedAgainstStructure, "structure-zones", "trend"},
+      {RiskAboveBudget, "risk-sizing", "risk-budget"},
+      {HeldIntoReleaseUnhedged, "events-surprise", "gap"},
+      {RevengeTrade, "mind-biases", "revenge-trading"},
+      {FomoEntry, "mind-biases", "fomo"},
+      {AveragingDown, "mind-biases", "averaging-down"},
+      {RiskLimitExceeded, "options-greeks", "risk-limit"},
+      {CutAtInvalidation, "mind-plan", "invalidation"},
+      {StopToBreakevenAfter1r, "management-scaling", "breakeven-stop"},
+      {PartialAtTarget, "management-scaling", "partial-take-profit"},
+      {StayedFlatBeforeRelease, "events-surprise", "surprise"},
+  };
+  for (const auto& [code, lesson, term] : links) {
+    CAPTURE(json_name(code));
+    CHECK(std::string(coach_lesson(code)) == lesson);
+    CHECK(std::string(coach_glossary(code)) == term);
+  }
+}

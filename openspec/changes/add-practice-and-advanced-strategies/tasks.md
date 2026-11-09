@@ -248,11 +248,13 @@ Suggested PRs, in order:
   - purity.
 
   A new fixture kind `coach` (two fixtures, listed in `index.json`, replayed by native, WASM, Python and the desktop); the engine README fixture table.
-- [ ] W3-E2 Round markets `r01-trend`, `r02-range`, `r03-breakout`, `r04-event` (design D19): existing capabilities, `"practice": "round"` in `tl_missions`, one golden each, realism bands pooled with the missions; menus and the daily pool skip them (a test).
+
+  Status: done on the engine, WASM and Python; open only for the desktop's golden reader (W3-D1), which still refuses the kind `coach`.
+- [x] W3-E2 Round markets `r01-trend`, `r02-range`, `r03-breakout`, `r04-event` (design D19): existing capabilities, `"practice": "round"` in `tl_missions`, one golden each, realism bands pooled with the missions; menus and the daily pool skip them (a test).
 
 ### W3-W. Web
 
-- [ ] W3-W1 Daily drills (design D15), needs W2-W0:
+- [x] W3-W1 Daily drills (design D15), needs W2-W0:
   - `content/drills/*.json` with the schema validator;
   - mulberry32/FNV-1a generation;
   - the choice of items from due lesson reviews, then `drillReviews`, then weak skills;
@@ -267,17 +269,17 @@ Suggested PRs, in order:
   - parity fixture `drills.json`.
 
   E2E: a session.
-- [ ] W3-W2 Daily challenge (design D16), needs W2-W0: date-to-mission-and-seed (`DAILY_POOL_V1`, parity fixture `daily.json` over 400 dates), the run with no advisor or perks and the `daily` link, the first and best attempt, the 90-day history, no streak.
+- [x] W3-W2 Daily challenge (design D16), needs W2-W0: date-to-mission-and-seed (`DAILY_POOL_V1`, parity fixture `daily.json` over 400 dates), the run with no advisor or perks and the `daily` link, the first and best attempt, the 90-day history, no streak.
 
   E2E: two attempts on a mocked date.
-- [ ] W3-W3 Guess rounds (design D19), needs W3-E2 and W2-W0: the round flow (commit, then reveal), `guessRound.ts` integer scoring (parity fixture `guess.json`), "one sample", the calibration table after 20 rounds, `guessHistory`.
+- [x] W3-W3 Guess rounds (design D19), needs W3-E2 and W2-W0: the round flow (commit, then reveal), `guessRound.ts` integer scoring (parity fixture `guess.json`), "one sample", the calibration table after 20 rounds, `guessHistory`.
 
   E2E: five rounds.
-- [ ] W3-W4 Coach mode (design D17), needs W3-E1: "Review with the coach" from the debrief, the chart cut at the moment's bar, moment texts per code (PT-BR, en), "Retry from here" on warn moments, axe.
-- [ ] W3-W5 Mistake replay (design D18), needs W4: "Retry from here" on findings with a step and on coach moments; the assisted rewind with link `mistake`; the terminal banner; the repeated or avoided comparison at the retry's debrief; excluded from progress, points, campaign and journal statistics (tests).
+- [x] W3-W4 Coach mode (design D17), needs W3-E1: "Review with the coach" from the debrief, the chart cut at the moment's bar, moment texts per code (PT-BR, en), "Retry from here" on warn moments, axe.
+- [x] W3-W5 Mistake replay (design D18), needs W4: "Retry from here" on findings with a step and on coach moments; the assisted rewind with link `mistake`; the terminal banner; the repeated or avoided comparison at the retry's debrief; excluded from progress, points, campaign and journal statistics (tests).
 
   E2E: a mistake retried with the assisted label.
-- [ ] W3-W6 Menu entries (Drills, Daily, Guess), web README, e2e list.
+- [x] W3-W6 Menu entries (Drills, Daily, Guess), web README, e2e list.
 
 ### W3-D. Desktop
 
