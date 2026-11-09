@@ -735,7 +735,9 @@ const char* tl_missions(void) {
   j.begin_arr();
   for (const MissionInfo& m : mission_catalog()) {
     j.begin_obj().field("id", m.id).field("totalBars", m.total_bars).field("warmupBars", m.warmup_bars);
-    j.field("leverageCap", m.leverage_cap).field("allowShort", m.allow_short).end_obj();
+    j.field("leverageCap", m.leverage_cap).field("allowShort", m.allow_short);
+    if (!m.practice.empty()) j.field("practice", m.practice);
+    j.end_obj();
   }
   j.end_arr();
   buffer = j.text();

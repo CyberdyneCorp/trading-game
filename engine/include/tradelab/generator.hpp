@@ -203,6 +203,9 @@ struct MissionInfo {
   std::uint32_t warmup_bars = 0;
   std::int32_t leverage_cap = 1;
   bool allow_short = true;
+  // "round": a practice market of the guess rounds (add-practice-and-advanced-strategies D19); menus,
+  // the campaign, the curriculum and the daily pool skip it. Empty for missions.
+  std::string practice;
 };
 
 std::vector<MissionInfo> mission_catalog();

@@ -10,6 +10,7 @@
 #include "tradelab/c_api.h"
 #include "tradelab/engine.hpp"
 #include "tradelab/generator.hpp"
+#include "tradelab/lessons.hpp"
 #include "tradelab/sha256.hpp"
 
 using namespace tradelab;
@@ -353,7 +354,7 @@ TEST_CASE("Strategy missions m13-m17: after m12 in the catalog, 3x, a 2.5-step c
                                              {"m16-range-condor", 131, {30, 70}, 5, true},
                                              {"m17-before-expiry", 156, {20, 45, 70, 95}, 6, true}};
   const std::vector<MissionInfo> catalog = mission_catalog();
-  REQUIRE(catalog.size() == 25);
+  REQUIRE(catalog.size() == 29);  // 25 missions, then the 4 round markets
   for (std::size_t i = 0; i < shapes.size(); ++i) {
     const StrategyShape& want = shapes[i];
     CAPTURE(want.id);
@@ -426,7 +427,7 @@ struct AdvancedShape {
 
 }  // namespace
 
-TEST_CASE("Missions m18-m25: last in the catalog, their leverage, chains, margin flags and risk limits (D12)") {
+TEST_CASE("Missions m18-m25: last of the missions in the catalog, their leverage, chains, margin flags and risk limits (D12)") {
   const std::vector<AdvancedShape> shapes = {
       {"m18-gamma-scalp", 181, 3, {40, 80}, 4, false, false, false, {.delta_bp = 1500}},
       {"m19-funding-carry", 181, 5, {60, 120}, 4, true, true, false, {.delta_bp = 1000}},
@@ -438,7 +439,7 @@ TEST_CASE("Missions m18-m25: last in the catalog, their leverage, chains, margin
       {"m25-the-dip", 180, 3, {}, 0, false, false, false, {}},
   };
   const std::vector<MissionInfo> catalog = mission_catalog();
-  REQUIRE(catalog.size() == 25);
+  REQUIRE(catalog.size() == 29);  // 25 missions, then the 4 round markets
   for (std::size_t i = 0; i < shapes.size(); ++i) {
     const AdvancedShape& want = shapes[i];
     CAPTURE(want.id);
@@ -491,4 +492,35 @@ TEST_CASE("Missions m18-m25: the briefing shows the objectives and limits, never
       CHECK(std::all_of(r.events.begin(), r.events.end(), [](const EventReveal& e) { return e.announce_lead == 0; }));
     }
   }
+}
+
+// ---- Round markets (add-practice-and-advanced-strategies D19) ---------------------------------------
+
+TEST_CASE("Round markets r01-r04: after the missions, listed as practice rounds, room for a decision and 12 bars") {
+  const std::vector<MissionInfo> catalog = mission_catalog();
+  const std::vector<std::string> ids = {"r01-trend", "r02-range", "r03-breakout", "r04-event"};
+  for (std::size_t i = 0; i < catalog.size(); ++i) CHECK((catalog[i].practice == "round") == (i >= 25));
+  for (std::size_t i = 0; i < ids.size(); ++i) {
+    const MissionInfo& m = catalog[25 + i];
+    CAPTURE(m.id);
+    CHECK(m.id == ids[i]);
+    CHECK(m.warmup_bars == 60);
+    CHECK(m.allow_short);
+    CHECK(rubric_for(m.id) == nullptr);  // no rubric: a round is no mission
+    for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+      Scenario sc;
+      REQUIRE(build_mission(m.id, seed, sc));
+      CHECK(sc.bars.size() == m.total_bars);
+      CHECK(sc.options.series.empty());
+      CHECK(m.warmup_bars + 20 <= m.total_bars - 13);  // the decision step's range is not empty
+    }
+  }
+  const std::string listed = tl_missions();
+  CHECK(listed.find(R"("id":"r01-trend","totalBars":160,"warmupBars":60,"leverageCap":3,"allowShort":true,"practice":"round"})") !=
+        std::string::npos);
+  CHECK(listed.find(R"("id":"m25-the-dip","totalBars":180,"warmupBars":60,"leverageCap":3,"allowShort":true})") != std::string::npos);
+  MissionReveal r;
+  REQUIRE(mission_reveal("r04-event", 3, r));
+  REQUIRE(r.events.size() == 1);
+  CHECK(r.events.front().announce_lead == 15);
 }

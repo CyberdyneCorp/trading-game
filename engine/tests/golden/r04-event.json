@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "r04-event",
+  "description": "A long bought 20 decisions in with a plan and a stop 1% below the close, held into the release.",
+  "mission": "r04-event",
+  "seed": 2026,
+  "actions": [
+    {"k": "adv", "n": 20},
+    {"k": "plan", "side": "buy", "skipped": false, "option": false, "lose": true, "inv": "97.67", "target": "101.62", "conf": 60, "risk": "19.80"},
+    {"k": "order", "type": "market", "side": "buy", "qty": "20", "price": null, "ro": false, "stop": "97.67", "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "12a8544b09ff6d45ab5f23264c35339d01786c200847c32abb1ea29916b540da",
+    "eventsDigest": "f87ab5f0a69ec0c8e2abe773446600bac7fda07c8a8798ec07aadf7c230eb0bb",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

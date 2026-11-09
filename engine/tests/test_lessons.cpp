@@ -35,6 +35,7 @@ Rubric reviewed(const Rubric& r) {
 TEST_CASE("Rubrics: the embedded data parses, covers every built-in mission and is not reviewed yet") {
   REQUIRE_FALSE(rubrics().empty());
   for (const MissionInfo& m : mission_catalog()) {
+    if (!m.practice.empty()) continue;  // round markets have no rubric (design D19)
     const Rubric* r = rubric_for(m.id);
     REQUIRE_MESSAGE(r != nullptr, m.id);
     CHECK(r->questions.size() >= 2);

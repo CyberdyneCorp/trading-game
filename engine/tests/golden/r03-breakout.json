@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "r03-breakout",
+  "description": "A long bought 35 decisions in without a plan and a stop 2% below the close, closed by hand 12 bars later.",
+  "mission": "r03-breakout",
+  "seed": 2026,
+  "actions": [
+    {"k": "adv", "n": 35},
+    {"k": "order", "type": "market", "side": "buy", "qty": "20", "price": null, "ro": false, "stop": "97.43", "tp": null, "trail": null},
+    {"k": "adv", "n": 12},
+    {"k": "close"},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "bed3e3c5ec7fe2ef80c3ef84553a9d6bf92ba36895640efbb2eaefbb813857df",
+    "eventsDigest": "d72e114cca11a312a19296dce1cd56b359eaa90107dd6aa9a84166eeee65116e",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

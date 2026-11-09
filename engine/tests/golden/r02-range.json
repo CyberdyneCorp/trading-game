@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "r02-range",
+  "description": "A short sold 25 decisions in with a plan, a stop 1.5% above the close and a target 2% below it.",
+  "mission": "r02-range",
+  "seed": 2026,
+  "actions": [
+    {"k": "adv", "n": 25},
+    {"k": "plan", "side": "sell", "skipped": false, "option": false, "lose": true, "inv": "93.34", "target": "89.20", "conf": 60, "risk": "27.60"},
+    {"k": "order", "type": "market", "side": "sell", "qty": "20", "price": null, "ro": false, "stop": "93.34", "tp": "90.12", "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "a84dc225214359638c59afa24d1edf06206c995079813e8cbed19d335ce59305",
+    "eventsDigest": "175eae9b192b6ce1e0e058d6b154c8863912da5da9e0bd61b5b2b84aad324186",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}
