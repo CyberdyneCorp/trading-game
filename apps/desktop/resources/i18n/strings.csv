@@ -3529,6 +3529,7 @@ desktop.csv.unreadable,Não foi possível ler o arquivo: confira o caminho.,The 
 desktop.pack.missingFile,O arquivo deste pacote não está mais na pasta de dados. Remova-o e baixe ou importe de novo.,This pack's file is no longer in the data folder. Remove it and download or import it again.
 desktop.debrief.chart,Gráfico da partida,Run chart
 desktop.debrief.chartNote,"Quadrados: entradas (azul) e saídas (amarelo) de cada trade, ligadas por uma linha verde (ganho) ou vermelha (perda).","Squares: each trade's entry (blue) and exit (yellow), joined by a green (gain) or red (loss) line."
+desktop.debrief.moments,Momentos no gráfico: escolha um para marcar a barra no gráfico da partida (▼).,Moments on the chart: pick one to mark its bar on the run chart (▼).
 desktop.panel.chart,Gráfico,Chart
 desktop.panel.account,Conta,Account
 desktop.panel.book,Opções e ordens,Options and orders

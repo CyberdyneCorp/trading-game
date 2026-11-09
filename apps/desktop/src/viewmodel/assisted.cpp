@@ -9,6 +9,7 @@
 #include "model/progress_json.hpp"
 #include "viewmodel/app_viewmodel.hpp"
 #include "viewmodel/format.hpp"
+#include "viewmodel/screens/screens.hpp"
 
 namespace tradelab::desktop {
 
@@ -166,13 +167,41 @@ void mark_trades(game::ChartScene& scene, const game::ChartViewModel& chart, con
   }
 }
 
+// Scoring v14: the debrief moment as a shaded column on its bar with a ▼ above it (web Chart.svelte
+// drawMoment).
+void mark_moment(game::ChartScene& scene, const game::ChartViewModel& chart, int step) {
+  const game::ChartViewModel::Frame& f = chart.frame();
+  const long i = step - static_cast<long>(f.first);
+  if (i < 0) return;
+  const float x = static_cast<float>(i) * f.slot_w;
+  if (x + f.slot_w > f.width) return;
+  scene.rects.push_back({x, 0, f.slot_w, f.price_h, game::Ink::Attention, 0.18f, false});
+  scene.texts.push_back({x + f.slot_w / 2, 0, "\xE2\x96\xBC", game::Ink::Attention, 12, game::Anchor::Center});  // ▼
+}
+
 }  // namespace
 
 game::ChartScene AppViewModel::debrief_scene(float width, float height) {
   if (!snap_ || !snap_->game || !snap_->debrief) return {};
   game::ChartScene scene = debrief_chart_.build(game_->texts(), *snap_->game, std::nullopt, false, width, height);
-  if (!scene.empty) mark_trades(scene, debrief_chart_, snap_->debrief->raw["trades"]);
+  if (scene.empty) return scene;
+  mark_trades(scene, debrief_chart_, snap_->debrief->raw["trades"]);
+  if (debrief_moment_) mark_moment(scene, debrief_chart_, *debrief_moment_);
   return scene;
+}
+
+void AppViewModel::debrief_show_moment(int index) {
+  const auto moments = screens::debrief_moments(*this);
+  if (index < 0 || index >= static_cast<int>(moments.size())) {
+    debrief_moment_.reset();
+  } else {
+    debrief_moment_ = moments[static_cast<std::size_t>(index)].step;
+    // A moment before the visible window widens it to show the bar, with a few bars before it.
+    if (snap_ && snap_->game && *debrief_moment_ < static_cast<int>(debrief_chart_.frame().first)) {
+      debrief_chart_.show_from(*snap_->game, std::max(0, *debrief_moment_ - 5));
+    }
+  }
+  touch();
 }
 
 void AppViewModel::debrief_page(int delta) {

@@ -171,6 +171,7 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/screens/run_files.cpp
   src/viewmodel/keymap.cpp
   src/viewmodel/lesson_runner.cpp
+  src/viewmodel/objective_checks.cpp
   src/viewmodel/report_texts.cpp
   src/viewmodel/shell.cpp
   src/viewmodel/screens/screen_model.cpp
@@ -178,6 +179,7 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/screens/briefing.cpp
   src/viewmodel/screens/debrief.cpp
   src/viewmodel/screens/debrief_tables.cpp
+  src/viewmodel/screens/debrief_episodes.cpp
   src/viewmodel/screens/curriculum.cpp
   src/viewmodel/screens/journal.cpp
   src/viewmodel/screens/lesson.cpp

@@ -394,6 +394,7 @@ ScreenModel debrief(const AppViewModel& vm) {
   score_lines(c, m);
   reveal_lines(c, m);
   findings_lines(c, m);
+  debrief_episodes(vm, m);
   lesson_results(c, m);
   decisions(c, m);
   greeks(c, m);

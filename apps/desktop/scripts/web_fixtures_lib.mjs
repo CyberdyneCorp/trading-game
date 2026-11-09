@@ -5,6 +5,7 @@
 
 import { combosFixture, comparisonFixture, gameOf, strategiesFixture, whatifLabFixture } from './web_fixtures_options.mjs';
 import { heatmapFixture, orderRulesFixture } from './web_fixtures_wave1.mjs';
+import { debriefV14Fixture } from './web_fixtures_wave2.mjs';
 
 const SIDES = ['buy', 'sell'];
 const LOCALES = ['pt-BR', 'en'];
@@ -565,6 +566,7 @@ export async function buildFixtures(load, golden) {
 		comparison: comparisonFixture(await load('debrief.ts')),
 		whatifLab: whatifLabFixture(await load('whatifLab.ts'), golden('whatif-condor'), golden('whatif-call')),
 		journalStats: journalStatsFixture(await load('journalStats.ts'), await load('runSummary.ts')),
+		debriefV14: debriefV14Fixture(await load('objectiveChecks.ts'), await load('analysis.ts'), await load('format.ts'), i18n),
 		orderRules: orderRulesFixture(await load('orderRules.ts'), await load('stops.ts')),
 		heatmap: heatmapFixture(await load('heatmap.ts'), await load('portfolio.ts'), null, golden('whatif-heatmap'), [
 			gameOf(),

@@ -16,28 +16,80 @@ int pct_digits(int bp) {
   return bp % 10 == 0 ? 1 : 2;
 }
 
-std::string finding_template(const Catalog& c, const std::string& code, long count) {
-  const std::string base = "finding." + code;
+// analysis.ts variantOf (scoring v14): an unplanned revenge entry, an averaging add without a stop.
+std::string variant_key(const json::Value& f) {
+  const json::Value& e = f["evidence"];
+  if (e.kind() != json::Value::Kind::Object) return {};
+  const std::string code = f["code"].as_string();
+  if (code == "revenge_trade" && !e["planned"].as_bool(false)) return "findingVariant.revenge_trade.unplanned";
+  if (code == "averaging_down" && !(fmt::num(e["stop"].as_string("0")) > 0)) return "findingVariant.averaging_down.nostop";
+  return {};
+}
+
+std::string finding_template(const Catalog& c, const json::Value& f, long count) {
+  const std::string base = "finding." + f["code"].as_string();
   if (count > 0 && c.has(base + ".safe")) return base + ".safe";
+  if (const std::string variant = variant_key(f); !variant.empty() && c.has(variant)) return variant;
   if (count == 1 && c.has(base + ".one")) return base + ".one";
   return base;
 }
 
+// A JSON number as JavaScript's String(n) for the integer fields of an evidence; "" when absent.
+std::string int_text(const json::Value& v) { return v.kind() == json::Value::Kind::Number ? str(static_cast<long>(v.as_int())) : std::string(); }
+
+std::string price_text(const json::Value& v, Locale L) { return v.is_null() ? std::string() : fmt::fmt_price(v.as_string(), L); }
+
+std::string bp_text(const json::Value& v, Locale L) {
+  return v.kind() == json::Value::Kind::Number ? bp_pct(static_cast<int>(v.as_int()), L) : std::string();
+}
+
+std::string scaled_text(const json::Value& v, double unit, Locale L) {
+  return v.kind() == json::Value::Kind::Number ? fmt::fmt_num(v.as_double() / unit, L, 2) : std::string();
+}
+
+// analysis.ts evidenceParams: the evidence of a scoring v14 finding as text parameters.
+void evidence_params(const Catalog& c, const json::Value& f, Params& p) {
+  const json::Value& e = f["evidence"];
+  if (e.kind() != json::Value::Kind::Object) return;
+  const Locale L = c.locale();
+  const bool stop_far = !e["stop"].is_null() && fmt::num(e["stop"].as_string()) > 0;
+  const std::string limit = e["limit"].as_string();
+  const json::Value& entry = e["entryStep"].is_null() ? e["addStep"] : e["entryStep"];
+  const json::Value& loss = e["loss"].is_null() ? e["unrealized"] : e["loss"];
+  p.insert(p.end(), {{"trade", int_text(e["trade"])},
+                     {"exit", int_text(e["exitStep"])},
+                     {"entry", int_text(entry)},
+                     {"loss", price_text(loss, L)},
+                     {"ratio", scaled_text(e["sizeRatioBp"], 10'000, L)},
+                     {"ext", scaled_text(e["extensionAtr"], 100, L)},
+                     {"closes", int_text(e["closes"])},
+                     {"stopText", c.tr(stop_far ? "findingVariant.stop.far" : "findingVariant.stop.none", {{"stop", price_text(e["stop"], L)}})},
+                     {"avgBefore", price_text(e["avgBefore"], L)},
+                     {"avgAfter", price_text(e["avgAfter"], L)},
+                     {"riskBefore", price_text(e["riskBefore"], L)},
+                     {"riskAfter", price_text(e["riskAfter"], L)},
+                     {"planRisk", price_text(e["planRisk"], L)},
+                     {"limit", limit.empty() ? std::string() : c.tr("findingLimit." + limit)},
+                     {"limitPct", bp_text(e["limitBp"], L)},
+                     {"worstPct", bp_text(e["worstBp"], L)}});
+}
+
 std::string describe_finding(const Catalog& c, const json::Value& f, int liq_warning_bp) {
   const Locale L = c.locale();
-  const std::string code = f["code"].as_string();
   const long count = static_cast<long>(f["count"].as_int());
-  const std::string key = finding_template(c, code, count);
-  if (!c.has(key)) return code;
+  const std::string key = finding_template(c, f, count);
+  if (!c.has(key)) return f["code"].as_string();
   const std::string warn = liq_warning_bp >= 0 ? " (" + bp_pct(liq_warning_bp, L) + ")" : std::string();
-  return c.tr(key, {{"step", str(static_cast<long>(f["step"].as_int()))},
-                    {"count", str(count)},
-                    {"price", fmt::fmt_price(f["price"].as_string(), L)},
-                    {"requested", fmt::fmt_price(f["requested"].as_string(), L)},
-                    {"amount", fmt::fmt_price(f["amount"].as_string(), L)},
-                    {"risk", fmt::fmt_num(std::round(fmt::num(f["amount"].as_string())), L, 0)},
-                    {"pct", bp_pct(static_cast<int>(count), L)},
-                    {"warn", warn}});
+  Params params{{"step", str(static_cast<long>(f["step"].as_int()))},
+                {"count", str(count)},
+                {"price", fmt::fmt_price(f["price"].as_string(), L)},
+                {"requested", fmt::fmt_price(f["requested"].as_string(), L)},
+                {"amount", fmt::fmt_price(f["amount"].as_string(), L)},
+                {"risk", fmt::fmt_num(std::round(fmt::num(f["amount"].as_string())), L, 0)},
+                {"pct", bp_pct(static_cast<int>(count), L)},
+                {"warn", warn}};
+  evidence_params(c, f, params);
+  return c.tr(key, params);
 }
 
 bool held_at(const json::Value& tr, long step) {
@@ -137,6 +189,51 @@ std::string trade_label(const Catalog& c, const json::Value& tr) {
                 str(static_cast<long>(tr["expiryStep"].as_int()))
           : "OPT#" + tr["series"].as_string();
   return arrow + " " + c.tr(long_side ? "trade.optBuy" : "trade.optWrite") + " " + series;
+}
+
+namespace {
+
+constexpr std::string_view kDot = " \xC2\xB7 ";  // " · "
+
+std::string r_text(const json::Value& bp, Locale L) {
+  return bp.is_null() ? "\xE2\x80\x94" : fmt::fmt_num(bp.as_double() / 10'000, L, 2, true) + "R";
+}
+
+std::string fills_text(const json::Value& fills, Locale L) {
+  std::string out;
+  for (const json::Value& f : fills.items()) {
+    if (!out.empty()) out += kDot;
+    out += fmt::fmt_qty(f["qty"].as_string(), L) + " @ " + fmt::fmt_price(f["price"].as_string(), L) + " (" + f["step"].as_string() + ")";
+  }
+  return out;
+}
+
+std::string stops_text(const Catalog& c, const json::Value& e) {
+  std::string out;
+  for (const json::Value& m : e["stopMoves"].items()) {
+    if (!out.empty()) out += kDot;
+    out += c.tr("episodes.move." + m["kind"].as_string()) + " " + fmt::fmt_price(m["price"].as_string(), c.locale()) + " (" +
+           m["step"].as_string() + ")";
+  }
+  if (e["trailing"].as_bool(false)) out += (out.empty() ? "" : std::string(kDot)) + "[" + c.tr("episodes.trailing") + "]";
+  return out.empty() ? "\xE2\x80\x94" : out;
+}
+
+}  // namespace
+
+std::vector<std::string> episode_cells(const Catalog& c, const json::Value& e) {
+  const Locale L = c.locale();
+  const bool long_side = e["side"].as_string() == "long";
+  std::string entries = fills_text(e["entries"], L);
+  if (e["entries"].items().size() > 1) entries += " [" + c.tr("episodes.scaled") + "]";
+  const std::string exits = e["exits"].items().empty() ? c.tr("episodes.open") : fills_text(e["exits"], L);
+  return {e["n"].as_string(),
+          long_side ? "\xE2\x96\xB2 LONG" : "\xE2\x96\xBC SHORT",
+          std::move(entries),
+          exits,
+          stops_text(c, e),
+          r_text(e["rBp"], L) + std::string(kDot) + fmt::fmt_money(e["net"].as_string(), L, true),
+          r_text(e["mfeRBp"], L) + std::string(kDot) + r_text(e["maeRBp"], L)};
 }
 
 std::string regime_name(const Catalog& c, const std::string& label, int direction) {

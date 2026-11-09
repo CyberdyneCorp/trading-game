@@ -255,6 +255,10 @@ class AppViewModel {
   [[nodiscard]] game::ChartScene debrief_scene(float width, float height);
   void debrief_page(int delta);
   [[nodiscard]] game::BarPage debrief_bar_page() const;
+  // Scoring v14: the bar the debrief's moment `index` (screens::debrief_moments) points to, marked on the
+  // run chart and brought into view; out of range clears the mark.
+  void debrief_show_moment(int index);
+  [[nodiscard]] std::optional<int> debrief_moment() const { return debrief_moment_; }
 
   // ---- Packs: catalog and CSV-import screens (viewmodel/packs.cpp) ----
   void attach_packs(packs::PackCommands* packs);
@@ -388,6 +392,7 @@ class AppViewModel {
   packs::PackCommands* pack_commands_ = nullptr;
   runfiles::RunFileCommands* run_files_ = nullptr;
   game::ChartViewModel debrief_chart_;
+  std::optional<int> debrief_moment_;
   update::UpdateCommands* updates_ = nullptr;
   update::UpdateState update_;
   audio::Soundtrack soundtrack_;

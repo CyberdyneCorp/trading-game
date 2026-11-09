@@ -151,6 +151,7 @@ void AppViewModel::on_snapshot(std::shared_ptr<const Snapshot> snap) {
   game_->on_snapshot(*snap_);
   if (screen_ == Screen::Game && !snap_->active() && snap_->debrief) {
     screen_ = Screen::Debrief;
+    debrief_moment_.reset();
     if (snap_->game) debrief_chart_.show_from(*snap_->game, snap_->warmup_bars);
   }
   if (!snap_->active() && snap_->debrief) settle_ended_run();

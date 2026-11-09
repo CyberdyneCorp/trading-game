@@ -301,6 +301,15 @@ TEST_CASE("shell: curriculum map statuses, Academy lesson to completion, stage p
   CHECK(stages->rows[0][2] == "DISPONÍVEL");
   CHECK(stages->rows[3][2] == "BLOQUEADO");
   CHECK(stages->rows[3][4].find("short") != std::string::npos);
+  // Branches beside the path (add-practice-and-advanced-strategies D14): marked ↳ and named after the
+  // stage they grow from; the path keeps its numbering; the elective stage says so.
+  CHECK(stages->rows[7][0] == "\xE2\x86\xB3");
+  CHECK(stages->rows[7][1] == "Gestão de trade · entradas e saídas em partes · Ramo de Dimensionamento de risco");
+  CHECK(stages->rows[8][0] == "8");
+  CHECK(stages->rows[12][0] == "\xE2\x86\xB3");
+  CHECK(stages->rows[12][2] == "BLOQUEADO · ELETIVO");
+  CHECK(stages->rows[12][3].starts_with("Fora da campanha"));
+  CHECK(stages->rows[16][0] == "14");
   CHECK(m.text_of(names::kCurriculumLessonStart) == "Começar lição");
 
   f.vm.start_selected_lesson();

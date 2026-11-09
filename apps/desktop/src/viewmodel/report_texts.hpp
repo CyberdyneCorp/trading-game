@@ -33,6 +33,10 @@ std::string stop_advice_text(const Catalog& c, const json::Value& trade);
 // "▲ LONG", "▼ SHORT", or "▲ COMPRA P 100,00 · exp 96" for an option.
 std::string trade_label(const Catalog& c, const json::Value& trade);
 
+// EpisodesPanel.svelte: one scoring v14 position episode as table cells (#, side, entries, exits,
+// stop moves, R with the net, MFE · MAE).
+std::vector<std::string> episode_cells(const Catalog& c, const json::Value& episode);
+
 std::string regime_name(const Catalog& c, const std::string& label, int direction = 0);
 std::string fmt_tally(const Catalog& c, const json::Value& tally);
 // A trade's entry regime with the direction of the revealed span it was entered in.

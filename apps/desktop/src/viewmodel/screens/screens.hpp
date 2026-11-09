@@ -52,6 +52,15 @@ void stats_run_files(const AppViewModel& vm, ScreenModel& m);
 void game_replay(const AppViewModel& vm, ScreenModel& m);
 void debrief_replay(const AppViewModel& vm, ScreenModel& m);
 
+// Scoring v14 debrief views (screens/debrief_episodes.cpp): the bars the findings, the objective
+// readings and the episodes point to, in the order the debrief lists them, and their panels.
+struct DebriefMoment {
+  int step = 0;
+  std::string label;  // "ver barra 41 · Trade de vingança"
+};
+std::vector<DebriefMoment> debrief_moments(const AppViewModel& vm);
+void debrief_episodes(const AppViewModel& vm, ScreenModel& m);
+
 // AssistPanel.svelte, shown in the terminal and in the debrief under their own widget names.
 void assist_panel(const AppViewModel& vm, const names::AssistNames& n, ScreenModel& m);
 

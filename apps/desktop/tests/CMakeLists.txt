@@ -30,6 +30,7 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/test_pack_screens.cpp
   viewmodel/test_theme.cpp
   viewmodel/test_web_parity.cpp
+  viewmodel/test_debrief_v14.cpp
   viewmodel/test_academy_parity.cpp
   viewmodel/test_academy.cpp
   viewmodel/test_audio.cpp
@@ -63,6 +64,7 @@ target_compile_definitions(tradelab_desktop_unit_tests PRIVATE
   TRADELAB_CRASH_CHILD="$<TARGET_FILE:tradelab_desktop_crash_child>"
   TRADELAB_WEB_CATALOG_DIR="${DESKTOP_DIR}/../web/static/catalog"
   TRADELAB_WEB_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/web"
+  TRADELAB_ENGINE_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/engine"
   TRADELAB_RUNFILES_DIR="${DESKTOP_DIR}/../../engine/tests/runfiles"
   TRADELAB_GOLDEN_DIR="${DESKTOP_DIR}/../../engine/tests/golden")
 
