@@ -4,7 +4,7 @@
 	import type { WhatIfResult } from '#lib/engine/types.ts';
 	import { fmtMoney, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
-	import { chartGeometry, strikesOf } from '#lib/game/whatifLab.ts';
+	import { analyticsOf, chartGeometry, strikesOf } from '#lib/game/whatifLab.ts';
 
 	let { result, testid = 'payoff-chart' }: { result: WhatIfResult; testid?: string } = $props();
 
@@ -12,8 +12,10 @@
 	const H = 140;
 	const L = $derived(i18n.locale);
 	const g = $derived(chartGeometry(result, W, H, strikesOf(result)));
+	// Legs on two expiries: the solid curve is the engine's horizon at the first expiry (design D4).
+	const horizon = $derived(analyticsOf(result)?.horizonStep ?? null);
 	const summary = $derived.by(() => {
-		const e = result.expiry;
+		const e = analyticsOf(result);
 		const bes = e?.breakevens.map((b) => fmtPrice(b, L)).join(' · ') || '—';
 		const profit = e?.maxProfit != null ? fmtMoney(e.maxProfit, L) : t('lab.unbounded');
 		const loss = e?.maxLoss != null ? fmtMoney(e.maxLoss, L) : t('lab.unbounded');
@@ -34,7 +36,7 @@
 		</svg>
 		<figcaption class="legend small">
 			<span>{fmtPrice(String(g.lo), L)}</span>
-			<span class="key"><i class="k-expiry"></i>{t('lab.atExpiry')} <i class="k-today"></i>{t('lab.today')}</span>
+			<span class="key"><i class="k-expiry"></i>{horizon != null ? t('lab.atFirstExpiry') : t('lab.atExpiry')} <i class="k-today"></i>{t('lab.today')}</span>
 			<span>{fmtPrice(String(g.hi), L)}</span>
 		</figcaption>
 	</figure>

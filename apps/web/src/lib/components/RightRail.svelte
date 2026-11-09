@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { GameState } from '#lib/engine/types.ts';
+	import type { GameState, WhatIfRiskView } from '#lib/engine/types.ts';
+	import { exceededLimits } from '#lib/game/portfolio.ts';
 	import Term from './Term.svelte';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, parseAmount, signMark } from '#lib/game/format.ts';
 	import { i18n, t, tCount } from '#lib/game/i18n.svelte.ts';
@@ -9,8 +10,18 @@
 	let {
 		game,
 		plannedRisk,
-		onMargin
-	}: { game: GameState; plannedRisk: number | null; onMargin?: (amount: string) => void } = $props();
+		onMargin,
+		risk = null,
+		onPortfolio
+	}: {
+		game: GameState;
+		plannedRisk: number | null;
+		onMargin?: (amount: string) => void;
+		/** The engine's risk block of the holdings (design D9 of add-practice-and-advanced-strategies). */
+		risk?: WhatIfRiskView | null;
+		onPortfolio?: () => void;
+	} = $props();
+	const warnings = $derived(exceededLimits(risk));
 	let marginAmount = $state('100');
 	function margin(sign: 1 | -1) {
 		const v = Math.abs(parseAmount(marginAmount, i18n.locale));
@@ -53,6 +64,24 @@
 			<dt><Term id="funding-rate">{t('rail.funding')}</Term></dt><dd>{fmtMoney(game.totals.fundingNet, L, true)}</dd>
 		</dl>
 	</section>
+
+	{#if onPortfolio}
+		<section class="panel" data-testid="rail-portfolio">
+			<h2 class="panel-title"><Term id="portfolio-greeks">{t('portfolio.title')}</Term></h2>
+			{#if risk}
+				<dl class="kv">
+					<dt>{t('portfolio.deltaNotional')}</dt><dd class="num" data-testid="rail-delta">{fmtMoney(risk.deltaNotional, L, true)}</dd>
+					<dt>{t('portfolio.fundingNext')}</dt><dd class="num">{fmtMoney(risk.fundingNext, L, true)}</dd>
+				</dl>
+			{/if}
+			{#each warnings as w (w.kind)}
+				<p class="attention small" role="alert" data-testid="rail-risk-warning">
+					{t('rail.riskWarn', { kind: t(`portfolio.limit.${w.kind}`), value: fmtNum(w.valueBp, L, 0), limit: fmtNum(w.limitBp, L, 0) })}
+				</p>
+			{/each}
+			<button class="small" onclick={onPortfolio} data-testid="open-portfolio">{t('portfolio.open')}</button>
+		</section>
+	{/if}
 
 	<section class="panel position" class:open={qty !== 0} data-testid="rail-position">
 		<h2 class="panel-title">{t('rail.position')}</h2>

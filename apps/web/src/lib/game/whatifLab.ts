@@ -3,7 +3,7 @@
 // breakeven and bound shown comes from the engine (tl_option_whatif / tl_run_option_whatif); this
 // module only turns slider positions into requests and engine strings into drawing coordinates.
 
-import type { WhatIfLegInput, WhatIfLegView, WhatIfRequest, WhatIfResult } from '#lib/engine/types.ts';
+import type { WhatIfExpiryView, WhatIfLegInput, WhatIfLegView, WhatIfRequest, WhatIfResult } from '#lib/engine/types.ts';
 import { fmtPrice } from './format.ts';
 import type { Locale } from './i18n.svelte.ts';
 
@@ -151,22 +151,33 @@ function path(curve: Curve, x: (p: number) => number, y: (v: number) => number):
 }
 
 /** SVG coordinates (width w, height h) of the engine's curves, breakevens and strikes. */
+/**
+ * The analytics a chart and the builder show: the common expiry's, or (legs on two expiries, design D4
+ * of add-practice-and-advanced-strategies) the engine's horizon at the first expiry. Null otherwise.
+ */
+export function analyticsOf(r: WhatIfResult): (WhatIfExpiryView & { horizonStep: number | null }) | null {
+	if (r.expiry) return { ...r.expiry, horizonStep: null };
+	const h = r.horizon;
+	return h ? { breakevens: h.breakevens, maxProfit: h.maxProfit, maxLoss: h.maxLoss, curve: h.curve, horizonStep: h.expiryStep } : null;
+}
+
 export function chartGeometry(r: WhatIfResult, w: number, h: number, strikes: readonly number[] = []): ChartGeometry | null {
 	const today = r.today;
 	if (today.length < 2) return null;
 	const lo = Number(today[0][0]);
 	const hi = Number(today[today.length - 1][0]);
-	const values = [...today, ...(r.expiry?.curve ?? [])].map(([, v]) => Math.abs(Number(v)));
+	const a = analyticsOf(r);
+	const values = [...today, ...(a?.curve ?? [])].map(([, v]) => Math.abs(Number(v)));
 	const maxAbs = Math.max(1e-9, ...values);
 	const x = (p: number) => ((p - lo) / (hi - lo)) * w;
 	const y = (v: number) => h / 2 - (v / maxAbs) * (h / 2 - 6);
 	const inside = (p: number) => p >= lo && p <= hi;
 	return {
-		expiryPath: r.expiry ? path(r.expiry.curve, x, y) : null,
+		expiryPath: a ? path(a.curve, x, y) : null,
 		todayPath: path(today, x, y),
 		zeroY: y(0),
 		forwardX: x(Number(r.forward)),
-		breakevenX: (r.expiry?.breakevens ?? []).map(Number).filter(inside).map(x),
+		breakevenX: (a?.breakevens ?? []).map(Number).filter(inside).map(x),
 		strikeX: strikes.filter(inside).map(x),
 		lo,
 		hi,
@@ -181,7 +192,7 @@ export function strikesOf(r: WhatIfResult): number[] {
 
 /** Which way an unbounded loss runs: always above the upper breakeven (prices stop at 0). */
 export function unboundedAbove(r: WhatIfResult): string | null {
-	const e = r.expiry;
+	const e = analyticsOf(r);
 	if (!e || e.maxLoss != null) return null;
 	return e.breakevens.at(-1) ?? null;
 }

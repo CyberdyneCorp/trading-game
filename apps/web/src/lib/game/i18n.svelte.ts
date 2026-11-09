@@ -1381,7 +1381,7 @@ const pt = {
 	'adjust.closeLeg': 'Fechar perna',
 	'adjust.addHedge': 'Adicionar hedge',
 	'adjust.hedgePerp': 'Perpétuo (delta neutro)',
-	'adjust.after': 'Depois do ajuste',
+	'adjust.after': 'Depois da mudança',
 	'adjust.uncoveredTitle': 'Deixar uma venda descoberta?',
 	'adjust.uncovered': 'Fechar esta perna deixa {leg} vendida sem proteção: a perda máxima passa a ser ilimitada. Enviar mesmo assim?',
 	'adjust.uncoveredYes': 'Enviar',
@@ -1435,6 +1435,12 @@ const pt = {
 	'brief.riskLimit.thetaBp': 'Theta por barra ≤ {n} bp',
 	'brief.calendarMargin': 'Margem de calendário: uma compra que vence depois cobre a venda do mesmo tipo.',
 	'lab.unsupportedV18': 'Esta partida roda num motor anterior: validade, OCO, mapa e carteira não estão disponíveis.',
+	'lab.atFirstExpiry': 'no 1º vencimento',
+	'combo.leggingRisk': 'risco de pernas soltas',
+	'adjust.button': 'Ajustar',
+	'portfolio.perUnit': 'Greeks por unidade (o motor soma a carteira nos totais abaixo).',
+	'builder.expiryShort': 'venc. {step}',
+	'portfolio.close': 'Fechar',
 } as const;
 
 export type MessageKey = keyof typeof pt;
@@ -2815,7 +2821,7 @@ const en: Record<MessageKey, string> = {
 	'adjust.closeLeg': 'Close leg',
 	'adjust.addHedge': 'Add hedge',
 	'adjust.hedgePerp': 'Perpetual (delta neutral)',
-	'adjust.after': 'After the adjustment',
+	'adjust.after': 'After the change',
 	'adjust.uncoveredTitle': 'Leave a short uncovered?',
 	'adjust.uncovered': 'Closing this leg leaves {leg} written without protection: the maximum loss becomes unbounded. Send anyway?',
 	'adjust.uncoveredYes': 'Send',
@@ -2869,6 +2875,12 @@ const en: Record<MessageKey, string> = {
 	'brief.riskLimit.thetaBp': 'Theta per bar ≤ {n} bp',
 	'brief.calendarMargin': 'Calendar margin: a long expiring later covers a short of the same kind.',
 	'lab.unsupportedV18': 'This run plays on an earlier engine: time in force, OCO, the heatmap and the portfolio are not available.',
+	'lab.atFirstExpiry': 'at the first expiry',
+	'combo.leggingRisk': 'legging risk',
+	'adjust.button': 'Adjust',
+	'portfolio.perUnit': 'Greeks per unit (the engine sums the book in the totals below).',
+	'builder.expiryShort': 'exp. {step}',
+	'portfolio.close': 'Close',
 };
 
 const catalogs: Record<Locale, Record<MessageKey, string>> = { 'pt-BR': pt, en };

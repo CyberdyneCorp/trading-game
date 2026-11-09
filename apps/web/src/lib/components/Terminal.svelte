@@ -41,7 +41,12 @@
 	import ComboNotice from './ComboNotice.svelte';
 	import WhatIfLab from './WhatIfLab.svelte';
 	import type { WhatIfLegInput } from '#lib/engine/types.ts';
-	import { comboContracts, comboStatus, netPremium, submitCombo } from '#lib/game/combos.ts';
+	import { comboContracts, comboStatus, netPremium, submitCombo, workingLegs } from '#lib/game/combos.ts';
+	import ComboWorking from './ComboWorking.svelte';
+	import PortfolioPanel from './PortfolioPanel.svelte';
+	import { PORTFOLIO_REQUEST } from '#lib/game/portfolio.ts';
+	import type { WhatIfResult as PortfolioResult } from '#lib/engine/types.ts';
+	import type { OrderLeg } from '#lib/game/strategies.ts';
 	import { runMaxBars } from '#lib/game/whatifLab.ts';
 
 	let { session }: { session: GameSession } = $props();
@@ -62,7 +67,7 @@
 	// Auto-advance: same advance as Space; waits while any dialog is open, pauses on notable bars.
 	const auto = new AutoPlay({
 		ready: () =>
-			!draft && !optDraft && !comboDraft && !labLegs && !pick && !patterns && !help && !journalOpen && !glossaryUi.open && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
+			!draft && !optDraft && !comboDraft && !labLegs && !portfolioOpen && !pick && !patterns && !help && !journalOpen && !glossaryUi.open && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
 		finished: () => session.state?.status !== 'active',
 		advance: () => session.advance(1),
 		notable: () => {
@@ -222,6 +227,10 @@
 	);
 	const statuses = $derived(session.state ? session.combos.map((r) => comboStatus(session.state!.events, r)) : []);
 	const incomplete = $derived(statuses.findLast((st) => st.state === 'incomplete' && !dismissed.includes(st.record.id)) ?? null);
+	// Design D2: limit legs still working after their first open (market legs never wait).
+	const working = $derived(
+		statuses.findLast((st) => st.state === 'working' && workingLegs(st).length > 0 && st.legs.some((l) => l.leg.premium != null) && session.state!.step > (st.record.submissions.at(-1)?.step ?? st.record.step)) ?? null
+	);
 
 	function optPlanDraftOf(side: 'buy' | 'sell', risk: number | null, qty = '1'): OrderDraft {
 		return {
@@ -249,7 +258,7 @@
 				const leg: PlanEntry = { ...p, side: o.side, plannedRisk: share, instrument: o.series === 0 ? undefined : d.label };
 				await session.recordPlan(leg, i === 0 ? { ...p, instrument: d.label, combo: d.tag.combo } : null);
 			}
-			const out = await submitCombo(session.comboPort(), d.orders, d.tag);
+			const out = await submitCombo(session.comboPort(), d.orders, d.tag, d.tif);
 			if (out.ok) session.notice = { tone: 'ok', text: t('combo.sent', { name: d.label }) };
 			else session.notice = { tone: 'error', text: `✖ ${t('combo.refused', { n: out.refusedLeg + 1, reason: rejectionText(out.reason) })}` };
 		});
@@ -304,6 +313,35 @@
 		});
 	}
 
+	// Portfolio (design D9): the engine's holdings what-if with its risk block, refreshed on every state
+	// change (a reply for an older state is dropped). Only on a build with policy v18's analysis.
+	let portfolio = $state<PortfolioResult | null>(null);
+	let portfolioOpen = $state(false);
+	let portfolioTicket = 0;
+	$effect(() => {
+		const s = session.state;
+		if (!s || !session.orderRulesV18) {
+			portfolio = null;
+			return;
+		}
+		void s.digest;
+		const mine = ++portfolioTicket;
+		void session.runWhatIf({ ...PORTFOLIO_REQUEST, legs: [] }).then((r) => {
+			if (mine === portfolioTicket) portfolio = r.ok ? r.value : null;
+		});
+	});
+
+	// "Hedge delta" (design D9): a normal perpetual ticket at market, through the plan dialog when it adds
+	// exposure; the panel already asked for the confirmation.
+	function onHedge(o: OrderLeg) {
+		portfolioOpen = false;
+		const s = session.state!;
+		const pos = num(s.position.qty);
+		const qty = num(o.qty);
+		const increases = pos === 0 || pos > 0 === (o.side === 'buy') || qty > Math.abs(pos);
+		onSubmit({ ...optPlanDraftOf(o.side, null, o.qty), leverage: s.leverage, increases });
+	}
+
 	// The planned trailing stop's notice filled the protective section: one more click sends it.
 	function fillPlannedTrail(mode: 'price' | 'pct', value: string) {
 		trailMode = mode;
@@ -348,7 +386,7 @@
 	}
 
 	function onKey(e: KeyboardEvent) {
-		if (keymap.capturing || draft || optDraft || comboDraft || labLegs || session.pendingQuestion || pick || glossaryUi.open) return;
+		if (keymap.capturing || draft || optDraft || comboDraft || labLegs || portfolioOpen || session.pendingQuestion || pick || glossaryUi.open) return;
 		// The coach mark's buttons keep Space and Enter (the market never advances from the callout).
 		if ((e.target as HTMLElement | null)?.closest?.('[data-own-keys]')) return;
 		const action = actionFor(keymap.map, keyName(e));
@@ -377,6 +415,8 @@
 				/></section>
 			<RightRail
 				game={session.state}
+				risk={portfolio?.risk ?? null}
+				onPortfolio={session.orderRulesV18 ? () => (portfolioOpen = true) : undefined}
 				plannedRisk={Number(session.state.position.qty) !== 0 ? positionPlannedRisk(session.journal) : null}
 				onMargin={async (amount) => {
 					const before = session.state!;
@@ -408,6 +448,9 @@
 				{/if}
 				{#if incomplete}
 					<ComboNotice {session} status={incomplete} onDone={() => (dismissed = [...dismissed, incomplete.record.id])} />
+				{/if}
+				{#if working}
+					<ComboWorking {session} status={working} />
 				{/if}
 				<TrailNotice game={session.state} journal={session.journal} onFill={fillPlannedTrail} />
 				<OrdersPanel {session} />
@@ -453,6 +496,14 @@
 			<h2 id="lab-modal-title">{t('lab.title')}</h2>
 			<WhatIfLab {session} mode="terminal" runLegs={labLegs} forward={lastPrice(session.state)} maxBars={labMaxBars} />
 			<button class="primary" onclick={() => (labLegs = null)} data-testid="lab-close">{t('lab.close')}</button>
+		</div>
+	</div>
+{/if}
+{#if portfolioOpen && session.state}
+	<div class="modal-backdrop" role="presentation">
+		<div class="modal lab-modal" role="dialog" aria-modal="true" aria-labelledby="portfolio-title">
+			<PortfolioPanel {session} result={portfolio} {onHedge} />
+			<button class="primary" onclick={() => (portfolioOpen = false)} data-testid="portfolio-close">{t('portfolio.close')}</button>
 		</div>
 	</div>
 {/if}

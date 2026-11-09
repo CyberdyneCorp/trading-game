@@ -1163,11 +1163,17 @@ export class GameSession implements CatalogHost, SharingHost {
 		return this.command({ k: 'cancel', id: orderId, ...(tag ?? {}) });
 	}
 
-	/** The engine calls a combo submission makes: market legs (series 0 = the perpetual) and cancels. */
+	/**
+	 * The engine calls a combo submission makes: market legs (series 0 = the perpetual), option limit legs
+	 * with the combo's time in force (design D2 of add-practice-and-advanced-strategies), and cancels.
+	 */
 	comboPort(): ComboPort {
 		return {
-			place: (leg, tag) =>
-				leg.series === 0 ? this.placeOrder('market', leg.side, leg.qty, null, false, { tag }) : this.placeOptionOrder(leg.series, leg.side, 'market', leg.qty, null, tag),
+			place: (leg, tag, tif) => {
+				if (leg.series === 0) return this.placeOrder('market', leg.side, leg.qty, null, false, { tag });
+				const limit = leg.premium != null;
+				return this.placeOptionOrder(leg.series, leg.side, limit ? 'limit' : 'market', leg.qty, limit ? leg.premium! : null, tag, limit ? tif : undefined);
+			},
 			cancel: (id, tag) => this.cancel(id, tag)
 		};
 	}

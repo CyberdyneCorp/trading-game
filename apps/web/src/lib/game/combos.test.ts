@@ -96,6 +96,7 @@ const REC: ComboRecord = {
 	strategy: 'bull_call',
 	step: 70,
 	withdrawn: false,
+	submissions: [],
 	legs: [
 		{ series: 1, side: 'buy', qty: '1' },
 		{ series: 3, side: 'sell', qty: '1' }

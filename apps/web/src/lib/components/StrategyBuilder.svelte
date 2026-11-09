@@ -10,6 +10,8 @@
 		risk: number | null;
 		/** No maximum loss at expiry: `risk` is then the margin required, not a worst case. */
 		unbounded: boolean;
+		/** The combo's time in force for its limit legs (design D2 of add-practice-and-advanced-strategies). */
+		tif?: { tif: import('#lib/engine/types.ts').TimeInForceName; tifBars?: number };
 	}
 </script>
 
@@ -50,8 +52,13 @@
 		type StrategyId,
 		type TemplateId
 	} from '#lib/game/strategies.ts';
-	import { unboundedAbove } from '#lib/game/whatifLab.ts';
+	import { analyticsOf, unboundedAbove } from '#lib/game/whatifLab.ts';
+	import { barsLeft, tifOrder, type TifChoice } from '#lib/game/orderRules.ts';
+	import { TWO_EXPIRY, defaultLimit, legExpiries, twoExpiryTemplateLegs } from '#lib/game/strategies.ts';
 	import PayoffChart from './PayoffChart.svelte';
+	import TifField from './TifField.svelte';
+	import HeatmapPanel from './HeatmapPanel.svelte';
+	import LiveCombos from './LiveCombos.svelte';
 	import Term from './Term.svelte';
 	import WhatIfTable from './WhatIfTable.svelte';
 
@@ -69,6 +76,12 @@
 	const f = $derived(lastPrice(game));
 
 	let expiry = $state(0);
+	// Design D3: a second, later expiry for calendars, diagonals and free legs on two expiries.
+	let farExpiry = $state(0);
+	// Design D2: one time in force for the combo's limit legs (IOC by default: legging bounded to one bar).
+	let tifChoice = $state<TifChoice>('ioc');
+	let tifBarsInput = $state('3');
+	const v18 = $derived(session.orderRulesV18);
 	let template = $state<TemplateId | null>(null);
 	let short = $state(false);
 	let nInput = $state('1');
@@ -83,6 +96,13 @@
 	$effect(() => {
 		if (!expiries.includes(expiry)) expiry = expiries[0] ?? 0;
 	});
+	const later = $derived(expiries.filter((e) => e > expiry));
+	$effect(() => {
+		if (!later.includes(farExpiry)) farExpiry = later[0] ?? 0;
+	});
+	const hasLimit = $derived(legs.some((l) => l.kind !== 'perp' && l.limit != null));
+	const tif = $derived(hasLimit && v18 ? tifOrder(tifChoice, parseDecimal(tifBarsInput), game.stepSeconds, barsLeft(game)) : null);
+	const tifSent = $derived(tif && !('error' in tif) ? tif : undefined);
 
 	const strikes = $derived(strikesOf(chain, expiry));
 	const n = $derived(Math.max(0, parseDecimal(nInput) || 0));
@@ -93,7 +113,7 @@
 	const problem = $derived(problemOf());
 
 	function problemOf(): ReturnType<typeof legsProblem> | 'unlisted' | 'write_locked' {
-		const p = legsProblem(sent);
+		const p = legsProblem(sent, expiry);
 		if (p) return p;
 		if (!orders) return 'unlisted';
 		return writesOptions(sent) && !writeAllowed ? 'write_locked' : null;
@@ -104,13 +124,14 @@
 		const o = orders;
 		void game.digest;
 		const mine = ++ticket;
-		if (!o || o.length === 0 || legsProblem(sent)) {
+		if (!o || o.length === 0 || legsProblem(sent, expiry)) {
 			whatif = preview = null;
 			return;
 		}
 		pending = true;
 		const heldLeg = covers ? held : null;
-		void Promise.all([session.runWhatIf({ legs: whatifLegs(o, heldLeg) }), session.comboPreview({ legs: comboLegs(o) })]).then(([w, p]) => {
+		const tifNow = tifSent;
+		void Promise.all([session.runWhatIf({ legs: whatifLegs(o, heldLeg) }), session.comboPreview({ legs: comboLegs(o, tifNow) })]).then(([w, p]) => {
 			if (mine !== ticket) return;
 			whatif = w;
 			preview = p;
@@ -124,7 +145,16 @@
 		// A covered call or protective put on a held long covers that long, all of it, by default.
 		useLong = held != null && COVERS_LONG.has(id);
 		if (useLong && held) nInput = fmtNum(coverContracts(game, held), L, 1);
-		legs = templateLegs(id, strikes, f, n || 1, short) ?? [];
+		legs = TWO_EXPIRY.has(id)
+			? (twoExpiryTemplateLegs(id, { step: expiry, strikes }, { step: farExpiry, strikes: strikesOf(chain, farExpiry) }, f, n || 1, short) ?? [])
+			: (templateLegs(id, strikes, f, n || 1, short) ?? []);
+	}
+
+	// Design D2: a leg switched to limit starts at its quote's mid, rounded toward the passive side.
+	function setLimit(i: number, on: boolean) {
+		const l = legs[i];
+		const q = l.kind === 'perp' ? undefined : seriesFor(chain, l.expiry ?? expiry, l.kind, l.strike ?? NaN);
+		edit(i, { limit: on && q ? defaultLimit(q, l.side, Number(game.options.premiumTick)) : undefined });
 	}
 
 	function toggleShort() {
@@ -147,11 +177,12 @@
 	}
 
 	const writeLocked = (id: TemplateId) => templateWrites(id, short) && !writeAllowed;
+	const needsFar = (id: TemplateId) => TWO_EXPIRY.has(id) && later.length === 0;
 	const comboOk = $derived(preview?.ok ? preview.value.accepted : true);
-	const canSubmit = $derived(!problem && !pending && !session.busy && orders != null && orders.length > 0 && comboOk);
+	const canSubmit = $derived(!problem && !pending && !session.busy && orders != null && orders.length > 0 && comboOk && !(tif && 'error' in tif));
 
 	function risk(): number | null {
-		const e = whatif?.ok ? whatif.value.expiry : null;
+		const e = whatif?.ok ? analyticsOf(whatif.value) : null;
 		if (e?.maxLoss != null) return Math.max(0, Number(e.maxLoss));
 		return preview?.ok ? Number(preview.value.required) : null;
 	}
@@ -159,7 +190,10 @@
 	// Sizing aid (like the perpetual ticket's risk sizing): contracts whose maximum loss is a share of equity.
 	let riskInput = $state('1');
 	const sameQty = $derived(legs.length > 0 && legs.every((l) => l.qty === n));
-	const maxLossNow = $derived(whatif?.ok && whatif.value.expiry?.maxLoss != null ? Number(whatif.value.expiry.maxLoss) : null);
+	const maxLossNow = $derived.by(() => {
+		const a = whatif?.ok ? analyticsOf(whatif.value) : null;
+		return a?.maxLoss != null ? Number(a.maxLoss) : null;
+	});
 	const sized = $derived(
 		covers || !sameQty ? null : contractsForRisk(Number(game.account.equity), parseDecimal(riskInput), maxLossNow, n, Number(game.options.lotSize))
 	);
@@ -179,13 +213,16 @@
 			tag: { combo: nextComboId(session.combos), strategy },
 			label: tCount('combo.label', orders.length, { name }),
 			risk: risk(),
-			unbounded: whatif?.ok === true && whatif.value.expiry != null && whatif.value.expiry.maxLoss == null
+			unbounded: whatif?.ok === true && analyticsOf(whatif.value)?.maxLoss === null,
+			...(tifSent ? { tif: tifSent } : {})
 		});
 	}
 
+	const twoExpiries = $derived(legExpiries(legs, expiry).length > 1);
+
 	function noBid(l: BuilderLeg): boolean {
-		if (l.kind === 'perp' || l.side !== 'sell') return false;
-		const q = seriesFor(chain, expiry, l.kind, l.strike ?? NaN);
+		if (l.kind === 'perp' || l.side !== 'sell' || l.limit != null) return false;
+		const q = seriesFor(chain, l.expiry ?? expiry, l.kind, l.strike ?? NaN);
 		return !!q && Number(q.bid) <= 0;
 	}
 
@@ -213,12 +250,19 @@
 					{#each expiries as e (e)}<option value={e}>{t('builder.expiryAt', { step: e, n: e - game.step })}</option>{/each}
 				</select>
 			</label>
+			{#if later.length}
+				<label>{t('builder.expiryFar')}
+					<select bind:value={farExpiry} data-testid="builder-expiry-far">
+						{#each later as e (e)}<option value={e}>{t('builder.expiryAt', { step: e, n: e - game.step })}</option>{/each}
+					</select>
+				</label>
+			{/if}
 			<label>{t('opt.qty')}<input inputmode="decimal" bind:value={nInput} onchange={() => (legs = legs.map((l) => ({ ...l, qty: n })))} data-testid="builder-qty" /></label>
 			<label class="check"><input type="checkbox" checked={short} onchange={toggleShort} data-testid="builder-short" /> {t('builder.short')}</label>
 		</div>
 		<div class="templates" role="group" aria-label={t('builder.templates')}>
 			{#each TEMPLATES as id (id)}
-				{@const locked = writeLocked(id)}
+				{@const locked = writeLocked(id) || needsFar(id)}
 				<button
 					class:primary={template === id}
 					disabled={locked}
@@ -248,14 +292,36 @@
 							</td>
 							<td>
 								{#if l.kind !== 'perp'}
-									<select aria-label={t('opt.strike')} value={l.strike} onchange={(e) => edit(i, { strike: Number((e.currentTarget as HTMLSelectElement).value) })}>
-										{#each strikes as k (k)}<option value={k}>{fmtPrice(String(k), L)}</option>{/each}
+									<select aria-label={t('opt.strike')} value={l.strike} onchange={(e) => edit(i, { strike: Number((e.currentTarget as HTMLSelectElement).value), limit: undefined })}>
+										{#each strikesOf(chain, l.expiry ?? expiry) as k (k)}<option value={k}>{fmtPrice(String(k), L)}</option>{/each}
 									</select>
 								{/if}
 							</td>
 							<td><input aria-label={t('opt.qty')} inputmode="decimal" value={qtyText(l.qty)} onchange={(e) => edit(i, { qty: Math.max(0, parseDecimal((e.currentTarget as HTMLInputElement).value) || 0) })} /></td>
 							<td><button aria-label={t('lab.remove')} onclick={() => ((legs = legs.filter((_, j) => j !== i)), (strategy = 'custom'))}>✕</button></td>
 						</tr>
+						{#if l.kind !== 'perp' && (later.length || v18)}
+							<!-- Design D2/D3: the leg's expiry (two at most) and market or limit, on a line of their own. -->
+							<tr class="leg-extra">
+								<td colspan="5">
+									<div class="extra">
+										{#if later.length}
+											<select aria-label={t('builder.legExpiry')} value={l.expiry ?? expiry} onchange={(e) => edit(i, { expiry: Number((e.currentTarget as HTMLSelectElement).value), limit: undefined }, true)} data-testid="builder-leg-expiry">
+												{#each [expiry, ...later] as e (e)}<option value={e}>{t('builder.expiryShort', { step: e })}</option>{/each}
+											</select>
+										{/if}
+										{#if v18}
+											<select aria-label={t('builder.legType')} value={l.limit != null ? 'limit' : 'market'} onchange={(e) => setLimit(i, (e.currentTarget as HTMLSelectElement).value === 'limit')} data-testid="builder-leg-type">
+												<option value="market">{t('builder.legMarket')}</option><option value="limit">{t('builder.legLimit')}</option>
+											</select>
+											{#if l.limit != null}
+												<input class="limit" aria-label={t('builder.limitPremium')} inputmode="decimal" value={qtyText(l.limit)} onchange={(e) => edit(i, { limit: Math.max(0, parseDecimal((e.currentTarget as HTMLInputElement).value) || 0) })} data-testid="builder-leg-limit" />
+											{/if}
+										{/if}
+									</div>
+								</td>
+							</tr>
+						{/if}
 						{#if noBid(l)}<tr><td colspan="5" class="attention small" data-testid="builder-no-bid">⚠ <Term id="legging-risk">{t('builder.noBid')}</Term></td></tr>{/if}
 					{/each}
 				</tbody>
@@ -268,6 +334,13 @@
 			{/if}
 		</div>
 
+		{#if hasLimit && v18}
+			<div class="limit-tif">
+				<p class="muted small">{t('builder.limitNote')}</p>
+				<TifField bind:choice={tifChoice} bind:barsInput={tifBarsInput} type="limit" stepSeconds={game.stepSeconds} step={game.step} left={barsLeft(game)} testid="builder-tif" />
+				<p class="muted small">{t('builder.comboTifNote')}</p>
+			</div>
+		{/if}
 		{#if problem && legs.length}<p class="warnbox" role="alert" data-testid="builder-problem">{t(`builder.problem.${problem}`)}</p>{/if}
 
 		{#if whatif && !whatif.ok && whatif.error === 'unsupported'}
@@ -293,28 +366,37 @@
 		{#if whatif?.ok}
 			{@const w = whatif.value}
 			{@const above = unboundedAbove(w)}
-			{#if w.expiry}
+			{@const a = analyticsOf(w)}
+			{#if a}
+				{#if a.horizonStep != null}
+					<p class="small info" data-testid="builder-horizon">{t('builder.horizon', { step: game.step + a.horizonStep })}</p>
+				{/if}
 				<dl class="kv est" data-testid="builder-analysis">
-					<dt><Term id="breakeven">{t('opt.breakeven')}</Term></dt><dd data-testid="builder-breakevens">{w.expiry.breakevens.map((b) => fmtPrice(b, L)).join(' · ') || '—'}</dd>
-					<dt>{t('lab.maxProfit')}</dt><dd>{w.expiry.maxProfit != null ? fmtMoney(w.expiry.maxProfit, L) : t('lab.unbounded')}</dd>
-					<dt><Term id="defined-risk">{t('lab.maxLoss')}</Term></dt><dd data-testid="builder-max-loss">{w.expiry.maxLoss != null ? fmtMoney(w.expiry.maxLoss, L) : t('lab.unboundedAbove', { price: above ? fmtPrice(above, L) : '—' })}</dd>
+					<dt><Term id="breakeven">{t('opt.breakeven')}</Term></dt><dd data-testid="builder-breakevens">{a.breakevens.map((b) => fmtPrice(b, L)).join(' · ') || '—'}</dd>
+					<dt>{t('lab.maxProfit')}</dt><dd>{a.maxProfit != null ? fmtMoney(a.maxProfit, L) : t('lab.unbounded')}</dd>
+					<dt><Term id="defined-risk">{t('lab.maxLoss')}</Term></dt><dd data-testid="builder-max-loss">{a.maxLoss != null ? fmtMoney(a.maxLoss, L) : t('lab.unboundedAbove', { price: above ? fmtPrice(above, L) : '—' })}</dd>
 				</dl>
+				{#if a.horizonStep != null}<p class="muted small">{t('builder.horizonNote')}</p>{/if}
 				{#if covers && held}
 					<p class="muted small" data-testid="builder-size-held">{held.stop ? t('builder.sizeHeld', { stop: fmtPrice(held.stop, L) }) : t('builder.sizeNoStop')}</p>
-				{:else if w.expiry.maxLoss != null && sameQty}
+				{:else if a.maxLoss != null && sameQty}
 					<div class="row sizing" role="group" aria-label={t('builder.sizeTitle')} data-testid="builder-sizing">
 						<label><Term id="risk-budget">{t('builder.sizeRisk')}</Term><input inputmode="decimal" bind:value={riskInput} data-testid="builder-size-risk" /></label>
 						<button onclick={applySize} disabled={sized == null || sized <= 0} data-testid="builder-size-apply">{t('builder.sizeApply', { n: sized != null ? fmtNum(sized, L, 1) : '—' })}</button>
 					</div>
-					{#if !pending}<p class="muted small" data-testid="builder-size-hint">{t('builder.sizeHint', { n: fmtNum(n, L, 1), risk: fmtMoney(w.expiry.maxLoss, L) })}</p>{/if}
+					{#if !pending}<p class="muted small" data-testid="builder-size-hint">{t('builder.sizeHint', { n: fmtNum(n, L, 1), risk: fmtMoney(a.maxLoss, L) })}</p>{/if}
 				{/if}
 			{/if}
 			<PayoffChart result={w} testid="builder-payoff" />
 			<WhatIfTable result={w} />
+			{#if v18 && orders}
+				<HeatmapPanel {session} legs={whatifLegs(orders, covers ? held : null)} testid="builder-heatmap" />
+			{/if}
 			<button onclick={() => orders && onLab(whatifLegs(orders, covers ? held : null))} data-testid="builder-open-lab">⚗ {t('builder.openLab')}</button>
 		{/if}
 		<p class="muted small">{t('builder.legging')}</p>
 		<button class="primary submit" onclick={submit} disabled={!canSubmit} data-testid="builder-submit">{t('builder.submit')}</button>
+		{#if v18}<LiveCombos {session} {onSubmit} />{/if}
 	{/if}
 </section>
 
@@ -365,6 +447,20 @@
 	}
 	.legs input {
 		width: 3.2rem;
+	}
+	.legs input.limit {
+		width: 4.2rem;
+	}
+	.leg-extra .extra {
+		display: flex;
+		gap: 0.3rem;
+		align-items: center;
+		padding-bottom: 0.25rem;
+		border-bottom: 1px dashed var(--line);
+	}
+	.limit-tif {
+		border-top: 1px dashed var(--line);
+		padding-top: 0.3rem;
 	}
 	.preview {
 		margin: 0;

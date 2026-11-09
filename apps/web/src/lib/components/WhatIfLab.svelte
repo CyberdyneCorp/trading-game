@@ -28,6 +28,7 @@
 	import AcademyLegs from './AcademyLegs.svelte';
 	import PayoffChart from './PayoffChart.svelte';
 	import WhatIfTable from './WhatIfTable.svelte';
+	import HeatmapPanel from './HeatmapPanel.svelte';
 
 	let {
 		session,
@@ -137,6 +138,7 @@
 		{#if result.atExpiry}<p class="muted small">{t('lab.atExpiryNote')}</p>{/if}
 		<PayoffChart {result} />
 		<WhatIfTable {result} step={mode === 'terminal' ? 'bar' : 'day'} />
+		{#if mode === 'terminal' && session.orderRulesV18}<HeatmapPanel {session} legs={runLegs} testid="lab-heatmap" />{/if}
 	{/if}
 </section>
 

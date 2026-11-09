@@ -8,6 +8,7 @@
 	import LessonQuiz from './LessonQuiz.svelte';
 	import { bpPct, objectiveTexts } from '#lib/game/objectives.ts';
 	import { briefTiers } from '#lib/game/sizing.ts';
+	import { declaredLimits } from '#lib/game/portfolio.ts';
 	import { fmtMoney, fmtNum, fmtPct, num } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
@@ -18,6 +19,8 @@
 	const txt = $derived(missionText(s.mission, L, session.runPackOrigin, session.runPackTexts));
 	// Engine MissionRules (task 4.1): objectives, instrument permissions and the mission's risk limits.
 	const rules = $derived(s.missionRules);
+	// Design D9 of add-practice-and-advanced-strategies: the mission's portfolio risk limits.
+	const riskLimits = $derived(declaredLimits(s));
 	const PERMS = ['long', 'short', 'optionsBuy', 'optionsWrite'] as const;
 	const allowed = $derived(PERMS.filter((p) => rules.permissions[p]).map((p) => t(`perm.${p}`)));
 	const notAllowed = $derived(PERMS.filter((p) => !rules.permissions[p]).map((p) => t(`perm.${p}`)));
@@ -56,10 +59,14 @@
 			<dt>{t('brief.leverage')}</dt><dd>1x – {c.leverageCap}x</dd>
 			<dt>{t('brief.limits')}</dt>
 			<dd data-testid="brief-limits">{t('brief.limitsValue', { liq: bpPct(rules.liqWarningBp, L), dd: bpPct(rules.drawdownBudgetBp, L) })}</dd>
+			{#if riskLimits.length}
+				<dt>{t('brief.riskLimits')}</dt>
+				<dd data-testid="brief-risk-limits">{riskLimits.map((r) => t(`brief.riskLimit.${r.kind}Bp`, { n: fmtNum(r.bp, L, 0) })).join(' · ')}</dd>
+			{/if}
 			<dt>{t('brief.mmr')}</dt><dd>{fmtPct(num(c.maintenanceMargin), L)}</dd>
 			{#if tiers.length}<dt>{t('brief.tiers')}</dt><dd data-testid="brief-tiers">{tiers.join(' · ')}</dd>{/if}
 			{#if s.options.enabled && rules.permissions.optionsWrite && rules.spreadMargin != null}
-				<dt>{t('brief.marginRule')}</dt><dd data-testid="brief-margin-rule">{t(rules.spreadMargin ? 'brief.marginRuleSpread' : 'brief.marginRulePerLeg')}</dd>
+				<dt>{t('brief.marginRule')}</dt><dd data-testid="brief-margin-rule">{t(rules.spreadMargin ? 'brief.marginRuleSpread' : 'brief.marginRulePerLeg')}{rules.calendarMargin ? ` ${t('brief.calendarMargin')}` : ''}</dd>
 			{/if}
 			{#if c.markFromLastPrice != null}
 				<dt>{t('brief.mark')}</dt><dd data-testid="brief-mark">{t(c.markFromLastPrice ? 'brief.markLast' : 'brief.markSeries')}</dd>

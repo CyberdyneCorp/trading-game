@@ -1370,7 +1370,7 @@ adjust.title,Ajustar {name},Adjust {name}
 adjust.closeLeg,Fechar perna,Close leg
 adjust.addHedge,Adicionar hedge,Add hedge
 adjust.hedgePerp,Perpétuo (delta neutro),Perpetual (delta neutral)
-adjust.after,Depois do ajuste,After the adjustment
+adjust.after,Depois da mudança,After the change
 adjust.uncoveredTitle,Deixar uma venda descoberta?,Leave a short uncovered?
 adjust.uncovered,Fechar esta perna deixa {leg} vendida sem proteção: a perda máxima passa a ser ilimitada. Enviar mesmo assim?,Closing this leg leaves {leg} written without protection: the maximum loss becomes unbounded. Send anyway?
 adjust.uncoveredYes,Enviar,Send
@@ -1424,6 +1424,12 @@ brief.riskLimit.vegaBp,Vega por ponto ≤ {n} bp,Vega per point ≤ {n} bp
 brief.riskLimit.thetaBp,Theta por barra ≤ {n} bp,Theta per bar ≤ {n} bp
 brief.calendarMargin,Margem de calendário: uma compra que vence depois cobre a venda do mesmo tipo.,Calendar margin: a long expiring later covers a short of the same kind.
 lab.unsupportedV18,"Esta partida roda num motor anterior: validade, OCO, mapa e carteira não estão disponíveis.","This run plays on an earlier engine: time in force, OCO, the heatmap and the portfolio are not available."
+lab.atFirstExpiry,no 1º vencimento,at the first expiry
+combo.leggingRisk,risco de pernas soltas,legging risk
+adjust.button,Ajustar,Adjust
+portfolio.perUnit,Greeks por unidade (o motor soma a carteira nos totais abaixo).,Greeks per unit (the engine sums the book in the totals below).
+builder.expiryShort,venc. {step},exp. {step}
+portfolio.close,Fechar,Close
 mission.m01-false-breakout.title,Missão 01 · Range,Mission 01 · Range
 mission.m01-false-breakout.tagline,O mercado passou semanas andando de lado. O que vem a seguir é com você.,The market has been moving sideways for weeks. What comes next is up to you.
 mission.m01-false-breakout.topic,"Futuros I · long e short, ordens e stops","Futures I · long and short, orders and stops"
