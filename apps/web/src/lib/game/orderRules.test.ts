@@ -101,7 +101,7 @@ describe('OCO links (design D7)', () => {
 describe('trailing stop (design D10)', () => {
 	it("the line's label names the best close; the marker has no text (playtest: it sat under ENTRY?)", () => {
 		const trail = { type: 'trailing_stop' as const, placedStep: 1, side: 'sell' as const };
-		expect(trailFollows(trail, [100, 101.5, 101.9, 100.2], 'pt-BR')).toBe(' · ◆ melhor fechamento 101,90');
+		expect(trailFollows(trail, [100, 101.5, 101.9, 100.2], 'pt-BR')).toBe(' · melhor fechamento 101,90');
 		expect(trailFollows({ ...trail, type: 'stop_market' }, [100, 101.5], 'pt-BR')).toBe('');
 	});
 

@@ -227,7 +227,7 @@ TEST_CASE("chart: a trailing stop's line names the best close it follows; its ma
   const auto with = [&](std::string_view needle) {
     return std::count_if(s.texts.begin(), s.texts.end(), [&](const SceneText& t) { return t.text.find(needle) != std::string::npos; });
   };
-  CHECK(with("TRAIL 2% \xC2\xB7 99,85 #4 \xC2\xB7 \xE2\x97\x86 melhor fechamento 101,90") == 1);
+  CHECK(with("TRAIL 2% \xC2\xB7 99,85 #4 \xC2\xB7 melhor fechamento 101,90") == 1);
   CHECK(with("melhor fechamento") == 1);  // only in the line's label
 }
 

@@ -56,7 +56,7 @@ std::string order_label(const Texts& t, const GameState& g, const Order& o) {
   else if (o.type == "trailing_stop") {
     kind = trail_label(o, L);
     if (const auto best = best_close(seen_closes(g), o.placed_step, o.side == "sell")) {
-      follows = " \xC2\xB7 \xE2\x97\x86 " + t.tr("chart.bestClose", {{"price", fmt::fmt_price(js_number(best->close), L)}});
+      follows = " \xC2\xB7 " + t.tr("chart.bestClose", {{"price", fmt::fmt_price(js_number(best->close), L)}});
     }
   }
   const std::string link = link_mark_shown(o, g.orders);

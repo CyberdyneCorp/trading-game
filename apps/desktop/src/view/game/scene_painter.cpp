@@ -48,7 +48,7 @@ void text(RPainter* p, const game::SceneText& t) {
   if (t.anchor != game::Anchor::Left) {
     float w = 0;
     float h = 0;
-    Rfont_measure_text(Rfont_get_default(), t.size, t.text.c_str(), &w, &h);
+    Rfont_measure_text(R_INVALID_ID, t.size, t.text.c_str(), &w, &h);
     x -= t.anchor == game::Anchor::Right ? w : w / 2;
   }
   const Rgb c = ink(t.ink);

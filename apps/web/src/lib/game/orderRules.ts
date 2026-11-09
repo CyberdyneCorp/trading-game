@@ -103,13 +103,13 @@ export function trailLabel(o: Pick<OrderView, 'trailDistance' | 'trailRate' | 'p
 }
 
 /**
- * What a trailing line's label adds after its id: the best close the trigger follows (" · ◆ best close
+ * What a trailing line's label adds after its id: the best close the trigger follows (" · best close
  * 101,90"), or nothing. The chart's marker on that bar carries no text of its own: it collided with the
  * ticket's ENTRY? label (wave 1 playtest).
  */
 export function trailFollows(o: Pick<OrderView, 'type' | 'placedStep' | 'side'>, closes: readonly number[], locale: Locale): string {
 	const best = o.type === 'trailing_stop' ? bestClose(closes, o.placedStep, o.side) : null;
-	return best ? ` · ◆ ${t('chart.bestClose', { price: fmtPrice(String(best.close), locale) })}` : '';
+	return best ? ` · ${t('chart.bestClose', { price: fmtPrice(String(best.close), locale) })}` : '';
 }
 
 /** A planned trailing stop (D10): recorded with the plan, sent only when the player clicks after the fill. */
