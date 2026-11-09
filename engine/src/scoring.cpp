@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <utility>
 
@@ -289,18 +290,37 @@ i128 option_units(const Scenario& sc, const OpenBook& b, OptionKind kind, std::u
   return units;
 }
 
-// Scoring v13: a written option is uncovered when its kind and expiry hold more short units than long
-// ones; a short call is also covered by long perpetual units (a covered call). Spreads, iron condors
-// and covered calls are defined-risk structures, not naked writing.
-bool has_uncovered_short(const Scenario& sc, const OpenBook& b) {
-  const i128 perp_long = b.perp > 0 ? static_cast<i128>(b.perp) * sc.contract.multiplier.raw : 0;
+// Expiries of one kind held in the book, latest first.
+std::vector<std::uint32_t> expiries_desc(const Scenario& sc, const OpenBook& b, OptionKind kind) {
+  std::vector<std::uint32_t> out;
   for (const auto& [id, q] : b.options) {
     const OptionSeries* s = series_of(sc, id);
-    if (q >= 0 || s == nullptr) continue;
-    const i128 cover = option_units(sc, b, s->kind, s->expiry_step, true) + (s->kind == OptionKind::Call ? perp_long : 0);
-    if (option_units(sc, b, s->kind, s->expiry_step, false) > cover) return true;
+    if (s != nullptr && q != 0 && s->kind == kind && std::find(out.begin(), out.end(), s->expiry_step) == out.end()) out.push_back(s->expiry_step);
+  }
+  std::sort(out.begin(), out.end(), std::greater<>());
+  return out;
+}
+
+// Scoring v13: a written option is uncovered when its kind and expiry hold more short units than long
+// ones; a short call is also covered by long perpetual units (a covered call). Spreads, iron condors
+// and covered calls are defined-risk structures, not naked writing. Scoring v14 (wave 2 cross-check):
+// a long of the same kind on a later expiry covers too (calendars and diagonals, m17 and m21), each
+// long unit once, and a short put is covered by short perpetual units (the covered put of m19's hedged
+// carry), mirroring the covered call. Neither change makes a v13-covered book uncovered.
+bool kind_uncovered(const Scenario& sc, const OpenBook& b, OptionKind kind, i128 perp_cover) {
+  i128 pool = 0;  // long units of this kind on this expiry or a later one, not yet covering a short
+  for (const std::uint32_t expiry : expiries_desc(sc, b, kind)) {
+    pool += option_units(sc, b, kind, expiry, true);
+    const i128 need = option_units(sc, b, kind, expiry, false) - perp_cover;
+    if (need > pool) return true;
+    if (need > 0) pool -= need;
   }
   return false;
+}
+
+bool has_uncovered_short(const Scenario& sc, const OpenBook& b) {
+  const i128 perp = static_cast<i128>(b.perp) * sc.contract.multiplier.raw;
+  return kind_uncovered(sc, b, OptionKind::Call, perp > 0 ? perp : 0) || kind_uncovered(sc, b, OptionKind::Put, perp < 0 ? -perp : 0);
 }
 
 void apply_fill(OpenBook& b, const Event& e) {

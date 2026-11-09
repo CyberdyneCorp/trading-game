@@ -163,3 +163,10 @@ def test_earlier_scores_are_byte_identical_to_v13():
             "strategyComparison": d.get("strategyComparison"),
         }
         assert got == want, name
+
+
+def test_taught_carry_and_calendar_are_not_naked_writing():
+    """Regression (wave 2 cross-check): m19's covered put (the put written beside a short perpetual) and
+    m21's calendar (the near call written against the later long) read as uncovered writing."""
+    for name in ("m19-funding-carry", "m21-calendar"):
+        assert findings(debrief_of(name), "wrote_options") == [], name
