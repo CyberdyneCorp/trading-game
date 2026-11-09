@@ -147,10 +147,10 @@ Suggested PRs, in order:
 
 ### W1-D. Desktop
 
-- [ ] W1-D1 Engine adapter, needs E8: the new C calls and what-if fields on the `EngineHost` worker; `storage::Action` gains `tif`, `tifBars` and the `oco` action (replayed); the new fixtures in `tradelab_desktop_golden_tests`; the v18 goldens.
-- [ ] W1-D2 Terminal: the TIF selector, "Link OCO" in the orders panel with link marks, the Stop · Trailing · Target tabs, "Protect with", the planned-trailing notice, the chart's trailing label and best-close marker. Viewmodel tests from the web vectors; a headless keyboard flow.
-- [ ] W1-D3 Builder: limit legs, combo states, two expiries, calendar and diagonal templates, roll and adjust, with ports of `combos`, `roll` and the ordering rule checked by web parity fixtures; a headless flow.
-- [ ] W1-D4 Heatmap and portfolio panels (scene painter grid, colorblind palette, help-line value, table view for screen readers; warnings; hedge ticket), plus the briefing's risk limits.
+- [x] W1-D1 Engine adapter, needs E8: the new C calls and what-if fields on the `EngineHost` worker; `storage::Action` gains `tif`, `tifBars` and the `oco` action (replayed); the new fixtures in `tradelab_desktop_golden_tests`; the v18 goldens.
+- [x] W1-D2 Terminal: the TIF selector, "Link OCO" in the orders panel with link marks, the Stop · Trailing · Target tabs, "Protect with", the planned-trailing notice, the chart's trailing label and best-close marker. Viewmodel tests from the web vectors; a headless keyboard flow.
+- [x] W1-D3 Builder: limit legs, combo states, two expiries, calendar and diagonal templates, roll and adjust, with ports of `combos`, `roll` and the ordering rule checked by web parity fixtures; a headless flow.
+- [x] W1-D4 Heatmap and portfolio panels (scene painter grid, colorblind palette, help-line value, table view for screen readers; warnings; hedge ticket), plus the briefing's risk limits.
 - [ ] W1-D5 Windowed captures for every new panel on macOS and Linux (lavapipe; say so if docker is unavailable); reference images regenerated only for intended changes (`TRADELAB_UPDATE_REFERENCES=1`, revert unchanged rewrites); desktop README.
 
 ### W1-X. Playtest and cross-check

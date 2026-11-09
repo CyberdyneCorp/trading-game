@@ -752,6 +752,18 @@ Where the build departs from or adds to D2–D10 (tasks W1-E1–E9, W1-W1–W9):
 - **Glossary.** The substring search also lists `heatmap` for "ATM" (after `moneyness`); ranking is unchanged (out of scope).
 - **Open (W1-W8).** No built-in mission declares risk limits before m18–m21 (wave 2), so the end-to-end risk-limit warning is covered by unit tests (a fake risk block) and the engine test with a declared limit; its e2e lands with m18.
 
+### As built: wave 1 desktop
+
+Where the desktop build (tasks W1-D1–D5) departs from or adds to the web's:
+
+- **Engine adapter.** The desktop links the engine directly, so it has no pre-v18 build to feature-detect: every v18 control is always shown. `storage::Action` logs `tif`/`tifBars` (only a non-default time in force, as the web's `tifFields`) and `{"k":"oco","a","b"}`, and replays an action with a `tif` through `tl_place_order_tif` / `tl_place_option_order_tif`, one without through the pre-v18 calls, like the web worker. Combo tags carry `roll`/`adjust`.
+- **Parity.** New fixtures `orderRules.json` and `heatmap.json` (with `portfolio.ts`) and new cases in `strategies.json` and `combos.json` (`scripts/web_fixtures_wave1.mjs`); the fixture games now carry `premiumTick`. `trailTrigger` is ported on 128-bit fixed point and matches the web's BigInt mirror.
+- **Link mark.** The bundled fonts have no chain glyph, so the desktop draws the OCO link as `OCO↔#3` (panel and chart); `link_mark` itself stays the web's `⛓#3` for the parity fixture.
+- **Portfolio refresh.** The holdings what-if (with the heatmap grid of the holdings) is asked on every state, as the web does; the builder's heatmap only while it is opened.
+- **Academy builder.** The run-less lesson builder offers only the seven one-expiry templates (`kOneExpiryTemplates`): the web's `LessonBuilder.svelte` lists all eleven, and a calendar or diagonal there builds no legs (no second expiry). Flagged for the web.
+- **Colorblind palette.** The drawn charts, payoffs and heatmaps now follow the settings' colorblind palette (gains blue, losses orange), as the web's `--up`/`--down` do.
+- **Captures.** macOS only (MoltenVK); the Linux lavapipe captures were not run here (docker is installed, but a Linux desktop build does not fit the disk budget of this task) and are left to CI.
+
 ## Risks / Trade-offs
 
 - **Policy v18 changes every frozen state digest.** This is mitigated by an event-digest equality test, the documented history and the policy cache. Replays of v17 runs depend on the cache being built in CI (`TRADELAB_REQUIRE_POLICY_CACHE=1`).
