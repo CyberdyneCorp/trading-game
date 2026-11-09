@@ -7,7 +7,7 @@ import { fmtPct, fmtPrice } from './format.ts';
 import { toRaw, trailTrigger } from './stops.ts';
 
 export { toRaw, trailTrigger };
-import type { Locale } from './i18n.svelte.ts';
+import { t, type Locale } from './i18n.svelte.ts';
 
 // ---- time in force (D6) ------------------------------------------------------------------------
 
@@ -100,6 +100,16 @@ export function trailLabel(o: Pick<OrderView, 'trailDistance' | 'trailRate' | 'p
 	const rate = Number(o.trailRate ?? '0');
 	const rule = rate > 0 ? fmtPct(rate, locale, rate * 100 >= 1 && Number.isInteger(rate * 100) ? 0 : 2) : fmtPrice(o.trailDistance, locale);
 	return `TRAIL ${rule} · ${fmtPrice(o.price, locale)}`;
+}
+
+/**
+ * What a trailing line's label adds after its id: the best close the trigger follows (" · ◆ best close
+ * 101,90"), or nothing. The chart's marker on that bar carries no text of its own: it collided with the
+ * ticket's ENTRY? label (wave 1 playtest).
+ */
+export function trailFollows(o: Pick<OrderView, 'type' | 'placedStep' | 'side'>, closes: readonly number[], locale: Locale): string {
+	const best = o.type === 'trailing_stop' ? bestClose(closes, o.placedStep, o.side) : null;
+	return best ? ` · ◆ ${t('chart.bestClose', { price: fmtPrice(String(best.close), locale) })}` : '';
 }
 
 /** A planned trailing stop (D10): recorded with the plan, sent only when the player clicks after the fill. */

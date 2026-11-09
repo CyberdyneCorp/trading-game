@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import type { GameState, OrderView } from '#lib/engine/types.ts';
 import { loadEngine, wasmBuilt, type NodeEngine } from '#lib/engine/wasmNode.test-util.ts';
 import {
+	trailFollows,
 	barsLeft,
 	bestClose,
 	dayBars,
@@ -98,6 +99,12 @@ describe('OCO links (design D7)', () => {
 });
 
 describe('trailing stop (design D10)', () => {
+	it("the line's label names the best close; the marker has no text (playtest: it sat under ENTRY?)", () => {
+		const trail = { type: 'trailing_stop' as const, placedStep: 1, side: 'sell' as const };
+		expect(trailFollows(trail, [100, 101.5, 101.9, 100.2], 'pt-BR')).toBe(' · ◆ melhor fechamento 101,90');
+		expect(trailFollows({ ...trail, type: 'stop_market' }, [100, 101.5], 'pt-BR')).toBe('');
+	});
+
 	it('the trigger: best close minus the distance, or minus ceil(close x rate), outward on the tick', () => {
 		// 2% of 103,47 is 2,0694: 103,47 - 2,0694 = 101,4006, down to 101,40 for a long's stop.
 		expect(trailTrigger('sell', '103.47', { rate: '0.02' }, '0.01')).toBe('101.40000000');

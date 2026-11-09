@@ -38,24 +38,39 @@ Layout layout_for(float height, Oscillator osc) {
   return {price_h, price_h + 4, vol_h - 4, price_h + vol_h + 8, osc_h - 4};
 }
 
-// D10: a trailing line names its rule and trigger; D7: a linked order names its partner.
-std::string order_label(const Order& o, const std::vector<Order>& orders, Locale L) {
-  std::string kind = "LMT";
-  if (o.type == "stop_market") kind = "STOP";
-  else if (o.type == "trailing_stop") kind = trail_label(o, L);
-  else if (o.type == "take_profit") kind = "TP";
-  const std::string link = link_mark_shown(o, orders);
-  return kind + " #" + std::to_string(o.id) + (link.empty() ? "" : " " + link);
+std::vector<double> seen_closes(const GameState& g) {
+  std::vector<double> closes;
+  closes.reserve(g.bars.size());
+  for (const auto& b : g.bars) closes.push_back(b.continuity ? std::nan("") : b.close);
+  return closes;
 }
 
-std::vector<Level> state_levels(const GameState& g, Locale L) {
+// D10: a trailing line names its rule, trigger and the best close it follows (the marker on that bar has
+// no text of its own: it collided with the ENTRY? label); D7: a linked order names its partner.
+std::string order_label(const Texts& t, const GameState& g, const Order& o) {
+  const Locale L = t.locale();
+  std::string kind = "LMT";
+  std::string follows;
+  if (o.type == "stop_market") kind = "STOP";
+  else if (o.type == "take_profit") kind = "TP";
+  else if (o.type == "trailing_stop") {
+    kind = trail_label(o, L);
+    if (const auto best = best_close(seen_closes(g), o.placed_step, o.side == "sell")) {
+      follows = " \xC2\xB7 \xE2\x97\x86 " + t.tr("chart.bestClose", {{"price", fmt::fmt_price(js_number(best->close), L)}});
+    }
+  }
+  const std::string link = link_mark_shown(o, g.orders);
+  return kind + " #" + std::to_string(o.id) + (link.empty() ? "" : " " + link) + follows;
+}
+
+std::vector<Level> state_levels(const Texts& t, const GameState& g) {
   std::vector<Level> out;
   if (g.position.qty != 0) out.push_back({g.position.entry, "ENTRY", Ink::Info, 0, 0, std::nullopt});
   if (g.account.liquidation) out.push_back({*g.account.liquidation, "LIQ", Ink::Danger, 6, 3, std::nullopt});
   for (const auto& o : g.orders) {
     if (o.type == "market" || o.series) continue;  // option limits are premiums, not underlying prices
     const bool is_stop = o.type == "stop_market" || o.type == "trailing_stop";
-    Level l{o.price, order_label(o, g.orders, L), is_stop ? Ink::Attention : Ink::Accent, 3, 3, std::nullopt};
+    Level l{o.price, order_label(t, g, o), is_stop ? Ink::Attention : Ink::Accent, 3, 3, std::nullopt};
     if (is_draggable_order(o)) l.drag = DragTarget{false, false, o.id};
     out.push_back(std::move(l));
   }
@@ -241,10 +256,8 @@ class Builder {
   }
 
   // D10: the close each trailing stop's trigger follows (the best since placement, seen bars only).
-  void best_closes(const Texts& t) {
-    std::vector<double> closes;
-    closes.reserve(g_.bars.size());
-    for (const auto& b : g_.bars) closes.push_back(b.continuity ? std::nan("") : b.close);
+  void best_closes() {
+    const std::vector<double> closes = seen_closes(g_);
     for (const auto& o : g_.orders) {
       if (o.type != "trailing_stop" || o.series != 0) continue;
       const auto best = best_close(closes, o.placed_step, o.side == "sell");
@@ -253,8 +266,6 @@ class Builder {
       const float xx = x(static_cast<double>(i));
       const float yy = y(best->close);
       rect(xx - 3, yy - 3, 7, 7, Ink::Attention);
-      text(xx + 6, yy - 18, "\xE2\x97\x86 " + t.tr("chart.bestClose", {{"price", fmt::fmt_price(js_number(best->close), t.locale())}}),
-           Ink::Attention, 11);
     }
   }
 
@@ -518,7 +529,7 @@ ChartScene ChartViewModel::build(const Texts& t, const GameState& g, const std::
   scene.empty = false;
   const Locale L = t.locale();
 
-  std::vector<Level> lv = state_levels(g, L);
+  std::vector<Level> lv = state_levels(t, g);
   add_draft_levels(lv, preview);
   if (drag_) apply_drag(lv, g, drag_->target, drag_->price);
 
@@ -543,7 +554,7 @@ ChartScene ChartViewModel::build(const Texts& t, const GameState& g, const std::
   b.candles();
   b.continuity();
   b.fills();
-  b.best_closes(t);
+  b.best_closes();
   b.news();
   if (show_sma) b.series(g.indicators.sma20, Ink::Attention);
   if (show_ema) b.series(g.indicators.ema50, Ink::Info);
