@@ -36,3 +36,19 @@
 	</table>
 	<p class="muted small">{t('mistake.sideBySide')}</p>
 </section>
+
+<style>
+	table {
+		border-collapse: collapse;
+		margin: 0.5rem 0;
+	}
+	th,
+	td {
+		padding: 0.25rem 0.9rem;
+		border-bottom: 1px solid var(--line);
+		text-align: left;
+	}
+	td.num {
+		text-align: right;
+	}
+</style>

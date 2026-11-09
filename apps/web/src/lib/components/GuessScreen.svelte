@@ -158,7 +158,7 @@
 		<section class="panel" data-testid="guess-reveal" aria-live="polite">
 			<h2 class="panel-title">{t('guess.revealTitle')}</h2>
 			<p>{t('guess.committed', { decision: decisionName(decision), p })}</p>
-			{#if decision !== 'none'}<p class="muted small">{t('guess.levels', { inv: fmtPrice(inv, L), target: fmtPrice(target, L) })}</p>{/if}
+			{#if decision !== 'none'}<p class="muted small" data-testid="guess-levels">{t('guess.levels', { inv: fmtPrice(typedDecimal(inv), L), target: fmtPrice(typedDecimal(target), L) })}</p>{/if}
 			<p data-testid="guess-outcome">{t(outcome.higher ? 'guess.higher' : 'guess.lower', { from: fmtPrice(outcome.from, L), to: fmtPrice(outcome.to, L) })}</p>
 			{#if decision !== 'none'}<p class="muted">{t(`guess.first.${outcome.hit}`)}</p>{/if}
 			<p class="score" data-testid="guess-score">{t('guess.score', { score: pts(outcome.score.total) })}</p>

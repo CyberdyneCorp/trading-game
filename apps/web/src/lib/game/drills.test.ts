@@ -119,7 +119,7 @@ describe('drill content (design D15)', () => {
 				}
 			}
 		}
-	});
+	}, 30_000); // thousands of items: well over the 5 s default on a busy machine
 
 	it('builds decimals from integer multiples of the step (no float products)', () => {
 		const t = templatesOf('calendar')[0];

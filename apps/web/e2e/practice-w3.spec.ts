@@ -190,6 +190,66 @@ test('coach review with the chart cut at each moment, then a mistake retried wit
 	await axe(page);
 });
 
+test('a returning player (progress v3, a lesson review due): the drills start with it, the practice keys are added', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.getByTestId('open-drills')).toBeVisible();
+	// A version 3 row: no practice keys; options-payoff completed, its review due today.
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve, reject) => {
+				const open = indexedDB.open('tradelab');
+				open.onsuccess = () => {
+					const tx = open.result.transaction('meta', 'readwrite');
+					tx.objectStore('meta').put({
+						key: 'progress',
+						version: 3,
+						tutorialsSeen: ['m01-false-breakout'],
+						advisorPoints: 7,
+						settledRuns: [],
+						lessonsDone: ['options-payoff'],
+						lessonReviews: { 'options-payoff': { box: 1, due: '2026-11-09' } },
+						campaign: null,
+						campaignHistory: []
+					});
+					tx.oncomplete = () => resolve();
+					tx.onerror = () => reject(tx.error);
+				};
+			})
+	);
+	await page.reload();
+	await page.getByTestId('open-drills').click();
+	await page.getByTestId('drills-start').click();
+	// The due lesson's skills come first (payoff or breakeven).
+	await expect(page.getByTestId('drills-position')).toContainText(/· (Payoff|Empate)$/);
+	for (let i = 0; i < 6; i++) {
+		const choice = page.getByTestId('drills-choice');
+		if (await choice.count()) await choice.first().click();
+		else {
+			await page.getByTestId('drills-input').fill('0');
+			await page.getByTestId('drills-check').click();
+		}
+		await page.getByTestId('drills-next').click();
+	}
+	await expect(page.getByTestId('drills-end')).toBeVisible();
+	const stored = await page.evaluate(
+		() =>
+			new Promise<Record<string, unknown>>((resolve) => {
+				const open = indexedDB.open('tradelab');
+				open.onsuccess = () => {
+					const get = open.result.transaction('meta').objectStore('meta').get('progress');
+					get.onsuccess = () => resolve(get.result);
+				};
+			})
+	);
+	expect(stored.version).toBe(4);
+	expect(stored.advisorPoints).toBe(7);
+	expect(stored.lessonsDone).toEqual(['options-payoff']);
+	// A drill never completes the lesson's review: it is still due today.
+	expect(stored.lessonReviews).toEqual({ 'options-payoff': { box: 1, due: '2026-11-09' } });
+	expect((stored.drillHistory as unknown[]).length).toBe(1);
+	expect(Object.keys(stored.drillReviews as object).length).toBeGreaterThan(0);
+});
+
 test('English screens (screenshots for review only)', async ({ page }) => {
 	test.skip(!shots, 'SHOTS not set');
 	await page.addInitScript(() => localStorage.setItem('tradelab.settings.v1', JSON.stringify({ crt: false, colorblind: false, locale: 'en' })));

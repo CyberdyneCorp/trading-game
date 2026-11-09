@@ -1521,7 +1521,7 @@ drills.skill.hedge,Hedge,Hedge
 drills.skill.calendar,Calendar,Calendar
 drills.skill.trail,Trailing stop,Trailing stop
 daily.title,Desafio do dia,Daily challenge
-daily.intro,"Todo mundo que joga na mesma data recebe a mesma missão e o mesmo mercado. Sem conselheiro, sem perks e com o saldo padrão, para as tentativas se compararem. Vale o primeiro resultado do dia; o melhor fica ao lado. A nota é a do processo, nunca o lucro. Não há placar nem sequência.","Everyone playing on the same date gets the same mission and the same market. No advisor, no perks and the default balance, so attempts compare. The day's first result is the record; the best stands beside it. The score is the process score, never the profit. No leaderboard, no streak."
+daily.intro,"Todo mundo que joga na mesma data recebe a mesma missão e o mesmo mercado. Sem assessor, sem intel e com o saldo padrão, para as tentativas se compararem. Vale o primeiro resultado do dia; o melhor fica ao lado. A nota é a do processo, nunca o lucro. Não há placar nem sequência.","Everyone playing on the same date gets the same mission and the same market. No advisor, no intel and the default balance, so attempts compare. The day's first result is the record; the best stands beside it. The score is the process score, never the profit. No leaderboard, no streak."
 daily.today,"Hoje, {date}","Today, {date}"
 daily.market,Mercado do dia: semente {seed},Today's market: seed {seed}
 daily.play,Jogar o desafio,Play the challenge
