@@ -25,7 +25,7 @@
 			{#each episodes as e (e.n + ':' + e.entryStep)}
 				<tr data-testid="episode-row">
 					<td>
-						{#if onMoment}<button class="link" onclick={() => onMoment(e.entryStep)} aria-label={t('episodes.show', { step: e.entryStep })}>{e.n}</button>{:else}{e.n}{/if}
+						{#if onMoment}<button class="link" onclick={() => onMoment(e.entryStep)} aria-label={`${e.n} · ${t('episodes.show', { step: e.entryStep })}`}>{e.n}</button>{:else}{e.n}{/if}
 					</td>
 					<td class={e.side === 'long' ? 'up' : 'down'}>{e.side === 'long' ? '▲ LONG' : '▼ SHORT'}</td>
 					<td class="small">{fills(e.entries)}{#if e.entries.length > 1}<span class="tag info">{t('episodes.scaled')}</span>{/if}</td>
