@@ -31,7 +31,16 @@ export type TutorialArt =
 	| 'covered'
 	| 'insurance'
 	| 'condor'
-	| 'roll';
+	| 'roll'
+	// add-practice-and-advanced-strategies D12 (`calendarSpread`: the calendar spread; `calendar` is the
+	// economic calendar of m09, m11 and m12).
+	| 'scalp'
+	| 'carry'
+	| 'parity'
+	| 'crush'
+	| 'calendarSpread'
+	| 'scale'
+	| 'cooldown';
 
 export interface TutorialCard {
 	art: TutorialArt;
@@ -912,6 +921,352 @@ const m17: Cards = {
 	]
 };
 
+const m18: Cards = {
+	'pt-BR': [
+		{
+			art: 'scalp',
+			title: 'Gamma e hedge',
+			body: 'Um straddle comprado tem [[gamma|gama]] positivo: o delta sobe com o preço e cai com ele. Neutralizar o delta com o perpétuo ([[delta-hedge|hedge de delta]]) vende depois de uma alta e compra depois de uma queda. Decida a regra antes: a cada N barras ou numa faixa de delta.'
+		},
+		{
+			art: 'straddle',
+			title: 'Delta neutro',
+			body: 'Delta da carteira = delta das opções + o perpétuo. O painel Carteira mostra o total e propõe o hedge, arredondado para o lote em direção a zero. Nunca é enviado sem a sua confirmação.'
+		},
+		{
+			art: 'decay',
+			title: 'O aluguel',
+			body: 'O [[theta|theta]] é o que o gama custa por barra. O hedge ganha com os movimentos; o theta cobra pelo tempo. Compare o tamanho das barras com a volatilidade implícita da cadeia.'
+		},
+		{
+			art: 'book',
+			title: 'Custos',
+			body: 'Cada rebalanceamento é uma ordem no perpétuo: taxa e spread. Rebalancear a cada barra captura mais dos movimentos e paga mais custos. A missão limita o delta em % do patrimônio: o painel avisa, nunca bloqueia.'
+		}
+	],
+	en: [
+		{
+			art: 'scalp',
+			title: 'Gamma and the hedge',
+			body: 'A long straddle has positive [[gamma|gamma]]: its delta rises with the price and falls with it. Neutralizing the delta with the perpetual ([[delta-hedge|delta hedge]]) sells after a rise and buys after a fall. Decide the rule beforehand: every N bars or on a delta band.'
+		},
+		{
+			art: 'straddle',
+			title: 'Delta neutral',
+			body: 'The book’s delta = the options’ delta + the perpetual. The Portfolio panel shows the total and proposes the hedge, rounded to the lot toward zero. It is never sent without your confirmation.'
+		},
+		{
+			art: 'decay',
+			title: 'The rent',
+			body: '[[theta|Theta]] is what gamma costs per bar. The hedge earns from the moves; theta charges for time. Compare the size of the bars with the chain’s implied volatility.'
+		},
+		{
+			art: 'book',
+			title: 'Costs',
+			body: 'Each rehedge is a perpetual order: a fee and the spread. Rehedging every bar captures more of the moves and pays more costs. The mission caps the delta as a % of equity: the panel warns, it never blocks.'
+		}
+	]
+};
+
+const m19: Cards = {
+	'pt-BR': [
+		{
+			art: 'carry',
+			title: 'Carrego',
+			body: 'Com [[funding-rate|funding]] positivo, os longs pagam e um short no perpétuo recebe. O [[carry|carrego]] é o funding recebido menos os custos das pernas. Antes de entrar, escreva quanto funding paga os custos.'
+		},
+		{
+			art: 'funding',
+			title: 'O funding muda',
+			body: 'A taxa é publicada a cada fechamento e paga a cada 8 barras. Ela segue quem está lotado, e pode virar: com funding negativo, os shorts pagam.'
+		},
+		{
+			art: 'margin',
+			title: 'Margem isolada',
+			body: 'O short no perpétuo tem a sua própria margem isolada: o ganho das opções não a reforça. Um aperto pode liquidar o short enquanto as opções ganham. Mantenha a liquidação a pelo menos 15% de distância.'
+		},
+		{
+			art: 'parity',
+			title: 'Paridade',
+			body: 'Call comprada e put vendida no mesmo strike e vencimento se comportam como um long: call − put = forward − strike ([[put-call-parity|paridade put-call]]). Somadas a um short no perpétuo, o risco de preço se anula e sobra o funding.'
+		}
+	],
+	en: [
+		{
+			art: 'carry',
+			title: 'Carry',
+			body: 'With positive [[funding-rate|funding]], longs pay and a short perpetual receives. The [[carry|carry]] is the funding received minus the legs’ costs. Before entering, write how much funding pays the costs.'
+		},
+		{
+			art: 'funding',
+			title: 'Funding changes',
+			body: 'The rate is published at each close and paid every 8 bars. It follows whoever is crowded, and it can turn: with negative funding, shorts pay.'
+		},
+		{
+			art: 'margin',
+			title: 'Isolated margin',
+			body: 'The short perpetual has its own isolated margin: the options’ gain does not top it up. A squeeze can liquidate the short while the options gain. Keep liquidation at least 15% away.'
+		},
+		{
+			art: 'parity',
+			title: 'Parity',
+			body: 'A call bought and a put written at the same strike and expiry behave like a long: call − put = forward − strike ([[put-call-parity|put-call parity]]). Added to a short perpetual, the price risk cancels and the funding is left.'
+		}
+	]
+};
+
+const m20: Cards = {
+	'pt-BR': [
+		{
+			art: 'crush',
+			title: 'Antes e depois',
+			body: 'Antes de uma divulgação conhecida a [[implied-volatility|volatilidade implícita]] costuma subir; depois, costuma cair qualquer que seja o resultado ([[iv-crush|esmagamento da IV]]). Decida antes da barra da divulgação se segura através dela, e registre por quê.'
+		},
+		{
+			art: 'volatility',
+			title: 'O que a IV mede',
+			body: 'A IV é o movimento que as opções cobram. Compare-a com o tamanho das barras e com o anúncio na agenda. O [[vega|vega]] diz quanto o valor muda por ponto de IV.'
+		},
+		{
+			art: 'straddle',
+			title: 'O movimento implícito',
+			body: 'Um straddle no dinheiro custa mais ou menos o movimento que o mercado espera: os pontos de equilíbrio ficam no strike ± o prêmio. Escreva-os antes de comprar.'
+		},
+		{
+			art: 'decay',
+			title: 'O tempo corre',
+			body: 'Comprar cedo dá tempo à alta da IV, mas cada barra cobra theta. A missão limita o vega em % do patrimônio: o painel Carteira avisa.'
+		}
+	],
+	en: [
+		{
+			art: 'crush',
+			title: 'Before and after',
+			body: 'Ahead of a known release [[implied-volatility|implied volatility]] tends to rise; after it, it tends to fall whatever the outcome ([[iv-crush|IV crush]]). Decide before the release bar whether to hold through it, and record why.'
+		},
+		{
+			art: 'volatility',
+			title: 'What IV measures',
+			body: 'IV is the move the options charge for. Compare it with the size of the bars and with the scheduled announcement. [[vega|Vega]] says how much the value changes per IV point.'
+		},
+		{
+			art: 'straddle',
+			title: 'The implied move',
+			body: 'An at-the-money straddle costs about the move the market expects: the breakevens sit at the strike ± the premium. Write them down before buying.'
+		},
+		{
+			art: 'decay',
+			title: 'Time runs',
+			body: 'Buying early gives the IV rise time, but every bar charges theta. The mission caps vega as a % of equity: the Portfolio panel warns.'
+		}
+	]
+};
+
+const m21: Cards = {
+	'pt-BR': [
+		{
+			art: 'calendarSpread',
+			title: 'Dois vencimentos',
+			body: 'Um [[calendar-spread|calendário]] vende a opção do vencimento curto e compra a do longo, no mesmo strike. O curto perde valor de tempo mais depressa. No vencimento curto, a perda máxima é o débito pago: escreva-o antes de entrar.'
+		},
+		{
+			art: 'decay',
+			title: 'Onde ele ganha',
+			body: 'O calendário ganha mais com o preço perto do strike no vencimento curto. Longe dele, as duas pernas perdem o valor de tempo. Uma [[diagonal-spread|diagonal]] muda o strike da comprada para inclinar a estrutura.'
+		},
+		{
+			art: 'margin',
+			title: 'Margem de calendário',
+			body: 'Aqui a comprada do vencimento longo cobre a vendida do curto, do mesmo tipo: a margem é a do par. O gama da carteira tem um limite em % do patrimônio: o painel avisa.'
+		},
+		{
+			art: 'roll',
+			title: 'Antes do vencimento curto',
+			body: 'Antes das últimas 5 barras do vencimento curto, decida fechar, rolar a vendida ou segurar, e registre por quê. Rolar são duas operações a mais.'
+		}
+	],
+	en: [
+		{
+			art: 'calendarSpread',
+			title: 'Two expiries',
+			body: 'A [[calendar-spread|calendar]] sells the near expiry’s option and buys the far one, at the same strike. The near one loses time value faster. At the near expiry the largest loss is the debit paid: write it down before entering.'
+		},
+		{
+			art: 'decay',
+			title: 'Where it earns',
+			body: 'The calendar earns most with the price near the strike at the near expiry. Away from it, both legs lose their time value. A [[diagonal-spread|diagonal]] moves the long’s strike to lean the structure.'
+		},
+		{
+			art: 'margin',
+			title: 'Calendar margin',
+			body: 'Here the far expiry’s long covers the near short of the same kind: the margin is the pair’s. The book’s gamma has a cap as a % of equity: the panel warns.'
+		},
+		{
+			art: 'roll',
+			title: 'Before the near expiry',
+			body: 'Before the near expiry’s last 5 bars, decide to close, roll the short or hold, and record why. Rolling is two more trades.'
+		}
+	]
+};
+
+const m22: Cards = {
+	'pt-BR': [
+		{
+			art: 'scale',
+			title: 'Entrar e sair em partes',
+			body: 'Entrar em partes só vale com o risco somado de todas as entradas até o mesmo stop dentro de 1% ([[scale-in|entrada em partes]]). Uma [[partial-take-profit|realização parcial]] em +1R garante parte do resultado.'
+		},
+		{
+			art: 'trail',
+			title: 'Deixar o resto correr',
+			body: 'Depois da parcial, um [[trailing-stop|stop móvel]] acompanha o melhor fechamento e nunca recua. Na boleta, a aba Trailing coloca o stop móvel numa posição aberta.'
+		},
+		{
+			art: 'risk',
+			title: 'Stop no ponto de entrada',
+			body: 'Levar o stop à entrada tira o risco que sobra, mas um recuo normal pode parar uma tendência certa. Nunca afaste um stop da entrada.'
+		},
+		{
+			art: 'plan',
+			title: 'Ordens arrumadas',
+			body: 'Use OCO para que o alvo e o stop se cancelem e validade (tempo em vigor) para ordens que não devem ficar abertas. Registre o plano de cada entrada, também das que aumentam a posição.'
+		}
+	],
+	en: [
+		{
+			art: 'scale',
+			title: 'In and out in parts',
+			body: 'Scaling in is worth it only with the risk of every entry to the same stop adding up within 1% ([[scale-in|scaling in]]). A [[partial-take-profit|partial take-profit]] at +1R locks in part of the result.'
+		},
+		{
+			art: 'trail',
+			title: 'Letting the rest run',
+			body: 'After the partial, a [[trailing-stop|trailing stop]] follows the best close and never steps back. In the ticket, the Trailing tab places it on an open position.'
+		},
+		{
+			art: 'risk',
+			title: 'The stop to breakeven',
+			body: 'Moving the stop to the entry removes the risk that was left, but a normal pullback can stop a sound trend. Never move a stop away from the entry.'
+		},
+		{
+			art: 'plan',
+			title: 'Tidy orders',
+			body: 'Use OCO so the target and the stop cancel each other, and a time in force for orders that should not stay open. Record the plan of every entry, the adds included.'
+		}
+	]
+};
+
+const m23: Cards = {
+	'pt-BR': [
+		{
+			art: 'cooldown',
+			title: 'Uma decisão de cada vez',
+			body: 'Cada trade é uma decisão nova: o resultado do anterior não muda o próximo setup. Depois de um stop, espere o setup se formar de novo antes de entrar ([[cooldown|pausa depois do stop]]).'
+		},
+		{
+			art: 'plan',
+			title: 'Plano antes da entrada',
+			body: 'Antes de cada entrada, a hipótese, a invalidação e o tamanho. Uma entrada nova pede um plano novo, também logo depois de um stop.'
+		},
+		{
+			art: 'risk',
+			title: 'Tamanho constante',
+			body: 'Risco de até 1% por ideia, com a quantidade calculada pelo stop. O tamanho não sobe para recuperar.'
+		}
+	],
+	en: [
+		{
+			art: 'cooldown',
+			title: 'One decision at a time',
+			body: 'Every trade is a new decision: the last result does not change the next setup. After a stop-out, wait for the setup to form again before entering ([[cooldown|cooldown]]).'
+		},
+		{
+			art: 'plan',
+			title: 'Plan before the entry',
+			body: 'Before every entry, the thesis, the invalidation and the size. A new entry needs a new plan, also right after a stop.'
+		},
+		{
+			art: 'risk',
+			title: 'Constant size',
+			body: 'Risk at most 1% per idea, with the quantity set by the stop. Size does not go up to win it back.'
+		}
+	]
+};
+
+const m24: Cards = {
+	'pt-BR': [
+		{
+			art: 'plan',
+			title: 'Planejar antes do movimento',
+			body: 'O melhor momento para planejar é antes do preço andar: a hipótese, o ponto de entrada e a invalidação. Registre o plano antes de cada entrada.'
+		},
+		{
+			art: 'risk',
+			title: 'Stop e tamanho',
+			body: 'Risco de até 1% por ideia. Quanto mais longe a invalidação, menor a quantidade; o stop fica a até 2×ATR da entrada.'
+		},
+		{
+			art: 'cooldown',
+			title: 'Esperar é uma decisão',
+			body: 'Sem setup, esperar é uma decisão válida. O mercado oferece outras entradas; um plano pronto ajuda a reconhecê-las.'
+		}
+	],
+	en: [
+		{
+			art: 'plan',
+			title: 'Plan before the move',
+			body: 'The best time to plan is before the price moves: the thesis, the entry and the invalidation. Record the plan before every entry.'
+		},
+		{
+			art: 'risk',
+			title: 'Stop and size',
+			body: 'Risk at most 1% per idea. The farther the invalidation, the smaller the quantity; the stop sits within 2×ATR of the entry.'
+		},
+		{
+			art: 'cooldown',
+			title: 'Waiting is a decision',
+			body: 'Without a setup, waiting is a valid decision. The market offers other entries; a ready plan helps you recognize them.'
+		}
+	]
+};
+
+const m25: Cards = {
+	'pt-BR': [
+		{
+			art: 'risk',
+			title: 'O risco total',
+			body: 'Uma posição tem um risco total até a invalidação, somando todas as entradas. Risco de até 1% por ideia, com plano e stop em cada entrada.'
+		},
+		{
+			art: 'plan',
+			title: 'O plano decide os aumentos',
+			body: 'Se a ideia prevê aumentar a posição, escreva na entrada onde e quanto, com o risco total até o mesmo stop. Um aumento fora do plano é uma entrada nova.'
+		},
+		{
+			art: 'cooldown',
+			title: 'Ler antes de agir',
+			body: 'Antes de cada decisão, releia o plano e a invalidação. Se a invalidação foi atingida, a ideia acabou.'
+		}
+	],
+	en: [
+		{
+			art: 'risk',
+			title: 'The total risk',
+			body: 'A position has one total risk to its invalidation, adding up every entry. Risk at most 1% per idea, with a plan and a stop on each entry.'
+		},
+		{
+			art: 'plan',
+			title: 'The plan decides the adds',
+			body: 'If the idea foresees adding, write at entry where and how much, with the total risk to the same stop. An add outside the plan is a new entry.'
+		},
+		{
+			art: 'cooldown',
+			title: 'Read before acting',
+			body: 'Before every decision, reread the plan and the invalidation. If the invalidation was hit, the idea is over.'
+		}
+	]
+};
+
 const TUTORIALS: Record<string, Cards> = {
 	'm01-false-breakout': m01,
 	'm02-funding-squeeze': m02,
@@ -929,7 +1284,15 @@ const TUTORIALS: Record<string, Cards> = {
 	'm14-covered-call': m14,
 	'm15-protective-put': m15,
 	'm16-range-condor': m16,
-	'm17-before-expiry': m17
+	'm17-before-expiry': m17,
+	'm18-gamma-scalp': m18,
+	'm19-funding-carry': m19,
+	'm20-event-vol': m20,
+	'm21-calendar': m21,
+	'm22-scale-manage': m22,
+	'm23-second-chance': m23,
+	'm24-fast-market': m24,
+	'm25-the-dip': m25
 };
 
 export function tutorialFor(missionId: string, locale: Locale): TutorialCard[] {

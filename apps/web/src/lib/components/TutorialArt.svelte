@@ -241,6 +241,69 @@
 		<path class="arrow-head" d="M84,45 L90,49 L84,53 Z" />
 		<text x="98" y="34" class="small attention" text-anchor="middle">2 × {t('tut.art.spread')}</text>
 		<text x="150" y="14" class="small muted" text-anchor="end">{t('tut.art.expiry')}</text>
+	{:else if art === 'scalp'}
+		<!-- A long straddle's value is convex in the price: each rehedge (dots) sells after a rise and buys after a fall. -->
+		<line class="axis" x1="8" x2="152" y1="88" y2="88" />
+		<path class="payoff" d="M16,22 Q80,138 144,22" />
+		<circle class="be" cx="54" cy="71" r="3" />
+		<circle class="be" cx="80" cy="80" r="3" />
+		<circle class="be" cx="106" cy="71" r="3" />
+		<text x="80" y="16" class="small attention" text-anchor="middle">½·Γ·ΔS²</text>
+		<text x="150" y="98" class="small muted" text-anchor="end">{t('tut.art.hedge')}</text>
+	{:else if art === 'carry'}
+		<!-- Funding received each interval (bars above the line) against the legs' costs (below). -->
+		<line class="axis" x1="8" x2="152" y1="56" y2="56" />
+		{#each [0, 1, 2, 3, 4, 5] as k (k)}
+			<rect class="bar-up" x={14 + k * 14} y="40" width="9" height="16" />
+		{/each}
+		<rect class="bar-down" x="112" y="56" width="22" height="26" />
+		<text x="12" y="30" class="small up-fill">{t('tut.art.carryIn')}</text>
+		<text x="123" y="94" class="small down-fill" text-anchor="middle">{t('tut.art.costs')}</text>
+	{:else if art === 'parity'}
+		<!-- A bought call (dashed) and a written put (dashed) at one strike add up to a straight long line. -->
+		<line class="axis" x1="8" x2="152" y1="56" y2="56" />
+		<path class="strike" d="M8,56 L80,56 L152,14" />
+		<path class="strike" d="M8,92 L80,56 L152,56" />
+		<path class="payoff" d="M8,92 L152,14" />
+		<line class="muted-line" x1="80" x2="80" y1="60" y2="96" />
+		<text x="12" y="16" class="small attention">C − P = F − K</text>
+		<text x="86" y="96" class="small muted">K</text>
+	{:else if art === 'crush'}
+		<!-- Implied volatility climbs into a known release and drops right after it. -->
+		<line class="axis" x1="8" x2="152" y1="88" y2="88" />
+		<path class="payoff" d="M8,70 L50,62 L80,42 L102,24 L106,70 L152,74" />
+		<line class="muted-line" x1="105" x2="105" y1="8" y2="88" />
+		<text x="12" y="16" class="small attention">IV</text>
+		<text x="110" y="16" class="small muted">{t('tut.art.release')}</text>
+	{:else if art === 'calendarSpread'}
+		<!-- Two expiries: the near option (sold) loses time value faster than the far one (bought). -->
+		<line class="axis" x1="8" x2="152" y1="88" y2="88" />
+		<path class="liq" d="M8,34 C46,38 68,54 80,86" />
+		<path class="payoff" d="M8,20 C80,24 124,38 150,72" />
+		<line class="muted-line" x1="80" x2="80" y1="8" y2="88" />
+		<text x="80" y="98" class="small muted" text-anchor="middle">{t('tut.art.near')}</text>
+		<text x="150" y="98" class="small muted" text-anchor="end">{t('tut.art.far')}</text>
+		<text x="12" y="52" class="small down-fill">−</text>
+		<text x="122" y="22" class="small up-fill">+</text>
+	{:else if art === 'scale'}
+		<!-- Two entries on a trend, then part of the position taken off higher up. -->
+		{@render candles(TREND, 14, 18)}
+		<path class="arrow-head" d="M10,90 L14,82 L18,90 Z" />
+		<path class="arrow-head" d="M28,90 L32,82 L36,90 Z" />
+		<path class="arrow-head down-mark" d="M82,30 L86,38 L90,30 Z" />
+		<text x="22" y="99" class="small info" text-anchor="middle">+ +</text>
+		<text x="86" y="24" class="small attention" text-anchor="middle">½</text>
+	{:else if art === 'cooldown'}
+		<!-- A stop fills, a pause, and only then a fresh setup and a new entry. -->
+		{@render candles(RANGE.slice(0, 3), 12, 12)}
+		<line class="liq" x1="6" x2="46" y1="66" y2="66" />
+		<text x="8" y="80" class="small danger">stop</text>
+		<rect class="box" x="62" y="34" width="30" height="26" />
+		<rect class="bar-pause" x="70" y="40" width="5" height="14" />
+		<rect class="bar-pause" x="79" y="40" width="5" height="14" />
+		<text x="77" y="74" class="small muted" text-anchor="middle">{t('tut.art.wait')}</text>
+		{@render candles(TREND.slice(3), 110, 14)}
+		<path class="arrow-head" d="M106,92 L110,84 L114,92 Z" />
 	{/if}
 </svg>
 
@@ -291,6 +354,12 @@
 	}
 	.muted {
 		fill: var(--muted);
+	}
+	.bar-pause {
+		fill: var(--muted);
+	}
+	.down-mark {
+		fill: var(--down);
 	}
 	.info {
 		fill: var(--info);

@@ -8,7 +8,9 @@ import { termById } from '#lib/content/glossary.ts';
 const MISSIONS = [
 	'm01-false-breakout', 'm02-funding-squeeze', 'm03-volatility-shock', 'm04-options-buyer', 'm05-options-writer',
 	'm06-thin-book', 'm07-trend-trailing', 'm08-regime-switch', 'm09-event-straddle', 'm10-hedged-book', 'm11-news-calendar',
-	'm12-capstone', 'm13-call-spread', 'm14-covered-call', 'm15-protective-put', 'm16-range-condor', 'm17-before-expiry'
+	'm12-capstone', 'm13-call-spread', 'm14-covered-call', 'm15-protective-put', 'm16-range-condor', 'm17-before-expiry',
+	'm18-gamma-scalp', 'm19-funding-carry', 'm20-event-vol', 'm21-calendar', 'm22-scale-manage', 'm23-second-chance',
+	'm24-fast-market', 'm25-the-dip'
 ];
 // What the scenarios were built to do is revealed only in the debrief: no outcome, no direction, no
 // timing (m06 leaves its range, m07's trend direction, m08's switches, m09's drawn decision, m10's
@@ -148,5 +150,28 @@ describe('mission tutorials', () => {
 
 	it('an unknown mission has no tutorial', () => {
 		expect(tutorialFor('nope', 'en')).toEqual([]);
+	});
+
+	it('m18-m25 cards: the new art first, the D12 card lists, and the psychology cards never name the bias or the trap', () => {
+		const arts = (id: string) => tutorialFor(id, 'en').map((c) => c.art);
+		expect(arts('m18-gamma-scalp')).toEqual(['scalp', 'straddle', 'decay', 'book']);
+		expect(arts('m19-funding-carry')).toEqual(['carry', 'funding', 'margin', 'parity']);
+		expect(arts('m20-event-vol')).toEqual(['crush', 'volatility', 'straddle', 'decay']);
+		expect(arts('m21-calendar')).toEqual(['calendarSpread', 'decay', 'margin', 'roll']);
+		expect(arts('m22-scale-manage')).toEqual(['scale', 'trail', 'risk', 'plan']);
+		expect(arts('m23-second-chance')).toEqual(['cooldown', 'plan', 'risk']);
+		expect(arts('m24-fast-market')).toEqual(['plan', 'risk', 'cooldown']);
+		expect(arts('m25-the-dip')).toEqual(['risk', 'plan', 'cooldown']);
+		const BIAS = /vingan|revenge|fomo|ficar de fora|missing out|pre[çc]o m[ée]dio|averag|armadilha|trap|persegu|chas|dispar|rally|queda|dip\b|revers|falh|fail/i;
+		for (const id of ['m23-second-chance', 'm24-fast-market', 'm25-the-dip'])
+			for (const loc of ['pt-BR', 'en'] as const)
+				for (const c of tutorialFor(id, loc)) expect(`${c.title} ${c.body}`, `${id} ${loc}`).not.toMatch(BIAS);
+	});
+
+	it('every card link in m18-m25 names an existing glossary term', () => {
+		const links = (text: string) => [...text.matchAll(/\[\[([a-z0-9-]+)\|/g)].map((m) => m[1]);
+		for (const id of MISSIONS.slice(17))
+			for (const loc of ['pt-BR', 'en'] as const)
+				for (const c of tutorialFor(id, loc)) for (const t of links(c.body)) expect(termById(t), `${id} ${t}`).not.toBeNull();
 	});
 });

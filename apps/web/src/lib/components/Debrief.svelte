@@ -10,6 +10,9 @@
 	import RegimeReveal from './RegimeReveal.svelte';
 	import ReleaseReveal from './ReleaseReveal.svelte';
 	import StrategyComparison from './StrategyComparison.svelte';
+	import EpisodesPanel from './EpisodesPanel.svelte';
+	import { findingMoment, objectiveReadings } from '#lib/game/objectiveChecks.ts';
+	import { objectiveText } from '#lib/game/objectives.ts';
 	import CampaignReport from './CampaignReport.svelte';
 	import { entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtNum, fmtPct, fmtPrice, fmtQty, num, signMark } from '#lib/game/format.ts';
@@ -38,6 +41,14 @@
 	const cols = $derived(session.reveal ? 10 : 9);
 	const greeks = $derived(greekRows(d.greeks));
 	const findingTexts = $derived(describeFindings(a.findings, L, s.missionRules));
+	// Scoring v14: the bar a bias finding or an episode points to, marked on the debrief chart.
+	let moment = $state<number | null>(null);
+	let chartBox: HTMLElement | undefined = $state();
+	function showMoment(step: number): void {
+		moment = step;
+		chartBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
+	const readings = $derived(objectiveReadings(d, s.initialBalance));
 	// The recommended stage's first lesson not completed yet, or its first (design D9).
 	const nextLesson = $derived.by(() => {
 		const stage = lessonCodeStage(a.lesson);
@@ -215,9 +226,24 @@
 				<li class={f.tone === 'bad' ? 'down' : f.tone === 'good' ? 'up' : f.tone === 'warn' ? 'attention' : 'info'}>
 					{f.tone === 'good' ? '✔' : f.tone === 'bad' ? '✖' : f.tone === 'warn' ? '⚠' : 'ℹ'} {findingTexts[i]}
 					{#if FINDING_TERMS[f.code]}{@const term = FINDING_TERMS[f.code]!}<span class="muted small"> · <Term id={term}>{termById(term)?.text[L].term}</Term></span>{/if}
+					{#if findingMoment(f) != null}{@const at = findingMoment(f)!}
+						<button class="moment" onclick={() => showMoment(at)} data-testid="finding-moment">{t('debrief.showMoment', { step: at })}</button>
+					{/if}
 				</li>
 			{/each}
 		</ul>
+		{#if readings.length}
+			<h3>{t('debrief.objectives')}</h3>
+			<ul data-testid="objective-readings">
+				{#each readings as r (r.code)}
+					<li class={r.verdict === 'met' ? 'up' : 'attention'} data-testid="objective-reading" data-verdict={r.verdict}>
+						{r.verdict === 'met' ? '✔' : '⚠'} {objectiveText(s.missionRules.objectives.find((o) => o.code === r.code) ?? { code: r.code, valueBp: 0 }, L)}
+						<span class="muted small">· {t(r.verdict === 'met' ? 'debrief.objectiveMet' : 'debrief.objectiveMissed')}</span>
+						{#if r.step != null}{@const at = r.step}<button class="moment" onclick={() => showMoment(at)}>{t('debrief.showMoment', { step: at })}</button>{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
 		<p><strong>{t('debrief.nextLesson')}:</strong> <span class="info">{describeLesson(a.lesson, L)}</span></p>
 		{#if nextLesson}
 			<p>
@@ -320,9 +346,12 @@
 		</section>
 	{/if}
 
-	<section class="panel chart-panel">
-		<Chart game={s} />
+	<section class="panel chart-panel" bind:this={chartBox}>
+		<Chart game={s} {moment} />
 	</section>
+	{#if d.episodes?.length}
+		<EpisodesPanel episodes={d.episodes} onMoment={showMoment} />
+	{/if}
 	{#if d.strategyComparison}
 		<StrategyComparison comparison={d.strategyComparison} playerNet={a.netPnl} />
 	{/if}
@@ -391,6 +420,11 @@
 	}
 	.small {
 		font-size: 0.8rem;
+	}
+	.moment {
+		margin-left: 0.4rem;
+		font-size: 0.75rem;
+		padding: 0 0.3rem;
 	}
 	.findings ul {
 		margin: 0;
