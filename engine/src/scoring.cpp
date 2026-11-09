@@ -784,6 +784,8 @@ std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st) {
   return rows;
 }
 
+const PlanRecord* plan_of_order(const RunState& st, std::uint32_t order_id) { return order_plan(st, order_id); }
+
 ScoreReport score_run(const Scenario& sc, const RunState& st) { return score_run(sc, st, rubric_for(sc.id)); }
 
 ScoreReport score_run(const Scenario& sc, const RunState& st, const Rubric* rubric) {
@@ -806,6 +808,9 @@ ScoreReport score_run(const Scenario& sc, const RunState& st, const Rubric* rubr
   execution_findings(st, f, r);
   greek_findings(r);
   r.lesson = pick_lesson(r);
+  // Scoring v14: report-only, after the lesson is picked, so neither the score nor the lesson moves.
+  const std::vector<Finding> v14 = v14_findings(sc, st, r.trades);
+  r.findings.insert(r.findings.end(), v14.begin(), v14.end());
   r.advisor_points_earned = advisor_points(st, r.trades);
   advice_summary(sc, st, r);
   return r;

@@ -448,6 +448,17 @@ enum class FindingCode : std::uint8_t {
   LiqBuffer = 20,
   // Scoring v11: max drawdown above the mission's drawdown budget (count = budget bp, amount = drawdown).
   DrawdownBudget = 21,
+  // Scoring v14 (report-only): an exposure-increasing entry within 3 bars of a perpetual trade closed at
+  // a loss, at 1.5x its size or more or without a plan (step = entry, count = size ratio bp, amount = loss).
+  RevengeTrade = 22,
+  // Scoring v14 (report-only): an entry after 4+ closes its way, more than 2 ATR beyond SMA(20), with no
+  // stop or one more than 2 ATR away (step = entry, count = closes, price = stop).
+  FomoEntry = 23,
+  // Scoring v14 (report-only): an add at a worse price than the average entry while losing, raising the
+  // risk above the first entry's plan or without a stop (step = add, price = fill, requested = average before).
+  AveragingDown = 24,
+  // Scoring v14 (report-only): a mission risk limit exceeded at a close (step = first, count = closes).
+  RiskLimitExceeded = 25,
 };
 
 constexpr const char* json_name(FindingCode v) {
@@ -474,6 +485,10 @@ constexpr const char* json_name(FindingCode v) {
     case FindingCode::LeverageVsStop: return "leverage_vs_stop";
     case FindingCode::LiqBuffer: return "liq_buffer";
     case FindingCode::DrawdownBudget: return "drawdown_budget";
+    case FindingCode::RevengeTrade: return "revenge_trade";
+    case FindingCode::FomoEntry: return "fomo_entry";
+    case FindingCode::AveragingDown: return "averaging_down";
+    case FindingCode::RiskLimitExceeded: return "risk_limit_exceeded";
   }
   return "unknown";
 }
@@ -722,7 +737,8 @@ constexpr const char* json_name(ExitReason v) {
   return "unknown";
 }
 
-// A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8).
+// A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8;
+// m18-m22 since scoring v14).
 enum class ComparisonStrategy : std::uint8_t {
   // m13: a call at the money.
   NakedCall = 0,
@@ -748,6 +764,39 @@ enum class ComparisonStrategy : std::uint8_t {
   CloseBeforeExpiry = 10,
   // m17: the same put rolled 5 bars before each expiry into the next expiry's put at the money.
   RollBeforeExpiry = 11,
+  // Scoring v14 (add-practice-and-advanced-strategies D13). m18: a straddle at the money of the first
+  // expiry, held to its settlement.
+  UnhedgedStraddle = 12,
+  // m18: the same straddle, its delta brought to zero with the perpetual at every 4th close.
+  HedgedEvery4 = 13,
+  // m18: the same straddle, hedged whenever |delta| exceeds 40% of the contracts.
+  HedgedBand = 14,
+  // m19: the perpetual short alone at 5x, held to the end.
+  UnhedgedShort = 15,
+  // m19: the short plus a synthetic long (call bought, put written at the money of the last expiry), 5x.
+  HedgedCarry5x = 16,
+  // m19: the same hedged carry with the perpetual at 2x.
+  HedgedCarry2x = 17,
+  // m20: a straddle of the last expiry bought at the announcement and sold the bar before the release.
+  EarlySellBefore = 18,
+  // m20: the same straddle held through the release (sold 3 bars after it).
+  EarlyHoldThrough = 19,
+  // m20: a straddle of the first expiry bought the bar before the release, sold 3 bars after it.
+  LateHoldThrough = 20,
+  // m20: that straddle written the bar before the release, bought back 3 bars after it.
+  ShortStraddleThrough = 21,
+  // m21: a call calendar at the money (near written, next bought), closed at the near expiry.
+  CalendarAtm = 22,
+  // m21: a diagonal: the next expiry's call one strike up bought instead.
+  DiagonalUp = 23,
+  // m21: a straddle of the near expiry written and held to its settlement.
+  ShortStraddleNear = 24,
+  // m22: in 3 bars after the headline with its move, 1% at risk to a 2 x ATR stop, all out at 2R.
+  AllOut2R = 25,
+  // m22: half out at +1R, the stop to breakeven, the rest trailed at 2 x ATR.
+  ManagedExit = 26,
+  // m22: the initial stop only, held to the end.
+  HoldInitialStop = 27,
 };
 
 constexpr const char* json_name(ComparisonStrategy v) {
@@ -764,6 +813,22 @@ constexpr const char* json_name(ComparisonStrategy v) {
     case ComparisonStrategy::HoldToSettlement: return "hold_to_settlement";
     case ComparisonStrategy::CloseBeforeExpiry: return "close_before_expiry";
     case ComparisonStrategy::RollBeforeExpiry: return "roll_before_expiry";
+    case ComparisonStrategy::UnhedgedStraddle: return "unhedged_straddle";
+    case ComparisonStrategy::HedgedEvery4: return "hedged_every_4";
+    case ComparisonStrategy::HedgedBand: return "hedged_band";
+    case ComparisonStrategy::UnhedgedShort: return "unhedged_short";
+    case ComparisonStrategy::HedgedCarry5x: return "hedged_carry_5x";
+    case ComparisonStrategy::HedgedCarry2x: return "hedged_carry_2x";
+    case ComparisonStrategy::EarlySellBefore: return "early_sell_before";
+    case ComparisonStrategy::EarlyHoldThrough: return "early_hold_through";
+    case ComparisonStrategy::LateHoldThrough: return "late_hold_through";
+    case ComparisonStrategy::ShortStraddleThrough: return "short_straddle_through";
+    case ComparisonStrategy::CalendarAtm: return "calendar_atm";
+    case ComparisonStrategy::DiagonalUp: return "diagonal_up";
+    case ComparisonStrategy::ShortStraddleNear: return "short_straddle_near";
+    case ComparisonStrategy::AllOut2R: return "all_out_2r";
+    case ComparisonStrategy::ManagedExit: return "managed_exit";
+    case ComparisonStrategy::HoldInitialStop: return "hold_initial_stop";
   }
   return "unknown";
 }

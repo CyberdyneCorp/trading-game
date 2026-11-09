@@ -17,6 +17,7 @@
 #include "tradelab/engine.hpp"
 #include "tradelab/generator.hpp"
 #include "tradelab/lessons.hpp"
+#include "tradelab/whatif.hpp"
 
 namespace tradelab {
 
@@ -29,7 +30,32 @@ namespace tradelab {
 // against the mission's budget; per-decision records (act, hold, wait) in the debrief.
 // v12 (report-only): a trade closed by its stop, triggered at or inside the plan's invalidation, keeps
 // its plan (planRespected) even when a gap filled it further away.
-constexpr std::uint32_t kScoringVersion = 13;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall; v8: full-revaluation Greek attribution, side-aware IV finding; v9: signals by regime, entry regime; v10: exit reason from the order type (a stop in profit is a stop, trailing stops named); v11, v12: see above; v13: wrote_options (and the good-process exclusion) only for an uncovered short option: a short covered by longs of the same kind and expiry, or a short call by a long perpetual, is a defined-risk structure; the report-only strategy comparison of m13-m17 (debrief strategyComparison)
+// v14 (report-only, add-practice-and-advanced-strategies D13): bias findings (revenge_trade, fomo_entry,
+// averaging_down) and risk_limit_exceeded with their evidence, appended after the lesson is picked; the
+// debrief's position episodes; the strategy comparison of m18-m22.
+constexpr std::uint32_t kScoringVersion = 14;  // v2: calibration 100 * (1 - 2 * Brier); v3: margin calls count like liquidations, oversized judged per trade, stricter good-process credit; v4: spread/slippage cost, Greek attribution, safe leverage, theta/IV findings and the Options lesson; v5: open trades include unrealized P&L, safe leverage uses the highest leverage held, good-process credit excludes written options, good_process_win finding; v6: advisor points and advice outcomes; v7: plans matched to their entry order (an add adds its risk), written-off shortfall; v8: full-revaluation Greek attribution, side-aware IV finding; v9: signals by regime, entry regime; v10: exit reason from the order type (a stop in profit is a stop, trailing stops named); v11, v12: see above; v13: wrote_options (and the good-process exclusion) only for an uncovered short option: a short covered by longs of the same kind and expiry, or a short call by a long perpetual, is a defined-risk structure; the report-only strategy comparison of m13-m17 (debrief strategyComparison)
+
+// Scoring v14 (report-only, add-practice-and-advanced-strategies D13): what a bias or risk-limit finding
+// rests on, from the action log and data visible at its step. Only the codes that use a field set it.
+struct FindingEvidence {
+  std::uint32_t trade = 0;          // revenge_trade: the losing trade's number
+  std::uint32_t exit_step = 0;      // revenge_trade: the bar that trade closed on
+  std::uint32_t entry_step = 0;     // revenge_trade, fomo_entry: the entry's decision step; averaging_down: the add's
+  std::int32_t ratio_bp = 0;        // revenge_trade: entry size / the losing trade's (planned risk, else quantity)
+  bool planned = false;             // revenge_trade, averaging_down: the entry had a plan of its own
+  std::int32_t extension_atr = 0;   // fomo_entry: (close - SMA20) / ATR14 in hundredths, signed by the side
+  std::uint32_t closes = 0;         // fomo_entry: consecutive closes in the entry's direction
+  Price stop;                       // fomo_entry, averaging_down: the protective stop (0 = none)
+  Price avg_before;                 // averaging_down
+  Price avg_after;                  // averaging_down
+  Money loss;                       // revenge_trade: the trade's net loss; averaging_down: unrealized loss at the add
+  Money risk_before;                // averaging_down: risk to the stop before the add (0 = no stop)
+  Money risk_after;                 // averaging_down: after it
+  Money risk_plan;                  // averaging_down: the first entry's planned risk
+  RiskLimitKind limit = RiskLimitKind::Delta;  // risk_limit_exceeded
+  std::uint32_t limit_bp = 0;       // risk_limit_exceeded: the declared limit
+  std::int64_t worst_bp = 0;        // risk_limit_exceeded: the largest value seen at a close
+};
 
 struct Finding {
   FindingCode code = FindingCode::Waited;
@@ -39,6 +65,7 @@ struct Finding {
   Price price;
   Price requested;
   Money amount;
+  std::optional<FindingEvidence> evidence;  // scoring v14 findings only
 };
 
 // One round trip: a perpetual position (series 0) or an option position in one series, from the
@@ -168,6 +195,48 @@ struct StrategyComparison {
 
 // m13-m17 once the run has ended; nullopt for any other mission or an active run.
 std::optional<StrategyComparison> strategy_comparison(const Scenario& sc, const RunState& st);
+
+// ---- Scoring v14 (report-only; src/debrief_v14.cpp) -----------------------------------------
+
+// One perpetual fill of an episode: an entry (it grew the position) or an exit (it reduced it).
+struct EpisodeFill {
+  std::uint32_t step = 0;  // the bar it filled on
+  Qty qty;
+  Price price;
+};
+
+// A reduce-only stop trigger moved while the position was open: toward the price, away from it, or to
+// (or past) the average entry on the favourable side.
+enum class StopMoveKind : std::uint8_t { ToBreakeven, Toward, Away };
+
+struct EpisodeStopMove {
+  std::uint32_t step = 0;
+  StopMoveKind kind = StopMoveKind::Toward;
+  Price price;
+};
+
+// A perpetual position from flat to flat (a flip ends one episode and starts the next).
+struct Episode {
+  std::uint32_t n = 0;  // the matching perpetual trade row's number
+  bool is_long = true;
+  std::uint32_t entry_step = 0;
+  std::optional<std::uint32_t> exit_step;  // still open at the end
+  std::vector<EpisodeFill> entries;        // the first entry and every scale-in
+  std::vector<EpisodeFill> exits;          // partial exits and the final one
+  std::vector<EpisodeStopMove> stop_moves;
+  bool trailing = false;                   // a trailing stop was working at some point
+  Money net;                               // the matching trade row's net
+  Money planned_risk;                      // 0 = no plan
+  std::optional<std::int64_t> r_bp;        // net / planned risk (the trade row's R)
+  std::optional<std::int64_t> mfe_r_bp;    // best excursion of the bars held, in R (planned risk known)
+  std::optional<std::int64_t> mae_r_bp;    // worst excursion (a positive number of R)
+};
+
+std::vector<Episode> position_episodes(const Scenario& sc, const RunState& st, const std::vector<TradeRow>& trades);
+// The bias findings and risk_limit_exceeded of a run, in step order (never score inputs).
+std::vector<Finding> v14_findings(const Scenario& sc, const RunState& st, const std::vector<TradeRow>& trades);
+// The plan matched to an entry order (the scoring's own matching); nullptr when it had none.
+const PlanRecord* plan_of_order(const RunState& st, std::uint32_t order_id);
 
 std::vector<TradeRow> build_trades(const Scenario& sc, const RunState& st);
 ScoreReport score_run(const Scenario& sc, const RunState& st);

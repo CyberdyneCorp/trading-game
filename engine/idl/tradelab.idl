@@ -254,6 +254,17 @@ enum FindingCode : u8 {
   LiqBuffer = 20
   /// Scoring v11: max drawdown above the mission's drawdown budget (count = budget bp, amount = drawdown).
   DrawdownBudget = 21
+  /// Scoring v14 (report-only): an exposure-increasing entry within 3 bars of a perpetual trade closed at
+  /// a loss, at 1.5x its size or more or without a plan (step = entry, count = size ratio bp, amount = loss).
+  RevengeTrade = 22
+  /// Scoring v14 (report-only): an entry after 4+ closes its way, more than 2 ATR beyond SMA(20), with no
+  /// stop or one more than 2 ATR away (step = entry, count = closes, price = stop).
+  FomoEntry = 23
+  /// Scoring v14 (report-only): an add at a worse price than the average entry while losing, raising the
+  /// risk above the first entry's plan or without a stop (step = add, price = fill, requested = average before).
+  AveragingDown = 24
+  /// Scoring v14 (report-only): a mission risk limit exceeded at a close (step = first, count = closes).
+  RiskLimitExceeded = 25
 }
 
 enum FindingTone : u8 {
@@ -392,7 +403,8 @@ enum ExitReason : u8 {
   Trailing = 7
 }
 
-/// A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8).
+/// A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8;
+/// m18-m22 since scoring v14).
 enum ComparisonStrategy : u8 {
   /// m13: a call at the money.
   NakedCall = 0
@@ -418,6 +430,39 @@ enum ComparisonStrategy : u8 {
   CloseBeforeExpiry = 10
   /// m17: the same put rolled 5 bars before each expiry into the next expiry's put at the money.
   RollBeforeExpiry = 11
+  /// Scoring v14 (add-practice-and-advanced-strategies D13). m18: a straddle at the money of the first
+  /// expiry, held to its settlement.
+  UnhedgedStraddle = 12
+  /// m18: the same straddle, its delta brought to zero with the perpetual at every 4th close.
+  HedgedEvery4 = 13 "hedged_every_4"
+  /// m18: the same straddle, hedged whenever |delta| exceeds 40% of the contracts.
+  HedgedBand = 14
+  /// m19: the perpetual short alone at 5x, held to the end.
+  UnhedgedShort = 15
+  /// m19: the short plus a synthetic long (call bought, put written at the money of the last expiry), 5x.
+  HedgedCarry5x = 16 "hedged_carry_5x"
+  /// m19: the same hedged carry with the perpetual at 2x.
+  HedgedCarry2x = 17 "hedged_carry_2x"
+  /// m20: a straddle of the last expiry bought at the announcement and sold the bar before the release.
+  EarlySellBefore = 18
+  /// m20: the same straddle held through the release (sold 3 bars after it).
+  EarlyHoldThrough = 19
+  /// m20: a straddle of the first expiry bought the bar before the release, sold 3 bars after it.
+  LateHoldThrough = 20
+  /// m20: that straddle written the bar before the release, bought back 3 bars after it.
+  ShortStraddleThrough = 21
+  /// m21: a call calendar at the money (near written, next bought), closed at the near expiry.
+  CalendarAtm = 22
+  /// m21: a diagonal: the next expiry's call one strike up bought instead.
+  DiagonalUp = 23
+  /// m21: a straddle of the near expiry written and held to its settlement.
+  ShortStraddleNear = 24
+  /// m22: in 3 bars after the headline with its move, 1% at risk to a 2 x ATR stop, all out at 2R.
+  AllOut2R = 25 "all_out_2r"
+  /// m22: half out at +1R, the stop to breakeven, the rest trailed at 2 x ATR.
+  ManagedExit = 26
+  /// m22: the initial stop only, held to the end.
+  HoldInitialStop = 27
 }
 
 /// Advice in the debrief: a long or short read is right when the close 5 bars after the next open moved its way.
@@ -929,6 +974,42 @@ struct EngineFinding {
   price: Decimal
   requested: Decimal
   amount: Decimal
+  /// Scoring v14 findings only (revenge_trade, fomo_entry, averaging_down, risk_limit_exceeded).
+  evidence?: FindingEvidence
+}
+
+/// Scoring v14: what a bias or risk-limit finding rests on (the action log and data visible at its step).
+/// Each code writes only its own members.
+struct FindingEvidence {
+  /// revenge_trade: the losing trade's number, its exit bar and net loss.
+  trade?: int
+  exitStep?: int
+  loss?: Decimal
+  /// revenge_trade, fomo_entry: the entry's decision step.
+  entryStep?: int
+  /// revenge_trade: entry size over the losing trade's (planned risk, else quantity), basis points.
+  sizeRatioBp?: int
+  /// revenge_trade, averaging_down: the entry had a plan of its own.
+  planned?: bool
+  /// fomo_entry: (close - SMA20) / ATR14 in hundredths, signed by the side.
+  extensionAtr?: int
+  /// fomo_entry: consecutive closes in the entry's direction.
+  closes?: int
+  /// fomo_entry, averaging_down: the protective stop ("0" = none).
+  stop?: Decimal
+  /// averaging_down: the add's decision step, the average entry before and after, the unrealized loss
+  /// at the add, the risk to the stop before and after, and the first entry's planned risk.
+  addStep?: int
+  avgBefore?: Decimal
+  avgAfter?: Decimal
+  unrealized?: Decimal
+  riskBefore?: Decimal
+  riskAfter?: Decimal
+  planRisk?: Decimal
+  /// risk_limit_exceeded: the limit, its value and the largest value seen at a close.
+  limit?: RiskLimitKind
+  limitBp?: int
+  worstBp?: int
 }
 
 struct EngineTrade {
@@ -1137,8 +1218,47 @@ struct DebriefData {
   /// Scoring v11: the lesson questions; null for a mission without a rubric.
   lessons: LessonResults | null
   /// Scoring v13 (report-only): the mission's reference structures on this seed; null for a mission
-  /// without a comparison (every mission but m13-m17) and for pack runs.
+  /// without a comparison (every mission but m13-m22) and for pack runs.
   strategyComparison: StrategyComparison | null
+  /// Scoring v14 (report-only): perpetual positions from flat to flat.
+  episodes: PositionEpisode[]
+}
+
+union StopMoveKind = "to_breakeven" | "toward" | "away"
+
+/// One perpetual fill of an episode.
+struct EpisodeFill {
+  step: int
+  qty: Decimal
+  price: Decimal
+}
+
+struct EpisodeStopMove {
+  step: int
+  kind: StopMoveKind
+  price: Decimal
+}
+
+/// Scoring v14: a perpetual position from flat to flat (a flip ends one and starts the next).
+struct PositionEpisode {
+  /// The matching perpetual trade row's number.
+  n: int
+  side: TradeSide
+  entryStep: int
+  exitStep: int | null
+  /// The first entry and every scale-in.
+  entries: EpisodeFill[]
+  /// Partial exits and the final one.
+  exits: EpisodeFill[]
+  stopMoves: EpisodeStopMove[]
+  /// A trailing stop was working at some point.
+  trailing: bool
+  net: Decimal
+  plannedRisk: Decimal
+  rBp: int | null
+  /// Best and worst excursion of the bars held against the first entry, in R (planned risk known).
+  mfeRBp: int | null
+  maeRBp: int | null
 }
 
 union ComparisonBasis = "player" | "reference"

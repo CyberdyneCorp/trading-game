@@ -6,8 +6,7 @@
   "mission": "m20-event-vol",
   "seed": 2026,
   "actions": [
-    {"k": "adv", "n": 1},
-    {"k": "adv", "n": 1},
+    {"k": "adv", "n": 2},
     {"k": "opt", "series": 33, "side": "buy", "type": "market", "qty": "10", "premium": null},
     {"k": "opt", "series": 34, "side": "buy", "type": "market", "qty": "10", "premium": null},
     {"k": "adv", "n": 34},

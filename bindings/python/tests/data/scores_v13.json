@@ -1,0 +1,1101 @@
+{
+ "description": "Scoring v13 debriefs of the m01-m17 golden runs (score, findings, lesson, trades' R), recorded from the v13 engine: scoring v14 must leave them byte-identical (report-only additions).",
+ "runs": {
+  "m01-false-breakout": {
+   "findings": [
+    [
+     "no_stop",
+     0,
+     1,
+     "0.00000000"
+    ],
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "risk",
+   "netPnl": "1040.69416400",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 80,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 47
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "-171.55620000",
+     null
+    ],
+    [
+     2,
+     "1212.25036400",
+     null
+    ]
+   ]
+  },
+  "m01-tif-oco": {
+   "findings": [
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "gap_slippage",
+     62,
+     0,
+     "0.00000000"
+    ],
+    [
+     "ambiguous",
+     0,
+     1,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "orders",
+   "netPnl": "-11.88561640",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 100,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 58
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "-8.30402000",
+     null
+    ],
+    [
+     2,
+     "-3.58159640",
+     null
+    ]
+   ]
+  },
+  "m02-advisor-options": {
+   "findings": [
+    [
+     "good_process_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "funding_cost",
+     0,
+     0,
+     "82.09460450"
+    ]
+   ],
+   "lesson": "futures3",
+   "netPnl": "445.14589550",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 100,
+      "weight": 25
+     },
+     "risk": {
+      "score": 100,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 100
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "445.14589550",
+     44515
+    ]
+   ]
+  },
+  "m05-options-writer": {
+   "findings": [
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "wrote_options",
+     0,
+     0,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "structure",
+   "netPnl": "34.00678000",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 100,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 58
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "17.40816000",
+     null
+    ],
+    [
+     2,
+     "16.59862000",
+     null
+    ]
+   ]
+  },
+  "m06-thin-book": {
+   "findings": [
+    [
+     "no_stop",
+     0,
+     1,
+     "0.00000000"
+    ],
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "ambiguous",
+     0,
+     1,
+     "0.00000000"
+    ],
+    [
+     "capacity",
+     0,
+     1,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "risk",
+   "netPnl": "81.85976483",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 80,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 47
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "81.85976483",
+     null
+    ]
+   ]
+  },
+  "m07-trend-trailing": {
+   "findings": [
+    [
+     "no_stop",
+     0,
+     1,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "risk",
+   "netPnl": "-244.12011120",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 80,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 47
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "-219.86596680",
+     null
+    ],
+    [
+     2,
+     "-24.25414440",
+     null
+    ]
+   ]
+  },
+  "m08-regime-switch": {
+   "findings": [
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "funding_cost",
+     0,
+     0,
+     "9.38175920"
+    ]
+   ],
+   "lesson": "futures3",
+   "netPnl": "93.60944080",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 100,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 58
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "93.60944080",
+     null
+    ]
+   ]
+  },
+  "m09-event-straddle": {
+   "findings": [
+    [
+     "no_stop",
+     0,
+     1,
+     "0.00000000"
+    ],
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "risk",
+   "netPnl": "14.47842940",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 80,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 47
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "-1.70246000",
+     null
+    ],
+    [
+     2,
+     "-16.72392000",
+     null
+    ],
+    [
+     3,
+     "32.90480940",
+     null
+    ]
+   ]
+  },
+  "m10-hedged-book": {
+   "findings": [
+    [
+     "no_stop",
+     0,
+     1,
+     "0.00000000"
+    ],
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "wrote_options",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "funding_cost",
+     0,
+     0,
+     "24.10006720"
+    ]
+   ],
+   "lesson": "risk",
+   "netPnl": "23.10309280",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 80,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 47
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "5.64493280",
+     null
+    ],
+    [
+     2,
+     "-48.87092000",
+     null
+    ],
+    [
+     3,
+     "66.32908000",
+     null
+    ]
+   ]
+  },
+  "m11-news-calendar": {
+   "findings": [
+    [
+     "leverage_vs_stop",
+     111,
+     3,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "futures2",
+   "netPnl": "-85.26916140",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 90,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 52
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "-263.50204800",
+     null
+    ],
+    [
+     2,
+     "178.23288660",
+     null
+    ]
+   ]
+  },
+  "m12-capstone": {
+   "findings": [
+    [
+     "leverage_vs_stop",
+     61,
+     4,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "wrote_options",
+     0,
+     0,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "futures2",
+   "netPnl": "-20.10557360",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 90,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 52
+   },
+   "strategyComparison": null,
+   "trades": [
+    [
+     1,
+     "-47.35001360",
+     null
+    ],
+    [
+     2,
+     "20.77222000",
+     null
+    ],
+    [
+     3,
+     "6.47222000",
+     null
+    ]
+   ]
+  },
+  "m13-call-spread": {
+   "findings": [
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "structure",
+   "netPnl": "-12.82854000",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 100,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 58
+   },
+   "strategyComparison": {
+    "basis": "player",
+    "entryStep": 70,
+    "qty": "10.00000000",
+    "rows": [
+     {
+      "entryStep": 70,
+      "exitStep": 100,
+      "marginCalls": 0,
+      "maxDrawdown": "22.40177000",
+      "name": "naked_call",
+      "netPnl": "-22.40177000",
+      "refused": null
+     },
+     {
+      "entryStep": 70,
+      "exitStep": 100,
+      "marginCalls": 0,
+      "maxDrawdown": "12.82854000",
+      "name": "bull_call_spread",
+      "netPnl": "-12.82854000",
+      "refused": null
+     }
+    ]
+   },
+   "trades": [
+    [
+     1,
+     "-22.40177000",
+     null
+    ],
+    [
+     2,
+     "9.57323000",
+     null
+    ]
+   ]
+  },
+  "m14-covered-call": {
+   "findings": [
+    [
+     "no_stop",
+     0,
+     1,
+     "0.00000000"
+    ],
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "funding_cost",
+     0,
+     0,
+     "9.64069880"
+    ]
+   ],
+   "lesson": "risk",
+   "netPnl": "189.99770120",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 80,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 47
+   },
+   "strategyComparison": {
+    "basis": "player",
+    "entryStep": 60,
+    "qty": "40.00000000",
+    "rows": [
+     {
+      "entryStep": 60,
+      "exitStep": 180,
+      "marginCalls": 0,
+      "maxDrawdown": "307.66565960",
+      "name": "long_only",
+      "netPnl": "315.54770120",
+      "refused": null
+     },
+     {
+      "entryStep": 60,
+      "exitStep": 180,
+      "marginCalls": 0,
+      "maxDrawdown": "289.71565960",
+      "name": "covered_call",
+      "netPnl": "199.79770120",
+      "refused": null
+     }
+    ]
+   },
+   "trades": [
+    [
+     1,
+     "315.54770120",
+     null
+    ],
+    [
+     2,
+     "7.70000000",
+     null
+    ],
+    [
+     3,
+     "-133.25000000",
+     null
+    ]
+   ]
+  },
+  "m15-protective-put": {
+   "findings": [
+    [
+     "no_stop",
+     0,
+     1,
+     "0.00000000"
+    ],
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "funding_cost",
+     0,
+     0,
+     "5.97474920"
+    ],
+    [
+     "theta_decay",
+     0,
+     0,
+     "98.49168800"
+    ]
+   ],
+   "lesson": "risk",
+   "netPnl": "65.85709080",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 80,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 47
+   },
+   "strategyComparison": {
+    "basis": "player",
+    "entryStep": 60,
+    "qty": "40.00000000",
+    "rows": [
+     {
+      "entryStep": 60,
+      "exitStep": 160,
+      "marginCalls": 0,
+      "maxDrawdown": "384.49046320",
+      "name": "long_only",
+      "netPnl": "227.91985080",
+      "refused": null
+     },
+     {
+      "entryStep": 60,
+      "exitStep": 160,
+      "marginCalls": 0,
+      "maxDrawdown": "384.49046320",
+      "name": "atr_stop",
+      "netPnl": "227.91985080",
+      "refused": null
+     },
+     {
+      "entryStep": 60,
+      "exitStep": 160,
+      "marginCalls": 0,
+      "maxDrawdown": "421.23046480",
+      "name": "atm_put",
+      "netPnl": "65.85709080",
+      "refused": null
+     },
+     {
+      "entryStep": 60,
+      "exitStep": 160,
+      "marginCalls": 0,
+      "maxDrawdown": "398.83046480",
+      "name": "otm_put",
+      "netPnl": "149.45709080",
+      "refused": null
+     }
+    ]
+   },
+   "trades": [
+    [
+     1,
+     "227.91985080",
+     null
+    ],
+    [
+     2,
+     "-162.06276000",
+     null
+    ]
+   ]
+  },
+  "m16-range-condor": {
+   "findings": [
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "structure",
+   "netPnl": "16.29592000",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 100,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 58
+   },
+   "strategyComparison": {
+    "basis": "player",
+    "entryStep": 60,
+    "qty": "20.00000000",
+    "rows": [
+     {
+      "entryStep": 60,
+      "exitStep": 90,
+      "marginCalls": 0,
+      "maxDrawdown": "1.60408000",
+      "name": "short_strangle",
+      "netPnl": "20.79592000",
+      "refused": null
+     },
+     {
+      "entryStep": 60,
+      "exitStep": 90,
+      "marginCalls": 0,
+      "maxDrawdown": "3.50408000",
+      "name": "iron_condor",
+      "netPnl": "16.29592000",
+      "refused": null
+     }
+    ]
+   },
+   "trades": [
+    [
+     1,
+     "-1.57500000",
+     null
+    ],
+    [
+     2,
+     "-2.92500000",
+     null
+    ],
+    [
+     3,
+     "8.59796000",
+     null
+    ],
+    [
+     4,
+     "12.19796000",
+     null
+    ]
+   ]
+  },
+  "m17-before-expiry": {
+   "findings": [
+    [
+     "lucky_win",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "no_plan",
+     0,
+     0,
+     "0.00000000"
+    ],
+    [
+     "wrote_options",
+     0,
+     0,
+     "0.00000000"
+    ]
+   ],
+   "lesson": "structure",
+   "netPnl": "13.34570000",
+   "score": {
+    "dims": {
+     "calibration": {
+      "score": null,
+      "weight": 15
+     },
+     "plan": {
+      "score": 0,
+      "weight": 25
+     },
+     "risk": {
+      "score": 100,
+      "weight": 35
+     },
+     "understanding": {
+      "score": null,
+      "weight": 25
+     }
+    },
+    "total": 58
+   },
+   "strategyComparison": {
+    "basis": "player",
+    "entryStep": 60,
+    "qty": "10.00000000",
+    "rows": [
+     {
+      "entryStep": 60,
+      "exitStep": 80,
+      "marginCalls": 0,
+      "maxDrawdown": "14.30000000",
+      "name": "hold_to_settlement",
+      "netPnl": "3.87612000",
+      "refused": null
+     },
+     {
+      "entryStep": 60,
+      "exitStep": 76,
+      "marginCalls": 0,
+      "maxDrawdown": "12.12388000",
+      "name": "close_before_expiry",
+      "netPnl": "0.05599000",
+      "refused": null
+     },
+     {
+      "entryStep": 60,
+      "exitStep": 155,
+      "marginCalls": 0,
+      "maxDrawdown": "23.84026000",
+      "name": "roll_before_expiry",
+      "netPnl": "31.87598000",
+      "refused": null
+     }
+    ]
+   },
+   "trades": [
+    [
+     1,
+     "-4.53909000",
+     null
+    ],
+    [
+     2,
+     "17.88479000",
+     null
+    ]
+   ]
+  }
+ }
+}
