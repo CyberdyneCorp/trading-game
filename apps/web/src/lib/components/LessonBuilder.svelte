@@ -7,7 +7,7 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { fmtMoney, fmtPrice } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
-	import { TEMPLATES, strategyOf, templateLegs, templateShortable, type TemplateId } from '#lib/game/strategies.ts';
+	import { ONE_EXPIRY_TEMPLATES, strategyOf, templateLegs, templateShortable, type TemplateId } from '#lib/game/strategies.ts';
 	import { academyRequest, builderAcademyLegs, pricedLegs, unboundedAbove, ZERO_SHIFT } from '#lib/game/whatifLab.ts';
 	import PayoffChart from './PayoffChart.svelte';
 	import Term from './Term.svelte';
@@ -52,7 +52,7 @@
 		<span class="tag attention">{t('academy.illustrative')}</span>
 	</figcaption>
 	<div class="templates" role="group" aria-label={t('builder.templates')}>
-		{#each TEMPLATES as id (id)}
+		{#each ONE_EXPIRY_TEMPLATES as id (id)}
 			<button class:primary={template === id} aria-pressed={template === id} onclick={() => (template = id)} data-testid={`lesson-template-${id}`}>
 				{t(`strategy.${strategyOf(id, short)}`)}
 			</button>

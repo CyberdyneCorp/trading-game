@@ -6,6 +6,9 @@ import type { GameState, OptionQuoteView } from '#lib/engine/types.ts';
 import { ev, game } from './fixtures.test-util.ts';
 import { comboHoldings, comboStatus, combosFromLog, groupTrades, nextSubmissionNumber, workingLegs, type LoggedAction } from './combos.ts';
 import {
+	ONE_EXPIRY_TEMPLATES,
+	TEMPLATES,
+	templateLegs,
 	comboLegs,
 	defaultLimit,
 	hedgeOrder,
@@ -84,6 +87,13 @@ describe('calendar and diagonal templates (design D3)', () => {
 		expect(legsProblem([...legs, { kind: 'put', side: 'buy', strike: 95, qty: 1, expiry: LATER }], NEAR)).toBe('expiries');
 		const orders = orderLegs(g(), NEAR, legs)!;
 		expect(orders.map((o) => o.series)).toEqual([id(FAR, 'call', 100), id(NEAR, 'call', 100)]); // buys first
+	});
+});
+
+describe('the Academy builder (one expiry)', () => {
+	it('lists only templates that build legs on a single expiry (playtest: its calendars built none)', () => {
+		expect(ONE_EXPIRY_TEMPLATES).toHaveLength(TEMPLATES.length - 4);
+		for (const id of ONE_EXPIRY_TEMPLATES) expect(templateLegs(id, [90, 95, 97.5, 100, 102.5, 105, 110], 100, 1), id).not.toBeNull();
 	});
 });
 

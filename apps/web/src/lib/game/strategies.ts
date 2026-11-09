@@ -47,6 +47,12 @@ export const TEMPLATES: readonly TemplateId[] = [
 	'diagonal_put'
 ];
 
+/**
+ * The templates of one expiry: the run-less Academy builder lists only these, since a lesson market
+ * has a single expiry (playtest: its calendars and diagonals built no legs). Desktop kOneExpiryTemplates.
+ */
+export const ONE_EXPIRY_TEMPLATES: readonly TemplateId[] = TEMPLATES.filter((id) => !TWO_EXPIRY.has(id));
+
 /** Templates whose legs write options (sell to open): disabled when the run does not allow writing. */
 const WRITES: ReadonlySet<TemplateId> = new Set(['bull_call', 'bear_put', 'covered_call', 'iron_condor', ...TWO_EXPIRY]);
 /** Templates offered short (every side flipped). */
