@@ -354,6 +354,20 @@ std::vector<DrillItem> build_session(const WebContent& content, const SessionInp
   return items;
 }
 
+namespace {
+
+// Whether any answered item of `skill` was wrong; none when every one of them was skipped.
+std::optional<bool> any_wrong(const std::vector<DrillItem>& items, const std::vector<ItemResult>& results, const std::string& skill) {
+  std::optional<bool> out;
+  for (std::size_t k = 0; k < items.size() && k < results.size(); ++k) {
+    if (items[k].skill != skill || results[k] == ItemResult::Skipped) continue;
+    out = out.value_or(false) || results[k] == ItemResult::Wrong;
+  }
+  return out;
+}
+
+}  // namespace
+
 std::int64_t day_start(const std::string& day) {
   std::tm t{};
   if (std::sscanf(day.c_str(), "%d-%d-%d", &t.tm_year, &t.tm_mon, &t.tm_mday) != 3) return 0;
@@ -372,16 +386,10 @@ std::map<std::string, DrillReview, std::less<>> schedule_skills(std::map<std::st
     if (std::ranges::find(seen, it.skill) == seen.end()) seen.push_back(it.skill);
   }
   for (const std::string& skill : seen) {
-    bool any = false;
-    bool wrong = false;
-    for (std::size_t k = 0; k < items.size() && k < results.size(); ++k) {
-      if (items[k].skill != skill || results[k] == ItemResult::Skipped) continue;
-      any = true;
-      wrong = wrong || results[k] == ItemResult::Wrong;
-    }
-    if (!any) continue;
+    const auto wrong = any_wrong(items, results, skill);
+    if (!wrong) continue;  // every item of the skill skipped
     const auto old = before.find(skill);
-    const int box = wrong ? 1 : std::min(static_cast<int>(academy::kReviewDays.size()), (old == before.end() ? 1 : old->second.box) + 1);
+    const int box = *wrong ? 1 : std::min(static_cast<int>(academy::kReviewDays.size()), (old == before.end() ? 1 : old->second.box) + 1);
     reviews[skill] = {box, day_start(academy::add_days(date, academy::kReviewDays[static_cast<std::size_t>(box - 1)]))};
   }
   return reviews;
