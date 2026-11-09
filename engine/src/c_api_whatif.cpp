@@ -77,6 +77,37 @@ bool read_legs(const JsonValue& root, std::vector<WhatIfLeg>& out, bool run) {
   return true;
 }
 
+// {"lo","hi","points","bars":[...]} (run) or "minutes":[...] (run-less); design D4 of
+// add-practice-and-advanced-strategies.
+bool read_times(const JsonValue& o, std::string_view key, std::vector<std::uint32_t>& out) {
+  const JsonValue* v = o.find(key);
+  if (v == nullptr) return true;
+  if (!v->is(Kind::Array) || v->items.size() > 25) return false;
+  for (const JsonValue& t : v->items) {
+    if (!t.is(Kind::Int) || t.integer < 0 || t.integer > 0xFFFFFFFFLL) return false;
+    out.push_back(static_cast<std::uint32_t>(t.integer));
+  }
+  return true;
+}
+
+bool read_heatmap(const JsonValue& root, WhatIfRequest& r, bool run) {
+  const JsonValue* h = root.find("heatmap");
+  if (h == nullptr) return true;
+  if (!h->is(Kind::Object)) return false;
+  WhatIfHeatmapSpec spec;
+  const bool ok = read_dec(*h, "lo", &spec.lo) && read_dec(*h, "hi", &spec.hi) && read_uint(*h, "points", &spec.points) &&
+                  read_times(*h, run ? "bars" : "minutes", spec.times);
+  if (ok) r.heatmap = spec;
+  return ok;
+}
+
+bool read_holdings(const JsonValue& root, WhatIfRequest& r) {
+  const JsonValue* v = root.find("holdings");
+  if (v == nullptr) return true;
+  r.holdings = v->is(Kind::Bool) && v->boolean;
+  return v->is(Kind::Bool);
+}
+
 bool read_shift_grid(const JsonValue& root, WhatIfRequest& r) {
   if (const JsonValue* s = root.find("shift"); s != nullptr) {
     if (!s->is(Kind::Object)) return false;
@@ -96,10 +127,13 @@ bool parse_request(const char* json, WhatIfRequest& r, bool run) {
   const detail::JsonParse p = detail::parse_json(json);
   if (!p.ok || !p.value.is(Kind::Object)) return false;
   const JsonValue& root = p.value;
-  if (!read_legs(root, r.legs, run) || !read_shift_grid(root, r)) return false;
-  if (run) return true;
+  const JsonValue* legs = root.find("legs");
+  const bool holdings_only = run && legs == nullptr && root.find("holdings") != nullptr;  // {"holdings":true}
+  if ((!holdings_only && !read_legs(root, r.legs, run)) || !read_shift_grid(root, r) || !read_heatmap(root, r, run)) return false;
+  if (run) return read_holdings(root, r);
   return read_dec(root, "forward", &r.forward) && read_dec(root, "multiplier", &r.multiplier) &&
-         read_uint(root, "minutesPerStep", &r.minutes_per_step);
+         read_uint(root, "minutesPerStep", &r.minutes_per_step) && read_dec(root, "tick", &r.tick) &&
+         root.find("holdings") == nullptr;
 }
 
 void dec_or_null(JsonOut& j, std::string_view key, const std::optional<Money>& v) {
@@ -139,6 +173,54 @@ void write_expiry(JsonOut& j, const std::optional<ExpiryAnalytics>& e) {
   j.end_obj();
 }
 
+void write_horizon(JsonOut& j, const HorizonAnalytics& h) {
+  j.key("horizon").begin_obj().field("expiryStep", h.expiry).key("breakevens").begin_arr();
+  for (const Price b : h.breakevens) j.dec(b);
+  j.end_arr();
+  dec_or_null(j, "maxProfit", h.max_profit);
+  dec_or_null(j, "maxLoss", h.max_loss);
+  j.field("unboundedAbove", h.unbounded_above);
+  write_curve(j, "curve", h.curve);
+  j.end_obj();
+}
+
+void write_heatmap(JsonOut& j, const WhatIfHeatmap& m) {
+  j.key("heatmap").begin_obj().key("prices").begin_arr();
+  for (const Price p : m.prices) j.dec(p);
+  j.end_arr().key("times").begin_arr();
+  for (const std::uint32_t t : m.times) j.num(t);
+  j.end_arr().key("pnl").begin_arr();
+  for (const std::vector<Money>& row : m.pnl) {
+    j.begin_arr();
+    for (const Money v : row) j.dec(v);
+    j.end_arr();
+  }
+  j.end_arr().end_obj();
+}
+
+const char* limit_kind(RiskLimitKind k) {
+  switch (k) {
+    case RiskLimitKind::Delta: return "delta";
+    case RiskLimitKind::Gamma: return "gamma";
+    case RiskLimitKind::Vega: return "vega";
+    case RiskLimitKind::Theta: return "theta";
+  }
+  return "delta";
+}
+
+void write_risk(JsonOut& j, const RiskBlock& r) {
+  j.key("risk").begin_obj().field("deltaUnits", r.delta_units).field("deltaNotional", r.delta_notional);
+  j.field("gamma1pct", r.gamma_1pct).field("vegaPoint", r.vega_point).field("thetaBar", r.theta_bar);
+  j.field("fundingNext", r.funding_next).field("deltaBp", r.delta_bp).field("gammaBp", r.gamma_bp);
+  j.field("vegaBp", r.vega_bp).field("thetaBp", r.theta_bp).field("fundingBp", r.funding_bp).field("equity", r.equity);
+  j.key("limits").begin_arr();
+  for (const RiskLimitCheck& c : r.limits) {
+    j.begin_obj().field("kind", limit_kind(c.kind)).field("limitBp", c.limit_bp).field("valueBp", c.value_bp);
+    j.field("exceeded", c.exceeded).end_obj();
+  }
+  j.end_arr().end_obj();
+}
+
 const char* error_text(WhatIfError e) {
   return e == WhatIfError::SeriesNotListed ? "{\"error\":\"series_not_listed\"}" : "{\"error\":\"invalid_input\"}";
 }
@@ -152,14 +234,48 @@ std::string whatif_json(const WhatIfResult& r) {
   j.field("gamma", r.net.gamma).field("theta", r.net.theta).field("vega", r.net.vega).end_obj();
   write_expiry(j, r.expiry);
   write_curve(j, "today", r.today);
+  if (r.horizon) write_horizon(j, *r.horizon);  // design D4: only for legs on different expiries
+  if (r.heatmap) write_heatmap(j, *r.heatmap);
+  if (r.risk) write_risk(j, *r.risk);
   j.end_obj();
   return j.text();
 }
 
+// Design D2 of add-practice-and-advanced-strategies: an option leg may be a limit at `premium` with a
+// time in force ("gtc" | "bars" with tifBars | "ioc" | "fok"); absent fields keep a market leg.
+bool read_combo_order(const JsonValue& o, ComboLeg& c) {
+  const std::string type = text_of(o, "type");
+  if (!type.empty() && type != "market" && type != "limit") return false;
+  c.type = type == "limit" ? OrderType::Limit : OrderType::Market;
+  bool has_premium = false;
+  if (!read_dec(o, "premium", &c.premium, &has_premium) || !read_uint(o, "tifBars", &c.tif_bars)) return false;
+  const std::string tif = text_of(o, "tif");
+  constexpr std::string_view kTifs[] = {"gtc", "bars", "ioc", "fok"};
+  bool known = tif.empty();
+  for (std::size_t i = 0; i < 4; ++i) {
+    if (tif != kTifs[i]) continue;
+    c.tif = static_cast<TimeInForce>(i);
+    known = true;
+  }
+  const bool limit = c.type == OrderType::Limit;
+  return known && limit == has_premium && (!limit || !c.perp);
+}
+
 bool parse_combo(const char* json, std::vector<ComboLeg>& out) {
   WhatIfRequest r;
-  if (!parse_request(json, r, true) || r.legs.empty() || r.legs.size() > 8) return false;
-  for (const WhatIfLeg& l : r.legs) out.push_back({l.perp, l.series, l.side, l.qty});
+  if (!parse_request(json, r, true) || r.legs.empty() || r.legs.size() > 8 || r.holdings) return false;
+  const detail::JsonParse p = detail::parse_json(json);
+  const std::vector<JsonValue>& items = p.value.find("legs")->items;
+  for (std::size_t i = 0; i < r.legs.size(); ++i) {
+    const WhatIfLeg& l = r.legs[i];
+    ComboLeg c;
+    c.perp = l.perp;
+    c.series = l.series;
+    c.side = l.side;
+    c.qty = l.qty;
+    if (!read_combo_order(items[i], c)) return false;
+    out.push_back(c);
+  }
   return true;
 }
 

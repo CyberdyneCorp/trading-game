@@ -213,6 +213,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_spread_margin.cpp
     tests/test_strategy_comparison.cpp
     tests/test_whatif.cpp
+    tests/test_whatif_v2.cpp
     tests/test_prng.cpp
     tests/test_scoring.cpp
     tests/test_lessons.cpp

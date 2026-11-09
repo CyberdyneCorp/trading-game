@@ -22,6 +22,8 @@
     "reveal-m11",
     "whatif-call",
     "whatif-condor",
-    "whatif-covered-call"
+    "whatif-covered-call",
+    "whatif-calendar",
+    "whatif-heatmap"
   ]
 }

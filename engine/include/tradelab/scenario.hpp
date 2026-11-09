@@ -77,6 +77,17 @@ inline std::vector<Objective> common_objectives() {
   return {{ObjectiveCode::PlanEveryEntry, 0}, {ObjectiveCode::RiskPerIdea, 200}, {ObjectiveCode::NoLiquidationWaitOk, 0}};
 }
 
+// Per-mission portfolio risk limits in basis points of equity (design D9 of
+// add-practice-and-advanced-strategies), all optional (0 = none). Never inputs to execution: the
+// what-if's risk block flags a total above its limit and the client warns, never blocks.
+struct RiskLimits {
+  std::uint32_t delta_bp = 0;  // |delta notional|
+  std::uint32_t gamma_bp = 0;  // P&L from gamma of a 1% move
+  std::uint32_t vega_bp = 0;   // |net vega per volatility point|
+  std::uint32_t theta_bp = 0;  // theta burn per bar (-theta)
+  [[nodiscard]] bool any() const { return delta_bp != 0 || gamma_bp != 0 || vega_bp != 0 || theta_bp != 0; }
+};
+
 struct MissionRules {
   Money initial_balance;
   std::int32_t leverage_cap = 1;
@@ -91,6 +102,7 @@ struct MissionRules {
   std::uint32_t drawdown_budget_bp = 2000;  // max drawdown the mission allows, share of the run's initial capital
   bool confirm_stop_beyond_liq = true;      // the ticket asks for explicit confirmation of a stop beyond liquidation
   GapPolicy gap_policy = GapPolicy::Skip;  // continuity bars in indicators (policy v17)
+  RiskLimits risk_limits;                   // portfolio risk limits (design D9); none by default
 };
 
 // European, cash-settled option on the perpetual price (spec: options).
@@ -130,6 +142,11 @@ struct OptionSpec {
   // same kind and expiry is margined at the smaller of its per-leg margin and its worst loss at
   // expiry. Off: every short is margined on its own, exactly as before.
   bool spread_margin = false;
+  // Calendar margin (design D5 of add-practice-and-advanced-strategies), valid only with spread_margin:
+  // a long of the same kind expiring at or after the short's expiry may cover it too (same expiry
+  // first, then later expiries ascending, then series id), at the vertical requirement. Off: pairing
+  // stays within one expiry, exactly as before.
+  bool calendar_margin = false;
 };
 
 // What the player can see about a news item once released (spec: market-generator "Events").

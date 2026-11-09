@@ -58,6 +58,16 @@ void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
 
 // The mission's rules as the run plays them (task 4.1): what the briefing lists and the ticket enforces.
 // Permissions come from the contract and the option spec, so the client never decides them.
+// Design D9 of add-practice-and-advanced-strategies: only the declared limits.
+void write_risk_limits(JsonOut& j, const RiskLimits& r) {
+  j.key("riskLimits").begin_obj();
+  if (r.delta_bp != 0) j.field("deltaBp", r.delta_bp);
+  if (r.gamma_bp != 0) j.field("gammaBp", r.gamma_bp);
+  if (r.vega_bp != 0) j.field("vegaBp", r.vega_bp);
+  if (r.theta_bp != 0) j.field("thetaBp", r.theta_bp);
+  j.end_obj();
+}
+
 void write_mission_rules(JsonOut& j, const Scenario& sc, const RunState& st) {
   const MissionRules& m = sc.mission;
   const bool options = !sc.options.series.empty();
@@ -71,6 +81,10 @@ void write_mission_rules(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.end_arr();
   j.field("liqWarningBp", m.liq_warning_bp).field("drawdownBudgetBp", m.drawdown_budget_bp);
   j.field("confirmStopBeyondLiq", m.confirm_stop_beyond_liq).field("spreadMargin", sc.options.spread_margin);
+  // Design D5/D9 of add-practice-and-advanced-strategies: written only when declared, so every mission
+  // without them serializes exactly as before.
+  if (sc.options.calendar_margin) j.field("calendarMargin", true);
+  if (m.risk_limits.any()) write_risk_limits(j, m.risk_limits);
   j.end_obj();
 }
 

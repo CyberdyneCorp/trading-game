@@ -63,6 +63,7 @@ bool options_valid(const Scenario& s) {
   for (std::uint32_t i = 0; i < o.series.size(); ++i) {
     if (!series_valid(s, o.series[i], i)) return false;
   }
+  if (o.calendar_margin && !o.spread_margin) return false;  // calendar pairing extends spread margin
   return o.im_floor.raw > 0 && o.mm_base.raw > 0 && o.settlement_minutes >= 1;
 }
 

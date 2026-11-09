@@ -89,3 +89,32 @@ def test_replay_applies_oco_and_tif_actions() -> None:
     result = replay(MISSION, SEED, actions)
     assert all(r is None or r["accepted"] for r in result.results)
     assert result.state["position"]["qty"] == "10.00000000"
+
+
+def test_whatif_horizon_heatmap_and_holdings() -> None:
+    calendar = {"forward": "100", "minutesPerStep": 1440, "multiplier": "1", "legs": [
+        {"kind": "call", "side": "sell", "qty": "1", "strike": "100", "minutesToExpiry": 14400, "iv": "0.6", "entry": "4"},
+        {"kind": "call", "side": "buy", "qty": "1", "strike": "100", "minutesToExpiry": 57600, "iv": "0.6", "entry": "8"}],
+        "heatmap": {"lo": "80", "hi": "120", "points": 5, "minutes": [0, 14400]}}
+    from tradelab_engine import option_whatif
+    r = option_whatif(calendar)
+    assert r["expiry"] is None
+    assert len(r["horizon"]["breakevens"]) == 2 and r["horizon"]["unboundedAbove"] is False
+    assert r["heatmap"]["times"] == [0, 14400] and len(r["heatmap"]["pnl"][0]) == 5
+    with Run(MISSION, SEED) as run:
+        assert run.place_order(1, 0, 0, "10", None, False)["accepted"]
+        run.advance(1)
+        p = run.portfolio()
+        assert p["risk"]["deltaUnits"] == "10.00000000"
+        assert p["risk"]["limits"] == []
+        hedged = run.portfolio([{"kind": "perp", "side": "sell", "qty": "10"}])
+        assert hedged["risk"]["deltaUnits"] == "0.00000000"
+
+
+def test_combo_preview_limit_leg() -> None:
+    with Run("m16-range-condor", 9) as run:
+        run.advance(1)
+        series = next(q["id"] for q in run.state()["options"]["chain"] if q["listed"])
+        p = run.combo_preview([{"series": series, "side": "buy", "qty": "1", "type": "limit", "premium": "0.10",
+                                "tif": "ioc"}])
+        assert p["accepted"] and p["legs"][0]["premium"] == "0.10000000"

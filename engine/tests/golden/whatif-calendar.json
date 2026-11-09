@@ -1,0 +1,59 @@
+{
+  "format": 1,
+  "kind": "whatif",
+  "name": "whatif-calendar",
+  "description": "A long call calendar at 100 (write 10 days at 4, buy 40 days at 8, 2 units) and a 105/100 call diagonal leg: no common expiry, so the horizon analytics at the first expiry (tick 0.05): breakevens on the tick grid, bounded both ways.",
+  "request": {
+    "forward": "100",
+    "minutesPerStep": 1440,
+    "multiplier": "1",
+    "tick": "0.05",
+    "legs": [
+      {"kind": "call", "side": "sell", "qty": "2", "strike": "100", "minutesToExpiry": 14400, "iv": "0.6", "entry": "4"},
+      {"kind": "call", "side": "buy", "qty": "2", "strike": "100", "minutesToExpiry": 57600, "iv": "0.6", "entry": "8"}
+    ],
+    "grid": {"lo": "80", "hi": "120", "points": 9}
+  },
+  "expected": {
+    "result": {
+      "forward": "100.00000000",
+      "atExpiry": false,
+      "legs": [
+        {"kind": "call", "side": "sell", "qty": "2.00000000", "series": 0, "expiryStep": 0, "strike": "100.00000000", "entry": "4.00000000", "value": "3.96037615", "iv": "0.60000000", "ivFloored": false, "delta": "0.5198018807", "gamma": "0.0401208214", "theta": "-0.19785611", "vega": "0.06595204", "positionValue": "-7.92075230", "pnl": "0.07924770"},
+        {"kind": "call", "side": "buy", "qty": "2.00000000", "series": 0, "expiryStep": 0, "strike": "100.00000000", "entry": "8.00000000", "value": "7.91100101", "iv": "0.60000000", "ivFloored": false, "delta": "0.5395550051", "gamma": "0.0199863517", "theta": "-0.09856283", "vega": "0.13141711", "positionValue": "15.82200202", "pnl": "-0.17799798"}
+      ],
+      "net": {"value": "7.90124972", "pnl": "-0.09875028", "delta": "0.03950625", "gamma": "-0.04026894", "theta": "0.19858656", "vega": "0.13093014"},
+      "expiry": null,
+      "today": [
+        ["80.00000000", "-5.75613384"],
+        ["85.00000000", "-4.13953896"],
+        ["90.00000000", "-2.30686464"],
+        ["95.00000000", "-0.79318882"],
+        ["100.00000000", "-0.09875028"],
+        ["105.00000000", "-0.37559452"],
+        ["110.00000000", "-1.38960652"],
+        ["115.00000000", "-2.73554102"],
+        ["120.00000000", "-4.06748844"]
+      ],
+      "horizon": {
+        "expiryStep": 14400,
+        "breakevens": ["93.85000000", "107.40000000"],
+        "maxProfit": "5.70788144",
+        "maxLoss": "8.00000000",
+        "unboundedAbove": false,
+        "curve": [
+          ["80.00000000", "-6.59440476"],
+          ["85.00000000", "-5.07445076"],
+          ["90.00000000", "-2.61686302"],
+          ["95.00000000", "0.95340982"],
+          ["100.00000000", "5.70788144"],
+          ["105.00000000", "1.61049222"],
+          ["110.00000000", "-1.45947900"],
+          ["115.00000000", "-3.67156144"],
+          ["120.00000000", "-5.20903670"]
+        ]
+      }
+    }
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

@@ -1,6 +1,7 @@
 // Combo dry run (design D4 of add-academy-and-strategies, tl_combo_preview): the builder's legs are
-// applied in order, as market orders, to a copy of the run state with the real command functions.
-// The copy is discarded; the run is never touched.
+// applied in order to a copy of the run state with the real command functions: market orders, or
+// (design D2 of add-practice-and-advanced-strategies) option limits at their premium with the combo's
+// time in force. The copy is discarded; the run is never touched.
 
 #include <algorithm>
 
@@ -25,12 +26,19 @@ Command leg_command(const RunState& st, const ComboLeg& l, std::uint64_t client_
   c.seq = st.last_command_seq + 1;
   c.decision_step = st.step;
   c.client_id = client_id;
-  c.order_type = OrderType::Market;
+  c.order_type = l.type;
+  c.price = l.type == OrderType::Limit ? l.premium : Price{};
   c.side = l.side;
   c.qty = l.qty;
   c.series = l.series;
+  if (l.type == OrderType::Limit) {  // market legs ignore the combo's time in force (D2)
+    c.tif = l.tif;
+    c.tif_bars = l.tif_bars;
+  }
   return c;
 }
+
+bool is_limit(const ComboLeg& l) { return l.type == OrderType::Limit; }
 
 // The estimate shown before placing: the quote crossed, the premium and the fee.
 void estimate_option(const Scenario& sc, const RunState& st, const ComboLeg& l, ComboLegResult& r) {
@@ -40,8 +48,9 @@ void estimate_option(const Scenario& sc, const RunState& st, const ComboLeg& l, 
   const Price f = sc.bars[st.step].close;
   const OptionQuote q = quote(sc, *s, st.step, f);
   r.quote = l.side == OrderSide::Buy ? q.ask : q.bid;
-  r.premium = detail::units_value(sc, l.qty, r.quote, Rounding::HalfEven);
-  r.fee = detail::option_fee(sc, l.qty, r.quote, f);
+  const Price paid = is_limit(l) ? l.premium : r.quote;  // a limit leg is valued at its limit (D2)
+  r.premium = detail::units_value(sc, l.qty, paid, Rounding::HalfEven);
+  r.fee = detail::option_fee(sc, l.qty, paid, f);
   r.required = detail::option_order_requirement(sc, st, *s, l.side, l.qty);
 }
 
@@ -51,6 +60,10 @@ void estimate_perp(const Scenario& sc, const RunState& st, const ComboLeg& l, Co
 }
 
 void fill_estimate(const Scenario& sc, RunState& st, const ComboLeg& l) {
+  if (!l.perp && is_limit(l)) {
+    detail::fill_option_at(sc, st, *find_series(sc, l.series), l.side, l.qty, l.premium);
+    return;
+  }
   if (!l.perp) {
     detail::fill_option_at_quote(sc, st, *find_series(sc, l.series), l.side, l.qty);
     return;

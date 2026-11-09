@@ -285,6 +285,10 @@ void fill_option_at_quote(const Scenario& sc, RunState& st, const OptionSeries& 
   apply_option_trade(sc, st, s.id, side, qty, side == OrderSide::Buy ? q.ask : q.bid, f, 0);
 }
 
+void fill_option_at(const Scenario& sc, RunState& st, const OptionSeries& s, OrderSide side, Qty qty, Price premium) {
+  apply_option_trade(sc, st, s.id, side, qty, premium, sc.bars[st.step].close, 0);
+}
+
 CommandResult place_option_order(const Scenario& sc, RunState& st, const Command& c, Money available) {
   const OptionSeries* s = find_series(sc, c.series);
   if (const Reason r = validate_option(sc, st, c, s); r != Reason::None) return reject(r);

@@ -386,11 +386,20 @@ class Run:
 
     # --- report-only option analysis (never changes the run) ---
     def option_whatif(self, request: Mapping[str, Any]) -> Any:
-        """The run's what-if valuation (tl_run_option_whatif): legs by series id or the perpetual."""
+        """The run's what-if valuation (tl_run_option_whatif): legs by series id or the perpetual.
+
+        add-practice-and-advanced-strategies D4: legs on different expiries add "horizon"; a "heatmap"
+        request ({"lo","hi","points","bars":[...]}) adds the P&L grid; "holdings": True puts the run's
+        positions first and adds the "risk" block."""
         return _json(self._lib.tl_run_option_whatif(self._h, json.dumps(request).encode()))
 
+    def portfolio(self, legs: list[Mapping[str, Any]] | None = None) -> Any:
+        """The holdings' what-if with its risk block (holdings: True), plus optional proposed legs."""
+        return self.option_whatif({"holdings": True, "legs": list(legs or [])})
+
     def combo_preview(self, legs: list[Mapping[str, Any]]) -> Any:
-        """Dry run of market legs in order (tl_combo_preview) on a copy of the run state."""
+        """Dry run of the legs in order (tl_combo_preview) on a copy of the run state: market legs, or
+        option limit legs with "type": "limit", "premium" and the combo's "tif"/"tifBars" (D2)."""
         return _json(self._lib.tl_combo_preview(self._h, json.dumps({"legs": legs}).encode()))
 
     def checkpoint(self) -> str:
