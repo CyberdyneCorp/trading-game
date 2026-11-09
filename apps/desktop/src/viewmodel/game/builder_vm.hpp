@@ -130,6 +130,7 @@ class BuilderViewModel {
   int far_expiry = 0;                      // D3: the later expiry of a calendar or diagonal
   TifChoice tif_choice = TifChoice::Ioc;   // D2: one time in force for the limit legs, IOC by default
   std::string tif_bars = "3";
+  bool heatmap_open = false;  // D4: the P&L heatmap asks the engine only while shown
 
   // Keeps the expiry on one that takes orders now.
   void sync(const GameState& g);

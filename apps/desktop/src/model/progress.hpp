@@ -74,6 +74,15 @@ struct AssistedLink {
 
 // ---- Runs and their journal (analysis.ts PlanEntry, storage.ts RunRecord) ----
 
+// A planned trailing stop (add-practice-and-advanced-strategies D10): "Protect with: trailing stop"
+// records the rule with the plan; it is offered after the fill and never sent without a click. Client
+// data only: it reaches no action log or run file.
+struct PlanTrail {
+  bool pct = false;   // false: a price distance
+  std::string value;  // the distance or the percent as typed
+  bool operator==(const PlanTrail&) const = default;
+};
+
 struct PlanEntry {
   int step = 0;
   bool buy = true;
@@ -86,6 +95,7 @@ struct PlanEntry {
   std::string lose_scenario;
   std::string instrument;  // option series label or combo name ("Iron condor · 4 legs"); empty = perpetual
   std::string combo;       // the strategy-builder combo this plan opened ("c1"); empty = none
+  std::optional<PlanTrail> trail;
 };
 
 enum class RunStatus : std::uint8_t { Active, Finished, Bankrupt, Left };

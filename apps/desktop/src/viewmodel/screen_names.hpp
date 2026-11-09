@@ -42,6 +42,7 @@ inline constexpr std::string_view kBriefMmr = "brief-mmr";
 inline constexpr std::string_view kBriefTiers = "brief-tiers";
 inline constexpr std::string_view kBriefMark = "brief-mark";
 inline constexpr std::string_view kBriefMarginRule = "brief-margin-rule";
+inline constexpr std::string_view kBriefRiskLimits = "brief-risk-limits";
 inline constexpr std::string_view kBriefCosts = "brief-costs";
 inline constexpr std::string_view kBriefShocks = "brief-shocks";
 inline constexpr std::string_view kBriefObjectivesTitle = "brief-objectives-title";
@@ -177,7 +178,7 @@ inline constexpr auto kShellWidgets = std::to_array<std::string_view>({
     kMenuResumeRow, kMenuResumeText, kMenuResume, kMenuUpdateRow, kMenuUpdateText, kMenuUpdateInstall, kMenuCurriculum, kMenuJournal, kMenuStats, kMenuSettings, kMenuDetailDone,
     kCampaignTitle, kCampaignNote, kCampaignSteps, kCampaignProgress, kCampaignEnded, kCampaignStart, kCampaignContinue,
     kCampaignEnd, kCampaignConfirmRow, kCampaignConfirm, kCampaignEndYes, kCampaignEndNo, kCampaignPlayed,
-    kBriefPermissions, kBriefNotAllowed, kBriefLimits, kBriefMmr, kBriefTiers, kBriefMark, kBriefMarginRule, kBriefCosts, kBriefShocks,
+    kBriefPermissions, kBriefNotAllowed, kBriefLimits, kBriefMmr, kBriefTiers, kBriefMark, kBriefMarginRule, kBriefRiskLimits, kBriefCosts, kBriefShocks,
     kBriefObjectivesTitle, kBriefObjectives, kBriefLocked, kBriefRules, kBriefTopic, kDebriefMission, kDebriefTags,
     kDebriefCampaignPanel, kDebriefCampaign, kDebriefCampaignNext, kDebriefCampaignNew, kDebriefReportPanel,
     kDebriefReport, kDebriefReportRegimes, kDebriefOutcomeLines, kDebriefDims, kDebriefScoreNote, kDebriefRevealTitle,

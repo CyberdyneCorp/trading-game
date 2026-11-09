@@ -175,6 +175,7 @@ void GameView::apply_builder(const game::Texts& t, const GameState& g) {
   set_label(find(b::kLegging), v.legging);
   ui::set_text(find(b::kSubmit), t.tr("builder.submit"));
   set_enabled(find(b::kSubmit), v.can_submit);
+  apply_wave1_builder(t);
   Rwidget_invalidate(find(b::kPayoff));
 }
 

@@ -53,6 +53,16 @@ EngineCommands::AnalysisReply GameViewModel::guarded(std::function<void(GameView
 
 void GameViewModel::reset_combos() {
   builder = BuilderViewModel{};
+  live_.reset();
+  link_picks_.clear();
+  trail_handled_.clear();
+  portfolio_.reset();
+  portfolio_heatmap_.reset();
+  builder_heatmap_.reset();
+  portfolio_ticket_.forget();
+  heatmap_ticket_.forget();
+  live_ticket_.forget();
+  confirm_ = ConfirmKind::None;
   lab = LabViewModel{};
   pending_combo_.reset();
   dismissed_.clear();
@@ -67,6 +77,7 @@ void GameViewModel::reset_combos() {
 void GameViewModel::builder_changed() {
   if (state_) builder.sync(*state_);
   refresh_analysis();
+  refresh_builder_heatmap();
   touch();
 }
 

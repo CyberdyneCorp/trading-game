@@ -126,6 +126,8 @@ void GameView::apply_modal(const game::Texts& t, const GameState& g) {
     case Modal::Perks: apply_perks(t); break;
     case Modal::Lab:
     case Modal::ConfirmCombo: break;
+    case Modal::Confirm: apply_confirm(); break;
+    case Modal::Portfolio: apply_portfolio(t); break;
     case Modal::None: break;
   }
 }

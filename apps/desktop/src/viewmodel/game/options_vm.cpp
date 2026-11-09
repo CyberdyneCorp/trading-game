@@ -150,7 +150,8 @@ OptionTicketView OptionTicketViewModel::view(const Texts& t, const GameState& g,
                                  {{"avail", fmt::fmt_money(g.account.available, L)}});
   }
   v.limit_placeholder = fmt::fmt_num(buy ? c->q->ask : c->q->bid, L, 2);
-  v.can_submit = !busy && c->ok;
+  v.tif = tif_view(t, tif_choice, tif_bars, limit ? "limit" : "market", g.step_seconds, g.step, tif_left(g));
+  v.can_submit = !busy && c->ok && tif_now(g).ok();
   if (c->qty > 0) {
     v.lo = std::min(c->leg.strike, c->f) * 0.8;
     v.hi = std::max(c->leg.strike, c->f) * 1.2;
@@ -161,10 +162,24 @@ OptionTicketView OptionTicketViewModel::view(const Texts& t, const GameState& g,
   return v;
 }
 
+int OptionTicketViewModel::tif_left(const GameState& g) const {
+  const OptionQuote* q = quote(g);
+  return std::min(bars_left(g.total_bars, g.step), q != nullptr ? std::max(0, q->expiry_step - g.step - 1) : 0);
+}
+
+TifOrder OptionTicketViewModel::tif_now(const GameState& g) const {
+  const std::string type = limit ? "limit" : "market";
+  const TifChoice c = tif_block(tif_choice, type).empty() ? tif_choice : TifChoice::Gtc;
+  return tif_order(c, fmt::parse_decimal(tif_bars), g.step_seconds, tif_left(g));
+}
+
 std::optional<OptionDraft> OptionTicketViewModel::draft(const Texts& t, const GameState& g, bool busy) const {
   const auto c = calc(g);
-  if (!c || busy || !c->ok) return std::nullopt;
+  const TifOrder tif = tif_now(g);
+  if (!c || busy || !c->ok || !tif.ok()) return std::nullopt;
   OptionDraft d;
+  d.tif = tif.tif == "gtc" ? std::string() : tif.tif;
+  d.tif_bars = tif.bars;
   d.series = c->q->id;
   d.label = series_label(*c->q, t.locale());
   d.buy = buy;

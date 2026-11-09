@@ -91,6 +91,14 @@
                         <Separator/>
                         <Label Name="game-rail-funding" Color="#E3F5EA" TextSize="12" Wrap="true"/>
                         <Separator/>
+                        <!-- add-practice-and-advanced-strategies D9: the portfolio's totals and limit warnings. -->
+                        <VBox Name="game-rail-portfolio" Spacing="2">
+                            <Label Name="game-rail-portfolio-title" Color="#8FB3A1" TextSize="12"/>
+                            <Label Name="game-rail-portfolio-totals" Color="#E3F5EA" TextSize="12" Wrap="true"/>
+                            <Label Name="game-rail-portfolio-warn" Color="#FFC857" TextSize="12" Wrap="true"/>
+                            <Button Name="game-rail-portfolio-open" Slot.HAlign="Left"/>
+                            <Separator/>
+                        </VBox>
                         <Label Name="game-rail-objectives" Color="#8FB3A1" TextSize="12" Wrap="true"/>
                         <Border Name="game-assist" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6">
                             <VBox Spacing="4">
@@ -119,6 +127,16 @@
                         </WrapBox>
                         <Switcher Name="game-ticket-switch">
                             <VBox Spacing="4">
+                                <!-- D10: the planned trailing stop, offered after the fill; nothing is sent from here. -->
+                                <Border Name="game-trail-notice" Background="#121C1B" BorderColor="#FFC857" BorderWidth="1" Padding="6">
+                                    <VBox Spacing="3">
+                                        <Label Name="game-trail-notice-text" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                                        <WrapBox Spacing="4">
+                                            <Button Name="game-trail-notice-place" Style="Primary"/>
+                                            <Button Name="game-trail-notice-dismiss"/>
+                                        </WrapBox>
+                                    </VBox>
+                                </Border>
                                 <HBox Spacing="4">
                                     <Button Name="game-buy" Slot.Fill="1" OnClicked="tl.game.buy"/>
                                     <Button Name="game-sell" Slot.Fill="1" OnClicked="tl.game.sell"/>
@@ -142,16 +160,42 @@
                                     <Label Name="game-price-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
                                     <TextInput Name="game-price" Slot.Fill="1"/>
                                 </HBox>
-                                <HBox Spacing="4">
-                                    <Label Text="SL" Color="#FFC857" Width="24" Slot.VAlign="Center"/>
-                                    <TextInput Name="game-stop" Slot.Fill="1"/>
-                                    <Button Name="game-stop-pick" Text="⌖"/>
-                                </HBox>
-                                <WrapBox Spacing="3">
-                                    <Button Name="game-stop-chip-0"/><Button Name="game-stop-chip-1"/><Button Name="game-stop-chip-2"/>
-                                    <Button Name="game-stop-chip-3"/><Button Name="game-stop-chip-4"/>
+                                <VBox Spacing="3">
+                                    <HBox Spacing="4">
+                                        <Label Name="game-tif-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                        <ComboBox Name="game-tif" Slot.Fill="1"/>
+                                    </HBox>
+                                    <HBox Name="game-tif-bars-row" Spacing="4">
+                                        <Label Name="game-tif-bars-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                        <TextInput Name="game-tif-bars" Width="56"/>
+                                    </HBox>
+                                    <Label Name="game-tif-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
+                                </VBox>
+                                <WrapBox Name="game-protect-with" Spacing="4" AccessibleRole="Group">
+                                    <Label Name="game-protect-with-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                    <Button Name="game-protect-fixed"/>
+                                    <Button Name="game-protect-trail"/>
                                 </WrapBox>
-                                <Label Name="game-stop-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
+                                <VBox Name="game-plan-trail-box" Spacing="3">
+                                    <HBox Spacing="4">
+                                        <Button Name="game-plan-trail-price" Slot.Fill="1"/>
+                                        <Button Name="game-plan-trail-pct" Slot.Fill="1"/>
+                                    </HBox>
+                                    <TextInput Name="game-plan-trail"/>
+                                    <Label Name="game-plan-trail-note" Color="#5FD7FF" TextSize="11" Wrap="true"/>
+                                </VBox>
+                                <VBox Name="game-stop-box" Spacing="3">
+                                    <HBox Spacing="4">
+                                        <Label Text="SL" Color="#FFC857" Width="24" Slot.VAlign="Center"/>
+                                        <TextInput Name="game-stop" Slot.Fill="1"/>
+                                        <Button Name="game-stop-pick" Text="⌖"/>
+                                    </HBox>
+                                    <WrapBox Spacing="3">
+                                        <Button Name="game-stop-chip-0"/><Button Name="game-stop-chip-1"/><Button Name="game-stop-chip-2"/>
+                                        <Button Name="game-stop-chip-3"/><Button Name="game-stop-chip-4"/>
+                                    </WrapBox>
+                                    <Label Name="game-stop-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
+                                </VBox>
                                 <HBox Spacing="4">
                                     <Label Text="TP" Color="#39FF88" Width="24" Slot.VAlign="Center"/>
                                     <TextInput Name="game-tp" Slot.Fill="1"/>
@@ -168,35 +212,47 @@
                                 <VBox Name="game-protect" Spacing="4">
                                     <Separator/>
                                     <Label Name="game-unprotected" Color="#FFC857" Wrap="true" TextSize="12"/>
-                                    <HBox Spacing="4">
-                                        <Label Text="SL" Color="#FFC857" Width="24" Slot.VAlign="Center"/>
-                                        <TextInput Name="game-pstop" Slot.Fill="1"/>
-                                        <Button Name="game-pstop-pick" Text="⌖"/>
+                                    <HBox Name="game-ptabs" Spacing="3" AccessibleRole="Group">
+                                        <Button Name="game-ptab-stop" Slot.Fill="1"/>
+                                        <Button Name="game-ptab-trail" Slot.Fill="1"/>
+                                        <Button Name="game-ptab-target" Slot.Fill="1"/>
                                     </HBox>
-                                    <WrapBox Spacing="3">
-                                        <Button Name="game-pstop-chip-0"/><Button Name="game-pstop-chip-1"/><Button Name="game-pstop-chip-2"/>
-                                        <Button Name="game-pstop-chip-3"/><Button Name="game-pstop-chip-4"/>
-                                    </WrapBox>
-                                    <Label Name="game-pstop-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
-                                    <HBox Spacing="4">
-                                        <Label Text="TP" Color="#39FF88" Width="24" Slot.VAlign="Center"/>
-                                        <TextInput Name="game-ptp" Slot.Fill="1"/>
-                                        <Button Name="game-ptp-pick" Text="⌖"/>
-                                    </HBox>
-                                    <WrapBox Spacing="3">
-                                        <Button Name="game-ptp-chip-0"/><Button Name="game-ptp-chip-1"/><Button Name="game-ptp-chip-2"/>
-                                    </WrapBox>
-                                    <Label Name="game-ptp-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
-                                    <HBox Spacing="4">
-                                        <Button Name="game-trail-price" Slot.Fill="1"/>
-                                        <Button Name="game-trail-pct" Slot.Fill="1"/>
-                                    </HBox>
-                                    <TextInput Name="game-trail"/>
-                                    <WrapBox Spacing="3">
-                                        <Button Name="game-trail-chip-0"/><Button Name="game-trail-chip-1"/><Button Name="game-trail-chip-2"/>
-                                        <Button Name="game-trail-chip-3"/>
-                                    </WrapBox>
-                                    <Label Name="game-trail-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
+                                    <VBox Name="game-pstop-box" Spacing="3">
+                                        <HBox Spacing="4">
+                                            <Label Text="SL" Color="#FFC857" Width="24" Slot.VAlign="Center"/>
+                                            <TextInput Name="game-pstop" Slot.Fill="1"/>
+                                            <Button Name="game-pstop-pick" Text="⌖"/>
+                                        </HBox>
+                                        <WrapBox Spacing="3">
+                                            <Button Name="game-pstop-chip-0"/><Button Name="game-pstop-chip-1"/><Button Name="game-pstop-chip-2"/>
+                                            <Button Name="game-pstop-chip-3"/><Button Name="game-pstop-chip-4"/>
+                                        </WrapBox>
+                                        <Label Name="game-pstop-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
+                                    </VBox>
+                                    <VBox Name="game-ptp-box" Spacing="3">
+                                        <HBox Spacing="4">
+                                            <Label Text="TP" Color="#39FF88" Width="24" Slot.VAlign="Center"/>
+                                            <TextInput Name="game-ptp" Slot.Fill="1"/>
+                                            <Button Name="game-ptp-pick" Text="⌖"/>
+                                        </HBox>
+                                        <WrapBox Spacing="3">
+                                            <Button Name="game-ptp-chip-0"/><Button Name="game-ptp-chip-1"/><Button Name="game-ptp-chip-2"/>
+                                        </WrapBox>
+                                        <Label Name="game-ptp-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
+                                    </VBox>
+                                    <VBox Name="game-ptrail-box" Spacing="3">
+                                        <HBox Spacing="4">
+                                            <Button Name="game-trail-price" Slot.Fill="1"/>
+                                            <Button Name="game-trail-pct" Slot.Fill="1"/>
+                                        </HBox>
+                                        <TextInput Name="game-trail"/>
+                                        <WrapBox Spacing="3">
+                                            <Button Name="game-trail-chip-0"/><Button Name="game-trail-chip-1"/><Button Name="game-trail-chip-2"/>
+                                            <Button Name="game-trail-chip-3"/>
+                                        </WrapBox>
+                                        <Label Name="game-trail-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
+                                        <Label Name="game-trail-rule" Color="#5FD7FF" TextSize="11" Wrap="true"/>
+                                    </VBox>
                                     <Label Name="game-pbeyond" Color="#FF5F7A" Wrap="true" TextSize="12"/>
                                     <Checkbox Name="game-pbeyond-confirm"/>
                                     <WrapBox Spacing="4">
@@ -216,6 +272,15 @@
                                     <ComboBox Name="game-opt-type" Slot.Fill="1"/>
                                 </HBox>
                                 <TextInput Name="game-opt-limit"/>
+                                <HBox Spacing="4">
+                                    <Label Name="game-opt-tif-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                    <ComboBox Name="game-opt-tif" Slot.Fill="1"/>
+                                </HBox>
+                                <HBox Name="game-opt-tif-bars-row" Spacing="4">
+                                    <Label Name="game-opt-tif-bars-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                    <TextInput Name="game-opt-tif-bars" Width="56"/>
+                                </HBox>
+                                <Label Name="game-opt-tif-hint" Color="#8FB3A1" TextSize="11" Wrap="true"/>
                                 <Label Name="game-opt-estimate" Color="#E3F5EA" TextSize="12" Wrap="true"/>
                                 <VBox Name="game-opt-notes" Spacing="2"/>
                                 <Custom Name="game-opt-payoff" Height="90"/>
@@ -295,9 +360,39 @@
                                     <Custom Name="game-builder-payoff" Height="110"/>
                                     <Label Name="game-builder-legend" Color="#8FB3A1" Wrap="true" TextSize="11"/>
                                     <VBox Name="game-builder-table" Spacing="1"/>
+                                    <Button Name="game-builder-heatmap-toggle" Slot.HAlign="Left"/>
+                                    <VBox Name="game-builder-heatmap" Spacing="3">
+                                        <Label Name="game-builder-heatmap-title" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                                        <Custom Name="game-builder-heatmap-grid" Height="150" Focusable="true"/>
+                                        <VBox Name="game-builder-heatmap-table" Spacing="1"/>
+                                        <Label Name="game-builder-heatmap-focus" Color="#E3F5EA" Wrap="true" TextSize="11"/>
+                                        <Label Name="game-builder-heatmap-legend" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                                        <Button Name="game-builder-heatmap-view" Slot.HAlign="Left"/>
+                                    </VBox>
                                     <Button Name="game-builder-open-lab"/>
                                     <Label Name="game-builder-legging" Color="#8FB3A1" Wrap="true" TextSize="11"/>
                                     <Button Name="game-builder-submit" Style="Primary"/>
+                                    <VBox Name="game-live" Spacing="3">
+                                        <Separator/>
+                                        <Label Name="game-live-title" Color="#39FF88" Wrap="true" AccessibleRole="Heading"/>
+                                        <VBox Name="game-live-combos" Spacing="2"/>
+                                        <VBox Name="game-live-panel" Spacing="3">
+                                            <Label Name="game-live-panel-title" Color="#FFC857" Wrap="true"/>
+                                            <Label Name="game-live-none" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                                            <ComboBox Name="game-live-to"/>
+                                            <Checkbox Name="game-live-recenter"/>
+                                            <Checkbox Name="game-live-limit"/>
+                                            <VBox Name="game-live-held" Spacing="2"/>
+                                            <Button Name="game-live-hedge" Slot.HAlign="Left"/>
+                                            <Label Name="game-live-hedge-none" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                                            <VBox Name="game-live-orders" Spacing="1"/>
+                                            <Label Name="game-live-totals" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                                            <WrapBox Spacing="4">
+                                                <Button Name="game-live-send" Style="Primary"/>
+                                                <Button Name="game-live-cancel"/>
+                                            </WrapBox>
+                                        </VBox>
+                                    </VBox>
                                 </VBox>
                             </VBox>
                         </Switcher>
@@ -325,12 +420,24 @@
                         </WrapBox>
                     </VBox>
                 </Border>
+                <!-- D2: a combo's limit legs still working after their first open. -->
+                <Border Name="game-working" Background="#121C1B" BorderColor="#5FD7FF" BorderWidth="1" Padding="6" Visibility="Collapsed">
+                    <VBox Spacing="3">
+                        <Label Name="game-working-title" Color="#5FD7FF" Wrap="true" AccessibleRole="Heading"/>
+                        <Label Name="game-working-text" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                        <Button Name="game-working-cancel" Slot.HAlign="Left"/>
+                    </VBox>
+                </Border>
                 <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="6" Slot.Fill="1">
                     <ScrollBox>
                         <VBox Spacing="2">
                             <Label Name="game-orders-title" Color="#8FB3A1"/>
                             <Label Name="game-orders-none" Color="#8FB3A1" TextSize="12"/>
                             <VBox Name="game-orders" Spacing="2"/>
+                            <VBox Name="game-orders-link-row" Spacing="2">
+                                <Button Name="game-orders-link" Slot.HAlign="Left"/>
+                                <Label Name="game-orders-link-hint" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                            </VBox>
                         </VBox>
                     </ScrollBox>
                 </Border>
@@ -501,6 +608,39 @@
                     <Button Name="game-combo-close-yes" Style="Primary"/>
                 </HBox>
             </VBox>
+            <VBox Spacing="8">
+                <Label Name="game-ask-title" Color="#FFC857" TextSize="18" Wrap="true"/>
+                <Label Name="game-ask-text" Color="#E3F5EA" Wrap="true"/>
+                <HBox Spacing="6">
+                    <Spacer Slot.Fill="1"/>
+                    <Button Name="game-ask-no"/>
+                    <Button Name="game-ask-yes" Style="Primary"/>
+                </HBox>
+            </VBox>
+            <ScrollBox Height="520">
+                <VBox Spacing="6">
+                    <Label Name="game-portfolio-title" Color="#39FF88" TextSize="18" AccessibleRole="Heading"/>
+                    <Label Name="game-portfolio-empty" Color="#8FB3A1" Wrap="true"/>
+                    <VBox Name="game-portfolio-rows" Spacing="1"/>
+                    <Label Name="game-portfolio-per-unit" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                    <Label Name="game-portfolio-totals" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                    <Label Name="game-portfolio-limits-title" Color="#8FB3A1" TextSize="13"/>
+                    <VBox Name="game-portfolio-limits" Spacing="1"/>
+                    <Label Name="game-portfolio-warnings" Color="#FFC857" Wrap="true" TextSize="12"/>
+                    <Button Name="game-portfolio-hedge" Slot.HAlign="Left"/>
+                    <Label Name="game-portfolio-hedge-note" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                    <Label Name="game-portfolio-heatmap-title" Color="#8FB3A1" Wrap="true" TextSize="12"/>
+                    <Custom Name="game-portfolio-heatmap-grid" Height="150" Focusable="true"/>
+                    <VBox Name="game-portfolio-heatmap-table" Spacing="1"/>
+                    <Label Name="game-portfolio-heatmap-focus" Color="#E3F5EA" Wrap="true" TextSize="11"/>
+                    <Label Name="game-portfolio-heatmap-legend" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                    <Button Name="game-portfolio-heatmap-view" Slot.HAlign="Left"/>
+                    <HBox Spacing="6">
+                        <Spacer Slot.Fill="1"/>
+                        <Button Name="game-portfolio-close" Style="Primary"/>
+                    </HBox>
+                </VBox>
+            </ScrollBox>
         </Switcher>
     </Border>
 </Border>

@@ -12,6 +12,7 @@
 
 #include "model/game_state.hpp"
 #include "model/i18n.hpp"
+#include "model/progress.hpp"
 
 namespace tradelab::desktop::game {
 
@@ -78,10 +79,7 @@ std::string trail_trigger(bool exit_sell, std::string_view close, std::string_vi
 std::string trail_label(const Order& o, Locale locale);
 
 // A planned trailing stop (D10): recorded with the plan, sent only when the player clicks after the fill.
-struct PlannedTrail {
-  bool pct = false;   // false: a price distance
-  std::string value;  // the distance or the percent as typed
-};
+using PlannedTrail = desktop::PlanTrail;
 // The trailing order a planned trail becomes: a fixed distance on the tick ("trail") or the engine
 // rate ("rate"); nullopt when the value is not usable.
 struct PlannedTrailOrder {

@@ -4,6 +4,9 @@
 // series, short writes not allowed, not enough balance).
 #pragma once
 
+#include "viewmodel/game/builder_vm.hpp"
+#include "viewmodel/game/order_rules.hpp"
+
 #include <optional>
 #include <string>
 #include <vector>
@@ -46,6 +49,8 @@ struct OptionDraft {
   std::string premium;  // "" for market
   bool opens_exposure = false;
   std::optional<double> risk;  // max loss of a buy, initial margin of a write (plan reference)
+  std::string tif;             // policy v18: "" = gtc, "bars" (tif_bars), "ioc", "fok"
+  int tif_bars = 0;
 };
 
 struct OptionTicketView {
@@ -55,6 +60,7 @@ struct OptionTicketView {
   std::optional<std::string> max_loss, margin;
   std::string short_locked, unbounded, no_bid, settling, cant_afford;
   std::string limit_placeholder;
+  TifView tif;  // policy v18 (D6): the time in force of the order
   bool can_submit = false;
   // Payoff at expiry (premium included, fees excluded) over [lo, hi].
   std::vector<PayoffPoint> curve;
@@ -68,6 +74,11 @@ class OptionTicketViewModel {
   bool limit = false;
   std::string qty = "1";
   std::string limit_price;
+  TifChoice tif_choice = TifChoice::Gtc;
+  std::string tif_bars = "3";
+  // The order's time in force; its last eligible bar is before the series' settlement window.
+  [[nodiscard]] TifOrder tif_now(const GameState& g) const;
+  [[nodiscard]] int tif_left(const GameState& g) const;
 
   void pick(const OptionQuote& q, bool buy_side);
   [[nodiscard]] const OptionQuote* quote(const GameState& g) const;

@@ -120,6 +120,7 @@ void GameViewModel::on_snapshot(const Snapshot& s) {
   if (state_ && !state_->active() && s.debrief) on_run_end(s);
   refresh_analysis();
   request_combo_risk();
+  refresh_wave1();
   touch();
 }
 
@@ -272,7 +273,7 @@ void GameViewModel::send_order(const OrderDraft& d) {
                      }});
   }
   const bool buy = is_buy(d.side);
-  steps.push_back({GameCommand::order(d.type, buy, d.qty, d.price, false, d.stop, d.take_profit), false,
+  steps.push_back({GameCommand::order(d.type, buy, d.qty, d.price, false, d.stop, d.take_profit).with_tif(d.tif, d.tif_bars), false,
                    [d, buy](GameViewModel& vm, const CommandResult& r) {
                      if (!r.accepted) return vm.notify(r.reason, order_facts(*vm.state_, d.required, d.leverage));
                      const Texts t = vm.texts();
@@ -365,7 +366,7 @@ void GameViewModel::submit_option() {
 }
 
 void GameViewModel::send_option(const OptionDraft& d) {
-  run({{GameCommand::option_order(d.series, d.buy, d.limit, d.qty, d.premium), false,
+  run({{GameCommand::option_order(d.series, d.buy, d.limit, d.qty, d.premium).with_tif(d.tif, d.tif_bars), false,
         [d](GameViewModel& vm, const CommandResult& r) {
           if (!r.accepted) {
             RejectionFacts f;
@@ -466,6 +467,8 @@ void GameViewModel::plan_confirm(bool skipped) {
   if (!skipped && !plan.can_save()) return;
   PlanEntry e = plan.entry(state_->step, skipped);
   if (pending_combo_) e.combo = pending_combo_->combo;
+  // A planned trailing stop rides with the plan (client data): the notice offers it after the fill.
+  if (pending_order_ && pending_order_->planned_trail) e.trail = pending_order_->planned_trail;
   journal_.push_back(e);
   if (plan_sink_) plan_sink_(e);
   modal_ = Modal::None;

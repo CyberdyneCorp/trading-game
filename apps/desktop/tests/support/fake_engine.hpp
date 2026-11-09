@@ -93,8 +93,12 @@ struct FakeEngine final : EngineCommands {
     AnalysisReply reply;
   };
   std::vector<Analysis> analyses;
+  // What-ifs of the run's holdings (the portfolio refreshed on every state, add-practice-and-advanced-
+  // strategies D9) wait in their own list, so the tests of other analyses count only theirs.
+  std::vector<Analysis> holdings;
   void analyze(AnalysisKind kind, const std::string& request, AnalysisReply reply) override {
-    analyses.push_back({kind, request, std::move(reply)});
+    const bool held = request.find("\"holdings\":true") != std::string::npos;
+    (held ? holdings : analyses).push_back({kind, request, std::move(reply)});
   }
 };
 

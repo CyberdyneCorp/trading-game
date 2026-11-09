@@ -240,7 +240,8 @@ TicketView TicketViewModel::view(const Texts& t, const GameState& g, bool busy) 
   const bool confirmed = beyond_confirmed(g);
   v.needs_beyond_confirm = c.needs_beyond_confirm;
   v.can_submit = !busy && c.qty > 0 && !c.short_blocked && !c.cant_afford && !c.above_tier && !c.stop_wrong &&
-                 !c.tp_wrong && (!c.needs_beyond_confirm || confirmed) && (!c.needs_price || c.typed_price > 0);
+                 !c.tp_wrong && (!c.needs_beyond_confirm || confirmed) && (!c.needs_price || c.typed_price > 0) && tif_now(g).ok();
+  order_rules(t, g, c, v);
   v.submit_label = std::string(is_buy(side) ? "\xE2\x96\xB2 " : "\xE2\x96\xBC ") + t.tr("ticket.submit") + "  [Enter]";
   if (c.qty > 0) v.preview = TicketPreview{c.entry, c.stop, c.tp, c.est.liquidation};
   protection(t, g, c, busy, v);
@@ -326,12 +327,62 @@ void TicketViewModel::protection(const Texts& t, const GameState& g, const Calc&
                   (pstop || ptp || trail_set);
 }
 
+std::string TicketViewModel::type_code() const {
+  if (type == TicketType::Limit) return "limit";
+  return type == TicketType::StopMarket ? "stop_market" : "market";
+}
+
+// A choice the order type cannot take falls back to GTC (the selector shows the block first).
+TifOrder TicketViewModel::tif_now(const GameState& g) const {
+  const TifChoice c = tif_block(tif_choice, type_code()).empty() ? tif_choice : TifChoice::Gtc;
+  return tif_order(c, fmt::parse_decimal(tif_bars), g.step_seconds, bars_left(g.total_bars, g.step));
+}
+
+std::optional<PlannedTrail> TicketViewModel::planned_trail() const {
+  if (!protect_with_trail) return std::nullopt;
+  const std::string& value = plan_trail_by_pct ? plan_trail_pct : plan_trail;
+  if (value.empty()) return std::nullopt;
+  return PlannedTrail{plan_trail_by_pct, value};
+}
+
+void TicketViewModel::fill_planned_trail(const PlannedTrail& p) {
+  trail_by_pct = p.pct;
+  (p.pct ? prot_trail_pct : prot_trail) = p.value;
+  protect_tab = ProtectTab::Trail;
+}
+
+// Time in force, "Protect with" and the protective tabs (D6, D10).
+void TicketViewModel::order_rules(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const {
+  v.tif = tif_view(t, tif_choice, tif_bars, type_code(), g.step_seconds, g.step, bars_left(g.total_bars, g.step));
+  v.protect_with = t.tr("ticket.protectWith");
+  v.protect_fixed = t.tr("ticket.protectFixed");
+  v.protect_trail = t.tr("ticket.protectTrail");
+  if (protect_with_trail) v.trail_planned = t.tr("ticket.protectTrail") + " " + t.tr("ticket.trailPlanned");
+  const bool trail_set = trail_by_pct ? !prot_trail_pct.empty() : !prot_trail.empty();
+  const std::array<std::pair<const char*, bool>, 3> tabs = {
+      {{"ticket.tab.stop", !prot_stop.empty()}, {"ticket.tab.trail", trail_set}, {"ticket.tab.target", !prot_tp.empty()}}};
+  for (const auto& [key, filled] : tabs) v.tabs.push_back(t.tr(key) + (filled ? " \xE2\x80\xA2" : ""));
+  if (c.pos_qty == 0) return;
+  const bool exit_sell = c.pos_qty > 0;
+  const std::string close = fmt::price_to_tick(c.last, c.tick);
+  const std::string tick = fmt::to_fixed_text(c.tick, 8);
+  std::string trigger;
+  if (trail_by_pct) {
+    if (const auto rate = trail_rate_from_percent(fmt::parse_decimal(prot_trail_pct))) trigger = trail_trigger(exit_sell, close, {}, *rate, tick);
+  } else if (!prot_trail.empty()) {
+    const std::string dist = fmt::price_to_tick(fmt::parse_decimal(prot_trail), c.tick);
+    if (!dist.empty()) trigger = trail_trigger(exit_sell, close, dist, {}, tick);
+  }
+  v.trail_rule = trigger.empty() ? t.tr("ticket.trailExplain") : t.tr("ticket.trailRule", {{"price", fmt::fmt_price(trigger, t.locale())}});
+}
+
 std::optional<OrderDraft> TicketViewModel::draft(const GameState& g, bool busy, Locale locale) const {
   // view() checks everything the web's canSubmit does; the draft is only built when it passes.
   const Calc c = calc(g, locale);
   const bool confirmed = beyond_confirmed(g);
+  const TifOrder tif = tif_now(g);
   const bool ok = !busy && c.qty > 0 && !c.short_blocked && !c.cant_afford && !c.above_tier && !c.stop_wrong &&
-                  !c.tp_wrong && (!c.needs_beyond_confirm || confirmed) && (!c.needs_price || c.typed_price > 0);
+                  !c.tp_wrong && (!c.needs_beyond_confirm || confirmed) && (!c.needs_price || c.typed_price > 0) && tif.ok();
   if (!ok) return std::nullopt;
   OrderDraft d;
   d.side = side;
@@ -344,6 +395,10 @@ std::optional<OrderDraft> TicketViewModel::draft(const GameState& g, bool busy, 
   d.estimate = c.est;
   d.increases = c.increases;
   d.required = c.need_margin;
+  d.tif = tif.tif == "gtc" ? std::string() : tif.tif;
+  d.tif_bars = tif.bars;
+  d.planned_trail = planned_trail();
+  if (d.planned_trail) d.stop.clear();  // a trailing stop is planned instead of the fixed bracket stop
   return d;
 }
 

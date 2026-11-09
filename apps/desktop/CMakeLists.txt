@@ -58,6 +58,8 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
   src/viewmodel/game/game_keys.cpp
   src/viewmodel/game/game_viewmodel.cpp
   src/viewmodel/game/heatmap.cpp
+  src/viewmodel/game/portfolio_vm.cpp
+  src/viewmodel/game/game_wave1.cpp
   src/viewmodel/game/hotkeys.cpp
   src/viewmodel/game/lab_vm.cpp
   src/viewmodel/game/options_math.cpp
@@ -74,6 +76,7 @@ set(TRADELAB_DESKTOP_GAME_VIEWMODEL_SOURCES
 set(TRADELAB_DESKTOP_GAME_VIEW_SOURCES
   src/view/game/game_view.cpp
   src/view/game/game_view_builder.cpp
+  src/view/game/game_view_wave1.cpp
   src/view/game/game_view_dialogs.cpp
   src/view/game/game_view_panels.cpp
   src/view/game/game_view_ticket.cpp

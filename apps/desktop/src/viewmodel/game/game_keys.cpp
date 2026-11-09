@@ -16,6 +16,7 @@ void GameViewModel::close_modal() {
   if (modal_ == Modal::Plan) return plan_cancel();
   if (modal_ == Modal::ConfirmMove) return confirm_move(false);
   if (modal_ == Modal::ConfirmCombo) return combo_close_confirm(false);
+  if (modal_ == Modal::Confirm) return confirm_answer(false);
   if (modal_ == Modal::Tutorial) return tutorial_step(1'000);
   remap.waiting.reset();
   modal_ = Modal::None;
@@ -165,7 +166,8 @@ void GameViewModel::reset_keymap() {
 bool GameViewModel::blocked_for_keys() const {
   const Modal m = modal();
   return m == Modal::Plan || m == Modal::Calibration || m == Modal::ConfirmMove || m == Modal::Lesson ||
-         m == Modal::Tutorial || m == Modal::Perks || m == Modal::Lab || m == Modal::ConfirmCombo || pick_ != PickTarget::None;
+         m == Modal::Tutorial || m == Modal::Perks || m == Modal::Lab || m == Modal::ConfirmCombo || m == Modal::Confirm ||
+         m == Modal::Portfolio || pick_ != PickTarget::None;
 }
 
 // The pattern card, the help overlay and the journal are modal: only their own key and Esc act, so the
@@ -214,7 +216,8 @@ bool GameViewModel::escape() {
     return true;
   }
   const bool closes = modal_ == Modal::Plan || modal_ == Modal::ConfirmMove || modal_ == Modal::Lesson ||
-                      modal_ == Modal::Tutorial || modal_ == Modal::Perks || modal_ == Modal::Lab || modal_ == Modal::ConfirmCombo;
+                      modal_ == Modal::Tutorial || modal_ == Modal::Perks || modal_ == Modal::Lab || modal_ == Modal::ConfirmCombo ||
+                      modal_ == Modal::Confirm || modal_ == Modal::Portfolio;
   if (closes) close_modal();
   return closes;
 }

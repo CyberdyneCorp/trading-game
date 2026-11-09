@@ -7,6 +7,8 @@
 
 #include "view/game/game_view.hpp"
 
+#include "viewmodel/game/wave1_widgets.hpp"
+
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/format.hpp"
 #include "viewmodel/game/dock_layout.hpp"
@@ -212,6 +214,15 @@ void GameView::apply_orders(const game::Texts& t, const GameState& g) {
     order_ids_ = ids;
     for (const auto& r : rows) {
       const Rid row = Rwidget_create(R_WIDGET_HBOX);
+      // D7: tick two working orders to link them one-cancels-the-other.
+      const Rid pick = Rcheckbox_create("");
+      const int pick_id = r.id;
+      Rwidget_set_name(pick, (std::string(names::wave1::kOrderPickPrefix) + std::to_string(pick_id)).c_str());
+      Rwidget_set_accessible_name(pick, t.tr("orders.select", {{"id", std::to_string(pick_id)}}).c_str());
+      cb_.check(pick, [this, pick_id](bool on) {
+        if (on != vm().link_picked(pick_id)) vm().toggle_link_pick(pick_id);
+      });
+      Rwidget_add_child(row, pick);
       const Rid label = Rlabel_create("");
       Rlabel_set_text_size(label, 12);
       Rlabel_set_wrap(label, R_TRUE);  // the middle column is narrow at 1024x768
@@ -227,10 +238,13 @@ void GameView::apply_orders(const game::Texts& t, const GameState& g) {
     }
   }
   for (std::size_t i = 0; i < rows.size() && i < order_rows_.size(); ++i) {
-    const Rid label = Rwidget_get_child(order_rows_[i], 0);
+    const Rid pick = Rwidget_get_child(order_rows_[i], 0);
+    if ((Rcheckbox_is_checked(pick) != 0) != vm().link_picked(rows[i].id)) Rcheckbox_set_checked(pick, vm().link_picked(rows[i].id) ? R_TRUE : R_FALSE);
+    set_visible(pick, rows.size() >= 2);
+    const Rid label = Rwidget_get_child(order_rows_[i], 1);
     ui::set_text(label, rows[i].text);
     set_color(label, rows[i].tone);
-    set_enabled(Rwidget_get_child(order_rows_[i], 1), !vm().busy());
+    set_enabled(Rwidget_get_child(order_rows_[i], 2), !vm().busy());
   }
 }
 
