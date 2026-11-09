@@ -372,7 +372,8 @@ class AppViewModel {
   void coach_watch_terminal();
 
   Catalog catalog_;
-  std::vector<MissionInfo> missions_;
+  std::vector<MissionInfo> missions_;  // built-in missions (tl_missions without practice markets)
+  std::vector<MissionInfo> rounds_;    // the guess rounds' markets (practice "round")
   EngineCommands& engine_;
   SeedSource seeds_;
 

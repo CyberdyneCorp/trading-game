@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <memory>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -34,13 +35,23 @@ struct Harness {
 
 }  // namespace
 
-TEST_CASE("engine host: the twenty-five built-in missions") {
+TEST_CASE("engine host: the twenty-five built-in missions, then the four round markets") {
   Harness h;
-  REQUIRE(h.host.missions().size() == 25);
-  CHECK(h.host.missions().front().id == kM01);
-  CHECK(h.host.missions()[11].id == "m12-capstone");
-  CHECK(h.host.missions()[16].id == "m17-before-expiry");
-  CHECK(h.host.missions().back().id == "m25-the-dip");
+  const auto& all = h.host.missions();
+  REQUIRE(all.size() == 29);
+  const auto missions = missions_only(all);
+  REQUIRE(missions.size() == 25);
+  CHECK(missions.front().id == kM01);
+  CHECK(missions[11].id == "m12-capstone");
+  CHECK(missions[16].id == "m17-before-expiry");
+  CHECK(missions.back().id == "m25-the-dip");
+  // The guess rounds' practice markets (add-practice-and-advanced-strategies D19) come after them.
+  const auto rounds = round_markets(all);
+  REQUIRE(rounds.size() == 4);
+  CHECK(rounds.front().id == "r01-trend");
+  CHECK(rounds.back().id == "r04-event");
+  CHECK(all[24].practice.empty());
+  CHECK(all[25].practice == "round");
 }
 
 TEST_CASE("engine host: start publishes the first decision step") {
@@ -148,6 +159,35 @@ TEST_CASE("engine host: queue order is preserved under concurrent enqueue") {
   }
   CHECK(markets == 100);
   CHECK(std::stod(h.received.back()->position_qty) == 0.0);
+}
+
+// add-practice-and-advanced-strategies D17, D19: the coach review of the run in play (refused while it
+// is active) and a round market's state from a run of its own, which leaves the run in play alone.
+TEST_CASE("engine host: coach review of the run in play and a round market's state beside it") {
+  Harness h;
+  std::vector<std::string> replies;
+  const auto keep = [&replies](const std::string& text) { replies.push_back(text); };
+  h.host.start(kM01, 1);
+  h.host.analyze(AnalysisKind::Coach, "", keep);
+  h.host.analyze(AnalysisKind::Round, R"({"mission":"r01-trend","seed":7,"advance":20})", keep);
+  h.host.analyze(AnalysisKind::Round, R"({"mission":"no-such","seed":7,"advance":1})", keep);
+  const auto active = h.settle();
+  REQUIRE(replies.size() == 3);
+  CHECK(json::parse(replies[0]).value()["error"].as_string() == "run_active");
+  const json::Value round = json::parse(replies[1]).value();
+  CHECK(round["mission"].as_string() == "r01-trend");
+  CHECK(round["step"].as_int() == round["warmupBars"].as_int() + 20);
+  CHECK(json::parse(replies[2]).value()["error"].as_string() == "unknown_mission");
+  REQUIRE(active);
+  CHECK(active->mission == kM01);
+  CHECK(active->step == active->warmup_bars);  // the round never advanced the run in play
+  h.host.advance(500);
+  h.host.analyze(AnalysisKind::Coach, "", keep);
+  h.settle();
+  REQUIRE(replies.size() == 4);
+  const json::Value review = json::parse(replies[3]).value();
+  CHECK(review["mission"].as_string() == kM01);
+  CHECK(review["moments"].kind() == json::Value::Kind::Array);
 }
 
 TEST_CASE("engine host: m01 runs to the end and carries the debrief") {

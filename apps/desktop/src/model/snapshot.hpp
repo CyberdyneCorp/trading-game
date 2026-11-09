@@ -27,7 +27,14 @@ struct MissionInfo {
   int warmup_bars = 0;
   int leverage_cap = 0;
   bool allow_short = true;
+  // "round": a guess-round practice market (add-practice-and-advanced-strategies D19), never a mission of
+  // the menu, the campaign, the curriculum or the daily pool; "" for a mission.
+  std::string practice;
 };
+
+// The built-in missions of a tl_missions list (practice markets left out), and its round markets.
+std::vector<MissionInfo> missions_only(const std::vector<MissionInfo>& list);
+std::vector<MissionInfo> round_markets(const std::vector<MissionInfo>& list);
 
 struct Bar {
   double open = 0;
@@ -42,8 +49,11 @@ enum class CommandKind : std::uint8_t { Start, Advance, Market, Game, Resume, St
 
 // Report-only engine calls (design D4 of add-academy-and-strategies): never logged, never change a run.
 // WhatIf is run-less (tl_option_whatif, the Academy lab); RunWhatIf (tl_run_option_whatif) and
-// ComboPreview (tl_combo_preview) read the run in play.
-enum class AnalysisKind : std::uint8_t { WhatIf, RunWhatIf, ComboPreview };
+// ComboPreview (tl_combo_preview) read the run in play. Coach (tl_coach_review, add-practice-and-advanced-
+// strategies D17) reads the finished run in play. Round is run-less: a fresh run of a round market,
+// {"mission","seed","advance"}, advanced with no action and answered with its tl_state (guess rounds,
+// D19: the run in play is never touched).
+enum class AnalysisKind : std::uint8_t { WhatIf, RunWhatIf, ComboPreview, Coach, Round };
 
 // Terminal commands (CommandKind::Game), one per engine call of the C ABI (model/game_command.hpp).
 enum class GameCommandKind : std::uint8_t {

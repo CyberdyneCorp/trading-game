@@ -52,6 +52,11 @@ class EngineRun {
   static std::string option_whatif(const std::string& request_json);
   [[nodiscard]] std::string run_whatif(const std::string& request_json) const;
   [[nodiscard]] std::string combo_preview(const std::string& legs_json) const;
+  // The finished run's coach moments (tl_coach_review, add-practice-and-advanced-strategies D17);
+  // {"error":"run_active"} while the run is active.
+  [[nodiscard]] std::string coach_review() const;
+  // A guess round's market state (AnalysisKind::Round): run-less, like option_whatif.
+  static std::string round_state(const std::string& request_json);
 
   // Storage (model/storage): takes ownership of a run built by another tl_* constructor (pack, restore).
   // The mission's lesson questions are read as create() does.

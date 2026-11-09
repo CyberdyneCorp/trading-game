@@ -10,7 +10,11 @@ namespace tradelab::desktop {
 
 AppViewModel::AppViewModel(Catalog catalog, std::vector<MissionInfo> missions, EngineCommands& engine,
                            SeedSource seeds)
-    : catalog_(std::move(catalog)), missions_(std::move(missions)), engine_(engine), seeds_(std::move(seeds)) {
+    : catalog_(std::move(catalog)),
+      missions_(missions_only(missions)),
+      rounds_(round_markets(missions)),
+      engine_(engine),
+      seeds_(std::move(seeds)) {
   std::vector<std::string> ids;
   for (const auto& m : missions_) ids.push_back(m.id);
   game_ = std::make_unique<game::GameViewModel>(catalog_, engine_, nullptr, std::move(ids));

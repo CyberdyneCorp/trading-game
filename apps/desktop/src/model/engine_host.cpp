@@ -362,7 +362,9 @@ void EngineHost::run_rewind(const Command& c) {
 void EngineHost::run_analysis(const Command& c) {
   std::string out = R"({"error":"no_run"})";
   if (c.analysis == AnalysisKind::WhatIf) out = EngineRun::option_whatif(c.qty);
+  else if (c.analysis == AnalysisKind::Round) out = EngineRun::round_state(c.qty);
   else if (run_ && c.analysis == AnalysisKind::RunWhatIf) out = run_->run_whatif(c.qty);
+  else if (run_ && c.analysis == AnalysisKind::Coach) out = watching_ ? R"({"error":"replay"})" : run_->coach_review();
   else if (run_) out = run_->combo_preview(c.qty);
   post_([box = mailbox_, reply = c.reply, text = std::move(out)] {
     {

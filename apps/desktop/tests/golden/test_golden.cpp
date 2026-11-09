@@ -147,6 +147,34 @@ std::int64_t execution_policy() {
   return json::parse(tl_version()).value_or(json::Value{})["executionPolicy"].as_int(-1);
 }
 
+void check_reveal(const json::Value& fx) {
+  const std::string text = tl_mission_reveal(fx["mission"].as_string().c_str(), static_cast<std::uint32_t>(fx["seed"].as_int()));
+  const std::span<const std::uint8_t> bytes(reinterpret_cast<const std::uint8_t*>(text.data()), text.size());
+  CHECK(packs::sha256_hex(bytes) == fx["expected"]["sha256"].as_string());
+}
+
+// Report-only valuation (add-academy-and-strategies D4): the output, field by field.
+void check_whatif(const json::Value& fx) {
+  const auto out = json::parse(tl_option_whatif(storage::dump(fx["request"]).c_str()));
+  REQUIRE(out.has_value());
+  CHECK(storage::dump(*out) == storage::dump(fx["expected"]["result"]));
+}
+
+// A run (kind "run"), or kind "coach": a mission run whose finished state's coach review
+// (tl_coach_review, add-practice-and-advanced-strategies D17) is frozen too, compared field by field.
+void check_run(const json::Value& fx, bool coach) {
+  auto run = market_of(fx);
+  REQUIRE(run);
+  CHECK(replay(*run, fx) == expected_rejections(fx));
+  check_state(*run, fx["expected"]);
+  if (coach) {
+    const auto review = json::parse(run->coach_review());
+    REQUIRE(review.has_value());
+    CHECK(storage::dump(*review) == storage::dump(fx["expected"]["review"]));
+  }
+  if (fx.has("mission")) check_saved_and_resumed(fx);
+}
+
 }  // namespace
 
 TEST_CASE("desktop goldens: every shared fixture replays to its frozen digests through the desktop build") {
@@ -162,25 +190,25 @@ TEST_CASE("desktop goldens: every shared fixture replays to its frozen digests t
     const std::string kind = fx["kind"].as_string();
     kinds.insert(kind);
     if (kind == "reveal") {
-      const std::string text = tl_mission_reveal(fx["mission"].as_string().c_str(), static_cast<std::uint32_t>(fx["seed"].as_int()));
-      const std::span<const std::uint8_t> bytes(reinterpret_cast<const std::uint8_t*>(text.data()), text.size());
-      CHECK(packs::sha256_hex(bytes) == fx["expected"]["sha256"].as_string());
-      continue;
+      check_reveal(fx);
+    } else if (kind == "whatif") {
+      check_whatif(fx);
+    } else {
+      REQUIRE((kind == "run" || kind == "coach"));
+      check_run(fx, kind == "coach");
     }
-    if (kind == "whatif") {  // report-only valuation (add-academy-and-strategies D4): the output, field by field
-      const auto out = json::parse(tl_option_whatif(storage::dump(fx["request"]).c_str()));
-      REQUIRE(out.has_value());
-      CHECK(storage::dump(*out) == storage::dump(fx["expected"]["result"]));
-      continue;
-    }
-    REQUIRE(kind == "run");
-    auto run = market_of(fx);
-    REQUIRE(run);
-    CHECK(replay(*run, fx) == expected_rejections(fx));
-    check_state(*run, fx["expected"]);
-    if (fx.has("mission")) check_saved_and_resumed(fx);
   }
-  CHECK(kinds == std::set<std::string>{"reveal", "run", "whatif"});
+  CHECK(kinds == std::set<std::string>{"coach", "reveal", "run", "whatif"});
+}
+
+// Refused while the run is active, like the reveal (design D17).
+TEST_CASE("desktop goldens: the coach review is refused while the run is active") {
+  const json::Value fx = load("coach-m23-second-chance");
+  auto run = market_of(fx);
+  REQUIRE(run);
+  const auto review = json::parse(run->coach_review());
+  REQUIRE(review.has_value());
+  CHECK((*review)["error"].as_string() == "run_active");
 }
 
 TEST_CASE("desktop goldens: a changed action log does not reach the frozen digest") {
