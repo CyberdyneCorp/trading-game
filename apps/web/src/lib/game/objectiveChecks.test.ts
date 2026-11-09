@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { DebriefData, EngineFinding, PositionEpisode } from '#lib/engine/types.ts';
 import { describeFinding } from './analysis.ts';
+import { excursionsText } from './episodeText.ts';
+import { objectiveText } from './objectives.ts';
 import { findingMoment, objectiveReadings } from './objectiveChecks.ts';
 
 const episode = (over: Partial<PositionEpisode> = {}): PositionEpisode => ({
@@ -74,6 +76,31 @@ describe('objectives read from the engine facts (m22-m25, scoring v14)', () => {
 		expect(objectiveReadings(debrief([['risk_per_idea', 100]]), '1')).toEqual([]); // not judged here
 	});
 
+	it('m23: the cooldown objective and the revenge finding name a losing close, as the rule reads it (W2-X2: a manual losing close read as a missed "stop" objective)', () => {
+		const pt = objectiveText({ code: 'cooldown_after_stop', valueBp: 0 }, 'pt-BR');
+		const en = objectiveText({ code: 'cooldown_after_stop', valueBp: 0 }, 'en');
+		expect(pt).toMatch(/trade fechado com perda/);
+		expect(en).toMatch(/losing close/);
+		expect(`${pt} ${en}`).not.toMatch(/\bstop\b/);
+		const f = finding('revenge_trade', 62, { trade: 1, exitStep: 62, loss: '8.31', entryStep: 62, sizeRatioBp: 20000, planned: false });
+		expect(`${describeFinding(f, 'pt-BR')} ${describeFinding(f, 'en')}`).not.toMatch(/\bstop/);
+	});
+
+	it('m22: two stops filling on the closing bar are one exit, not a partial one (W2-X2: read as met)', () => {
+		const together = episode({ exits: [{ step: 90, qty: '10', price: '99.02' }, { step: 90, qty: '15', price: '99.01' }] });
+		expect(objectiveReadings(debrief(M22, { episodes: [together] }), '10000')[1]).toEqual({ code: 'partial_exit_or_trail', verdict: 'missed' });
+		const scaledOut = episode({ exits: [{ step: 84, qty: '10', price: '103' }, { step: 90, qty: '15', price: '104' }] });
+		expect(objectiveReadings(debrief(M22, { episodes: [scaledOut] }), '10000')[1].verdict).toBe('met');
+		const open = episode({ exitStep: null, exits: [{ step: 84, qty: '10', price: '103' }] });
+		expect(objectiveReadings(debrief(M22, { episodes: [open] }), '10000')[1].verdict).toBe('met');
+	});
+
+	it('the episodes panel reads the adverse excursion as a loss in R (W2-X2: shown as +2,03R)', () => {
+		expect(excursionsText({ mfeRBp: 3300, maeRBp: 20300 }, 'pt-BR')).toBe('+0,33R · -2,03R');
+		expect(excursionsText({ mfeRBp: 0, maeRBp: 0 }, 'en')).toBe('0.00R · 0.00R');
+		expect(excursionsText({ mfeRBp: null, maeRBp: null }, 'en')).toBe('— · —');
+	});
+
 	it('a debrief from an engine before scoring v14 (no episodes) is read without failing', () => {
 		const old = { ...debrief(M22), episodes: undefined } as unknown as DebriefData;
 		expect(objectiveReadings(old, '10000').map((r) => r.verdict)).toEqual(['met']);
@@ -84,7 +111,7 @@ describe('bias findings as text, with their evidence (scoring v14)', () => {
 	it('names the revenge trade with the losing trade, its loss, the bars and the size ratio', () => {
 		const f = finding('revenge_trade', 83, { trade: 1, exitStep: 83, loss: '112.81024645', entryStep: 83, sizeRatioBp: 20000, planned: false });
 		expect(describeFinding(f, 'en')).toBe(
-			'Revenge trade: trade 1 closed at a loss of 112.81 cr on bar 83, and on bar 83 a new entry came with no plan recorded (2.00× its size). After a stop-out, wait for the setup to form again and enter at normal size.'
+			'Revenge trade: trade 1 closed at a loss of 112.81 cr on bar 83, and on bar 83 a new entry came with no plan recorded (2.00× its size). After a loss, wait for the setup to form again and enter at normal size.'
 		);
 		expect(describeFinding({ ...f, evidence: { ...f.evidence!, planned: true, sizeRatioBp: 15000 } }, 'pt-BR')).toMatch(/com 1,50× o tamanho dele/);
 		expect(findingMoment(f)).toBe(83);

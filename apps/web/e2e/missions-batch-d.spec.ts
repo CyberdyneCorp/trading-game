@@ -141,7 +141,7 @@ test('m22 management: a planned long; the debrief lists the episode and reads th
 
 test('m23 restart: a losing round trip, then an unplanned entry at once; the debrief names the revenge trade with its bars', async ({ page }) => {
 	await startMission(page, 2324, INDEX.m23, /Missão 23 · Recomeço/, 'cooldown');
-	await expect(page.getByTestId('brief-objective').first()).toContainText(/3 barras seguintes a um stop/);
+	await expect(page.getByTestId('brief-objective').first()).toContainText(/3 barras seguintes a um trade fechado com perda/);
 	await openTerminal(page);
 	await perpWithoutPlan(page);
 	await advance(page); // filled at the next open

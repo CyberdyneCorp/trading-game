@@ -80,6 +80,9 @@ struct ComparisonLine {
   bool best = false;    // the best net result among the rows (the player's included); ties all marked
 };
 std::vector<ComparisonLine> comparison_lines(const json::Value& comparison, double player_net);
+// debrief.ts comparisonBasisKey: the intro's key; rows played by their own entry rule (m20, m22) start on
+// other bars than the basis and name their own rules.
+std::string comparison_basis_key(const json::Value& comparison);
 
 struct DecisionCounts {
   int act = 0;

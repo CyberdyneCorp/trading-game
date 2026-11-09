@@ -195,8 +195,9 @@ namespace {
 
 constexpr std::string_view kDot = " \xC2\xB7 ";  // " · "
 
-std::string r_text(const json::Value& bp, Locale L) {
-  return bp.is_null() ? "\xE2\x80\x94" : fmt::fmt_num(bp.as_double() / 10'000, L, 2, true) + "R";
+// `sign` -1 reads the engine's adverse excursion (a size) as a loss in R.
+std::string r_text(const json::Value& bp, Locale L, double sign = 1) {
+  return bp.is_null() ? "\xE2\x80\x94" : fmt::fmt_num(0 + sign * bp.as_double() / 10'000, L, 2, true) + "R";
 }
 
 std::string fills_text(const json::Value& fills, Locale L) {
@@ -233,7 +234,7 @@ std::vector<std::string> episode_cells(const Catalog& c, const json::Value& e) {
           exits,
           stops_text(c, e),
           r_text(e["rBp"], L) + std::string(kDot) + fmt::fmt_money(e["net"].as_string(), L, true),
-          r_text(e["mfeRBp"], L) + std::string(kDot) + r_text(e["maeRBp"], L)};
+          r_text(e["mfeRBp"], L) + std::string(kDot) + r_text(e["maeRBp"], L, -1)};
 }
 
 std::string regime_name(const Catalog& c, const std::string& label, int direction) {
@@ -325,6 +326,14 @@ ComparisonLine comparison_row(const json::Value& r) {
 }
 
 }  // namespace
+
+std::string comparison_basis_key(const json::Value& comparison) {
+  const std::int64_t at = comparison["entryStep"].as_int();
+  const auto& rows = comparison["rows"].items();
+  const bool own = std::any_of(rows.begin(), rows.end(), [&](const json::Value& r) { return r["refused"].is_null() && r["entryStep"].as_int() != at; });
+  if (own) return "comparison.basisOwn";
+  return comparison["basis"].as_string() == "player" ? "comparison.basisPlayer" : "comparison.basisReference";
+}
 
 std::vector<ComparisonLine> comparison_lines(const json::Value& comparison, double player_net) {
   std::vector<ComparisonLine> lines;

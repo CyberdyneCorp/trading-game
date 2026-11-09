@@ -548,7 +548,8 @@ std::string comparison_json(const std::vector<ComparisonLine>& lines) {
 }  // namespace
 
 TEST_CASE("web parity: debrief.ts comparisonLines (the player's row, the best net, refused structures)") {
-  replay("comparison", {{"comparisonLines", [](const Value& a) { return comparison_json(comparison_lines(a[0], a[1].as_double())); }}});
+  replay("comparison", {{"comparisonLines", [](const Value& a) { return comparison_json(comparison_lines(a[0], a[1].as_double())); }},
+                        {"comparisonBasisKey", [](const Value& a) { return "\"" + comparison_basis_key(a[0]) + "\""; }}});
 }
 
 TEST_CASE("web parity: whatifLab.ts (requests, sliders, the payoff chart's geometry from engine answers)") {

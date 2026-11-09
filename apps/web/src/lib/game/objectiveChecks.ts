@@ -22,9 +22,10 @@ function totalRisk(episodes: PositionEpisode[], valueBp: number, initial: number
 	return episodes.every((e) => Number(e.plannedRisk) > 0 && Number(e.plannedRisk) <= limit + 1e-9) ? 'met' : 'missed';
 }
 
-// m22: a partial exit (an exit before the last one) or a trailing stop in some episode.
-const partialOrTrail = (episodes: PositionEpisode[]): ObjectiveVerdict =>
-	episodes.some((e) => e.trailing || e.exits.length > 1 || (e.exitStep == null && e.exits.length > 0)) ? 'met' : 'missed';
+// m22: a partial exit (an exit on a bar before the position's last one, or any exit of a position still
+// open at the end) or a trailing stop in some episode. Two orders filling on the closing bar are one exit.
+const partialExit = (e: PositionEpisode) => e.exits.some((x) => e.exitStep == null || x.step < e.exitStep);
+const partialOrTrail = (episodes: PositionEpisode[]): ObjectiveVerdict => (episodes.some((e) => e.trailing || partialExit(e)) ? 'met' : 'missed');
 
 function stopAway(episodes: PositionEpisode[]): ObjectiveReading['step'] | null {
 	for (const e of episodes) for (const m of e.stopMoves) if (m.kind === 'away') return m.step;

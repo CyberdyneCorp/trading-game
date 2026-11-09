@@ -188,7 +188,11 @@ export function comparisonFixture(m) {
 	];
 	for (const c of comparisons) {
 		for (const net of [0, 121.11, -40.25, 50]) add('comparisonLines', [c, net], m.comparisonLines(c, net));
+		add('comparisonBasisKey', [c], m.comparisonBasisKey(c));
 	}
+	// Rows played by their own entry rule (m20, m22) start on other bars than the basis.
+	const own = { basis: 'reference', entryStep: 69, qty: '10', rows: [row('all_out_2r', '196.57000000', { entryStep: 72 })] };
+	add('comparisonBasisKey', [own], m.comparisonBasisKey(own));
 	return { helper: 'debrief.ts', cases: list };
 }
 

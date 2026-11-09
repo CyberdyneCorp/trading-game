@@ -63,7 +63,7 @@ const PT: Catalog = {
 	total_risk_all_entries: 'Risco planejado total de até {pct} somando todas as entradas da mesma ideia.',
 	partial_exit_or_trail: 'Use pelo menos uma saída parcial ou um stop móvel.',
 	never_stop_away: 'Nunca afaste o stop da entrada.',
-	cooldown_after_stop: 'Nenhuma entrada nova nas 3 barras seguintes a um stop sem um plano novo.',
+	cooldown_after_stop: 'Nas 3 barras seguintes a um trade fechado com perda, nenhuma entrada nova sem um plano novo nem com 1,5× o tamanho.',
 	plan_before_entry_atr_stop: 'Cada entrada com o plano registrado antes e o stop a até 2×ATR.',
 	no_add_beyond_plan: 'Não aumente uma posição perdedora além do risco total planejado.'
 };
@@ -122,7 +122,7 @@ const EN: Catalog = {
 	total_risk_all_entries: 'Total planned risk of at most {pct} across every entry of the same idea.',
 	partial_exit_or_trail: 'Use at least one partial exit or a trailing stop.',
 	never_stop_away: 'Never move a stop away from the entry.',
-	cooldown_after_stop: 'No new entry within 3 bars of a stop-out without a new plan.',
+	cooldown_after_stop: 'Within 3 bars of a losing close, no new entry without a new plan or at 1.5× the size.',
 	plan_before_entry_atr_stop: 'Every entry with its plan recorded first and the stop within 2×ATR.',
 	no_add_beyond_plan: 'Do not add to a losing position beyond the planned total risk.'
 };

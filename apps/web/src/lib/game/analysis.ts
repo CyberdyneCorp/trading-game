@@ -55,7 +55,7 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		liq_buffer: 'A liquidação chegou a {pct} do preço, mais perto que a distância de aviso desta missão{warn}. Deixe margem para o ruído e para os gaps.',
 		drawdown_budget: 'O drawdown máximo ({amount} cr) passou do orçamento de drawdown da missão ({pct} do capital). Dimensione cada ideia pelo orçamento que sobra.',
 		revenge_trade:
-			'Vingança: o trade {trade} fechou com perda de {loss} cr na barra {exit}, e na barra {entry} veio uma entrada nova com {ratio}× o tamanho dele. Depois de um stop, espere o setup se formar de novo e entre com o tamanho normal.',
+			'Vingança: o trade {trade} fechou com perda de {loss} cr na barra {exit}, e na barra {entry} veio uma entrada nova com {ratio}× o tamanho dele. Depois de uma perda, espere o setup se formar de novo e entre com o tamanho normal.',
 		fomo_entry:
 			'Medo de ficar de fora (FOMO): a entrada da barra {entry} veio depois de {closes} fechamentos seguidos na mesma direção, a {ext} ATR da média de 20 barras, {stopText}. Longe da estrutura, o stop fica longe ou o tamanho fica minúsculo.',
 		averaging_down:
@@ -95,7 +95,7 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		liq_buffer: 'Liquidation came within {pct} of the price, closer than this mission’s warning distance{warn}. Leave room for noise and gaps.',
 		drawdown_budget: 'The maximum drawdown ({amount} cr) went past the mission’s drawdown budget ({pct} of capital). Size each idea from the budget that is left.',
 		revenge_trade:
-			'Revenge trade: trade {trade} closed at a loss of {loss} cr on bar {exit}, and on bar {entry} a new entry came at {ratio}× its size. After a stop-out, wait for the setup to form again and enter at normal size.',
+			'Revenge trade: trade {trade} closed at a loss of {loss} cr on bar {exit}, and on bar {entry} a new entry came at {ratio}× its size. After a loss, wait for the setup to form again and enter at normal size.',
 		fomo_entry:
 			'Fear of missing out (FOMO): the entry on bar {entry} came after {closes} closes in a row the same way, {ext} ATR from the 20-bar average, {stopText}. Far from structure, the stop sits far away or the size gets tiny.',
 		averaging_down:
@@ -109,7 +109,7 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 const variantText: Record<Locale, Partial<Record<string, string>>> = {
 	'pt-BR': {
 		'revenge_trade.unplanned':
-			'Vingança: o trade {trade} fechou com perda de {loss} cr na barra {exit}, e na barra {entry} veio uma entrada nova sem plano registrado ({ratio}× o tamanho dele). Depois de um stop, espere o setup se formar de novo e entre com o tamanho normal.',
+			'Vingança: o trade {trade} fechou com perda de {loss} cr na barra {exit}, e na barra {entry} veio uma entrada nova sem plano registrado ({ratio}× o tamanho dele). Depois de uma perda, espere o setup se formar de novo e entre com o tamanho normal.',
 		'averaging_down.nostop':
 			'Preço médio para baixo: na barra {entry} você aumentou uma posição que perdia {loss} cr, sem stop, e o preço médio foi de {avgBefore} para {avgAfter}. Aumentar só é coerente se foi planejado na entrada, com o risco total até a mesma invalidação.',
 		'stop.none': 'sem stop',
@@ -117,7 +117,7 @@ const variantText: Record<Locale, Partial<Record<string, string>>> = {
 	},
 	en: {
 		'revenge_trade.unplanned':
-			'Revenge trade: trade {trade} closed at a loss of {loss} cr on bar {exit}, and on bar {entry} a new entry came with no plan recorded ({ratio}× its size). After a stop-out, wait for the setup to form again and enter at normal size.',
+			'Revenge trade: trade {trade} closed at a loss of {loss} cr on bar {exit}, and on bar {entry} a new entry came with no plan recorded ({ratio}× its size). After a loss, wait for the setup to form again and enter at normal size.',
 		'averaging_down.nostop':
 			'Averaging down: on bar {entry} you added to a position losing {loss} cr, with no stop, and the average entry went from {avgBefore} to {avgAfter}. Adding is consistent only when it was planned at entry, with the total risk to the same invalidation.',
 		'stop.none': 'with no stop',

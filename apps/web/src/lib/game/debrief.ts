@@ -220,6 +220,16 @@ export interface ComparisonLine {
  * The debrief's strategy comparison (scoring v13, report-only): the player's net result next to the
  * mission's reference structures, valued by the engine on this seed. Refused structures have no numbers.
  */
+/**
+ * The comparison's intro. Rows played by their own entry rule (m20's timings, m22's trade rules) start on
+ * other bars than the basis, so the intro names their own rules instead of one entry bar (W2-X2: m20
+ * said "built at bar 60" above rows from bar 67, and m22 "you traded no options" on a perpetual mission).
+ */
+export function comparisonBasisKey(c: StrategyComparison): 'comparison.basisOwn' | 'comparison.basisPlayer' | 'comparison.basisReference' {
+	if (c.rows.some((r) => !r.refused && r.entryStep !== c.entryStep)) return 'comparison.basisOwn';
+	return c.basis === 'player' ? 'comparison.basisPlayer' : 'comparison.basisReference';
+}
+
 export function comparisonLines(c: StrategyComparison, playerNet: number): ComparisonLine[] {
 	const lines: ComparisonLine[] = [
 		{ key: 'you', name: 'comparison.you' as const, net: playerNet, drawdown: null, marginCalls: null, entryStep: null, exitStep: null, refused: null, best: false },

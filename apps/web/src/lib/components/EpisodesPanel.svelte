@@ -3,12 +3,12 @@
 	// each perpetual position from flat to flat with its entries, partial exits, stop moves, trailing
 	// stop, excursions and result in R, all engine numbers.
 	import type { PositionEpisode } from '#lib/engine/types.ts';
-	import { fmtMoney, fmtNum, fmtPrice, fmtQty } from '#lib/game/format.ts';
+	import { excursionsText, rText } from '#lib/game/episodeText.ts';
+	import { fmtMoney, fmtPrice, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 
 	let { episodes, onMoment }: { episodes: PositionEpisode[]; onMoment?: (step: number) => void } = $props();
 	const L = $derived(i18n.locale);
-	const r = (bp: number | null) => (bp == null ? '—' : `${fmtNum(bp / 10_000, L, 2, true)}R`);
 	const fills = (xs: PositionEpisode['entries']) => xs.map((f) => `${fmtQty(f.qty, L)} @ ${fmtPrice(f.price, L)} (${f.step})`).join(' · ');
 </script>
 
@@ -35,8 +35,8 @@
 						{#if e.trailing}<span class="tag">{t('episodes.trailing')}</span>{/if}
 						{#if !e.stopMoves.length && !e.trailing}—{/if}
 					</td>
-					<td class="num {Number(e.net) >= 0 ? 'up' : 'down'}">{r(e.rBp)}<br /><span class="small">{fmtMoney(e.net, L, true)}</span></td>
-					<td class="num small">{r(e.mfeRBp)} · {r(e.maeRBp)}</td>
+					<td class="num {Number(e.net) >= 0 ? 'up' : 'down'}">{rText(e.rBp, L)}<br /><span class="small">{fmtMoney(e.net, L, true)}</span></td>
+					<td class="num small">{excursionsText(e, L)}</td>
 				</tr>
 			{/each}
 		</tbody>

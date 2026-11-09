@@ -137,7 +137,7 @@ TEST_CASE("debrief v14: m23's revenge trade, its objective, moment and episodes 
   const WidgetLines* objectives = m.lines_of(names::kDebriefObjectives);
   REQUIRE(objectives != nullptr);
   REQUIRE(objectives->lines.size() == 2);
-  CHECK(objectives->lines[1].text.starts_with("\xE2\x9A\xA0 Nenhuma entrada nova nas 3 barras seguintes a um stop"));
+  CHECK(objectives->lines[1].text.starts_with("\xE2\x9A\xA0 Nas 3 barras seguintes a um trade fechado com perda"));
   CHECK(objectives->lines[1].tone == Tone::Attention);
   const WidgetItems* moments = m.items_of(names::kDebriefMoments);
   REQUIRE(moments != nullptr);

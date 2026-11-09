@@ -341,8 +341,7 @@ void comparison(const Ctx& c, ScreenModel& m) {
   m.show(names::kDebriefComparisonPanel, !cmp.is_null());
   if (cmp.is_null()) return;
   m.text(names::kDebriefComparisonTitle, c.tr("comparison.title"));
-  const bool player = cmp["basis"].as_string() == "player";
-  m.text(names::kDebriefComparisonBasis, c.tr(player ? "comparison.basisPlayer" : "comparison.basisReference",
+  m.text(names::kDebriefComparisonBasis, c.tr(comparison_basis_key(cmp),
                                               {{"step", cmp["entryStep"].as_string()}, {"qty", fmt::fmt_qty(cmp["qty"].as_string(), c.L)}}));
   WidgetTable t{names::kDebriefComparison,
                 {c.tr("comparison.col.structure"), c.tr("comparison.col.bars"), c.tr("comparison.col.net"), c.tr("comparison.col.drawdown"),

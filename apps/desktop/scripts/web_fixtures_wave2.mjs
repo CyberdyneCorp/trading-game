@@ -30,7 +30,7 @@ function episodeCells(f, t, e, L) {
 		e.exits.length ? fills(e.exits) : t('episodes.open', L),
 		moves.length ? moves.join(' · ') : '—',
 		`${r(e.rBp)} · ${f.fmtMoney(e.net, L, true)}`,
-		`${r(e.mfeRBp)} · ${r(e.maeRBp)}`
+		`${r(e.mfeRBp)} · ${r(e.maeRBp == null ? null : 0 - e.maeRBp)}`
 	];
 }
 
@@ -48,7 +48,7 @@ function variants(findings) {
 // A synthetic episode set for the shapes the goldens lack: scaled in, a partial exit, a trailing stop,
 // every stop move and an episode still open at the end.
 const SYNTHETIC = [
-	{ n: 1, side: 'long', entryStep: 20, exitStep: 41, entries: [{ step: 20, qty: '10', price: '100.5' }, { step: 24, qty: '5', price: '101.25' }], exits: [{ step: 30, qty: '7.5', price: '103' }, { step: 41, qty: '7.5', price: '102.1' }], stopMoves: [{ step: 22, kind: 'to_breakeven', price: '100.5' }, { step: 26, kind: 'toward', price: '101' }], trailing: true, net: '41.37', plannedRisk: '50', rBp: 8274, mfeRBp: 12000, maeRBp: -3000 },
+	{ n: 1, side: 'long', entryStep: 20, exitStep: 41, entries: [{ step: 20, qty: '10', price: '100.5' }, { step: 24, qty: '5', price: '101.25' }], exits: [{ step: 30, qty: '7.5', price: '103' }, { step: 41, qty: '7.5', price: '102.1' }], stopMoves: [{ step: 22, kind: 'to_breakeven', price: '100.5' }, { step: 26, kind: 'toward', price: '101' }], trailing: true, net: '41.37', plannedRisk: '50', rBp: 8274, mfeRBp: 12000, maeRBp: 3000 },
 	{ n: 2, side: 'short', entryStep: 50, exitStep: null, entries: [{ step: 50, qty: '3', price: '99' }], exits: [], stopMoves: [{ step: 52, kind: 'away', price: '101.5' }], trailing: false, net: '-12.5', plannedRisk: '0', rBp: null, mfeRBp: null, maeRBp: null }
 ];
 
@@ -74,6 +74,9 @@ export function debriefV14Fixture(checks, analysis, format, i18n) {
 	const m22 = { missionRules: { objectives: [{ code: 'total_risk_all_entries', valueBp: 100 }, { code: 'partial_exit_or_trail', valueBp: 0 }, { code: 'never_stop_away', valueBp: 0 }] }, findings: [], episodes: SYNTHETIC };
 	add('objectiveReadings', [m22, 10000], checks.objectiveReadings(m22, '10000'));
 	add('objectiveReadings', [{ ...m22, episodes: [] }, 10000], checks.objectiveReadings({ ...m22, episodes: [] }, '10000'));
+	// Two stops filling on the closing bar are one exit, not a partial one (W2-X2).
+	const together = [{ ...SYNTHETIC[0], trailing: false, exits: [{ step: 41, qty: '10', price: '99.02' }, { step: 41, qty: '5', price: '99.01' }] }];
+	add('objectiveReadings', [{ ...m22, episodes: together }, 10000], checks.objectiveReadings({ ...m22, episodes: together }, '10000'));
 	i18n.i18n.locale = 'pt-BR';
 	return { helper: 'objectiveChecks.ts + analysis.ts + EpisodesPanel.svelte', cases: list };
 }

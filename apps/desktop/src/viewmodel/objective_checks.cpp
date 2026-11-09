@@ -25,12 +25,16 @@ bool total_risk(const std::vector<json::Value>& episodes, int value_bp, double i
   });
 }
 
-// m22: a partial exit (an exit before the last one) or a trailing stop in some episode.
+// m22: a partial exit (an exit on a bar before the position's last one, or any exit of a position still
+// open at the end) or a trailing stop in some episode. Two orders filling on the closing bar are one exit.
+bool partial_exit(const json::Value& e) {
+  const bool open = e["exitStep"].is_null();
+  const std::int64_t last = open ? 0 : e["exitStep"].as_int();
+  return std::ranges::any_of(e["exits"].items(), [&](const json::Value& x) { return open || x["step"].as_int() < last; });
+}
+
 bool partial_or_trail(const std::vector<json::Value>& episodes) {
-  return std::ranges::any_of(episodes, [](const json::Value& e) {
-    const std::size_t exits = e["exits"].items().size();
-    return e["trailing"].as_bool(false) || exits > 1 || (e["exitStep"].is_null() && exits > 0);
-  });
+  return std::ranges::any_of(episodes, [](const json::Value& e) { return e["trailing"].as_bool(false) || partial_exit(e); });
 }
 
 std::optional<int> stop_away(const std::vector<json::Value>& episodes) {
