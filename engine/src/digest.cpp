@@ -25,6 +25,10 @@ void write_order(Writer& w, const Order& o) {
   w.fixed(o.trail_distance);
   w.u32(o.series);
   w.fixed(o.trail_rate);  // policy v16
+  w.u8(static_cast<std::uint8_t>(o.tif));  // policy v18
+  w.u32(o.tif_bars);
+  w.u32(o.expire_step);
+  w.u32(o.link_group);
 }
 
 void write_event(Writer& w, const Event& e) {

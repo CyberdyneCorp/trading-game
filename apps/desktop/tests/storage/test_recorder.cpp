@@ -73,6 +73,46 @@ TEST_CASE("storage actions: the web's Action JSON shapes") {
         R"({"k":"plan","side":"buy","skipped":false,"option":false,"lose":false,"inv":"92","target":null,"conf":60,"risk":null})");
 }
 
+TEST_CASE("storage actions: policy v18 time in force and OCO links, logged as the web logs them") {
+  // Only a non-default time in force is logged (web tifFields): gtc is absent, bars carries its count.
+  GameCommand limit = GameCommand::order(OrderType::Limit, true, "10", "100", false);
+  CHECK(actions::from_game(limit.with_tif("gtc")).json.find("tif") == std::string::npos);
+  CHECK(actions::from_game(limit.with_tif("ioc")).json ==
+        R"({"k":"order","type":"limit","side":"buy","qty":"10","price":"100","ro":false,"tif":"ioc"})");
+  CHECK(actions::from_game(limit.with_tif("bars", 3)).json ==
+        R"({"k":"order","type":"limit","side":"buy","qty":"10","price":"100","ro":false,"tif":"bars","tifBars":3})");
+  const GameCommand opt = GameCommand::option_order(9, false, true, "1.0", "2.10").with_tif("fok");
+  GameCommand rolled = opt.tagged("c1", "calendar_call");
+  rolled.roll = "1";
+  CHECK(actions::from_game(rolled).json ==
+        R"({"k":"opt","series":9,"side":"sell","type":"limit","qty":"1.0","premium":"2.10","tif":"fok","combo":"c1","strategy":"calendar_call","roll":"1"})");
+  CHECK(actions::from_game(GameCommand::link_oco(3, 4)).json == R"({"k":"oco","a":3,"b":4})");
+
+  // Replayed through the v18 calls: an IOC limit far from the market expires unfilled at the next
+  // open, and a linked pair of working orders carries the link group (the lower id).
+  auto run = EngineRun::create(kM01, kSeed);
+  const ApplyResult ioc = apply_action(*run, actions::from_game(GameCommand::order(OrderType::Limit, true, "1", "1", false).with_tif("ioc")));
+  CHECK(ioc.accepted);
+  const ApplyResult a = apply_action(*run, Action{R"({"k":"order","type":"limit","side":"buy","qty":"1","price":"2","ro":false})"});
+  const ApplyResult b = apply_action(*run, Action{R"({"k":"order","type":"stop_market","side":"buy","qty":"1","price":"999","ro":false})"});
+  REQUIRE(a.accepted);
+  REQUIRE(b.accepted);
+  const auto ida = json::parse(a.result)->operator[]("orderId").as_int();
+  const auto idb = json::parse(b.result)->operator[]("orderId").as_int();
+  const ApplyResult link = apply_action(*run, actions::oco(static_cast<std::uint32_t>(ida), static_cast<std::uint32_t>(idb)));
+  CHECK(link.accepted);
+  CHECK_FALSE(apply_action(*run, actions::oco(static_cast<std::uint32_t>(ida), static_cast<std::uint32_t>(ida))).accepted);
+  const json::Value state = run->snapshot().state;
+  int linked = 0;
+  for (const auto& o : state["orders"].items()) {
+    if (o["linkGroup"].as_int() == std::min(ida, idb)) ++linked;
+    if (o["id"].as_int() == json::parse(ioc.result)->operator[]("orderId").as_int()) CHECK(o["tif"].as_string() == "ioc");
+  }
+  CHECK(linked == 2);
+  CHECK(apply_action(*run, Action{R"({"k":"order","type":"market","side":"buy","qty":"1","price":null,"ro":false,"tif":"nope"})"}).reason ==
+        "invalid_time_in_force");
+}
+
 TEST_CASE("storage actions: a logged market order is the engine's market order (same digest)") {
   auto direct = EngineRun::create(kM01, kSeed);
   auto logged = EngineRun::create(kM01, kSeed);

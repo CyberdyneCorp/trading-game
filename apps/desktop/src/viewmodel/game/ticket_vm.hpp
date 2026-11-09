@@ -12,7 +12,9 @@
 
 #include "model/game_command.hpp"
 #include "model/game_state.hpp"
+#include "viewmodel/game/builder_vm.hpp"
 #include "viewmodel/game/chart_vm.hpp"
+#include "viewmodel/game/order_rules.hpp"
 #include "viewmodel/game/sizing.hpp"
 #include "viewmodel/game/texts.hpp"
 
@@ -37,7 +39,13 @@ struct OrderDraft {
   TicketEstimate estimate;
   bool increases = false;
   double required = 0;  // margin + fee of the part that adds exposure (quoted when refused)
+  std::string tif;      // policy v18: "" or "gtc" = none, "bars" (tif_bars), "ioc", "fok"
+  int tif_bars = 0;
+  std::optional<PlannedTrail> planned_trail;  // D10: offered after the fill, with the plan
 };
+
+// The protective section's tabs (D10): the trailing stop has its own, never hidden.
+enum class ProtectTab : unsigned char { Stop, Trail, Target };
 
 struct TicketView {
   // Labels
@@ -64,6 +72,12 @@ struct TicketView {
   std::string trail_hint;
   bool prot_beyond = false;
   bool can_protect = false;
+  // add-practice-and-advanced-strategies D6, D10: the time in force, "Protect with" and the tabs.
+  TifView tif;
+  std::string protect_with, protect_fixed, protect_trail;
+  std::string trail_planned;            // the note under the planned trailing fields ("" unless chosen)
+  std::vector<std::string> tabs;        // Stop · Trailing · Target, " •" when the tab holds a level
+  std::string trail_rule;               // the rule in words with the engine's first trigger
 };
 
 class TicketViewModel {
@@ -85,6 +99,17 @@ class TicketViewModel {
   std::string prot_trail;
   std::string prot_trail_pct;
   bool trail_by_pct = false;
+  ProtectTab protect_tab = ProtectTab::Stop;
+  // Time in force (policy v18) and "Protect with: trailing stop" (D10).
+  TifChoice tif_choice = TifChoice::Gtc;
+  std::string tif_bars = "3";
+  bool protect_with_trail = false;
+  std::string plan_trail;
+  std::string plan_trail_pct;
+  bool plan_trail_by_pct = false;
+  [[nodiscard]] std::optional<PlannedTrail> planned_trail() const;
+  // The planned-trailing notice filled the protective section: the trailing tab with the rule.
+  void fill_planned_trail(const PlannedTrail& p);
 
   // The amount field of the sizing mode (quantity, risk %, notional or % of equity).
   [[nodiscard]] std::string& amount();
@@ -122,6 +147,9 @@ class TicketViewModel {
   void relever_note(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const;
   void trailing(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const;
   void protection(const Texts& t, const GameState& g, const Calc& c, bool busy, TicketView& v) const;
+  void order_rules(const Texts& t, const GameState& g, const Calc& c, TicketView& v) const;
+  [[nodiscard]] TifOrder tif_now(const GameState& g) const;
+  [[nodiscard]] std::string type_code() const;
   [[nodiscard]] std::string beyond_key() const;
 
   bool synced_ = false;

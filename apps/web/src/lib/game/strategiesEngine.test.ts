@@ -5,7 +5,22 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import type { ComboPreview, GameState, WhatIfResult } from '#lib/engine/types.ts';
 import { loadEngine, wasmBuilt, type NodeEngine } from '#lib/engine/wasmNode.test-util.ts';
 import { lastPrice } from './lastPrice.ts';
-import { comboLegs, expiriesOf, orderLegs, strikesOf, templateLegs, TEMPLATES, templateShortable, whatifLegs } from './strategies.ts';
+import {
+	comboLegs,
+	defaultLimit,
+	expiriesOf,
+	orderLegs,
+	rollOrders,
+	rollTargets,
+	strikesOf,
+	templateLegs,
+	TEMPLATES,
+	templateShortable,
+	TWO_EXPIRY,
+	twoExpiryTemplateLegs,
+	whatifLegs
+} from './strategies.ts';
+import { analyticsOf } from './whatifLab.ts';
 import { academyRequest, runRequest, ZERO_SHIFT, type AcademyLeg } from './whatifLab.ts';
 
 let engine: NodeEngine;
@@ -47,7 +62,7 @@ describe.skipIf(!wasmBuilt)('builder and lab against the engine kernel (WASM)', 
 		const { run, state } = m05();
 		const expiry = expiriesOf(state.options.chain)[0];
 		const strikes = strikesOf(state.options.chain, expiry);
-		for (const id of TEMPLATES) {
+		for (const id of TEMPLATES.filter((x) => !TWO_EXPIRY.has(x))) {
 			for (const short of [false, true]) {
 				const legs = templateLegs(id, strikes, lastPrice(state), 1, short)!;
 				const orders = orderLegs(state, expiry, legs)!;
@@ -94,3 +109,81 @@ describe.skipIf(!wasmBuilt)('builder and lab against the engine kernel (WASM)', 
 	});
 });
 
+
+// add-practice-and-advanced-strategies wave 1: calendars and diagonals on two expiries, limit legs and a
+// roll, sent exactly as the builder sends them and valued by the engine.
+describe.skipIf(!wasmBuilt)('two-expiry structures, limit legs and rolls against the engine (WASM)', () => {
+	beforeAll(async () => {
+		engine ??= await loadEngine();
+	});
+
+	function m17(): { run: number; state: GameState; near: number; far: number } {
+		const run = engine.createRun('m17-before-expiry', 3);
+		const state = engine.state(run) as GameState;
+		const [near, far] = expiriesOf(state.options.chain);
+		return { run, state, near, far };
+	}
+
+	it('every calendar and diagonal: the dry run accepts it; the horizon at the first expiry bounds the long ones by their debit', () => {
+		const { run, state, near, far } = m17();
+		expect(far).toBeGreaterThan(near);
+		const f = lastPrice(state);
+		for (const id of [...TWO_EXPIRY]) {
+			const legs = twoExpiryTemplateLegs(id, { step: near, strikes: strikesOf(state.options.chain, near) }, { step: far, strikes: strikesOf(state.options.chain, far) }, f, 1)!;
+			const orders = orderLegs(state, near, legs)!;
+			const preview = engine.comboPreview(run, { legs: comboLegs(orders) }) as ComboPreview;
+			expect(preview.accepted, id).toBe(true);
+			const w = engine.runWhatif(run, { legs: whatifLegs(orders, null) }) as WhatIfResult;
+			expect(w.expiry, id).toBeNull();
+			const a = analyticsOf(w)!;
+			expect(a.horizonStep, id).toBe(near - state.step);
+			expect(a.maxLoss, id).not.toBeNull();
+			const debit = -Number(preview.netPremium);
+			expect(Number(a.maxLoss), id).toBeLessThanOrEqual(debit + 1e-6); // the long versions: at most the debit
+		}
+		expect((engine.state(run) as GameState).digest).toBe(state.digest);
+	});
+
+	it('limit legs at the passive mid with IOC: the dry run accepts them and values them at the limit', () => {
+		const { run, state, near } = m17();
+		const legs = templateLegs('bull_call', strikesOf(state.options.chain, near), lastPrice(state), 1)!.map((l) => {
+			const q = state.options.chain.find((x) => x.expiryStep === near && x.kind === l.kind && Number(x.strike) === l.strike)!;
+			return { ...l, limit: defaultLimit(q, l.side, Number(state.options.premiumTick)) };
+		});
+		const orders = orderLegs(state, near, legs)!;
+		const preview = engine.comboPreview(run, { legs: comboLegs(orders, { tif: 'ioc' }) }) as ComboPreview;
+		expect(preview.accepted).toBe(true);
+		const premium = (o: (typeof orders)[number]) => Number(o.premium) * Number(o.qty) * Number(state.options.multiplier);
+		expect(Number(preview.legs[0].premium)).toBeCloseTo(premium(orders[0]), 6);
+		const w = engine.runWhatif(run, { legs: whatifLegs(orders, null) }) as WhatIfResult;
+		expect(w.legs[0].entry).toBe(`${Number(orders[0].premium).toFixed(8)}`);
+	});
+
+	it('a roll of a held calendar: closing the near short first is accepted by the dry run', () => {
+		const { run, state, near, far } = m17();
+		const last = expiriesOf(state.options.chain).at(-1)!;
+		const f = lastPrice(state);
+		const legs = twoExpiryTemplateLegs('calendar_call', { step: near, strikes: strikesOf(state.options.chain, near) }, { step: last, strikes: strikesOf(state.options.chain, last) }, f, 1)!;
+		const series = orderLegs(state, near, legs)!;
+		// Holding the calendar: short near, long on the last expiry (as the combo's filled legs would be).
+		const held = series.map((o) => ({ series: o.series, qty: o.side === 'buy' ? 1 : -1 }));
+		const plan = rollOrders(state, held, far, false, f)!;
+		expect(plan.from).toBe(near);
+		expect(plan.orders[0].side).toBe('buy'); // the near short is bought back before anything is written
+		expect(plan.orders.at(-1)!.side).toBe('sell');
+		const preview = engine.comboPreview(run, { legs: comboLegs(plan.orders) }) as ComboPreview;
+		expect(preview.accepted).toBe(true);
+	});
+
+	it("a calendar's short is never rolled onto its long's expiry (playtest: the roll closed the calendar)", () => {
+		const { state, near, far } = m17();
+		const f = lastPrice(state);
+		const legs = twoExpiryTemplateLegs('calendar_call', { step: near, strikes: strikesOf(state.options.chain, near) }, { step: far, strikes: strikesOf(state.options.chain, far) }, f, 1)!;
+		const held = orderLegs(state, near, legs)!.map((o) => ({ series: o.series, qty: o.side === 'buy' ? 1 : -1 }));
+		const later = expiriesOf(state.options.chain).filter((e) => e > far);
+		expect(later.length).toBeGreaterThan(0);
+		expect(rollTargets(state.options.chain, near, [near, far])).toEqual(later);
+		expect(rollOrders(state, held, far, false, f)).toBeNull();
+		expect(rollOrders(state, held, later[0], false, f)!.orders).toHaveLength(2);
+	});
+});

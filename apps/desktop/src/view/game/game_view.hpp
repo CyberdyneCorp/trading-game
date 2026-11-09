@@ -9,7 +9,9 @@
 #include <raven/raven_window.h>
 
 #include <chrono>
+#include <map>
 #include <memory>
+#include <optional>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -73,6 +75,7 @@ class GameView {
   void apply_chain(const game::Texts& t, const GameState& g);
   void apply_rail(const game::Texts& t, const GameState& g);
   void apply_orders(const game::Texts& t, const GameState& g);
+  void build_order_rows(const game::Texts& t, const std::vector<game::OrderRow>& rows);
   void apply_advisor(const game::Texts& t, const GameState& g);
   void apply_lists(const game::Texts& t, const GameState& g);
   void apply_modal(const game::Texts& t, const GameState& g);
@@ -90,10 +93,34 @@ class GameView {
   void apply_sizing(const game::Texts& t, const game::BuilderView& v);
   void clear_leg_rows();
   void add_leg_row(const game::BuilderView& v, std::size_t i);
+  void add_leg_extra(const game::BuilderView& v, std::size_t i, Rid leg);
+  void apply_builder_expiries(const game::Texts& t, const game::BuilderView& v);
   void apply_leg_rows(const game::BuilderView& v);
   void apply_combo_notice();
   void apply_lab_dialog(const game::Texts& t);
   static void on_builder_paint(Rid widget, RPainter* painter, float width, float height, void* self);
+  // Wave 1 of add-practice-and-advanced-strategies (game_view_wave1.cpp).
+  void bind_wave1();
+  void bind_heatmaps();
+  void bind_live();
+  void apply_tif(const game::TifView& v, std::string_view combo, std::string_view label, std::string_view bars_row,
+                 std::string_view bars_label, std::string_view bars, std::string_view hint, const std::string& bars_text);
+  void apply_wave1_ticket(const game::Texts& t, const game::TicketView& v);
+  void apply_wave1_option(const game::OptionTicketView& v);
+  void apply_wave1_book(const game::Texts& t);
+  void apply_wave1_builder(const game::Texts& t);
+  void apply_heatmap(const game::Texts& t, std::string_view prefix, const std::optional<game::WhatIfHeatmap>& map, bool shown);
+  void apply_live(const game::Texts& t);
+  void apply_live_panel(const game::Texts& t, const game::GameViewModel::LiveView& v);
+  void apply_confirm();
+  void apply_portfolio(const game::Texts& t);
+  void paint_heatmap(RPainter* painter, float width, float height, const std::optional<game::WhatIfHeatmap>& map);
+  int heatmap_event(Rid widget, const REvent* e, const std::optional<game::WhatIfHeatmap>& map);
+  bool heatmap_key(int key, std::size_t rows, std::size_t cols);
+  static void on_builder_heatmap_paint(Rid widget, RPainter* painter, float width, float height, void* self);
+  static void on_portfolio_heatmap_paint(Rid widget, RPainter* painter, float width, float height, void* self);
+  static int on_builder_heatmap_event(Rid widget, const REvent* e, void* self);
+  static int on_portfolio_heatmap_event(Rid widget, const REvent* e, void* self);
 
   static void on_dock_changed(Rid area, void* self);
   static void on_chart_paint(Rid widget, RPainter* painter, float width, float height, void* self);
@@ -119,8 +146,13 @@ class GameView {
   std::chrono::steady_clock::time_point last_tick_ = std::chrono::steady_clock::now();
   LineList builder_preview_, builder_table_;
   std::vector<Rid> leg_rows_;
-  std::string legs_key_, expiries_key_;
+  std::string legs_key_, expiries_key_, far_key_, tif_key_;
   std::unique_ptr<LabPanel> lab_;
+  std::map<std::string, std::string> tif_items_;
+  std::map<std::string, LineList> heatmap_tables_;
+  LineList live_orders_, portfolio_rows_, portfolio_limits_;
+  std::vector<Rid> live_rows_, live_held_rows_;
+  std::string live_key_, live_targets_key_, live_held_key_;
 };
 
 }  // namespace tradelab::desktop::view

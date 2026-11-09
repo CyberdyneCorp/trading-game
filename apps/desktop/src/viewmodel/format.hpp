@@ -32,6 +32,10 @@ double parse_amount(std::string_view input, Locale locale);
 
 std::string_view sign_mark(double v);
 
+// Number.prototype.toFixed(digits) on the exact value, and the decimals of a tick or lot (0.01 -> 2).
+std::string to_fixed_text(double v, int digits);
+int step_decimals(double step);
+
 std::string qty_to_lot(double qty, double lot);
 std::string price_to_tick(double price, double tick);
 std::string price_input_text(double price, double tick, Locale locale);

@@ -160,6 +160,7 @@ std::string journal(const std::vector<PlanEntry>& entries) {
     if (!e.lose_scenario.empty()) w.field("loseScenario", e.lose_scenario);
     if (!e.instrument.empty()) w.field("instrument", e.instrument);
     if (!e.combo.empty()) w.field("combo", e.combo);
+    if (e.trail) w.key("trail").begin_object().field("mode", e.trail->pct ? "pct" : "price").field("value", e.trail->value).end_object();
     w.end_object();
   }
   return w.end_array().text();
@@ -181,6 +182,7 @@ std::vector<PlanEntry> journal_from(const json::Value& v) {
     p.lose_scenario = e["loseScenario"].as_string();
     p.instrument = e["instrument"].as_string();
     p.combo = e["combo"].as_string();
+    if (e["trail"].kind() == Kind::Object) p.trail = PlanTrail{e["trail"]["mode"].as_string() == "pct", e["trail"]["value"].as_string()};
     out.push_back(std::move(p));
   }
   return out;

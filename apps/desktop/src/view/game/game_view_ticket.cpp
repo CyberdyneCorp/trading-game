@@ -264,6 +264,7 @@ void GameView::apply_ticket(const game::Texts& t, const GameState& g) {
   ui::set_text(find(n::kSubmit), v.submit_label);
   set_enabled(find(n::kSubmit), v.can_submit);
   apply_protect(t, v);
+  apply_wave1_ticket(t, v);
 }
 
 void GameView::apply_protect(const game::Texts& t, const game::TicketView& v) {
@@ -300,6 +301,7 @@ void GameView::apply_options(const game::Texts& t, const GameState& g) {
   GameViewModel& m = vm();
   if (!g.options.enabled) return;
   const game::OptionTicketView v = m.option_ticket.view(t, g, m.busy());
+  apply_wave1_option(v);
   set_label(find(n::kOptSeries), v.has_quote ? v.series + "  [" + t.tr("opt.simulated") + "]" : t.tr("opt.none"));
   const bool buy = m.option_ticket.buy;
   ui::set_text(find(n::kOptBuy), std::string(buy ? "[\xE2\x96\xB2 " : "\xE2\x96\xB2 ") + t.tr("opt.buy") + (buy ? "]" : ""));

@@ -1,6 +1,7 @@
 // Web parity fixtures of the strategy builder, its combos and the what-if lab (add-academy-and-strategies
 // D3, D4): strategies.ts, combos.ts and whatifLab.ts over fixed inputs. Same format as
 // web_fixtures_lib.mjs; replayed by tests/viewmodel/game/test_options_parity.cpp.
+import { combosWave1Cases, strategiesWave1Cases } from './web_fixtures_wave1.mjs';
 
 function cases() {
 	const list = [];
@@ -11,7 +12,7 @@ function cases() {
 const STRIKES = [90, 92.5, 95, 97.5, 100, 102.5, 105, 107.5, 110];
 
 // Four expiries: two listed, one in its settlement window, one no longer listed.
-function chainOf() {
+export function chainOf() {
 	const chain = [];
 	let id = 1;
 	for (const [expiryStep, listed, settling] of [
@@ -32,12 +33,12 @@ function chainOf() {
 }
 
 // A GameState as far as the builder reads it (the engine's tl_state shape).
-function gameOf({ multiplier = '1', optMultiplier = '1', lot = '0.1', optLot = '0.1', posQty = '0', posEntry = '0', positions = [], orders = [] } = {}) {
+export function gameOf({ multiplier = '1', optMultiplier = '1', lot = '0.1', optLot = '0.1', posQty = '0', posEntry = '0', positions = [], orders = [] } = {}) {
 	return {
 		contract: { multiplier, lotSize: lot },
 		position: { qty: posQty, entry: posEntry },
 		...(orders.length ? { orders } : {}),
-		options: { multiplier: optMultiplier, lotSize: optLot, chain: chainOf(), positions }
+		options: { multiplier: optMultiplier, lotSize: optLot, premiumTick: '0.05', chain: chainOf(), positions }
 	};
 }
 
@@ -169,6 +170,7 @@ export function strategiesFixture(m) {
 	const stopped = { ...held, stop: '98.20000000' };
 	add('whatifLegs', [orders.filter((o) => o.series !== 0), stopped], m.whatifLegs(orders.filter((o) => o.series !== 0), stopped));
 	stopCases(m, add);
+	strategiesWave1Cases(m, add, chain, games);
 	return { helper: 'strategies.ts', cases: list };
 }
 
@@ -240,6 +242,9 @@ function statusCases(m, add, recs) {
 export function combosFixture(m) {
 	const { list, add } = cases();
 	for (const combos of [[], [{ id: 'c1' }, { id: 'c3' }], [{ id: 'c2' }, { id: 'x' }]]) add('nextComboId', [combos], m.nextComboId(combos));
+	for (const orders of [[], [{ series: 3, side: 'buy', qty: '1.0' }], [{ series: 3, side: 'buy', qty: '1.0' }, { series: 4, side: 'sell', qty: '1.0', premium: '1.10' }]]) {
+		add('comboSentKey', [orders], m.comboSentKey(orders));
+	}
 	add('combosFromLog', [COMBO_LOG, 60], m.combosFromLog(COMBO_LOG, 60));
 	const statuses = statusCases(m, add, m.combosFromLog(COMBO_LOG, 60));
 	const perpOnly = [{ series: 0, side: 'buy', qty: '2.5' }];
@@ -258,6 +263,7 @@ export function combosFixture(m) {
 	}
 	add('groupTrades', [trades, statuses], m.groupTrades(trades, statuses));
 	add('groupTrades', [trades, []], m.groupTrades(trades, []));
+	combosWave1Cases(m, add);
 	return { helper: 'combos.ts', cases: list };
 }
 

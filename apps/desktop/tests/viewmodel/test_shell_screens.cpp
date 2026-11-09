@@ -162,7 +162,7 @@ TEST_CASE("shell: the full debrief from a real run, and the mission marked compl
   CHECK(releases->rows[0][0] == "81");
   // The web's timeline (playtest): engine events as the feed words them, not trade summaries, and the
   // released headlines rather than the kind of news.
-  CHECK(has_line(m, names::kDebriefTimeline, "[61] Execução #1: BUY 1,5 @ 101,46"));
+  CHECK(has_line(m, names::kDebriefTimeline, "[61] Execução #1: COMPRA 1,5 @ 101,46"));
   CHECK_FALSE(has_line(m, names::kDebriefTimeline, "▲ LONG"));
   CHECK_FALSE(has_line(m, names::kDebriefTimeline, "Ordem #1 aceita"));  // accepted orders stay in the feed
   CHECK_FALSE(has_line(m, names::kDebriefTimeline, "📰 Adoção institucional"));

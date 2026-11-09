@@ -208,11 +208,12 @@ TEST_CASE("builder: writing locked by the mission disables the templates that wr
   Fixture f(options_state(false));
   f.vm.set_tab(Tab::Builder);
   const BuilderView v = f.vm.builder_view();
-  REQUIRE(v.templates.size() == 7);
+  REQUIRE(v.templates.size() == 11);
   CHECK_FALSE(v.templates[0].enabled);  // bull call spread
   CHECK(v.templates[3].enabled);        // protective put
   CHECK(v.templates[5].enabled);        // long strangle
   CHECK_FALSE(v.templates[6].enabled);  // iron condor
+  CHECK_FALSE(v.templates[7].enabled);  // calendar (writes the near expiry)
   CHECK_FALSE(v.write_locked.empty());
   f.vm.builder.pick(*f.vm.state(), Template::Strangle, Locale::PtBR);
   f.vm.builder.toggle_short(*f.vm.state(), Locale::PtBR);

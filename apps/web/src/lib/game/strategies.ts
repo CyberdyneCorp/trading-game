@@ -2,7 +2,7 @@
 // the submission order and the requests for the engine's what-if valuation and combo dry run. Every
 // number the builder shows comes from those engine calls; this module only chooses legs.
 
-import type { ComboLegInput, GameState, OptionQuoteView, OrderSideName, WhatIfLegInput } from '#lib/engine/types.ts';
+import type { ComboLegInput, GameState, OptionQuoteView, OrderSideName, TimeInForceName, WhatIfLegInput } from '#lib/engine/types.ts';
 import { qtyToLot } from './format.ts';
 
 export type TemplateId =
@@ -12,10 +12,26 @@ export type TemplateId =
 	| 'protective_put'
 	| 'straddle'
 	| 'strangle'
-	| 'iron_condor';
+	| 'iron_condor'
+	// Two expiries (add-practice-and-advanced-strategies D3): need a later listed expiry.
+	| 'calendar_call'
+	| 'calendar_put'
+	| 'diagonal_call'
+	| 'diagonal_put';
+
+/** Templates on two expiries: the near one sold, the far one bought (the long version). */
+export const TWO_EXPIRY: ReadonlySet<TemplateId> = new Set(['calendar_call', 'calendar_put', 'diagonal_call', 'diagonal_put']);
 
 /** A combo's structure name: a template, its short version, or free legs. */
-export type StrategyId = TemplateId | 'short_straddle' | 'short_strangle' | 'custom';
+export type StrategyId =
+	| TemplateId
+	| 'short_straddle'
+	| 'short_strangle'
+	| 'short_calendar_call'
+	| 'short_calendar_put'
+	| 'short_diagonal_call'
+	| 'short_diagonal_put'
+	| 'custom';
 
 export const TEMPLATES: readonly TemplateId[] = [
 	'bull_call',
@@ -24,13 +40,23 @@ export const TEMPLATES: readonly TemplateId[] = [
 	'protective_put',
 	'straddle',
 	'strangle',
-	'iron_condor'
+	'iron_condor',
+	'calendar_call',
+	'calendar_put',
+	'diagonal_call',
+	'diagonal_put'
 ];
 
+/**
+ * The templates of one expiry: the run-less Academy builder lists only these, since a lesson market
+ * has a single expiry (playtest: its calendars and diagonals built no legs). Desktop kOneExpiryTemplates.
+ */
+export const ONE_EXPIRY_TEMPLATES: readonly TemplateId[] = TEMPLATES.filter((id) => !TWO_EXPIRY.has(id));
+
 /** Templates whose legs write options (sell to open): disabled when the run does not allow writing. */
-const WRITES: ReadonlySet<TemplateId> = new Set(['bull_call', 'bear_put', 'covered_call', 'iron_condor']);
+const WRITES: ReadonlySet<TemplateId> = new Set(['bull_call', 'bear_put', 'covered_call', 'iron_condor', ...TWO_EXPIRY]);
 /** Templates offered short (every side flipped). */
-const SHORTABLE: ReadonlySet<TemplateId> = new Set(['straddle', 'strangle']);
+const SHORTABLE: ReadonlySet<TemplateId> = new Set(['straddle', 'strangle', ...TWO_EXPIRY]);
 
 export const MAX_OPTION_LEGS = 4;
 
@@ -43,6 +69,10 @@ export interface BuilderLeg {
 	strike: number | null;
 	/** Contracts (options) or underlying units (the perpetual: contracts x the option multiplier). */
 	qty: number;
+	/** The leg's expiry step (design D3: up to two per structure); absent = the builder's expiry. */
+	expiry?: number;
+	/** Design D2: a limit premium (option legs); absent = a market leg. */
+	limit?: number;
 }
 
 export function templateWrites(id: TemplateId, short: boolean): boolean {
@@ -54,9 +84,7 @@ export function templateShortable(id: TemplateId): boolean {
 }
 
 export function strategyOf(id: TemplateId, short: boolean): StrategyId {
-	if (short && id === 'straddle') return 'short_straddle';
-	if (short && id === 'strangle') return 'short_strangle';
-	return id;
+	return short && SHORTABLE.has(id) ? (`short_${id}` as StrategyId) : id;
 }
 
 /** Expiries a combo can be built on now: listed series whose orders would not fall in the settlement window. */
@@ -85,6 +113,21 @@ function around(strikes: readonly number[], f: number): { below: number[]; above
 const opt = (kind: 'call' | 'put', side: OrderSideName, strike: number | undefined, qty: number): BuilderLeg | null =>
 	strike == null ? null : { kind, side, strike, qty };
 
+/**
+ * Calendar and diagonal legs (design D3): the near expiry sold, the far one bought. A calendar uses the
+ * strike at the money on both; a diagonal sells the next strike out of the money (above for calls,
+ * below for puts) and buys the strike at the money, so K1 < K2 for calls and K1 > K2 for puts.
+ */
+function twoExpiryLegs(id: TemplateId, near: readonly number[], far: readonly number[], f: number, n: number, e: { near: number; far: number }): (BuilderLeg | null)[] {
+	const kind = id.endsWith('call') ? 'call' : 'put';
+	const atm = nearest(near, f);
+	const i = near.indexOf(atm);
+	const farAtm = far.includes(atm) ? atm : undefined;
+	const shortStrike = id.startsWith('calendar') ? atm : near[kind === 'call' ? i + 1 : i - 1];
+	const withExpiry = (l: BuilderLeg | null, expiry: number) => (l ? { ...l, expiry } : null);
+	return [withExpiry(opt(kind, 'sell', shortStrike, n), e.near), withExpiry(opt(kind, 'buy', farAtm, n), e.far)];
+}
+
 function rawLegs(id: TemplateId, strikes: readonly number[], f: number, n: number): (BuilderLeg | null)[] {
 	const atm = nearest(strikes, f);
 	const i = strikes.indexOf(atm);
@@ -105,6 +148,8 @@ function rawLegs(id: TemplateId, strikes: readonly number[], f: number, n: numbe
 			return [opt('call', 'buy', above[0], n), opt('put', 'buy', below[0], n)];
 		case 'iron_condor':
 			return [opt('put', 'buy', below[1], n), opt('put', 'sell', below[0], n), opt('call', 'sell', above[0], n), opt('call', 'buy', above[1], n)];
+		default:
+			return [null]; // two-expiry templates: twoExpiryTemplateLegs
 	}
 }
 
@@ -122,6 +167,25 @@ export function templateLegs(id: TemplateId, strikes: readonly number[], f: numb
 	return short && SHORTABLE.has(id) ? out.map((l) => ({ ...l, side: flip(l.side) })) : out;
 }
 
+/**
+ * A calendar or diagonal on two expiries (design D3), `n` contracts each; null when the far expiry lacks
+ * the strike at the money or the near one lacks the strike the template sells.
+ */
+export function twoExpiryTemplateLegs(
+	id: TemplateId,
+	near: { step: number; strikes: readonly number[] },
+	far: { step: number; strikes: readonly number[] },
+	f: number,
+	n: number,
+	short = false
+): BuilderLeg[] | null {
+	if (!TWO_EXPIRY.has(id) || near.strikes.length === 0 || far.step <= near.step) return null;
+	const legs = twoExpiryLegs(id, near.strikes, far.strikes, f, n, { near: near.step, far: far.step });
+	if (legs.some((l) => l == null)) return null;
+	const out = legs as BuilderLeg[];
+	return short ? out.map((l) => ({ ...l, side: flip(l.side) })) : out;
+}
+
 const rank = (l: BuilderLeg) => (l.kind === 'perp' ? 1 : l.side === 'buy' ? 0 : 2);
 
 /**
@@ -136,11 +200,12 @@ export function writesOptions(legs: readonly BuilderLeg[]): boolean {
 	return legs.some((l) => l.kind !== 'perp' && l.side === 'sell');
 }
 
-/** Why the legs cannot be combined, or null: at most four option legs and one perpetual leg. */
-export function legsProblem(legs: readonly BuilderLeg[]): 'empty' | 'too_many' | 'two_perps' | 'qty' | null {
+/** Why the legs cannot be combined, or null: at most four option legs, one perpetual leg, two expiries. */
+export function legsProblem(legs: readonly BuilderLeg[], expiry = 0): 'empty' | 'too_many' | 'two_perps' | 'qty' | 'expiries' | null {
 	if (legs.length === 0) return 'empty';
 	if (legs.filter((l) => l.kind !== 'perp').length > MAX_OPTION_LEGS) return 'too_many';
 	if (legs.filter((l) => l.kind === 'perp').length > 1) return 'two_perps';
+	if (new Set(legs.filter((l) => l.kind !== 'perp').map((l) => l.expiry ?? expiry)).size > 2) return 'expiries';
 	return legs.every((l) => l.qty > 0) ? null : 'qty';
 }
 
@@ -165,25 +230,54 @@ export interface OrderLeg {
 	series: number;
 	side: OrderSideName;
 	qty: string;
+	/** Design D2: an option limit leg's premium on the premium tick; absent = market. */
+	premium?: string;
 }
 
-/** The legs' orders in submission order; null when a strike is not listed on `expiry`. */
+/** A premium on the tick grid as text (the engine's premium tick). */
+export function premiumText(v: number, tick: number): string {
+	const decimals = Math.max(0, Math.round(-Math.log10(tick)));
+	return (Math.round(v / tick) * tick).toFixed(decimals);
+}
+
+/**
+ * The default limit of a leg (design D2): the quote's mid rounded to the tick toward the passive side,
+ * down for a buy and up for a sell, never below one tick.
+ */
+export function defaultLimit(q: Pick<OptionQuoteView, 'mid'>, side: OrderSideName, tick: number): number {
+	const ticks = Number(q.mid) / tick;
+	const n = side === 'buy' ? Math.floor(ticks + 1e-9) : Math.ceil(ticks - 1e-9);
+	return Math.max(1, n) * tick;
+}
+
+/** The legs' orders in submission order; null when a strike is not listed on its leg's expiry. */
 export function orderLegs(game: GameState, expiry: number, legs: readonly BuilderLeg[]): OrderLeg[] | null {
 	const out: OrderLeg[] = [];
+	const tick = Number(game.options.premiumTick);
 	for (const l of submissionOrder(legs)) {
 		if (l.kind === 'perp') {
 			out.push({ series: 0, side: l.side, qty: perpContracts(game, l.qty) });
 			continue;
 		}
-		const q = seriesFor(game.options.chain, expiry, l.kind, l.strike ?? NaN);
+		const q = seriesFor(game.options.chain, l.expiry ?? expiry, l.kind, l.strike ?? NaN);
 		if (!q) return null;
-		out.push({ series: q.id, side: l.side, qty: optionQty(game, l.qty) });
+		out.push({ series: q.id, side: l.side, qty: optionQty(game, l.qty), ...(l.limit != null ? { premium: premiumText(l.limit, tick) } : {}) });
 	}
 	return out;
 }
 
-export function comboLegs(orders: readonly OrderLeg[]): ComboLegInput[] {
-	return orders.map((o) => (o.series === 0 ? { kind: 'perp', side: o.side, qty: o.qty } : { series: o.series, side: o.side, qty: o.qty }));
+/** The dry run's legs: limit legs carry their premium and the combo's time in force (D2). */
+export function comboLegs(orders: readonly OrderLeg[], tif?: { tif: TimeInForceName; tifBars?: number }): ComboLegInput[] {
+	return orders.map((o) => {
+		if (o.series === 0) return { kind: 'perp', side: o.side, qty: o.qty };
+		const limit = o.premium != null ? { type: 'limit' as const, premium: o.premium, ...(tif && tif.tif !== 'gtc' ? tif : {}) } : {};
+		return { series: o.series, side: o.side, qty: o.qty, ...limit };
+	});
+}
+
+/** The expiries the option legs use (one or two), ascending. */
+export function legExpiries(legs: readonly BuilderLeg[], expiry: number): number[] {
+	return [...new Set(legs.filter((l) => l.kind !== 'perp').map((l) => l.expiry ?? expiry))].sort((a, b) => a - b);
 }
 
 /** A held long perpetual: its units, entry and the working stop that protects all of it, if any. */
@@ -201,7 +295,10 @@ export interface HeldLong {
  * that stop, not the long's whole value down to a price of 0: the long's own risk was already planned.
  */
 export function whatifLegs(orders: readonly OrderLeg[], held: HeldLong | null): WhatIfLegInput[] {
-	const legs: WhatIfLegInput[] = comboLegs(orders);
+	// A limit leg is valued at its limit premium (design D2); a market leg at the price it would cross.
+	const legs: WhatIfLegInput[] = orders.map((o) =>
+		o.series === 0 ? { kind: 'perp', side: o.side, qty: o.qty } : { series: o.series, side: o.side, qty: o.qty, ...(o.premium != null ? { entry: o.premium } : {}) }
+	);
 	if (held) legs.push({ kind: 'perp', side: 'buy', qty: held.qty, entry: held.entry, ...(held.stop ? { stop: held.stop } : {}) });
 	return legs;
 }
@@ -261,4 +358,95 @@ export function positionLegs(game: GameState): WhatIfLegInput[] {
 	const q = Number(game.position.qty);
 	if (q !== 0) legs.push({ kind: 'perp', side: q > 0 ? 'buy' : 'sell', qty: abs(game.position.qty), entry: game.position.entry });
 	return legs;
+}
+
+// ---- roll (design D3) ----------------------------------------------------------------------------
+
+/** A held option leg of a combo: series and signed contracts (> 0 long). */
+export interface HeldLeg {
+	series: number;
+	qty: number;
+}
+
+export interface RollPlan {
+	/** Closing every held leg of the near expiry, then opening the same structure on `to`. */
+	orders: OrderLeg[];
+	from: number;
+	to: number;
+}
+
+function strikeNearest(strikes: readonly number[], k: number): number | undefined {
+	return strikes.length ? strikes.reduce((best, x) => (Math.abs(x - k) < Math.abs(best - k) ? x : best), strikes[0]) : undefined;
+}
+
+/**
+ * The orders of a roll (design D3): close every held option leg of the near expiry and open the same
+ * structure on the later expiry `to`, at the same strikes when listed (else the nearest listed), or
+ * re-centred at the money (every strike shifted by the ATM strike minus the structure's middle strike).
+ * Ordered buys, then sells, so protection is added before it is removed. Null when `to` is not a
+ * roll target (`rollTargets`: later than the near expiry and not held by the combo) or a strike
+ * cannot be found.
+ */
+export function rollOrders(game: GameState, held: readonly HeldLeg[], to: number, recenter: boolean, f: number): RollPlan | null {
+	const chain = game.options.chain;
+	const legs = held.flatMap((h) => {
+		const q = chain.find((x) => x.id === h.series);
+		return q && h.qty !== 0 ? [{ h, q }] : [];
+	});
+	if (legs.length === 0) return null;
+	const from = Math.min(...legs.map((l) => l.q.expiryStep));
+	if (!rollTargets(chain, from, legs.map((l) => l.q.expiryStep)).includes(to)) return null;
+	const near = legs.filter((l) => l.q.expiryStep === from);
+	const strikes = strikesOf(chain, to);
+	const ks = near.map((l) => Number(l.q.strike));
+	const shift = recenter ? (strikeNearest(strikes, f) ?? f) - (Math.min(...ks) + Math.max(...ks)) / 2 : 0;
+	const out: BuilderLeg[] = [];
+	for (const { h, q } of near) {
+		const k = strikeNearest(strikes, Number(q.strike) + shift);
+		const target = k != null ? seriesFor(chain, to, q.kind, k) : undefined;
+		if (!target) return null;
+		const abs = Math.abs(h.qty);
+		out.push({ kind: q.kind, side: h.qty > 0 ? 'sell' : 'buy', strike: Number(q.strike), qty: abs, expiry: from });
+		out.push({ kind: q.kind, side: h.qty > 0 ? 'buy' : 'sell', strike: k!, qty: abs, expiry: to });
+	}
+	const orders = submissionOrder(out).map((l) => {
+		const q = seriesFor(chain, l.expiry!, l.kind as 'call' | 'put', l.strike!)!;
+		return { series: q.id, side: l.side, qty: optionQty(game, l.qty) };
+	});
+	return { orders, from, to };
+}
+
+/**
+ * The builder's margin label: the spread rule pairs a covered sale only within one expiry unless the
+ * mission declares the calendar margin (design D5), so a two-expiry structure on a mission without it
+ * pays the sale's own margin (playtest: m17's calendar was labelled "a covered sale pays only the
+ * pair's maximum loss" over a naked margin).
+ */
+export function marginLabelKey(
+	rules: { spreadMargin?: boolean; calendarMargin?: boolean },
+	twoExpiries: boolean
+): 'builder.marginPerLeg' | 'builder.marginSameExpiry' | 'builder.marginSpread' {
+	if (!rules.spreadMargin) return 'builder.marginPerLeg';
+	return twoExpiries && !rules.calendarMargin ? 'builder.marginSameExpiry' : 'builder.marginSpread';
+}
+
+/**
+ * Later listed expiries a roll from `from` can go to (the next one first), leaving out the expiries the
+ * combo already holds (`held`): rolling a calendar's short onto its long's expiry would net the two and
+ * close the calendar instead of rolling it.
+ */
+export function rollTargets(chain: readonly OptionQuoteView[], from: number, held: readonly number[] = []): number[] {
+	return expiriesOf(chain).filter((e) => e > from && !held.includes(e));
+}
+
+/**
+ * The perpetual hedge to neutral (design D9): -deltaUnits in contracts, rounded toward zero to the lot.
+ * Null when that is less than one lot.
+ */
+export function hedgeOrder(game: GameState, deltaUnits: number): OrderLeg | null {
+	const lot = Number(game.contract.lotSize);
+	const contracts = -deltaUnits / Number(game.contract.multiplier);
+	const lots = Math.trunc(Math.abs(contracts) / lot + 1e-9);
+	if (lots < 1) return null;
+	return { series: 0, side: contracts > 0 ? 'buy' : 'sell', qty: qtyToLot(lots * lot, lot) };
 }

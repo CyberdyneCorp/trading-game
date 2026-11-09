@@ -7,7 +7,7 @@ import type { CsvBuildResult, EngineRequest, WorkerEnvelope, WorkerReply } from 
 import { revealAllowed } from './reveal';
 import { abiError, ENGINE_ABI, moduleAbi } from './abi';
 import { DEFAULT_RUN_OPTIONS } from './defaults';
-import { ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TrustedKey } from './types';
+import { ORDER_TYPE_CODE, SIDE_CODE, type GameState, type TimeInForceName, type TrustedKey } from './types';
 
 type Fn = (...a: unknown[]) => number;
 
@@ -50,7 +50,13 @@ interface Api {
 	// Run files (add-run-sharing-and-journal-stats D2); null on builds that predate them.
 	verifyRun: Fn | null;
 	sealRun: Fn | null;
+	// Policy v18 (add-practice-and-advanced-strategies D6, D7); null on builds that predate it.
+	placeTif: Fn | null;
+	optionTif: Fn | null;
+	linkOco: Fn | null;
 }
+
+const TIF_CODE: Record<TimeInForceName, number> = { gtc: 0, bars: 1, ioc: 2, fok: 3 };
 
 let mod: TradelabModule | null = null;
 let api: Api | null = null;
@@ -114,7 +120,16 @@ async function load(): Promise<Api> {
 		runWhatif: exported(mod, 'tl_run_option_whatif') ? w('tl_run_option_whatif', 'number', ['number', 'number']) : null,
 		comboPreview: exported(mod, 'tl_combo_preview') ? w('tl_combo_preview', 'number', ['number', 'number']) : null,
 		verifyRun: exported(mod, 'tl_run_file_verify') ? w('tl_run_file_verify', 'number', ['number', 'number', 'number', 'string']) : null,
-		sealRun: exported(mod, 'tl_run_file_seal') ? w('tl_run_file_seal', 'number', ['number', 'number', 'number', 'string']) : null
+		sealRun: exported(mod, 'tl_run_file_seal') ? w('tl_run_file_seal', 'number', ['number', 'number', 'number', 'string']) : null,
+		placeTif: exported(mod, 'tl_place_order_tif')
+			? w('tl_place_order_tif', 'number', [
+					'number', 'number', 'number', 'number', 'string', 'string', 'number', 'string', 'string', 'string', 'string', 'number', 'number'
+				])
+			: null,
+		optionTif: exported(mod, 'tl_place_option_order_tif')
+			? w('tl_place_option_order_tif', 'number', ['number', 'number', 'number', 'number', 'number', 'string', 'string', 'number', 'number'])
+			: null,
+		linkOco: exported(mod, 'tl_link_oco') ? w('tl_link_oco', 'number', ['number', 'number', 'number', 'number']) : null
 	};
 	return api;
 }
@@ -252,12 +267,25 @@ function runFile(a: Api, req: RunFileRequest): unknown {
 
 type OrderRequest = Extract<EngineRequest, { kind: 'order' }>;
 
-// A trailing stop given as a rate of the close has its own entry point (policy v16).
+// The policy v18 call for an order with a time in force; an older build has none (the UI hides the
+// control there, so reaching this is a bug, not a silent gtc).
+function tifCall(fn: Fn | null): Fn {
+	if (!fn) throw new Error('unsupported');
+	return fn;
+}
+
+// A trailing stop given as a rate of the close has its own entry point (policy v16); a time in force
+// goes through tl_place_order_tif (policy v18). Without one, the pre-v18 calls: older builds run them.
 function placeOrder(a: Api, req: OrderRequest): number {
 	const side = SIDE_CODE[req.side];
 	const ro = req.reduceOnly ? 1 : 0;
-	if (req.type === 'trailing_stop' && req.trailRate) return a.trailRate(requireRun(), req.clientId, side, req.qty, ro, req.trailRate);
 	const t = ORDER_TYPE_CODE[req.type];
+	if (req.tif) {
+		const rate = req.type === 'trailing_stop' ? (req.trailRate ?? '') : '';
+		return tifCall(a.placeTif)(requireRun(), req.clientId, t, side, req.qty, req.price ?? '', ro, req.attachStop ?? '', req.attachTp ?? '',
+			req.trailDistance ?? '', rate, TIF_CODE[req.tif], req.tifBars ?? 0);
+	}
+	if (req.type === 'trailing_stop' && req.trailRate) return a.trailRate(requireRun(), req.clientId, side, req.qty, ro, req.trailRate);
 	return a.place(requireRun(), req.clientId, t, side, req.qty, req.price ?? '', ro, req.attachStop ?? '', req.attachTp ?? '', req.trailDistance ?? '');
 }
 
@@ -276,7 +304,11 @@ function start(a: Api, req: Extract<EngineRequest, { kind: 'start' }>): GameStat
 }
 
 function placeOption(a: Api, req: Extract<EngineRequest, { kind: 'option' }>): number {
-	return a.option(requireRun(), req.clientId, req.series, SIDE_CODE[req.side], req.type === 'limit' ? 1 : 0, req.qty, req.premium ?? '');
+	const type = req.type === 'limit' ? 1 : 0;
+	if (req.tif) {
+		return tifCall(a.optionTif)(requireRun(), req.clientId, req.series, SIDE_CODE[req.side], type, req.qty, req.premium ?? '', TIF_CODE[req.tif], req.tifBars ?? 0);
+	}
+	return a.option(requireRun(), req.clientId, req.series, SIDE_CODE[req.side], type, req.qty, req.premium ?? '');
 }
 
 function recordPlan(a: Api, req: Extract<EngineRequest, { kind: 'plan' }>): number {
@@ -340,6 +372,8 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			return withState(a, a.cancel(requireRun(), req.clientId, req.orderId));
 		case 'move':
 			return withState(a, a.move(requireRun(), req.clientId, req.orderId, req.price));
+		case 'oco':
+			return withState(a, tifCall(a.linkOco)(requireRun(), req.clientId, req.orderA, req.orderB));
 		case 'leverage':
 			return withState(a, a.leverage(requireRun(), req.clientId, req.leverage));
 		case 'close':

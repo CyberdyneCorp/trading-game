@@ -24,11 +24,9 @@ std::optional<double> level(const std::string& v) {
   return std::nullopt;
 }
 
-std::string two_decimals(double v) {
-  char buf[48];
-  std::snprintf(buf, sizeof buf, "%.2f", v);
-  return buf;
-}
+// Number#toFixed(2), as the web logs plan levels and risks: "%.2f" rounds an exact tie to even (a
+// condor's 10.50 / 4 legs = 2.625 logged 2.62 against the web's 2.63, so the digests differed).
+std::string two_decimals(double v) { return fmt::to_fixed_text(v, 2); }
 
 template <class T>
 T* find_pair(std::vector<std::pair<int, T>>& list, int key) {
@@ -106,6 +104,7 @@ PlanEntry PlanDialog::entry(int step, bool skipped) const {
   e.skipped = skipped;
   e.planned_risk = risk_;
   e.instrument = option_label_.value_or("");
+  e.confidence = 0;  // a skipped plan states no confidence (web PlanDialog): the engine hashes it
   if (skipped) return e;
   e.thesis = trim(thesis);
   e.invalidation = level(invalidation);

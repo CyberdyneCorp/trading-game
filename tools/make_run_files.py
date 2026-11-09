@@ -91,6 +91,7 @@ def valid_files() -> list[tuple[str, str, dict[str, Any]]]:
         ("m08-rejections", "A run whose log has commands the engine rejected (they are part of the run).",
          run_file(golden("m08-regime-switch"))),
         ("m13-call-spread", "Option legs (golden m13-call-spread).", run_file(golden("m13-call-spread"))),
+        ("m01-tif-oco", "Time in force and OCO links (policy v18; golden m01-tif-oco).", run_file(golden("m01-tif-oco"))),
         ("m07-active", "A run still in progress: the first 5 actions of golden m07-trend-trailing.",
          active_prefix(golden("m07-trend-trailing"), 5)),
     ]

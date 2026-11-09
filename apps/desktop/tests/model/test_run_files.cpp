@@ -41,7 +41,7 @@ storage::StoredRun golden_run(const std::string& name) {
   run.record.run_id = "run-desktop-1";
   run.record.mission_id = fx["mission"].as_string();
   run.record.seed = static_cast<std::uint32_t>(fx["seed"].as_int());
-  run.record.execution_policy = 17;
+  run.record.execution_policy = testing::engine_execution_policy();
   run.record.created_at = 1'700'000'000'000;
   if (fx.has("options")) run.record.options = storage::options_from_json(storage::dump(fx["options"]));
   for (const json::Value& a : fx["actions"].items()) run.actions.push_back(storage::dump(a));

@@ -24,7 +24,27 @@ struct Candidate {
   std::size_t index;
   Price requirement;
   std::uint32_t series;
+  std::uint32_t expiry;  // the long's expiry; later than the short's only under calendar margin
 };
+
+// A long may cover the short when kind and expiry match, or, under calendar margin (design D5 of
+// add-practice-and-advanced-strategies), when it expires after the short: at the short's expiry it is
+// still worth at least its intrinsic value, so the pair cannot lose more than the vertical formula.
+bool may_cover(const Scenario& sc, const OptionSeries& short_s, const OptionSeries& long_s) {
+  if (long_s.kind != short_s.kind) return false;
+  if (long_s.expiry_step == short_s.expiry_step) return true;
+  return sc.options.calendar_margin && long_s.expiry_step > short_s.expiry_step;
+}
+
+// Same expiry first, lowest requirement then series id (as before calendar margin); then later
+// expiries ascending, then series id.
+bool tried_before(const Candidate& a, const Candidate& b, std::uint32_t short_expiry) {
+  const bool a_same = a.expiry == short_expiry;
+  const bool b_same = b.expiry == short_expiry;
+  if (a_same != b_same) return a_same;
+  if (a_same) return a.requirement != b.requirement ? a.requirement < b.requirement : a.series < b.series;
+  return a.expiry != b.expiry ? a.expiry < b.expiry : a.series < b.series;
+}
 
 // One short after pairing: the paired and unpaired quantities and the paired requirement.
 struct PairedShort {
@@ -43,12 +63,10 @@ std::vector<Candidate> candidates_for(const Scenario& sc, const OptionSeries& s,
   for (std::size_t j = 0; j < h.size(); ++j) {
     if (long_left[j] <= 0) continue;
     const OptionSeries* l = find_series(sc, h[j].series);
-    if (l->kind != s.kind || l->expiry_step != s.expiry_step) continue;
-    out.push_back({j, pair_requirement(s, *l), l->id});
+    if (!may_cover(sc, s, *l)) continue;
+    out.push_back({j, pair_requirement(s, *l), l->id, l->expiry_step});
   }
-  std::sort(out.begin(), out.end(), [](const Candidate& a, const Candidate& b) {
-    return a.requirement != b.requirement ? a.requirement < b.requirement : a.series < b.series;
-  });
+  std::sort(out.begin(), out.end(), [&s](const Candidate& a, const Candidate& b) { return tried_before(a, b, s.expiry_step); });
   return out;
 }
 

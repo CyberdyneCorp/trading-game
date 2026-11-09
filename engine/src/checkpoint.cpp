@@ -89,6 +89,10 @@ void visit(Ar& a, Order& o) {
   a.fx(o.trail_distance);
   a.u32(o.series);
   a.fx(o.trail_rate);  // checkpoint format 4 (policy v16)
+  a.en(o.tif);         // checkpoint format 6 (policy v18)
+  a.u32(o.tif_bars);
+  a.u32(o.expire_step);
+  a.u32(o.link_group);
 }
 
 template <typename Ar>
@@ -240,6 +244,7 @@ void visit(Ar& a, RunState& st) {
   a.fx(st.options.starting_balance);
   a.i32(st.options.leverage_cap);
   visit_seq(a, st.lesson_answers);  // format 5 (scoring v11)
+  a.i64(st.last_link_step);         // format 6 (policy v18)
   visit_seq(a, st.decisions);
 }
 

@@ -389,6 +389,7 @@ test('trailing stop can protect an open position and shows on the order list', a
 	await expect(page.getByText(/aceita não significa executada/).first()).toBeVisible();
 	await advance(page);
 	await expect(page.getByText(/Execução #1/)).toBeVisible();
+	await page.getByTestId('protect-tab-trail').click(); // the Stop · Trailing · Target tabs (D10)
 	await page.getByLabel(/Trailing stop/).fill('2.00');
 	await page.getByRole('button', { name: /Enviar stop\/alvo/ }).click();
 	await expect(page.locator('.orders').getByText('TRAIL')).toBeVisible();

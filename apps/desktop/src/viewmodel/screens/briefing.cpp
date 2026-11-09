@@ -55,7 +55,25 @@ void margin_rule(const AppViewModel& vm, const Snapshot& s, const json::Value& r
   const bool shown = s.state["options"]["enabled"].as_bool(false) && rules["permissions"]["optionsWrite"].as_bool(false) &&
                      !spread.is_null();
   m.show(names::kBriefMarginRule, shown);
-  if (shown) m.text(names::kBriefMarginRule, kv(vm, "brief.marginRule", vm.tr(spread.as_bool() ? "brief.marginRuleSpread" : "brief.marginRulePerLeg")));
+  // add-practice-and-advanced-strategies D5: a long expiring later may cover a short of the same kind.
+  const std::string calendar = rules["calendarMargin"].as_bool(false) ? " " + vm.tr("brief.calendarMargin") : std::string();
+  if (shown) {
+    m.text(names::kBriefMarginRule,
+           kv(vm, "brief.marginRule", vm.tr(spread.as_bool() ? "brief.marginRuleSpread" : "brief.marginRulePerLeg") + calendar));
+  }
+}
+
+// D9: the mission's portfolio risk limits (bp of equity), only those declared.
+void risk_limits(const AppViewModel& vm, const json::Value& rules, ScreenModel& m) {
+  const json::Value& r = rules["riskLimits"];
+  std::string text;
+  for (const char* kind : {"deltaBp", "gammaBp", "vegaBp", "thetaBp"}) {
+    const auto bp = r[kind].as_int(0);
+    if (bp == 0) continue;
+    text += (text.empty() ? "" : std::string(kSep)) + vm.tr(std::string("brief.riskLimit.") + kind, {{"n", fmt::fmt_num(static_cast<double>(bp), vm.locale(), 0)}});
+  }
+  m.show(names::kBriefRiskLimits, !text.empty());
+  if (!text.empty()) m.text(names::kBriefRiskLimits, kv(vm, "brief.riskLimits", text));
 }
 
 void contract_lines(const AppViewModel& vm, const json::Value& c, ScreenModel& m) {
@@ -114,6 +132,7 @@ ScreenModel briefing(const AppViewModel& vm) {
   permissions(vm, rules, m);
   contract_lines(vm, c, m);
   margin_rule(vm, *s, rules, m);
+  risk_limits(vm, rules, m);
   m.text(names::kBriefObjectivesTitle, vm.tr("brief.objectives"));
   WidgetLines objectives{names::kBriefObjectives, {}};
   for (auto& o : objective_texts(vm.catalog(), rules)) objectives.lines.push_back({"\xE2\x80\xA2 " + o, Tone::Normal});

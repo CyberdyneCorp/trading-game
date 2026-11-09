@@ -1,5 +1,7 @@
 #include "view/game/game_view.hpp"
 
+#include "viewmodel/game/wave1_widgets.hpp"
+
 #include <algorithm>
 #include <raven/raven_accessibility.h>
 #include <raven/raven_controls.h>
@@ -99,6 +101,7 @@ std::vector<std::string> GameView::missing_names() const {
   std::vector<std::string> builder(names::builder::kRequired.begin(), names::builder::kRequired.end());
   for (std::size_t i = 0; i < game::kTemplates.size(); ++i) builder.push_back(std::string(names::builder::kTemplatePrefix) + std::to_string(i));
   for (auto& w : LabPanel::names(std::string(names::builder::kLabPrefix))) builder.push_back(std::move(w));
+  for (std::string_view w : names::wave1::kRequired) builder.emplace_back(w);
   for (const auto& w : builder) {
     if (find(w) == R_INVALID_ID) missing.push_back("widget " + w);
   }
@@ -124,6 +127,7 @@ void GameView::bind() {
   bind_rail_and_panels();
   bind_dialogs();
   bind_builder();
+  bind_wave1();
 }
 
 // ---- chart ----
@@ -364,6 +368,7 @@ void GameView::refresh() {
   apply_combo_notice();
   apply_rail(t, *g);
   apply_orders(t, *g);
+  apply_wave1_book(t);
   apply_advisor(t, *g);
   apply_lists(t, *g);
   apply_modal(t, *g);

@@ -12,6 +12,7 @@
 	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import type { TicketPreview } from './OrderTicket.svelte';
 	import { exitOnValidSide, hitTest, isDraggableOrder, sameTarget, type DragTarget, type DragZone } from './chartDrag.ts';
+	import { bestClose, linkMark, trailFollows, trailLabel } from '#lib/game/orderRules.ts';
 
 	let {
 		game,
@@ -103,6 +104,7 @@
 	function levels(): Level[] {
 		const out: Level[] = [];
 		const pos = Number(game.position.qty);
+		const closes = bars.map((b) => b[3]);
 		if (pos !== 0) out.push({ price: Number(game.position.entry), label: 'ENTRY', color: cssVar('--info'), dash: [] });
 		if (game.account.liquidationPrice) {
 			out.push({ price: Number(game.account.liquidationPrice), label: 'LIQ', color: cssVar('--danger'), dash: [6, 3] });
@@ -111,9 +113,14 @@
 			if (o.type === 'market' || o.series) continue; // option limits are premiums, not underlying prices
 			const isStop = o.type === 'stop_market' || o.type === 'trailing_stop';
 			const kind = { stop_market: 'STOP', trailing_stop: 'TRAIL', take_profit: 'TP', limit: 'LMT' }[o.type];
+			// Design D10: a trailing line names its rule, trigger and the best close it follows (the marker
+			// on that bar has no text of its own: it collided with the ENTRY? label); D7: a linked order
+			// names its partner.
+			const name = o.type === 'trailing_stop' ? trailLabel(o, i18n.locale) : kind;
+			const link = linkMark(o, game.orders);
 			out.push({
 				price: Number(o.price),
-				label: `${kind} #${o.id}`,
+				label: `${name} #${o.id}${link ? ` ${link}` : ''}${trailFollows(o, closes, i18n.locale)}`,
 				color: isStop ? cssVar('--attention') : cssVar('--accent'),
 				dash: [3, 3],
 				drag: isDraggableOrder(o) ? { kind: 'order', orderId: o.id } : undefined
@@ -202,6 +209,7 @@
 		drawCandles(ctx, slotW, x, y);
 		drawContinuity(ctx, slotW, priceH, x, y);
 		drawFills(ctx, x, y);
+		drawBestCloses(ctx, x, y);
 		drawNews(ctx, x, priceH);
 		if (showSma) drawLine(ctx, game.indicators.sma20, cssVar('--attention'), x, y);
 		if (showEma) drawLine(ctx, game.indicators.ema50, cssVar('--info'), x, y);
@@ -372,6 +380,22 @@
 			ctx.fillText(e.type === 'liquidation' ? '✖' : isBuy ? '▲' : '▼', x(i), isBuy ? py + 14 : py - 6);
 		}
 		ctx.textAlign = 'start';
+	}
+
+	// Design D10: the close each trailing stop's trigger follows (the best since placement, seen bars only).
+	function drawBestCloses(ctx: CanvasRenderingContext2D, x: (i: number) => number, y: (p: number) => number) {
+		const closes = bars.map((b) => b[3]);
+		ctx.fillStyle = cssVar('--attention');
+		ctx.font = '11px monospace';
+		for (const o of game.orders) {
+			if (o.type !== 'trailing_stop' || o.series) continue;
+			const best = bestClose(closes, o.placedStep, o.side);
+			const i = best ? best.step - first : -1;
+			if (!best || i < 0 || i >= visible.length) continue;
+			ctx.beginPath();
+			ctx.arc(x(i), y(best.close), 3.5, 0, Math.PI * 2);
+			ctx.fill();
+		}
 	}
 
 	function drawLine(ctx: CanvasRenderingContext2D, series: (string | null)[], color: string, x: (i: number) => number, y: (p: number) => number) {

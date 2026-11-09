@@ -21,6 +21,7 @@
 		setSlider,
 		shiftedForward,
 		unboundedAbove,
+		analyticsOf,
 		type AcademyLeg,
 		type LabShift,
 		type Slider
@@ -28,6 +29,7 @@
 	import AcademyLegs from './AcademyLegs.svelte';
 	import PayoffChart from './PayoffChart.svelte';
 	import WhatIfTable from './WhatIfTable.svelte';
+	import HeatmapPanel from './HeatmapPanel.svelte';
 
 	let {
 		session,
@@ -125,18 +127,24 @@
 		<p class="warnbox" role="alert" data-testid="lab-error">{t(error === 'unsupported' ? 'lab.unsupported' : 'lab.error')}</p>
 	{:else if result}
 		{@const above = unboundedAbove(result)}
+		{@const a = analyticsOf(result)}
 		<dl class="kv summary" aria-live="polite">
 			<dt>{t(isZero(shift) ? 'lab.positionValue' : 'lab.positionValueScenario')}</dt><dd data-testid="lab-value">{fmtMoney(result.net.value, L)}</dd>
 			<dt>{t('lab.pnlNow')}</dt><dd data-testid="lab-pnl" class:up={centsSign(result.net.pnl) > 0} class:down={centsSign(result.net.pnl) < 0}>{fmtMoney(result.net.pnl, L, true)}</dd>
-			{#if result.expiry}
-				<dt>{t('opt.breakeven')}</dt><dd data-testid="lab-breakevens">{result.expiry.breakevens.map((b) => fmtPrice(b, L)).join(' · ') || '—'}</dd>
-				<dt>{t('lab.maxProfit')}</dt><dd>{result.expiry.maxProfit != null ? fmtMoney(result.expiry.maxProfit, L) : t('lab.unbounded')}</dd>
-				<dt>{t('lab.maxLoss')}</dt><dd data-testid="lab-max-loss">{result.expiry.maxLoss != null ? fmtMoney(result.expiry.maxLoss, L) : t('lab.unboundedAbove', { price: above ? fmtPrice(above, L) : '—' })}</dd>
+			{#if a}
+				<dt>{t('opt.breakeven')}</dt><dd data-testid="lab-breakevens">{a.breakevens.map((b) => fmtPrice(b, L)).join(' · ') || '—'}</dd>
+				<dt>{t('lab.maxProfit')}</dt><dd>{a.maxProfit != null ? fmtMoney(a.maxProfit, L) : t('lab.unbounded')}</dd>
+				<dt>{t('lab.maxLoss')}</dt><dd data-testid="lab-max-loss">{a.maxLoss != null ? fmtMoney(a.maxLoss, L) : t('lab.unboundedAbove', { price: above ? fmtPrice(above, L) : '—' })}</dd>
 			{/if}
 		</dl>
+		{#if result.horizon}
+			<!-- Legs on two expiries (add-practice-and-advanced-strategies D4): the engine's horizon. -->
+			<p class="muted small" data-testid="lab-horizon">{t('builder.horizon', { step: (session.state?.step ?? 0) + result.horizon.expiryStep })}</p>
+		{/if}
 		{#if result.atExpiry}<p class="muted small">{t('lab.atExpiryNote')}</p>{/if}
 		<PayoffChart {result} />
 		<WhatIfTable {result} step={mode === 'terminal' ? 'bar' : 'day'} />
+		{#if mode === 'terminal' && session.orderRulesV18}<HeatmapPanel {session} legs={runLegs} testid="lab-heatmap" />{/if}
 	{/if}
 </section>
 

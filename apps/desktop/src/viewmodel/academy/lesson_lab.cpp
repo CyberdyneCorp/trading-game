@@ -105,7 +105,7 @@ void LessonBuilder::answer(const std::string& text) {
 LessonBuilderView LessonBuilder::view(const game::Texts& t) const {
   const Locale L = t.locale();
   LessonBuilderView v;
-  for (const game::Template id : game::kTemplates) {
+  for (const game::Template id : game::kOneExpiryTemplates) {
     v.templates.push_back({id, t.tr("strategy." + game::strategy_of(id, short_)), true, tmpl_ == id});
   }
   v.short_label = t.tr("builder.short");

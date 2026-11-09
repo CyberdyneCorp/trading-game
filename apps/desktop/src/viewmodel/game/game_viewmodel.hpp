@@ -19,6 +19,7 @@
 #include "model/i18n.hpp"
 #include "model/snapshot.hpp"
 #include "viewmodel/game/builder_vm.hpp"
+#include "viewmodel/game/portfolio_vm.hpp"
 #include "viewmodel/game/chart_vm.hpp"
 #include "viewmodel/game/combos.hpp"
 #include "viewmodel/game/dialogs_vm.hpp"
@@ -33,7 +34,22 @@
 
 namespace tradelab::desktop::game {
 
-enum class Modal : std::uint8_t { None, Plan, Calibration, ConfirmMove, Help, Journal, Pattern, Lesson, Tutorial, Perks, Lab, ConfirmCombo };
+enum class Modal : std::uint8_t {
+  None,
+  Plan,
+  Calibration,
+  ConfirmMove,
+  Help,
+  Journal,
+  Pattern,
+  Lesson,
+  Tutorial,
+  Perks,
+  Lab,
+  ConfirmCombo,
+  Confirm,    // add-practice-and-advanced-strategies wave 1: an OCO link, a delta hedge, a roll or adjustment
+  Portfolio   // D9: the portfolio panel
+};
 enum class PickTarget : std::uint8_t { None, Stop, Target, ProtStop, ProtTarget };
 enum class Tab : std::uint8_t { Perp, Options, Builder };
 
@@ -199,6 +215,85 @@ class GameViewModel {
   // The journal line of a combo: its state and net premium so far (RunJournal's comboNote).
   [[nodiscard]] std::string combo_note(const std::string& id) const;
 
+  // ---- add-practice-and-advanced-strategies wave 1 (game_wave1.cpp) ----
+  // The planned trailing stop's notice (TrailNotice.svelte): on the first decision after the planned
+  // entry filled, the rule and the engine's first trigger; "place" fills the protective ticket (the
+  // trailing tab), nothing is sent from here.
+  struct TrailNotice {
+    std::string text, place, dismiss;
+  };
+  [[nodiscard]] std::optional<TrailNotice> trail_notice() const;
+  void trail_notice_place();
+  void trail_notice_dismiss();
+  // Player-built OCO links (OrdersPanel.svelte): tick two working orders, "Link OCO", confirm.
+  void toggle_link_pick(int order_id);
+  [[nodiscard]] bool link_picked(int order_id) const;
+  struct LinkView {
+    bool shown = false;  // two working orders or more
+    bool can_link = false;
+    std::string button, hint;
+  };
+  [[nodiscard]] LinkView link_view() const;
+  void link_oco();  // asks first
+  // The confirmation dialog (Modal::Confirm) for a link, a hedge, a roll or an adjustment.
+  struct ConfirmView {
+    std::string title, text, yes, no;
+    bool danger = false;
+  };
+  [[nodiscard]] ConfirmView confirm_view() const;
+  void confirm_answer(bool yes);
+  // The run's action log as the engine host keeps it (one JSON action per entry): the playtest compares
+  // it with the web's run file for the same inputs.
+  [[nodiscard]] const std::vector<std::string>* action_log() const { return log_.get(); }
+  // The portfolio (D9): the engine's holdings what-if with its risk block, refreshed on every state.
+  [[nodiscard]] const std::optional<WhatIfResult>& portfolio() const { return portfolio_; }
+  [[nodiscard]] PortfolioView portfolio_view() const;
+  [[nodiscard]] RailPortfolio rail_portfolio_view() const;
+  void open_portfolio();
+  void hedge_delta();  // asks first, then a normal perpetual ticket through the plan dialog
+  // The P&L heatmap (D4) of the builder's legs, or of the holdings in the portfolio panel.
+  [[nodiscard]] const std::optional<WhatIfHeatmap>& builder_heatmap() const { return builder_heatmap_; }
+  [[nodiscard]] const std::optional<WhatIfHeatmap>& portfolio_heatmap() const { return portfolio_ ? portfolio_heatmap_ : no_heatmap_; }
+  bool heatmap_table = false;
+  std::size_t heatmap_focus_t = 0, heatmap_focus_p = 0;
+  // Live combos (LiveCombos.svelte, D3): roll a combo's near expiry to a later one or adjust it (close a
+  // leg, add a perpetual hedge), as one tagged submission under the combo's id.
+  struct LiveCombo {
+    std::string id, text;
+  };
+  [[nodiscard]] std::vector<LiveCombo> live_combos() const;
+  void open_roll(const std::string& id);
+  void open_adjust(const std::string& id);
+  void live_close();
+  void set_roll_target(int index);
+  void set_roll_recenter(bool on);
+  void set_roll_limit_ioc(bool on);
+  void adjust_close_leg(std::size_t held_index);
+  void adjust_add_hedge();
+  struct LiveView {
+    bool shown = false;  // a roll or an adjustment is being prepared
+    std::string title, none;
+    bool roll = false;
+    std::vector<std::string> targets;
+    int target_index = 0;
+    std::string recenter, limit_ioc;
+    bool recenter_on = false, limit_on = false;
+    std::vector<std::string> held;  // adjust: one per held leg (a "close leg" button each)
+    std::string close_leg, add_hedge, hedge_none;
+    std::vector<Line> orders;  // the dry run, order by order
+    std::vector<std::pair<std::string, std::string>> totals;
+    std::string send;
+    bool can_send = false;
+  };
+  [[nodiscard]] LiveView live_view() const;
+  void live_send();  // asks first when a short would be left uncovered
+  // Limit legs still working after their first open (ComboWorking.svelte): "Cancel working legs".
+  struct WorkingCombo {
+    std::string title, text, cancel;
+  };
+  [[nodiscard]] std::optional<WorkingCombo> working_combo() const;
+  void cancel_working_legs();
+
  private:
   enum class InFlight : std::uint8_t { None, Advance, Game, Start };
   using Done = std::function<void(GameViewModel&, const CommandResult&)>;
@@ -288,6 +383,50 @@ class GameViewModel {
   std::string risk_combo_;  // the incomplete combo whose risk was asked
   std::optional<WhatIfResult> combo_risk_;
   AnalysisTicket risk_ticket_;
+
+  // Wave 1 (game_wave1.cpp).
+  enum class ConfirmKind : std::uint8_t { None, LinkOco, Hedge, Uncovered };
+  ConfirmKind confirm_ = ConfirmKind::None;
+  std::vector<int> link_picks_;
+  std::vector<int> trail_handled_;  // plan steps whose trailing notice was used or dismissed
+  std::optional<WhatIfResult> portfolio_;
+  std::optional<WhatIfHeatmap> portfolio_heatmap_;
+  std::optional<WhatIfHeatmap> builder_heatmap_;
+  std::optional<WhatIfHeatmap> no_heatmap_;
+  AnalysisTicket portfolio_ticket_;
+  AnalysisTicket heatmap_ticket_;
+  AnalysisTicket live_ticket_;
+  void refresh_wave1();
+  void refresh_portfolio();
+  void refresh_builder_heatmap();
+  void refresh_live();
+  [[nodiscard]] const PlanEntry* trail_plan() const;
+  [[nodiscard]] std::optional<OrderLeg> hedge_now() const;
+  void send_hedge();
+  // The live combo being rolled or adjusted.
+  struct Live {
+    std::string id;
+    bool roll = true;
+    int to = 0;
+    bool recenter = false;
+    bool limit_ioc = false;
+    std::vector<OrderLeg> adjustment;
+    bool adjust_close = true;
+    std::optional<Analysis<ComboPreview>> preview;
+    std::optional<WhatIfResult> before, after;
+    bool hedge_pending = false;  // "Add hedge" waits for this state's holdings what-if (`before`)
+  };
+  std::optional<Live> live_;
+  void apply_hedge();
+  void on_live_before(int ticket, const std::string& text);
+  [[nodiscard]] std::optional<ComboStatus> live_status() const;
+  [[nodiscard]] std::vector<OrderLeg> live_orders() const;
+  [[nodiscard]] std::optional<ComboTif> live_tif() const;
+  [[nodiscard]] std::optional<std::string> live_uncovered() const;
+  [[nodiscard]] std::string uncovered_name(const std::vector<OrderLeg>& orders) const;
+  void live_roll_view(const Texts& t, const ComboStatus& st, LiveView& v) const;
+  void live_adjust_view(const Texts& t, const ComboStatus& st, LiveView& v) const;
+  void send_live();
 };
 
 }  // namespace tradelab::desktop::game

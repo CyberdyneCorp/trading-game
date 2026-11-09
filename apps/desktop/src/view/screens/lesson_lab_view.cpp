@@ -33,7 +33,7 @@ Rid LessonLabView::find(std::string_view name) const { return ui::find(root_, na
 std::vector<std::string> LessonLabView::missing_names() const {
   std::vector<std::string> missing;
   auto all = LabPanel::names(std::string(names::kLessonLabPrefix));
-  for (std::size_t i = 0; i < game::kTemplates.size(); ++i) all.push_back(template_button(i));
+  for (std::size_t i = 0; i < game::kOneExpiryTemplates.size(); ++i) all.push_back(template_button(i));
   for (const auto& w : all) {
     if (find(w) == R_INVALID_ID) missing.push_back("widget " + w);
   }
@@ -45,8 +45,8 @@ void LessonLabView::bind() {
                                       [this]() -> game::LabViewModel& { return app_.lesson_lab(); },
                                       [this] { app_.lesson_lab_changed(); });
   panel_->bind();
-  for (std::size_t i = 0; i < game::kTemplates.size(); ++i) {
-    const game::Template id = game::kTemplates[i];
+  for (std::size_t i = 0; i < game::kOneExpiryTemplates.size(); ++i) {
+    const game::Template id = game::kOneExpiryTemplates[i];
     cb_.click(find(template_button(i)), [this, id] { app_.lesson_builder_pick(id); });
   }
   cb_.check(find(names::kLessonBuilderShort), [this](bool on) { app_.lesson_builder_short(on); });

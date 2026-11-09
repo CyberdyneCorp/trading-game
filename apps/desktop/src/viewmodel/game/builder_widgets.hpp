@@ -17,7 +17,21 @@ inline constexpr std::string_view kExpiry = "game-builder-expiry";
 inline constexpr std::string_view kQtyLabel = "game-builder-qty-label";
 inline constexpr std::string_view kQty = "game-builder-qty";
 inline constexpr std::string_view kShort = "game-builder-short";
-inline constexpr std::string_view kTemplatePrefix = "game-builder-tpl-";  // 0..6, in kTemplates order
+inline constexpr std::string_view kTemplatePrefix = "game-builder-tpl-";  // 0..10, in kTemplates order
+inline constexpr std::string_view kFarRow = "game-builder-far-row";
+inline constexpr std::string_view kFarLabel = "game-builder-far-label";
+inline constexpr std::string_view kFar = "game-builder-far";
+inline constexpr std::string_view kLimitTif = "game-builder-limit-tif";
+inline constexpr std::string_view kLimitNote = "game-builder-limit-note";
+inline constexpr std::string_view kTifLabel = "game-builder-tif-label";
+inline constexpr std::string_view kTif = "game-builder-tif";
+inline constexpr std::string_view kTifBarsRow = "game-builder-tif-bars-row";
+inline constexpr std::string_view kTifBarsLabel = "game-builder-tif-bars-label";
+inline constexpr std::string_view kTifBars = "game-builder-tif-bars";
+inline constexpr std::string_view kTifHint = "game-builder-tif-hint";
+inline constexpr std::string_view kTifNote = "game-builder-tif-note";
+inline constexpr std::string_view kHorizon = "game-builder-horizon";
+inline constexpr std::string_view kHorizonNote = "game-builder-horizon-note";
 inline constexpr std::string_view kWriteLocked = "game-builder-write-locked";
 inline constexpr std::string_view kCaption = "game-builder-caption";
 inline constexpr std::string_view kLegs = "game-builder-legs";
@@ -60,7 +74,9 @@ inline constexpr std::string_view kCloseText = "game-combo-close-text";
 inline constexpr std::string_view kCloseNo = "game-combo-close-no";
 inline constexpr std::string_view kCloseYes = "game-combo-close-yes";
 
-inline constexpr std::array<std::string_view, 41> kRequired = {
+inline constexpr std::array<std::string_view, 54> kRequired = {
+    kFarRow,   kFarLabel,      kFar,          kLimitTif,   kLimitNote, kTifLabel,     kTif,          kTifBarsRow,     kTifBarsLabel,
+    kTifBars,  kTifHint,       kTifNote,      kHorizon,
     kTab,      kTitle,         kLabPositions, kNone,       kBody,     kExpiryLabel,  kExpiry,       kQtyLabel,       kQty,
     kShort,    kWriteLocked,   kCaption,      kLegs,       kAddLeg,   kUseLong,      kProblem,      kNoAnalysis,     kPreview,
     kTotals,   kAnalysis,      kPayoff,       kTable,      kOpenLab,  kLegging,      kSubmit,       kNotice,         kNoticeKeep,

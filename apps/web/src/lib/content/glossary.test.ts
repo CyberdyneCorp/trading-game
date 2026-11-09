@@ -40,7 +40,8 @@ describe('glossary (design D7)', () => {
 		const hits = searchTerms('liquidacao', 'pt-BR').map((t) => t.text['pt-BR'].term);
 		expect(hits).toContain('Preço de liquidação');
 		expect(searchTerms('LIQUIDATION', 'en').map((t) => t.id)).toContain('liquidation-price');
-		expect(searchTerms('ATM', 'en').map((t) => t.id)).toEqual(['moneyness']); // an alias
+		// An alias; "heatmap" also contains the letters (substring search), listed after it.
+		expect(searchTerms('ATM', 'en').map((t) => t.id)[0]).toBe('moneyness');
 		expect(fold('Ação')).toBe('acao');
 	});
 

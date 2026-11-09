@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "support/playtest_run.hpp"
+#include "viewmodel/game/wave1_widgets.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
 
@@ -130,6 +131,7 @@ TEST_CASE("playtest: m07 trailing stop in percent (pt-BR)") {
           r.order(true, "5");
           r.advance(1);
           r.t().skip_question();
+          REQUIRE(r.d().click(names::wave1::kTabTrail));  // wave 1: the trailing stop has its own tab
           REQUIRE(r.d().click(gn::kTrailByPct));
           REQUIRE(r.d().click("game-trail-chip-1"));  // 2%
           CHECK(r.t().vm().ticket.prot_trail_pct == "2");

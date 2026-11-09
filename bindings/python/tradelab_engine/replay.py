@@ -16,10 +16,16 @@ the web client does, so a replay reproduces the client's run bit for bit):
   {"k":"move","id":3,"price":"95.50"}   (policy v13: a working stop/take-profit moved in place)
   {"k":"close"}
   {"k":"advice"}
+  {"k":"oco","a":3,"b":4}   (policy v18: two working orders linked one-cancels-the-other)
   {"k":"adv","n":5}
 
-An "opt" or "order" action may carry a "combo" tag ("c1", ...) naming the strategy-builder combo it
-belongs to (add-academy-and-strategies D3): clients group by it, replay ignores it.
+An "order" or "opt" action may carry "tif" ("gtc" | "bars" | "ioc" | "fok") and "tifBars" (N for
+"bars") (policy v18); absent means gtc.
+
+An "opt", "order" or "cancel" action may carry a "combo" tag ("c1", ...) naming the strategy-builder
+combo it belongs to (add-academy-and-strategies D3), and "roll" / "adjust" tags for a roll or an
+adjustment of that combo (add-practice-and-advanced-strategies D3): clients group by them, replay
+ignores them.
 
 Start options (advice allowance, perks) are not actions: pass the run record's options to replay().
 """
@@ -51,17 +57,20 @@ def _order(run: Run, cid: int, a: Mapping[str, Any]) -> Any:
     type_ = _ORDER_TYPES.get(a.get("type", ""))
     if type_ is None:
         raise InvalidAction(f"bad order type in {a!r}")
-    if type_ == _ORDER_TYPES["trailing_stop"] and a.get("trailRate"):
+    tif, tif_bars = a.get("tif"), a.get("tifBars")
+    if type_ == _ORDER_TYPES["trailing_stop"] and a.get("trailRate") and tif is None and tif_bars is None:
         return run.place_trailing_rate(cid, _side(a), str(a["qty"]), bool(a.get("ro", False)), str(a["trailRate"]))
+    rate = str(a["trailRate"]) if type_ == _ORDER_TYPES["trailing_stop"] and a.get("trailRate") else None
     return run.place_order(cid, type_, _side(a), str(a["qty"]), a.get("price"), bool(a.get("ro", False)),
-                           a.get("stop"), a.get("tp"), a.get("trail"))
+                           a.get("stop"), a.get("tp"), a.get("trail"), tif=tif, tif_bars=tif_bars, trail_rate=rate)
 
 
 def _opt(run: Run, cid: int, a: Mapping[str, Any]) -> Any:
     type_ = {"market": 0, "limit": 1}.get(a.get("type", ""))
     if type_ is None:
         raise InvalidAction(f"bad option order type in {a!r}")
-    return run.place_option_order(cid, int(a["series"]), _side(a), type_, str(a["qty"]), a.get("premium"))
+    return run.place_option_order(cid, int(a["series"]), _side(a), type_, str(a["qty"]), a.get("premium"),
+                                  tif=a.get("tif"), tif_bars=a.get("tifBars"))
 
 
 def _plan(run: Run, cid: int, a: Mapping[str, Any]) -> Any:
@@ -81,6 +90,7 @@ _HANDLERS: dict[str, Callable[[Run, int, Mapping[str, Any]], Any]] = {
     "cancel": lambda run, cid, a: run.cancel(cid, int(a["id"])),
     "move": lambda run, cid, a: run.move_order(cid, int(a["id"]), str(a["price"])),
     "close": lambda run, cid, a: run.close_position(cid),
+    "oco": lambda run, cid, a: run.link_oco(cid, int(a["a"]), int(a["b"])),
     "advice": lambda run, cid, a: run.request_advice(cid),
 }
 ACTION_KINDS = frozenset([*_HANDLERS, "adv"])

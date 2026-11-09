@@ -13,6 +13,7 @@
 #include "model/game_state.hpp"
 #include "viewmodel/game/combos.hpp"
 #include "viewmodel/game/lab_vm.hpp"
+#include "viewmodel/game/order_rules.hpp"
 #include "viewmodel/game/strategies.hpp"
 #include "viewmodel/game/texts.hpp"
 #include "viewmodel/game/whatif_lab.hpp"
@@ -27,7 +28,29 @@ struct ComboDraft {
   std::string label;     // "Iron condor · 4 pernas"
   std::optional<double> risk;
   bool unbounded = false;  // no maximum loss at expiry: `risk` is the margin required, not a worst case
+  // add-practice-and-advanced-strategies D2, D3: the time in force of the limit legs, and the roll or
+  // adjustment number the legs are tagged with ("" for an opening).
+  std::optional<ComboTif> tif;
+  std::string roll;
+  std::string adjust;
 };
+
+// The time in force selector (web TifField.svelte): its items, which the order type can take, the
+// choice, the N-bars field and the hint naming the bars the order can execute on.
+struct TifView {
+  std::string label;
+  std::vector<std::string> items;
+  std::vector<std::string> blocked;  // per item: the reason it cannot go with the type, "" when it can
+  int index = 0;
+  bool bars = false;  // the N-bars field is shown
+  std::string bars_label;
+  std::string hint;
+  bool error = false;  // the hint is an error (N out of range)
+};
+
+// The selector's view for an order type ("market", "limit", ...) at `step` with `left` bars to go.
+TifView tif_view(const Texts& t, TifChoice choice, const std::string& bars_input, std::string_view type, int step_seconds, int step,
+                 int left);
 
 struct TemplateButton {
   Template id = Template::BullCall;
@@ -39,9 +62,13 @@ struct TemplateButton {
 struct BuilderLegRow {
   int kind = 0;    // 0 call, 1 put, 2 perpetual (the kind box's items)
   int side = 0;    // 0 buy, 1 sell
-  int strike = -1;  // index in BuilderView::strikes, -1 for the perpetual
+  int strike = -1;  // index in the row's strikes, -1 for the perpetual
   std::string qty;
   bool no_bid = false;  // a market sell with no bid now: it tends to be cancelled at the open
+  std::vector<std::string> strikes;  // the strikes listed on the leg's expiry
+  int expiry = 0;                    // index in BuilderView::leg_expiries (D3)
+  bool limit = false;                // D2: a limit leg
+  std::string limit_text;            // its premium as typed
 };
 
 struct BuilderView {
@@ -49,6 +76,18 @@ struct BuilderView {
   std::string title;
   std::vector<std::string> expiries;  // "barra 100 (40 barras)"
   int expiry_index = 0;
+  // D3: the later expiries (a calendar's or diagonal's far one; empty: one expiry only) and the items of
+  // a leg's expiry box (the builder's expiry, then the later ones).
+  std::string far_label;
+  std::vector<std::string> far_expiries;
+  int far_index = 0;
+  std::vector<std::string> leg_expiries;
+  std::vector<std::string> leg_types;  // market | limit
+  bool has_limit = false;              // D2: a limit leg: the combo's time in force is shown
+  std::string limit_note, tif_note;
+  TifView tif;
+  std::string horizon;       // "At the first expiry (bar 150), ..." when the legs span two expiries
+  std::string horizon_note;
   std::vector<TemplateButton> templates;
   std::string write_locked;  // the reason, "" when writing is allowed
   std::string caption;       // the structure's name
@@ -88,10 +127,25 @@ class BuilderViewModel {
   std::vector<BuilderLeg> legs;
   std::string strategy = "custom";
   bool use_long = false;
+  int far_expiry = 0;                      // D3: the later expiry of a calendar or diagonal
+  TifChoice tif_choice = TifChoice::Ioc;   // D2: one time in force for the limit legs, IOC by default
+  std::string tif_bars = "3";
+  bool heatmap_open = false;  // D4: the P&L heatmap asks the engine only while shown
 
   // Keeps the expiry on one that takes orders now.
   void sync(const GameState& g);
   void set_expiry_index(const GameState& g, int index);
+  void set_far_index(const GameState& g, int index);
+  // D3: a leg's expiry, by index in [the builder's expiry, the later ones]; its limit is dropped.
+  void set_leg_expiry(const GameState& g, std::size_t i, int index);
+  // D2: a leg switched to limit starts at its quote's mid rounded toward the passive side.
+  void set_leg_limit(const GameState& g, std::size_t i, bool on);
+  void set_leg_limit_text(std::size_t i, const std::string& text);
+  [[nodiscard]] std::vector<int> later(const GameState& g) const;
+  [[nodiscard]] bool has_limit() const;
+  // The combo's time in force when it has a limit leg (nullopt otherwise or with N out of range).
+  [[nodiscard]] std::optional<ComboTif> tif(const GameState& g) const;
+  [[nodiscard]] bool tif_error(const GameState& g) const;
   void pick(const GameState& g, Template t, Locale L);
   void toggle_short(const GameState& g, Locale L);
   // The quantity field committed: every leg takes it (contracts; the perpetual its units).
@@ -112,7 +166,7 @@ class BuilderViewModel {
   [[nodiscard]] std::optional<HeldLong> covered(const GameState& g) const;  // the held long "use my long" covers
   [[nodiscard]] std::vector<BuilderLeg> sent(const GameState& g) const;
   [[nodiscard]] std::optional<std::vector<OrderLeg>> orders(const GameState& g) const;
-  // "empty" | "too_many" | "two_perps" | "qty" | "unlisted" | "write_locked" | "".
+  // "empty" | "too_many" | "two_perps" | "expiries" | "qty" | "unlisted" | "write_locked" | "".
   [[nodiscard]] std::string problem(const GameState& g) const;
 
   // The analysis requests (what-if, dry run) for the legs as they stand; nullopt when there is nothing
@@ -142,6 +196,9 @@ class BuilderViewModel {
   void view_legs(const Texts& t, const GameState& g, BuilderView& v) const;
   void view_analysis(const Texts& t, const GameState& g, BuilderView& v) const;
   void view_sizing(const Texts& t, const GameState& g, BuilderView& v) const;
+  void view_expiries(const Texts& t, const GameState& g, BuilderView& v) const;
+  [[nodiscard]] BuilderLegRow leg_row(const GameState& g, const BuilderLeg& l, Locale L) const;
+  [[nodiscard]] std::vector<int> leg_expiry_steps(const GameState& g) const;
   [[nodiscard]] bool same_qty(Locale L) const;
   [[nodiscard]] std::optional<double> max_loss_now() const;
 

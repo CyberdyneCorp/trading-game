@@ -1,11 +1,13 @@
 #include "viewmodel/game/panels_vm.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <utility>
 
 #include "viewmodel/format.hpp"
 #include "viewmodel/game/options_math.hpp"
+#include "viewmodel/game/order_rules.hpp"
 
 namespace tradelab::desktop::game {
 
@@ -110,6 +112,26 @@ RailView rail_view(const Texts& t, const GameState& g, std::optional<double> pla
   return r;
 }
 
+namespace {
+
+// Policy v18 (add-practice-and-advanced-strategies D6): the time in force and the last bar it can
+// execute on ("[IOC · até a barra 61]"); nothing for a market order or GTC.
+std::string tif_tag(const Texts& t, const Order& o) {
+  const TifCell c = tif_cell(o);
+  if (o.type == "market" || c.kind == "gtc") return {};
+  std::string kind = c.kind == "bars" ? t.tr("tif.bars") : c.kind;
+  if (c.kind != "bars") std::transform(kind.begin(), kind.end(), kind.begin(), [](unsigned char ch) { return static_cast<char>(std::toupper(ch)); });
+  return "  [" + kind + (c.until ? " \xC2\xB7 " + t.tr("orders.until", {{"step", std::to_string(*c.until)}}) : "") + "]";
+}
+
+// D7: the partner of a player-built OCO link ("[⛓#3]").
+std::string link_tag(const Order& o, const std::vector<Order>& orders) {
+  const std::string mark = link_mark_shown(o, orders);
+  return mark.empty() ? std::string() : "  [" + mark + "]";
+}
+
+}  // namespace
+
 std::vector<OrderRow> order_rows(const Texts& t, const GameState& g, const SeriesNames& names) {
   const Locale L = t.locale();
   std::vector<OrderRow> rows;
@@ -123,6 +145,7 @@ std::vector<OrderRow> order_rows(const Texts& t, const GameState& g, const Serie
     if (o.trail_rate > 0) text += "  [" + fmt::fmt_pct(o.trail_rate, L) + "]";
     if (o.parent_id) text += "  [OCO \xE2\x86\xB3#" + std::to_string(o.parent_id) + "]";
     if (o.bracket) text += "  [BRK]";
+    text += tif_tag(t, o) + link_tag(o, g.orders);
     rows.push_back({o.id, text, buy ? Tone::Up : Tone::Down});
   }
   return rows;

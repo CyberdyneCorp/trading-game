@@ -14,7 +14,8 @@
 		tick,
 		chips,
 		exit,
-		close
+		close,
+		testid = 'protect-trail'
 	}: {
 		distance?: string;
 		pct?: string;
@@ -23,6 +24,8 @@
 		chips: LevelChip[];
 		exit: OrderSideName;
 		close: number;
+		/** Test-id prefix: the protective section's by default, the new-order ticket's planned trail otherwise. */
+		testid?: string;
 	} = $props();
 
 	const id = $props.id();
@@ -34,20 +37,20 @@
 	}
 </script>
 
-<div class="trail" data-testid="protect-trail-field">
+<div class="trail" data-testid={`${testid}-field`}>
 	<div class="modes" role="radiogroup" aria-label={t('ticket.trailMode')}>
 		<button type="button" role="radio" aria-checked={mode === 'price'} class:active={mode === 'price'} onclick={() => (mode = 'price')}>
 			{t('ticket.trailByPrice')}
 		</button>
-		<button type="button" role="radio" aria-checked={mode === 'pct'} class:active={mode === 'pct'} onclick={() => (mode = 'pct')} data-testid="trail-mode-pct">
+		<button type="button" role="radio" aria-checked={mode === 'pct'} class:active={mode === 'pct'} onclick={() => (mode = 'pct')} data-testid={testid === 'protect-trail' ? 'trail-mode-pct' : `${testid}-mode-pct`}>
 			{t('ticket.trailByPct')}
 		</button>
 	</div>
 	{#if mode === 'price'}
-		<LevelField testid="protect-trail" label={t('ticket.trail')} bind:value={distance} {tick} {chips} />
+		<LevelField {testid} label={t('ticket.trail')} bind:value={distance} {tick} {chips} />
 	{:else}
 		<label for={id}>{t('ticket.trailPct')}</label>
-		<input {id} data-testid="protect-trail-pct" inputmode="decimal" bind:value={pct} placeholder="—" />
+		<input {id} data-testid={`${testid}-pct`} inputmode="decimal" bind:value={pct} placeholder="—" />
 		<div class="chips">
 			{#each pctChips as n (n)}
 				<button type="button" class="chip" onclick={() => setPct(n)}>{n}%</button>

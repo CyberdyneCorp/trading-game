@@ -38,6 +38,10 @@ struct MissionDef {
   // Defined-risk spread margin (add-academy-and-strategies design D5): declared by m13, m14, m16 and
   // m17 only, so every earlier mission keeps per-leg margin.
   bool spread_margin = false;
+  // Calendar margin and risk limits (add-practice-and-advanced-strategies D5, D9): per-mission data;
+  // no mission before m18 declares them, so every earlier mission plays exactly as before.
+  bool calendar_margin = false;
+  RiskLimits risk_limits;
 };
 
 ContractSpec default_contract() {
@@ -680,9 +684,11 @@ bool build_mission(const std::string& id, std::uint64_t seed, Scenario& out) {
   out.mission.objectives = it->objectives;
   out.mission.liq_warning_bp = it->liq_warning_bp;
   out.mission.drawdown_budget_bp = it->drawdown_budget_bp;
+  out.mission.risk_limits = it->risk_limits;
   if (it->options) {
     out.options = default_option_spec(it->allow_short_options);
     out.options.spread_margin = it->spread_margin;  // defined-risk spread margin (design D5)
+    out.options.calendar_margin = it->calendar_margin;
   }
   generate_market(it->gen, seed, out);
   if (it->options) add_chain(out, it->chain, it->info.warmup_bars);

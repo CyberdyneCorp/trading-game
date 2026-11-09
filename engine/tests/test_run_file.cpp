@@ -13,6 +13,7 @@
 #include "golden.hpp"
 #include "scenario_builder.hpp"
 #include "tradelab/c_api.h"
+#include "tradelab/engine.hpp"
 #include "tradelab/scoring.hpp"
 
 using namespace tradelab;
@@ -62,7 +63,7 @@ std::string file_for(const JsonValue& fx) {
   const JsonValue* options = fx.find("options");
   return std::string(R"({"format":"tradelab-run","version":1,"mission":")") + golden::text(fx, "mission") + R"(","pack":null,"seed":)" +
          std::to_string(fx.find("seed")->integer) + R"(,"options":)" + (options != nullptr ? detail::canonical_json(*options) : std::string(kDefaults)) +
-         R"(,"engine":{"executionPolicy":17,"abi":1,"version":"0.1.0"},"labels":{"campaign":false,"assisted":false},"actions":)" +
+         R"(,"engine":{"executionPolicy":)" + std::to_string(tradelab::kExecutionPolicyVersion) + R"(,"abi":1,"version":"0.1.0"},"labels":{"campaign":false,"assisted":false},"actions":)" +
          detail::canonical_json(*fx.find("actions")) + R"(,"journal":[],"result":{"status":")" + golden::text(expected, "status") +
          R"(","digest":")" + golden::text(expected, "digest") + R"(","eventsDigest":")" + golden::text(expected, "eventsDigest") + "\"}}";
 }

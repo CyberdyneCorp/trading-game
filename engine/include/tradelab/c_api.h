@@ -46,6 +46,27 @@ const char* tl_place_trailing_rate(tl_run* run, uint32_t client_id, int32_t side
 /* Option order on series `series`: type 0 market, 1 limit (premium); executes at the next bar's open. */
 const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
                                   const char* qty, const char* premium);
+/* Time in force (execution policy v18): tif 0 gtc, 1 bars (tif_bars = N >= 1, at most the bars left:
+ * eligible on the next N bars, the remainder expires at the close of the last one with time_in_force),
+ * 2 ioc, 3 fok (limits only: eligible in the next bar's open phase only; ioc keeps what that phase
+ * filled, fok fills the whole quantity at its turn or nothing; the remainder is cancelled with
+ * time_in_force). tif_bars must be 0 unless tif is 1. Refused with invalid_time_in_force when the
+ * order cannot take it; an out-of-range tif returns that reason without a command. Otherwise
+ * tl_place_order_ex / tl_place_trailing_rate (trail_rate set: a trailing stop at that rate of the best
+ * close, trail_distance ignored) and tl_place_option_order, which mean tif 0. */
+const char* tl_place_order_tif(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
+                               const char* price, int32_t reduce_only, const char* attach_stop, const char* attach_tp,
+                               const char* trail_distance, const char* trail_rate, int32_t tif, uint32_t tif_bars);
+const char* tl_place_option_order_tif(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
+                                      const char* qty, const char* premium, int32_t tif, uint32_t tif_bars);
+/* Links two working orders (perpetual or option, any combination) as one-cancels-the-other (policy v18):
+ * the first fill on either cancels the other's remainder (oco_sibling_filled) before its own turn, so
+ * both never fill on one bar; two reduce-only exits of the perpetual position reduce each other by the
+ * filled quantity instead. A cancel or an expiry of one dissolves the link; tl_move_order keeps it.
+ * Refused with invalid_oco (nothing changes) for the same order twice, an unknown or inactive order, a
+ * bracket child or an order already linked. Accepted: orderId = the link group (the lower id); the
+ * state's orders carry it as linkGroup. No event is emitted. */
+const char* tl_link_oco(tl_run* run, uint32_t client_id, uint32_t order_a, uint32_t order_b);
 const char* tl_cancel_order(tl_run* run, uint32_t client_id, uint32_t order_id);
 /* Moves a working reduce-only stop or take-profit to `price` in place (same id, OCO link kept; policy v13). */
 const char* tl_move_order(tl_run* run, uint32_t client_id, uint32_t order_id, const char* price);

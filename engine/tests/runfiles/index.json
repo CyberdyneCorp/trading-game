@@ -7,9 +7,9 @@
    "expected": {
     "ok": true,
     "status": "finished",
-    "digest": "0296b3e88ee2cc9697a1d904530457a71bde1f58ba1b52136c154e5c2e0907f1",
+    "digest": "f9c37bcc594b70d366d01d6362f97034168b3b3e3e37c8eb44c2ce3dd83fac36",
     "eventsDigest": "ac136e4b4ff59a6b7b2ae93973250bf79f3cc82d22187ffae13be1d4e9f63f19",
-    "fileDigest": "76b70f3d86072602985e7f6321a1658b35f540673c660ac06a601827c16bef09",
+    "fileDigest": "eff20260550f552701675a666ec58c558e14635831e04fd71d06e34ad43ba5c3",
     "actions": 10,
     "rejected": 0
    }
@@ -20,9 +20,9 @@
    "expected": {
     "ok": true,
     "status": "finished",
-    "digest": "b4b86bfad81a81b303c7833879798fd8d2db50b783f8409a587b0e171d7c5963",
+    "digest": "27a8461cf63ebf5fb2e9cd735f713bd44e22816a7718967f02f872fae376d302",
     "eventsDigest": "c83e5525e4d03ad71d5eafcef3af65a2e1d43798c5303ec43e51cbc89e7a888f",
-    "fileDigest": "d4904dd50cc47c984ef6908e176569e75d9215c004ff01fd2d9d5d28800002ee",
+    "fileDigest": "1a46a8a3aea5d1531b1b92d337bc4b497457a92ad484ecc58badf09cb5e46cdf",
     "actions": 7,
     "rejected": 0
    }
@@ -33,9 +33,9 @@
    "expected": {
     "ok": true,
     "status": "finished",
-    "digest": "9cca2b0bb58cba31fb272c72780e4d0937dd784538d28bb36869c74e82fea9d8",
+    "digest": "1e58d1640dfba345403f65ecac29fec6950ea5215ac443b55f6b6361b3b4491e",
     "eventsDigest": "e96bbb50aedd88cce5e21de92081431436bc4595affec276d05384d682d1a6bb",
-    "fileDigest": "248042f6dbd5197c7edd879ed655ed605b26f9a681a5c74cdd2627145b9af677",
+    "fileDigest": "56438608e81076ffccce9abfd951b955de2befef23de2a1123d7c12b98063ed9",
     "actions": 7,
     "rejected": 2
    }
@@ -46,11 +46,24 @@
    "expected": {
     "ok": true,
     "status": "finished",
-    "digest": "6821129ad08a733932d95f2086e2fe4f556eb1886293d03e1bc46bda97e56cde",
+    "digest": "18699b94b65876d70ae0024827e49367121a8f7cce44665712839c42dc1449ca",
     "eventsDigest": "8b0a3f74575ae2f77bbbde1d16ecc62d3ce5d909c35ed67d6e84ae0c87843433",
-    "fileDigest": "0700bce964a857631fc9154a4318597a408a6a9eec75742b1b351463021dac15",
+    "fileDigest": "9293016bdd2210eabd7b43db6605e7d709d72d0e055f6900697cb86f065f2a29",
     "actions": 7,
     "rejected": 0
+   }
+  },
+  {
+   "name": "m01-tif-oco.tlrun",
+   "description": "Time in force and OCO links (policy v18; golden m01-tif-oco).",
+   "expected": {
+    "ok": true,
+    "status": "finished",
+    "digest": "dd35f5dbec6f15e9c9969548150d2abc87b016c702bb1b8b212d814bc339de87",
+    "eventsDigest": "e02159baf932f1a12f5c804caeef300a40a72053a1ef20711f691e8d9020a79e",
+    "fileDigest": "f74f57918d72929f39973de648ec514b46d55866ce9777af6b3c78dda348f51a",
+    "actions": 27,
+    "rejected": 9
    }
   },
   {
@@ -59,9 +72,9 @@
    "expected": {
     "ok": true,
     "status": "active",
-    "digest": "68f8312b599c4a893c17cc4c21853aac98d4c227e99bae4975260c992bd5370f",
+    "digest": "22a968828a17ec73da56b9b4ada4568f9782d40759783934e750d1281ca2c8f2",
     "eventsDigest": "d20eecf973a4700fcdf507175d5498bcadf91b6bc689459288ec6f4b42e520b0",
-    "fileDigest": "6252c71d4ec8736bc5ceb9a97dbb517b350a8db4384c2509b556cc72fa692f4f",
+    "fileDigest": "7329f1a9b628e2b6a070bb06d39dc8b68bd611c65cc00a2f689eaaa377f77575",
     "actions": 5,
     "rejected": 0
    }

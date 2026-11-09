@@ -69,7 +69,7 @@ describe('templates from the chain', () => {
 
 	it('writing locked: spreads, covered call, condor and the short versions need writing; protective put, straddle and strangle do not', () => {
 		const writes = TEMPLATES.filter((id) => templateWrites(id, false));
-		expect(writes).toEqual(['bull_call', 'bear_put', 'covered_call', 'iron_condor']);
+		expect(writes).toEqual(['bull_call', 'bear_put', 'covered_call', 'iron_condor', 'calendar_call', 'calendar_put', 'diagonal_call', 'diagonal_put']);
 		expect(templateWrites('straddle', true)).toBe(true);
 		expect(templateWrites('strangle', true)).toBe(true);
 		expect(templateWrites('protective_put', true)).toBe(false);

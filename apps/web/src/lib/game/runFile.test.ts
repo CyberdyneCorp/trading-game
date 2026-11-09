@@ -22,7 +22,7 @@ interface IndexEntry {
 }
 const index = JSON.parse(read('engine/tests/runfiles/index.json')) as { files: IndexEntry[] };
 
-const STAMP = { executionPolicy: 17, abi: 1, version: '0.1.0' };
+const STAMP = { executionPolicy: 18, abi: 1, version: '0.1.0' };
 
 function record(p: Partial<RunRecord<PlanEntry, unknown>> = {}): RunRecord<PlanEntry, unknown> {
 	return {
@@ -30,7 +30,7 @@ function record(p: Partial<RunRecord<PlanEntry, unknown>> = {}): RunRecord<PlanE
 		missionId: 'm01-false-breakout',
 		seed: 7,
 		createdAt: 1_700_000_000_000,
-		executionPolicy: 17,
+		executionPolicy: 18,
 		journal: [],
 		questions: [],
 		stopWarnings: 0,
@@ -120,5 +120,35 @@ describe.skipIf(!wasmBuilt)('shared run-file fixtures through the browser engine
 			expect(sealed.ok).toBe(true);
 			expect(sealed.fileDigest).toBe(expected.fileDigest);
 		}
+	});
+});
+
+// add-practice-and-advanced-strategies D3/D20: roll and adjust tags (with combo and strategy) are replay-ignored,
+// and the policy v18 actions (tif, oco) pass the run-file schema and replay through the browser engine.
+describe.skipIf(!wasmBuilt)('policy v18 actions and replay tags through the browser engine', () => {
+	beforeAll(async () => {
+		engine ??= await loadEngine();
+	});
+
+	it('a log tagged roll/adjust seals to the untagged digest; tif and oco replay', () => {
+		const order = (extra: Record<string, unknown>) => ({ k: 'order', type: 'stop_market', side: 'buy', qty: '10', price: '100.9', ro: false, stop: null, tp: null, trail: null, ...extra });
+		const plain = [
+			{ k: 'adv', n: 2 },
+			order({}),
+			order({ side: 'sell', price: '99.8', tif: 'bars', tifBars: 2 }),
+			{ k: 'oco', a: 1, b: 2 },
+			{ k: 'adv', n: 1 },
+			{ k: 'cancel', id: 999 }
+		];
+		const tags = [{}, { combo: 'c1', strategy: 'custom', roll: '1' }, { combo: 'c1', strategy: 'custom', adjust: '1' }, {}, {}, { combo: 'c1', strategy: 'custom', adjust: '2' }];
+		const tagged = plain.map((a, i) => ({ ...a, ...tags[i] }));
+		const r = record({ missionId: 'm01-false-breakout', seed: 3, actions: plain.length });
+		const a = seal(JSON.stringify(runFileDraft(r, plain, STAMP, false)));
+		const b = seal(JSON.stringify(runFileDraft(r, tagged, STAMP, false)));
+		expect(a.ok, a.reason).toBe(true);
+		expect(b.ok, b.reason).toBe(true);
+		expect(b.digest).toBe(a.digest);
+		expect(b.eventsDigest).toBe(a.eventsDigest);
+		expect(a.rejected).toBe(1); // the cancel of an unknown order; the link and the time in force were accepted
 	});
 });

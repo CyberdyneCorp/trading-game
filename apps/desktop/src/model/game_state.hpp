@@ -52,6 +52,14 @@ struct MissionRules {
   int drawdown_budget_bp = 0;
   bool confirm_stop_beyond_liq = false;
   bool spread_margin = false;  // defined-risk margin for paired shorts (add-academy-and-strategies D5)
+  // A long expiring at or after the short's expiry may cover it too (add-practice-and-advanced-strategies D5).
+  bool calendar_margin = false;
+  // Portfolio risk limits in bp of equity (D9), 0 = not declared: |delta notional|, the gamma P&L of a
+  // 1% move, |vega per point| and theta burn per bar.
+  int risk_delta_bp = 0;
+  int risk_gamma_bp = 0;
+  int risk_vega_bp = 0;
+  int risk_theta_bp = 0;
 };
 
 struct GameBar {
@@ -90,6 +98,15 @@ struct Order {
   double trail_rate = 0;
   bool bracket = false;
   int series = 0;
+  int placed_step = 0;
+  std::string trail_distance_text;  // the engine's decimal ("0.00000000" without one)
+  std::string trail_rate_text;
+  // Policy v18: time in force ("gtc" when the build predates it), N of a bars order, the last bar it can
+  // execute on (0 = none) and the player-built OCO link (the lower id of the pair; 0 = not linked).
+  std::string tif = "gtc";
+  int tif_bars = 0;
+  int expire_step = 0;
+  int link_group = 0;
 };
 
 struct EngineEvent {

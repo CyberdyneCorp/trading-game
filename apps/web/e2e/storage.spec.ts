@@ -76,7 +76,8 @@ test('resume restores the latest checkpoint and replays only the actions after i
 	const kinds = requestKinds(log);
 	expect(kinds).toContain('restore');
 	expect(kinds).not.toContain('start'); // no replay from the first bar
-	const tail = kinds.slice(kinds.indexOf('restore') + 1).filter((k) => k !== 'checkpoint');
+	// Report-only analysis (the portfolio's holdings what-if) is not a replayed action.
+	const tail = kinds.slice(kinds.indexOf('restore') + 1).filter((k) => !['checkpoint', 'runWhatif', 'comboPreview', 'whatif'].includes(k));
 	expect(tail.length).toBe(run.actions - cp.actions);
 	expect(lastState(log)!.digest).toBe(run.digest); // same step, same digest as before the reload
 	await expect(page.getByText(/digest mismatch/)).toHaveCount(0);

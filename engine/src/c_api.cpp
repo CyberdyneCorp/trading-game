@@ -58,6 +58,16 @@ void write_contract(JsonOut& j, const Scenario& sc, const RunState& st) {
 
 // The mission's rules as the run plays them (task 4.1): what the briefing lists and the ticket enforces.
 // Permissions come from the contract and the option spec, so the client never decides them.
+// Design D9 of add-practice-and-advanced-strategies: only the declared limits.
+void write_risk_limits(JsonOut& j, const RiskLimits& r) {
+  j.key("riskLimits").begin_obj();
+  if (r.delta_bp != 0) j.field("deltaBp", r.delta_bp);
+  if (r.gamma_bp != 0) j.field("gammaBp", r.gamma_bp);
+  if (r.vega_bp != 0) j.field("vegaBp", r.vega_bp);
+  if (r.theta_bp != 0) j.field("thetaBp", r.theta_bp);
+  j.end_obj();
+}
+
 void write_mission_rules(JsonOut& j, const Scenario& sc, const RunState& st) {
   const MissionRules& m = sc.mission;
   const bool options = !sc.options.series.empty();
@@ -71,6 +81,10 @@ void write_mission_rules(JsonOut& j, const Scenario& sc, const RunState& st) {
   j.end_arr();
   j.field("liqWarningBp", m.liq_warning_bp).field("drawdownBudgetBp", m.drawdown_budget_bp);
   j.field("confirmStopBeyondLiq", m.confirm_stop_beyond_liq).field("spreadMargin", sc.options.spread_margin);
+  // Design D5/D9 of add-practice-and-advanced-strategies: written only when declared, so every mission
+  // without them serializes exactly as before.
+  if (sc.options.calendar_margin) j.field("calendarMargin", true);
+  if (m.risk_limits.any()) write_risk_limits(j, m.risk_limits);
   j.end_obj();
 }
 
@@ -110,6 +124,8 @@ void write_orders(JsonOut& j, const RunState& st) {
     j.field("parentId", o.parent_id).field("ocoGroup", o.oco_group).field("trailDistance", o.trail_distance);
     j.field("trailRate", o.trail_rate);
     j.field("bracketStop", o.bracket_stop).field("bracketTp", o.bracket_tp).field("series", o.series);
+    j.field("tif", json_name(o.tif)).field("tifBars", o.tif_bars).field("expireStep", o.expire_step);
+    j.field("linkGroup", o.link_group);
     j.end_obj();
   }
   j.end_arr();
@@ -550,6 +566,27 @@ bool from_hex(std::string_view hex, std::vector<std::uint8_t>* out) {
   return true;
 }
 
+struct OrderPrices {
+  const char* price;
+  const char* stop;
+  const char* tp;
+  const char* trail;
+  const char* trail_rate;  // set (non-empty) on a trailing stop: a rate of the best close, `trail` ignored
+};
+
+// The decimal inputs of a perpetual order: the price when the type needs one, the bracket exits and the
+// trailing distance or rate. False when one is malformed (invalid_tick).
+bool parse_order_prices(Command& c, const OrderPrices& in) {
+  const bool by_rate = c.order_type == OrderType::TrailingStop && in.trail_rate != nullptr && *in.trail_rate != '\0';
+  const bool needs_price = c.order_type != OrderType::Market && c.order_type != OrderType::TrailingStop;
+  if (needs_price && !parse_optional_price(in.price, &c.price, true)) return false;
+  if (!parse_optional_price(in.stop, &c.attach_stop, false) || !parse_optional_price(in.tp, &c.attach_tp, false)) return false;
+  if (!by_rate) return parse_optional_price(in.trail, &c.trail_distance, false);
+  const auto r = parse_decimal<Rate>(in.trail_rate);
+  if (r.ok()) c.trail_rate = r.value();
+  return r.ok();
+}
+
 Command next_command(tl_run& r, CommandType type, std::uint32_t client_id) {
   Command c;
   c.type = type;
@@ -669,20 +706,27 @@ const char* tl_place_order(tl_run* run, uint32_t client_id, int32_t type, int32_
 const char* tl_place_order_ex(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
                               const char* price, int32_t reduce_only, const char* attach_stop,
                               const char* attach_tp, const char* trail_distance) {
+  return tl_place_order_tif(run, client_id, type, side, qty, price, reduce_only, attach_stop, attach_tp, trail_distance,
+                            nullptr, 0, 0);
+}
+
+const char* tl_place_order_tif(tl_run* run, uint32_t client_id, int32_t type, int32_t side, const char* qty,
+                               const char* price, int32_t reduce_only, const char* attach_stop, const char* attach_tp,
+                               const char* trail_distance, const char* trail_rate, int32_t tif, uint32_t tif_bars) {
   if (type < 0 || type > 4 || side < 0 || side > 1) return error_json(*run, "unsupported_order_type");
+  if (tif < 0 || tif > 3) return error_json(*run, "invalid_time_in_force");
   Command c = next_command(*run, CommandType::PlaceOrder, client_id);
   c.order_type = static_cast<OrderType>(type);
   c.side = static_cast<OrderSide>(side);
   const auto q = parse_decimal<Qty>(qty == nullptr ? "" : qty);
   if (!q.ok()) return error_json(*run, "invalid_quantity");
   c.qty = q.value();
-  const bool needs_price = c.order_type != OrderType::Market && c.order_type != OrderType::TrailingStop;
-  if (needs_price && !parse_optional_price(price, &c.price, true)) return error_json(*run, "invalid_tick");
-  if (!parse_optional_price(attach_stop, &c.attach_stop, false) || !parse_optional_price(attach_tp, &c.attach_tp, false) ||
-      !parse_optional_price(trail_distance, &c.trail_distance, false)) {
+  if (!parse_order_prices(c, OrderPrices{price, attach_stop, attach_tp, trail_distance, trail_rate})) {
     return error_json(*run, "invalid_tick");
   }
   c.reduce_only = reduce_only != 0;
+  c.tif = static_cast<TimeInForce>(tif);
+  c.tif_bars = tif_bars;
   return result_json(*run, apply_command(run->scenario, run->state, c));
 }
 
@@ -704,7 +748,13 @@ const char* tl_place_trailing_rate(tl_run* run, uint32_t client_id, int32_t side
 
 const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
                                   const char* qty, const char* premium) {
+  return tl_place_option_order_tif(run, client_id, series, side, type, qty, premium, 0, 0);
+}
+
+const char* tl_place_option_order_tif(tl_run* run, uint32_t client_id, uint32_t series, int32_t side, int32_t type,
+                                      const char* qty, const char* premium, int32_t tif, uint32_t tif_bars) {
   if ((type != 0 && type != 1) || side < 0 || side > 1) return error_json(*run, "unsupported_order_type");
+  if (tif < 0 || tif > 3) return error_json(*run, "invalid_time_in_force");
   Command c = next_command(*run, CommandType::PlaceOptionOrder, client_id);
   c.series = series;
   c.side = static_cast<OrderSide>(side);
@@ -715,6 +765,15 @@ const char* tl_place_option_order(tl_run* run, uint32_t client_id, uint32_t seri
   if (c.order_type == OrderType::Limit && !parse_optional_price(premium, &c.price, true)) {
     return error_json(*run, "invalid_tick");
   }
+  c.tif = static_cast<TimeInForce>(tif);
+  c.tif_bars = tif_bars;
+  return result_json(*run, apply_command(run->scenario, run->state, c));
+}
+
+const char* tl_link_oco(tl_run* run, uint32_t client_id, uint32_t order_a, uint32_t order_b) {
+  Command c = next_command(*run, CommandType::LinkOco, client_id);
+  c.order_id = order_a;
+  c.order_id_b = order_b;
   return result_json(*run, apply_command(run->scenario, run->state, c));
 }
 

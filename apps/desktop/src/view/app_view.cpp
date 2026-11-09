@@ -16,6 +16,7 @@
 
 #include "model/resources.hpp"
 #include "view/chart_painter.hpp"
+#include "view/game/scene_painter.hpp"
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/academy_names.hpp"
 #include "viewmodel/game/builder_widgets.hpp"
@@ -172,6 +173,7 @@ void AppView::apply_bindings() {
   shell_->apply(vm_.screen_model());
   const Settings& s = vm_.settings();
   shell_->look().apply(s.colorblind, s.text_scale, vm_.crt_state());
+  view::set_scene_colorblind(s.colorblind);
 }
 
 void AppView::refresh() {

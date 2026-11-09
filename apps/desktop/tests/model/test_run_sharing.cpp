@@ -47,7 +47,7 @@ void store_golden_m01(storage::RunStore& store, const std::string& run_id, const
   r.run_id = run_id;
   r.mission_id = "m01-false-breakout";
   r.seed = static_cast<std::uint32_t>((*fx)["seed"].as_int());
-  r.execution_policy = 17;
+  r.execution_policy = testing::engine_execution_policy();
   r.status = "finished";
   r.digest = digest;
   store.create_run(r);

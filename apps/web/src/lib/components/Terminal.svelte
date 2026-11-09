@@ -26,7 +26,8 @@
 	import { newsArrived } from '#lib/game/news.ts';
 	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import HelpOverlay from './HelpOverlay.svelte';
-	import OrderTicket, { type OrderDraft, type TicketOrderType, type TicketPreview } from './OrderTicket.svelte';
+	import OrderTicket, { type OrderDraft, type ProtectTab, type TicketOrderType, type TicketPreview } from './OrderTicket.svelte';
+	import TrailNotice from './TrailNotice.svelte';
 	import OptionChain from './OptionChain.svelte';
 	import OptionTicket, { type OptionDraft } from './OptionTicket.svelte';
 	import type { OptionQuoteView } from '#lib/engine/types.ts';
@@ -40,7 +41,12 @@
 	import ComboNotice from './ComboNotice.svelte';
 	import WhatIfLab from './WhatIfLab.svelte';
 	import type { WhatIfLegInput } from '#lib/engine/types.ts';
-	import { comboContracts, comboStatus, netPremium, submitCombo } from '#lib/game/combos.ts';
+	import { comboContracts, comboSentKey, comboStatus, netPremium, submitCombo, workingLegs } from '#lib/game/combos.ts';
+	import ComboWorking from './ComboWorking.svelte';
+	import PortfolioPanel from './PortfolioPanel.svelte';
+	import { PORTFOLIO_REQUEST } from '#lib/game/portfolio.ts';
+	import type { WhatIfResult as PortfolioResult } from '#lib/engine/types.ts';
+	import type { OrderLeg } from '#lib/game/strategies.ts';
 	import { runMaxBars } from '#lib/game/whatifLab.ts';
 
 	let { session }: { session: GameSession } = $props();
@@ -61,7 +67,7 @@
 	// Auto-advance: same advance as Space; waits while any dialog is open, pauses on notable bars.
 	const auto = new AutoPlay({
 		ready: () =>
-			!draft && !optDraft && !comboDraft && !labLegs && !pick && !patterns && !help && !journalOpen && !glossaryUi.open && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
+			!draft && !optDraft && !comboDraft && !labLegs && !portfolioOpen && !pick && !patterns && !help && !journalOpen && !glossaryUi.open && !session.busy && !session.pendingQuestion && session.state?.status === 'active',
 		finished: () => session.state?.status !== 'active',
 		advance: () => session.advance(1),
 		notable: () => {
@@ -93,6 +99,11 @@
 	let ticketQty = $state('10');
 	let ticketLeverage = $state(1);
 	let ticketType = $state<TicketOrderType>('market');
+	// The protective section's tab and trailing fields (design D10): the planned-trailing notice fills them.
+	let protectTab = $state<ProtectTab>('stop');
+	let protTrail = $state('');
+	let protTrailPct = $state('');
+	let trailMode = $state<'price' | 'pct'>('price');
 
 	// The advisor's stop and size go to the perpetual ticket; nothing is sent until the player submits.
 	function onApplyAdvice(a: AdviceView) {
@@ -169,7 +180,7 @@
 	}
 
 	async function sendOption(d: OptionDraft) {
-		const res = await session.placeOptionOrder(d.series, d.side, d.type, d.qty, d.premium);
+		const res = await session.placeOptionOrder(d.series, d.side, d.type, d.qty, d.premium, undefined, { tif: d.tif, tifBars: d.tifBars });
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason, d.risk != null ? { need: d.risk, available: num(session.state!.account.available) } : {});
 		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${d.label} × ${fmtQty(d.qty, i18n.locale)}` };
@@ -216,6 +227,10 @@
 	);
 	const statuses = $derived(session.state ? session.combos.map((r) => comboStatus(session.state!.events, r)) : []);
 	const incomplete = $derived(statuses.findLast((st) => st.state === 'incomplete' && !dismissed.includes(st.record.id)) ?? null);
+	// Design D2: limit legs still working after their first open (market legs never wait).
+	const working = $derived(
+		statuses.findLast((st) => st.state === 'working' && workingLegs(st).length > 0 && st.legs.some((l) => l.leg.premium != null) && session.state!.step > (st.record.submissions.at(-1)?.step ?? st.record.step)) ?? null
+	);
 
 	function optPlanDraftOf(side: 'buy' | 'sell', risk: number | null, qty = '1'): OrderDraft {
 		return {
@@ -243,8 +258,8 @@
 				const leg: PlanEntry = { ...p, side: o.side, plannedRisk: share, instrument: o.series === 0 ? undefined : d.label };
 				await session.recordPlan(leg, i === 0 ? { ...p, instrument: d.label, combo: d.tag.combo } : null);
 			}
-			const out = await submitCombo(session.comboPort(), d.orders, d.tag);
-			if (out.ok) session.notice = { tone: 'ok', text: t('combo.sent', { name: d.label }) };
+			const out = await submitCombo(session.comboPort(), d.orders, d.tag, d.tif);
+			if (out.ok) session.notice = { tone: 'ok', text: t(comboSentKey(d.orders), { name: d.label }) };
 			else session.notice = { tone: 'error', text: `✖ ${t('combo.refused', { n: out.refusedLeg + 1, reason: rejectionText(out.reason) })}` };
 		});
 	}
@@ -271,7 +286,7 @@
 			const r = await session.setLeverage(d.leverage);
 			if (r && !r.accepted) return notify(r.reason, releverFacts(s, d.leverage));
 		}
-		const res = await session.placeOrder(d.type, d.side, d.qty, d.price, false, { stop: d.stop, takeProfit: d.takeProfit });
+		const res = await session.placeOrder(d.type, d.side, d.qty, d.price, false, { stop: d.stop, takeProfit: d.takeProfit, tif: d.tif, tifBars: d.tifBars });
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason, orderFacts(session.state!, d.required, d.leverage));
 		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${fmtQty(d.qty, i18n.locale)}` };
@@ -292,9 +307,49 @@
 		const d = draft;
 		draft = null;
 		void session.sequence(async () => {
-			await session.recordPlan(p);
+			// A planned trailing stop rides with the plan (client data): the notice offers it after the fill.
+			await session.recordPlan(d?.plannedTrail ? { ...p, trail: d.plannedTrail } : p);
 			if (d) await send(d);
 		});
+	}
+
+	// Portfolio (design D9): the engine's holdings what-if with its risk block, refreshed on every state
+	// change (a reply for an older state is dropped). Only on a build with policy v18's analysis.
+	let portfolio = $state<PortfolioResult | null>(null);
+	let portfolioOpen = $state(false);
+	let portfolioTicket = 0;
+	$effect(() => {
+		const s = session.state;
+		if (!s || !session.orderRulesV18) {
+			portfolio = null;
+			return;
+		}
+		void s.digest;
+		const mine = ++portfolioTicket;
+		void session.runWhatIf({ ...PORTFOLIO_REQUEST, legs: [] }).then((r) => {
+			if (mine === portfolioTicket) portfolio = r.ok ? r.value : null;
+		});
+	});
+
+	// "Hedge delta" (design D9): a normal perpetual ticket at market, through the plan dialog when it adds
+	// exposure; the panel already asked for the confirmation.
+	function onHedge(o: OrderLeg) {
+		portfolioOpen = false;
+		const s = session.state!;
+		const pos = num(s.position.qty);
+		const qty = num(o.qty);
+		const increases = pos === 0 || pos > 0 === (o.side === 'buy') || qty > Math.abs(pos);
+		onSubmit({ ...optPlanDraftOf(o.side, null, o.qty), leverage: s.leverage, increases });
+	}
+
+	// The planned trailing stop's notice filled the protective section: one more click sends it.
+	function fillPlannedTrail(mode: 'price' | 'pct', value: string) {
+		trailMode = mode;
+		if (mode === 'pct') protTrailPct = value;
+		else protTrail = value;
+		protectTab = 'trail';
+		tab = 'perp';
+		session.notice = { tone: 'ok', text: t('trail.filled') };
 	}
 
 	function typing(e: KeyboardEvent): boolean {
@@ -331,7 +386,7 @@
 	}
 
 	function onKey(e: KeyboardEvent) {
-		if (keymap.capturing || draft || optDraft || comboDraft || labLegs || session.pendingQuestion || pick || glossaryUi.open) return;
+		if (keymap.capturing || draft || optDraft || comboDraft || labLegs || portfolioOpen || session.pendingQuestion || pick || glossaryUi.open) return;
 		// The coach mark's buttons keep Space and Enter (the market never advances from the callout).
 		if ((e.target as HTMLElement | null)?.closest?.('[data-own-keys]')) return;
 		const action = actionFor(keymap.map, keyName(e));
@@ -360,6 +415,8 @@
 				/></section>
 			<RightRail
 				game={session.state}
+				risk={portfolio?.risk ?? null}
+				onPortfolio={session.orderRulesV18 ? () => (portfolioOpen = true) : undefined}
 				plannedRisk={Number(session.state.position.qty) !== 0 ? positionPlannedRisk(session.journal) : null}
 				onMargin={async (amount) => {
 					const before = session.state!;
@@ -380,9 +437,9 @@
 				{#if tab === 'builder' && optionsOn}
 					<StrategyBuilder {session} onSubmit={(d) => (comboDraft = d)} onLab={(legs) => (labLegs = legs)} />
 				{:else if tab === 'options' && optionsOn}
-					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
+					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} tifAllowed={session.orderRulesV18} onSubmit={onOptionSubmit} />
 				{:else}
-					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} bind:leverage={ticketLeverage} bind:orderType={ticketType} {onSubmit} onPick={(set) => (pick = set)} />
+					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} bind:leverage={ticketLeverage} bind:orderType={ticketType} bind:protectTab bind:protTrail bind:protTrailPct bind:trailMode {onSubmit} onPick={(set) => (pick = set)} />
 				{/if}
 			</div>
 			<div class="stack">
@@ -392,6 +449,10 @@
 				{#if incomplete}
 					<ComboNotice {session} status={incomplete} onDone={() => (dismissed = [...dismissed, incomplete.record.id])} />
 				{/if}
+				{#if working}
+					<ComboWorking {session} status={working} />
+				{/if}
+				<TrailNotice game={session.state} journal={session.journal} onFill={fillPlannedTrail} />
 				<OrdersPanel {session} />
 				{#if session.notice}
 					<div class="notice {session.notice.tone}" role="status">{session.notice.text}</div>
@@ -435,6 +496,14 @@
 			<h2 id="lab-modal-title">{t('lab.title')}</h2>
 			<WhatIfLab {session} mode="terminal" runLegs={labLegs} forward={lastPrice(session.state)} maxBars={labMaxBars} />
 			<button class="primary" onclick={() => (labLegs = null)} data-testid="lab-close">{t('lab.close')}</button>
+		</div>
+	</div>
+{/if}
+{#if portfolioOpen && session.state}
+	<div class="modal-backdrop" role="presentation">
+		<div class="modal lab-modal" role="dialog" aria-modal="true" aria-labelledby="portfolio-title">
+			<PortfolioPanel {session} result={portfolio} {onHedge} />
+			<button class="primary" onclick={() => (portfolioOpen = false)} data-testid="portfolio-close">{t('portfolio.close')}</button>
 		</div>
 	</div>
 {/if}

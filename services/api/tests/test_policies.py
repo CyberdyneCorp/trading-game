@@ -131,3 +131,36 @@ def test_an_older_policy_log_is_extended_and_bad_logs_are_refused(client, auth):
     bad = run_body(run_id="run-old-policy-3", executionPolicy=OLD,
                    actions=[{"k": "order", "type": "market"}])  # fields missing: the old binding refuses it
     assert sync(client, auth, [bad], key="c").json()[0]["error"] == "invalid_log"
+
+
+# ---- execution policy v18 (add-practice-and-advanced-strategies D8) ------------------------------
+
+V18_LOG: list[dict[str, Any]] = [
+    {"k": "adv", "n": 2},
+    {"k": "order", "type": "stop_market", "side": "buy", "qty": "1.0", "price": "200.00", "ro": False, "stop": None,
+     "tp": None, "trail": None, "tif": "bars", "tifBars": 5, "combo": "c1", "roll": "1"},
+    {"k": "order", "type": "limit", "side": "buy", "qty": "1.0", "price": "1.00", "ro": False, "stop": None, "tp": None,
+     "trail": None, "tif": "ioc"},
+    {"k": "order", "type": "limit", "side": "buy", "qty": "1.0", "price": "2.00", "ro": False, "stop": None, "tp": None,
+     "trail": None},
+    {"k": "oco", "a": 1, "b": 3},
+    {"k": "adv", "n": 200},
+]
+
+
+def test_a_v18_log_with_time_in_force_and_oco_replays_with_the_current_engine(client, auth):
+    assert CURRENT >= 18
+    expected = te.replay("m01-false-breakout", 5, V18_LOG)
+    assert all(r is None or r["accepted"] for r in expected.results)
+    body = run_body(run_id="run-v18-tif-oco", actions=V18_LOG, clientDigest=expected.digest,
+                    clientActionCount=len(V18_LOG))
+    out = sync(client, auth, [body]).json()[0]
+    assert out["error"] is None
+    assert out["serverDigest"] == expected.digest
+    assert out["digestMatch"] is True
+
+
+def test_a_v18_action_under_the_v17_engine_is_a_bad_log_not_a_crash(client, auth):
+    _require_cache()
+    bad = run_body(run_id="run-old-policy-oco", executionPolicy=OLD, actions=[{"k": "oco", "a": 1, "b": 2}])
+    assert sync(client, auth, [bad], key="d").json()[0]["error"] == "invalid_log"

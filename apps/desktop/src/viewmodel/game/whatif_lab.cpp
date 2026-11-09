@@ -76,6 +76,48 @@ WhatIfExpiry expiry_from(const json::Value& e) {
   return out;
 }
 
+WhatIfHorizon horizon_from(const json::Value& h) {
+  WhatIfHorizon out;
+  static_cast<WhatIfExpiry&>(out) = expiry_from(h);
+  out.expiry_step = static_cast<int>(h["expiryStep"].as_int());
+  out.unbounded_above = h["unboundedAbove"].as_bool(false);
+  return out;
+}
+
+WhatIfHeatmap heatmap_from(const json::Value& m) {
+  WhatIfHeatmap out;
+  for (const auto& p : m["prices"].items()) out.prices.push_back(p.as_string());
+  for (const auto& t : m["times"].items()) out.times.push_back(static_cast<int>(t.as_int()));
+  for (const auto& row : m["pnl"].items()) {
+    std::vector<std::string> cells;
+    for (const auto& v : row.items()) cells.push_back(v.as_string());
+    out.pnl.push_back(std::move(cells));
+  }
+  return out;
+}
+
+WhatIfRisk risk_from(const json::Value& r) {
+  WhatIfRisk out;
+  out.delta_units = text_of(r["deltaUnits"]);
+  out.delta_notional = text_of(r["deltaNotional"]);
+  out.gamma_1pct = text_of(r["gamma1pct"]);
+  out.vega_point = text_of(r["vegaPoint"]);
+  out.theta_bar = text_of(r["thetaBar"]);
+  out.funding_next = text_of(r["fundingNext"]);
+  out.equity = text_of(r["equity"]);
+  const auto bp = [&r](const char* k) { return static_cast<int>(r[k].as_int()); };
+  out.delta_bp = bp("deltaBp");
+  out.gamma_bp = bp("gammaBp");
+  out.vega_bp = bp("vegaBp");
+  out.theta_bp = bp("thetaBp");
+  out.funding_bp = bp("fundingBp");
+  for (const auto& l : r["limits"].items()) {
+    out.limits.push_back({l["kind"].as_string(), static_cast<int>(l["limitBp"].as_int()), static_cast<int>(l["valueBp"].as_int()),
+                          l["exceeded"].as_bool(false)});
+  }
+  return out;
+}
+
 template <typename T>
 Analysis<T> failure(const std::optional<json::Value>& doc) {
   Analysis<T> out;
@@ -248,6 +290,9 @@ Analysis<WhatIfResult> whatif_from_json(const std::string& text) {
            text_of(n["gamma"]), text_of(n["theta"]), text_of(n["vega"])};
   if (!d["expiry"].is_null()) r.expiry = expiry_from(d["expiry"]);
   r.today = curve_from(d["today"]);
+  if (d.has("horizon") && !d["horizon"].is_null()) r.horizon = horizon_from(d["horizon"]);
+  if (d.has("heatmap") && !d["heatmap"].is_null()) r.heatmap = heatmap_from(d["heatmap"]);
+  if (d.has("risk") && !d["risk"].is_null()) r.risk = risk_from(d["risk"]);
   return {std::move(r), {}};
 }
 
@@ -271,10 +316,21 @@ Analysis<ComboPreview> preview_from_json(const std::string& text) {
   return {std::move(p), {}};
 }
 
+const WhatIfExpiry* analytics_of(const WhatIfResult& r) {
+  if (r.expiry) return &*r.expiry;
+  return r.horizon ? &*r.horizon : nullptr;
+}
+
+std::optional<int> horizon_step(const WhatIfResult& r) {
+  if (r.expiry || !r.horizon) return std::nullopt;
+  return r.horizon->expiry_step;
+}
+
 std::optional<std::string> unbounded_above(const WhatIfResult& r) {
-  if (!r.expiry || r.expiry->max_loss) return std::nullopt;
-  if (r.expiry->breakevens.empty()) return std::nullopt;
-  return r.expiry->breakevens.back();
+  const WhatIfExpiry* e = analytics_of(r);
+  if (e == nullptr || e->max_loss) return std::nullopt;
+  if (e->breakevens.empty()) return std::nullopt;
+  return e->breakevens.back();
 }
 
 std::vector<double> result_strikes(const WhatIfResult& r) {
@@ -295,15 +351,16 @@ std::optional<PayoffGeometry> payoff_geometry(const WhatIfResult& r, double w, d
     for (const auto& pv : c) g.max_abs = std::max(g.max_abs, std::fabs(fmt::num(pv.second)));
   };
   widen(r.today);
-  if (r.expiry) widen(r.expiry->curve);
+  const WhatIfExpiry* a = analytics_of(r);
+  if (a != nullptr) widen(a->curve);
   const auto x = [&](double p) { return (p - g.lo) / (g.hi - g.lo) * w; };
   const auto inside = [&](double p) { return p >= g.lo && p <= g.hi; };
-  if (r.expiry) g.expiry = points(r.expiry->curve, g.lo, g.hi, w, h, g.max_abs);
+  if (a != nullptr) g.expiry = points(a->curve, g.lo, g.hi, w, h, g.max_abs);
   g.today = points(r.today, g.lo, g.hi, w, h, g.max_abs);
   g.zero_y = h / 2;  // y(0)
   g.forward_x = x(fmt::num(r.forward));
-  if (r.expiry) {
-    for (const auto& b : r.expiry->breakevens) {
+  if (a != nullptr) {
+    for (const auto& b : a->breakevens) {
       if (inside(fmt::num(b))) g.breakeven_x.push_back(x(fmt::num(b)));
     }
   }

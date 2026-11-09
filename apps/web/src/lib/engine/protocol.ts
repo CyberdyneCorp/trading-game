@@ -17,6 +17,7 @@ import type {
 	EngineVersion,
 	GameState,
 	LessonInfo,
+	LinkOcoCommand,
 	MissionInfo,
 	MissionReveal,
 	MoveOrderCommand,
@@ -61,6 +62,8 @@ export type EngineRequest =
 	| ({ kind: 'lessonAnswer' } & AnswerLessonCommand)
 	| ({ kind: 'cancel' } & CancelOrderCommand)
 	| ({ kind: 'move' } & MoveOrderCommand)
+	// Policy v18 (add-practice-and-advanced-strategies D7): refused as 'unsupported' by an older build.
+	| ({ kind: 'oco' } & LinkOcoCommand)
 	| ({ kind: 'leverage' } & SetLeverageCommand)
 	| ({ kind: 'close' } & ClientIdCommand)
 	| ({ kind: 'advice' } & ClientIdCommand)

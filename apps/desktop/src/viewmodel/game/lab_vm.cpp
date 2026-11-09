@@ -94,19 +94,22 @@ std::optional<int> AnalysisTicket::next(const std::string& request) {
 }
 
 std::string breakevens_text(const WhatIfResult& r, Locale L) {
-  if (!r.expiry || r.expiry->breakevens.empty()) return "\xE2\x80\x94";
+  const WhatIfExpiry* e = analytics_of(r);
+  if (e == nullptr || e->breakevens.empty()) return "\xE2\x80\x94";
   std::string out;
-  for (const auto& b : r.expiry->breakevens) out += (out.empty() ? "" : kDot) + fmt::fmt_price(b, L);
+  for (const auto& b : e->breakevens) out += (out.empty() ? "" : kDot) + fmt::fmt_price(b, L);
   return out;
 }
 
 std::string max_profit_text(const Texts& t, const WhatIfResult& r) {
-  if (r.expiry && r.expiry->max_profit) return fmt::fmt_money(*r.expiry->max_profit, t.locale());
+  const WhatIfExpiry* e = analytics_of(r);
+  if (e != nullptr && e->max_profit) return fmt::fmt_money(*e->max_profit, t.locale());
   return t.tr("lab.unbounded");
 }
 
 std::string max_loss_text(const Texts& t, const WhatIfResult& r) {
-  if (r.expiry && r.expiry->max_loss) return fmt::fmt_money(*r.expiry->max_loss, t.locale());
+  const WhatIfExpiry* e = analytics_of(r);
+  if (e != nullptr && e->max_loss) return fmt::fmt_money(*e->max_loss, t.locale());
   const auto above = unbounded_above(r);
   return t.tr("lab.unboundedAbove", {{"price", above ? fmt::fmt_price(*above, t.locale()) : "\xE2\x80\x94"}});
 }
@@ -242,7 +245,8 @@ LabView LabViewModel::view(const Texts& t) const {
   v.summary.emplace_back(t.tr("lab.positionValue"), fmt::fmt_money(r.net.value, L));
   v.summary.emplace_back(t.tr("lab.pnlNow"), fmt::fmt_money(r.net.pnl, L, true));
   v.pnl_tone = sign_tone(r.net.pnl);
-  if (r.expiry) {
+  if (const auto h = horizon_step(r)) v.summary.emplace_back(t.tr("builder.horizon", {{"step", std::to_string(run_step + *h)}}), "");
+  if (analytics_of(r) != nullptr) {
     v.summary.emplace_back(t.tr("opt.breakeven"), breakevens_text(r, L));
     v.summary.emplace_back(t.tr("lab.maxProfit"), max_profit_text(t, r));
     v.summary.emplace_back(t.tr("lab.maxLoss"), max_loss_text(t, r));
@@ -269,8 +273,9 @@ LabSliderView LabViewModel::slider_view(const Texts& t, Slider s) const {
 // The chart's accessible description (PayoffChart.svelte's summary) and its legend.
 void chart_texts(const Texts& t, const WhatIfResult& r, std::string& summary, std::string& legend) {
   const Locale L = t.locale();
-  const std::string profit = r.expiry && r.expiry->max_profit ? fmt::fmt_money(*r.expiry->max_profit, L) : t.tr("lab.unbounded");
-  const std::string loss = r.expiry && r.expiry->max_loss ? fmt::fmt_money(*r.expiry->max_loss, L) : t.tr("lab.unbounded");
+  const WhatIfExpiry* e = analytics_of(r);
+  const std::string profit = e != nullptr && e->max_profit ? fmt::fmt_money(*e->max_profit, L) : t.tr("lab.unbounded");
+  const std::string loss = e != nullptr && e->max_loss ? fmt::fmt_money(*e->max_loss, L) : t.tr("lab.unbounded");
   summary = t.tr("lab.chartSummary", {{"bes", breakevens_text(r, L)}, {"profit", profit}, {"loss", loss}});
   if (const auto g = payoff_geometry(r, 1, 1, {})) {
     legend = fmt::fmt_price(js_number(g->lo), L) + "   \xE2\x94\x80\xE2\x94\x80 " + t.tr("lab.atExpiry") + "   - - " +

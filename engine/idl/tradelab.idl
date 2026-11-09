@@ -93,6 +93,26 @@ enum Reason : u8 [ts=ReasonCode] {
   AlreadyAnswered = 36
   /// AnswerLesson: choice out of range or a negative numeric answer.
   InvalidAnswer = 37
+  /// OrderUpdate reason (policy v18): the order's time in force ended (bars elapsed, or an ioc/fok
+  /// remainder after its one open phase).
+  TimeInForce = 38
+  /// A time in force the order cannot take: ioc/fok on a non-limit order, bars 0 or beyond the run's
+  /// last bar, or a bars value without the bars kind (policy v18).
+  InvalidTimeInForce = 39
+  /// LinkOco: the same order twice, an unknown or inactive order, a bracket child or an order already linked (policy v18).
+  InvalidOco = 40
+}
+
+/// How long an order works (execution policy v18). An absent value is gtc.
+enum TimeInForce : u8 [ts=TimeInForceName] {
+  /// Until filled, cancelled, the run ends or (options) its series settles.
+  Gtc = 0 "gtc"
+  /// Eligible on bars placedStep+1 .. placedStep+tifBars; the remainder expires at the close of the last one.
+  Bars = 1 "bars"
+  /// Limit only: eligible only in the next bar's open phase; the remainder is cancelled after it.
+  Ioc = 2 "ioc"
+  /// Limit only: the whole quantity in the next bar's open phase, or nothing.
+  Fok = 3 "fok"
 }
 
 enum EventType : u8 [ts=EventTypeName] {
@@ -135,6 +155,8 @@ enum CommandType : u8 [cpp_only] {
   MoveOrder = 9
   /// question + choice or value: a structured lesson answer (understanding dimension, scoring v11).
   AnswerLesson = 10
+  /// order_id + order_id_b: links two working orders as one-cancels-the-other (policy v18).
+  LinkOco = 11
 }
 
 /// Advisor (spec advisor): what the advice says. Short/Wait/Long = -1/0/+1.
@@ -472,6 +494,14 @@ struct OrderView {
   bracketStop: Decimal
   bracketTp: Decimal
   series: int
+  /// Policy v18: how long the order works (absent from builds that predate it: gtc).
+  tif?: TimeInForce
+  /// Policy v18: the N of a bars time in force; 0 otherwise.
+  tifBars?: int
+  /// Policy v18: the last bar the order can execute on (bars: placedStep + N; ioc/fok: placedStep + 1); 0 = none.
+  expireStep?: int
+  /// Policy v18: a player-built OCO link (the lower order id of the pair); 0 = not linked. Separate from ocoGroup.
+  linkGroup?: int
 }
 
 struct EngineEvent {
@@ -675,6 +705,20 @@ struct MissionRulesView {
   /// kind and expiry is margined at most at its worst loss at expiry; false = every short per leg.
   /// Absent from builds that predate it.
   spreadMargin?: bool
+  /// Calendar margin (add-practice-and-advanced-strategies D5): a long expiring at or after the short's
+  /// expiry may cover it too. Absent from builds that predate it.
+  calendarMargin?: bool
+  /// Portfolio risk limits in basis points of equity (D9); absent when the mission declares none.
+  riskLimits?: RiskLimitsView
+}
+
+/// Per-mission risk limits (add-practice-and-advanced-strategies D9), only those declared: |delta
+/// notional|, the gamma P&L of a 1% move, |vega per point| and theta burn per bar, as bp of equity.
+struct RiskLimitsView {
+  deltaBp?: int
+  gammaBp?: int
+  vegaBp?: int
+  thetaBp?: int
 }
 
 /// The cost model with the liquidity shock in force applied (same fields as the contract's).
@@ -740,6 +784,10 @@ struct PlaceOrderCommand {
   trailDistance: string | null
   /// Policy v16: a trailing stop at this rate of the best close ("0.02" = 2%) instead of a distance.
   trailRate?: string | null
+  /// Policy v18 (tl_place_order_tif): time in force, absent = gtc.
+  tif?: TimeInForce
+  /// Policy v18: N for tif "bars".
+  tifBars?: int
 }
 
 union OptionOrderType = "market" | "limit"
@@ -752,6 +800,17 @@ struct PlaceOptionOrderCommand {
   type: OptionOrderType
   qty: string
   premium: string | null
+  /// Policy v18 (tl_place_option_order_tif): time in force, absent = gtc (ioc/fok need a limit).
+  tif?: TimeInForce
+  /// Policy v18: N for tif "bars".
+  tifBars?: int
+}
+
+/// tl_link_oco (policy v18): two working orders, either filling first cancels the other.
+struct LinkOcoCommand {
+  clientId: int
+  orderA: int
+  orderB: int
 }
 
 /// tl_adjust_margin: add (> 0) or remove (< 0) isolated margin.
@@ -1303,6 +1362,16 @@ struct WhatIfLegInput {
   stop?: string
 }
 
+/// P&L grid over price and time (add-practice-and-advanced-strategies D4): lo..hi in `points` steps
+/// (2..61) and up to 25 times: `bars` from the current step (run) or `minutes` elapsed (run-less).
+struct WhatIfHeatmapInput {
+  lo: string
+  hi: string
+  points: int
+  bars?: int[]
+  minutes?: int[]
+}
+
 /// Shifts: forward (absent = unchanged), time (run-less minutesElapsed, run bars) and IV in
 /// volatility points ("-5" = -0.05), floored at 5% per leg.
 struct WhatIfShiftInput {
@@ -1328,6 +1397,13 @@ struct WhatIfRequest {
   legs: WhatIfLegInput[]
   shift?: WhatIfShiftInput
   grid?: WhatIfGridInput
+  /// Run-less: the price tick of the horizon breakeven search (default "0.01"); runs use the contract's.
+  tick?: string
+  /// D4: the P&L heatmap over price and time.
+  heatmap?: WhatIfHeatmapInput
+  /// D4 (run only): the run's own positions come first (the perpetual with its working reduce-only stop,
+  /// every option position at its average entry), then the request's legs; the reply adds `risk`.
+  holdings?: bool
 }
 
 /// Per unit as the option quote (value not tick-rounded; perpetual: the forward and delta 1); the
@@ -1376,6 +1452,64 @@ struct WhatIfExpiryView {
   curve: CurvePointTuple[]
 }
 
+/// Analytics at the first expiry when option legs have different expiries (D4): legs expiring then at
+/// intrinsic value, later legs at their model value then (the run's IV base published now, the term
+/// factor for their remaining time; run-less: the leg's IV plus ivPoints).
+struct WhatIfHorizonView {
+  /// The first expiry: a bar (run) or minutes from now (run-less).
+  expiryStep: int
+  /// On the price tick grid: the tick on the profitable side nearest each crossing (bisection between
+  /// evaluated prices whose P&L signs differ).
+  breakevens: Decimal[]
+  /// Extremes over the grid, the strikes, the breakevens and the price 0; null = unbounded.
+  maxProfit: Decimal | null
+  /// A positive amount is a loss; null = unbounded above.
+  maxLoss: Decimal | null
+  /// True when the slope above every strike (later legs counted at intrinsic) is unfavorable.
+  unboundedAbove: bool
+  curve: CurvePointTuple[]
+}
+
+/// pnl[t][p]: the position's P&L against its entries at prices[p] after times[t] (D4).
+struct WhatIfHeatmapView {
+  prices: Decimal[]
+  /// Bars from the current step (run) or minutes elapsed (run-less), as requested.
+  times: int[]
+  pnl: (Decimal[])[]
+}
+
+/// One declared risk limit and the measured value it compares (D9).
+struct RiskLimitCheck {
+  kind: RiskLimitKind
+  limitBp: int
+  /// |deltaBp|, gammaBp, |vegaBp| or -thetaBp.
+  valueBp: int
+  exceeded: bool
+}
+
+union RiskLimitKind = "delta" | "gamma" | "vega" | "theta"
+
+/// Portfolio risk of the reply's legs (holdings: true), engine-computed (D4, D9).
+struct WhatIfRiskView {
+  /// Sum of units x delta (the perpetual's delta is 1).
+  deltaUnits: Decimal
+  deltaNotional: Decimal
+  /// 1/2 x |sum of units x gamma| x (1% of the price)^2.
+  gamma1pct: Decimal
+  vegaPoint: Decimal
+  thetaBar: Decimal
+  /// The perpetual's next funding payment: -qty x price x the published next rate (positive = received).
+  fundingNext: Decimal
+  /// Each as signed basis points of equity (0 when equity <= 0).
+  deltaBp: int
+  gammaBp: int
+  vegaBp: int
+  thetaBp: int
+  fundingBp: int
+  equity: Decimal
+  limits: RiskLimitCheck[]
+}
+
 /// tl_option_whatif / tl_run_option_whatif.
 struct WhatIfResult {
   forward: Decimal
@@ -1387,6 +1521,12 @@ struct WhatIfResult {
   expiry: WhatIfExpiryView | null
   /// The P&L curve at the shifted time and IV.
   today: CurvePointTuple[]
+  /// D4: present only when option legs have different expiries (absent otherwise, and from older builds).
+  horizon?: WhatIfHorizonView
+  /// D4: present when requested.
+  heatmap?: WhatIfHeatmapView
+  /// D4, D9: present with holdings: true.
+  risk?: WhatIfRiskView
 }
 
 struct ComboLegInput {
@@ -1394,9 +1534,15 @@ struct ComboLegInput {
   series?: int
   side: OrderSide
   qty: string
+  /// D2 of add-practice-and-advanced-strategies (option legs): "limit" with `premium`; absent = market.
+  type?: OptionOrderType
+  premium?: string
+  /// D2: the combo's time in force on a limit leg (market legs ignore it).
+  tif?: TimeInForce
+  tifBars?: int
 }
 
-/// tl_combo_preview input: up to 8 market legs in submission order.
+/// tl_combo_preview input: up to 8 legs (market, or option limit legs) in submission order.
 struct ComboRequest {
   legs: ComboLegInput[]
 }

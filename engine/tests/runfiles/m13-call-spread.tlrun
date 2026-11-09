@@ -10,7 +10,7 @@
   "calendar": false
  },
  "engine": {
-  "executionPolicy": 17,
+  "executionPolicy": 18,
   "abi": 1,
   "version": "0.1.0"
  },
@@ -67,7 +67,7 @@
  "journal": [],
  "result": {
   "status": "finished",
-  "digest": "6821129ad08a733932d95f2086e2fe4f556eb1886293d03e1bc46bda97e56cde",
+  "digest": "18699b94b65876d70ae0024827e49367121a8f7cce44665712839c42dc1449ca",
   "eventsDigest": "8b0a3f74575ae2f77bbbde1d16ecc62d3ce5d909c35ed67d6e84ae0c87843433"
  }
 }

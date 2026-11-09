@@ -13,10 +13,10 @@
     {"k": "adv", "n": 1000}
   ],
   "expected": {
-    "digest": "59826a5d66ae34666d5b21372b5ecebf9d13ae0308c7311968d4d6b0f3f3bd32",
+    "digest": "1fb3624f63d5ed84ff69600692914d96fae8442a41910f0eb3181b211c4c5051",
     "eventsDigest": "e633be3ae42db18b3c86f8bff46527a8b61ef0196e592698873cec77525355b8",
     "status": "finished",
     "rejected": []
   },
-  "versions": {"engine": "0.1.0", "executionPolicy": 17}
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
 }

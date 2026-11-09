@@ -2,6 +2,7 @@
 // engine/tests/pack_fixtures.hpp) and the web's sample catalog (apps/web/static/catalog).
 #pragma once
 
+#include <tradelab/c_api.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -11,7 +12,15 @@
 #include <string>
 #include <system_error>
 
+#include "model/json.hpp"
+
 namespace tradelab::desktop::testing {
+
+// The linked engine's execution policy (tl_version): a stored run recorded by this build carries it.
+inline int engine_execution_policy() {
+  const auto v = json::parse(tl_version());
+  return v ? static_cast<int>((*v)["executionPolicy"].as_int()) : 0;
+}
 
 class TempDir {
  public:

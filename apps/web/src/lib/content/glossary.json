@@ -382,15 +382,18 @@
 					"term": "Stop móvel",
 					"aliases": ["trailing", "stop móvel"],
 					"short": "Um stop que acompanha o preço a uma distância fixa (ou percentual) quando ele anda a seu favor, e nunca recua.",
-					"long": "O stop móvel deixa uma tendência correr e protege parte do ganho. Num mercado lateral, ele sai cedo com frequência: a ferramenta depende do regime."
+					"long": "O stop móvel deixa uma tendência correr e protege parte do ganho. Num mercado lateral, ele sai cedo com frequência: a ferramenta depende do regime.",
+					"example": "Long com trailing de 2%: melhor fechamento 103,47, gatilho 101,40 (103,47 − 2,0694, para baixo no tick)."
 				},
 				"en": {
 					"term": "Trailing stop",
 					"aliases": ["trailing"],
 					"short": "A stop that follows the price at a fixed (or percent) distance when it moves your way, and never moves back.",
-					"long": "A trailing stop lets a trend run and protects part of the gain. In a range it often exits early: the tool depends on the regime."
+					"long": "A trailing stop lets a trend run and protects part of the gain. In a range it often exits early: the tool depends on the regime.",
+					"example": "A long with a 2% trailing stop: best close 103.47, trigger 101.40 (103.47 − 2.0694, down to the tick)."
 				}
-			}
+			},
+			"checks": [{ "kind": "trail", "side": "sell", "close": 103.47, "ratePct": 2, "tick": 0.01, "expect": 101.4 }, { "kind": "product", "a": 103.47, "b": 0.02, "expect": 2.0694, "digits": 4 }]
 		},
 		{
 			"id": "spread",
@@ -1591,6 +1594,211 @@
 					"long": "If you say 70% and get 4 out of 10 right, you are overconfident. Calibration only shows over many forecasts: one run is one sample."
 				}
 			}
+		},
+		{
+			"id": "time-in-force",
+			"stage": "orders",
+			"related": ["limit-order", "ioc", "fok"],
+			"text": {
+				"pt-BR": {
+					"term": "Validade da ordem",
+					"aliases": ["time in force", "validade", "GTC", "day"],
+					"short": "Por quanto tempo uma ordem trabalha: até ser cancelada (GTC), por N barras, ou só na próxima abertura (IOC, FOK).",
+					"long": "Aqui uma ordem aceita só pode executar a partir da próxima barra. Com validade de N barras, o que sobrar expira no fechamento da última; \"um dia\" são as barras de um dia no intervalo do mercado. A validade nunca muda o preço: só o tempo em que a ordem pode executar.",
+					"example": "Uma ordem com validade de 3 barras colocada na barra 60 pode executar nas barras 61 a 63."
+				},
+				"en": {
+					"term": "Time in force",
+					"aliases": ["TIF", "GTC", "day order"],
+					"short": "How long an order works: until cancelled (GTC), for N bars, or only at the next open (IOC, FOK).",
+					"long": "Here an accepted order can only execute from the next bar. With N bars, whatever is left expires at the close of the last one; \"one day\" is a day of bars at the market's interval. Time in force never changes the price, only when the order may execute.",
+					"example": "An order valid for 3 bars placed at bar 60 can execute on bars 61 to 63."
+				}
+			},
+			"checks": [{ "kind": "diff", "a": 63, "b": 60, "expect": 3 }]
+		},
+		{
+			"id": "ioc",
+			"stage": "orders",
+			"related": ["time-in-force", "fok", "capacity"],
+			"text": {
+				"pt-BR": {
+					"term": "IOC (imediata ou cancela)",
+					"aliases": ["imediata ou cancela", "immediate or cancel"],
+					"short": "Uma limitada que só vale na abertura da próxima barra: executa o que o preço e a capacidade permitirem e o resto é cancelado.",
+					"long": "Num jogo de barras, \"imediato\" é a próxima abertura: é o único preço sem informação do futuro. Uma IOC nunca executa dentro da barra, mesmo que a mínima toque o seu preço depois. Se a capacidade só cobre parte, você fica com a parte executada."
+				},
+				"en": {
+					"term": "IOC (immediate or cancel)",
+					"aliases": ["immediate or cancel"],
+					"short": "A limit order valid only at the next bar's open: it fills what the price and capacity allow and the rest is cancelled.",
+					"long": "In a bar game, \"immediate\" is the next open: the only price without future information. An IOC never fills intrabar, even if the low touches its price later. If capacity covers only part of it, you keep the filled part."
+				}
+			}
+		},
+		{
+			"id": "fok",
+			"stage": "orders",
+			"related": ["time-in-force", "ioc", "capacity"],
+			"text": {
+				"pt-BR": {
+					"term": "FOK (tudo ou nada)",
+					"aliases": ["tudo ou nada", "fill or kill"],
+					"short": "Como a IOC, só na abertura da próxima barra, mas executa a quantidade inteira ou nada.",
+					"long": "A checagem acontece na vez da ordem: se ordens servidas antes dela já levaram parte da capacidade da barra e não sobra o bastante, a FOK é cancelada sem executar nada. Uma FOK reduce-only maior que a posição também não executa."
+				},
+				"en": {
+					"term": "FOK (fill or kill)",
+					"aliases": ["fill or kill", "all or nothing"],
+					"short": "Like an IOC, only at the next bar's open, but it fills the whole quantity or nothing.",
+					"long": "The check happens at the order's turn: if orders served before it took part of the bar's capacity and too little is left, the FOK is cancelled with nothing filled. A reduce-only FOK larger than the position does not fill either."
+				}
+			}
+		},
+		{
+			"id": "oco",
+			"stage": "orders",
+			"related": ["stop-order", "take-profit", "breakout"],
+			"text": {
+				"pt-BR": {
+					"term": "OCO (uma cancela a outra)",
+					"aliases": ["one cancels the other", "ordens ligadas"],
+					"short": "Duas ordens ligadas: quando uma executa, a outra é cancelada. O motor decide mesmo quando os dois preços são tocados na mesma barra.",
+					"long": "Um par clássico é a entrada de rompimento: uma compra stop acima da faixa e uma venda stop abaixo. Sem a ligação, uma barra larga executaria as duas. Duas saídas reduce-only da mesma posição (alvo e stop) só se reduzem: uma saída parcial deixa a outra protegendo o resto."
+				},
+				"en": {
+					"term": "OCO (one cancels the other)",
+					"aliases": ["one cancels the other", "linked orders"],
+					"short": "Two linked orders: when one fills, the other is cancelled. The engine decides even when both prices trade on one bar.",
+					"long": "A classic pair is a breakout entry: a buy stop above the range and a sell stop below it. Without the link, a wide bar would fill both. Two reduce-only exits of one position (target and stop) only reduce each other: a partial exit leaves the other protecting the rest."
+				}
+			}
+		},
+		{
+			"id": "calendar-spread",
+			"stage": "strategies",
+			"related": ["theta", "vega", "expiry"],
+			"text": {
+				"pt-BR": {
+					"term": "Calendário",
+					"aliases": ["calendar", "spread de calendário", "horizontal"],
+					"short": "Vende uma opção de vencimento curto e compra o mesmo strike num vencimento longo. Ganha com o tempo da curta quando o preço fica perto do strike.",
+					"long": "A opção curta perde valor mais rápido (theta maior), e a longa ainda tem valor de tempo quando a curta vence. O risco é um movimento grande para qualquer lado ou uma queda da volatilidade implícita da longa. A perda máxima, no primeiro vencimento, é o débito pago.",
+					"example": "Vender a de 10 dias por 4 e comprar a de 40 dias por 8 custa 4 de débito."
+				},
+				"en": {
+					"term": "Calendar spread",
+					"aliases": ["calendar", "horizontal spread"],
+					"short": "Sells a short-dated option and buys the same strike on a later expiry. It earns the short one's time decay when price stays near the strike.",
+					"long": "The short option loses value faster (larger theta), and the long still has time value when the short expires. The risk is a large move either way or a fall in the long's implied volatility. The maximum loss at the first expiry is the debit paid.",
+					"example": "Selling the 10-day option for 4 and buying the 40-day one for 8 costs a debit of 4."
+				}
+			},
+			"checks": [{ "kind": "diff", "a": 8, "b": 4, "expect": 4 }]
+		},
+		{
+			"id": "diagonal-spread",
+			"stage": "strategies",
+			"related": ["calendar-spread", "vertical-spread", "strike"],
+			"text": {
+				"pt-BR": {
+					"term": "Diagonal",
+					"aliases": ["diagonal", "spread diagonal"],
+					"short": "Um calendário com strikes diferentes: vende o vencimento curto num strike e compra o longo em outro.",
+					"long": "Com calls, a longa fica num strike abaixo da curta; com puts, acima. Assim ela também ganha com o movimento até a curta. Com margem de calendário, a venda coberta por uma compra mais longa exige no máximo a diferença de strikes."
+				},
+				"en": {
+					"term": "Diagonal spread",
+					"aliases": ["diagonal"],
+					"short": "A calendar with different strikes: sells the near expiry at one strike and buys the far one at another.",
+					"long": "With calls the long sits at a strike below the short; with puts, above. That way it also gains from a move toward the short. Under calendar margin, a short covered by a later long needs at most the strike gap."
+				}
+			}
+		},
+		{
+			"id": "heatmap",
+			"stage": "strategies",
+			"related": ["pnl", "theta", "expiry"],
+			"text": {
+				"pt-BR": {
+					"term": "Mapa de P&L",
+					"aliases": ["heatmap", "mapa de calor"],
+					"short": "Uma grade com o resultado da estrutura em cada preço (colunas) depois de cada número de barras (linhas).",
+					"long": "O mapa mostra como o tempo muda o resultado: perto do vencimento a grade vira o gráfico no vencimento; hoje, ela é a curva de hoje. Os valores vêm do modelo do motor com a volatilidade implícita de hoje, não de uma previsão."
+				},
+				"en": {
+					"term": "P&L heatmap",
+					"aliases": ["heatmap"],
+					"short": "A grid of the structure's result at each price (columns) after each number of bars (rows).",
+					"long": "The map shows how time changes the result: near expiry the grid becomes the expiry chart; today, it is today's curve. The values come from the engine's model at today's implied volatility, not from a forecast."
+				}
+			}
+		},
+		{
+			"id": "portfolio-greeks",
+			"stage": "options3",
+			"related": ["delta", "gamma", "vega"],
+			"text": {
+				"pt-BR": {
+					"term": "Greeks da carteira",
+					"aliases": ["gregas da carteira", "risco da carteira"],
+					"short": "A soma das Greeks de todas as posições, perpétuo incluído (delta 1 por unidade): o risco da carteira inteira.",
+					"long": "Delta em dinheiro é delta × preço. O gama de um movimento de 1% é ½ × |gama| × (1% do preço)²: o P&L que a curvatura sozinha dá. Vega por ponto e theta por barra completam o quadro.",
+					"example": "Gama de 4 unidades por ponto a 100: ½ × 4 × 1² = 2 de P&L num movimento de 1%."
+				},
+				"en": {
+					"term": "Portfolio Greeks",
+					"aliases": ["portfolio risk"],
+					"short": "The sum of the Greeks of every position, the perpetual included (delta 1 per unit): the whole book's risk.",
+					"long": "Delta notional is delta × price. The gamma of a 1% move is ½ × |gamma| × (1% of the price)²: the P&L curvature alone gives. Vega per point and theta per bar complete the picture.",
+					"example": "Gamma of 4 units per point at 100: ½ × 4 × 1² = 2 of P&L on a 1% move."
+				}
+			},
+			"checks": [{ "kind": "product", "a": 0.5, "b": 4, "expect": 2 }]
+		},
+		{
+			"id": "risk-limit",
+			"stage": "risk",
+			"related": ["portfolio-greeks", "risk-budget", "delta"],
+			"text": {
+				"pt-BR": {
+					"term": "Limite de risco",
+					"aliases": ["limite", "limites de risco"],
+					"short": "Um teto para uma Greek da carteira, em pontos-base do patrimônio. Passar do limite é um aviso, não um bloqueio.",
+					"long": "Uma mesa limita o risco da carteira, não só o de cada trade. Um limite de delta de 1.500 bp com patrimônio de 10.000 deixa até 1.500 de delta em dinheiro.",
+					"example": "1.500 bp de 10.000 = 1.500 de delta em dinheiro."
+				},
+				"en": {
+					"term": "Risk limit",
+					"aliases": ["limit", "risk limits"],
+					"short": "A ceiling for a portfolio Greek, in basis points of equity. Going over it is a warning, not a block.",
+					"long": "A desk limits the book's risk, not just each trade's. A delta limit of 1,500 bp with equity of 10,000 allows up to 1,500 of delta notional.",
+					"example": "1,500 bp of 10,000 = 1,500 of delta notional."
+				}
+			},
+			"checks": [{ "kind": "product", "a": 10000, "b": 0.15, "expect": 1500 }]
+		},
+		{
+			"id": "delta-hedge",
+			"stage": "options3",
+			"related": ["delta", "perpetual", "portfolio-greeks"],
+			"text": {
+				"pt-BR": {
+					"term": "Hedge de delta",
+					"aliases": ["hedge", "delta neutro"],
+					"short": "Uma posição no perpétuo do tamanho contrário ao delta da carteira, para o resultado não depender da direção do preço.",
+					"long": "Um straddle comprado com delta 6 fica neutro vendendo 6 unidades do perpétuo. Quando o preço anda, o delta muda (gama) e o hedge precisa ser refeito: comprar barato e vender caro nesse refazer é o que paga o tempo perdido.",
+					"example": "Delta de 6 unidades: vender 6 unidades do perpétuo deixa o delta em 0."
+				},
+				"en": {
+					"term": "Delta hedge",
+					"aliases": ["hedge", "delta neutral"],
+					"short": "A perpetual position sized against the book's delta, so the result does not depend on the price's direction.",
+					"long": "A long straddle with delta 6 becomes neutral by selling 6 units of the perpetual. As price moves, delta changes (gamma) and the hedge must be redone: buying low and selling high while redoing it is what pays for the time lost.",
+					"example": "Delta of 6 units: selling 6 units of the perpetual leaves delta at 0."
+				}
+			},
+			"checks": [{ "kind": "diff", "a": 6, "b": 6, "expect": 0 }]
 		}
 	]
 }

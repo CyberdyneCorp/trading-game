@@ -206,6 +206,31 @@ TEST_CASE("chart: a frame has candles, volume, the future zone, levels with tags
   CHECK_FALSE(std::any_of(done.texts.begin(), done.texts.end(), [&](const SceneText& t) { return t.text == x.t.tr("chart.future"); }));
 }
 
+TEST_CASE("chart: a trailing stop's line names the best close it follows; its marker carries no text") {
+  Texted x;
+  GameState g = base_state();
+  g.position.qty = 1;
+  g.position.entry = 100.5;
+  Order trail;
+  trail.id = 4;
+  trail.type = "trailing_stop";
+  trail.side = "sell";
+  trail.price = 99.85;
+  trail.price_text = "99.85000000";
+  trail.trail_rate_text = "0.0200000000";
+  trail.placed_step = 55;
+  trail.reduce_only = true;
+  g.orders.push_back(trail);
+  ChartViewModel c;
+  // A draft entry near the best close: its ENTRY? label sat under the marker's own text (W1-X2 playtest).
+  const ChartScene s = c.build(x.t, g, TicketPreview{101.9, std::nullopt, std::nullopt, std::nullopt}, false, 1024, 420);
+  const auto with = [&](std::string_view needle) {
+    return std::count_if(s.texts.begin(), s.texts.end(), [&](const SceneText& t) { return t.text.find(needle) != std::string::npos; });
+  };
+  CHECK(with("TRAIL 2% \xC2\xB7 99,85 #4 \xC2\xB7 melhor fechamento 101,90") == 1);
+  CHECK(with("melhor fechamento") == 1);  // only in the line's label
+}
+
 TEST_CASE("chart: hover readout, wheel zoom, pick on chart, keyboard focus and the bar table") {
   Texted x;
   GameState g = base_state(150);

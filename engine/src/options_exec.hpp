@@ -39,6 +39,9 @@ Money option_order_requirement(const Scenario& sc, const RunState& st, const Opt
 // Applies a trade at the current step's quote (ask to buy, bid to sell): the combo dry run's
 // after-fill estimate, on a copy of the state.
 void fill_option_at_quote(const Scenario& sc, RunState& st, const OptionSeries& s, OrderSide side, Qty qty);
+// The same at a given premium: a limit leg's estimate at its limit (design D2 of
+// add-practice-and-advanced-strategies).
+void fill_option_at(const Scenario& sc, RunState& st, const OptionSeries& s, OrderSide side, Qty qty, Price premium);
 
 CommandResult place_option_order(const Scenario& sc, RunState& st, const Command& c, Money available);
 

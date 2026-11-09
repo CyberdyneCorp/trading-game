@@ -12,6 +12,7 @@ import { academyRequest, ZERO_SHIFT, type AcademyLeg, type LabShift } from '#lib
 import type { PayoffLeg } from './academy.ts';
 import { breakevens, maxLoss, maxProfit, pnlAt } from './payoff.ts';
 import { sandboxCosts } from './ticketSandbox.ts';
+import { trailTrigger } from '#lib/game/stops.ts';
 
 type Side = 'buy' | 'sell';
 interface Base {
@@ -42,6 +43,7 @@ export type Check = Base &
 		| { kind: 'breakeven'; legs: PayoffLeg[]; expect: number[] }
 		| { kind: 'maxProfit'; legs: PayoffLeg[]; expect: number | null }
 		| { kind: 'maxLoss'; legs: PayoffLeg[]; expect: number | null }
+		| TrailCheck
 		| WhatIfCheck
 	);
 
@@ -55,6 +57,27 @@ export interface WhatIfCheck {
 	shift?: Partial<LabShift>;
 	field: string;
 	expect: number;
+}
+
+/**
+ * A trailing stop's trigger for a best close (design D10): the stop's side (sell = a long's stop), a
+ * fixed distance or a percent of the close, and the tick; exactly the engine's rounding (stops.ts).
+ */
+export interface TrailCheck {
+	kind: 'trail';
+	side: Side;
+	close: number;
+	distance?: number;
+	ratePct?: number;
+	tick: number;
+	expect: number;
+}
+
+/** The trigger a trail check computes, through the exact fixed-point mirror of the engine. */
+export function trailOf(c: TrailCheck): number {
+	const rate = c.ratePct != null ? (c.ratePct / 100).toFixed(10) : undefined;
+	const distance = c.distance != null ? c.distance.toFixed(8) : undefined;
+	return Number(trailTrigger(c.side, c.close.toFixed(8), { rate, distance }, c.tick.toFixed(8)));
 }
 
 /** Kinds only the engine computes (verified by the engine tests, not by computeCheck). */
@@ -116,6 +139,8 @@ function scalar(c: Check): number | null {
 			return maxProfit(c.legs);
 		case 'maxLoss':
 			return maxLoss(c.legs);
+		case 'trail':
+			return trailOf(c);
 		default:
 			return null;
 	}

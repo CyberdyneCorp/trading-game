@@ -128,6 +128,8 @@ BuilderLeg builder_leg(const Value& l) {
   out.buy = l["side"].as_string() != "sell";
   if (!l["strike"].is_null()) out.strike = l["strike"].as_double();
   out.qty = l["qty"].as_double();
+  if (l.has("expiry")) out.expiry = static_cast<int>(l["expiry"].as_int());
+  if (l.has("limit")) out.limit = l["limit"].as_double();
   return out;
 }
 
@@ -138,7 +140,9 @@ std::vector<BuilderLeg> builder_legs(const Value& v) {
 }
 
 OrderLeg order_leg(const Value& o) {
-  return {static_cast<int>(o["series"].as_int()), o["side"].as_string() != "sell", o["qty"].as_string()};
+  OrderLeg out{static_cast<int>(o["series"].as_int()), o["side"].as_string() != "sell", o["qty"].as_string(), std::nullopt};
+  if (o.has("premium")) out.premium = o["premium"].as_string();
+  return out;
 }
 
 std::vector<OrderLeg> order_legs_of(const Value& v) {
@@ -183,9 +187,20 @@ std::vector<EngineEvent> events(const Value& v) {
   return out;
 }
 
+ComboSubmission submission(const Value& s) {
+  ComboSubmission out{SubmissionKind::Open, s["n"].as_string(), static_cast<int>(s["step"].as_int()), order_legs_of(s["legs"]),
+                      s["withdrawn"].as_bool()};
+  for (const SubmissionKind k : {SubmissionKind::Open, SubmissionKind::Roll, SubmissionKind::Adjust}) {
+    if (submission_kind_code(k) == s["kind"].as_string()) out.kind = k;
+  }
+  return out;
+}
+
 ComboRecord record(const Value& r) {
-  return {r["id"].as_string(), r["strategy"].as_string(), static_cast<int>(r["step"].as_int()), order_legs_of(r["legs"]),
-          r["withdrawn"].as_bool()};
+  ComboRecord out{r["id"].as_string(), r["strategy"].as_string(), static_cast<int>(r["step"].as_int()), order_legs_of(r["legs"]),
+                  r["withdrawn"].as_bool(), {}};
+  for (const auto& s : r["submissions"].items()) out.submissions.push_back(submission(s));
+  return out;
 }
 
 std::optional<LegState> leg_state_from(const std::string& s) {
@@ -205,12 +220,13 @@ LegStatus leg_status(const Value& l) {
 }
 
 ComboStatus status(const Value& s) {
-  ComboStatus out{record(s["record"]), ComboState::Working, {}};
+  ComboStatus out{record(s["record"]), ComboState::Working, {}, {}};
   for (const ComboState x : {ComboState::Working, ComboState::Filled, ComboState::Withdrawn, ComboState::NotExecuted,
                              ComboState::Incomplete}) {
     if (combo_state_code(x) == s["state"].as_string()) out.state = x;
   }
   for (const auto& l : s["legs"].items()) out.legs.push_back(leg_status(l));
+  for (const auto& l : s["allLegs"].items()) out.all_legs.push_back(leg_status(l));
   return out;
 }
 
@@ -250,7 +266,8 @@ std::optional<Slider> slider_from(const std::string& s) {
 
 std::string json_of(const BuilderLeg& l) {
   return "{\"kind\":" + text(std::string(leg_kind_code(l.kind))) + ",\"side\":" + text(l.buy ? "buy" : "sell") +
-         ",\"strike\":" + opt_num(l.strike) + ",\"qty\":" + num(l.qty) + "}";
+         ",\"strike\":" + opt_num(l.strike) + ",\"qty\":" + num(l.qty) +
+         (l.expiry ? ",\"expiry\":" + std::to_string(*l.expiry) : "") + (l.limit ? ",\"limit\":" + num(*l.limit) : "") + "}";
 }
 
 std::string json_of(const std::vector<BuilderLeg>& legs) {
@@ -258,16 +275,23 @@ std::string json_of(const std::vector<BuilderLeg>& legs) {
 }
 
 std::string json_of(const OrderLeg& o) {
-  return "{\"series\":" + std::to_string(o.series) + ",\"side\":" + text(o.buy ? "buy" : "sell") + ",\"qty\":" + text(o.qty) + "}";
+  return "{\"series\":" + std::to_string(o.series) + ",\"side\":" + text(o.buy ? "buy" : "sell") + ",\"qty\":" + text(o.qty) +
+         (o.premium ? ",\"premium\":" + text(*o.premium) : "") + "}";
 }
 
 std::string json_of(const std::vector<OrderLeg>& orders) {
   return array(orders, [](const OrderLeg& o) { return json_of(o); });
 }
 
+std::string json_of(const ComboSubmission& s) {
+  return "{\"kind\":" + text(std::string(submission_kind_code(s.kind))) + ",\"n\":" + text(s.n) + ",\"step\":" +
+         std::to_string(s.step) + ",\"legs\":" + json_of(s.legs) + ",\"withdrawn\":" + boolean(s.withdrawn) + "}";
+}
+
 std::string json_of(const ComboRecord& r) {
   return "{\"id\":" + text(r.id) + ",\"strategy\":" + text(r.strategy) + ",\"step\":" + std::to_string(r.step) +
-         ",\"legs\":" + json_of(r.legs) + ",\"withdrawn\":" + boolean(r.withdrawn) + "}";
+         ",\"legs\":" + json_of(r.legs) + ",\"withdrawn\":" + boolean(r.withdrawn) +
+         ",\"submissions\":" + array(r.submissions, [](const ComboSubmission& s) { return json_of(s); }) + "}";
 }
 
 std::string json_of(const LegStatus& l) {
@@ -277,8 +301,9 @@ std::string json_of(const LegStatus& l) {
 }
 
 std::string json_of(const ComboStatus& s) {
+  const auto legs = [](const std::vector<LegStatus>& v) { return array(v, [](const LegStatus& l) { return json_of(l); }); };
   return "{\"record\":" + json_of(s.record) + ",\"state\":" + text(std::string(combo_state_code(s.state))) +
-         ",\"legs\":" + array(s.legs, [](const LegStatus& l) { return json_of(l); }) + "}";
+         ",\"legs\":" + legs(s.legs) + ",\"allLegs\":" + legs(s.all_legs) + "}";
 }
 
 std::string path_json(const std::vector<ChartPoint>& points) { return text(path_text(points)); }
@@ -304,6 +329,50 @@ WhatIfResult result(const Value& r) {
 
 // ---- ports ----
 
+// Wave 1 of add-practice-and-advanced-strategies: two expiries, limits, roll and hedge.
+std::map<std::string, Port> wave1_strategy_ports() {
+  const auto tmpl = [](const Value& v) { return *template_from(v.as_string()); };
+  return {
+      {"twoExpiryTemplateLegs",
+       [tmpl](const Value& a) {
+         const auto strikes_of_arg = [](const Value& e) { return ExpiryStrikes{static_cast<int>(e["step"].as_int()), doubles(e["strikes"])}; };
+         const auto legs = two_expiry_template_legs(tmpl(a[0]), strikes_of_arg(a[1]), strikes_of_arg(a[2]), a[3].as_double(),
+                                                    a[4].as_double(), a[5].as_bool());
+         return legs ? json_of(*legs) : std::string("null");
+       }},
+      {"premiumText", [](const Value& a) { return text(premium_text(a[0].as_double(), a[1].as_double())); }},
+      {"defaultLimit",
+       [](const Value& a) { return num(default_limit(a[0]["mid"].as_double(), a[1].as_string() != "sell", a[2].as_double())); }},
+      {"legExpiries",
+       [](const Value& a) {
+         return array(leg_expiries(builder_legs(a[0]), static_cast<int>(a[1].as_int())), [](int e) { return std::to_string(e); });
+       }},
+      {"marginLabelKey",
+       [](const Value& a) {
+         return text(margin_label_key(a[0]["spreadMargin"].as_bool(false), a[0]["calendarMargin"].as_bool(false), a[1].as_bool()));
+       }},
+      {"rollTargets",
+       [](const Value& a) {
+         std::vector<int> held;
+         for (const auto& e : a[2].items()) held.push_back(static_cast<int>(e.as_int()));
+         return array(roll_targets(chain(a[0]), static_cast<int>(a[1].as_int()), held), [](int e) { return std::to_string(e); });
+       }},
+      {"rollOrders",
+       [](const Value& a) {
+         std::vector<HeldLeg> held;
+         for (const auto& h : a[1].items()) held.push_back({static_cast<int>(h["series"].as_int()), h["qty"].as_double()});
+         const auto plan = roll_orders(game(a[0]), held, static_cast<int>(a[2].as_int()), a[3].as_bool(), a[4].as_double());
+         if (!plan) return std::string("null");
+         return "{\"orders\":" + json_of(plan->orders) + ",\"from\":" + std::to_string(plan->from) + ",\"to\":" + std::to_string(plan->to) + "}";
+       }},
+      {"hedgeOrder",
+       [](const Value& a) {
+         const auto h = hedge_order(game(a[0]), a[1].as_double());
+         return h ? json_of(*h) : std::string("null");
+       }},
+  };
+}
+
 std::map<std::string, Port> strategy_ports() {
   const auto tmpl = [](const Value& v) { return *template_from(v.as_string()); };
   return {
@@ -324,7 +393,7 @@ std::map<std::string, Port> strategy_ports() {
       {"writesOptions", [](const Value& a) { return boolean(writes_options(builder_legs(a[0]))); }},
       {"legsProblem",
        [](const Value& a) {
-         const std::string p = legs_problem(builder_legs(a[0]));
+         const std::string p = legs_problem(builder_legs(a[0]), static_cast<int>(a[1].as_int(0)));
          return p.empty() ? std::string("null") : text(p);
        }},
       {"orderLegs",
@@ -348,7 +417,12 @@ std::map<std::string, Port> strategy_ports() {
       {"coverContracts",
        [](const Value& a) { return num(cover_contracts(game(a[0]), HeldLong{a[1]["qty"].as_string(), "0", std::nullopt})); }},
       {"positionLegs", [](const Value& a) { return legs_json(position_legs(game(a[0]))); }},
-      {"comboLegs", [](const Value& a) { return legs_json(combo_legs(order_legs_of(a[0]))); }},
+      {"comboLegs",
+       [](const Value& a) {
+         std::optional<ComboTif> tif;
+         if (a.size() > 1 && !a[1].is_null()) tif = ComboTif{a[1]["tif"].as_string(), static_cast<int>(a[1]["tifBars"].as_int(0))};
+         return legs_json(combo_legs(order_legs_of(a[0]), tif));
+       }},
       {"whatifLegs",
        [](const Value& a) {
          return legs_json(whatif_legs(order_legs_of(a[0]), held_of(a[1])));
@@ -358,6 +432,7 @@ std::map<std::string, Port> strategy_ports() {
 
 std::map<std::string, Port> combo_ports() {
   return {
+      {"comboSentKey", [](const Value& a) { return text(combo_sent_key(order_legs_of(a[0]))); }},
       {"nextComboId",
        [](const Value& a) {
          std::vector<ComboRecord> combos;
@@ -373,6 +448,18 @@ std::map<std::string, Port> combo_ports() {
       {"comboOrderIds",
        [](const Value& a) { return array(combo_order_ids(events(a[0]), record(a[1])), [](const auto& id) { return opt_int(id); }); }},
       {"comboStatus", [](const Value& a) { return json_of(combo_status(events(a[0]), record(a[1]))); }},
+      {"comboHoldings",
+       [](const Value& a) {
+         return array(combo_holdings(status(a[0])), [](const HeldLeg& h) {
+           return "{\"series\":" + std::to_string(h.series) + ",\"qty\":" + num(h.qty) + "}";
+         });
+       }},
+      {"workingLegs", [](const Value& a) { return array(working_legs(status(a[0])), [](int id) { return std::to_string(id); }); }},
+      {"nextSubmissionNumber",
+       [](const Value& a) {
+         const SubmissionKind k = a[1].as_string() == "roll" ? SubmissionKind::Roll : SubmissionKind::Adjust;
+         return text(next_submission_number(record(a[0]), k));
+       }},
       {"netPremium", [](const Value& a) { return num(net_premium(status(a[0]), a[1].as_double())); }},
       {"openLegs", [](const Value& a) { return array(open_legs(status(a[0])), [](const LegStatus& l) { return json_of(l); }); }},
       {"comboContracts", [](const Value& a) { return text(combo_contracts(order_legs_of(a[0]))); }},
@@ -438,7 +525,9 @@ std::map<std::string, Port> lab_ports() {
 }  // namespace
 
 TEST_CASE("web parity: strategies.ts (templates, legs, submission order, orders, held long)") {
-  replay("strategies", strategy_ports());
+  auto ports = strategy_ports();
+  ports.merge(wave1_strategy_ports());
+  replay("strategies", ports);
 }
 
 TEST_CASE("web parity: combos.ts (log, legs followed through events, premium, R, grouped trades)") {

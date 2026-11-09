@@ -30,7 +30,7 @@ Suggested PRs, in order:
 
 ### W1-E. Engine, bindings and API
 
-- [ ] W1-E1 Time in force, execution policy v18 (design D6, D8):
+- [x] W1-E1 Time in force, execution policy v18 (design D6, D8):
   - IDL: `Reason` 38–40; `OrderView.tif`, `tifBars`, `expireStep`; optional `tif`/`tifBars` on `PlaceOrderCommand` and `PlaceOptionOrderCommand`; regenerate with `engine/idl/gen.py` (`--check` clean);
   - `Order` fields, the command checks (`invalid_time_in_force`) and the advance rules: `bars` expiry after the close phase, `ioc`/`fok` only in the next open phase (perpetual and option), FOK all or nothing after the orders served before it;
   - C ABI `tl_place_order_tif` and `tl_place_option_order_tif` (`kAbiVersion` stays 1; `c_api.h` docs);
@@ -45,7 +45,7 @@ Suggested PRs, in order:
   - a FOK limit with too little capacity left fills nothing;
   - a bracket entry with `bars` gets `gtc` children;
   - an option IOC limit at the open.
-- [ ] W1-E2 Player-built OCO groups, needs E1 (design D7):
+- [x] W1-E2 Player-built OCO groups, needs E1 (design D7):
   - `LinkOco` (CommandType 11), `Order.link_group`, `tl_link_oco`, the run-file action `{"k":"oco","a","b"}`, `OrderView.linkGroup`;
   - first-fill cancels the sibling (`oco_sibling_filled`), and reduce-only exit pairs reduce the sibling;
   - same-bar priority by phase, then v16 order;
@@ -57,13 +57,13 @@ Suggested PRs, in order:
   - a perpetual and option pair;
   - a partial reduce-only exit;
   - a linked bracket parent keeps its children's group.
-- [ ] W1-E3 Policy v18 goldens and history, needs E1 and E2:
+- [x] W1-E3 Policy v18 goldens and history, needs E1 and E2:
   - regenerate the frozen state digests with `tools/regen_golden.py --write` and confirm WASM matches;
   - a property test that every existing golden's **event** digest under v18 equals its v17 value;
   - new run golden `m01-tif-oco` (listed in `index.json`; `tools/make_run_files.py` adds its run file);
   - the engine README "Policy v18" section and the golden history line;
   - the `kExecutionPolicyVersion` comment.
-- [ ] W1-E4 What-if extensions, report-only (design D4):
+- [x] W1-E4 What-if extensions, report-only (design D4):
   - `horizon` (multi-expiry analytics at the first expiry: the tick-grid bisection for breakevens, `unboundedAbove`);
   - `heatmap` (capped at 61 × 25);
   - `holdings: true` with the `risk` block (`deltaUnits`, `deltaNotional`, `gamma1pct`, `vegaPoint`, `thetaBar`, `fundingNext`, the `*Bp` fields, `limits`);
@@ -78,8 +78,8 @@ Suggested PRs, in order:
   - purity.
 
   New fixtures `whatif-calendar` and `whatif-heatmap`, replayed by every golden reader.
-- [ ] W1-E5 `tl_combo_preview` limit legs (`type`, `premium`, `tif` per leg; optional request fields). Tests: it matches a real placement leg by leg for limit legs and each TIF, and leaves state and digest unchanged.
-- [ ] W1-E6 Calendar margin flag (design D5): `OptionSpec.calendar_margin` (valid only with `spread_margin`), cross-expiry pairing order, `missionRules.calendarMargin`.
+- [x] W1-E5 `tl_combo_preview` limit legs (`type`, `premium`, `tif` per leg; optional request fields). Tests: it matches a real placement leg by leg for limit legs and each TIF, and leaves state and digest unchanged.
+- [x] W1-E6 Calendar margin flag (design D5): `OptionSpec.calendar_margin` (valid only with `spread_margin`), cross-expiry pairing order, `missionRules.calendarMargin`.
 
   Property tests:
   - a calendar short needs 0;
@@ -87,13 +87,13 @@ Suggested PRs, in order:
   - an earlier-expiring long never covers;
   - pairing is order-independent;
   - with the flag off, `option_book` is identical on m13–m17.
-- [ ] W1-E7 `MissionRules.risk_limits` (`deltaBp`, `gammaBp`, `vegaBp`, `thetaBp`, all optional) in the mission schema and the state view, plus the `limits` flags in the what-if `risk` block. Test: missions without limits serialize as before.
-- [ ] W1-E8 Bindings, needs E1–E7:
+- [x] W1-E7 `MissionRules.risk_limits` (`deltaBp`, `gammaBp`, `vegaBp`, `thetaBp`, all optional) in the mission schema and the state view, plus the `limits` flags in the what-if `risk` block. Test: missions without limits serialize as before.
+- [x] W1-E8 Bindings, needs E1–E7:
   - WASM exports and worker requests (`placeOrder` with `tif`, `linkOco`, `runWhatif` with `horizon`/`heatmap`/`holdings`), feature-detected so an older pinned build hides the new controls;
   - Python `Run.place_order(..., tif=, tif_bars=)`, `Run.place_option_order(..., tif=)`, `Run.link_oco`, the what-if options;
   - parity tests;
   - a log with `roll`/`adjust` tags replays to the untagged digest (Python and WASM).
-- [ ] W1-E9 API and policy cache, needs E3:
+- [x] W1-E9 API and policy cache, needs E3:
   - `services/api` replays v18 logs (the new actions pass its validation);
   - `tools/build_policy_cache.py` builds v17;
   - `tests/test_policies.py` replays a v17 run under the cache and a v18 run under the current engine;
@@ -102,13 +102,13 @@ Suggested PRs, in order:
 
 ### W1-W. Web
 
-- [ ] W1-W1 Time in force in the tickets (perpetual and option), needs E8: GTC, "day" (N = 86,400 / `stepSeconds`), N bars, IOC and FOK where allowed (disabled with the reason elsewhere). The orders panel shows each order's TIF and expiry bar, and the event feed names `time_in_force` and `invalid_time_in_force`.
+- [x] W1-W1 Time in force in the tickets (perpetual and option), needs E8: GTC, "day" (N = 86,400 / `stepSeconds`), N bars, IOC and FOK where allowed (disabled with the reason elsewhere). The orders panel shows each order's TIF and expiry bar, and the event feed names `time_in_force` and `invalid_time_in_force`.
 
   Unit tests for the view model and reason texts. E2E: an IOC limit that does not fill.
-- [ ] W1-W2 OCO linking, needs E8: select two working orders in the orders panel, then "Link OCO" with a confirmation; a link mark on both orders and on their chart lines; `invalid_oco` explained; the event feed names the sibling cancel.
+- [x] W1-W2 OCO linking, needs E8: select two working orders in the orders panel, then "Link OCO" with a confirmation; a link mark on both orders and on their chart lines; `invalid_oco` explained; the event feed names the sibling cancel.
 
   E2E: a breakout pair where one fills and the other is cancelled.
-- [ ] W1-W3 Trailing stop, easier to find and taught (design D10):
+- [x] W1-W3 Trailing stop, easier to find and taught (design D10):
   - the Stop · Trailing · Target tabs;
   - "Protect with: fixed stop / trailing stop" in the new-order ticket, with `plan.trail`;
   - the planned-trailing notice after the fill, never sent without the click;
@@ -118,16 +118,16 @@ Suggested PRs, in order:
   - m07's card links the term.
 
   E2E: a planned trailing stop placed after the fill.
-- [ ] W1-W4 Builder limit legs and combo states, needs E5 and E8 (design D2):
+- [x] W1-W4 Builder limit legs and combo states, needs E5 and E8 (design D2):
   - per-leg market or limit (default mid rounded toward the passive side) and one TIF per combo (IOC default);
   - the analysis at the limit premiums;
   - the `working`, `complete`, `incomplete` and `void` states, with the working notice ("Cancel working legs") and the existing incomplete notice.
 
   Unit tests with a fake worker.
-- [ ] W1-W5 Multi-expiry legs, needs E4: free legs on up to two expiries; calendar and diagonal templates and their reverse versions; the `horizon` analysis labeled "at the first expiry, at today's implied volatility level"; the payoff chart with the horizon curve.
+- [x] W1-W5 Multi-expiry legs, needs E4: free legs on up to two expiries; calendar and diagonal templates and their reverse versions; the `horizon` analysis labeled "at the first expiry, at today's implied volatility level"; the payoff chart with the horizon curve.
 
   E2E: a limit calendar built.
-- [ ] W1-W6 Roll and adjust, needs W4 and W5 (design D3):
+- [x] W1-W6 Roll and adjust, needs W4 and W5 (design D3):
   - "Roll" on an option position or combo (next or chosen expiry, same or re-centred strikes);
   - "Close leg" and "Add hedge leg" on a live combo;
   - the one ordering rule (buys, perpetual, sells), the combo id kept, `roll` and `adjust` tags;
@@ -135,7 +135,7 @@ Suggested PRs, in order:
   - journal and debrief grouping keep one combo row.
 
   E2E: the calendar rolled, then adjusted with a hedge leg.
-- [ ] W1-W7 P&L heatmap, needs E4: a panel in the builder and the terminal lab (price × bars to the last expiry); a diverging palette checked in the colorblind setting; the value of the focused or hovered cell; a table view for screen readers; axe.
+- [x] W1-W7 P&L heatmap, needs E4: a panel in the builder and the terminal lab (price × bars to the last expiry); a diverging palette checked in the colorblind setting; the value of the focused or hovered cell; a table view for screen readers; axe.
 - [ ] W1-W8 Portfolio view and risk limits, needs E4 and E7 (design D9):
   - the panel and rail summary from `holdings`;
   - warnings for exceeded limits (never blocking);
@@ -143,19 +143,19 @@ Suggested PRs, in order:
   - "Hedge delta" (a −`deltaUnits` perpetual ticket rounded toward zero, the plan dialog, a confirmation).
 
   E2E: a risk-limit warning and a hedge ticket.
-- [ ] W1-W9 Web README (tickets, OCO, builder, heatmap, portfolio, trailing), new glossary terms used by wave 1 (`time-in-force`, `ioc`, `fok`, `oco`, `calendar-spread`, `diagonal-spread`, `heatmap`, `portfolio-greeks`, `risk-limit`, `delta-hedge`), and the e2e list.
+- [x] W1-W9 Web README (tickets, OCO, builder, heatmap, portfolio, trailing), new glossary terms used by wave 1 (`time-in-force`, `ioc`, `fok`, `oco`, `calendar-spread`, `diagonal-spread`, `heatmap`, `portfolio-greeks`, `risk-limit`, `delta-hedge`), and the e2e list.
 
 ### W1-D. Desktop
 
-- [ ] W1-D1 Engine adapter, needs E8: the new C calls and what-if fields on the `EngineHost` worker; `storage::Action` gains `tif`, `tifBars` and the `oco` action (replayed); the new fixtures in `tradelab_desktop_golden_tests`; the v18 goldens.
-- [ ] W1-D2 Terminal: the TIF selector, "Link OCO" in the orders panel with link marks, the Stop · Trailing · Target tabs, "Protect with", the planned-trailing notice, the chart's trailing label and best-close marker. Viewmodel tests from the web vectors; a headless keyboard flow.
-- [ ] W1-D3 Builder: limit legs, combo states, two expiries, calendar and diagonal templates, roll and adjust, with ports of `combos`, `roll` and the ordering rule checked by web parity fixtures; a headless flow.
-- [ ] W1-D4 Heatmap and portfolio panels (scene painter grid, colorblind palette, help-line value, table view for screen readers; warnings; hedge ticket), plus the briefing's risk limits.
+- [x] W1-D1 Engine adapter, needs E8: the new C calls and what-if fields on the `EngineHost` worker; `storage::Action` gains `tif`, `tifBars` and the `oco` action (replayed); the new fixtures in `tradelab_desktop_golden_tests`; the v18 goldens.
+- [x] W1-D2 Terminal: the TIF selector, "Link OCO" in the orders panel with link marks, the Stop · Trailing · Target tabs, "Protect with", the planned-trailing notice, the chart's trailing label and best-close marker. Viewmodel tests from the web vectors; a headless keyboard flow.
+- [x] W1-D3 Builder: limit legs, combo states, two expiries, calendar and diagonal templates, roll and adjust, with ports of `combos`, `roll` and the ordering rule checked by web parity fixtures; a headless flow.
+- [x] W1-D4 Heatmap and portfolio panels (scene painter grid, colorblind palette, help-line value, table view for screen readers; warnings; hedge ticket), plus the briefing's risk limits.
 - [ ] W1-D5 Windowed captures for every new panel on macOS and Linux (lavapipe; say so if docker is unavailable); reference images regenerated only for intended changes (`TRADELAB_UPDATE_REFERENCES=1`, revert unchanged rewrites); desktop README.
 
 ### W1-X. Playtest and cross-check
 
-- [ ] W1-X1 Same numbers: one m16 seed and one m17 seed, played with the same actions on web and desktop, must give identical results for:
+- [x] W1-X1 Same numbers: one m16 seed and one m17 seed, played with the same actions on web and desktop, must give identical results for:
   - an IOC limit condor;
   - an OCO pair;
   - a calendar on m17 built, rolled and adjusted;
@@ -163,9 +163,9 @@ Suggested PRs, in order:
   - the portfolio totals;
   - the final digests.
 
-  Recorded in the design.
-- [ ] W1-X2 Playtest of both clients (PT-BR and en; web at 1024 and 1440 px, desktop at 1280x800 and 1024x768): every new control as a new player, the numbers checked by hand (a calendar's debit and horizon breakevens, a roll's net premium, `gamma1pct` from the shown gamma, a hedge quantity). Fixes come with regression tests.
-- [ ] W1-X3 `openspec validate --all --strict`; complexity within targets; only the documented state-digest change, with event digests unchanged; root README, `docs/product-spec.md` (orders, builder, portfolio) and the engine README.
+  Recorded in the design ("As built: wave 1 cross-check and playtest"): an IOC limit condor (nothing filled) and an OCO pair on m16, a calendar built, rolled and hedged on m17, its heatmap cells, the portfolio totals, the debriefs and both final digests identical.
+- [x] W1-X2 Playtest of both clients (PT-BR and en; web at 1024 and 1440 px, desktop at 1280x800 and 1024x768): every new control as a new player, the numbers checked by hand (a calendar's debit and horizon breakevens, a roll's net premium, `gamma1pct` from the shown gamma, a hedge quantity). Fixes come with regression tests.
+- [x] W1-X3 `openspec validate --all --strict`; complexity within targets; only the documented state-digest change, with event digests unchanged; root README, `docs/product-spec.md` (orders, builder, portfolio) and the engine README.
 
 ## Wave 2: missions m18–m25
 

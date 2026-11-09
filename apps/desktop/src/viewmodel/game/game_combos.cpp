@@ -13,9 +13,20 @@ namespace tradelab::desktop::game {
 
 namespace {
 
-GameCommand leg_command(const OrderLeg& o) {
+// A leg as its order: market legs, and option limit legs with the combo's time in force (D2).
+GameCommand leg_command(const OrderLeg& o, const std::optional<ComboTif>& tif) {
   if (o.series == 0) return GameCommand::order(OrderType::Market, o.buy, o.qty, {}, false);
-  return GameCommand::option_order(o.series, o.buy, false, o.qty, {});
+  if (!o.premium) return GameCommand::option_order(o.series, o.buy, false, o.qty, {});
+  const GameCommand c = GameCommand::option_order(o.series, o.buy, true, o.qty, *o.premium);
+  return tif ? c.with_tif(tif->tif, tif->tif_bars) : c;
+}
+
+// The combo's tag, with the roll or adjustment number when the draft is one (D3).
+GameCommand tag_of(const GameCommand& c, const ComboDraft& d) {
+  GameCommand out = c.tagged(d.combo, d.strategy);
+  out.roll = d.roll;
+  out.adjust = d.adjust;
+  return out;
 }
 
 // The leg as a market order that closes it (the perpetual reduce-only).
@@ -42,6 +53,16 @@ EngineCommands::AnalysisReply GameViewModel::guarded(std::function<void(GameView
 
 void GameViewModel::reset_combos() {
   builder = BuilderViewModel{};
+  live_.reset();
+  link_picks_.clear();
+  trail_handled_.clear();
+  portfolio_.reset();
+  portfolio_heatmap_.reset();
+  builder_heatmap_.reset();
+  portfolio_ticket_.forget();
+  heatmap_ticket_.forget();
+  live_ticket_.forget();
+  confirm_ = ConfirmKind::None;
   lab = LabViewModel{};
   pending_combo_.reset();
   dismissed_.clear();
@@ -56,6 +77,7 @@ void GameViewModel::reset_combos() {
 void GameViewModel::builder_changed() {
   if (state_) builder.sync(*state_);
   refresh_analysis();
+  refresh_builder_heatmap();
   touch();
 }
 
@@ -112,12 +134,12 @@ void GameViewModel::plan_combo(const PlanEntry& e) {
 
 void GameViewModel::place_combo_leg(const std::shared_ptr<ComboRun>& combo, std::size_t i) {
   const OrderLeg& o = combo->draft.orders[i];
-  Step step{leg_command(o).tagged(combo->draft.combo, combo->draft.strategy), false,
+  Step step{tag_of(leg_command(o, combo->draft.tif), combo->draft), false,
             [combo, i](GameViewModel& vm, const CommandResult& r) {
               if (!r.accepted) return vm.withdraw_combo(*combo, i, r.reason);
               combo->accepted.push_back(r.order_id);
               if (i + 1 < combo->draft.orders.size()) return vm.place_combo_leg(combo, i + 1);
-              vm.set_notice({vm.texts().tr("combo.sent", {{"name", combo->draft.label}}), Tone::Ok});
+              vm.set_notice({vm.texts().tr(combo_sent_key(combo->draft.orders), {{"name", combo->draft.label}}), Tone::Ok});
             }};
   if (i == 0) return run({std::move(step)});
   chain_.push_front(std::move(step));  // right after the leg before it: nothing runs in between
@@ -125,7 +147,7 @@ void GameViewModel::place_combo_leg(const std::shared_ptr<ComboRun>& combo, std:
 
 void GameViewModel::withdraw_combo(const ComboRun& run, std::size_t refused, const std::string& reason) {
   for (auto it = run.accepted.rbegin(); it != run.accepted.rend(); ++it) {
-    chain_.push_front(Step{GameCommand::cancel(*it).tagged(run.draft.combo, run.draft.strategy), false, {}});
+    chain_.push_front(Step{tag_of(GameCommand::cancel(*it), run.draft), false, {}});
   }
   const Texts t = texts();
   set_notice({"\xE2\x9C\x96 " + t.tr("combo.refused", {{"n", std::to_string(refused + 1)}, {"reason", rejection_text(t, reason)}}),
@@ -187,10 +209,11 @@ std::optional<GameViewModel::ComboNotice> GameViewModel::combo_notice() const {
     if (l.state == LegState::Cancelled) cancelled.push_back(leg_name(t, *state_, l.leg) + " (" + t.reason(l.reason.empty() ? "none" : l.reason) + ")");
   }
   n.cancelled_legs = t.tr("combo.cancelledLegs") + ": " + join(cancelled);
-  if (combo_risk_ && risk_combo_ == n.id && combo_risk_->expiry) {
+  if (combo_risk_ && risk_combo_ == n.id && analytics_of(*combo_risk_) != nullptr) {
     const auto above = unbounded_above(*combo_risk_);
+    const WhatIfExpiry* e = analytics_of(*combo_risk_);
     n.risk = above ? t.tr("combo.riskUnbounded", {{"price", fmt::fmt_price(*above, t.locale())}})
-                   : t.tr("combo.riskBounded", {{"loss", fmt::fmt_money(combo_risk_->expiry->max_loss.value_or("0"), t.locale())}});
+                   : t.tr("combo.riskBounded", {{"loss", fmt::fmt_money(e->max_loss.value_or("0"), t.locale())}});
   }
   n.legging = t.tr("combo.legging");
   return n;
@@ -279,6 +302,7 @@ void GameViewModel::open_lab_positions() {
   const auto legs = position_legs(*state_);
   if (legs.empty()) return;
   lab.open_terminal(legs, state_->last_price(), bars_to_expiry(*state_, legs));
+  lab.run_step = state_->step;
   modal_ = Modal::Lab;
   request_lab();
   touch();
@@ -289,6 +313,7 @@ void GameViewModel::open_lab_builder() {
   const auto legs = builder.lab_legs(*state_);
   if (legs.empty()) return;
   lab.open_terminal(legs, state_->last_price(), bars_to_expiry(*state_, legs));
+  lab.run_step = state_->step;
   modal_ = Modal::Lab;
   request_lab();
   touch();

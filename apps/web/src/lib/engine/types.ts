@@ -59,7 +59,13 @@ export type ReasonCode =
 	| 'series_settling'
 	| 'unknown_question'
 	| 'already_answered'
-	| 'invalid_answer';
+	| 'invalid_answer'
+	| 'time_in_force'
+	| 'invalid_time_in_force'
+	| 'invalid_oco';
+
+/** How long an order works (execution policy v18). An absent value is gtc. */
+export type TimeInForceName = 'gtc' | 'bars' | 'ioc' | 'fok';
 
 export type EventTypeName =
 	| 'order'
@@ -322,6 +328,14 @@ export interface OrderView {
 	bracketStop: Decimal;
 	bracketTp: Decimal;
 	series: number;
+	/** Policy v18: how long the order works (absent from builds that predate it: gtc). */
+	tif?: TimeInForceName;
+	/** Policy v18: the N of a bars time in force; 0 otherwise. */
+	tifBars?: number;
+	/** Policy v18: the last bar the order can execute on (bars: placedStep + N; ioc/fok: placedStep + 1); 0 = none. */
+	expireStep?: number;
+	/** Policy v18: a player-built OCO link (the lower order id of the pair); 0 = not linked. Separate from ocoGroup. */
+	linkGroup?: number;
 }
 
 export interface EngineEvent {
@@ -529,6 +543,24 @@ export interface MissionRulesView {
 	 * Absent from builds that predate it.
 	 */
 	spreadMargin?: boolean;
+	/**
+	 * Calendar margin (add-practice-and-advanced-strategies D5): a long expiring at or after the short's
+	 * expiry may cover it too. Absent from builds that predate it.
+	 */
+	calendarMargin?: boolean;
+	/** Portfolio risk limits in basis points of equity (D9); absent when the mission declares none. */
+	riskLimits?: RiskLimitsView;
+}
+
+/**
+ * Per-mission risk limits (add-practice-and-advanced-strategies D9), only those declared: |delta
+ * notional|, the gamma P&L of a 1% move, |vega per point| and theta burn per bar, as bp of equity.
+ */
+export interface RiskLimitsView {
+	deltaBp?: number;
+	gammaBp?: number;
+	vegaBp?: number;
+	thetaBp?: number;
 }
 
 /** The cost model with the liquidity shock in force applied (same fields as the contract's). */
@@ -590,6 +622,10 @@ export interface PlaceOrderCommand {
 	trailDistance: string | null;
 	/** Policy v16: a trailing stop at this rate of the best close ("0.02" = 2%) instead of a distance. */
 	trailRate?: string | null;
+	/** Policy v18 (tl_place_order_tif): time in force, absent = gtc. */
+	tif?: TimeInForceName;
+	/** Policy v18: N for tif "bars". */
+	tifBars?: number;
 }
 
 export type OptionOrderType = 'market' | 'limit';
@@ -602,6 +638,17 @@ export interface PlaceOptionOrderCommand {
 	type: OptionOrderType;
 	qty: string;
 	premium: string | null;
+	/** Policy v18 (tl_place_option_order_tif): time in force, absent = gtc (ioc/fok need a limit). */
+	tif?: TimeInForceName;
+	/** Policy v18: N for tif "bars". */
+	tifBars?: number;
+}
+
+/** tl_link_oco (policy v18): two working orders, either filling first cancels the other. */
+export interface LinkOcoCommand {
+	clientId: number;
+	orderA: number;
+	orderB: number;
 }
 
 /** tl_adjust_margin: add (> 0) or remove (< 0) isolated margin. */
@@ -1178,6 +1225,18 @@ export interface WhatIfLegInput {
 }
 
 /**
+ * P&L grid over price and time (add-practice-and-advanced-strategies D4): lo..hi in `points` steps
+ * (2..61) and up to 25 times: `bars` from the current step (run) or `minutes` elapsed (run-less).
+ */
+export interface WhatIfHeatmapInput {
+	lo: string;
+	hi: string;
+	points: number;
+	bars?: number[];
+	minutes?: number[];
+}
+
+/**
  * Shifts: forward (absent = unchanged), time (run-less minutesElapsed, run bars) and IV in
  * volatility points ("-5" = -0.05), floored at 5% per leg.
  */
@@ -1206,6 +1265,15 @@ export interface WhatIfRequest {
 	legs: WhatIfLegInput[];
 	shift?: WhatIfShiftInput;
 	grid?: WhatIfGridInput;
+	/** Run-less: the price tick of the horizon breakeven search (default "0.01"); runs use the contract's. */
+	tick?: string;
+	/** D4: the P&L heatmap over price and time. */
+	heatmap?: WhatIfHeatmapInput;
+	/**
+	 * D4 (run only): the run's own positions come first (the perpetual with its working reduce-only stop,
+	 * every option position at its average entry), then the request's legs; the reply adds `risk`.
+	 */
+	holdings?: boolean;
 }
 
 /**
@@ -1258,6 +1326,68 @@ export interface WhatIfExpiryView {
 	curve: CurvePointTuple[];
 }
 
+/**
+ * Analytics at the first expiry when option legs have different expiries (D4): legs expiring then at
+ * intrinsic value, later legs at their model value then (the run's IV base published now, the term
+ * factor for their remaining time; run-less: the leg's IV plus ivPoints).
+ */
+export interface WhatIfHorizonView {
+	/** The first expiry: a bar (run) or minutes from now (run-less). */
+	expiryStep: number;
+	/**
+	 * On the price tick grid: the tick on the profitable side nearest each crossing (bisection between
+	 * evaluated prices whose P&L signs differ).
+	 */
+	breakevens: Decimal[];
+	/** Extremes over the grid, the strikes, the breakevens and the price 0; null = unbounded. */
+	maxProfit: Decimal | null;
+	/** A positive amount is a loss; null = unbounded above. */
+	maxLoss: Decimal | null;
+	/** True when the slope above every strike (later legs counted at intrinsic) is unfavorable. */
+	unboundedAbove: boolean;
+	curve: CurvePointTuple[];
+}
+
+/** pnl[t][p]: the position's P&L against its entries at prices[p] after times[t] (D4). */
+export interface WhatIfHeatmapView {
+	prices: Decimal[];
+	/** Bars from the current step (run) or minutes elapsed (run-less), as requested. */
+	times: number[];
+	pnl: Decimal[][];
+}
+
+/** One declared risk limit and the measured value it compares (D9). */
+export interface RiskLimitCheck {
+	kind: RiskLimitKind;
+	limitBp: number;
+	/** |deltaBp|, gammaBp, |vegaBp| or -thetaBp. */
+	valueBp: number;
+	exceeded: boolean;
+}
+
+export type RiskLimitKind = 'delta' | 'gamma' | 'vega' | 'theta';
+
+/** Portfolio risk of the reply's legs (holdings: true), engine-computed (D4, D9). */
+export interface WhatIfRiskView {
+	/** Sum of units x delta (the perpetual's delta is 1). */
+	deltaUnits: Decimal;
+	deltaNotional: Decimal;
+	/** 1/2 x |sum of units x gamma| x (1% of the price)^2. */
+	gamma1pct: Decimal;
+	vegaPoint: Decimal;
+	thetaBar: Decimal;
+	/** The perpetual's next funding payment: -qty x price x the published next rate (positive = received). */
+	fundingNext: Decimal;
+	/** Each as signed basis points of equity (0 when equity <= 0). */
+	deltaBp: number;
+	gammaBp: number;
+	vegaBp: number;
+	thetaBp: number;
+	fundingBp: number;
+	equity: Decimal;
+	limits: RiskLimitCheck[];
+}
+
 /** tl_option_whatif / tl_run_option_whatif. */
 export interface WhatIfResult {
 	forward: Decimal;
@@ -1269,6 +1399,12 @@ export interface WhatIfResult {
 	expiry: WhatIfExpiryView | null;
 	/** The P&L curve at the shifted time and IV. */
 	today: CurvePointTuple[];
+	/** D4: present only when option legs have different expiries (absent otherwise, and from older builds). */
+	horizon?: WhatIfHorizonView;
+	/** D4: present when requested. */
+	heatmap?: WhatIfHeatmapView;
+	/** D4, D9: present with holdings: true. */
+	risk?: WhatIfRiskView;
 }
 
 export interface ComboLegInput {
@@ -1276,9 +1412,15 @@ export interface ComboLegInput {
 	series?: number;
 	side: OrderSideName;
 	qty: string;
+	/** D2 of add-practice-and-advanced-strategies (option legs): "limit" with `premium`; absent = market. */
+	type?: OptionOrderType;
+	premium?: string;
+	/** D2: the combo's time in force on a limit leg (market legs ignore it). */
+	tif?: TimeInForceName;
+	tifBars?: number;
 }
 
-/** tl_combo_preview input: up to 8 market legs in submission order. */
+/** tl_combo_preview input: up to 8 legs (market, or option limit legs) in submission order. */
 export interface ComboRequest {
 	legs: ComboLegInput[];
 }

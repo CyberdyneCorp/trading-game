@@ -78,6 +78,7 @@ class LabViewModel {
   int max_bars = 0;
   std::vector<Slider> unlocked = {kSliders.begin(), kSliders.end()};
   LabShift shift;
+  int run_step = 0;  // terminal: the decision step (a horizon at the first expiry is named by its bar)
 
   // Academy: an at-the-money call for 30 days at 60% IV, priced by price_at_model().
   void open_academy();

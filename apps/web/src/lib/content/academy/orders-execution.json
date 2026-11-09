@@ -5,7 +5,11 @@
 		{ "kind": "roundTrip", "bid": 99.9, "ask": 100.1, "qty": 10, "expect": 2 },
 		{ "kind": "diff", "a": 100.1, "b": 99.9, "expect": 0.2, "digits": 2 },
 		{ "kind": "diff", "a": 47.5, "b": 46.2, "expect": 1.3, "digits": 2 },
-		{ "kind": "product", "a": 1.3, "b": 20, "expect": 26, "digits": 2 }
+		{ "kind": "product", "a": 1.3, "b": 20, "expect": 26, "digits": 2 },
+		{ "kind": "trail", "side": "sell", "close": 100, "ratePct": 2, "tick": 0.01, "expect": 98 },
+		{ "kind": "product", "a": 103.47, "b": 0.02, "expect": 2.0694, "digits": 4 },
+		{ "kind": "diff", "a": 103.47, "b": 2.0694, "expect": 101.4006, "digits": 4 },
+		{ "kind": "trail", "side": "sell", "close": 103.47, "ratePct": 2, "tick": 0.01, "expect": 101.4 }
 	],
 	"charts": {
 		"thin": {
@@ -18,6 +22,21 @@
 				{ "o": 46.2, "h": 46.6, "l": 45.8, "c": 46.4, "v": 80 }
 			],
 			"levels": [{ "kind": "stop", "price": 47.5 }]
+		},
+		"trend": {
+			"market": "T",
+			"interval": "1h",
+			"candles": [
+				{ "o": 99.6, "h": 100.2, "l": 99.4, "c": 100.0, "v": 40 },
+				{ "o": 100.0, "h": 101.5, "l": 99.9, "c": 101.2, "v": 44 },
+				{ "o": 101.2, "h": 103.8, "l": 101.0, "c": 103.47, "v": 52 },
+				{ "o": 103.5, "h": 103.6, "l": 102.3, "c": 102.6, "v": 38 },
+				{ "o": 102.6, "h": 102.8, "l": 101.1, "c": 101.3, "v": 47 }
+			],
+			"levels": [
+				{ "kind": "entry", "price": 100.0 },
+				{ "kind": "stop", "price": 101.4 }
+			]
 		}
 	},
 	"steps": [
@@ -54,6 +73,21 @@
 					"title": "The spread is a cost",
 					"body": "Whoever wants to sell now meets the best bid (99.90); whoever wants to buy now meets the best ask (100.10). The difference, 0.20, is the [[spread|spread]]. A market order pays the spread; large orders or fast markets also pay [[slippage|slippage]], and a bar fills only up to its [[capacity|capacity]]: the rest waits for the next bars.",
 					"columns": ["Bid", "Ask", "Spread"]
+				}
+			}
+		},
+		{
+			"id": "trail",
+			"phase": "demo",
+			"chart": { "ref": "trend" },
+			"text": {
+				"pt-BR": {
+					"title": "Demonstração: o stop móvel só sobe",
+					"body": "Long no mercado T, comprado a 100,00, com um [[trailing-stop|stop móvel]] de 2% do melhor fechamento. No fechamento de 100,00 o gatilho começa em 98,00. O melhor fechamento vai a 103,47: 2% dele é 2,0694, e 103,47 − 2,0694 = 101,4006, arredondado para baixo no tick: o gatilho sobe para 101,40. Quando os fechamentos recuam para 102,60 e 101,30, o gatilho fica em 101,40: ele segue o melhor fechamento e nunca recua. O novo gatilho vale a partir da barra seguinte; se ela tocar 101,40, o stop executa a mercado."
+				},
+				"en": {
+					"title": "Demonstration: the trailing stop only rises",
+					"body": "Long on market T, bought at 100.00, with a [[trailing-stop|trailing stop]] at 2% of the best close. At the 100.00 close the trigger starts at 98.00. The best close reaches 103.47: 2% of it is 2.0694, and 103.47 − 2.0694 = 101.4006, rounded down to the tick: the trigger rises to 101.40. When the closes pull back to 102.60 and 101.30, the trigger stays at 101.40: it follows the best close and never moves back. The new trigger is in force from the next bar; if that bar trades 101.40, the stop fills at market."
 				}
 			}
 		},

@@ -3,7 +3,8 @@
 // tests/viewmodel/test_web_parity.cpp calls the C++ port of `fn` with `args` and compares with `out`
 // (numbers with a 1e-9 relative tolerance, everything else exactly).
 
-import { combosFixture, comparisonFixture, strategiesFixture, whatifLabFixture } from './web_fixtures_options.mjs';
+import { combosFixture, comparisonFixture, gameOf, strategiesFixture, whatifLabFixture } from './web_fixtures_options.mjs';
+import { heatmapFixture, orderRulesFixture } from './web_fixtures_wave1.mjs';
 
 const SIDES = ['buy', 'sell'];
 const LOCALES = ['pt-BR', 'en'];
@@ -540,6 +541,11 @@ export async function buildFixtures(load, golden) {
 		combos: combosFixture(await load('combos.ts')),
 		comparison: comparisonFixture(await load('debrief.ts')),
 		whatifLab: whatifLabFixture(await load('whatifLab.ts'), golden('whatif-condor'), golden('whatif-call')),
-		journalStats: journalStatsFixture(await load('journalStats.ts'), await load('runSummary.ts'))
+		journalStats: journalStatsFixture(await load('journalStats.ts'), await load('runSummary.ts')),
+		orderRules: orderRulesFixture(await load('orderRules.ts'), await load('stops.ts')),
+		heatmap: heatmapFixture(await load('heatmap.ts'), await load('portfolio.ts'), null, golden('whatif-heatmap'), [
+			gameOf(),
+			gameOf({ multiplier: '10', lot: '0.01', optLot: '1' })
+		])
 	};
 }

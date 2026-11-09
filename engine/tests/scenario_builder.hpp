@@ -173,6 +173,45 @@ class Driver {
     return apply_command(sc_, st_, c);
   }
   CommandResult close() { return apply_command(sc_, st_, base(CommandType::ClosePosition)); }
+  // Policy v18: an order with a time in force, an option order with one, and an OCO link.
+  CommandResult order_tif(OrderType t, OrderSide side, const char* qty, const char* price, TimeInForce tif,
+                          std::uint32_t bars = 0, bool reduce_only = false) {
+    Command c = base(CommandType::PlaceOrder);
+    c.order_type = t;
+    c.side = side;
+    c.qty = Q(qty);
+    if (price != nullptr) c.price = P(price);
+    c.reduce_only = reduce_only;
+    c.tif = tif;
+    c.tif_bars = bars;
+    return apply_command(sc_, st_, c);
+  }
+  CommandResult option_tif(std::uint32_t series, OrderSide side, const char* qty, const char* limit, TimeInForce tif,
+                           std::uint32_t bars = 0) {
+    Command c = base(CommandType::PlaceOptionOrder);
+    c.series = series;
+    c.side = side;
+    c.order_type = limit == nullptr ? OrderType::Market : OrderType::Limit;
+    c.qty = Q(qty);
+    if (limit != nullptr) c.price = P(limit);
+    c.tif = tif;
+    c.tif_bars = bars;
+    return apply_command(sc_, st_, c);
+  }
+  CommandResult link(std::uint32_t a, std::uint32_t b) {
+    Command c = base(CommandType::LinkOco);
+    c.order_id = a;
+    c.order_id_b = b;
+    return apply_command(sc_, st_, c);
+  }
+  // Any command, with this driver's sequence, client id and decision step.
+  CommandResult apply(Command c) {
+    const Command b = base(c.type);
+    c.seq = b.seq;
+    c.client_id = b.client_id;
+    c.decision_step = b.decision_step;
+    return apply_command(sc_, st_, c);
+  }
   void step(int n = 1) {
     for (int i = 0; i < n; ++i) advance(sc_, st_);
   }
