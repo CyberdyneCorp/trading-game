@@ -1,0 +1,48 @@
+{
+  "format": 1,
+  "kind": "coach",
+  "name": "coach-m22-scale-manage",
+  "description": "Coach review (design D17) of the m22 golden run: a partial exit at 3.6R and the stop moved to breakeven after 1R, the good moments.",
+  "mission": "m22-scale-manage",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 5},
+    {"k": "adv", "n": 14},
+    {"k": "plan", "side": "buy", "skipped": false, "option": false, "lose": true, "inv": "97.67", "target": "101.64", "conf": 60, "risk": "99.88"},
+    {"k": "order", "type": "market", "side": "buy", "qty": "75.5", "price": null, "ro": false, "stop": "97.67", "tp": null, "trail": null},
+    {"k": "adv", "n": 1},
+    {"k": "order", "type": "limit", "side": "sell", "qty": "37.7", "price": "100.31", "ro": true, "stop": null, "tp": null, "trail": null},
+    {"k": "adv", "n": 10},
+    {"k": "move", "id": 2, "price": "98.99"},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "1b1e089a2f6191c6c7d39af6ee963d5ed29e109965f3f58e3be075c155e9850f",
+    "eventsDigest": "4dc2185c5d8b41bd0d172d081996a0d6521fdfbc16a10c5d8a23fdad47f033ae",
+    "status": "finished",
+    "rejected": [],
+    "review": {
+      "mission": "m22-scale-manage",
+      "seed": 2026,
+      "moments": [
+        {
+          "step": 76,
+          "code": "partial_at_target",
+          "tone": "good",
+          "evidence": {"qty": "37.70000000", "entry": "98.96000000", "price": "103.73000000", "plannedRisk": "99.88000000", "profitRBp": 36057},
+          "lesson": "management-scaling",
+          "glossary": "partial-take-profit"
+        },
+        {
+          "step": 85,
+          "code": "stop_to_breakeven_after_1r",
+          "tone": "good",
+          "evidence": {"entry": "98.96000000", "from": "97.67000000", "to": "98.99000000", "plannedRisk": "99.88000000", "profitRBp": 16463},
+          "lesson": "management-scaling",
+          "glossary": "breakeven-stop"
+        }
+      ]
+    }
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

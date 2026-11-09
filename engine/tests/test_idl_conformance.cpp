@@ -207,6 +207,7 @@ TEST_CASE("IDL conformance: version, missions and errors") {
   tl_run* run = tl_run_create("m01-false-breakout", 1);
   REQUIRE(run != nullptr);
   conforms(tl_debrief(run), "EngineError");
+  conforms(tl_coach_review(run), "EngineError");
   conforms(tl_checkpoint(run), "Checkpoint");
   tl_run_destroy(run);
 }
@@ -214,6 +215,7 @@ TEST_CASE("IDL conformance: version, missions and errors") {
 TEST_CASE("IDL conformance: state, debrief and reveal of every mission") {
   const JsonValue missions = parse(tl_missions());
   std::string debriefs;  // to check the optional shapes were exercised
+  std::string reviews;
   for (const JsonValue& m : missions.items) {
     const std::string id_text = m.find("id")->text;
     CAPTURE(id_text);
@@ -228,6 +230,9 @@ TEST_CASE("IDL conformance: state, debrief and reveal of every mission") {
     const std::string debrief = tl_debrief(run);
     conforms(debrief, "DebriefData");
     debriefs += debrief;
+    const std::string review = tl_coach_review(run);
+    conforms(review, "CoachReview");
+    reviews += review;
     conforms(tl_mission_reveal(id_text.c_str(), 7), "MissionReveal");
     const std::string lesson = tl_lesson(id_text.c_str());
     conforms(lesson, lesson.find("\"error\"") == std::string::npos ? "LessonInfo" : "EngineError");
@@ -240,6 +245,14 @@ TEST_CASE("IDL conformance: state, debrief and reveal of every mission") {
   CHECK(debriefs.find("\"decisions\":[{") != std::string::npos);
   CHECK(debriefs.find("\"lessons\":{") != std::string::npos);
   CHECK(debriefs.find("\"given\":\"") != std::string::npos);  // a numeric lesson answer
+  tl_run* plain = tl_run_create("m23-second-chance", 3);  // an entry with no stop: a coach moment with evidence
+  REQUIRE(plain != nullptr);
+  command(tl_place_order(plain, 1, 0, 0, "10", nullptr, 0));
+  tl_advance(plain, 100000);
+  reviews = tl_coach_review(plain);
+  conforms(reviews, "CoachReview");
+  CHECK(reviews.find("\"moments\":[{") != std::string::npos);
+  tl_run_destroy(plain);
 }
 
 TEST_CASE("IDL conformance: CSV import, packs and pack runs") {

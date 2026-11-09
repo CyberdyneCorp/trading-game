@@ -737,6 +737,57 @@ constexpr const char* json_name(ExitReason v) {
   return "unknown";
 }
 
+// A moment of the coach review (tl_coach_review, add-practice-and-advanced-strategies design D17): the
+// first nine are warnings, the last four good moments.
+enum class CoachMomentCode : std::uint8_t {
+  // A perpetual position opened or grown at this bar with no protective stop working after the decision.
+  EntryWithoutStop = 0,
+  // A reduce-only stop moved away from the price.
+  StopMovedAway = 1,
+  // An add to a long while the close is below SMA(20) and below the lowest low of the previous 10 bars
+  // (mirrored for a short).
+  AddedAgainstStructure = 2,
+  // An entry whose risk to its stop is above 2% of the run's initial capital.
+  RiskAboveBudget = 3,
+  // A position held over the next bar's announced release with no stop (or vega above the mission's limit).
+  HeldIntoReleaseUnhedged = 4,
+  // An entry within 3 bars of a losing close, without a plan or at 1.5x its size.
+  RevengeTrade = 5,
+  // An entry after 4+ closes its way, more than 2 ATR beyond SMA(20), with no stop or one more than 2 ATR away.
+  FomoEntry = 6,
+  // An add at a worse price while losing that lifts the risk above the first entry's plan, or has no stop.
+  AveragingDown = 7,
+  // A mission risk limit exceeded at this close (the first close of each breach).
+  RiskLimitExceeded = 8,
+  // A losing trade closed at or inside its plan's invalidation.
+  CutAtInvalidation = 9,
+  // The stop moved to the average entry or beyond once the open profit reached 1R.
+  StopToBreakevenAfter1r = 10,
+  // Part of the position closed at a profit of 1R or more, the rest kept.
+  PartialAtTarget = 11,
+  // Flat, with no entry working, before the next bar's announced release.
+  StayedFlatBeforeRelease = 12,
+};
+
+constexpr const char* json_name(CoachMomentCode v) {
+  switch (v) {
+    case CoachMomentCode::EntryWithoutStop: return "entry_without_stop";
+    case CoachMomentCode::StopMovedAway: return "stop_moved_away";
+    case CoachMomentCode::AddedAgainstStructure: return "added_against_structure";
+    case CoachMomentCode::RiskAboveBudget: return "risk_above_budget";
+    case CoachMomentCode::HeldIntoReleaseUnhedged: return "held_into_release_unhedged";
+    case CoachMomentCode::RevengeTrade: return "revenge_trade";
+    case CoachMomentCode::FomoEntry: return "fomo_entry";
+    case CoachMomentCode::AveragingDown: return "averaging_down";
+    case CoachMomentCode::RiskLimitExceeded: return "risk_limit_exceeded";
+    case CoachMomentCode::CutAtInvalidation: return "cut_at_invalidation";
+    case CoachMomentCode::StopToBreakevenAfter1r: return "stop_to_breakeven_after_1r";
+    case CoachMomentCode::PartialAtTarget: return "partial_at_target";
+    case CoachMomentCode::StayedFlatBeforeRelease: return "stayed_flat_before_release";
+  }
+  return "unknown";
+}
+
 // A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8;
 // m18-m22 since scoring v14).
 enum class ComparisonStrategy : std::uint8_t {

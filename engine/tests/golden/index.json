@@ -32,6 +32,8 @@
     "whatif-condor",
     "whatif-covered-call",
     "whatif-calendar",
-    "whatif-heatmap"
+    "whatif-heatmap",
+    "coach-m22-scale-manage",
+    "coach-m23-second-chance"
   ]
 }
