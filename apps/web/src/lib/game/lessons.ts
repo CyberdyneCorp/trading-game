@@ -298,6 +298,86 @@ const TEXTS: Record<string, MissionQuestions> = {
 				choices: ['Postponing the same option’s expiry at no cost', 'Closing the position in one expiry and opening another in a later one: two trades', 'Swapping the call for a put at the same strike']
 			}
 		)
+	},
+	'm18-gamma-scalp': {
+		'hedge-units': q(
+			{ prompt: 'Um straddle tem delta de +0,20 por unidade, em 50 unidades. Quantas unidades do perpétuo vender para ficar neutro em delta?', choices: [], unit: 'unidades' },
+			{ prompt: 'A straddle has a delta of +0.20 per unit on 50 units. How many perpetual units to sell to be delta-neutral?', choices: [], unit: 'units' }
+		),
+		'what-pays-theta': q(
+			{ prompt: 'O que paga o theta de um straddle comprado e neutralizado em delta?', choices: ['A queda da volatilidade implícita depois da compra', 'O funding do perpétuo usado no hedge', 'Movimentos realizados maiores que a volatilidade implícita cobrada'] },
+			{ prompt: 'What pays the theta of a delta-hedged long straddle?', choices: ['Implied volatility falling after the purchase', 'The funding of the perpetual used to hedge', 'Realized moves larger than the implied volatility priced in'] }
+		)
+	},
+	'm19-funding-carry': {
+		'funding-one-day': q(
+			{ prompt: 'Um short de 20 unidades a 100 recebe +0,03% por intervalo, 3 intervalos por dia. Quanto recebe de funding num dia?', choices: [], unit: 'cr' },
+			{ prompt: 'A short of 20 units at 100 receives +0.03% per interval, 3 intervals a day. How much funding does it receive in a day?', choices: [], unit: 'cr' }
+		),
+		'carry-turns': q(
+			{ prompt: 'Quando o carrego de um short no perpétuo se volta contra quem carrega?', choices: ['Quando o funding fica negativo: os shorts passam a pagar', 'Quando o preço sobe, mesmo com o hedge no lugar', 'Nunca: com o hedge, o resultado é fixo'] },
+			{ prompt: 'When does a short-perpetual carry turn against the holder?', choices: ['When funding turns negative: shorts start paying', 'When the price rises, even with the hedge in place', 'Never: with the hedge the result is locked in'] }
+		)
+	},
+	'm20-event-vol': {
+		'straddle-upper-breakeven': q(
+			{ prompt: 'Um straddle no dinheiro de strike 100 custou 6. Qual é o ponto de equilíbrio de cima no vencimento?', choices: [] },
+			{ prompt: 'An at-the-money 100 straddle cost 6. What is the upper breakeven at expiry?', choices: [] }
+		),
+		'iv-after-release': q(
+			{ prompt: 'O que acontece com a volatilidade implícita logo depois da divulgação?', choices: ['Sobe, porque o preço se mexeu', 'Cai, qualquer que seja o resultado', 'Fica igual até o vencimento'] },
+			{ prompt: 'What happens to implied volatility right after the release?', choices: ['It rises, because the price moved', 'It falls, whatever the outcome', 'It stays the same until expiry'] }
+		)
+	},
+	'm21-calendar': {
+		'calendar-debit': q(
+			{ prompt: 'Venda a call 100 curta por 2,00 e compre a call 100 longa por 3,50. Qual é o débito líquido, a perda máxima no vencimento curto?', choices: [] },
+			{ prompt: 'Sell the near 100 call for 2.00 and buy the far 100 call for 3.50. What is the net debit, the maximum loss at the near expiry?', choices: [] }
+		),
+		'calendar-best-price': q(
+			{ prompt: 'Onde um calendário comprado lucra mais no vencimento curto?', choices: ['Com o preço perto do strike', 'Com o preço muito acima do strike', 'Com o preço muito abaixo do strike'] },
+			{ prompt: 'Where does a long calendar profit most at the near expiry?', choices: ['With the price near the strike', 'With the price far above the strike', 'With the price far below the strike'] }
+		)
+	},
+	'm22-scale-manage': {
+		'risk-after-partial': q(
+			{ prompt: 'Long de 30 a 100 com stop em 96. Você vende 15 a 104 e leva o stop a 100. Qual é o pior resultado que sobra para o trade, antes dos custos?', choices: [], unit: 'cr' },
+			{ prompt: 'Long 30 at 100 with a stop at 96. You sell 15 at 104 and move the stop to 100. What is the worst result left for the trade, before costs?', choices: [], unit: 'cr' }
+		),
+		'breakeven-stop-cost': q(
+			{ prompt: 'Do que você abre mão ao levar o stop ao ponto de entrada?', choices: ['De nada: o trade não pode mais perder e não pode ser parado', 'Do lucro já realizado na saída parcial', 'Pode ser parado num recuo normal de uma tendência que estava certa'] },
+			{ prompt: 'What does moving the stop to breakeven give up?', choices: ['Nothing: the trade can no longer lose and cannot be stopped', 'The profit already taken on the partial exit', 'It can be stopped out on a normal pullback of a trend that was right'] }
+		)
+	},
+	'm23-second-chance': {
+		'drawdown-after-doubling': q(
+			{ prompt: 'Duas perdas de 1%, e o terceiro trade, dimensionado em 2%, também perde. Qual é a queda total, sem juros compostos (em %)?', choices: [], unit: '%' },
+			{ prompt: 'Two 1% losses, then the third trade, sized at 2%, also loses. What is the total drawdown before compounding (in %)?', choices: [], unit: '%' }
+		),
+		'after-stop-out': q(
+			{ prompt: 'Qual é o passo sensato depois de um stop?', choices: ['Entrar de novo na hora, com mais tamanho, para recuperar', 'Esperar o setup se formar de novo e entrar com o tamanho normal', 'Tirar o stop no próximo trade para não ser parado de novo'] },
+			{ prompt: 'What is the sound step after a stop-out?', choices: ['Get back in at once, bigger, to win it back', 'Wait for the setup to form again and enter at normal size', 'Drop the stop on the next trade so it cannot be hit again'] }
+		)
+	},
+	'm24-fast-market': {
+		'chase-quantity': q(
+			{ prompt: 'Entrada em 112, invalidação em 104 e orçamento de risco de 100. Qual é a maior quantidade?', choices: [], unit: 'unidades' },
+			{ prompt: 'Entry 112, invalidation 104 and a risk budget of 100. What is the largest quantity?', choices: [], unit: 'units' }
+		),
+		'why-chase-worse': q(
+			{ prompt: 'Por que uma entrada perseguindo o preço é pior para o mesmo risco?', choices: ['O stop fica mais longe, então o tamanho é menor ou a relação ganho/risco piora', 'O spread é sempre maior numa alta', 'Não é pior: o movimento confirma a entrada'] },
+			{ prompt: 'Why is a chased entry worse for the same risk?', choices: ['The stop sits farther away, so the size is smaller or the reward to risk is worse', 'The spread is always wider in a rally', 'It is not worse: the move confirms the entry'] }
+		)
+	},
+	'm25-the-dip': {
+		'average-down-loss': q(
+			{ prompt: 'Long de 10 a 100, você aumenta 10 a 90, stop em 85. Qual é a perda no stop?', choices: [], unit: 'cr' },
+			{ prompt: 'Long 10 at 100, you add 10 at 90, stop at 85. What is the loss at the stop?', choices: [], unit: 'cr' }
+		),
+		'consistent-add': q(
+			{ prompt: 'Quando aumentar uma posição perdedora é coerente com um plano?', choices: ['Sempre que o preço estiver mais barato que a entrada', 'Quando o prejuízo ainda é pequeno', 'Quando o aumento foi planejado na entrada, com o risco total até a mesma invalidação'] },
+			{ prompt: 'When is adding to a losing position consistent with a plan?', choices: ['Whenever the price is cheaper than the entry', 'While the loss is still small', 'When the add was planned at entry, with the total risk to the same invalidation'] }
+		)
 	}
 };
 

@@ -52,7 +52,20 @@ const PT: Catalog = {
 	size_by_max_loss: 'Dimensione pela perda máxima: até {pct} do patrimônio numa estrutura de risco definido.',
 	breakout_exit_rule: 'Antes de entrar, escreva o que fará se o mercado romper o range.',
 	decide_before_expiry: 'Antes das 5 últimas barras de um vencimento, decida fechar, rolar ou manter, e registre por quê.',
-	no_roll_without_thesis: 'Não role sem uma tese nova: julgue a rolagem como uma entrada nova.'
+	no_roll_without_thesis: 'Não role sem uma tese nova: julgue a rolagem como uma entrada nova.',
+	delta_within_limit: 'Mantenha o delta (em valor) dentro de {pct} do patrimônio, o limite de risco da missão.',
+	rehedge_rule_first: 'Antes de entrar, registre a regra de rebalanceamento: a cada N barras ou numa faixa de delta.',
+	carry_breakeven_first: 'Antes de entrar, escreva o ponto de equilíbrio do carrego: o funding necessário para pagar os custos.',
+	vega_within_limit: 'Mantenha o vega por ponto de volatilidade dentro de {pct} do patrimônio, o limite de risco da missão.',
+	hold_through_decision: 'Antes da barra da divulgação, decida se segura através dela e registre por quê.',
+	net_debit_first: 'Antes de entrar, escreva o débito líquido: a perda máxima no vencimento curto.',
+	gamma_within_limit: 'Mantenha o gama de um movimento de 1% dentro de {pct} do patrimônio, o limite de risco da missão.',
+	total_risk_all_entries: 'Risco planejado total de até {pct} somando todas as entradas da mesma ideia.',
+	partial_exit_or_trail: 'Use pelo menos uma saída parcial ou um stop móvel.',
+	never_stop_away: 'Nunca afaste o stop da entrada.',
+	cooldown_after_stop: 'Nenhuma entrada nova nas 3 barras seguintes a um stop sem um plano novo.',
+	plan_before_entry_atr_stop: 'Cada entrada com o plano registrado antes e o stop a até 2×ATR.',
+	no_add_beyond_plan: 'Não aumente uma posição perdedora além do risco total planejado.'
 };
 
 const EN: Catalog = {
@@ -98,7 +111,20 @@ const EN: Catalog = {
 	size_by_max_loss: 'Size by the maximum loss: at most {pct} of equity in a defined-risk structure.',
 	breakout_exit_rule: 'Before entering, write what you will do if the market breaks out of the range.',
 	decide_before_expiry: 'Before an expiry’s last 5 bars, decide to close, roll or hold, and record why.',
-	no_roll_without_thesis: 'Do not roll without a new thesis: judge the roll as a fresh entry.'
+	no_roll_without_thesis: 'Do not roll without a new thesis: judge the roll as a fresh entry.',
+	delta_within_limit: 'Keep the delta (notional) within {pct} of equity, the mission’s risk limit.',
+	rehedge_rule_first: 'Before entering, record the rehedge rule: every N bars or on a delta band.',
+	carry_breakeven_first: 'Before entering, write the carry break-even: the funding needed to pay the costs.',
+	vega_within_limit: 'Keep the vega per volatility point within {pct} of equity, the mission’s risk limit.',
+	hold_through_decision: 'Before the release bar, decide whether to hold through it, and record why.',
+	net_debit_first: 'Before entering, write the net debit: the maximum loss at the near expiry.',
+	gamma_within_limit: 'Keep the gamma of a 1% move within {pct} of equity, the mission’s risk limit.',
+	total_risk_all_entries: 'Total planned risk of at most {pct} across every entry of the same idea.',
+	partial_exit_or_trail: 'Use at least one partial exit or a trailing stop.',
+	never_stop_away: 'Never move a stop away from the entry.',
+	cooldown_after_stop: 'No new entry within 3 bars of a stop-out without a new plan.',
+	plan_before_entry_atr_stop: 'Every entry with its plan recorded first and the stop within 2×ATR.',
+	no_add_beyond_plan: 'Do not add to a losing position beyond the planned total risk.'
 };
 
 const CATALOGS: Record<Locale, Catalog> = { 'pt-BR': PT, en: EN };

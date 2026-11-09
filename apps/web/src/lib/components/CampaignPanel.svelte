@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Menu block of the campaign: the run in progress (missions done, current, capital) or a new one.
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { bestCompletedCapital, CAMPAIGN_CAPITAL } from '#lib/game/campaign.ts';
+	import { bestCompletedCapital, CAMPAIGN_CAPITAL, campaignOrder } from '#lib/game/campaign.ts';
 	import { campaignMissions } from '#lib/game/curriculum.ts';
 	import { fmtMoney } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
@@ -9,8 +9,9 @@
 
 	let { session }: { session: GameSession } = $props();
 	const L = $derived(i18n.locale);
-	const missions = campaignMissions();
 	const c = $derived(session.progress.campaign);
+	// The run's own order (a run started before progress v4 keeps its 17 missions); a new one, today's.
+	const missions = $derived(c ? campaignOrder(c) : campaignMissions());
 	const next = $derived(session.campaignMission);
 	const history = $derived(session.progress.campaignHistory);
 	const best = $derived(bestCompletedCapital(history));

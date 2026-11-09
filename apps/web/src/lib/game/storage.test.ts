@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
-import { settleCampaignRun, startCampaign } from './campaign.ts';
+import { CAMPAIGN_ORDER_V3, nextCampaignMission, settleCampaignRun, startCampaign } from './campaign.ts';
 import { EMPTY_PROGRESS, migrateProgress, openDb, RunStore, type RunRecord } from './storage.ts';
 
 type Action = { k: string; n?: number };
@@ -135,7 +135,7 @@ describe('RunStore (IndexedDB)', () => {
 	it('migrates a version-1 progress record: points and tutorials kept, no campaign, nothing assessed', async () => {
 		await store.saveProgress({ tutorialsSeen: ['m01-false-breakout'], advisorPoints: 7, settledRuns: ['r9'] } as never);
 		expect(await store.progress()).toEqual({
-			version: 3,
+			version: 4,
 			tutorialsSeen: ['m01-false-breakout'],
 			advisorPoints: 7,
 			settledRuns: ['r9'],
@@ -144,6 +144,10 @@ describe('RunStore (IndexedDB)', () => {
 			lessonReviews: {},
 			coachDone: [],
 			glossarySeen: [],
+			drillReviews: {},
+			drillHistory: [],
+			dailyChallenges: {},
+			guessHistory: [],
 			campaign: null,
 			campaignHistory: [],
 			assessed: []
@@ -164,6 +168,42 @@ describe('RunStore (IndexedDB)', () => {
 		expect(back.campaign?.capital).toBe('9500');
 		expect(back.campaign?.index).toBe(1);
 		expect(back.assessed).toEqual(['m06-thin-book']);
+	});
+
+	it('progress v4: a v3 record reads with the new keys empty, and an active pre-v4 campaign keeps its 17-mission order', () => {
+		const v3 = {
+			version: 3,
+			assessed: ['m06-thin-book'],
+			campaign: { id: 'c1', startedAt: 1, capital: '9000', index: 5, status: 'active', legs: [] },
+			campaignHistory: [{ id: 'c0', startedAt: 0, capital: '0', index: 2, status: 'bankrupt', legs: [] }]
+		};
+		const p = migrateProgress(v3);
+		expect(p.version).toBe(4);
+		expect(p.campaign?.order).toEqual([...CAMPAIGN_ORDER_V3]);
+		expect(p.campaign?.order).toHaveLength(17);
+		expect(nextCampaignMission(p.campaign)).toBe('m04-options-buyer'); // the same mission index 5 meant before
+		expect(p.campaignHistory[0].order).toHaveLength(17);
+		expect([p.drillReviews, p.drillHistory, p.dailyChallenges, p.guessHistory]).toEqual([{}, [], {}, []]);
+		const fresh = startCampaign(p, 'c2', 9);
+		expect(fresh.campaign?.order).toHaveLength(21); // a new run snapshots today's order
+		expect(fresh.campaignHistory.at(-1)?.order).toHaveLength(17);
+	});
+
+	it('progress v4: the practice keys are read defensively and trimmed to their limits', () => {
+		const sessions = Array.from({ length: 35 }, (_, i) => ({ date: `2026-11-${String((i % 28) + 1).padStart(2, '0')}`, items: 6, firstTry: i % 7 }));
+		const rounds = Array.from({ length: 205 }, (_, i) => ({ market: 'r01-trend', seed: i, step: 90, decision: 'long', p: 60, score: 5000 }));
+		const p = migrateProgress({
+			drillReviews: { payoff: { box: 3, due: 10 }, bad: { box: '1' } },
+			drillHistory: [...sessions, { date: 1 }],
+			dailyChallenges: { '2026-11-08': { mission: 'm07-trend-trailing', seed: 42, first: { score: 71, pnl: '12.5', runId: 'r1' }, best: null, attempts: 2 }, nope: {} },
+			guessHistory: [...rounds, { market: 'x', decision: 'maybe' }]
+		});
+		expect(p.drillReviews).toEqual({ payoff: { box: 3, due: 10 } });
+		expect(p.drillHistory).toHaveLength(30);
+		expect(Object.keys(p.dailyChallenges)).toEqual(['2026-11-08']);
+		expect(p.dailyChallenges['2026-11-08'].first?.score).toBe(71);
+		expect(p.guessHistory).toHaveLength(200);
+		expect(p.guessHistory.at(-1)?.seed).toBe(204);
 	});
 
 	it('drops damaged progress fields instead of failing', () => {
@@ -205,7 +245,7 @@ describe('RunStore (IndexedDB)', () => {
 		await store.clearPartial('d1');
 		expect(await store.partialChunks('d1')).toEqual([]);
 		expect(await store.partialSizes()).toEqual(new Map([['d2', 11]]));
-		expect((await store.progress()).version).toBe(3); // meta rows of other kinds are untouched
+		expect((await store.progress()).version).toBe(4); // meta rows of other kinds are untouched
 	});
 
 	it('keeps the last catalog manifest read online', async () => {

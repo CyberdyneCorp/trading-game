@@ -2,6 +2,8 @@
 	// Curriculum map and progress (spec curriculum; web-client task 4.4): every stage in dependency
 	// order with its status, assessment missions, Academy lessons (x/y done, start or retake) and
 	// unlocks, plus the player's progress. Lessons never gate a stage that has missions (design D9).
+	// Branch stages (add-practice-and-advanced-strategies D14) are drawn beside the path, under the stage
+	// they grow from; an elective one says so.
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { bestCompletedCapital } from '#lib/game/campaign.ts';
 	import { curriculumSummary, lessonProgress, LOCKED_LEVERAGE_CAP, STAGES, stageStatus, type Unlock } from '#lib/game/curriculum.ts';
@@ -43,12 +45,17 @@
 	<ol class="stages">
 		{#each STAGES as st, i (st.id)}
 			{@const status = stageStatus(st.id, assessed, lessonsDone)}
-			<li class="panel stage {status}" data-testid="stage" data-stage={st.id} data-status={status}>
+			<li class="panel stage {status}" class:branch={st.branch} data-testid="stage" data-stage={st.id} data-status={status} data-branch={st.branch ? 'true' : undefined}>
 				<div class="head">
-					<span class="idx">{i + 1}</span>
+					<span class="idx" aria-hidden={st.branch ? 'true' : undefined}>{st.branch ? '↳' : i + 1}</span>
 					<strong>{t(`stage.${st.id}`)}</strong>
 					<span class="tag status">{t(`curriculum.status.${status}`)}</span>
+					{#if st.campaign === false}<span class="tag info" data-testid="stage-elective">{t('curriculum.elective')}</span>{/if}
 				</div>
+				{#if st.branch}
+					<p class="muted small" data-testid="stage-branch">{t('curriculum.branch', { stage: t(`stage.${st.requires[0]}`) })}</p>
+				{/if}
+				{#if st.campaign === false}<p class="muted small">{t('curriculum.electiveNote')}</p>{/if}
 				{#if st.missions.length}
 					<p>{t('curriculum.assessment', { missions: missionsText(st.missions) })}</p>
 				{:else if st.lessons.length}
@@ -115,6 +122,10 @@
 		display: flex;
 		align-items: baseline;
 		gap: 0.6rem;
+	}
+	.stage.branch {
+		margin-left: 2.2rem;
+		border-left: 3px solid var(--accent, currentColor);
 	}
 	.idx {
 		font-family: var(--font-pixel);

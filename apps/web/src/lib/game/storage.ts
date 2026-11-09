@@ -7,7 +7,7 @@
 
 import type { PackText } from '#lib/engine/types.ts';
 import type { AssistedLink } from './assisted.ts';
-import type { CampaignLink, CampaignProgress, CampaignRun } from './campaign.ts';
+import { CAMPAIGN_ORDER_V3, type CampaignLink, type CampaignProgress, type CampaignRun } from './campaign.ts';
 import { readReviews, type LessonReviews } from './review.ts';
 import type { PartialStore } from './download.ts';
 import type { SeriesKey } from './eventNames.ts';
@@ -40,6 +40,8 @@ export interface RunRecord<J = unknown, Q = unknown> {
 	equity?: string;
 	/** Assisted practice (rewind or another market, task 4.8): excluded from progress, points and the campaign. */
 	assisted?: AssistedLink;
+	/** A daily-challenge attempt (progress v4, design D16): the day, its mission and seed. */
+	daily?: DailyLink;
 	/**
 	 * Path of the engine build the run started on (engine pinning, see engineCache.ts); absent on
 	 * runs recorded before pinning, which resume on the current build.
@@ -123,15 +125,66 @@ export interface StoredRun<A, J, Q> {
 	actions: A[];
 }
 
+/** Links a run record to the daily challenge it attempts (design D16). */
+export interface DailyLink {
+	date: string;
+	mission: string;
+	seed: number;
+}
+
+/** A drill skill's place in the spaced review (design D15): box 1/3/7/21 days, due as epoch ms. */
+export interface DrillReview {
+	box: number;
+	due: number;
+}
+
+/** One drill session (design D15): the local date, items asked and right on the first try. */
+export interface DrillSession {
+	date: string;
+	items: number;
+	firstTry: number;
+}
+
+/** One daily-challenge attempt kept in the history (design D16). */
+export interface DailyAttempt {
+	score: number | null;
+	pnl: string;
+	runId: string;
+}
+
+/** A day of the daily challenge (design D16): its first finished attempt is the record, the best beside it. */
+export interface DailyChallenge {
+	mission: string;
+	seed: number;
+	first: DailyAttempt | null;
+	best: DailyAttempt | null;
+	attempts: number;
+}
+
+/** One "guess the next move" round (design D19). */
+export interface GuessRound {
+	market: string;
+	seed: number;
+	step: number;
+	decision: 'long' | 'short' | 'none';
+	p: number;
+	score: number;
+}
+
+export const DRILL_HISTORY_KEEP = 30;
+export const DAILY_KEEP_DAYS = 90;
+export const GUESS_HISTORY_KEEP = 200;
+
 /**
  * Per-device player progress (specs mission-tutorial, progression-rewards, curriculum, academy,
  * guided-first-trade, glossary). Version 2 adds the campaign run, its history and the missions
  * assessed in a campaign (curriculum stages); `perksIntroduced` is a later key of version 2 (absent =
  * none explained yet). Version 3 adds the spaced-review schedule, the tours done and the glossary
- * terms seen (add-academy-and-strategies design D9).
+ * terms seen (add-academy-and-strategies design D9). Version 4 (add-practice-and-advanced-strategies
+ * design D20) snapshots each campaign run's mission order and adds the practice formats' keys.
  */
 export interface Progress extends CampaignProgress {
-	version: 3;
+	version: 4;
 	tutorialsSeen: string[];
 	/** Advisor point balance (see points.ts). */
 	advisorPoints: number;
@@ -147,10 +200,18 @@ export interface Progress extends CampaignProgress {
 	coachDone: string[];
 	/** Glossary terms opened (only for a "new" mark; never gates anything). */
 	glossarySeen: string[];
+	/** Drill skills in the spaced review (v4). */
+	drillReviews: Record<string, DrillReview>;
+	/** The last DRILL_HISTORY_KEEP drill sessions, oldest first (v4). */
+	drillHistory: DrillSession[];
+	/** Daily challenges by local date, the last DAILY_KEEP_DAYS days (v4). */
+	dailyChallenges: Record<string, DailyChallenge>;
+	/** The last GUESS_HISTORY_KEEP guess rounds, oldest first (v4). */
+	guessHistory: GuessRound[];
 }
 
 export const EMPTY_PROGRESS: Progress = {
-	version: 3,
+	version: 4,
 	tutorialsSeen: [],
 	advisorPoints: START_POINTS,
 	settledRuns: [],
@@ -159,6 +220,10 @@ export const EMPTY_PROGRESS: Progress = {
 	lessonReviews: {},
 	coachDone: [],
 	glossarySeen: [],
+	drillReviews: {},
+	drillHistory: [],
+	dailyChallenges: {},
+	guessHistory: [],
 	campaign: null,
 	campaignHistory: [],
 	assessed: []
@@ -167,17 +232,61 @@ export const EMPTY_PROGRESS: Progress = {
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 const isCampaign = (v: unknown): v is CampaignRun =>
 	!!v && typeof v === 'object' && typeof (v as CampaignRun).id === 'string' && Array.isArray((v as CampaignRun).legs);
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** A campaign run stored before v4 has no snapshot: it played the 17-mission order (design D14). */
+function withOrder(c: CampaignRun): CampaignRun {
+	return Array.isArray(c.order) && c.order.every((m) => typeof m === 'string') ? c : { ...c, order: [...CAMPAIGN_ORDER_V3] };
+}
+
+function readDrillReviews(v: unknown): Record<string, DrillReview> {
+	const out: Record<string, DrillReview> = {};
+	if (!isRecord(v)) return out;
+	for (const [k, x] of Object.entries(v)) if (isRecord(x) && num(x.box) && num(x.due)) out[k] = { box: x.box, due: x.due };
+	return out;
+}
+
+function readDrillHistory(v: unknown): DrillSession[] {
+	const ok = (x: unknown): x is DrillSession => isRecord(x) && typeof x.date === 'string' && num(x.items) && num(x.firstTry);
+	return (Array.isArray(v) ? v.filter(ok) : []).slice(-DRILL_HISTORY_KEEP);
+}
+
+function readAttempt(v: unknown): DailyAttempt | null {
+	if (!isRecord(v) || typeof v.pnl !== 'string' || typeof v.runId !== 'string') return null;
+	return { score: num(v.score) ? v.score : null, pnl: v.pnl, runId: v.runId };
+}
+
+function readDaily(v: unknown): Record<string, DailyChallenge> {
+	const out: Record<string, DailyChallenge> = {};
+	if (!isRecord(v)) return out;
+	const days = Object.keys(v).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort().slice(-DAILY_KEEP_DAYS);
+	for (const d of days) {
+		const x = v[d];
+		if (!isRecord(x) || typeof x.mission !== 'string' || !num(x.seed)) continue;
+		out[d] = { mission: x.mission, seed: x.seed, first: readAttempt(x.first), best: readAttempt(x.best), attempts: num(x.attempts) ? x.attempts : 0 };
+	}
+	return out;
+}
+
+function readGuesses(v: unknown): GuessRound[] {
+	const decisions = ['long', 'short', 'none'];
+	const ok = (x: unknown): x is GuessRound =>
+		isRecord(x) && typeof x.market === 'string' && num(x.seed) && num(x.step) && decisions.includes(x.decision as string) && num(x.p) && num(x.score);
+	return (Array.isArray(v) ? v.filter(ok) : []).slice(-GUESS_HISTORY_KEEP);
+}
 
 /**
  * Reads any stored progress shape: version 1 (tutorials, then advisor points) gets the version 2
- * fields empty, version 2 the version 3 fields; unknown or damaged fields fall back to their
- * defaults instead of failing.
+ * fields empty, version 2 the version 3 fields, version 3 the version 4 fields (every campaign run
+ * without an order snapshot gets the 17-mission order it was started with); unknown or damaged fields
+ * fall back to their defaults instead of failing.
  */
 export function migrateProgress(row: Record<string, unknown> | undefined): Progress {
 	const r = row ?? {};
-	const history = Array.isArray(r.campaignHistory) ? r.campaignHistory.filter(isCampaign) : [];
+	const history = (Array.isArray(r.campaignHistory) ? r.campaignHistory.filter(isCampaign) : []).map(withOrder);
 	return {
-		version: 3,
+		version: 4,
 		tutorialsSeen: strings(r.tutorialsSeen),
 		advisorPoints: typeof r.advisorPoints === 'number' ? r.advisorPoints : START_POINTS,
 		settledRuns: strings(r.settledRuns),
@@ -186,7 +295,11 @@ export function migrateProgress(row: Record<string, unknown> | undefined): Progr
 		lessonReviews: readReviews(r.lessonReviews),
 		coachDone: strings(r.coachDone),
 		glossarySeen: strings(r.glossarySeen),
-		campaign: isCampaign(r.campaign) ? r.campaign : null,
+		drillReviews: readDrillReviews(r.drillReviews),
+		drillHistory: readDrillHistory(r.drillHistory),
+		dailyChallenges: readDaily(r.dailyChallenges),
+		guessHistory: readGuesses(r.guessHistory),
+		campaign: isCampaign(r.campaign) ? withOrder(r.campaign) : null,
 		campaignHistory: history,
 		assessed: strings(r.assessed)
 	};

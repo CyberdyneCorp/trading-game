@@ -128,3 +128,39 @@ describe('campaign runs', () => {
 		expect(q.campaignHistory.map((c) => [c.id, c.status])).toEqual([['a', 'abandoned']]);
 	});
 });
+
+describe('campaign order snapshot and elective stages (progress v4, add-practice-and-advanced-strategies D14)', () => {
+	it('a new campaign run snapshots the 21-mission order; a run without one plays the 17-mission order', async () => {
+		const { campaignOrder, CAMPAIGN_ORDER_V3, newCampaign, nextCampaignMission } = await import('./campaign.ts');
+		const { campaignMissions } = await import('./curriculum.ts');
+		const fresh = newCampaign('c1', 0);
+		expect(fresh.order).toEqual(campaignMissions());
+		expect(fresh.order).toHaveLength(21);
+		const old = { ...fresh, order: undefined, index: 5 };
+		expect(campaignOrder(old)).toEqual(CAMPAIGN_ORDER_V3);
+		expect(nextCampaignMission(old)).toBe('m04-options-buyer'); // index 5 of the 17: never m22
+		expect(nextCampaignMission({ ...fresh, index: 5 })).toBe('m22-scale-manage');
+	});
+
+	it('an old run settles against its own order and completes after its 17th mission', async () => {
+		const { CAMPAIGN_ORDER_V3, newCampaign, settleCampaignRun } = await import('./campaign.ts');
+		const c = { ...newCampaign('c1', 0), order: [...CAMPAIGN_ORDER_V3], index: 16 };
+		const p = { campaign: c, campaignHistory: [], assessed: [] };
+		const out = settleCampaignRun(p, { id: 'c1', index: 16 }, { runId: 'r', missionId: 'm12-capstone', result: 'finished', equity: '12000' });
+		expect(out.campaign?.status).toBe('complete');
+	});
+
+	it('a finished, non-assisted run outside the campaign assesses an elective mission, once; nothing else does', async () => {
+		const { assessElective } = await import('./campaign.ts');
+		const { isElectiveMission } = await import('./curriculum.ts');
+		const p = { campaign: null, campaignHistory: [], assessed: ['m01-false-breakout'] };
+		const base = { missionId: 'm18-gamma-scalp', finished: true, assisted: false, campaign: false };
+		const once = assessElective(p, base, isElectiveMission);
+		expect(once.assessed).toEqual(['m01-false-breakout', 'm18-gamma-scalp']);
+		expect(assessElective(once, base, isElectiveMission)).toBe(once);
+		expect(assessElective(p, { ...base, assisted: true }, isElectiveMission)).toBe(p);
+		expect(assessElective(p, { ...base, finished: false }, isElectiveMission)).toBe(p);
+		expect(assessElective(p, { ...base, campaign: true }, isElectiveMission)).toBe(p);
+		expect(assessElective(p, { ...base, missionId: 'm22-scale-manage' }, isElectiveMission)).toBe(p); // a campaign mission
+	});
+});

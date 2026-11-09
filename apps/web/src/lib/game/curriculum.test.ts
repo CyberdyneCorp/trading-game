@@ -3,6 +3,7 @@ import {
 	campaignMissions,
 	campaignPermissions,
 	curriculumSummary,
+	isElectiveMission,
 	lessonProgress,
 	recommendedLesson,
 	LOCKED_LEVERAGE_CAP,
@@ -31,6 +32,11 @@ const M15 = 'm15-protective-put';
 const M16 = 'm16-range-condor';
 const M17 = 'm17-before-expiry';
 const STRATEGIES = [M13, M14, M15, M16, M17];
+const ADVANCED = ['m18-gamma-scalp', 'm19-funding-carry', 'm20-event-vol', 'm21-calendar'];
+const M22 = 'm22-scale-manage';
+const PSYCHOLOGY = ['m23-second-chance', 'm24-fast-market', 'm25-the-dip'];
+// The path, without the branch stages (add-practice-and-advanced-strategies D14).
+const PATH = ['foundations', 'structure', 'orders', 'futures1', 'futures2', 'futures3', 'risk', 'options1', 'options2', 'options3', 'strategies', 'patterns', 'events', 'evaluation'];
 
 // What each built-in mission's engine rules allow (engine/src/missions.cpp): m06 is long only with a
 // 2x cap (it comes before Futures I and II); every other mission allows shorting the perpetual and a
@@ -53,20 +59,55 @@ const missionUses: Record<string, Unlock[]> = {
 	[M14]: ['short', 'leverage', 'optionsBuy', 'optionsWrite'],
 	[M15]: ['short', 'leverage', 'optionsBuy'],
 	[M16]: ['short', 'leverage', 'optionsBuy', 'optionsWrite'],
-	[M17]: ['short', 'leverage', 'optionsBuy', 'optionsWrite']
+	[M17]: ['short', 'leverage', 'optionsBuy', 'optionsWrite'],
+	// m18 buys options only; m19-m21 write too; m22 trades the perpetual at 5x; m23-m25 at 3x.
+	'm18-gamma-scalp': ['short', 'leverage', 'optionsBuy'],
+	'm19-funding-carry': ['short', 'leverage', 'optionsBuy', 'optionsWrite'],
+	'm20-event-vol': ['short', 'leverage', 'optionsBuy', 'optionsWrite'],
+	'm21-calendar': ['short', 'leverage', 'optionsBuy', 'optionsWrite'],
+	[M22]: ['short', 'leverage'],
+	'm23-second-chance': ['short', 'leverage'],
+	'm24-fast-market': ['short', 'leverage'],
+	'm25-the-dip': ['short', 'leverage']
 };
 
 describe('curriculum graph', () => {
-	it('lists the 14 stages in the spec dependency order, Strategies after Options III, each requiring the one before it', () => {
+	it('lists the 17 stages: the 14-stage path, each requiring the one before it, and three branches beside it (D14)', () => {
 		expect(STAGES.map((s) => s.id)).toEqual([
-			'foundations', 'structure', 'orders', 'futures1', 'futures2', 'futures3', 'risk',
-			'options1', 'options2', 'options3', 'strategies', 'patterns', 'events', 'evaluation'
+			'foundations', 'structure', 'orders', 'futures1', 'futures2', 'futures3', 'risk', 'management',
+			'options1', 'options2', 'options3', 'strategies', 'advanced', 'patterns', 'events', 'psychology', 'evaluation'
 		]);
-		STAGES.forEach((s, i) => expect(s.requires).toEqual(i === 0 ? [] : [STAGES[i - 1].id]));
+		const path = STAGES.filter((s) => !s.branch);
+		expect(path.map((s) => s.id)).toEqual(PATH);
+		path.forEach((s, i) => expect(s.requires).toEqual(i === 0 ? [] : [path[i - 1].id]));
+		const branches = Object.fromEntries(STAGES.filter((s) => s.branch).map((s) => [s.id, s.requires]));
+		expect(branches).toEqual({ management: ['risk'], advanced: ['strategies'], psychology: ['events'] });
 	});
 
-	it('orders the campaign by the curriculum: seventeen missions, each once, Strategies after Options III, the capstone last', () => {
-		expect(campaignMissions()).toEqual([M06, M01, M03, M02, M07, M04, M09, M05, M10, ...STRATEGIES, M08, M11, M12]);
+	it('orders the campaign by the curriculum: 21 missions, each once, m22 after m07, psychology before the capstone (D14)', () => {
+		expect(campaignMissions()).toEqual([M06, M01, M03, M02, M07, M22, M04, M09, M05, M10, ...STRATEGIES, M08, M11, ...PSYCHOLOGY, M12]);
+		expect(campaignMissions()).toHaveLength(21);
+	});
+
+	it('elective missions are never campaign legs; only the Advanced stage is elective', () => {
+		expect(STAGES.filter((s) => s.campaign === false).map((s) => s.id)).toEqual(['advanced']);
+		for (const m of ADVANCED) {
+			expect(campaignMissions()).not.toContain(m);
+			expect(isElectiveMission(m)).toBe(true);
+		}
+		for (const m of [...campaignMissions()]) expect(isElectiveMission(m), m).toBe(false);
+	});
+
+	it('no passed or open stage becomes locked: the existing stages keep their requirements', () => {
+		const before = [M06, M01, M03, M02, M07, M04, M09, M05, M10, ...STRATEGIES, M08, M11, M12];
+		for (const id of PATH) {
+			expect(stageStatus(id as never, before, ['foundations-bar']), id).toBe('passed');
+		}
+		expect(stageStatus('management', before)).toBe('open');
+		expect(stageStatus('advanced', before)).toBe('open');
+		expect(stageStatus('psychology', before)).toBe('open');
+		expect(stageStatus('advanced', [M06, M01, M03, M02, M07])).toBe('locked'); // Strategies first
+		expect(stagePassed('advanced', [...before, ...ADVANCED])).toBe(true);
 	});
 
 	it('assesses every stage but Foundations with the D8.4 missions', () => {
@@ -79,12 +120,15 @@ describe('curriculum graph', () => {
 			futures2: [M03],
 			futures3: [M02],
 			risk: [M07],
+			management: [M22],
 			options1: [M04],
 			options2: [M04, M09],
 			options3: [M05, M10],
 			strategies: STRATEGIES,
+			advanced: ADVANCED,
 			patterns: [M08],
 			events: [M11],
+			psychology: PSYCHOLOGY,
 			evaluation: [M12]
 		});
 	});
@@ -222,13 +266,13 @@ describe('gating', () => {
 
 describe('summary', () => {
 	it('counts passed stages among the stages that have content', () => {
-		expect(curriculumSummary([])).toEqual({ passed: 0, withContent: 14 });
-		expect(curriculumSummary([M01, M03])).toEqual({ passed: 2, withContent: 14 });
-		expect(curriculumSummary([M04])).toEqual({ passed: 1, withContent: 14 }); // Options I; Options II needs m09
-		expect(curriculumSummary([M04, M09])).toEqual({ passed: 2, withContent: 14 }); // Options I and II
-		expect(curriculumSummary([M06])).toEqual({ passed: 2, withContent: 14 }); // Structure and Orders
-		expect(curriculumSummary([M11, M12])).toEqual({ passed: 2, withContent: 14 }); // Events and Evaluation
-		expect(curriculumSummary([M06], ['foundations-bar'])).toEqual({ passed: 3, withContent: 14 }); // + Foundations by its lesson
+		expect(curriculumSummary([])).toEqual({ passed: 0, withContent: 17 });
+		expect(curriculumSummary([M01, M03])).toEqual({ passed: 2, withContent: 17 });
+		expect(curriculumSummary([M04])).toEqual({ passed: 1, withContent: 17 }); // Options I; Options II needs m09
+		expect(curriculumSummary([M04, M09])).toEqual({ passed: 2, withContent: 17 }); // Options I and II
+		expect(curriculumSummary([M06])).toEqual({ passed: 2, withContent: 17 }); // Structure and Orders
+		expect(curriculumSummary([M11, M12])).toEqual({ passed: 2, withContent: 17 }); // Events and Evaluation
+		expect(curriculumSummary([M06], ['foundations-bar'])).toEqual({ passed: 3, withContent: 17 }); // + Foundations by its lesson
 	});
 
 	it('Regression: a campaign mission names only the stages it leaves passed (m13 alone does not pass Strategies)', () => {

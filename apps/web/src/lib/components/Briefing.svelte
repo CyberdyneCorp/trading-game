@@ -2,7 +2,8 @@
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { coach } from '#lib/game/coach.svelte.ts';
 	import { missionText, packModeKey } from '#lib/game/missions.ts';
-	import { campaignMissions, campaignPermissions, LOCKED_LEVERAGE_CAP, unlockStage } from '#lib/game/curriculum.ts';
+	import { campaignOrder } from '#lib/game/campaign.ts';
+	import { campaignPermissions, LOCKED_LEVERAGE_CAP, unlockStage } from '#lib/game/curriculum.ts';
 	import { tutorialFor } from '#lib/game/tutorials.ts';
 	import PerkPanel from './PerkPanel.svelte';
 	import LessonQuiz from './LessonQuiz.svelte';
@@ -30,7 +31,7 @@
 	);
 	const link = $derived(session.runCampaign);
 	const modeText = $derived.by(() => {
-		if (link) return t(link.index === 0 ? 'brief.modeCampaignFirst' : 'brief.modeCampaign', { n: link.index + 1, total: campaignMissions().length, seed: session.seed });
+		if (link) return t(link.index === 0 ? 'brief.modeCampaignFirst' : 'brief.modeCampaign', { n: link.index + 1, total: campaignOrder(session.progress.campaign).length, seed: session.seed });
 		if (!s.knownScenario) return t('brief.modeSynthetic', { seed: session.seed });
 		return t(packModeKey(s.marketMode, session.runPackOrigin), { seed: session.seed });
 	});

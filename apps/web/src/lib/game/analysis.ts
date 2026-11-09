@@ -2,7 +2,7 @@
 // renders codes as words). PlanEntry is the local journal entry; its free text is never scored.
 
 import type { EngineFinding, LessonCode } from '#lib/engine/types.ts';
-import { fmtPrice } from './format.ts';
+import { fmtNum, fmtPrice } from './format.ts';
 import { bpPct } from './objectives.ts';
 import type { Locale } from './i18n.svelte';
 
@@ -53,7 +53,15 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		leverage_vs_stop:
 			'Na entrada da barra {step}, a {count}x, a liquidação ({requested}) ficava a menos de duas distâncias do stop ({price}) da entrada: um gap do tamanho do stop além dele já liquidaria a posição. Com alavancagem menor o stop teria folga.',
 		liq_buffer: 'A liquidação chegou a {pct} do preço, mais perto que a distância de aviso desta missão{warn}. Deixe margem para o ruído e para os gaps.',
-		drawdown_budget: 'O drawdown máximo ({amount} cr) passou do orçamento de drawdown da missão ({pct} do capital). Dimensione cada ideia pelo orçamento que sobra.'
+		drawdown_budget: 'O drawdown máximo ({amount} cr) passou do orçamento de drawdown da missão ({pct} do capital). Dimensione cada ideia pelo orçamento que sobra.',
+		revenge_trade:
+			'Vingança: o trade {trade} fechou com perda de {loss} cr na barra {exit}, e na barra {entry} veio uma entrada nova com {ratio}× o tamanho dele. Depois de um stop, espere o setup se formar de novo e entre com o tamanho normal.',
+		fomo_entry:
+			'Medo de ficar de fora (FOMO): a entrada da barra {entry} veio depois de {closes} fechamentos seguidos na mesma direção, a {ext} ATR da média de 20 barras, {stopText}. Longe da estrutura, o stop fica longe ou o tamanho fica minúsculo.',
+		averaging_down:
+			'Preço médio para baixo: na barra {entry} você aumentou uma posição que perdia {loss} cr, e o preço médio foi de {avgBefore} para {avgAfter}; o risco até o stop passou de {riskBefore} para {riskAfter} cr (plano da primeira entrada: {planRisk} cr). Aumentar só é coerente se foi planejado na entrada, com o risco total até a mesma invalidação.',
+		risk_limit_exceeded:
+			'O limite de risco de {limit} ({limitPct} do patrimônio) foi passado em {count} fechamentos, a partir da barra {step} (pior: {worstPct}). Reduza ou neutralize antes que o limite seja passado.'
 	},
 	en: {
 		waited: 'You did not trade. Without a clear hypothesis, waiting is a valid decision — no penalty for low turnover.',
@@ -85,8 +93,41 @@ const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {
 		leverage_vs_stop:
 			'At the entry on bar {step}, at {count}x, liquidation ({requested}) sat less than twice the stop’s distance ({price}) from the entry: a gap one stop-distance beyond the stop would already liquidate it. Lower leverage gives the stop room.',
 		liq_buffer: 'Liquidation came within {pct} of the price, closer than this mission’s warning distance{warn}. Leave room for noise and gaps.',
-		drawdown_budget: 'The maximum drawdown ({amount} cr) went past the mission’s drawdown budget ({pct} of capital). Size each idea from the budget that is left.'
+		drawdown_budget: 'The maximum drawdown ({amount} cr) went past the mission’s drawdown budget ({pct} of capital). Size each idea from the budget that is left.',
+		revenge_trade:
+			'Revenge trade: trade {trade} closed at a loss of {loss} cr on bar {exit}, and on bar {entry} a new entry came at {ratio}× its size. After a stop-out, wait for the setup to form again and enter at normal size.',
+		fomo_entry:
+			'Fear of missing out (FOMO): the entry on bar {entry} came after {closes} closes in a row the same way, {ext} ATR from the 20-bar average, {stopText}. Far from structure, the stop sits far away or the size gets tiny.',
+		averaging_down:
+			'Averaging down: on bar {entry} you added to a position losing {loss} cr, and the average entry went from {avgBefore} to {avgAfter}; the risk to the stop went from {riskBefore} to {riskAfter} cr (the first entry’s plan: {planRisk} cr). Adding is consistent only when it was planned at entry, with the total risk to the same invalidation.',
+		risk_limit_exceeded:
+			'The {limit} risk limit ({limitPct} of equity) was exceeded at {count} closes, from bar {step} (worst: {worstPct}). Reduce or hedge before the limit is crossed.'
 	}
+};
+
+// Scoring v14: an unplanned revenge entry, an averaging add without a stop, a chase without one.
+const variantText: Record<Locale, Partial<Record<string, string>>> = {
+	'pt-BR': {
+		'revenge_trade.unplanned':
+			'Vingança: o trade {trade} fechou com perda de {loss} cr na barra {exit}, e na barra {entry} veio uma entrada nova sem plano registrado ({ratio}× o tamanho dele). Depois de um stop, espere o setup se formar de novo e entre com o tamanho normal.',
+		'averaging_down.nostop':
+			'Preço médio para baixo: na barra {entry} você aumentou uma posição que perdia {loss} cr, sem stop, e o preço médio foi de {avgBefore} para {avgAfter}. Aumentar só é coerente se foi planejado na entrada, com o risco total até a mesma invalidação.',
+		'stop.none': 'sem stop',
+		'stop.far': 'com o stop em {stop}, a mais de 2 ATR'
+	},
+	en: {
+		'revenge_trade.unplanned':
+			'Revenge trade: trade {trade} closed at a loss of {loss} cr on bar {exit}, and on bar {entry} a new entry came with no plan recorded ({ratio}× its size). After a stop-out, wait for the setup to form again and enter at normal size.',
+		'averaging_down.nostop':
+			'Averaging down: on bar {entry} you added to a position losing {loss} cr, with no stop, and the average entry went from {avgBefore} to {avgAfter}. Adding is consistent only when it was planned at entry, with the total risk to the same invalidation.',
+		'stop.none': 'with no stop',
+		'stop.far': 'with the stop at {stop}, more than 2 ATR away'
+	}
+};
+
+const LIMIT_NAMES: Record<Locale, Record<string, string>> = {
+	'pt-BR': { delta: 'delta', gamma: 'gama', vega: 'vega', theta: 'theta' },
+	en: { delta: 'delta', gamma: 'gamma', vega: 'vega', theta: 'theta' }
 };
 
 // With a safe leverage (count > 0) the engine names the leverage that would have kept the stop in front.
@@ -151,6 +192,39 @@ export interface FindingContext {
 	liqWarningBp: number;
 }
 
+// The evidence of a scoring v14 finding as text parameters (prices and amounts in the locale).
+function evidenceParams(f: EngineFinding, locale: Locale): Record<string, string | number> {
+	const e = f.evidence;
+	if (!e) return {};
+	const money = (v?: string) => (v == null ? '' : fmtPrice(v, locale));
+	const stopFar = e.stop != null && Number(e.stop) > 0;
+	return {
+		trade: e.trade ?? '',
+		exit: e.exitStep ?? '',
+		entry: e.entryStep ?? e.addStep ?? '',
+		loss: money(e.loss ?? e.unrealized),
+		ratio: e.sizeRatioBp == null ? '' : fmtNum(e.sizeRatioBp / 10_000, locale, 2),
+		ext: e.extensionAtr == null ? '' : fmtNum(e.extensionAtr / 100, locale, 2),
+		closes: e.closes ?? '',
+		stopText: fill(variantText[locale][stopFar ? 'stop.far' : 'stop.none'] ?? '', { stop: money(e.stop) }),
+		avgBefore: money(e.avgBefore),
+		avgAfter: money(e.avgAfter),
+		riskBefore: money(e.riskBefore),
+		riskAfter: money(e.riskAfter),
+		planRisk: money(e.planRisk),
+		limit: e.limit ? LIMIT_NAMES[locale][e.limit] : '',
+		limitPct: e.limitBp == null ? '' : bpPct(e.limitBp, locale),
+		worstPct: e.worstBp == null ? '' : bpPct(e.worstBp, locale)
+	};
+}
+
+function variantOf(f: EngineFinding, locale: Locale): string | undefined {
+	const e = f.evidence;
+	if (f.code === 'revenge_trade' && e && !e.planned) return variantText[locale]['revenge_trade.unplanned'];
+	if (f.code === 'averaging_down' && e && !(Number(e.stop ?? '0') > 0)) return variantText[locale]['averaging_down.nostop'];
+	return undefined;
+}
+
 export function describeFinding(f: EngineFinding, locale: Locale, ctx?: FindingContext): string {
 	const params: Record<string, string | number> = {
 		step: f.step,
@@ -160,10 +234,11 @@ export function describeFinding(f: EngineFinding, locale: Locale, ctx?: FindingC
 		amount: fmtPrice(f.amount, locale),
 		risk: Math.round(Number(f.amount)).toLocaleString(locale),
 		pct: bpPct(f.count, locale),
-		warn: ctx ? ` (${bpPct(ctx.liqWarningBp, locale)})` : ''
+		warn: ctx ? ` (${bpPct(ctx.liqWarningBp, locale)})` : '',
+		...evidenceParams(f, locale)
 	};
 	const special = f.count > 0 ? safeLeverageText[locale][f.code] : undefined;
-	const template = special ?? (f.count === 1 ? singularText[locale][f.code] : undefined) ?? findingText[locale][f.code];
+	const template = special ?? variantOf(f, locale) ?? (f.count === 1 ? singularText[locale][f.code] : undefined) ?? findingText[locale][f.code];
 	return fill(template, params);
 }
 
