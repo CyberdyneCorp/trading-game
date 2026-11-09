@@ -434,7 +434,7 @@ The bands are never widened silently.
   - m24: an entry far from structure means a far stop or a tiny size; plan before the move, not during it.
   - m25: adding to a loser is only consistent when it was planned at entry with total risk to the same invalidation.
 - **Objectives.**
-  - m23: no new entry within 3 bars of a stop-out without a new plan.
+  - m23: within 3 bars of a losing close, no new entry without a new plan or at 1.5× the size (as built: the rule reads any losing close, see "As built: wave 2 cross-check and playtest").
   - m24: every entry has a plan recorded before it, with the stop ≤ 2×ATR.
   - m25: no add to a losing position beyond the planned total risk.
 - **Reveal.** The trap's bars and what followed; the bias findings (D13) with their evidence; the comparison: a cooled-down player against an immediate re-entry (m23), a planned breakout entry against a chase (m24), a planned single entry against averaging down (m25).
@@ -822,6 +822,26 @@ Where the build departs from or adds to D11–D14 and D20:
 - **Tutorial art.** The seven new drawings and the eight earlier ones the m18–m25 cards reuse are display lists; only `book` (m18's fourth card, whose "capacity" label runs past the web's frame) is still not drawn. The straddle's "−premium" label sat on the payoff's right arm on both clients and moved to x=90 (desktop regression test; the web's label-crossing e2e covers m13–m17's first cards only).
 - **References (W2-D4, open).** `tutorial-scalp` and `curriculum-branches` were captured on macOS (MoltenVK); one set serves both platforms, so the task stays open until the Linux (lavapipe) job compares them.
 - **Curriculum map.** Branch rows are marked ↳ and named "Branch of <stage>"; the path keeps its numbering (1–14); the elective row's status reads "LOCKED · ELECTIVE" and its content ends with the elective note.
+
+### As built: wave 2 cross-check and playtest (W2-X)
+
+- **Same numbers (W2-X1).** m18–m25 at seed 3, calibration questions skipped, tutorials read through (desktop) or skipped (web), played with the same inputs on the web (`apps/web/e2e/cross-check-w2.spec.ts`, PT-BR 1440) and the desktop (`tradelab_desktop_playtest_tests -tc="*X1*"`, PT-BR 1280x800). Both tests assert the final state digest, so a drift on either client fails CI. Every number the desktop's debrief shows appears in the web's (the web also prints the chart legend of the last bar).
+  - m18: a straddle of 10 contracts at strike 100 (call 3,40, put 2,20, fees 0,30 each), 8 bars, then the portfolio's hedge: delta 1,3926 units (0,570 − 0,430 per contract × 10; gamma of a 1% move 0,76 = ½ × 20 × 0,0750 × 100,78² × 1%²), a sell of 1,3 (rounded down to the 0,1 lot). Debrief −43,87 cr = options −44,90 (10 × (1,11 − 3,40) + 10 × (0 − 2,20)) + perpetual +1,52 + funding +0,19 − fees 0,67. Digest `3e7b8802…`.
+  - m19: a call bought and a put written at 102,50 on the last expiry and 10 perpetual sold at 102,93. The put settled at 13,86 (−138,60 cr); the short collected +10,09 cr of funding (+0,69 cr on bar 64 ≈ 10 × 98,6 × 0,07%). Debrief +6,75 cr, the hedged carry's row. Digest `2a4dff63…`.
+  - m20: a straddle at 100 on the first expiry (2,40 + 1,27 = 3,67, breakevens 96,33 · 103,67, an implied move of 3,7%) held to settlement at 94,38: +18,89 cr. The comparison's rows enter at 67 and 101. Digest `c2e382a6…`.
+  - m21: a call calendar at 100 (far 2,13 bought, near 1,55 written: debit 5,80 + fees 0,61 = 6,41, the maximum loss at the near expiry), both expired worthless: −6,41 cr. Digest `ed64a29c…`.
+  - m22: 10 bought with a 2×ATR stop and a plan, 5 more 5 bars later with their own plan; both stops filled on bar 70 (99,02 after a gap through 99,56, and 99,01): −30,54 cr, averaging down named (risk to the stop 21,00 → 28,60 cr against the first plan's 17,01). Digest `1dbad258…`.
+  - m23: 10 bought, closed by hand the next bar at a loss of 8,31 cr (10 × (100,41 − 101,14) − 1,01 of fees), then 20 bought at once with no plan: revenge trade named at bar 62 (2,00× the size), the objective missed. Digest `6ae787a6…`.
+  - m24: 38 bars waited, then 20 bought with no plan or stop: FOMO entry named (9 rising closes, 6,79 ATR above the 20-bar average). Digest `1e27c1ae…`.
+  - m25: 10 bought, 20 and 20 more 12 bars apart: the price rose, so the adds averaged up (average 103,25 = (1.011,40 + 2.067,20 + 2.083,80) / 50) and no averaging down was named; funding 7,96 cr. Digest `41a46c9c…`.
+- **Fixed, each with a regression test (W2-X2):**
+  - scoring v14 (unreleased, so no version bump): `wrote_options` read m19's hedged carry and m21's calendar, the structures those missions teach, as naked writing and withheld the good-process credit. A long of the same kind on a later expiry now covers a short (each long unit once), and short perpetual units cover a short put (a covered put, mirroring the covered call). The rule only removes findings; the scores of every earlier golden stay identical to v13 (`scores_v13.json`). Engine tests in `test_scoring.cpp`, a Python test on the m19 and m21 goldens;
+  - m22's objective "a partial exit or a trailing stop" read two stops filling on the closing bar as a partial exit; a partial exit is now an exit on an earlier bar, or any exit of a position still open at the end (`objectiveChecks.ts`, `objective_checks.cpp`, parity fixture case);
+  - the episodes panel showed the adverse excursion, which the engine gives as a size, as "+2,03R"; it now reads as a loss (`episodeText.ts`, `report_texts.cpp`);
+  - the comparison's intro said "built at bar 60" above m20's rows entering at 67 and 101, and "you traded no options … contracts per leg" on m22, a perpetual mission. Rows that enter on other bars than the basis get their own intro (`comparisonBasisKey`, parity fixture);
+  - m23's objective and the revenge text said "stop" while the rule reads any losing close (a manual close at a loss read as a missed "after a stop" objective); both now name a losing close and the 1.5× size.
+- **Playtest (W2-X2).** Both clients as a new player (the curriculum map with its branches, tutorials, briefings) and over the cross-check runs; the desktop's playtest plays each mission with a sensible and a reckless approach in both locales; web captures at 1024 and 1440 in PT-BR and en (tutorials of m18, m20, m23 and m25, the curriculum, the m20–m24 briefings and debriefs) were read. A returning player's pre-v4 campaign keeps its 17-mission order on both clients (unit tests). No title, briefing, card or lesson names the bias a psychology mission tempts; m23's objective says what is judged, not what the market will do.
+- **Left open.** The remaining risk after a partial exit was checked on the engine's episode tests and the Academy's "scale" check, not in a playtest: on seed 3 the m22 stops filled before any partial exit. m22's debrief can credit good process ("every trade had a plan and limited risk") beside an averaging-down finding; both are engine facts and the finding says why. The builder's margin label keeps the mission's spread rule on a structure with no short (as on m13–m17).
 
 ## Risks / Trade-offs
 

@@ -289,6 +289,105 @@ TEST_CASE("playtest wave 2: m22-m25, a sensible and a reckless approach each (pt
   for (const auto& s : plays) play(s);
 }
 
+// W2-X1: m18-m25 at seed 3 played with the same inputs as the web's cross-check (e2e/cross-check-w2.spec.ts;
+// calibration questions skipped, tutorials read through, PT-BR 1280x800). The report lists the action log,
+// the final state digest and the debrief's texts (totals, findings with evidence, objectives, episodes,
+// comparison); the digests are the ones the web reaches with the same inputs.
+namespace {
+
+void close_position(Player& p) {
+  p.t->skip_question();
+  REQUIRE(p.d->click(gn::kClose));
+  if (p.vm().modal() == game::Modal::Confirm) REQUIRE(p.d->click(names::wave1::kConfirmYes));
+  if (p.vm().modal() == game::Modal::Plan) REQUIRE(p.d->click(gn::kPlanSkip));
+  REQUIRE(p.d->idle());
+  p.run->report() << "  close: " << p.d->text(names::kGameNotice) << "\n";
+}
+
+void x1_m18(Player& p) {
+  p.run->option(4, 1, "10");
+  p.run->option(4, 4, "10");
+  p.run->advance(8);
+  rehedge(p);
+}
+void x1_m19(Player& p) {
+  p.run->option(13, 1, "10");
+  p.run->option(13, 3, "10");
+  trade(p, false, "10");
+}
+void x1_m20(Player& p) {
+  p.run->option(5, 1, "10");
+  p.run->option(5, 4, "10");
+}
+void x1_m21(Player& p) {
+  p.run->option(16, 1, "10");
+  p.run->option(5, 0, "10");
+}
+void x1_m22(Player& p) {
+  trade(p, true, "10", 1, "tendência");
+  p.run->advance(5);
+  trade(p, true, "5", 1, "segunda parte");
+  p.run->advance(10);
+  if (!flat(p)) trade(p, false, "7");
+}
+void x1_m23(Player& p) {
+  trade(p, true, "10");
+  p.run->advance(1);
+  close_position(p);
+  p.run->advance(1);
+  trade(p, true, "20");
+}
+void x1_m24(Player& p) {
+  p.run->advance(38);
+  trade(p, true, "20");
+}
+void x1_m25(Player& p) {
+  trade(p, true, "10");
+  for (int k = 0; k < 2; ++k) {
+    p.run->advance(12);
+    trade(p, true, "20");
+  }
+}
+
+struct Cross {
+  const char* mission;
+  std::function<void(Player&)> script;
+  const char* digest;  // what the web reaches with the same inputs (e2e/cross-check-w2.spec.ts)
+};
+
+void cross(const Cross& c) {
+  const std::string name = std::string("w2-x1-") + std::string(c.mission).substr(0, 3);
+  INFO(name);
+  Player p(kPt, name);
+  tutorial_and_briefing(p, c.mission);
+  c.script(p);
+  p.run->play_to_debrief();
+  auto& r = p.run->report();
+  r << "---- actions\n";
+  if (const auto* log = p.vm().action_log()) {
+    for (const auto& a : *log) r << "  " << a << "\n";
+  }
+  r << "---- digest " << p.app.vm().snapshot()->digest << "\n";
+  CHECK(p.app.vm().snapshot()->digest == c.digest);
+  p.run->finish();
+}
+
+}  // namespace
+
+TEST_CASE("playtest wave 2 X1: m18-m25 at seed 3, same inputs as the web") {
+  const Cross runs[] = {
+      {"m18-gamma-scalp", x1_m18, "3e7b8802d6ab84e3e34c0606b9c6eca14702d9020e454478ed7f0309825c32a4"},
+      {"m19-funding-carry", x1_m19, "2a4dff63b1f3bc0c808f61ae416564df9d1164df215075c91e4fc08e9403b026"},
+      {"m20-event-vol", x1_m20, "c2e382a65e9af855993b932de82e2d631fbd58e2ea651ea6802655ab2928bfaf"},
+      {"m21-calendar", x1_m21, "ed64a29c0900311fb05e4a304fe03acbd50b6e829e797e4c0ca4691912e0c030"},
+      {"m22-scale-manage", x1_m22, "1dbad258dc19df31fa094676b686484ad61d45e79c55f51bca00ae39fe879b7c"},
+      {"m23-second-chance", x1_m23, "6ae787a60d868510740c2e441707fa847a68266d96b8df6e5fff3d02059b7590"},
+      {"m24-fast-market", x1_m24, "1e27c1aedf5713d624ba9d69a3c4a12448b5c70a61079b85c7c1fa81d67714a6"},
+      {"m25-the-dip", x1_m25, "41a46c9c7dae348e6b9859eef38f5681ac775dadc3ed47ea51c97b0738a318f4"},
+  };
+  for (const auto& c : runs) cross(c);
+}
+
 // The curriculum map with its branches beside the path, in both languages and sizes.
 TEST_CASE("playtest wave 2: the curriculum map's branches and the elective stage (pt-BR 1280x800, en 1024x768)") {
   for (const Window w : {kPt, kEn}) {

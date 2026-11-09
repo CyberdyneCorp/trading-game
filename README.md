@@ -115,7 +115,7 @@ mindmap
 | Area | Details |
 |---|---|
 | Missions | 17 synthetic missions (table below). Each has a first-start tutorial, a briefing, objectives, a leverage cap and a "what was really going on" reveal in the debrief. Missions played to the end are marked Completed in the menu. Free play starts any of them with its own rules. |
-| Campaign | The seventeen missions in curriculum order (m06, m01, m03, m02, m07, m04, m09, m05, m10, m13, m14, m15, m16, m17, m08, m11, m12) with **capital carried** from one mission to the next; bankruptcy ends the campaign run and a new one starts from 10,000. The capstone (m12) closes the run with a **campaign report**: trades, win rate, average R, expectancy, cost share and results by revealed regime, flagged "too few trades to conclude" below 30 trades. Leverage above 2× stays locked in campaign missions until Futures II is passed (see [Campaign and curriculum](#campaign-and-curriculum)). |
+| Campaign | Twenty-one missions in curriculum order (m06, m01, m03, m02, m07, m22, m04, m09, m05, m10, m13, m14, m15, m16, m17, m08, m11, m23, m24, m25, m12; a run started before progress v4 keeps its 17-mission order) with **capital carried** from one mission to the next; bankruptcy ends the campaign run and a new one starts from 10,000. The capstone (m12) closes the run with a **campaign report**: trades, win rate, average R, expectancy, cost share and results by revealed regime, flagged "too few trades to conclude" below 30 trades. Leverage above 2× stays locked in campaign missions until Futures II is passed (see [Campaign and curriculum](#campaign-and-curriculum)). |
 | Curriculum and progress | A map of the 14 curriculum stages (passed, open, locked, coming soon; every stage but Foundations has a mission, and Strategies comes after Options III), what each one assesses and unlocks, its Academy lessons done, missions completed and campaign runs played. Passed stages are never lost; lessons never gate a stage. |
 | Academy | 16 lessons, at least one per stage (concept, demonstration, decisions with feedback, a transfer exercise on another market), in PT-BR and en: a chart with labeled levels, a perpetual ticket sandbox, an expiry payoff, the options what-if lab with the step's sliders unlocked, the strategy builder on a synthetic chain, tables; multiple choice, typed numbers (either decimal mark) and targets reached by moving the sandbox. Every number a lesson states is checked by a test, option values and Greeks against the engine itself. A light spaced review brings a lesson's questions back after 1, 3, 7 and 21 days. |
 | Glossary and guided first trade | About 80 terms in both languages: a searchable glossary screen, definitions on hover and keyboard focus wherever the UI marks a term (ticket, rail, option chain, builder, debrief findings), links from lessons and tutorial cards. On the first campaign terminal, skippable coach marks point at the chart, the ticket, the stop, the risk line, advance and then the debrief; replay from the help overlay or the briefing. |
@@ -163,6 +163,14 @@ All synthetic, generated from the run seed, starting capital 10,000 (virtual).
 | `m15-protective-put` | Insurance | Options (**buy only**) + perpetual up to 3× | Strategies: a protective put (floor, strike as deductible, tenor, cost) against a stop | A steady rally and an unannounced exchange incident on a drawn bar: severe in about 30% of seeds, mild in 30%, harmless in 40%; the stop gaps, the put holds its floor |
 | `m16-range-condor` | Premium | Options (buy and write) + perpetual up to 3× | Strategies: an iron condor against a short strangle (defined against open risk, sizing by the worst case) | A long range with implied volatility above realized, then a breakout of drawn direction before or after the first expiry; an unannounced regulation rumor at the break, harmless in half the seeds |
 | `m17-before-expiry` | Expiry | Options (buy and write) + perpetual up to 3×, expiries every 25 bars | Strategies: managing before expiry (theta and gamma near expiry, close, roll or hold) | A drawn path of range, trend and chop with no headlines; theta and gamma of an ATM option more than double in the last bars while little premium is left |
+| `m18-gamma-scalp` | Hedge | Options (**buy only**) + perpetual up to 3×, delta limit 1,500 bp | Advanced options (elective): gamma scalping, a long straddle delta-hedged with the perpetual; theta is the rent paid for gamma | Calm and agitated stretches drawn per seed: realized volatility above or below what the options priced in |
+| `m19-funding-carry` | Carry | Options (buy and write) + perpetual up to 5×, delta limit 1,000 bp, spread margin | Advanced options (elective): funding and basis carry, a short perpetual hedged with a synthetic long; when carry turns | Crowded longs paying funding, and in some seeds an unwind where funding turns negative and squeezes |
+| `m20-event-vol` | Announcement | Options (buy and write) + perpetual up to 3×, vega limit 150 bp, spread margin | Advanced options (elective): implied volatility around an announced release, the implied move, the IV crush | IV rising in two steps to the release and crushed after it in every seed; the size of the move is drawn |
+| `m21-calendar` | Calendar | Options (buy and write) + perpetual up to 3×, three expiries, gamma limit 50 bp, spread and calendar margin | Advanced options (elective): calendar and diagonal spreads, the net debit as the maximum loss at the near expiry | A range around the strike or a drift away from it, drawn per seed |
+| `m22-scale-manage` | Management | Perpetual up to 5× | Trade management: scaling in and out, the stop to breakeven, partial take-profit, total risk across entries | A headline starts a trend with pullbacks; it reaches a 2R target or fails, drawn per seed |
+| `m23-second-chance` | Restart | Perpetual up to 3× | Psychology: discipline after a loss (the debrief names a revenge trade with its bars) | A clean breakout that fails and stops many, a choppy stretch, then a real move of drawn direction |
+| `m24-fast-market` | Rally | Perpetual up to 3× | Psychology: a plan before the move (the debrief names a FOMO entry with its closes and ATR extension) | A fast rally; the next leg continues or reverses, drawn per seed |
+| `m25-the-dip` | Dip | Perpetual up to 3× | Psychology: adding to a loser only as planned (the debrief names averaging down with the averages and risks) | An uptrend with sharp dips that recover, until in about 3 seeds in 10 one does not |
 
 The debrief of every built-in mission also shows the **seeded reveal** (engine `tl_mission_reveal`, asked only after the run ended): a band of the regimes the run went through, a signals-by-regime table (RSI fade, Bollinger fade, MACD follow, SMA20 follow: hits out of samples inside each regime) and, for each trade, the regime it was entered in. A **per-release table** lists every headline the run reached: consensus, drawn outcome and size, surprise × credibility, the opening gap, the sampled reaction and whether you were positioned before it or entered after; option missions add the move the ATM straddle implied the bar before against the move that followed.
 
@@ -317,24 +325,24 @@ There are two ways to measure it.
 - **The missions themselves** mix regimes, so the player first has to tell which one they are in. `tools/market_study.py` plays every mission on 100 seeds without trading and measures each signal from the next bar's open, the earliest price a player can actually get. The tables below are its output. `engine/tests/test_mission_realism.cpp` asserts the bands (60 seeds), so CI fails if a generator change makes the missions predictable again.
 - **Reference players** (`engine/tests/test_mission_learnability*.cpp`, 60 seeds) trade scripted rules through the engine, with its fills, costs, stops and trails, and assert what a disciplined player can learn in each mission and that nothing is guaranteed (see [Learnable, never guaranteed](#learnable-never-guaranteed)).
 
-**Technical signals** (17 missions × 100 seeds, outcome 5 bars later; the test requires 42–58% for RSI, Bollinger, MACD and SMA20):
+**Technical signals** (25 missions × 100 seeds, outcome 5 bars later; the test requires 42–58% for RSI, Bollinger, MACD and SMA20):
 
 | Signal | Samples | Goes the predicted way | Average move in its favor |
 |---|---|---|---|
-| Last bar's color, next bar only | 162,989 | 51.4% | +0.03% |
-| MACD histogram: follow its sign | 164,629 | 51.3% | +0.08% |
-| MACD cross: follow | 12,488 | 50.4% | +0.07% |
-| ADX > 25: follow the stronger DI | 75,602 | 50.4% | +0.03% |
-| Close vs SMA20: follow | 164,609 | 50.2% | +0.02% |
-| Candle pattern: follow its bias | 26,034 | 50.0% | +0.02% |
-| Bollinger: fade a close outside the bands | 21,498 | 48.8% | -0.16% |
-| RSI < 30 buy, > 70 sell | 24,807 | 44.9% | -0.30% |
-| Extreme funding (> 0.06%): fade the crowd | 11,669 | 42.1% | -0.01% |
+| Last bar's color, next bar only | 247,293 | 51.5% | +0.03% |
+| MACD histogram: follow its sign | 249,785 | 51.3% | +0.09% |
+| ADX > 25: follow the stronger DI | 113,482 | 50.5% | +0.07% |
+| MACD cross: follow | 19,084 | 50.4% | +0.05% |
+| Close vs SMA20: follow | 249,750 | 50.3% | +0.05% |
+| Candle pattern: follow its bias | 39,542 | 50.0% | +0.00% |
+| Bollinger: fade a close outside the bands | 33,181 | 47.7% | -0.25% |
+| Extreme funding (> 0.06%): fade the crowd | 24,638 | 46.9% | +0.11% |
+| RSI < 30 buy, > 70 sell | 37,775 | 44.4% | -0.38% |
 
 What this means:
 
 - **No indicator is a signal on its own.** Every one of them is within a few points of a coin flip, which is also what studies of real markets find.
-- **Context is the skill.** Fading RSI works inside a range and fails inside a trend. The calibration tests show the edge is there once the regime is right, and the signals-by-regime table below shows it inside the missions. Pooled over all seventeen missions, fading RSI extremes loses more often than it wins (44.8%), because the trends of m04, m06–m09, m11–m13, m16 and m17 run over it.
+- **Context is the skill.** Fading RSI works inside a range and fails inside a trend. The calibration tests show the edge is there once the regime is right, and the signals-by-regime table below shows it inside the missions. Pooled over all twenty-five missions, fading RSI extremes loses more often than it wins (44.4%), because the trends of m04, m06–m09, m11–m13, m16, m17, m19, m21, m23 and m24 run over it.
 - **Extreme funding is a warning, not a timing signal.** The crowd paying high funding is usually on the right side of the trend, until the squeeze. Fading it bar by bar loses more often than it wins.
 
 **Candle patterns.** The engine detects 29 candle patterns on closed bars. `engine/tests/test_candle_patterns.cpp` measures them over the generated missions (60 seeds each), counting a pattern as working when the close 5 bars later moved its way:
@@ -368,7 +376,15 @@ Patterns alone are close to a coin flip, as in real markets, and the in-game che
 | m15-protective-put | 579 | 52.0% | 58.3% | 71% |
 | m16-range-condor | 495 | 58.4% | 58.2% | 64% |
 | m17-before-expiry | 535 | 49.7% | 58.2% | 72% |
-| all missions | 9,691 | 51.7% | 58.3% | 71% |
+| m18-gamma-scalp | 602 | 50.3% | 58.3% | 75% |
+| m19-funding-carry | 735 | 49.8% | 58.5% | 69% |
+| m20-event-vol | 541 | 48.1% | 58.2% | 73% |
+| m21-calendar | 475 | 54.5% | 58.3% | 66% |
+| m22-scale-manage | 695 | 48.1% | 58.3% | 70% |
+| m23-second-chance | 568 | 50.7% | 58.3% | 75% |
+| m24-fast-market | 788 | 57.7% | 58.4% | 66% |
+| m25-the-dip | 752 | 48.0% | 58.3% | 67% |
+| all missions | 14,847 | 51.4% | 58.3% | 71% |
 
 The advisor is no oracle. It says "wait" most of the time and, when it commits, it is right about as often as it claims. Following trends fails in m01's false breakout and after m03's shock, and works in m04's breakout. Like every other tool, it is worth something only with a stop and a sensible size.
 
@@ -427,6 +443,16 @@ The advisor is no oracle. It says "wait" most of the time and, when it commits, 
 | m16 regulation_rumor, surprise -2 (24) | -5.47% | 67%, +1.22% |
 | m16 regulation_rumor, surprise -1 (32) | -2.31% | 44%, -2.34% |
 | m16 regulation_rumor, surprise +0 (44) | -0.12% | — |
+| m20 macro_data, surprise -2 (16) | -3.96% | 62%, +0.98% |
+| m20 macro_data, surprise -1 (19) | -1.90% | 58%, +0.67% |
+| m20 macro_data, surprise +0 (38) | -0.00% | — |
+| m20 macro_data, surprise +1 (20) | +1.98% | 55%, +1.20% |
+| m20 macro_data, surprise +2 (7) | +4.13% | 71%, +1.14% |
+| m22 institutional_adoption, surprise -2 (27) | -3.91% | 48%, -0.25% |
+| m22 institutional_adoption, surprise -1 (29) | -1.91% | 52%, -0.26% |
+| m22 institutional_adoption, surprise +1 (26) | +2.02% | 54%, +0.32% |
+| m22 institutional_adoption, surprise +2 (18) | +3.48% | 50%, -0.38% |
+| m23 rumor_denied, surprise -1 (100) | -0.77% | 72%, +1.55% |
 
 So the edge belongs to whoever was positioned, with a stop, before the news. A trade placed after the headline is late, as in a real market.
 
@@ -485,6 +511,16 @@ So the edge belongs to whoever was positioned, with a stop, before the news. A t
 | m16 regulation_rumor, surprise -2 | 67%, +1.22% | 67%, +6.73% | 67%, +6.59% |
 | m16 regulation_rumor, surprise -1 | 44%, -2.34% | 47%, -0.02% | 47%, +0.04% |
 | m16 regulation_rumor, surprise +0 | — | — | — |
+| m20 macro_data, surprise -2 | 62%, +0.98% | 75%, +4.88% | 75%, +4.79% |
+| m20 macro_data, surprise -1 | 58%, +0.67% | 79%, +2.53% | 79%, +2.56% |
+| m20 macro_data, surprise +0 | — | — | — |
+| m20 macro_data, surprise +1 | 55%, +1.20% | 75%, +3.24% | 75%, +3.17% |
+| m20 macro_data, surprise +2 | 71%, +1.14% | 100%, +5.13% | 100%, +5.07% |
+| m22 institutional_adoption, surprise -2 | 48%, -0.25% | 89%, +3.64% | 89%, +3.58% |
+| m22 institutional_adoption, surprise -1 | 52%, -0.26% | 72%, +1.52% | 72%, +1.80% |
+| m22 institutional_adoption, surprise +1 | 54%, +0.32% | 85%, +2.42% | 77%, +2.40% |
+| m22 institutional_adoption, surprise +2 | 50%, -0.38% | 83%, +3.13% | 89%, +3.13% |
+| m23 rumor_denied, surprise -1 | 72%, +1.55% | 83%, +3.21% | 82%, +2.83% |
 
 A fast wire turns a late trade into one placed before the gap, so a credible shock goes from about a coin flip to 70–100% right and +2 to +10% per trade (the drawn surprises of m09–m16 included). Most of the edge comes from the first bar (Fast wire I); the second adds little, because the gap is what the early headline buys. That is why perks are opt-in, labeled "with intel" in the debrief and the run record, and kept out of campaign runs. The no-surprise items (m01 rumor, m02 inflow) gain little: there is no gap to get ahead of. m02's inflow row is high because it lands during the uptrend: the trend does the work, not the headline.
 
@@ -515,12 +551,32 @@ A fast wire turns a late trade into one placed before the gap, so a credible sho
 | m16, trend | 17% (1,303) | 15% (761) | 80% (1,798) | 81% (1,798) |
 | m17, range | 64% (135) | 56% (207) | 47% (3,195) | 45% (3,195) |
 | m17, trend | 35% (489) | 37% (384) | 59% (2,778) | 61% (2,778) |
+| m18, calm | 50% (414) | 50% (618) | 53% (5,650) | 51% (5,650) |
+| m18, high_vol | 55% (450) | 54% (805) | 49% (5,913) | 48% (5,912) |
+| m19, crowded | 58% (1,105) | 53% (1,209) | 47% (9,859) | 46% (9,855) |
+| m19, high_vol | 29% (621) | 27% (354) | 60% (1,709) | 66% (1,708) |
+| m20, calm | 42% (116) | 52% (117) | 49% (1,597) | 50% (1,597) |
+| m20, range | 65% (285) | 61% (579) | 47% (5,978) | 45% (5,976) |
+| m20, trend | 42% (622) | 40% (445) | 54% (1,997) | 53% (1,997) |
+| m21, range | 56% (1,112) | 60% (424) | 47% (4,981) | 45% (4,980) |
+| m21, trend | 16% (1,080) | 10% (790) | 80% (1,600) | 81% (1,600) |
+| m22, range | 62% (290) | 55% (474) | 46% (4,481) | 46% (4,480) |
+| m22, trend | 46% (1,140) | 46% (1,028) | 53% (6,978) | 54% (6,978) |
+| m23, high_vol | 64% (271) | 60% (496) | 46% (4,488) | 43% (4,487) |
+| m23, range | 52% (616) | 59% (349) | 47% (3,987) | 45% (3,986) |
+| m23, trend | 31% (1,005) | 43% (663) | 67% (2,994) | 68% (2,994) |
+| m24, crowded | 19% (1,021) | 12% (837) | 78% (1,399) | 79% (1,399) |
+| m24, high_vol | 37% (1,065) | 23% (337) | 66% (2,498) | 65% (2,498) |
+| m24, range | 65% (591) | 63% (656) | 49% (7,572) | 44% (7,569) |
+| m25, high_vol | 37% (262) | 41% (234) | 56% (1,671) | 60% (1,671) |
+| m25, range | 69% (13) | 61% (38) | 43% (387) | 39% (387) |
+| m25, trend | 55% (889) | 56% (1,230) | 49% (9,417) | 50% (9,417) |
 
 `tools/market_study.py` prints every mission and regime.
 
 ### Learnable, never guaranteed
 
-`engine/tests/test_mission_learnability.cpp` (m01–m08), `test_mission_learnability_b.cpp` (m09–m12) and `test_mission_learnability_c.cpp` (the strategy missions m13–m17) play reference players through the engine over 60 seeds (design D8.3). Every reference strategy loses in at least 15% of seeds, and buy-and-hold (1× long from the first open) is never the obvious answer:
+`engine/tests/test_mission_learnability.cpp` (m01–m08), `test_mission_learnability_b.cpp` (m09–m12), `test_mission_learnability_c.cpp` (the strategy missions m13–m17) and `test_mission_learnability_d.cpp` (m18–m25) play reference players through the engine over 60 seeds (design D8.3). Every reference strategy loses in at least 15% of seeds, and buy-and-hold (1× long from the first open) is never the obvious answer:
 
 | Mission | Buy-and-hold positive (100 seeds) | What a disciplined player can learn (60 seeds, as measured) |
 |---|---|---|
@@ -541,6 +597,14 @@ A fast wire turns a late trade into one placed before the gap, so a credible sho
 | m15 | 48% | A 1× long with an equal ATM put of the second expiry never lost more than entry − strike + premium + costs (60 of 60). With no incident (29 seeds) the hedged long did worse in 28; the put's own mean P&L is −49 (insurance costs on average). A 5% out-of-the-money put costs 39% of the ATM put. A 3× long's 2×ATR trailing stop filled more than 2% beyond its trigger in 18 of 18 severe seeds. |
 | m16 | 43% | An iron condor (shorts 2 strikes out, wings 4, first expiry, held to settlement) never lost more than width − credit + costs (60 of 60). At the same 150 units, the short strangle and the condor win in 67% and 65% of seeds, and the strangle's worst loss is 4.6× the condor's (−3,273 against −705). A 440-unit strangle (per-leg margin about 95% of equity) was margin-called in 10 of the 27 seeds whose breakout came before the first expiry; the condor sized so its maximum loss is 20% of equity (432–517 units) was margin-called in none under the mission's spread margin. |
 | m17 | 47% | At one IV level, an ATM option's theta per bar and gamma 3 bars before expiry are at least twice their values 20 bars before (240 of 240 expiries); on the generated path, where the IV level moves with the regime, theta doubles in 97% and gamma in 89%. 5 bars before expiry a written ATM put has 12% of its premium left to earn while one bar still moves it as much as 20 bars earlier. Rolling 5 bars before costs 2.9× holding to settlement; a long call one strike out of the money expires worthless in 43 of 60. |
+| m18 | 48% | The band hedger (rehedges when the absolute delta passes 40% of the contracts) wins in 20 of 24 seeds whose realized volatility over the hold is at least 1.2× the call's IV at entry, and loses in all 30 at 0.85× or less; standard deviation 160 against 301 unhedged; hedging every bar pays 2.0× the band's fees. |
+| m19 | 36% | Hedged carry of 30 units on the last expiry: positive in 27 of 27 seeds without the unwind; with it, negative in 21 of 33 and liquidated at 5× in 11 of 33, at 2× in none; the unhedged short loses in 45%. |
+| m20 | 52% | IV is crushed after the release in 60 of 60. Selling the early straddle the bar before beats holding it through in 51; holding through wins in 20 of 23 seeds whose move beats the late straddle's ask and loses in 30 of 37 others; selling before still loses in 20%. |
+| m21 | 47% | A calendar at the strike nearest the price: near the strike at the near expiry it wins in 21 of 30 (70%); three steps or more away it loses in 14 of 14; no margin call at 20 contracts. |
+| m22 | 45% | Managed exits (stop to max(breakeven, best close − 2 ATR)) win 50% of seeds against 38% for all out at 2R, with a standard deviation of R of 1.10 against 1.47; all out is better in 21 of the 24 seeds where 2R comes before the stop. |
+| m23 | 40% | Waiting 3 bars after a stop and re-entering on the next 20-bar range close at normal size beats re-entering at once at twice the size in 43 of 60 (72%). |
+| m24 | 62% | A planned entry (1 ATR above the 20-bar high, stop at the 20-bar low) beats chasing after 4 rising closes more than 2 ATR above SMA(20) in 38 of 58 (65.5%); the chase still wins in 43%. |
+| m25 | 67% | One entry with its stop does as well as or better than adding twice the quantity 0.75 ATR lower to the same stop in 46 of 60 (77%); averaging wins in 14, but its worst seed (−279) is 2.4× the single entry's (−116). |
 
 The test bands are 45–75% buy-and-hold for m06, m13 and m14, 40–70% for m15, 35–65% for m08, m09, m11, m12, m16 and m17, below 60% for m10, and below 75% everywhere. Where a designed m13–m17 band could not hold as written, the test checks the measured version and design D8 of add-academy-and-strategies records why ("As built").
 
@@ -565,6 +629,14 @@ The test bands are 45–75% buy-and-hold for m06, m13 and m14, 40–70% for m15,
 | m15-protective-put | 21.4 | +0.03 | +0.21 | 16% |
 | m16-range-condor | 10.6 | +0.20 | +0.30 | 17% |
 | m17-before-expiry | 1.5 | +0.01 | +0.23 | 12% |
+| m18-gamma-scalp | 2.5 | +0.01 | +0.34 | 10% |
+| m19-funding-carry | 4.1 | +0.06 | +0.14 | 11% |
+| m20-event-vol | 10.5 | +0.04 | +0.20 | 23% |
+| m21-calendar | 3.8 | +0.21 | +0.29 | 17% |
+| m22-scale-manage | 4.2 | +0.03 | +0.13 | 19% |
+| m23-second-chance | 3.3 | +0.09 | +0.23 | 22% |
+| m24-fast-market | 3.0 | +0.17 | +0.32 | 19% |
+| m25-the-dip | 1.4 | -0.00 | +0.11 | 11% |
 
 - **Fat tails.** Excess kurtosis is above 0 everywhere. Real hourly crypto data usually sits around 5–20, and the shock missions are deliberately extreme; the phase-2 missions without shocks (m06–m08) are milder (1.3–2.2), and the event missions m09–m12 sit at 7.7–35.6 because their drawn surprises gap. Among the strategy missions, m13 and m17 (no shock) sit at 1.5, and m14–m16 at 10.6–41.9 (a drawn rally, incident or breakout gaps).
 - **Volatility clustering.** Absolute returns are autocorrelated at 0.12–0.34, similar to real markets: calm follows calm and storms follow storms.
@@ -633,14 +705,15 @@ Next to the score, the debrief shows outcome facts that are **not** score inputs
 - For a perpetual trade whose stop (stop order, else the plan's invalidation) sat at or beyond its liquidation price (at the highest leverage the position carried, including a re-leverage while it was open): the **highest leverage that would have kept the stop in front** of liquidation, also named in the liquidation and stop-beyond-liquidation findings.
 - When time decay (theta) on bought options, or implied volatility (vega) explains at least half of an option loss, a finding says so and the next lesson is Options II (IV and Greeks). The IV finding follows the side that lost: a falling IV on bought options, or a rising IV on written ones. A written option never gets good-process credit, and a finding says why.
 - The flat and buy-and-hold comparisons and the market span run to the run's last bar: after a game over they stop at the game-over bar.
-- For the strategy missions m13–m17, a **strategy comparison** (scoring v13): the engine plays the mission's reference structures on this seed (the naked call and the spread; long only and the covered call; long only, a 2×ATR stop and two puts; the short strangle and the iron condor; holding, closing or rolling a short put) from your first option entry at your quantity (or the mission's reference bar), and shows each one's net result, maximum drawdown and margin calls next to yours. It is computed after the run and is not a score input.
+- For the strategy missions m13–m22, a **strategy comparison** (scoring v13; m18–m22 in v14: the unhedged straddle and two hedging rules; the unhedged short and the hedged carry at 5× and 2×; four timings around the release; the calendar, the diagonal and a near short straddle; all out at 2R, a managed exit and the initial stop only, each played by its own entry rule): the engine plays the mission's reference structures on this seed (the naked call and the spread; long only and the covered call; long only, a 2×ATR stop and two puts; the short strangle and the iron condor; holding, closing or rolling a short put) from your first option entry at your quantity (or the mission's reference bar), and shows each one's net result, maximum drawdown and margin calls next to yours. It is computed after the run and is not a score input.
+- Scoring v14 adds report-only facts: **bias findings with evidence** from the action log (revenge trade, FOMO entry, averaging down; each with a "see bar N" link that marks the bar on the chart), **risk limits exceeded** (m18–m21), the **positions from flat to flat** (entries, exits, stop moves, trailing, result, MFE and MAE in R) and, on m22–m25, each objective read as met or missed from those facts.
 - For built-in missions, the **seeded reveal**: the regimes the run went through (a band under the chart), a **signals-by-regime** table (RSI fade, Bollinger fade, MACD follow and SMA20 follow: hits out of samples inside each regime, read at a close and judged 5 bars after the next open) and the regime each trade was entered in, with the drawn direction of a trend ("Trend up"). The client asks the engine for it (`tl_mission_reveal`) only once the run has ended.
 
 ### Campaign and curriculum
 
 A campaign run plays the missions in curriculum order: m06 (Structure and Orders), m01 (Futures I), m03 (Futures II), m02 (Futures III), m07 (Risk sizing), m04 (Options I and II), m09 (Options II), m05 and m10 (Options III), m13, m14, m15, m16 and m17 (Strategies), m08 (Patterns and Indicators), m11 (Events) and m12 (Evaluation, the capstone). m06 opens the campaign, so its tutorial carries the introduction (reading the chart; plan, advisor and points); m01 keeps its own cards for free play. The first starts with 10,000; each later one starts with the final equity of the one before, passed to the engine as a start option (`startingBalance`, policy v12), so the engine stays the only source of balances and the server can replay it. Going bankrupt ends the campaign run (game over, then the debrief, which offers a new campaign run from 10,000). A liquidation that leaves capital does not: the campaign goes on with what is left, as long as it is at least 100 (1% of 10,000). Less than that ends the campaign run like a bankruptcy and passes no stage, since the next mission may cap leverage lower than the one that liquidated (the engine only checks its own mission's cap). Leaving a campaign mission for another run carries the equity it had when it was left, and the campaign stays on that mission; "End campaign" in the menu closes the run by choice (after a confirmation), and its mission in progress ends with it.
 
-Finishing a mission in a campaign run passes its curriculum stages for good: bankruptcy, liquidation or an ended campaign run never remove them. The curriculum (`apps/web/src/lib/game/curriculum.ts`) is data: 14 stages in dependency order, each with its assessment missions and its unlocks. Strategies comes after Options III and before Patterns and Indicators; Events comes before Evaluation, so the capstone is last. A stage with several missions (Options II: m04 and m09; Options III: m05 and m10; Strategies: m13–m17) passes when all are finished. Foundations, an Academy lesson with no mission yet, shows as coming soon and does not block the next stages. Every stage has Academy lessons (the map shows "x of y done" with a start button); they prepare and never gate: a stage with missions is passed by its missions only. Unlocks are never bought:
+Finishing a mission in a campaign run passes its curriculum stages for good: bankruptcy, liquidation or an ended campaign run never remove them. The curriculum (`apps/web/src/lib/game/curriculum.ts`) is data: 17 stages in dependency order (14 on the path and three branches beside it: Trade management after Risk sizing (m22), Advanced options and carry after Strategies (m18–m21, elective: never a campaign leg, assessed by a finished unassisted free-play run) and Psychology after Events (m23–m25)), each with its assessment missions and its unlocks. Strategies comes after Options III and before Patterns and Indicators; Events comes before Evaluation, so the capstone is last. A stage with several missions (Options II: m04 and m09; Options III: m05 and m10; Strategies: m13–m17) passes when all are finished. Foundations, an Academy lesson with no mission yet, shows as coming soon and does not block the next stages. Every stage has Academy lessons (the map shows "x of y done" with a start button); they prepare and never gate: a stage with missions is passed by its missions only. Unlocks are never bought:
 
 | Unlock | Stage that grants it | In a campaign mission before that |
 |---|---|---|
@@ -651,7 +724,7 @@ Finishing a mission in a campaign run passes its curriculum stages for good: ban
 
 A stage's own assessment mission always has its unlocks (it is where they are taught). m06 comes before Futures I and II, so its own rules are long only with a 2× cap; m09 comes before Options III, so its own option rules allow buying only; the strategy missions come after it and meet no lock (m15 buys only by its own rules). After m06, only the leverage cap ever bites (in m01 until Futures II is passed). A unit test checks that no campaign mission meets a lock the engine cannot enforce. Free play keeps every mission's own rules and does not pass stages.
 
-Progress lives in IndexedDB `meta.progress` (version 3): tutorials seen, advisor points, the intel perks already explained, the campaign run, ended campaign runs, the missions assessed, the Academy lessons done and their review schedule, the guided tour done and the glossary terms seen. Each campaign leg that reached its debrief keeps the engine's facts for the campaign report (every trade's net, R and entry regime; fees, spread and slippage, funding), so the report adds up engine numbers and recomputes no P&L. A record from an older build is migrated on load (its tutorials and points are kept).
+Progress lives in IndexedDB `meta.progress` (version 4: v3 plus the campaign run's mission order and the practice keys of wave 3): tutorials seen, advisor points, the intel perks already explained, the campaign run, ended campaign runs, the missions assessed, the Academy lessons done and their review schedule, the guided tour done and the glossary terms seen. Each campaign leg that reached its debrief keeps the engine's facts for the campaign report (every trade's net, R and entry regime; fees, spread and slippage, funding), so the report adds up engine numbers and recomputes no P&L. A record from an older build is migrated on load (its tutorials and points are kept).
 
 ### Advisor points
 
@@ -699,7 +772,7 @@ Finished changes are archived: their requirements live in `openspec/specs/` (sim
 Built:
 
 - **Engine:** perpetuals and European options, indicators and candle/chart patterns, generator v5 (Markov regime chain, drawn event outcomes, announced releases, event jump, funding, spread and capacity channels; calibration report in `docs/calibration/`), execution policy v18 (capacity served by price then sequence, percentage trailing stops, maintenance-margin tiers, mark-price bars, settlement window in market time, continuity bars; v18: time in force and player-built OCO links, checkpoint format 6), report-only what-if extensions (multi-expiry horizon analytics, a P&L heatmap, the holdings' risk block, combo limit legs) and per-mission calendar margin and risk limits, scoring v13 with the full debrief, the seeded reveal, mission rules as engine data, decision records and lesson questions, and a versioned C ABI (`tl_abi_version`) that clients check before driving an engine build.
-- **Content:** the seventeen missions with first-start tutorials (the strategy missions m13–m17 included: spread, covered call, protective put, iron condor and managing before expiry), including the decided reference players of m07 and m08 (tasks 6.A4, 6.A5); campaign runs with carried capital and the capstone's campaign report; the curriculum map with the Strategies stage, the plan journal, the Academy (16 lessons with engine-checked numbers, spaced review), the glossary, the guided first trade, the options what-if lab and the strategy builder with the engine's dry run, spread margin and the strategy comparison of m13–m17; the advisor with points; legal intel perks.
+- **Content:** the twenty-five missions with first-start tutorials (the strategy missions m13–m17: spread, covered call, protective put, iron condor and managing before expiry; m18–m25: gamma scalping, funding carry, event volatility, calendars, position management and three psychology scenarios), including the decided reference players of m07 and m08 (tasks 6.A4, 6.A5); campaign runs (21 missions) with carried capital and the capstone's campaign report; the curriculum map with the Strategies stage and three branch stages, the plan journal, the Academy (16 lessons with engine-checked numbers, spaced review), the glossary, the guided first trade, the options what-if lab and the strategy builder with the engine's dry run, spread margin and the strategy comparison of m13–m22; the debrief's bias findings with evidence and position episodes (scoring v14); the advisor with points; legal intel perks.
 - **Packs:** signed, zstd-compressed and validated in the engine, schema 2 (the pack's own mission texts and objectives, mark-price bars, settlement sub-bars, margin tiers; schema 1 still loads); bars, funding, news, liquidity shocks, option chains and counterfactual branch packs; private CSV import; the authoring CLI `tools/packer` (generate, mask, build with `events.json` stories, sign, inspect); a static sample catalog whose Market C tells a liquidity-shock story.
 - **Web client:** offline PWA with engine pinning, the full terminal (draggable stop/target lines, pattern cheat sheet), catalog with resumable downloads, OPFS pack store.
 - **Desktop client** on [Raven](https://github.com/oscar-soirey/Raven) for Linux and macOS (`apps/desktop`): every web screen (tutorial, catalog, CSV import, assisted practice and the debrief chart included), the full terminal in docked panels with a saved layout, the web's soundtrack, the retro look, the crash-safe SQLite action log resumed from the menu by the next launch, progress and settings in the same database, packs through the engine (schema-2 pack texts, runs from another engine ABI refused), the shared goldens and web parity fixtures, `TradeLab.app` / AppImage with launch smoke tests and the signed updater; what is still open is listed in `apps/desktop/README.md`.

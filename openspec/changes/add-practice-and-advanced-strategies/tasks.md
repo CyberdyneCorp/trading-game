@@ -229,9 +229,9 @@ Suggested PRs, in order:
 
 ### W2-X. Playtest and cross-check
 
-- [ ] W2-X1 Same numbers: m18–m25 at seed 3 with the same actions on both clients (dry runs, fills, debrief, findings with evidence, episodes, comparison). Recorded in the design.
-- [ ] W2-X2 Playtest each mission with a sensible and a reckless approach in both locales; finance checked by hand (a rehedge quantity, a day's funding, the straddle breakevens and implied move, a calendar's debit, the remaining risk after a partial exit, the bias evidence numbers); no spoiler in a title, briefing, card or lesson.
-- [ ] W2-X3 Root README ("What can the player predict?" for m18–m25, the features table, the curriculum), `docs/product-spec.md` (curriculum, campaign, debrief), `openspec validate --all --strict`, complexity.
+- [x] W2-X1 Same numbers: m18–m25 at seed 3 with the same actions on both clients (dry runs, fills, debrief, findings with evidence, episodes, comparison). Recorded in the design.
+- [x] W2-X2 Playtest each mission with a sensible and a reckless approach in both locales; finance checked by hand (a rehedge quantity, a day's funding, the straddle breakevens and implied move, a calendar's debit, the remaining risk after a partial exit, the bias evidence numbers); no spoiler in a title, briefing, card or lesson.
+- [x] W2-X3 Root README ("What can the player predict?" for m18–m25, the features table, the curriculum), `docs/product-spec.md` (curriculum, campaign, debrief), `openspec validate --all --strict`, complexity.
 
 ## Wave 3: practice formats
 
