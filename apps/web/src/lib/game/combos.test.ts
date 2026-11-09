@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CommandResult, EngineTrade, ReasonCode } from '#lib/engine/types.ts';
 import { ev } from './fixtures.test-util.ts';
 import {
+	comboSentKey,
 	comboOrderIds,
 	comboStatus,
 	combosFromLog,
@@ -68,6 +69,13 @@ describe('combo submission', () => {
 	it('combo ids count up from the log', () => {
 		expect(nextComboId([])).toBe('c1');
 		expect(nextComboId([{ id: 'c1' }, { id: 'c4' }])).toBe('c5');
+	});
+});
+
+describe('combo sent notice', () => {
+	it('a combo with a limit leg does not promise execution at the next open (playtest: an IOC condor filled nothing)', () => {
+		expect(comboSentKey([{ series: 3, side: 'buy' as const, qty: '1.0' }])).toBe('combo.sent');
+		expect(comboSentKey([{ series: 3, side: 'buy' as const, qty: '1.0' }, { series: 4, side: 'sell' as const, qty: '1.0', premium: '1.10' }])).toBe('combo.sentLimit');
 	});
 });
 

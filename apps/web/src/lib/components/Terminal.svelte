@@ -41,7 +41,7 @@
 	import ComboNotice from './ComboNotice.svelte';
 	import WhatIfLab from './WhatIfLab.svelte';
 	import type { WhatIfLegInput } from '#lib/engine/types.ts';
-	import { comboContracts, comboStatus, netPremium, submitCombo, workingLegs } from '#lib/game/combos.ts';
+	import { comboContracts, comboSentKey, comboStatus, netPremium, submitCombo, workingLegs } from '#lib/game/combos.ts';
 	import ComboWorking from './ComboWorking.svelte';
 	import PortfolioPanel from './PortfolioPanel.svelte';
 	import { PORTFOLIO_REQUEST } from '#lib/game/portfolio.ts';
@@ -259,7 +259,7 @@
 				await session.recordPlan(leg, i === 0 ? { ...p, instrument: d.label, combo: d.tag.combo } : null);
 			}
 			const out = await submitCombo(session.comboPort(), d.orders, d.tag, d.tif);
-			if (out.ok) session.notice = { tone: 'ok', text: t('combo.sent', { name: d.label }) };
+			if (out.ok) session.notice = { tone: 'ok', text: t(comboSentKey(d.orders), { name: d.label }) };
 			else session.notice = { tone: 'error', text: `✖ ${t('combo.refused', { n: out.refusedLeg + 1, reason: rejectionText(out.reason) })}` };
 		});
 	}

@@ -139,7 +139,7 @@ void GameViewModel::place_combo_leg(const std::shared_ptr<ComboRun>& combo, std:
               if (!r.accepted) return vm.withdraw_combo(*combo, i, r.reason);
               combo->accepted.push_back(r.order_id);
               if (i + 1 < combo->draft.orders.size()) return vm.place_combo_leg(combo, i + 1);
-              vm.set_notice({vm.texts().tr("combo.sent", {{"name", combo->draft.label}}), Tone::Ok});
+              vm.set_notice({vm.texts().tr(combo_sent_key(combo->draft.orders), {{"name", combo->draft.label}}), Tone::Ok});
             }};
   if (i == 0) return run({std::move(step)});
   chain_.push_front(std::move(step));  // right after the leg before it: nothing runs in between

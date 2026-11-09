@@ -93,11 +93,17 @@ test('a limit calendar: horizon analysis and heatmap, filled, then rolled and ad
 	await page.getByTestId('live-send').click();
 	await skipPlan(page);
 	await advance(page);
-	// Adjust: a perpetual hedge leg toward delta neutral, same combo.
+	// Adjust: a perpetual hedge leg toward delta neutral, same combo, sized like the portfolio's own
+	// "Hedge delta" for these holdings (regression: it was sized from the delta before the roll).
+	await page.getByTestId('open-portfolio').click();
+	const note = await page.getByTestId('portfolio-hedge-note').innerText();
+	await page.getByTestId('portfolio-close').click();
+	const proposed = note.match(/Propõe ([\d,]+) contratos de perpétuo \((compra|venda)\)/);
+	expect(proposed, note).not.toBeNull();
 	await live.getByTestId('adjust-c1').click();
 	await page.getByTestId('adjust-add-hedge').click();
 	await expect(page.getByTestId('live-orders').locator('li')).toHaveCount(1);
-	await expect(page.getByTestId('live-orders')).toContainText(/perpétuo/i);
+	await expect(page.getByTestId('live-orders')).toContainText(`${proposed![2] === 'compra' ? 'Comprar' : 'Vender'} ${proposed![1]} perpétuo`);
 	await page.getByTestId('live-send').click();
 	await skipPlan(page);
 	await expect(page.locator('.notice.ok')).toContainText('Ajustar');

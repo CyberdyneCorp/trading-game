@@ -11,6 +11,7 @@ import {
 	expiriesOf,
 	orderLegs,
 	rollOrders,
+	rollTargets,
 	strikesOf,
 	templateLegs,
 	TEMPLATES,
@@ -160,14 +161,29 @@ describe.skipIf(!wasmBuilt)('two-expiry structures, limit legs and rolls against
 
 	it('a roll of a held calendar: closing the near short first is accepted by the dry run', () => {
 		const { run, state, near, far } = m17();
+		const last = expiriesOf(state.options.chain).at(-1)!;
 		const f = lastPrice(state);
-		const legs = twoExpiryTemplateLegs('calendar_call', { step: near, strikes: strikesOf(state.options.chain, near) }, { step: far, strikes: strikesOf(state.options.chain, far) }, f, 1)!;
+		const legs = twoExpiryTemplateLegs('calendar_call', { step: near, strikes: strikesOf(state.options.chain, near) }, { step: last, strikes: strikesOf(state.options.chain, last) }, f, 1)!;
 		const series = orderLegs(state, near, legs)!;
-		// Holding the calendar: short near, long far (as the combo's filled legs would be).
+		// Holding the calendar: short near, long on the last expiry (as the combo's filled legs would be).
 		const held = series.map((o) => ({ series: o.series, qty: o.side === 'buy' ? 1 : -1 }));
 		const plan = rollOrders(state, held, far, false, f)!;
 		expect(plan.from).toBe(near);
 		expect(plan.orders[0].side).toBe('buy'); // the near short is bought back before anything is written
 		expect(plan.orders.at(-1)!.side).toBe('sell');
+		const preview = engine.comboPreview(run, { legs: comboLegs(plan.orders) }) as ComboPreview;
+		expect(preview.accepted).toBe(true);
+	});
+
+	it("a calendar's short is never rolled onto its long's expiry (playtest: the roll closed the calendar)", () => {
+		const { state, near, far } = m17();
+		const f = lastPrice(state);
+		const legs = twoExpiryTemplateLegs('calendar_call', { step: near, strikes: strikesOf(state.options.chain, near) }, { step: far, strikes: strikesOf(state.options.chain, far) }, f, 1)!;
+		const held = orderLegs(state, near, legs)!.map((o) => ({ series: o.series, qty: o.side === 'buy' ? 1 : -1 }));
+		const later = expiriesOf(state.options.chain).filter((e) => e > far);
+		expect(later.length).toBeGreaterThan(0);
+		expect(rollTargets(state.options.chain, near, [near, far])).toEqual(later);
+		expect(rollOrders(state, held, far, false, f)).toBeNull();
+		expect(rollOrders(state, held, later[0], false, f)!.orders).toHaveLength(2);
 	});
 });

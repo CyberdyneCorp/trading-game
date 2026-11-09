@@ -44,6 +44,11 @@ std::string order_name(const Texts& t, const GameState& g, const OrderLeg& o) {
 void GameViewModel::refresh_wave1() {
   refresh_portfolio();
   refresh_builder_heatmap();
+  if (live_) {  // a new state: the holdings and quotes changed, so the answers wait for this state's
+    live_->preview.reset();
+    live_->before.reset();
+    live_->after.reset();
+  }
   refresh_live();
 }
 
@@ -314,6 +319,16 @@ std::vector<HeldLeg> held_options(const ComboStatus& st) {
   return out;
 }
 
+std::vector<int> held_expiries(const GameState& g, const std::vector<HeldLeg>& options) {
+  std::vector<int> out;
+  for (const auto& h : options) {
+    for (const auto& q : g.options.chain) {
+      if (q.id == h.series) out.push_back(q.expiry_step);
+    }
+  }
+  return out;
+}
+
 int near_expiry(const GameState& g, const std::vector<HeldLeg>& options) {
   int from = 0;
   for (const auto& h : options) {
@@ -324,12 +339,18 @@ int near_expiry(const GameState& g, const std::vector<HeldLeg>& options) {
   return from;
 }
 
+// The combo's roll targets: later than its near expiry and not an expiry it already holds.
+std::vector<int> combo_roll_targets(const GameState& g, const ComboStatus& st) {
+  const auto options = held_options(st);
+  return roll_targets(g.options.chain, near_expiry(g, options), held_expiries(g, options));
+}
+
 }  // namespace
 
 void GameViewModel::open_roll(const std::string& id) {
-  live_ = Live{id, true, 0, false, false, {}, true, std::nullopt, std::nullopt, std::nullopt};
+  live_ = Live{id, true, 0, false, false, {}, true, std::nullopt, std::nullopt, std::nullopt, false};
   if (const auto st = live_status()) {
-    const auto targets = roll_targets(state_->options.chain, near_expiry(*state_, held_options(*st)));
+    const auto targets = combo_roll_targets(*state_, *st);
     live_->to = targets.empty() ? 0 : targets.front();
   }
   refresh_live();
@@ -337,7 +358,7 @@ void GameViewModel::open_roll(const std::string& id) {
 }
 
 void GameViewModel::open_adjust(const std::string& id) {
-  live_ = Live{id, false, 0, false, false, {}, true, std::nullopt, std::nullopt, std::nullopt};
+  live_ = Live{id, false, 0, false, false, {}, true, std::nullopt, std::nullopt, std::nullopt, false};
   refresh_live();
   touch();
 }
@@ -350,7 +371,7 @@ void GameViewModel::live_close() {
 void GameViewModel::set_roll_target(int index) {
   const auto st = live_status();
   if (!st) return;
-  const auto targets = roll_targets(state_->options.chain, near_expiry(*state_, held_options(*st)));
+  const auto targets = combo_roll_targets(*state_, *st);
   if (index >= 0 && index < static_cast<int>(targets.size())) live_->to = targets[static_cast<std::size_t>(index)];
   refresh_live();
   touch();
@@ -383,14 +404,23 @@ void GameViewModel::adjust_close_leg(std::size_t held_index) {
   touch();
 }
 
+// The hedge is sized from the holdings of this state (`before`); until their what-if arrives the click
+// is kept pending (playtest: a hedge sized from a missing or step-old delta).
 void GameViewModel::adjust_add_hedge() {
   if (!live_ || !state_) return;
-  const double delta = live_->before && live_->before->risk ? fmt::num(live_->before->risk->delta_units) : 0;
+  live_->adjust_close = false;
+  live_->adjustment.clear();
+  live_->hedge_pending = true;
+  if (live_->before) apply_hedge();
+  touch();
+}
+
+void GameViewModel::apply_hedge() {
+  live_->hedge_pending = false;
+  const double delta = live_->before->risk ? fmt::num(live_->before->risk->delta_units) : 0;
   const auto h = hedge_order(*state_, delta);
   live_->adjustment = h ? std::vector<OrderLeg>{*h} : std::vector<OrderLeg>{};
-  live_->adjust_close = false;
   refresh_live();
-  touch();
 }
 
 std::vector<OrderLeg> GameViewModel::live_orders() const {
@@ -425,7 +455,9 @@ void GameViewModel::refresh_live() {
   if (!tk) return;
   const int t = *tk;
   engine_.analyze(AnalysisKind::RunWhatIf, before, guarded([t](GameViewModel& vm, const std::string& text) {
-                    if (vm.live_ticket_.current(t) && vm.live_) vm.live_->before = whatif_from_json(text).value;
+                    if (!vm.live_ticket_.current(t) || !vm.live_) return;
+                    vm.live_->before = whatif_from_json(text).value;
+                    if (vm.live_->before && vm.live_->hedge_pending) vm.apply_hedge();
                   }));
   if (orders.empty()) return;
   engine_.analyze(AnalysisKind::ComboPreview, preview, guarded([t](GameViewModel& vm, const std::string& text) {
@@ -476,8 +508,8 @@ void live_preview_lines(const Texts& t, const GameState& g, const std::vector<Or
 }  // namespace
 
 void GameViewModel::live_roll_view(const Texts& t, const ComboStatus& st, LiveView& v) const {
-  const auto targets = roll_targets(state_->options.chain, near_expiry(*state_, held_options(st)));
-  if (targets.empty()) v.none = t.tr("roll.none");
+  const auto targets = combo_roll_targets(*state_, st);
+  if (targets.empty()) v.none = t.tr(roll_targets(state_->options.chain, near_expiry(*state_, held_options(st))).empty() ? "roll.none" : "roll.noneHeld");
   for (std::size_t i = 0; i < targets.size(); ++i) {
     v.targets.push_back(t.tr("builder.expiryAt", {{"step", std::to_string(targets[i])}, {"n", std::to_string(targets[i] - state_->step)}}));
     if (targets[i] == live_->to) v.target_index = static_cast<int>(i);
@@ -492,7 +524,7 @@ void GameViewModel::live_adjust_view(const Texts& t, const ComboStatus& st, Live
   for (const auto& h : combo_holdings(st)) v.held.push_back(held_name(t, *state_, h.series, h.qty));
   v.close_leg = t.tr("adjust.closeLeg");
   v.add_hedge = "+ " + t.tr("adjust.addHedge") + ": " + t.tr("adjust.hedgePerp");
-  if (!live_->adjust_close && live_->adjustment.empty()) v.hedge_none = t.tr("portfolio.hedgeNone");
+  if (!live_->adjust_close && !live_->hedge_pending && live_->adjustment.empty()) v.hedge_none = t.tr("portfolio.hedgeNone");
 }
 
 GameViewModel::LiveView GameViewModel::live_view() const {

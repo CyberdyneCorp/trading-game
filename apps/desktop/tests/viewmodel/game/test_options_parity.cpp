@@ -347,7 +347,16 @@ std::map<std::string, Port> wave1_strategy_ports() {
        [](const Value& a) {
          return array(leg_expiries(builder_legs(a[0]), static_cast<int>(a[1].as_int())), [](int e) { return std::to_string(e); });
        }},
-      {"rollTargets", [](const Value& a) { return array(roll_targets(chain(a[0]), static_cast<int>(a[1].as_int())), [](int e) { return std::to_string(e); }); }},
+      {"marginLabelKey",
+       [](const Value& a) {
+         return text(margin_label_key(a[0]["spreadMargin"].as_bool(false), a[0]["calendarMargin"].as_bool(false), a[1].as_bool()));
+       }},
+      {"rollTargets",
+       [](const Value& a) {
+         std::vector<int> held;
+         for (const auto& e : a[2].items()) held.push_back(static_cast<int>(e.as_int()));
+         return array(roll_targets(chain(a[0]), static_cast<int>(a[1].as_int()), held), [](int e) { return std::to_string(e); });
+       }},
       {"rollOrders",
        [](const Value& a) {
          std::vector<HeldLeg> held;
@@ -423,6 +432,7 @@ std::map<std::string, Port> strategy_ports() {
 
 std::map<std::string, Port> combo_ports() {
   return {
+      {"comboSentKey", [](const Value& a) { return text(combo_sent_key(order_legs_of(a[0]))); }},
       {"nextComboId",
        [](const Value& a) {
          std::vector<ComboRecord> combos;

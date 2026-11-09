@@ -12,6 +12,7 @@ import {
 	legExpiries,
 	legsProblem,
 	orderLegs,
+	marginLabelKey,
 	rollOrders,
 	rollTargets,
 	strategyOf,
@@ -126,6 +127,9 @@ describe('roll (design D3)', () => {
 			{ series: id(LATER, 'call', 100), side: 'sell', qty: '1.0' } // write the same strike later
 		]);
 		expect(rollTargets(chain(), NEAR)).toEqual([FAR, LATER]);
+		// The combo holds FAR: never onto it (playtest: rolling onto FAR netted the long and closed the calendar).
+		expect(rollTargets(chain(), NEAR, [NEAR, FAR])).toEqual([LATER]);
+		expect(rollOrders(g(), held, FAR, false, 101)).toBeNull();
 	});
 
 	it('re-centred at the money: every strike shifts by the ATM minus the structure middle', () => {
@@ -143,6 +147,15 @@ describe('roll (design D3)', () => {
 		]);
 		expect(rollOrders(g(), held, NEAR, false, 100)).toBeNull(); // not later
 		expect(rollOrders(g(), [], FAR, false, 100)).toBeNull();
+	});
+});
+
+describe('margin label (design D5)', () => {
+	it('a two-expiry structure without the calendar margin is not called a covered pair (playtest, m17)', () => {
+		expect(marginLabelKey({ spreadMargin: true }, false)).toBe('builder.marginSpread');
+		expect(marginLabelKey({ spreadMargin: true }, true)).toBe('builder.marginSameExpiry');
+		expect(marginLabelKey({ spreadMargin: true, calendarMargin: true }, true)).toBe('builder.marginSpread');
+		expect(marginLabelKey({}, true)).toBe('builder.marginPerLeg');
 	});
 });
 

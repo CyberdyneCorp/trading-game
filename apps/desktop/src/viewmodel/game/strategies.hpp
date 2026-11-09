@@ -185,10 +185,14 @@ struct RollPlan {
 
 // The orders of a roll: close every held option leg of the near expiry and open the same structure on
 // the later expiry `to`, at the same strikes when listed (else the nearest listed), or re-centred at the
-// money. Ordered buys, then sells. nullopt when nothing expires first or a strike cannot be found.
+// money. Ordered buys, then sells. nullopt when `to` is not a roll target or a strike cannot be found.
 std::optional<RollPlan> roll_orders(const GameState& g, const std::vector<HeldLeg>& held, int to, bool recenter, double f);
-// Later listed expiries a roll from `from` can go to (the next one first).
-std::vector<int> roll_targets(const std::vector<OptionQuote>& chain, int from);
+// The builder's margin label key (web marginLabelKey): a two-expiry structure on a mission without the
+// calendar margin pays its sale's own margin, so it is not called a covered pair.
+std::string margin_label_key(bool spread_margin, bool calendar_margin, bool two_expiries);
+// Later listed expiries a roll from `from` can go to (the next one first), leaving out the expiries the
+// combo already `held` (a calendar's short rolled onto its long's expiry would close the calendar).
+std::vector<int> roll_targets(const std::vector<OptionQuote>& chain, int from, const std::vector<int>& held = {});
 // The perpetual hedge to neutral (D9): -delta_units in contracts, rounded toward zero to the lot;
 // nullopt when that is less than one lot.
 std::optional<OrderLeg> hedge_order(const GameState& g, double delta_units);

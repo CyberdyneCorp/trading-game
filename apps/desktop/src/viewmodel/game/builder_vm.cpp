@@ -342,7 +342,7 @@ BuilderView BuilderViewModel::view(const Texts& t, const GameState& g, bool busy
   const std::string p = problem(g);
   if (!p.empty() && !legs.empty()) v.problem = t.tr("builder.problem." + p);
   view_analysis(t, g, v);
-  v.legging = t.tr("builder.legging");
+  v.legging = t.tr(has_limit() ? "builder.leggingLimit" : "builder.legging");
   v.can_submit = can_submit(g, busy);
   return v;
 }
@@ -397,19 +397,21 @@ void BuilderViewModel::view_legs(const Texts& t, const GameState& g, BuilderView
 namespace {
 
 // The dry run leg by leg (in submission order) and its totals.
-void view_preview(const Texts& t, const GameState& g, const ComboPreview& p, const std::vector<OrderLeg>& o, BuilderView& v) {
+void view_preview(const Texts& t, const GameState& g, const ComboPreview& p, const std::vector<OrderLeg>& o, bool two_expiries, BuilderView& v) {
   const Locale L = t.locale();
   v.preview.push_back({t.tr("builder.order"), Tone::Muted});
   for (std::size_t i = 0; i < p.legs.size(); ++i) {
     const auto& r = p.legs[i];
-    const std::string head = std::to_string(i + 1) + ". " + order_leg_name(t, g, o[i]) + " @ " + fmt::fmt_price(r.quote, L) + " \xE2\x80\x94 ";
+    const std::string at = o[i].premium ? t.tr("builder.limitAt", {{"limit", fmt::fmt_price(*o[i].premium, L)}, {"quote", fmt::fmt_price(r.quote, L)}})
+                                        : fmt::fmt_price(r.quote, L);
+    const std::string head = std::to_string(i + 1) + ". " + order_leg_name(t, g, o[i]) + " @ " + at + " \xE2\x80\x94 ";
     v.preview.push_back(r.accepted ? Line{head + "\xE2\x9C\x93 " + t.tr("builder.accepted"), Tone::Plain}
                                    : Line{head + "\xE2\x9C\x96 " + rejection_text(t, r.reason), Tone::Down});
   }
   const double net = fmt::num(p.net_premium);
   v.totals.emplace_back(t.tr(net >= 0 ? "builder.credit" : "builder.debit"), fmt::fmt_money(std::fabs(net), L));
   v.totals.emplace_back(t.tr("ticket.estFee"), fmt::fmt_money(p.fees, L));
-  v.totals.emplace_back(t.tr(g.rules.spread_margin ? "builder.marginSpread" : "builder.marginPerLeg"),
+  v.totals.emplace_back(t.tr(margin_label_key(g.rules.spread_margin, g.rules.calendar_margin, two_expiries)),
                         fmt::fmt_money(p.option_margin_after_fill, L));
   v.totals.emplace_back(t.tr("builder.availableAfter"), fmt::fmt_money(p.available_after_fill, L));
 }
@@ -420,7 +422,7 @@ void BuilderViewModel::view_analysis(const Texts& t, const GameState& g, Builder
   const Locale L = t.locale();
   if (whatif_ && !whatif_->ok() && whatif_->error == "unsupported") v.no_analysis = t.tr("lab.unsupported");
   const auto o = orders(g);
-  if (preview_ && preview_->ok() && o && preview_->value->legs.size() == o->size()) view_preview(t, g, *preview_->value, *o, v);
+  if (preview_ && preview_->ok() && o && preview_->value->legs.size() == o->size()) view_preview(t, g, *preview_->value, *o, leg_expiries(legs, expiry).size() > 1, v);
   if (!whatif_ || !whatif_->ok()) return;
   const WhatIfResult& w = *whatif_->value;
   v.has_whatif = true;

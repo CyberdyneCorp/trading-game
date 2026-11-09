@@ -41,7 +41,8 @@
 	const held = $derived(status ? comboHoldings(status) : []);
 	const options = $derived(held.filter((h) => h.series !== 0));
 	const from = $derived(Math.min(...options.map((h) => chain.find((q) => q.id === h.series)?.expiryStep ?? Infinity)));
-	const targets = $derived(Number.isFinite(from) ? rollTargets(chain, from) : []);
+	const heldExpiries = $derived(options.map((h) => chain.find((q) => q.id === h.series)?.expiryStep ?? 0));
+	const targets = $derived(Number.isFinite(from) ? rollTargets(chain, from, heldExpiries) : []);
 	$effect(() => {
 		if (!targets.includes(to)) to = targets[0] ?? 0;
 	});
@@ -105,9 +106,13 @@
 		adjustKind = 'close';
 	}
 
-	function addHedge() {
-		const delta = before?.risk ? Number(before.risk.deltaUnits) : 0;
-		const h = hedgeOrder(game, delta);
+	// The hedge is sized from the holdings now: `before` belongs to the last previewed change and can be a
+	// step old (playtest: after a roll the hedge was sized from the delta before the roll).
+	async function addHedge() {
+		const mine = ++ticket;
+		const now = await session.runWhatIf({ holdings: true, legs: [] });
+		if (mine !== ticket) return;
+		const h = now.ok && now.value.risk ? hedgeOrder(game, Number(now.value.risk.deltaUnits)) : null;
 		adjustment = h ? [h] : [];
 		adjustKind = 'hedge';
 	}
@@ -165,7 +170,7 @@
 			<div class="panel-in" data-testid="roll-panel">
 				<h4>{t('roll.title', { name: name(status) })}</h4>
 				{#if targets.length === 0}
-					<p class="muted small">{t('roll.none')}</p>
+					<p class="muted small" data-testid="roll-none">{t(rollTargets(chain, from).length ? 'roll.noneHeld' : 'roll.none')}</p>
 				{:else}
 					<label>{t('roll.to')}
 						<select bind:value={to} data-testid="roll-to">

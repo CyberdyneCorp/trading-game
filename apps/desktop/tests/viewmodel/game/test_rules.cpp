@@ -279,6 +279,15 @@ TEST_CASE("dialogs: numeric lesson answers, plan commands, tutorial cards, remap
   CHECK(cmd.amount == "50.00");
   CHECK(cmd.number == 60);
   CHECK(plan.headline(t).find("LONG 16,6") != std::string::npos);
+  // A skipped plan sends confidence 0 as the web does: the engine hashes the plan, so a 50 made the
+  // same inputs end on another state digest than the web's (W1-X1 playtest).
+  const GameCommand skipped = plan.command(plan.entry(70, true));
+  CHECK(skipped.skipped);
+  CHECK(skipped.number == 0);
+  // Risks are logged as Number#toFixed(2): an exact tie rounds up (a condor's 10.50 over 4 legs).
+  PlanDialog leg;
+  leg.open(true, "10", 1, 2.625, "", "", std::string("C 105"));
+  CHECK(leg.command(leg.entry(60, true)).amount == "2.63");
 
   Keymap map;
   Remap r;

@@ -50,6 +50,14 @@ export async function submitCombo(port: ComboPort, legs: readonly OrderLeg[], ta
 	return { ok: true, orderIds: accepted };
 }
 
+/**
+ * The notice after a combo's legs are placed: a limit leg is not "executed at the next open" (playtest:
+ * an IOC limit condor said so and then nothing filled).
+ */
+export function comboSentKey(orders: readonly OrderLeg[]): 'combo.sent' | 'combo.sentLimit' {
+	return orders.some((o) => o.premium != null) ? 'combo.sentLimit' : 'combo.sent';
+}
+
 /** The next free combo id ("c1", "c2", ...). */
 export function nextComboId(combos: readonly { id: string }[]): string {
 	const used = combos.map((c) => Number(c.id.slice(1))).filter((n) => Number.isFinite(n));

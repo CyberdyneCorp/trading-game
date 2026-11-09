@@ -1099,6 +1099,7 @@ builder.debit,Débito líquido (prêmios),Net debit (premiums)
 builder.marginSpread,Margem exigida (venda coberta paga só a perda máxima do par),Margin required (a covered sale pays only the pair's maximum loss)
 plan.riskUnbounded,"A perda máxima desta estrutura é ilimitada: o risco acima é só a margem exigida, não o pior caso.","This structure has no maximum loss: the risk above is only the margin required, not the worst case."
 builder.marginPerLeg,Margem exigida (cada venda separada),Margin required (each sale on its own)
+builder.marginSameExpiry,Margem exigida (só uma compra do mesmo vencimento cobre a venda nesta missão),Margin required (only a long of the same expiry covers a sale in this mission)
 builder.availableAfter,Disponível depois das execuções,Available after the fills
 builder.sizeTitle,Dimensionar pela perda máxima,Size by the maximum loss
 builder.sizeRisk,Risco (% patrimônio),Risk (% of equity)
@@ -1109,6 +1110,7 @@ builder.sizeNoStop,Sua posição comprada não tem stop: a perda máxima vai at�
 builder.openLab,Abrir no laboratório,Open in the lab
 builder.labPositions,Laboratório com minhas posições,Lab with my positions
 builder.legging,"As pernas viram ordens a mercado separadas, enviadas nesta barra: compras de opção primeiro, depois o perpétuo, depois as vendas. Se uma for recusada agora, as outras são canceladas. Na abertura, uma perna ainda pode ser cancelada (sem comprador, margem): o combo fica incompleto e você decide o que fazer.","The legs become separate market orders, sent at this bar: option buys first, then the perpetual, then the sales. If one is refused now, the others are cancelled. At the open a leg can still be cancelled (no buyer, margin): the combo is then incomplete and you decide what to do."
+builder.leggingLimit,"As pernas viram ordens separadas (a mercado ou limitadas), enviadas nesta barra: compras de opção primeiro, depois o perpétuo, depois as vendas. Se uma for recusada agora, as outras são canceladas. Uma perna limitada só executa quando o preço alcança o seu limite, dentro da validade escolhida: o combo pode ficar incompleto, ou sem nada executado, e você decide o que fazer.","The legs become separate orders (at market or limit), sent at this bar: option buys first, then the perpetual, then the sales. If one is refused now, the others are cancelled. A limit leg fills only when the price reaches its limit, within the time in force you chose: the combo can end incomplete, or with nothing filled, and you decide what to do."
 builder.submit,Enviar combo,Submit combo
 builder.noBid,"Sem comprador agora (bid 0,00): esta venda a mercado tende a ser cancelada na abertura, e o combo ficaria incompleto.","No buyer now (bid 0.00): this market sale will likely be cancelled at the open, leaving the combo incomplete."
 strategy.bull_call,Trava de alta com calls,Bull call spread
@@ -1124,6 +1126,7 @@ strategy.custom,Pernas livres,Free legs
 combo.label,{name} · {n} pernas,{name} · {n} legs
 combo.labelOne,{name} · 1 perna,{name} · 1 leg
 combo.sent,✓ {name}: pernas enviadas (executam na próxima abertura),✓ {name}: legs sent (they execute at the next open)
+combo.sentLimit,✓ {name}: pernas enviadas. Uma perna limitada só executa quando o preço alcança o seu limite; o que não executar dentro da validade é cancelado.,✓ {name}: legs sent. A limit leg fills only when the price reaches its limit; whatever does not fill within its time in force is cancelled.
 combo.refused,Perna {n} recusada: {reason}. As pernas já aceitas foram canceladas; nada do combo vai executar.,Leg {n} refused: {reason}. The legs already accepted were cancelled; nothing of the combo will execute.
 combo.long,compra,long
 combo.short,venda,short
@@ -1335,6 +1338,7 @@ builder.legType,Tipo da perna,Leg type
 builder.legMarket,Mercado,Market
 builder.legLimit,Limitada,Limit
 builder.limitPremium,Prêmio limite,Limit premium
+builder.limitAt,limite {limit} (cotação {quote}),limit {limit} (quote {quote})
 builder.limitNote,"Pernas limitadas são analisadas aos seus prêmios limite. O padrão é o meio da cotação, arredondado para o lado passivo.","Limit legs are analysed at their limit premiums. The default is the quote's mid, rounded to the passive side."
 builder.comboTif,Validade das pernas limitadas,Time in force of the limit legs
 builder.comboTifNote,"IOC: cada perna executa na próxima abertura ou nunca, o que limita o risco de pernas soltas a uma barra.","IOC: each leg fills at the next open or never, which bounds legging risk to one bar."
@@ -1366,6 +1370,7 @@ roll.net,Prêmio líquido da rolagem,Net premium of the roll
 roll.send,Enviar a rolagem,Send the roll
 roll.sent,Rolagem de {name} enviada: executa na próxima abertura.,Roll of {name} sent: it executes at the next open.
 roll.none,Nenhum vencimento mais longo listado para rolar.,No later listed expiry to roll to.
+roll.noneHeld,Os vencimentos mais longos já têm uma perna desta estrutura: rolar para lá fecharia essa perna em vez de rolar. Feche ou ajuste uma perna.,Every later expiry already holds a leg of this structure: rolling there would close that leg instead of rolling it. Close or adjust a leg instead.
 adjust.title,Ajustar {name},Adjust {name}
 adjust.closeLeg,Fechar perna,Close leg
 adjust.addHedge,Adicionar hedge,Add hedge

@@ -377,8 +377,9 @@ function strikeNearest(strikes: readonly number[], k: number): number | undefine
  * The orders of a roll (design D3): close every held option leg of the near expiry and open the same
  * structure on the later expiry `to`, at the same strikes when listed (else the nearest listed), or
  * re-centred at the money (every strike shifted by the ATM strike minus the structure's middle strike).
- * Ordered buys, then sells, so protection is added before it is removed. Null when nothing expires
- * first or a strike cannot be found.
+ * Ordered buys, then sells, so protection is added before it is removed. Null when `to` is not a
+ * roll target (`rollTargets`: later than the near expiry and not held by the combo) or a strike
+ * cannot be found.
  */
 export function rollOrders(game: GameState, held: readonly HeldLeg[], to: number, recenter: boolean, f: number): RollPlan | null {
 	const chain = game.options.chain;
@@ -388,7 +389,7 @@ export function rollOrders(game: GameState, held: readonly HeldLeg[], to: number
 	});
 	if (legs.length === 0) return null;
 	const from = Math.min(...legs.map((l) => l.q.expiryStep));
-	if (to <= from) return null;
+	if (!rollTargets(chain, from, legs.map((l) => l.q.expiryStep)).includes(to)) return null;
 	const near = legs.filter((l) => l.q.expiryStep === from);
 	const strikes = strikesOf(chain, to);
 	const ks = near.map((l) => Number(l.q.strike));
@@ -409,9 +410,27 @@ export function rollOrders(game: GameState, held: readonly HeldLeg[], to: number
 	return { orders, from, to };
 }
 
-/** Later listed expiries a roll from `from` can go to (the next one first). */
-export function rollTargets(chain: readonly OptionQuoteView[], from: number): number[] {
-	return expiriesOf(chain).filter((e) => e > from);
+/**
+ * The builder's margin label: the spread rule pairs a covered sale only within one expiry unless the
+ * mission declares the calendar margin (design D5), so a two-expiry structure on a mission without it
+ * pays the sale's own margin (playtest: m17's calendar was labelled "a covered sale pays only the
+ * pair's maximum loss" over a naked margin).
+ */
+export function marginLabelKey(
+	rules: { spreadMargin?: boolean; calendarMargin?: boolean },
+	twoExpiries: boolean
+): 'builder.marginPerLeg' | 'builder.marginSameExpiry' | 'builder.marginSpread' {
+	if (!rules.spreadMargin) return 'builder.marginPerLeg';
+	return twoExpiries && !rules.calendarMargin ? 'builder.marginSameExpiry' : 'builder.marginSpread';
+}
+
+/**
+ * Later listed expiries a roll from `from` can go to (the next one first), leaving out the expiries the
+ * combo already holds (`held`): rolling a calendar's short onto its long's expiry would net the two and
+ * close the calendar instead of rolling it.
+ */
+export function rollTargets(chain: readonly OptionQuoteView[], from: number, held: readonly number[] = []): number[] {
+	return expiriesOf(chain).filter((e) => e > from && !held.includes(e));
 }
 
 /**

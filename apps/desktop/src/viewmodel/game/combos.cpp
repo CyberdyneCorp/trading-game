@@ -95,6 +95,11 @@ const ComboTrade* trade_of_leg(const std::vector<ComboTrade>& trades, const LegS
 
 }  // namespace
 
+std::string combo_sent_key(const std::vector<OrderLeg>& orders) {
+  const bool limits = std::any_of(orders.begin(), orders.end(), [](const OrderLeg& o) { return o.premium.has_value(); });
+  return limits ? "combo.sentLimit" : "combo.sent";
+}
+
 std::string next_combo_id(const std::vector<ComboRecord>& combos) {
   int top = 0;
   for (const auto& c : combos) {

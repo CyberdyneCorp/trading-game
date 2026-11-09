@@ -43,6 +43,8 @@ std::string next_submission_number(const ComboRecord& rec, SubmissionKind kind);
 
 // The next free combo id ("c1", "c2", ...).
 std::string next_combo_id(const std::vector<ComboRecord>& combos);
+// The notice after a combo's legs are placed (web comboSentKey): a limit leg is not "executed at the next open".
+std::string combo_sent_key(const std::vector<OrderLeg>& orders);
 
 // Combos from an action log (web Action JSON, one per entry): tagged actions grouped by tag, each at the
 // step it was placed (warm-up + the advances before it).

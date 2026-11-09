@@ -197,8 +197,12 @@ export function strategiesWave1Cases(m, add, chain, games) {
 	}
 	add('whatifLegs', [limitOrders, null], m.whatifLegs(limitOrders, null));
 	add('whatifLegs', [limitOrders, { qty: '4.80000000', entry: '99.50000000' }], m.whatifLegs(limitOrders, { qty: '4.80000000', entry: '99.50000000' }));
-	for (const from of [80, 100, 150, 200]) add('rollTargets', [chain, from], m.rollTargets(chain, from));
+	for (const from of [80, 100, 150, 200]) add('rollTargets', [chain, from, []], m.rollTargets(chain, from));
+	for (const held of [[100, 150], [100], [80, 200], [150, 100]]) add('rollTargets', [chain, Math.min(...held), held], m.rollTargets(chain, Math.min(...held), held));
 	rollCases(m, add, games);
+	for (const rules of [{}, { spreadMargin: true }, { spreadMargin: true, calendarMargin: true }]) {
+		for (const two of [false, true]) add('marginLabelKey', [rules, two], m.marginLabelKey(rules, two));
+	}
 	for (const g of games) {
 		for (const d of [0, 0.05, 3.27, -3.27, 48.5, -0.15]) add('hedgeOrder', [g, d], m.hedgeOrder(g, d));
 	}

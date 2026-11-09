@@ -411,7 +411,10 @@ std::optional<RollPlan> roll_orders(const GameState& g, const std::vector<HeldLe
   if (legs.empty()) return std::nullopt;
   int from = legs.front().quote->expiry_step;
   for (const auto& l : legs) from = std::min(from, l.quote->expiry_step);
-  if (to <= from) return std::nullopt;
+  std::vector<int> held_expiries;
+  for (const auto& l : legs) held_expiries.push_back(l.quote->expiry_step);
+  const std::vector<int> targets = roll_targets(chain, from, held_expiries);
+  if (std::find(targets.begin(), targets.end(), to) == targets.end()) return std::nullopt;
   std::vector<HeldQuote> near;
   std::copy_if(legs.begin(), legs.end(), std::back_inserter(near), [&](const HeldQuote& l) { return l.quote->expiry_step == from; });
   const std::vector<double> strikes = strikes_of(chain, to);
@@ -432,10 +435,17 @@ std::optional<RollPlan> roll_orders(const GameState& g, const std::vector<HeldLe
   return plan;
 }
 
-std::vector<int> roll_targets(const std::vector<OptionQuote>& chain, int from) {
+std::string margin_label_key(bool spread_margin, bool calendar_margin, bool two_expiries) {
+  if (!spread_margin) return "builder.marginPerLeg";
+  return two_expiries && !calendar_margin ? "builder.marginSameExpiry" : "builder.marginSpread";
+}
+
+// Later listed expiries, leaving out those the combo already holds: rolling a calendar's short onto its
+// long's expiry would net the two and close the calendar (web rollTargets).
+std::vector<int> roll_targets(const std::vector<OptionQuote>& chain, int from, const std::vector<int>& held) {
   std::vector<int> out;
   for (const int e : expiries_of(chain)) {
-    if (e > from) out.push_back(e);
+    if (e > from && std::find(held.begin(), held.end(), e) == held.end()) out.push_back(e);
   }
   return out;
 }

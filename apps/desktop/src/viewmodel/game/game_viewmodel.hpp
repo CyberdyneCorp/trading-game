@@ -242,6 +242,9 @@ class GameViewModel {
   };
   [[nodiscard]] ConfirmView confirm_view() const;
   void confirm_answer(bool yes);
+  // The run's action log as the engine host keeps it (one JSON action per entry): the playtest compares
+  // it with the web's run file for the same inputs.
+  [[nodiscard]] const std::vector<std::string>* action_log() const { return log_.get(); }
   // The portfolio (D9): the engine's holdings what-if with its risk block, refreshed on every state.
   [[nodiscard]] const std::optional<WhatIfResult>& portfolio() const { return portfolio_; }
   [[nodiscard]] PortfolioView portfolio_view() const;
@@ -411,8 +414,10 @@ class GameViewModel {
     bool adjust_close = true;
     std::optional<Analysis<ComboPreview>> preview;
     std::optional<WhatIfResult> before, after;
+    bool hedge_pending = false;  // "Add hedge" waits for this state's holdings what-if (`before`)
   };
   std::optional<Live> live_;
+  void apply_hedge();
   [[nodiscard]] std::optional<ComboStatus> live_status() const;
   [[nodiscard]] std::vector<OrderLeg> live_orders() const;
   [[nodiscard]] std::optional<ComboTif> live_tif() const;

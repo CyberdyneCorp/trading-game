@@ -54,7 +54,7 @@
 	} from '#lib/game/strategies.ts';
 	import { analyticsOf, unboundedAbove } from '#lib/game/whatifLab.ts';
 	import { barsLeft, tifOrder, type TifChoice } from '#lib/game/orderRules.ts';
-	import { TWO_EXPIRY, defaultLimit, legExpiries, twoExpiryTemplateLegs } from '#lib/game/strategies.ts';
+	import { TWO_EXPIRY, defaultLimit, legExpiries, marginLabelKey, twoExpiryTemplateLegs } from '#lib/game/strategies.ts';
 	import PayoffChart from './PayoffChart.svelte';
 	import TifField from './TifField.svelte';
 	import HeatmapPanel from './HeatmapPanel.svelte';
@@ -351,7 +351,7 @@
 			<ol class="preview" data-testid="builder-preview" aria-label={t('builder.order')}>
 				{#each p.legs as r, i (i)}
 					<li class:down={!r.accepted}>
-						{legName(orders[i])} @ {fmtPrice(r.quote, L)} —
+						{legName(orders[i])} @ {orders[i].premium ? t('builder.limitAt', { limit: fmtPrice(orders[i].premium!, L), quote: fmtPrice(r.quote, L) }) : fmtPrice(r.quote, L)} —
 						{#if r.accepted}✓ {t('builder.accepted')}{:else}<span data-testid="builder-refused">✖ {rejectionText(r.reason)}</span>{/if}
 					</li>
 				{/each}
@@ -359,7 +359,7 @@
 			<dl class="kv est" data-testid="builder-totals">
 				<dt><Term id="premium">{t(Number(p.netPremium) >= 0 ? 'builder.credit' : 'builder.debit')}</Term></dt><dd>{fmtMoney(String(Math.abs(Number(p.netPremium))), L)}</dd>
 				<dt>{t('ticket.estFee')}</dt><dd>{fmtMoney(p.fees, L)}</dd>
-				<dt>{t(game.missionRules.spreadMargin ? 'builder.marginSpread' : 'builder.marginPerLeg')}</dt><dd data-testid="builder-margin">{fmtMoney(p.optionMarginAfterFill, L)}</dd>
+				<dt>{t(marginLabelKey(game.missionRules, twoExpiries))}</dt><dd data-testid="builder-margin">{fmtMoney(p.optionMarginAfterFill, L)}</dd>
 				<dt>{t('builder.availableAfter')}</dt><dd>{fmtMoney(p.availableAfterFill, L)}</dd>
 			</dl>
 		{/if}
@@ -394,7 +394,7 @@
 			{/if}
 			<button onclick={() => orders && onLab(whatifLegs(orders, covers ? held : null))} data-testid="builder-open-lab">⚗ {t('builder.openLab')}</button>
 		{/if}
-		<p class="muted small">{t('builder.legging')}</p>
+		<p class="muted small">{t(hasLimit ? 'builder.leggingLimit' : 'builder.legging')}</p>
 		<button class="primary submit" onclick={submit} disabled={!canSubmit} data-testid="builder-submit">{t('builder.submit')}</button>
 		{#if v18}<LiveCombos {session} {onSubmit} />{/if}
 	{/if}

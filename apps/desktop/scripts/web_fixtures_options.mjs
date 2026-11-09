@@ -242,6 +242,9 @@ function statusCases(m, add, recs) {
 export function combosFixture(m) {
 	const { list, add } = cases();
 	for (const combos of [[], [{ id: 'c1' }, { id: 'c3' }], [{ id: 'c2' }, { id: 'x' }]]) add('nextComboId', [combos], m.nextComboId(combos));
+	for (const orders of [[], [{ series: 3, side: 'buy', qty: '1.0' }], [{ series: 3, side: 'buy', qty: '1.0' }, { series: 4, side: 'sell', qty: '1.0', premium: '1.10' }]]) {
+		add('comboSentKey', [orders], m.comboSentKey(orders));
+	}
 	add('combosFromLog', [COMBO_LOG, 60], m.combosFromLog(COMBO_LOG, 60));
 	const statuses = statusCases(m, add, m.combosFromLog(COMBO_LOG, 60));
 	const perpOnly = [{ series: 0, side: 'buy', qty: '2.5' }];

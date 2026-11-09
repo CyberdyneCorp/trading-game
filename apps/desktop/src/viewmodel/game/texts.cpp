@@ -34,7 +34,7 @@ std::string flags(const Texts& t, const EngineEvent& e) {
 std::string fill_line(const Texts& t, const EngineEvent& e) {
   const Locale L = t.locale();
   const Params vars = {{"id", std::to_string(e.order_id)},
-                       {"side", upper(e.side)},
+                       {"side", upper(t.tr(e.side == "buy" ? "side.buy" : "side.sell"))},  // web sideLabel
                        {"qty", fmt::fmt_qty(e.qty, L)},
                        {"price", fmt::fmt_price(e.price, L)}};
   std::string out = t.tr(e.order_id ? "feed.filled" : "feed.forcedFill", vars);
