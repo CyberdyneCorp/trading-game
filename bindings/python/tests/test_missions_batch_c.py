@@ -17,9 +17,9 @@ OBJECTIVES = {
 }
 
 
-def test_strategy_missions_follow_the_capstone_in_the_catalog():
+def test_strategy_missions_follow_the_capstone_in_the_catalog():  # m18-m25 come after them
     ids = [m["id"] for m in missions()]
-    assert ids[-5:] == STRATEGIES
+    assert ids[12:17] == STRATEGIES
     by_id = {m["id"]: m for m in missions()}
     for mission_id in STRATEGIES:
         assert by_id[mission_id]["leverageCap"] == 3

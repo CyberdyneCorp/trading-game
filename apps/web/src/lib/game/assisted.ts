@@ -7,7 +7,8 @@
 export interface AssistedLink {
 	/** The run it was made from. */
 	from: string;
-	kind: 'rewind' | 'seed';
+	/** 'mistake' (progress v4, design D18): a retry from a debrief moment, also never counted. */
+	kind: 'rewind' | 'seed' | 'mistake';
 	/** Rewind: the decision step the new attempt resumes at. */
 	step?: number;
 }

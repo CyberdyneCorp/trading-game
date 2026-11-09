@@ -22,7 +22,8 @@
 		onCancelPick,
 		onPattern,
 		onDragLevel,
-		onMoveOrder
+		onMoveOrder,
+		moment = null
 	}: {
 		game: GameState;
 		preview?: TicketPreview | null;
@@ -34,6 +35,8 @@
 		onDragLevel?: (which: 'stop' | 'tp', price: number) => void;
 		/** A working protective order's line was dropped at a new price. */
 		onMoveOrder?: (orderId: number, price: number) => void;
+		/** Debrief: a bar a finding points to (scoring v14 evidence), marked and brought into view. */
+		moment?: number | null;
 	} = $props();
 
 	let canvas: HTMLCanvasElement | undefined = $state();
@@ -90,6 +93,10 @@
 	const bars = $derived(game.bars.map((b) => b.slice(0, 5).map(Number) as [number, number, number, number, number]));
 	const first = $derived(Math.max(0, bars.length - zoom));
 	const visible = $derived(bars.slice(first));
+	// A debrief moment before the visible window widens the zoom to show it (with a few bars before it).
+	$effect(() => {
+		if (moment != null && moment < first) zoom = Math.min(Math.max(30, bars.length - moment + 5), bars.length);
+	});
 	// Continuity bars (engine policy v17): a gap in the data, no trading. Drawn as a shaded slot with a
 	// dashed line at the carried close instead of a candle.
 	const continuity = $derived(game.bars.map((b) => b[6] === true));
@@ -211,6 +218,7 @@
 		drawFills(ctx, x, y);
 		drawBestCloses(ctx, x, y);
 		drawNews(ctx, x, priceH);
+		drawMoment(ctx, slotW, x, priceH);
 		if (showSma) drawLine(ctx, game.indicators.sma20, cssVar('--attention'), x, y);
 		if (showEma) drawLine(ctx, game.indicators.ema50, cssVar('--info'), x, y);
 		if (showBb) drawBands(ctx, x, y);
@@ -462,6 +470,19 @@
 		}
 	}
 
+	// The debrief moment: a shaded column on its bar with a ▼ above it.
+	function drawMoment(ctx: CanvasRenderingContext2D, slotW: number, x: (i: number) => number, priceH: number) {
+		if (moment == null) return;
+		const i = moment - first;
+		if (i < 0 || i >= visible.length) return;
+		ctx.fillStyle = cssVar('--attention');
+		ctx.globalAlpha = 0.18;
+		ctx.fillRect(x(i) - slotW / 2, 0, slotW, priceH);
+		ctx.globalAlpha = 1;
+		ctx.font = '12px VT323, monospace';
+		ctx.fillText('▼', x(i) - 4, 10);
+	}
+
 	// News markers at release bars: dotted line + "N" flag (released items only exist in the state).
 	function drawNews(ctx: CanvasRenderingContext2D, x: (i: number) => number, priceH: number) {
 		ctx.font = '12px VT323, monospace';
@@ -658,7 +679,7 @@
 
 	$effect(() => {
 		// Redraw on any dependency change (game, size, hover, zoom, locale).
-		void [game, width, height, hover, hoverY, zoom, i18n.locale, visible, showSma, showEma, showVwap, showBb, showPatterns, osc, preview, picking, drag];
+		void [game, width, height, hover, hoverY, zoom, i18n.locale, visible, showSma, showEma, showVwap, showBb, showPatterns, osc, preview, picking, drag, moment];
 		draw();
 	});
 </script>

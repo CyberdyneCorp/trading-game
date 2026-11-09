@@ -14,7 +14,11 @@
 
 namespace tradelab::desktop {
 
+// A new run snapshots today's campaign order (progress v4).
 CampaignRun new_campaign(const WebContent& c, std::string id, std::int64_t now);
+// The missions of a campaign run, in order: its snapshot, else the order of the runs before v4
+// (WebContent::campaign_order_v3), so a stored index never jumps to another mission.
+const std::vector<std::string>& campaign_order(const WebContent& c, const CampaignRun& run);
 // The mission the active campaign run plays next, or "" when there is none.
 std::string next_campaign_mission(const WebContent& c, const std::optional<CampaignRun>& run);
 // Starts a new campaign run; an active one is ended as abandoned (kept in the history).
@@ -33,6 +37,17 @@ struct RunOutcome {
 // Applies a campaign mission's outcome once (idempotent by run id); unchanged when the run is not the
 // active campaign run's current mission.
 Progress settle_campaign_run(const WebContent& c, Progress p, const CampaignLink& link, const RunOutcome& out);
+// What a run outside the campaign tells the curriculum (design D14 "Elective stages").
+struct FreeRunOutcome {
+  std::string mission_id;
+  bool finished = false;
+  bool assisted = false;  // assisted practice never counts
+  bool campaign = false;  // a campaign leg settles through settle_campaign_run instead
+};
+// A finished, non-assisted free-play run of an elective stage's mission assesses it, so the elective
+// stage can pass. Idempotent; never removes anything.
+Progress assess_elective(const WebContent& c, Progress p, const FreeRunOutcome& out);
+
 bool below_campaign_minimum(const WebContent& c, const std::string& equity);
 // Best ending capital among completed campaign runs, or "".
 std::string best_completed_capital(const std::vector<CampaignRun>& history);

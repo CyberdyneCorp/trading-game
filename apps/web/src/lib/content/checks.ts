@@ -43,6 +43,13 @@ export type Check = Base &
 		| { kind: 'breakeven'; legs: PayoffLeg[]; expect: number[] }
 		| { kind: 'maxProfit'; legs: PayoffLeg[]; expect: number | null }
 		| { kind: 'maxLoss'; legs: PayoffLeg[]; expect: number | null }
+		// add-practice-and-advanced-strategies D12 (stated deltas and gammas are givens, never model values):
+		// perpetual units that make a delta neutral; ½ × gamma × move² × units; a calendar's net debit;
+		// the worst result left after a partial exit and a stop moved.
+		| { kind: 'hedge'; deltaPerUnit: number; units: number; expect: number }
+		| { kind: 'scalp'; gamma: number; move: number; units: number; expect: number }
+		| { kind: 'calendar'; near: number; far: number; qty: number; expect: number }
+		| ScaleCheck
 		| TrailCheck
 		| WhatIfCheck
 	);
@@ -71,6 +78,27 @@ export interface TrailCheck {
 	ratePct?: number;
 	tick: number;
 	expect: number;
+}
+
+/**
+ * A partial exit, then the stop moved: what is banked on the exit plus what the rest makes at the new
+ * stop (a negative number is a loss still possible), before costs.
+ */
+export interface ScaleCheck {
+	kind: 'scale';
+	side: Side;
+	entry: number;
+	qty: number;
+	exitPrice: number;
+	exitQty: number;
+	newStop: number;
+	expect: number;
+}
+
+/** The worst result left for a trade after a partial exit and a stop moved (a scale check). */
+export function scaleOf(c: ScaleCheck): number {
+	const d = c.side === 'buy' ? 1 : -1;
+	return d * (c.exitPrice - c.entry) * c.exitQty + d * (c.newStop - c.entry) * (c.qty - c.exitQty);
 }
 
 /** The trigger a trail check computes, through the exact fixed-point mirror of the engine. */
@@ -141,6 +169,22 @@ function scalar(c: Check): number | null {
 			return maxLoss(c.legs);
 		case 'trail':
 			return trailOf(c);
+		default:
+			return strategyScalar(c);
+	}
+}
+
+// The checks of the advanced strategies and trade management lessons (D12).
+function strategyScalar(c: Check): number | null {
+	switch (c.kind) {
+		case 'hedge':
+			return Math.abs(c.deltaPerUnit * c.units);
+		case 'scalp':
+			return 0.5 * c.gamma * c.move * c.move * c.units;
+		case 'calendar':
+			return (c.far - c.near) * c.qty;
+		case 'scale':
+			return scaleOf(c);
 		default:
 			return null;
 	}

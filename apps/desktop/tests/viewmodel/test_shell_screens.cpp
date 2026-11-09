@@ -9,6 +9,7 @@
 #include "model/engine_run.hpp"
 #include "support/shell_helpers.hpp"
 #include "viewmodel/app_viewmodel.hpp"
+#include "viewmodel/curriculum.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/screens/screens.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -95,14 +96,14 @@ TEST_CASE("shell: menu lists the missions, the campaign and no resume line at st
   Fixture f;
   const ScreenModel m = f.vm.screen_model();
   REQUIRE(m.items.size() == 1);
-  CHECK(m.items[0].items.size() == 17);
+  CHECK(m.items[0].items.size() == 25);
   CHECK(m.items[0].items[0] == "Missão 01 · Range");
   CHECK_FALSE(m.is_visible(names::kMenuResumeRow));
   CHECK(m.text_of(names::kCampaignStart) == "▶ Começar campanha");
   CHECK(m.text_of(names::kMenuCurriculum) == "▦ Currículo e progresso");
   const WidgetLines* steps = m.lines_of(names::kCampaignSteps);
   REQUIRE(steps != nullptr);
-  CHECK(steps->lines.size() == 17);
+  CHECK(steps->lines.size() == 21);
   CHECK(steps->lines[0].text == "· Missão 06 · Livro fino");
   // Identical buttons on the web: the screen-reader name says which mission.
   bool named = false;
@@ -215,7 +216,7 @@ TEST_CASE("shell: a campaign starts its first mission with the campaign capital 
   f.enter(run);
   f.vm.back_to_menu();  // from the terminal, back to the menu: the campaign panel offers Continue
   ScreenModel m = f.vm.screen_model();
-  CHECK(m.text_of(names::kCampaignProgress).starts_with("Missão 1 de 17: Missão 06 · Livro fino"));
+  CHECK(m.text_of(names::kCampaignProgress).starts_with("Missão 1 de 21: Missão 06 · Livro fino"));
   CHECK(m.is_visible(names::kCampaignContinue, false));
   f.vm.campaign_continue();  // resumes the mission in play
   CHECK(f.vm.screen() == Screen::Game);
@@ -224,7 +225,7 @@ TEST_CASE("shell: a campaign starts its first mission with the campaign capital 
   REQUIRE(f.vm.screen() == Screen::Debrief);
   const ScreenModel d = f.vm.screen_model();
   CHECK(d.is_visible(names::kDebriefCampaignPanel, false));
-  CHECK(has_line(d, names::kDebriefCampaign, "CAMPANHA 1/17"));
+  CHECK(has_line(d, names::kDebriefCampaign, "CAMPANHA 1/21"));
   CHECK(has_line(d, names::kDebriefCampaign, "Estágios aprovados: Estrutura de mercado, Ordens"));
   CHECK(d.is_visible(names::kDebriefCampaignNext, false));
   CHECK_FALSE(d.is_visible(names::kDebriefAgain));
@@ -233,6 +234,37 @@ TEST_CASE("shell: a campaign starts its first mission with the campaign capital 
   f.vm.campaign_next();
   CHECK(f.engine.log.back() == "start m01-false-breakout 1");
   CHECK(f.engine.last_options.starting_balance == capital);
+}
+
+// Progress v4 (add-practice-and-advanced-strategies D14, D20): a campaign run stored before v4 has no
+// order snapshot and keeps playing the 17-mission order, so its index never jumps to another mission.
+TEST_CASE("shell: a campaign run stored before progress v4 keeps its 17-mission order") {
+  Fixture f;
+  MemoryProgressRepository repo;
+  tradelab::desktop::Progress p;
+  p.campaign = CampaignRun{"old", 1, "10000", 5, CampaignStatus::Active, {}};
+  repo.save(p);
+  f.vm.attach_repositories(&repo, nullptr);
+  const ScreenModel m = f.vm.screen_model();
+  CHECK(m.text_of(names::kCampaignProgress).starts_with("Missão 6 de 17: Missão 04 · Calls e puts"));
+  REQUIRE(m.lines_of(names::kCampaignSteps) != nullptr);
+  CHECK(m.lines_of(names::kCampaignSteps)->lines.size() == 17);
+  f.vm.campaign_continue();
+  CHECK(f.engine.log.back() == "start m04-options-buyer 1");
+}
+
+// Design D14 "Elective stages": a finished free-play run of an Advanced options mission assesses it.
+TEST_CASE("shell: a finished free-play run of an elective mission assesses it; a campaign mission does not") {
+  Fixture f;
+  f.vm.select(17);
+  RealRun run("m18-gamma-scalp");
+  f.play_selected(run);
+  CHECK(contains(f.vm.progress().assessed, "m18-gamma-scalp"));
+  f.vm.back_to_menu();
+  f.vm.select(21);  // m22 is on the campaign path: free play never assesses it
+  RealRun managed("m22-scale-manage");
+  f.play_selected(managed);
+  CHECK_FALSE(contains(f.vm.progress().assessed, "m22-scale-manage"));
 }
 
 TEST_CASE("shell: ending a campaign asks first and keeps passed stages") {
@@ -264,11 +296,21 @@ TEST_CASE("shell: curriculum map statuses, Academy lesson to completion, stage p
   ScreenModel m = f.vm.screen_model();
   const WidgetTable* stages = m.table_of(names::kCurriculumStages);
   REQUIRE(stages != nullptr);
-  REQUIRE(stages->rows.size() == 14);
+  REQUIRE(stages->rows.size() == 17);
   CHECK(stages->rows[0][1] == "Fundamentos");
   CHECK(stages->rows[0][2] == "DISPONÍVEL");
   CHECK(stages->rows[3][2] == "BLOQUEADO");
   CHECK(stages->rows[3][4].find("short") != std::string::npos);
+  // Branches beside the path (add-practice-and-advanced-strategies D14): marked ↳ and named after the
+  // stage they grow from; the path keeps its numbering; the elective stage says so.
+  CHECK(stages->rows[7][0] == "\xE2\x86\xB3");
+  CHECK(stages->rows[7][1] == "Gestão de trade · entradas e saídas em partes · Ramo de Dimensionamento de risco");
+  CHECK(stages->rows[8][0] == "8");
+  CHECK(stages->rows[12][0] == "\xE2\x86\xB3");
+  CHECK(stages->rows[12][2] == "BLOQUEADO · ELETIVO");
+  CHECK(stages->rows[12][3].starts_with("Avaliação: "));
+  CHECK(stages->rows[12][3].find("Fora da campanha") != std::string::npos);
+  CHECK(stages->rows[16][0] == "14");
   CHECK(m.text_of(names::kCurriculumLessonStart) == "Começar lição");
 
   f.vm.start_selected_lesson();

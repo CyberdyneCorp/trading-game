@@ -333,6 +333,18 @@ inline constexpr std::string_view kDebriefBars = "debrief-bars";
 inline constexpr std::string_view kDebriefBarsPrev = "debrief-bars-prev";
 inline constexpr std::string_view kDebriefBarsNext = "debrief-bars-next";
 
+// ---- Debrief, scoring v14 (spec gameplay-loop "Debrief views of biases and episodes"): the m22-m25
+// objectives read from the facts, the bars a finding or an episode points to (selecting one marks it
+// on the chart) and the position episodes from flat to flat ----
+inline constexpr std::string_view kDebriefObjectives = "debrief-objectives";
+inline constexpr std::string_view kDebriefMomentsTitle = "debrief-moments-title";
+inline constexpr std::string_view kDebriefMoments = "debrief-moments";
+inline constexpr std::string_view kDebriefMomentsBox = "debrief-moments-box";
+inline constexpr std::string_view kDebriefEpisodesPanel = "debrief-episodes-panel";
+inline constexpr std::string_view kDebriefEpisodesTitle = "debrief-episodes-title";
+inline constexpr std::string_view kDebriefEpisodes = "debrief-episodes";
+inline constexpr std::string_view kDebriefEpisodesNote = "debrief-episodes-note";
+
 inline constexpr auto kFlowWidgets = std::to_array<std::string_view>({
     kMenuCatalog, kMenuImport, kMenuNotice, kTutHead, kTutStep, kTutTitle, kTutArt, kTutBody, kTutSkip, kTutPrev, kTutNext,
     kBriefTutorial, kCatalogTitle, kCatalogBack, kCatalogNote, kCatalogState, kCatalogRetry, kCatalogCached,
@@ -347,7 +359,9 @@ inline constexpr auto kFlowWidgets = std::to_array<std::string_view>({
     kGameAssist.rewind, kGameAssist.new_seed, kGameAssist.blocked, kDebriefAssist.panel, kDebriefAssist.title,
     kDebriefAssist.note, kDebriefAssist.turn_label, kDebriefAssist.turn, kDebriefAssist.rewind,
     kDebriefAssist.new_seed, kDebriefAssist.blocked, kGameAssistedTag, kDebriefAssisted, kDebriefChartTitle,
-    kDebriefChart, kDebriefChartNote, kDebriefBarsPage, kDebriefBars, kDebriefBarsPrev, kDebriefBarsNext});
+    kDebriefChart, kDebriefChartNote, kDebriefBarsPage, kDebriefBars, kDebriefBarsPrev, kDebriefBarsNext,
+    kDebriefObjectives, kDebriefMomentsTitle, kDebriefMoments, kDebriefMomentsBox, kDebriefEpisodesPanel, kDebriefEpisodesTitle,
+    kDebriefEpisodes, kDebriefEpisodesNote});
 
 inline constexpr std::string_view kActOpenCatalog = "tl.menu.catalog";
 inline constexpr std::string_view kActOpenImport = "tl.menu.import";

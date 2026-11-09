@@ -204,7 +204,7 @@ namespace {
 // Opens the campaign's mission from its briefing and plays it to the debrief.
 void play_campaign_leg(Run& run, int leg) {
   REQUIRE(run.d().to_briefing());
-  CHECK(run.d().text(names::kBriefMode).find(std::to_string(leg) + " de 17") != std::string::npos);
+  CHECK(run.d().text(names::kBriefMode).find(std::to_string(leg) + " de 21") != std::string::npos);
   REQUIRE(run.d().click(names::kBriefGo));
   run.order(true, "1,5", 4, 1, "campanha: entrada com stop");
   run.shot("leg" + std::to_string(leg) + "-terminal");

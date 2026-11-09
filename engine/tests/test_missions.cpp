@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <map>
 #include <span>
 #include <string>
@@ -178,7 +179,7 @@ TEST_CASE("C ABI: plans, answers and the score report in the debrief") {
   tl_place_order_ex(run, 4, 0, 0, "10", nullptr, 0, "95.5", "110", nullptr);
   tl_advance(run, 1000);
   const std::string d = tl_debrief(run);
-  CHECK(d.find("\"score\":{\"version\":13") != std::string::npos);
+  CHECK(d.find("\"score\":{\"version\":14") != std::string::npos);
   CHECK(d.find("\"trades\":[{\"n\":1") != std::string::npos);
   CHECK(d.find("\"stop\":\"95.5") != std::string::npos);
   CHECK(d.find("\"safeLeverage\":") != std::string::npos);
@@ -345,14 +346,14 @@ std::vector<std::uint32_t> expiry_offsets(const Scenario& sc) {
 
 }  // namespace
 
-TEST_CASE("Strategy missions m13-m17: last in the catalog, 3x, a 2.5-step chain listed at the first decision") {
+TEST_CASE("Strategy missions m13-m17: after m12 in the catalog, 3x, a 2.5-step chain listed at the first decision") {
   const std::vector<StrategyShape> shapes = {{"m13-call-spread", 151, {40, 90}, 4, true},
                                              {"m14-covered-call", 181, {24, 48, 72, 96, 120}, 6, true},
                                              {"m15-protective-put", 161, {40, 100}, 4, false},
                                              {"m16-range-condor", 131, {30, 70}, 5, true},
                                              {"m17-before-expiry", 156, {20, 45, 70, 95}, 6, true}};
   const std::vector<MissionInfo> catalog = mission_catalog();
-  REQUIRE(catalog.size() == 17);
+  REQUIRE(catalog.size() == 25);
   for (std::size_t i = 0; i < shapes.size(); ++i) {
     const StrategyShape& want = shapes[i];
     CAPTURE(want.id);
@@ -405,4 +406,89 @@ TEST_CASE("Strategy missions: the drawn stories are in the reveal, never in the 
   CHECK(m14.size() == 2);  // no rally (0) or a strong one (+2)
   CHECK(m14[2] >= 12);
   CHECK(m15.size() == 3);  // harmless, mild or severe
+}
+
+// ---- m18-m25 (add-practice-and-advanced-strategies D12) ------------------------------------------
+
+namespace {
+
+struct AdvancedShape {
+  const char* id;
+  std::uint32_t bars;
+  std::int32_t leverage;
+  std::vector<std::uint32_t> expiries;  // empty: no options
+  std::uint32_t strikes_each_side;
+  bool writes;
+  bool spread_margin;
+  bool calendar_margin;
+  RiskLimits limits;
+};
+
+}  // namespace
+
+TEST_CASE("Missions m18-m25: last in the catalog, their leverage, chains, margin flags and risk limits (D12)") {
+  const std::vector<AdvancedShape> shapes = {
+      {"m18-gamma-scalp", 181, 3, {40, 80}, 4, false, false, false, {.delta_bp = 1500}},
+      {"m19-funding-carry", 181, 5, {60, 120}, 4, true, true, false, {.delta_bp = 1000}},
+      {"m20-event-vol", 161, 3, {50, 100}, 5, true, true, false, {.vega_bp = 150}},
+      {"m21-calendar", 131, 3, {20, 45, 70}, 5, true, true, true, {.gamma_bp = 50}},
+      {"m22-scale-manage", 180, 5, {}, 0, false, false, false, {}},
+      {"m23-second-chance", 180, 3, {}, 0, false, false, false, {}},
+      {"m24-fast-market", 180, 3, {}, 0, false, false, false, {}},
+      {"m25-the-dip", 180, 3, {}, 0, false, false, false, {}},
+  };
+  const std::vector<MissionInfo> catalog = mission_catalog();
+  REQUIRE(catalog.size() == 25);
+  for (std::size_t i = 0; i < shapes.size(); ++i) {
+    const AdvancedShape& want = shapes[i];
+    CAPTURE(want.id);
+    CHECK(catalog[17 + i].id == want.id);
+    CHECK(catalog[17 + i].leverage_cap == want.leverage);
+    CHECK(catalog[17 + i].warmup_bars == 60);
+    Scenario sc;
+    REQUIRE(build_mission(want.id, 5, sc));
+    CHECK(sc.bars.size() == want.bars);
+    CHECK(sc.contract.funding_interval == 8);
+    CHECK(sc.mission.risk_limits.delta_bp == want.limits.delta_bp);
+    CHECK(sc.mission.risk_limits.gamma_bp == want.limits.gamma_bp);
+    CHECK(sc.mission.risk_limits.vega_bp == want.limits.vega_bp);
+    CHECK(sc.mission.risk_limits.theta_bp == 0);
+    if (want.expiries.empty()) {
+      CHECK(sc.options.series.empty());
+      continue;
+    }
+    CHECK(sc.options.series.front().list_step == 60);
+    CHECK(expiry_offsets(sc) == want.expiries);
+    CHECK(sc.options.series.size() == want.expiries.size() * (2 * want.strikes_each_side + 1) * 2);
+    CHECK(sc.options.series[2].strike.raw - sc.options.series[0].strike.raw == Price::kScale * 5 / 2);
+    CHECK(sc.options.allow_short == want.writes);
+    CHECK(sc.options.spread_margin == want.spread_margin);
+    CHECK(sc.options.calendar_margin == want.calendar_margin);
+  }
+}
+
+TEST_CASE("Missions m18-m25: the briefing shows the objectives and limits, never the drawn story") {
+  tl_run* m21 = tl_run_create("m21-calendar", 3);
+  const std::string state = tl_state(m21);
+  CHECK(state.find("{\"code\":\"net_debit_first\",\"valueBp\":0},{\"code\":\"decide_before_expiry\",\"valueBp\":0},"
+                   "{\"code\":\"gamma_within_limit\",\"valueBp\":50}") != std::string::npos);
+  CHECK(state.find("\"calendarMargin\":true") != std::string::npos);
+  CHECK(state.find("\"riskLimits\":{") != std::string::npos);
+  tl_run_destroy(m21);
+  tl_run* m18 = tl_run_create("m18-gamma-scalp", 3);
+  CHECK(std::string(tl_place_option_order(m18, 1, 9, 1, 0, "1", nullptr)).find("short_options_not_allowed") != std::string::npos);
+  tl_run_destroy(m18);
+  for (std::uint64_t seed = 1; seed <= 60; ++seed) {
+    MissionReveal r;
+    REQUIRE(mission_reveal("m20-event-vol", seed, r));
+    REQUIRE(r.events.size() == 1);
+    CHECK(r.events.front().announce_lead == 35);  // the release is announced (G3)
+    REQUIRE(mission_reveal("m19-funding-carry", seed, r));
+    CHECK(r.events.empty());
+    CHECK(r.spans.front().label == RegimeLabel::Crowded);
+    for (const char* id : {"m22-scale-manage", "m23-second-chance", "m24-fast-market", "m25-the-dip"}) {
+      REQUIRE(mission_reveal(id, seed, r));
+      CHECK(std::all_of(r.events.begin(), r.events.end(), [](const EventReveal& e) { return e.announce_lead == 0; }));
+    }
+  }
 }

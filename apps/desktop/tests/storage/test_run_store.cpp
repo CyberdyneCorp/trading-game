@@ -174,15 +174,61 @@ TEST_CASE("storage: progress v3 keeps the review schedule, the tours done and th
   p.glossary_seen = {"leverage", "strike"};
   store.save_progress(p);
   CHECK(store.progress() == p);
-  CHECK(progress_json(p).find(R"("version":3)") != std::string::npos);
+  CHECK(progress_json(p).find(R"("version":4)") != std::string::npos);
+}
+
+// Progress v4 (add-practice-and-advanced-strategies D20): the practice keys round-trip; a v3 row reads
+// them empty, and damaged entries are dropped as the web's migrateProgress drops them.
+TEST_CASE("storage: progress v4 keeps the practice keys; a v3 row reads them with their defaults") {
+  TempDir dir;
+  RunStore store(dir.db());
+  Progress p;
+  p.drill_reviews = R"({"greeks":{"box":3,"due":1700000000000}})";
+  p.drill_history = R"([{"date":"2026-11-08","firstTry":4,"items":5}])";
+  p.daily_challenges = R"({"2026-11-08":{"attempts":1,"best":null,"first":null,"mission":"m03-volatility-shock","seed":77}})";
+  p.guess_history = R"([{"decision":"long","market":"m01","p":60,"score":80,"seed":3,"step":40}])";
+  store.save_progress(p);
+  CHECK(store.progress() == p);
+
+  const auto v3 = json::parse(R"({"version":3,"lessonsDone":["risk-sizing"],"campaign":{"id":"c","legs":[],"index":4}})");
+  REQUIRE(v3);
+  const Progress old = migrate_progress(*v3);
+  CHECK(old.drill_reviews == "{}");
+  CHECK(old.drill_history == "[]");
+  CHECK(old.daily_challenges == "{}");
+  CHECK(old.guess_history == "[]");
+  REQUIRE(old.campaign);
+  CHECK(old.campaign->find("order") == std::string::npos);  // read as the 17-mission order (campaign_order)
+
+  const auto damaged = json::parse(
+      R"({"drillReviews":{"a":{"box":1,"due":2},"b":{"box":"x"}},"drillHistory":[{"date":"d","items":1,"firstTry":1},7,{"date":3}],)"
+      R"("dailyChallenges":{"2026-01-01":{"mission":"m","seed":1},"bad":{"mission":"m","seed":1},"2026-01-02":{"seed":1}},)"
+      R"("guessHistory":[{"market":"m","seed":1,"step":2,"decision":"up","p":1,"score":1}]})");
+  REQUIRE(damaged);
+  const Progress d = migrate_progress(*damaged);
+  CHECK(d.drill_reviews == R"({"a":{"box":1,"due":2}})");
+  CHECK(d.drill_history == R"([{"date":"d","firstTry":1,"items":1}])");
+  CHECK(d.daily_challenges == R"({"2026-01-01":{"mission":"m","seed":1}})");
+  CHECK(d.guess_history == "[]");
+}
+
+TEST_CASE("storage: progress v4 histories keep only their newest entries") {
+  std::string rows;
+  for (int i = 0; i < 35; ++i) rows += (i ? "," : "") + std::string(R"({"date":"d)") + std::to_string(i) + R"(","items":1,"firstTry":1})";
+  const auto row = json::parse(R"({"drillHistory":[)" + rows + "]}");
+  REQUIRE(row);
+  const auto kept = json::parse(migrate_progress(*row).drill_history);
+  REQUIRE(kept);
+  REQUIRE(kept->items().size() == kDrillHistoryKeep);
+  CHECK(kept->items().front()["date"].as_string() == "d5");
 }
 
 // A version-2 row (before add-academy-and-strategies) reads with the version-3 fields empty.
-TEST_CASE("storage: a progress v2 row migrates to v3 with no reviews, tours or terms") {
+TEST_CASE("storage: a progress v2 row migrates to v4 with no reviews, tours or terms") {
   const auto row = json::parse(R"({"version":2,"tutorialsSeen":["m01-false-breakout"],"lessonsDone":["foundations-bar"]})");
   REQUIRE(row);
   const Progress p = migrate_progress(*row);
-  CHECK(p.version == 3);
+  CHECK(p.version == 4);
   CHECK(p.lessons_done == std::vector<std::string>{"foundations-bar"});
   CHECK(p.lesson_reviews == "{}");
   CHECK(p.coach_done.empty());

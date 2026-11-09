@@ -1,17 +1,17 @@
 <script lang="ts">
 	// Debrief block of a campaign mission: the capital it carries on, or the end of the campaign run.
 	import type { GameSession } from '#lib/game/session.svelte.ts';
-	import { belowCampaignMinimum, CAMPAIGN_CAPITAL, CAMPAIGN_MIN_CAPITAL } from '#lib/game/campaign.ts';
-	import { campaignMissions, stagesPassedWith } from '#lib/game/curriculum.ts';
+	import { belowCampaignMinimum, CAMPAIGN_CAPITAL, CAMPAIGN_MIN_CAPITAL, campaignOrder } from '#lib/game/campaign.ts';
+	import { stagesPassedWith } from '#lib/game/curriculum.ts';
 	import { fmtMoney } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { missionText } from '#lib/game/missions.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const L = $derived(i18n.locale);
-	const total = campaignMissions().length;
 	const link = $derived(session.runCampaign);
 	const c = $derived(session.progress.campaign);
+	const total = $derived(campaignOrder(c).length);
 	const leg = $derived(c && link && c.id === link.id ? c.legs.find((l) => l.runId === session.currentRunId) : undefined);
 	const next = $derived(session.campaignMission);
 	// The engine finished the run, but what is left cannot carry a campaign (spec "Game over on bankruptcy").

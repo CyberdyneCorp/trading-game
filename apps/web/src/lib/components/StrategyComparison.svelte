@@ -3,7 +3,7 @@
 	// mission's reference structures valued by the engine on this seed, next to the player's own result.
 	// Computed after the run, so it uses no future at any decision; never a score input.
 	import type { StrategyComparison } from '#lib/engine/types.ts';
-	import { comparisonLines } from '#lib/game/debrief.ts';
+	import { comparisonBasisKey, comparisonLines } from '#lib/game/debrief.ts';
 	import { fmtMoney, fmtQty } from '#lib/game/format.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { rejectionText } from '#lib/game/rejections.ts';
@@ -12,7 +12,7 @@
 	const L = $derived(i18n.locale);
 	const lines = $derived(comparisonLines(comparison, playerNet));
 	const basis = $derived(
-		t(comparison.basis === 'player' ? 'comparison.basisPlayer' : 'comparison.basisReference', {
+		t(comparisonBasisKey(comparison), {
 			step: comparison.entryStep,
 			qty: fmtQty(comparison.qty, L)
 		})

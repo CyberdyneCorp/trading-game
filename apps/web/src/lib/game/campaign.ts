@@ -14,6 +14,31 @@
 import type { LegReport } from './campaignReport.ts';
 import { campaignMissions } from './curriculum.ts';
 
+/**
+ * The 17-mission campaign of add-academy-and-strategies, the order of every campaign run that started
+ * before progress version 4 (design D14 "Campaign order snapshot"): such a run keeps it, so its stored
+ * index never jumps to another mission.
+ */
+export const CAMPAIGN_ORDER_V3: readonly string[] = [
+	'm06-thin-book',
+	'm01-false-breakout',
+	'm03-volatility-shock',
+	'm02-funding-squeeze',
+	'm07-trend-trailing',
+	'm04-options-buyer',
+	'm09-event-straddle',
+	'm05-options-writer',
+	'm10-hedged-book',
+	'm13-call-spread',
+	'm14-covered-call',
+	'm15-protective-put',
+	'm16-range-condor',
+	'm17-before-expiry',
+	'm08-regime-switch',
+	'm11-news-calendar',
+	'm12-capstone'
+];
+
 export const CAMPAIGN_CAPITAL = '10000';
 /**
  * Least capital a campaign mission must leave to carry on (1% of CAMPAIGN_CAPITAL). The cheapest
@@ -40,10 +65,20 @@ export interface CampaignRun {
 	startedAt: number;
 	/** Capital the next mission starts with (decimal string). */
 	capital: string;
-	/** Index of the next mission in campaignMissions(). */
+	/** Index of the next mission in `order`. */
 	index: number;
 	status: 'active' | 'bankrupt' | 'complete' | 'abandoned';
 	legs: CampaignLeg[];
+	/**
+	 * The run's missions, snapshotted when it started (progress v4): campaignMissions() then. A run
+	 * stored before v4 reads with CAMPAIGN_ORDER_V3 (migrateProgress).
+	 */
+	order?: string[];
+}
+
+/** The missions of a campaign run, in order: its snapshot, else the order of the runs before v4. */
+export function campaignOrder(c: Pick<CampaignRun, 'order'> | null | undefined): readonly string[] {
+	return c?.order ?? CAMPAIGN_ORDER_V3;
 }
 
 /** The campaign part of the progress record. */
@@ -62,13 +97,13 @@ export interface CampaignLink {
 }
 
 export function newCampaign(id: string, now: number): CampaignRun {
-	return { id, startedAt: now, capital: CAMPAIGN_CAPITAL, index: 0, status: 'active', legs: [] };
+	return { id, startedAt: now, capital: CAMPAIGN_CAPITAL, index: 0, status: 'active', legs: [], order: campaignMissions() };
 }
 
 /** The mission the active campaign run plays next, or null when there is none. */
 export function nextCampaignMission(c: CampaignRun | null): string | null {
 	if (!c || c.status !== 'active') return null;
-	return campaignMissions()[c.index] ?? null;
+	return campaignOrder(c)[c.index] ?? null;
 }
 
 /** Starts a new campaign run; an active one is ended as abandoned (kept in the history). */
@@ -106,7 +141,7 @@ export interface RunOutcome {
 export function settleCampaignRun<P extends CampaignProgress>(p: P, link: CampaignLink, out: RunOutcome): P {
 	const c = p.campaign;
 	if (!c || c.status !== 'active' || c.id !== link.id || c.index !== link.index) return p;
-	if (c.legs.some((l) => l.runId === out.runId) || campaignMissions()[c.index] !== out.missionId) return p;
+	if (c.legs.some((l) => l.runId === out.runId) || campaignOrder(c)[c.index] !== out.missionId) return p;
 	const result = legResult(out);
 	const leg: CampaignLeg = { runId: out.runId, missionId: out.missionId, startCapital: c.capital, endCapital: out.equity, result };
 	if (out.report) leg.report = out.report;
@@ -129,7 +164,26 @@ function advance(c: CampaignRun, result: LegResult): Pick<CampaignRun, 'index' |
 	if (result === 'bankrupt') return { index: c.index, status: 'bankrupt' };
 	if (result === 'left') return { index: c.index, status: 'active' };
 	const index = c.index + 1;
-	return { index, status: index >= campaignMissions().length ? 'complete' : 'active' };
+	return { index, status: index >= campaignOrder(c).length ? 'complete' : 'active' };
+}
+
+/** What a run outside the campaign tells the curriculum (design D14 "Elective stages"). */
+export interface FreeRunOutcome {
+	missionId: string;
+	finished: boolean;
+	/** Assisted practice never counts (rewind, another market, a mistake retry). */
+	assisted: boolean;
+	/** A campaign leg settles through settleCampaignRun instead. */
+	campaign: boolean;
+}
+
+/**
+ * A finished, non-assisted free-play or daily-challenge run of an elective stage's mission assesses
+ * it (it is never a campaign leg), so the elective stage can pass. Idempotent; never removes anything.
+ */
+export function assessElective<P extends CampaignProgress>(p: P, out: FreeRunOutcome, elective: (missionId: string) => boolean): P {
+	if (!out.finished || out.assisted || out.campaign || !elective(out.missionId) || p.assessed.includes(out.missionId)) return p;
+	return { ...p, assessed: [...p.assessed, out.missionId] };
 }
 
 /** Best ending capital among ended campaign runs that completed every mission, or null. */

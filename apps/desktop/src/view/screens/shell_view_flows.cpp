@@ -39,6 +39,7 @@ void paint_tutorial_art(Rid /*w*/, RPainter* p, float width, float height, void*
 
 void on_catalog_selected(Rid, int index, void* user_data) { vm_of(user_data).catalog_select(index); }
 void on_library_selected(Rid, int index, void* user_data) { vm_of(user_data).library_select(index); }
+void on_moment_selected(Rid, int index, void* user_data) { vm_of(user_data).debrief_show_moment(index); }
 void on_assist_turn(Rid, const char* text, void* user_data) { vm_of(user_data).set_assist_turn(text_or_empty(text)); }
 
 // One callback per kind of wizard field: the widget's slot says which field it is.
@@ -120,6 +121,7 @@ void ShellView::bind_flow_callbacks() {
   for (std::size_t i = 0; i < combos.size(); ++i) Rcombo_box_set_changed_callback(find(combos[i]), on_choice, &choices[i]);
   Rlist_view_set_selection_changed_callback(find(names::kCatalogList), on_catalog_selected, &vm_);
   Rlist_view_set_selection_changed_callback(find(names::kLibraryList), on_library_selected, &vm_);
+  Rlist_view_set_selection_changed_callback(find(names::kDebriefMoments), on_moment_selected, &vm_);
   Rtext_input_set_changed_callback(find(names::kGameAssist.turn), on_assist_turn, &vm_);
   Rtext_input_set_changed_callback(find(names::kDebriefAssist.turn), on_assist_turn, &vm_);
   Rcustom_set_paint_callback(find(names::kDebriefChart), paint_debrief_chart, &vm_);

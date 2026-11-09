@@ -102,7 +102,13 @@ std::string campaign(const CampaignRun& c) {
     if (leg.report) write_report(w, *leg.report);
     w.end_object();
   }
-  return w.end_array().end_object().text();
+  w.end_array();
+  if (c.order) {
+    w.key("order").begin_array();
+    for (const std::string& m : *c.order) w.string(m);
+    w.end_array();
+  }
+  return w.end_object().text();
 }
 
 // campaign.ts isCampaign: an object with a string id and a legs array.
@@ -119,6 +125,13 @@ std::optional<CampaignRun> campaign_from(const json::Value& v) {
                     l["endCapital"].as_string("0"), leg_result_of(l["result"].as_string()), std::nullopt};
     if (l["report"].kind() == Kind::Object) leg.report = read_report(l["report"]);
     c.legs.push_back(std::move(leg));
+  }
+  // storage.ts withOrder: a snapshot only when every entry is a string (else the pre-v4 order).
+  const json::Value& order = v["order"];
+  const auto is_string = [](const json::Value& m) { return m.kind() == Kind::String; };
+  if (order.kind() == Kind::Array && std::ranges::all_of(order.items(), is_string)) {
+    c.order.emplace();
+    for (const json::Value& m : order.items()) c.order->push_back(m.as_string());
   }
   return c;
 }

@@ -70,7 +70,7 @@ void campaign_outcome(const Ctx& c, ScreenModel& m) {
   if (leg == nullptr) return;
   const WebContent& content = web_content();
   const CampaignRun& camp = *c.vm.progress().campaign;
-  const auto total = campaign_missions(content).size();
+  const auto total = campaign_order(content, camp).size();
   WidgetLines out{names::kDebriefCampaign, {}};
   out.lines.push_back({c.tr("campaign.tag", {{"n", str(c.vm.shell().run_campaign->index + 1)}, {"total", str(static_cast<long>(total))}}), Tone::Title});
   out.lines.push_back({c.tr("campaign.leg", {{"start", c.money(leg->start_capital)}, {"end", c.money(leg->end_capital)}})});
@@ -292,16 +292,44 @@ void greeks(const Ctx& c, ScreenModel& m) {
 // A structure's name and its rule: "Iron condor (asas 4 strikes fora)" -> {"Iron condor", "asas 4 strikes fora"}.
 // The table keeps the short name (a cell cannot wrap); the rule is listed under it.
 // The player's own row ("Você (esta partida)") stays whole.
+// Longer names cut at their first separator ("O mesmo straddle, delta zerado ..." -> {"O mesmo
+// straddle", "delta zerado ..."}; "Diagonal: call curta ..." -> {"Diagonal", "call curta ..."}): a
+// parenthesis opened in the head is closed in the rule's text.
 std::pair<std::string, std::string> name_parts(const Ctx& c, const ComparisonLine& l) {
   const std::string full = c.tr(l.name);
-  const auto open = full.find(" (");
   if (l.key == "you") return {full, ""};
-  if (open == std::string::npos || full.back() != ')') return {full, ""};
-  return {full.substr(0, open), full.substr(open + 2, full.size() - open - 3)};
+  std::size_t cut = std::string::npos;
+  std::size_t skip = 0;
+  for (const std::string_view sep : {" (", ": ", ", "}) {
+    const auto at = full.find(sep);
+    if (at < cut) {
+      cut = at;
+      skip = sep.size();
+    }
+  }
+  if (cut == std::string::npos) return {full, ""};
+  std::string rule = full.substr(cut + skip);
+  if (full.compare(cut, 2, " (") == 0) {
+    if (const auto close = rule.find(')'); close != std::string::npos) rule.erase(close, 1);
+  }
+  return {full.substr(0, cut), rule};
 }
 
-std::vector<std::string> comparison_cells(const Ctx& c, const ComparisonLine& l) {
-  std::string name = name_parts(c, l).first + (l.best ? " [" + c.tr("comparison.best") + "]" : "");
+// The table's names: two structures with the same short name are told apart by their order (" · 2").
+std::vector<std::string> comparison_heads(const Ctx& c, const std::vector<ComparisonLine>& lines) {
+  std::vector<std::string> heads;
+  for (const auto& l : lines) heads.push_back(name_parts(c, l).first);
+  std::vector<std::string> out;
+  for (std::size_t i = 0; i < heads.size(); ++i) {
+    const auto same = std::count(heads.begin(), heads.end(), heads[i]);
+    const auto nth = std::count(heads.begin(), heads.begin() + static_cast<std::ptrdiff_t>(i) + 1, heads[i]);
+    out.push_back(same > 1 ? heads[i] + std::string(kSep) + std::to_string(nth) : heads[i]);
+  }
+  return out;
+}
+
+std::vector<std::string> comparison_cells(const Ctx& c, const ComparisonLine& l, const std::string& head) {
+  std::string name = head + (l.best ? " [" + c.tr("comparison.best") + "]" : "");
   if (!l.refused.empty()) return {"\xE2\x9C\x96 " + name, std::string(kDash), std::string(kDash), std::string(kDash), std::string(kDash)};
   const std::string bars = l.entry_step ? str(*l.entry_step) + " \xE2\x86\x92 " + str(l.exit_step.value_or(0)) : std::string(kDash);  // →
   return {std::move(name), bars, l.net ? c.money(*l.net, true) : std::string(kDash), l.drawdown ? c.money(*l.drawdown) : std::string(kDash),
@@ -313,18 +341,21 @@ void comparison(const Ctx& c, ScreenModel& m) {
   m.show(names::kDebriefComparisonPanel, !cmp.is_null());
   if (cmp.is_null()) return;
   m.text(names::kDebriefComparisonTitle, c.tr("comparison.title"));
-  const bool player = cmp["basis"].as_string() == "player";
-  m.text(names::kDebriefComparisonBasis, c.tr(player ? "comparison.basisPlayer" : "comparison.basisReference",
+  m.text(names::kDebriefComparisonBasis, c.tr(comparison_basis_key(cmp),
                                               {{"step", cmp["entryStep"].as_string()}, {"qty", fmt::fmt_qty(cmp["qty"].as_string(), c.L)}}));
   WidgetTable t{names::kDebriefComparison,
                 {c.tr("comparison.col.structure"), c.tr("comparison.col.bars"), c.tr("comparison.col.net"), c.tr("comparison.col.drawdown"),
                  c.tr("comparison.col.calls")},
                 {},
-                {2.4f, 1, 1.2f, 1.2f, 1}};
+                {3.4f, 1, 1.2f, 1.2f, 1}};
   WidgetLines notes{names::kDebriefComparisonNotes, {}};
-  for (const auto& l : comparison_lines(cmp, fmt::num(c.d["netPnl"].as_string()))) {
-    t.rows.push_back(comparison_cells(c, l));
-    const auto [name, rule] = name_parts(c, l);
+  const auto lines = comparison_lines(cmp, fmt::num(c.d["netPnl"].as_string()));
+  const auto heads = comparison_heads(c, lines);
+  for (std::size_t i = 0; i < lines.size(); ++i) {
+    const ComparisonLine& l = lines[i];
+    const std::string& name = heads[i];
+    t.rows.push_back(comparison_cells(c, l, name));
+    const std::string rule = name_parts(c, l).second;
     if (!rule.empty()) notes.lines.push_back({name + ": " + rule, Tone::Muted});
     if (!l.refused.empty()) {
       notes.lines.push_back({"\xE2\x9C\x96 " + name + ": " + c.tr("comparison.refused", {{"reason", game::rejection_text(c.vm.game().texts(), l.refused)}}),
@@ -394,6 +425,7 @@ ScreenModel debrief(const AppViewModel& vm) {
   score_lines(c, m);
   reveal_lines(c, m);
   findings_lines(c, m);
+  debrief_episodes(vm, m);
   lesson_results(c, m);
   decisions(c, m);
   greeks(c, m);

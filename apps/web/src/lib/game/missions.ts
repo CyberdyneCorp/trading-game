@@ -312,6 +312,142 @@ texts['m17-before-expiry'] = {
 	}
 };
 
+texts['m18-gamma-scalp'] = {
+	'pt-BR': {
+		title: 'Missão 18 · Hedge',
+		tagline: 'Opções compradas e um perpétuo para equilibrar o delta. Quanto este mercado vai se mexer?',
+		topic: 'Opções avançadas · gamma scalping e hedge de delta',
+		reveal:
+			'Este cenário foi desenhado para o GAMMA SCALPING: um caminho sorteado alternou trechos agitados, que se mexeram mais do que as opções cobravam (volatilidade realizada acima da implícita), e trechos calmos, que se mexeram menos. Um straddle comprado no dinheiro e neutralizado em delta com o perpétuo numa faixa de delta ganhou na maioria das partidas em que a volatilidade realizada ficou pelo menos 1,2 vez acima da implícita, e perdeu na grande maioria das partidas em que ficou abaixo de 0,85 vez: o theta é o aluguel do gama. Neutralizar a cada barra pagou pelo menos o dobro de taxas de neutralizar na faixa. A faixa abaixo mostra o caminho de regimes desta partida.'
+	},
+	en: {
+		title: 'Mission 18 · Hedge',
+		tagline: 'Bought options and a perpetual to balance the delta. How much will this market move?',
+		topic: 'Advanced options · gamma scalping and delta hedging',
+		reveal:
+			'This scenario was designed for GAMMA SCALPING: a drawn path alternated busy stretches, which moved more than the options priced in (realized volatility above implied), and calm stretches, which moved less. An at-the-money straddle bought and delta-hedged with the perpetual on a delta band made money in most runs where realized volatility was at least 1.2 times the implied, and lost in the great majority where it was below 0.85 times: theta is the rent paid for gamma. Hedging every bar paid at least twice the fees of hedging on the band. The band below shows this run’s path of regimes.'
+	}
+};
+
+texts['m19-funding-carry'] = {
+	'pt-BR': {
+		title: 'Missão 19 · Carrego',
+		tagline: 'Os longs pagam funding. Dá para receber esse funding sem apostar na direção?',
+		topic: 'Opções avançadas · carrego de funding e paridade put-call',
+		reveal:
+			'Este cenário foi desenhado para o CARREGO DE FUNDING: os longs estavam lotados e pagavam funding; um short no perpétuo recebia, e um long sintético (call comprada e put vendida no mesmo strike e vencimento) tirava o risco de preço. Em parte das partidas a multidão desmontou: o funding virou negativo (os shorts passaram a pagar) e apertos levantaram o preço. Sem desmonte, o carrego protegido rendeu depois dos custos em pelo menos 3 de cada 4 partidas; com desmonte, perdeu na maioria. O hedge tira o risco de preço, não o de margem: a 5x, a perna do perpétuo foi liquidada em pelo menos 1 de cada 4 partidas com desmonte enquanto as opções ganhavam; a 2x, quase nunca.'
+	},
+	en: {
+		title: 'Mission 19 · Carry',
+		tagline: 'Longs pay funding. Can you collect it without betting on direction?',
+		topic: 'Advanced options · funding carry and put-call parity',
+		reveal:
+			'This scenario was designed for FUNDING CARRY: longs were crowded and paid funding; a short perpetual collected it, and a synthetic long (a call bought and a put written at the same strike and expiry) removed the price risk. In some runs the crowd unwound: funding turned negative (shorts started paying) and squeezes lifted the price. Without an unwind, the hedged carry made money after costs in at least 3 runs in 4; with one, it lost in most. The hedge removes price risk, not margin risk: at 5x the perpetual leg was liquidated in at least 1 unwind run in 4 while the options gained; at 2x, almost never.'
+	}
+};
+
+texts['m20-event-vol'] = {
+	'pt-BR': {
+		title: 'Missão 20 · Anúncio',
+		tagline: 'Uma divulgação está marcada. As opções sabem disso — e você, sabe o que fazer com elas?',
+		topic: 'Opções avançadas · volatilidade em torno de um evento',
+		reveal:
+			'Este cenário foi desenhado para a VOLATILIDADE EM TORNO DE UM EVENTO: a divulgação foi anunciada 35 barras antes. A volatilidade implícita subiu em dois degraus até ela e despencou logo depois — em todas as partidas, para no máximo 70% do nível da barra anterior —, qualquer que fosse o resultado. Comprar o straddle cedo e vendê-lo uma barra antes da divulgação superou segurá-lo através dela na maioria das partidas. Segurar através ganhou quase sempre que o movimento superou o preço pago pelo straddle (o movimento implícito), e perdeu na grande maioria das outras partidas.'
+	},
+	en: {
+		title: 'Mission 20 · Announcement',
+		tagline: 'A release is scheduled. The options know it — do you know what to do with them?',
+		topic: 'Advanced options · volatility around an event',
+		reveal:
+			'This scenario was designed for VOLATILITY AROUND AN EVENT: the release was announced 35 bars ahead. Implied volatility rose in two steps toward it and collapsed right after — in every run, to at most 70% of the level the bar before —, whatever the outcome. Buying the straddle early and selling it the bar before the release beat holding it through in most runs. Holding through won almost always when the move beat the price paid for the straddle (the implied move), and lost in the great majority of the other runs.'
+	}
+};
+
+texts['m21-calendar'] = {
+	'pt-BR': {
+		title: 'Missão 21 · Calendário',
+		tagline: 'Três vencimentos, uma volatilidade estável. O tempo passa diferente em cada um.',
+		topic: 'Opções avançadas · travas de calendário e diagonais',
+		reveal:
+			'Este cenário foi desenhado para o CALENDÁRIO: um range com volatilidade implícita estável e um rompimento de direção sorteada, antes ou depois do vencimento curto. No vencimento curto, a perda de um calendário no dinheiro nunca passou do débito pago mais os custos. Ele ganhou na maioria das partidas em que o preço terminou a até um degrau de strike do strike, e perdeu em quase todas em que terminou a mais de três degraus. A margem de calendário (a call longa cobrindo a curta) deixou a estrutura sem chamada de margem.'
+	},
+	en: {
+		title: 'Mission 21 · Calendar',
+		tagline: 'Three expiries, a steady volatility. Time passes differently in each one.',
+		topic: 'Advanced options · calendar and diagonal spreads',
+		reveal:
+			'This scenario was designed for the CALENDAR: a range with steady implied volatility and a breakout of drawn direction, before or after the near expiry. At the near expiry, an at-the-money calendar’s loss never exceeded the debit paid plus the costs. It made money in most runs where the price ended within one strike step of the strike, and lost in almost all where it ended more than three steps away. Calendar margin (the long call covering the short one) left the structure without a margin call.'
+	}
+};
+
+texts['m22-scale-manage'] = {
+	'pt-BR': {
+		title: 'Missão 22 · Gestão',
+		tagline: 'Entrar é metade do trabalho. A outra metade é o que fazer depois.',
+		topic: 'Gestão de trade · entradas em partes, saídas parciais e stop no ponto de entrada',
+		reveal:
+			'Este cenário foi desenhado para a GESTÃO DA POSIÇÃO: uma manchete sem aviso deu início a uma tendência com recuos; a perna seguinte foi sorteada de novo, então às vezes a tendência foi longe, às vezes parou e às vezes falhou. Realizar metade em +1R, levar o stop ao ponto de entrada e acompanhar o resto ganhou com mais frequência e com resultados mais estreitos que entrar e sair de uma vez em 2R; já o tudo-ou-nada em 2R rendeu mais na maioria das partidas em que a tendência alcançou o alvo. Cada forma de gestão perdeu em parte das partidas.'
+	},
+	en: {
+		title: 'Mission 22 · Management',
+		tagline: 'Entering is half the job. The other half is what you do next.',
+		topic: 'Trade management · scaling in, partial exits and the stop to breakeven',
+		reveal:
+			'This scenario was designed for MANAGING THE POSITION: an unannounced headline started a trend with pullbacks; the next leg was drawn again, so the trend sometimes ran far, sometimes stalled and sometimes failed. Taking half at +1R, moving the stop to breakeven and trailing the rest won more often and with narrower results than all in and all out at 2R; all in and all out at 2R earned more in most runs where the trend reached the target. Every way of managing lost in some runs.'
+	}
+};
+
+texts['m23-second-chance'] = {
+	'pt-BR': {
+		title: 'Missão 23 · Recomeço',
+		tagline: 'Um mercado em range. Cada trade é uma decisão nova.',
+		topic: 'Psicologia · disciplina depois de um stop',
+		reveal:
+			'Este cenário foi desenhado como um RECOMEÇO: um rompimento limpo no começo falhou rápido e parou muitos stops; depois veio um trecho picotado, e só mais tarde um movimento de verdade, de direção sorteada. Esperar pelo menos 3 barras depois do stop e voltar só no próximo sinal, com o tamanho normal, perdeu menos que voltar na hora com o dobro do tamanho em pelo menos 7 de cada 10 partidas. Os vieses que o seu registro mostra estão em “O que aconteceu”, com as barras em que aconteceram.'
+	},
+	en: {
+		title: 'Mission 23 · Restart',
+		tagline: 'A ranging market. Every trade is a new decision.',
+		topic: 'Psychology · discipline after a stop',
+		reveal:
+			'This scenario was designed as a RESTART: an early clean-looking breakout failed fast and stopped many players out; choppy trading followed, and only later a real move of drawn direction. Waiting at least 3 bars after the stop and coming back only on the next signal, at normal size, lost less than coming back at once at twice the size in at least 7 runs in 10. The biases your log shows are under “What happened”, with the bars they happened on.'
+	}
+};
+
+texts['m24-fast-market'] = {
+	'pt-BR': {
+		title: 'Missão 24 · Disparada',
+		tagline: 'Um mercado quieto. Até que deixa de ser.',
+		topic: 'Psicologia · planejar antes do movimento, não durante',
+		reveal:
+			'Este cenário foi desenhado como uma DISPARADA: depois de um range quieto, uma alta íngreme com volume pesado e funding extremo, que nenhuma notícia sustentava. Na maioria das partidas ela devolveu a alta; em algumas continuou. Entrar no rompimento do range com o stop abaixo dele rendeu mais R que perseguir o preço depois de 4 altas seguidas, longe da média, em cerca de 2 de cada 3 partidas — e a perseguição ainda ganhou em parte delas: correr atrás nem sempre está errado, só custa mais caro quando está. Os vieses que o seu registro mostra estão em “O que aconteceu”.'
+	},
+	en: {
+		title: 'Mission 24 · Rally',
+		tagline: 'A quiet market. Until it is not.',
+		topic: 'Psychology · plan before the move, not during it',
+		reveal:
+			'This scenario was designed as a RALLY: after a quiet range, a steep climb on heavy volume and extreme funding that no headline supported. In most runs it gave the gains back; in some it kept going. Entering on the range break with the stop below it earned more R than chasing the price after 4 rising closes far from the average in about 2 runs in 3 — and the chase still won in some of them: chasing is not always wrong, it just costs more when it is. The biases your log shows are under “What happened”.'
+	}
+};
+
+texts['m25-the-dip'] = {
+	'pt-BR': {
+		title: 'Missão 25 · Queda',
+		tagline: 'Uma tendência com sustos no caminho. O que você faz no próximo?',
+		topic: 'Psicologia · aumentar uma posição perdedora só com plano',
+		reveal:
+			'Este cenário foi desenhado como uma QUEDA: uma tendência de alta com quedas bruscas no caminho, que se recuperavam — até que, em cerca de 3 de cada 10 partidas, uma não se recuperou. Uma entrada única com stop planejado igualou ou superou o preço médio para baixo até o mesmo stop na maioria das partidas; o preço médio ganhou em algumas (a armadilha funciona às vezes), mas sua pior partida foi pelo menos o dobro da pior da entrada única. Os vieses que o seu registro mostra estão em “O que aconteceu”.'
+	},
+	en: {
+		title: 'Mission 25 · Dip',
+		tagline: 'A trend with scares along the way. What do you do at the next one?',
+		topic: 'Psychology · adding to a loser only with a plan',
+		reveal:
+			'This scenario was designed as a DIP: an uptrend with sharp drops along the way that recovered — until, in about 3 runs in 10, one did not. A single entry with a planned stop matched or beat averaging down to the same stop in most runs; averaging down won in some (the trap works sometimes), but its worst run was at least twice as bad as the single entry’s worst. The biases your log shows are under “What happened”.'
+	}
+};
+
 /** The capstone: its debrief carries the campaign report (design D8.2 m12). */
 export const CAPSTONE_MISSION = 'm12-capstone';
 

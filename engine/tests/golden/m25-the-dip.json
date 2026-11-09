@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m25-the-dip",
+  "description": "A planned long with a 3 x ATR stop, then twice the quantity added once the close is one ATR lower, with no new plan and the same stop.",
+  "mission": "m25-the-dip",
+  "seed": 2027,
+  "actions": [
+    {"k": "lev", "lev": 3},
+    {"k": "adv", "n": 20},
+    {"k": "plan", "side": "buy", "skipped": false, "option": false, "lose": true, "inv": "97.34", "target": null, "conf": 60, "risk": "99.77"},
+    {"k": "order", "type": "market", "side": "buy", "qty": "31.5", "price": null, "ro": false, "stop": "97.34", "tp": null, "trail": null},
+    {"k": "adv", "n": 48},
+    {"k": "order", "type": "market", "side": "buy", "qty": "63.0", "price": null, "ro": false, "stop": "97.34", "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "2a802bc24028a795b3cdadf5c39d444094d9dd63a3a1f733afae42d698c83919",
+    "eventsDigest": "a6a2befe17ccb4c20bbf3cde35ac60f38ba46118618b000a19f72f1ab4532586",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

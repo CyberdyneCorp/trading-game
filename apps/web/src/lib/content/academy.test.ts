@@ -65,7 +65,7 @@ describe('Academy content (design D1, D2)', () => {
 			expect(lessonsOf(s.id).map((m) => m.id)).toEqual(s.lessons);
 		}
 		for (const m of LESSON_INDEX) expect(byId(m.id).stage).toBe(m.stage);
-		expect(LESSON_INDEX).toHaveLength(16);
+		expect(LESSON_INDEX).toHaveLength(22);
 	});
 
 	it('has PT-BR and en texts for every lesson title, summary and step', () => {
@@ -104,6 +104,18 @@ describe('Academy content (design D1, D2)', () => {
 	it('Wrong breakeven caught: a call with strike 100 bought for 4 does not break even at 105', () => {
 		const wrong: Check = { kind: 'breakeven', legs: [{ kind: 'call', side: 'buy', qty: 1, strike: 100, price: 4 }], expect: [105] };
 		expect(checkProblem(wrong)).toMatch(/computed \[104\]/);
+	});
+
+	it('the wave-2 check kinds compute the hedge, the scalp, the calendar debit and what a partial exit leaves (D12)', () => {
+		const ok: Check[] = [
+			{ kind: 'hedge', deltaPerUnit: -0.3, units: 40, expect: 12 },
+			{ kind: 'scalp', gamma: 0.04, move: 3, units: 50, expect: 9 },
+			{ kind: 'calendar', near: 2, far: 3.5, qty: 1, expect: 1.5 },
+			{ kind: 'scale', side: 'buy', entry: 100, qty: 30, exitPrice: 104, exitQty: 15, newStop: 100, expect: 60 },
+			{ kind: 'scale', side: 'buy', entry: 100, qty: 30, exitPrice: 104, exitQty: 15, newStop: 96, expect: 0 }
+		];
+		for (const c of ok) expect(checkProblem(c)).toBeNull();
+		expect(checkProblem({ kind: 'calendar', near: 3.5, far: 2, qty: 1, expect: 1.5 })).toMatch(/computed -1.5/);
 	});
 
 	it('every number a text states comes from a check, a widget, a chart, an answer or a stated given', () => {

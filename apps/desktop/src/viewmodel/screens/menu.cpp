@@ -97,7 +97,8 @@ void campaign_buttons(const AppViewModel& vm, ScreenModel& m, bool running) {
 void campaign_panel(const AppViewModel& vm, ScreenModel& m) {
   const WebContent& content = web_content();
   const Progress& p = vm.progress();
-  const Ids missions = campaign_missions(content);
+  // The run's own order (a run started before progress v4 keeps its 17 missions); a new one, today's.
+  const Ids missions = p.campaign ? campaign_order(content, *p.campaign) : campaign_missions(content);
   const std::string next = next_campaign_mission(content, p.campaign);
   m.text(names::kCampaignTitle, vm.tr("campaign.title"));
   m.text(names::kCampaignNote, vm.tr("campaign.note"));

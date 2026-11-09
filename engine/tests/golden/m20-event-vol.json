@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m20-event-vol",
+  "description": "A straddle at the money of the last expiry bought when the release is announced and sold the bar before it.",
+  "mission": "m20-event-vol",
+  "seed": 2026,
+  "actions": [
+    {"k": "adv", "n": 2},
+    {"k": "opt", "series": 33, "side": "buy", "type": "market", "qty": "10", "premium": null},
+    {"k": "opt", "series": 34, "side": "buy", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 34},
+    {"k": "opt", "series": 33, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "opt", "series": 34, "side": "sell", "type": "market", "qty": "10", "premium": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "61f382197d29ce9cacf188236722a9942b75262cd858e0b84fc6723e54280b9b",
+    "eventsDigest": "e8362cac01ef2e4a8d5264921b9f8adfc3e259e472ab2ffa53e3c6d916ae5d51",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

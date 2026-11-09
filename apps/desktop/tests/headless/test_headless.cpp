@@ -47,7 +47,7 @@ TEST_CASE("headless: every view loads and binds its widgets and actions") {
     Driver d(app);
     d.frames(2);
     CHECK(d.text(names::kMenuDetailTitle) == "Missão 01 · Range");
-    CHECK(Rlist_view_get_item_count(app.view().find(names::kMenuList)) == 17);
+    CHECK(Rlist_view_get_item_count(app.view().find(names::kMenuList)) == 25);
   }
 }
 

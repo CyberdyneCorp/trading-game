@@ -34,11 +34,17 @@ std::string_view stage_status_name(StageStatus s) {
 Ids campaign_missions(const WebContent& c) {
   Ids out;
   for (const auto& s : c.stages) {
+    if (!s.campaign) continue;
     for (const auto& m : s.missions) {
       if (!contains(out, m)) out.push_back(m);
     }
   }
   return out;
+}
+
+bool is_elective_mission(const WebContent& c, std::string_view mission) {
+  const bool elective = std::ranges::any_of(c.stages, [&](const Stage& s) { return !s.campaign && contains(s.missions, mission); });
+  return elective && !contains(campaign_missions(c), mission);
 }
 
 // A stage with missions is passed by its missions only (its Academy lessons prepare for it and never

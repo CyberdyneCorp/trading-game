@@ -2,6 +2,7 @@
 // contract (margin, tiers, mark price, costs, liquidity shocks) and, in a campaign, what the
 // curriculum still keeps locked.
 #include "model/content.hpp"
+#include "viewmodel/campaign.hpp"
 #include "viewmodel/curriculum.hpp"
 #include "viewmodel/format.hpp"
 #include "viewmodel/game/dialogs_vm.hpp"
@@ -26,13 +27,19 @@ std::string kv(const AppViewModel& vm, std::string_view key, const std::string& 
   return vm.tr(key) + ": " + value;
 }
 
+// The active campaign run's own order (a run started before progress v4 keeps its 17 missions).
+std::size_t campaign_total(const AppViewModel& vm) {
+  const auto& camp = vm.progress().campaign;
+  return camp ? campaign_order(web_content(), *camp).size() : campaign_missions(web_content()).size();
+}
+
 std::string mode_text(const AppViewModel& vm, const Snapshot& s) {
   const auto& link = vm.shell().run_campaign;
   const std::string seed = std::to_string(s.seed);
   if (link) {
     return vm.tr(link->index == 0 ? "brief.modeCampaignFirst" : "brief.modeCampaign",
                  {{"n", std::to_string(link->index + 1)},
-                  {"total", std::to_string(campaign_missions(web_content()).size())},
+                  {"total", std::to_string(campaign_total(vm))},
                   {"seed", seed}});
   }
   return vm.tr("brief.modeSynthetic", {{"seed", seed}});

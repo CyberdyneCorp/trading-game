@@ -15,6 +15,7 @@
 #include "model/content.hpp"
 #include "model/i18n.hpp"
 #include "model/json.hpp"
+#include "model/progress_json.hpp"
 #include "model/storage/json_writer.hpp"
 #include "viewmodel/audio/audio_rules.hpp"
 #include "viewmodel/campaign.hpp"
@@ -469,6 +470,41 @@ std::map<std::string, Case> campaign_ports(Progress& p) {
          }
          CHECK(best_completed_capital(history) == o.as_string());
        }},
+      // A run stored before progress v4, read as the desktop reads it (no order snapshot).
+      {"legacy",
+       [&c](const Value& a, const Value& o) {
+         Progress legacy;
+         legacy.campaign = progress_json::campaign_from(a[0]);
+         REQUIRE(legacy.campaign);
+         CHECK_FALSE(legacy.campaign->order);
+         check_strings(campaign_order(c, *legacy.campaign), o["orderBefore"]);
+         const CampaignLink link{a[1]["id"].as_string(), static_cast<int>(a[1]["index"].as_int())};
+         const Value& out = a[2];
+         legacy = settle_campaign_run(c, legacy, link,
+                                      {out["runId"].as_string(), out["missionId"].as_string(), result_of(out["result"].as_string()),
+                                       out["equity"].as_string(), std::nullopt});
+         check_run(*legacy.campaign, o["campaign"]);
+         check_strings(legacy.assessed, o["assessed"]);
+         CHECK(next_campaign_mission(c, legacy.campaign) == o["next"].as_string());
+       }},
+      {"newCampaignOrder",
+       [&c](const Value&, const Value& o) {
+         const CampaignRun run = new_campaign(c, "n", 1);
+         REQUIRE(run.order);
+         check_strings(*run.order, o);
+         // The snapshot survives the stored JSON.
+         const auto again = progress_json::campaign_from(*json::parse(progress_json::campaign(run)));
+         REQUIRE(again);
+         CHECK(again->order == run.order);
+       }},
+      {"assessElective",
+       [&c](const Value& a, const Value& o) {
+         Progress before;
+         before.assessed = strings(a[0]);
+         const Value& out = a[1];
+         const FreeRunOutcome free{out["missionId"].as_string(), out["finished"].as_bool(), out["assisted"].as_bool(), out["campaign"].as_bool()};
+         check_strings(assess_elective(c, before, free).assessed, o);
+       }},
   };
 }
 
@@ -478,6 +514,7 @@ std::map<std::string, Case> curriculum_ports() {
   const WebContent& c = web_content();
   return {
       {"campaignMissions", [&c](const Value&, const Value& o) { check_strings(campaign_missions(c), o); }},
+      {"isElectiveMission", [&c](const Value& a, const Value& o) { CHECK(is_elective_mission(c, a[0].as_string()) == o.as_bool()); }},
       {"stagePassed",
        [&c](const Value& a, const Value& o) {
          CHECK(stage_passed(c, a[0].as_string(), strings(a[1]), strings(a[2])) == o.as_bool());

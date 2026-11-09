@@ -42,6 +42,27 @@ std::string stage_unlocks(const AppViewModel& vm, const Stage& st) {
   return vm.tr("curriculum.unlocks", {{"what", join(what)}});
 }
 
+constexpr std::string_view kBranchMark = "\xE2\x86\xB3";  // ↳
+
+// One stage card as a table row. The path's stages are numbered in order; a branch beside it
+// (add-practice-and-advanced-strategies D14) is marked ↳ and names the stage it grows from, and an
+// elective stage says it is outside the campaign.
+std::vector<std::string> stage_row(const AppViewModel& vm, const Stage& st, std::string index) {
+  const Progress& p = vm.progress();
+  const StageStatus status = stage_status(web_content(), st.id, p.assessed, p.lessons_done);
+  std::string name = vm.tr("stage." + st.id);
+  if (st.branch && !st.requires_.empty()) {
+    name += std::string(kSep) + vm.tr("curriculum.branch", {{"stage", vm.tr("stage." + st.requires_.front())}});
+  }
+  std::string state = vm.tr("curriculum.status." + std::string(stage_status_name(status)));
+  std::string content = stage_content(vm, st);
+  if (!st.campaign) {
+    state += std::string(kSep) + vm.tr("curriculum.elective");
+    content += std::string(kSep) + vm.tr("curriculum.electiveNote");
+  }
+  return {std::move(index), std::move(name), std::move(state), std::move(content), stage_unlocks(vm, st)};
+}
+
 void progress_lines(const AppViewModel& vm, ScreenModel& m) {
   const WebContent& c = web_content();
   const Progress& p = vm.progress();
@@ -71,12 +92,9 @@ ScreenModel curriculum(const AppViewModel& vm) {
                      {"#", vm.tr("desktop.curriculum.colStage"), vm.tr("desktop.curriculum.colStatus"),
                       vm.tr("desktop.curriculum.colContent"), vm.tr("desktop.curriculum.colUnlocks")},
                      {}};
-  int i = 0;
+  int path = 0;
   for (const auto& st : c.stages) {
-    const StageStatus status = stage_status(c, st.id, p.assessed, p.lessons_done);
-    stages.rows.push_back({std::to_string(++i), vm.tr("stage." + st.id),
-                           vm.tr("curriculum.status." + std::string(stage_status_name(status))), stage_content(vm, st),
-                           stage_unlocks(vm, st)});
+    stages.rows.push_back(stage_row(vm, st, st.branch ? std::string(kBranchMark) : std::to_string(++path)));
   }
   m.tables.push_back(std::move(stages));
   m.name(names::kCurriculumStages, vm.tr("curriculum.title"));

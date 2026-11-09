@@ -448,6 +448,17 @@ enum class FindingCode : std::uint8_t {
   LiqBuffer = 20,
   // Scoring v11: max drawdown above the mission's drawdown budget (count = budget bp, amount = drawdown).
   DrawdownBudget = 21,
+  // Scoring v14 (report-only): an exposure-increasing entry within 3 bars of a perpetual trade closed at
+  // a loss, at 1.5x its size or more or without a plan (step = entry, count = size ratio bp, amount = loss).
+  RevengeTrade = 22,
+  // Scoring v14 (report-only): an entry after 4+ closes its way, more than 2 ATR beyond SMA(20), with no
+  // stop or one more than 2 ATR away (step = entry, count = closes, price = stop).
+  FomoEntry = 23,
+  // Scoring v14 (report-only): an add at a worse price than the average entry while losing, raising the
+  // risk above the first entry's plan or without a stop (step = add, price = fill, requested = average before).
+  AveragingDown = 24,
+  // Scoring v14 (report-only): a mission risk limit exceeded at a close (step = first, count = closes).
+  RiskLimitExceeded = 25,
 };
 
 constexpr const char* json_name(FindingCode v) {
@@ -474,6 +485,10 @@ constexpr const char* json_name(FindingCode v) {
     case FindingCode::LeverageVsStop: return "leverage_vs_stop";
     case FindingCode::LiqBuffer: return "liq_buffer";
     case FindingCode::DrawdownBudget: return "drawdown_budget";
+    case FindingCode::RevengeTrade: return "revenge_trade";
+    case FindingCode::FomoEntry: return "fomo_entry";
+    case FindingCode::AveragingDown: return "averaging_down";
+    case FindingCode::RiskLimitExceeded: return "risk_limit_exceeded";
   }
   return "unknown";
 }
@@ -586,6 +601,33 @@ enum class ObjectiveCode : std::uint8_t {
   DecideBeforeExpiry = 41,
   // Do not roll without a new thesis.
   NoRollWithoutThesis = 42,
+  // Missions m18-m25 (add-practice-and-advanced-strategies D12). Keep |delta| within valueBp of
+  // equity (the mission's risk limit).
+  DeltaWithinLimit = 43,
+  // Before entering, record the rehedge rule (every N bars or a delta band).
+  RehedgeRuleFirst = 44,
+  // Before entering, write the carry break-even: the funding needed to pay the costs.
+  CarryBreakevenFirst = 45,
+  // Keep |vega| within valueBp of equity per volatility point (the mission's risk limit).
+  VegaWithinLimit = 46,
+  // Before the release bar, decide whether to hold through it, and record why.
+  HoldThroughDecision = 47,
+  // Before entering, write the net debit: the maximum loss at the near expiry.
+  NetDebitFirst = 48,
+  // Keep the gamma of a 1% move within valueBp of equity (the mission's risk limit).
+  GammaWithinLimit = 49,
+  // Total planned risk of at most valueBp across all entries of one idea.
+  TotalRiskAllEntries = 50,
+  // Use at least one partial exit or a trailing stop.
+  PartialExitOrTrail = 51,
+  // Never move a stop away from the entry.
+  NeverStopAway = 52,
+  // No new entry within 3 bars of a stop-out without a new plan.
+  CooldownAfterStop = 53,
+  // Every entry with a plan recorded before it and a stop within 2 x ATR.
+  PlanBeforeEntryAtrStop = 54,
+  // No add to a losing position beyond the planned total risk.
+  NoAddBeyondPlan = 55,
 };
 
 constexpr const char* json_name(ObjectiveCode v) {
@@ -633,6 +675,19 @@ constexpr const char* json_name(ObjectiveCode v) {
     case ObjectiveCode::BreakoutExitRule: return "breakout_exit_rule";
     case ObjectiveCode::DecideBeforeExpiry: return "decide_before_expiry";
     case ObjectiveCode::NoRollWithoutThesis: return "no_roll_without_thesis";
+    case ObjectiveCode::DeltaWithinLimit: return "delta_within_limit";
+    case ObjectiveCode::RehedgeRuleFirst: return "rehedge_rule_first";
+    case ObjectiveCode::CarryBreakevenFirst: return "carry_breakeven_first";
+    case ObjectiveCode::VegaWithinLimit: return "vega_within_limit";
+    case ObjectiveCode::HoldThroughDecision: return "hold_through_decision";
+    case ObjectiveCode::NetDebitFirst: return "net_debit_first";
+    case ObjectiveCode::GammaWithinLimit: return "gamma_within_limit";
+    case ObjectiveCode::TotalRiskAllEntries: return "total_risk_all_entries";
+    case ObjectiveCode::PartialExitOrTrail: return "partial_exit_or_trail";
+    case ObjectiveCode::NeverStopAway: return "never_stop_away";
+    case ObjectiveCode::CooldownAfterStop: return "cooldown_after_stop";
+    case ObjectiveCode::PlanBeforeEntryAtrStop: return "plan_before_entry_atr_stop";
+    case ObjectiveCode::NoAddBeyondPlan: return "no_add_beyond_plan";
   }
   return "unknown";
 }
@@ -682,7 +737,8 @@ constexpr const char* json_name(ExitReason v) {
   return "unknown";
 }
 
-// A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8).
+// A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8;
+// m18-m22 since scoring v14).
 enum class ComparisonStrategy : std::uint8_t {
   // m13: a call at the money.
   NakedCall = 0,
@@ -708,6 +764,39 @@ enum class ComparisonStrategy : std::uint8_t {
   CloseBeforeExpiry = 10,
   // m17: the same put rolled 5 bars before each expiry into the next expiry's put at the money.
   RollBeforeExpiry = 11,
+  // Scoring v14 (add-practice-and-advanced-strategies D13). m18: a straddle at the money of the first
+  // expiry, held to its settlement.
+  UnhedgedStraddle = 12,
+  // m18: the same straddle, its delta brought to zero with the perpetual at every 4th close.
+  HedgedEvery4 = 13,
+  // m18: the same straddle, hedged whenever |delta| exceeds 40% of the contracts.
+  HedgedBand = 14,
+  // m19: the perpetual short alone at 5x, held to the end.
+  UnhedgedShort = 15,
+  // m19: the short plus a synthetic long (call bought, put written at the money of the last expiry), 5x.
+  HedgedCarry5x = 16,
+  // m19: the same hedged carry with the perpetual at 2x.
+  HedgedCarry2x = 17,
+  // m20: a straddle of the last expiry bought at the announcement and sold the bar before the release.
+  EarlySellBefore = 18,
+  // m20: the same straddle held through the release (sold 3 bars after it).
+  EarlyHoldThrough = 19,
+  // m20: a straddle of the first expiry bought the bar before the release, sold 3 bars after it.
+  LateHoldThrough = 20,
+  // m20: that straddle written the bar before the release, bought back 3 bars after it.
+  ShortStraddleThrough = 21,
+  // m21: a call calendar at the money (near written, next bought), closed at the near expiry.
+  CalendarAtm = 22,
+  // m21: a diagonal: the next expiry's call one strike up bought instead.
+  DiagonalUp = 23,
+  // m21: a straddle of the near expiry written and held to its settlement.
+  ShortStraddleNear = 24,
+  // m22: in 3 bars after the headline with its move, 1% at risk to a 2 x ATR stop, all out at 2R.
+  AllOut2R = 25,
+  // m22: half out at +1R, the stop to breakeven, the rest trailed at 2 x ATR.
+  ManagedExit = 26,
+  // m22: the initial stop only, held to the end.
+  HoldInitialStop = 27,
 };
 
 constexpr const char* json_name(ComparisonStrategy v) {
@@ -724,6 +813,22 @@ constexpr const char* json_name(ComparisonStrategy v) {
     case ComparisonStrategy::HoldToSettlement: return "hold_to_settlement";
     case ComparisonStrategy::CloseBeforeExpiry: return "close_before_expiry";
     case ComparisonStrategy::RollBeforeExpiry: return "roll_before_expiry";
+    case ComparisonStrategy::UnhedgedStraddle: return "unhedged_straddle";
+    case ComparisonStrategy::HedgedEvery4: return "hedged_every_4";
+    case ComparisonStrategy::HedgedBand: return "hedged_band";
+    case ComparisonStrategy::UnhedgedShort: return "unhedged_short";
+    case ComparisonStrategy::HedgedCarry5x: return "hedged_carry_5x";
+    case ComparisonStrategy::HedgedCarry2x: return "hedged_carry_2x";
+    case ComparisonStrategy::EarlySellBefore: return "early_sell_before";
+    case ComparisonStrategy::EarlyHoldThrough: return "early_hold_through";
+    case ComparisonStrategy::LateHoldThrough: return "late_hold_through";
+    case ComparisonStrategy::ShortStraddleThrough: return "short_straddle_through";
+    case ComparisonStrategy::CalendarAtm: return "calendar_atm";
+    case ComparisonStrategy::DiagonalUp: return "diagonal_up";
+    case ComparisonStrategy::ShortStraddleNear: return "short_straddle_near";
+    case ComparisonStrategy::AllOut2R: return "all_out_2r";
+    case ComparisonStrategy::ManagedExit: return "managed_exit";
+    case ComparisonStrategy::HoldInitialStop: return "hold_initial_stop";
   }
   return "unknown";
 }

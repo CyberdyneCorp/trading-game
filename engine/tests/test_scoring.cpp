@@ -530,6 +530,57 @@ TEST_CASE("v13: a short put is not covered by a long call, nor by more shorts th
   CHECK(has(score_run(sc, e.state()), FindingCode::WroteOptions));
 }
 
+namespace {
+// spread_scenario's chain expires at bar 5; a near chain at bar 3 adds ids 5 C100 and 6 P100.
+Scenario two_expiry_scenario() {
+  Scenario sc = spread_scenario();
+  sc.options.series.push_back({5, OptionKind::Call, P("100"), 0, 3});
+  sc.options.series.push_back({6, OptionKind::Put, P("100"), 0, 3});
+  return sc;
+}
+}  // namespace
+
+TEST_CASE("Regression (v14, wave 2 cross-check): a calendar's near short is covered by the later long") {
+  // Before: only a long of the same expiry covered, so m21's taught calendar (and an m17 calendar)
+  // read "you wrote options uncovered" and lost the good-process credit.
+  const Scenario sc = two_expiry_scenario();
+  Driver d(sc);
+  REQUIRE(d.option(1, OrderSide::Buy, "5").accepted);   // long C100, bar 5
+  REQUIRE(d.option(5, OrderSide::Sell, "5").accepted);  // short C100, bar 3
+  d.step(5);
+  REQUIRE(filled(d.state(), 5, OrderSide::Sell));
+  CHECK_FALSE(has(score_run(sc, d.state()), FindingCode::WroteOptions));
+  // The reverse (the long expires first) leaves the far short naked.
+  Driver e(sc);
+  REQUIRE(e.option(5, OrderSide::Buy, "5").accepted);
+  REQUIRE(e.option(1, OrderSide::Sell, "5").accepted);
+  e.step(5);
+  CHECK(has(score_run(sc, e.state()), FindingCode::WroteOptions));
+  // One far long covers one near short: a second short on the same kind is naked.
+  Driver f(sc);
+  REQUIRE(f.option(1, OrderSide::Buy, "5").accepted);
+  REQUIRE(f.option(5, OrderSide::Sell, "5").accepted);
+  REQUIRE(f.option(3, OrderSide::Sell, "5").accepted);  // short C101, bar 5
+  f.step(5);
+  CHECK(has(score_run(sc, f.state()), FindingCode::WroteOptions));
+}
+
+TEST_CASE("Regression (v14, wave 2 cross-check): a short put covered by a short perpetual is not naked writing") {
+  // Before: m19's hedged carry (call bought, put written, perpetual shorted) read as naked writing.
+  const Scenario sc = spread_scenario();
+  Driver d(sc);
+  d.order(OrderType::Market, OrderSide::Sell, "5");
+  REQUIRE(d.option(2, OrderSide::Sell, "5").accepted);  // short P100
+  d.step(5);
+  REQUIRE(filled(d.state(), 2, OrderSide::Sell));
+  CHECK_FALSE(has(score_run(sc, d.state()), FindingCode::WroteOptions));
+  Driver e(sc);
+  e.order(OrderType::Market, OrderSide::Buy, "5");  // a long perpetual covers calls, not puts
+  REQUIRE(e.option(2, OrderSide::Sell, "5").accepted);
+  e.step(5);
+  CHECK(has(score_run(sc, e.state()), FindingCode::WroteOptions));
+}
+
 TEST_CASE("Regression: a profit where one trade had no plan says so (findings never empty)") {
   Scenario sc = make_scenario({{"100", "100", "100", "100"}, {"100", "100", "100", "100"}, {"100", "106", "100", "105"},
                                {"105", "105", "105", "105"}, {"105", "111", "105", "110"}, {"110", "110", "110", "110"}});

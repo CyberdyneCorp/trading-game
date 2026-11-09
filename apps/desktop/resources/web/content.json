@@ -93,6 +93,20 @@
    "unlocks": []
   },
   {
+   "id": "management",
+   "requires": [
+    "risk"
+   ],
+   "missions": [
+    "m22-scale-manage"
+   ],
+   "lessons": [
+    "management-scaling"
+   ],
+   "unlocks": [],
+   "branch": true
+  },
+  {
    "id": "options1",
    "requires": [
     "risk"
@@ -156,6 +170,27 @@
    "unlocks": []
   },
   {
+   "id": "advanced",
+   "requires": [
+    "strategies"
+   ],
+   "missions": [
+    "m18-gamma-scalp",
+    "m19-funding-carry",
+    "m20-event-vol",
+    "m21-calendar"
+   ],
+   "lessons": [
+    "vol-gamma-scalping",
+    "carry-funding",
+    "vol-events",
+    "options-calendars"
+   ],
+   "unlocks": [],
+   "branch": true,
+   "campaign": false
+  },
+  {
    "id": "patterns",
    "requires": [
     "strategies"
@@ -182,6 +217,22 @@
    "unlocks": []
   },
   {
+   "id": "psychology",
+   "requires": [
+    "events"
+   ],
+   "missions": [
+    "m23-second-chance",
+    "m24-fast-market",
+    "m25-the-dip"
+   ],
+   "lessons": [
+    "mind-biases"
+   ],
+   "unlocks": [],
+   "branch": true
+  },
+  {
    "id": "evaluation",
    "requires": [
     "events"
@@ -199,6 +250,25 @@
  "campaignCapital": "10000",
  "campaignMinCapital": "100",
  "campaignHistory": 20,
+ "campaignOrderV3": [
+  "m06-thin-book",
+  "m01-false-breakout",
+  "m03-volatility-shock",
+  "m02-funding-squeeze",
+  "m07-trend-trailing",
+  "m04-options-buyer",
+  "m09-event-straddle",
+  "m05-options-writer",
+  "m10-hedged-book",
+  "m13-call-spread",
+  "m14-covered-call",
+  "m15-protective-put",
+  "m16-range-condor",
+  "m17-before-expiry",
+  "m08-regime-switch",
+  "m11-news-calendar",
+  "m12-capstone"
+ ],
  "reportMinTrades": 30,
  "afterReleaseBars": 10,
  "shortcutActions": [
@@ -3975,6 +4045,721 @@
      }
     }
    ]
+  },
+  {
+   "id": "vol-gamma-scalping",
+   "stage": "advanced",
+   "steps": [
+    {
+     "id": "long-gamma",
+     "phase": "concept",
+     "terms": [
+      "straddle",
+      "gamma",
+      "delta-neutral",
+      "rehedge",
+      "theta",
+      "implied-volatility"
+     ]
+    },
+    {
+     "id": "path",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "G",
+      "columns": [
+       {
+        "id": "bar"
+       },
+       {
+        "id": "price",
+        "digits": 0
+       },
+       {
+        "id": "delta",
+        "digits": 0
+       },
+       {
+        "id": "hedge",
+        "digits": 0
+       }
+      ],
+      "rows": [
+       [
+        1,
+        100,
+        0,
+        0
+       ],
+       [
+        2,
+        103,
+        6,
+        -6
+       ],
+       [
+        3,
+        100,
+        0,
+        0
+       ]
+      ]
+     }
+    },
+    {
+     "id": "hedge-units",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 10,
+      "tolerance": 0.001
+     }
+    },
+    {
+     "id": "what-pays",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "realized"
+       },
+       {
+        "kind": "text",
+        "id": "ivDrop"
+       },
+       {
+        "kind": "text",
+        "id": "funding"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "short-delta",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "H",
+      "columns": [
+       {
+        "id": "item"
+       },
+       {
+        "id": "value",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        "delta",
+        -0.3
+       ],
+       [
+        "units",
+        40
+       ]
+      ]
+     },
+     "question": {
+      "type": "number",
+      "answer": 12,
+      "tolerance": 0.001
+     }
+    }
+   ]
+  },
+  {
+   "id": "carry-funding",
+   "stage": "advanced",
+   "steps": [
+    {
+     "id": "carry",
+     "phase": "concept",
+     "terms": [
+      "funding-rate",
+      "synthetic-forward",
+      "carry",
+      "isolated-margin"
+     ]
+    },
+    {
+     "id": "numbers",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "F",
+      "columns": [
+       {
+        "id": "item"
+       },
+       {
+        "id": "value",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        "notional",
+        2000
+       ],
+       [
+        "rate",
+        0.03
+       ],
+       [
+        "interval",
+        0.6
+       ],
+       [
+        "day",
+        1.8
+       ],
+       [
+        "costs",
+        3
+       ]
+      ]
+     }
+    },
+    {
+     "id": "breakeven",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 5,
+      "tolerance": 0.001
+     }
+    },
+    {
+     "id": "turns",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "negative"
+       },
+       {
+        "kind": "text",
+        "id": "rises"
+       },
+       {
+        "kind": "text",
+        "id": "never"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "parity",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "P",
+      "columns": [
+       {
+        "id": "item"
+       },
+       {
+        "id": "value",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        "forward",
+        103
+       ],
+       [
+        "strike",
+        100
+       ],
+       [
+        "call",
+        4.5
+       ]
+      ]
+     },
+     "question": {
+      "type": "number",
+      "answer": 1.5,
+      "tolerance": 0.001
+     },
+     "terms": [
+      "put-call-parity"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "vol-events",
+   "stage": "advanced",
+   "steps": [
+    {
+     "id": "bid",
+     "phase": "concept",
+     "terms": [
+      "event-volatility",
+      "iv-crush",
+      "implied-move"
+     ]
+    },
+    {
+     "id": "straddle",
+     "phase": "demo",
+     "widget": {
+      "kind": "payoff",
+      "market": "E",
+      "legs": [
+       {
+        "kind": "call",
+        "side": "buy",
+        "qty": 1,
+        "strike": 100,
+        "price": 3
+       },
+       {
+        "kind": "put",
+        "side": "buy",
+        "qty": 1,
+        "strike": 100,
+        "price": 3
+       }
+      ],
+      "lo": 85,
+      "hi": 115
+     }
+    },
+    {
+     "id": "crush",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 2,
+      "tolerance": 0.001,
+      "unit": "cr"
+     },
+     "terms": [
+      "vega"
+     ]
+    },
+    {
+     "id": "timing",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "early"
+       },
+       {
+        "kind": "text",
+        "id": "through"
+       },
+       {
+        "kind": "text",
+        "id": "after"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "lower",
+     "phase": "transfer",
+     "widget": {
+      "kind": "payoff",
+      "market": "N",
+      "legs": [
+       {
+        "kind": "call",
+        "side": "buy",
+        "qty": 1,
+        "strike": 50,
+        "price": 2
+       },
+       {
+        "kind": "put",
+        "side": "buy",
+        "qty": 1,
+        "strike": 50,
+        "price": 2
+       }
+      ],
+      "lo": 40,
+      "hi": 60,
+      "hideAnalytics": true
+     },
+     "question": {
+      "type": "number",
+      "answer": 46,
+      "tolerance": 0.001
+     }
+    }
+   ]
+  },
+  {
+   "id": "options-calendars",
+   "stage": "advanced",
+   "steps": [
+    {
+     "id": "calendar",
+     "phase": "concept",
+     "terms": [
+      "calendar-spread",
+      "time-value",
+      "term-structure",
+      "vega",
+      "diagonal-spread"
+     ]
+    },
+    {
+     "id": "debit",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "C",
+      "columns": [
+       {
+        "id": "leg"
+       },
+       {
+        "id": "premium",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        "near",
+        2
+       ],
+       [
+        "far",
+        3.5
+       ]
+      ]
+     }
+    },
+    {
+     "id": "where",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "near"
+       },
+       {
+        "kind": "text",
+        "id": "above"
+       },
+       {
+        "kind": "text",
+        "id": "below"
+       }
+      ],
+      "answer": 0
+     }
+    },
+    {
+     "id": "size",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 8,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    },
+    {
+     "id": "diagonal",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "D",
+      "columns": [
+       {
+        "id": "leg"
+       },
+       {
+        "id": "premium",
+        "digits": 2
+       }
+      ],
+      "rows": [
+       [
+        "near",
+        1.4
+       ],
+       [
+        "far",
+        1.9
+       ]
+      ]
+     },
+     "question": {
+      "type": "number",
+      "answer": 0.5,
+      "tolerance": 0.001
+     }
+    }
+   ]
+  },
+  {
+   "id": "management-scaling",
+   "stage": "management",
+   "steps": [
+    {
+     "id": "parts",
+     "phase": "concept",
+     "terms": [
+      "scale-in",
+      "partial-take-profit",
+      "breakeven-stop",
+      "trailing-stop"
+     ]
+    },
+    {
+     "id": "plan",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "S",
+      "columns": [
+       {
+        "id": "item"
+       },
+       {
+        "id": "value",
+        "digits": 0
+       }
+      ],
+      "rows": [
+       [
+        "entry",
+        100
+       ],
+       [
+        "stop",
+        96
+       ],
+       [
+        "qty",
+        25
+       ],
+       [
+        "budget",
+        100
+       ]
+      ]
+     }
+    },
+    {
+     "id": "left",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 60,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    },
+    {
+     "id": "cost",
+     "phase": "decision",
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "nothing"
+       },
+       {
+        "kind": "text",
+        "id": "taken"
+       },
+       {
+        "kind": "text",
+        "id": "pullback"
+       }
+      ],
+      "answer": 2
+     }
+    },
+    {
+     "id": "short",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "T",
+      "columns": [
+       {
+        "id": "item"
+       },
+       {
+        "id": "value",
+        "digits": 0
+       }
+      ],
+      "rows": [
+       [
+        "entry",
+        50
+       ],
+       [
+        "stop",
+        52
+       ],
+       [
+        "qty",
+        20
+       ],
+       [
+        "exit",
+        48
+       ],
+       [
+        "exitQty",
+        10
+       ]
+      ]
+     },
+     "question": {
+      "type": "number",
+      "answer": 20,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    }
+   ]
+  },
+  {
+   "id": "mind-biases",
+   "stage": "psychology",
+   "steps": [
+    {
+     "id": "rules",
+     "phase": "concept",
+     "terms": [
+      "cooldown",
+      "revenge-trading",
+      "fomo",
+      "averaging-down"
+     ]
+    },
+    {
+     "id": "journal",
+     "phase": "demo",
+     "widget": {
+      "kind": "table",
+      "market": "B",
+      "columns": [
+       {
+        "id": "trade"
+       },
+       {
+        "id": "r",
+        "digits": 0,
+        "suffix": "R"
+       },
+       {
+        "id": "note"
+       }
+      ],
+      "rows": [
+       [
+        1,
+        -1,
+        "planned"
+       ],
+       [
+        2,
+        -1,
+        "planned"
+       ],
+       [
+        3,
+        -2,
+        "doubled"
+       ],
+       [
+        4,
+        1,
+        "waited"
+       ]
+      ]
+     }
+    },
+    {
+     "id": "chase",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 12.5,
+      "tolerance": 0.001
+     }
+    },
+    {
+     "id": "average",
+     "phase": "decision",
+     "question": {
+      "type": "number",
+      "answer": 200,
+      "tolerance": 0.001,
+      "unit": "cr"
+     }
+    },
+    {
+     "id": "which",
+     "phase": "transfer",
+     "widget": {
+      "kind": "table",
+      "market": "W",
+      "columns": [
+       {
+        "id": "trade"
+       },
+       {
+        "id": "note"
+       }
+      ],
+      "rows": [
+       [
+        1,
+        "plannedAdd"
+       ],
+       [
+        2,
+        "unplannedAdd"
+       ],
+       [
+        3,
+        "trend"
+       ]
+      ]
+     },
+     "question": {
+      "choices": [
+       {
+        "kind": "text",
+        "id": "t1"
+       },
+       {
+        "kind": "text",
+        "id": "t2"
+       },
+       {
+        "kind": "text",
+        "id": "t3"
+       }
+      ],
+      "answer": 1
+     }
+    }
+   ]
   }
  ],
  "glossary": [
@@ -4748,6 +5533,151 @@
     "perpetual",
     "portfolio-greeks"
    ]
+  },
+  {
+   "id": "gamma-scalping",
+   "stage": "advanced",
+   "related": [
+    "gamma",
+    "delta-hedge",
+    "rehedge",
+    "realized-volatility"
+   ]
+  },
+  {
+   "id": "delta-neutral",
+   "stage": "advanced",
+   "related": [
+    "delta",
+    "delta-hedge",
+    "portfolio-greeks"
+   ]
+  },
+  {
+   "id": "rehedge",
+   "stage": "advanced",
+   "related": [
+    "delta-hedge",
+    "gamma-scalping",
+    "fee"
+   ]
+  },
+  {
+   "id": "carry",
+   "stage": "advanced",
+   "related": [
+    "funding-rate",
+    "basis",
+    "fee"
+   ]
+  },
+  {
+   "id": "basis",
+   "stage": "advanced",
+   "related": [
+    "carry",
+    "perpetual",
+    "funding-rate"
+   ]
+  },
+  {
+   "id": "synthetic-forward",
+   "stage": "advanced",
+   "related": [
+    "put-call-parity",
+    "call",
+    "put"
+   ]
+  },
+  {
+   "id": "put-call-parity",
+   "stage": "advanced",
+   "related": [
+    "synthetic-forward",
+    "call",
+    "put"
+   ]
+  },
+  {
+   "id": "implied-move",
+   "stage": "advanced",
+   "related": [
+    "straddle",
+    "implied-volatility",
+    "event-volatility"
+   ]
+  },
+  {
+   "id": "event-volatility",
+   "stage": "advanced",
+   "related": [
+    "iv-crush",
+    "implied-volatility",
+    "vega"
+   ]
+  },
+  {
+   "id": "term-structure",
+   "stage": "advanced",
+   "related": [
+    "calendar-spread",
+    "theta",
+    "implied-volatility"
+   ]
+  },
+  {
+   "id": "scale-in",
+   "stage": "management",
+   "related": [
+    "position-sizing",
+    "risk-budget",
+    "averaging-down"
+   ]
+  },
+  {
+   "id": "scale-out",
+   "stage": "management",
+   "related": [
+    "partial-take-profit",
+    "take-profit",
+    "trailing-stop"
+   ]
+  },
+  {
+   "id": "breakeven-stop",
+   "stage": "management",
+   "related": [
+    "stop-loss",
+    "trailing-stop",
+    "scale-out"
+   ]
+  },
+  {
+   "id": "partial-take-profit",
+   "stage": "management",
+   "related": [
+    "scale-out",
+    "take-profit",
+    "r-multiple"
+   ]
+  },
+  {
+   "id": "averaging-down",
+   "stage": "psychology",
+   "related": [
+    "scale-in",
+    "risk-budget",
+    "invalidation"
+   ]
+  },
+  {
+   "id": "cooldown",
+   "stage": "psychology",
+   "related": [
+    "revenge-trading",
+    "journal",
+    "thesis"
+   ]
   }
  ],
  "coach": [
@@ -4802,6 +5732,10 @@
   "wrote_options": "writing",
   "leverage_vs_stop": "leverage",
   "liq_buffer": "liquidation-price",
-  "drawdown_budget": "drawdown"
+  "drawdown_budget": "drawdown",
+  "revenge_trade": "revenge-trading",
+  "fomo_entry": "fomo",
+  "averaging_down": "averaging-down",
+  "risk_limit_exceeded": "risk-limit"
  }
 }

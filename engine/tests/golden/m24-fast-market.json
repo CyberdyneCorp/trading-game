@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "m24-fast-market",
+  "description": "A long bought after four rising closes far above the 20-bar mean, without a plan and with a 3 x ATR stop.",
+  "mission": "m24-fast-market",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 3},
+    {"k": "adv", "n": 38},
+    {"k": "order", "type": "market", "side": "buy", "qty": "30", "price": null, "ro": false, "stop": "99.59", "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "347242b16d91e32c8c367ffa8772908a4103ca520e904b4495d86b6bdf6f44b4",
+    "eventsDigest": "3bc403db2e0b9b610f78ad93080fea50f2fb20185ffdb510e64b83417f8785a9",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

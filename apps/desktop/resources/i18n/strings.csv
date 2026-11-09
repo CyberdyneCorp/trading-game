@@ -287,6 +287,7 @@ debrief.reveal,Revelação do mercado,Market reveal
 comparison.title,Comparação de estruturas (calculada neste seed),Structures compared (computed on this seed)
 comparison.basisPlayer,"O motor montou cada estrutura na barra {step} (a da sua primeira entrada em opções), com {qty} contratos por perna, e a seguiu pelo mesmo caminho até a regra de saída.","The engine built each structure at bar {step} (your first option entry), with {qty} contracts per leg, and followed it along the same path to its exit rule."
 comparison.basisReference,"Você não negociou opções: o motor montou cada estrutura na barra de referência da missão ({step}), com {qty} contratos por perna, e a seguiu até a regra de saída.","You traded no options: the engine built each structure at the mission's reference bar ({step}), with {qty} contracts per leg, and followed it to its exit rule."
+comparison.basisOwn,"O motor jogou cada estrutura pela sua própria regra de entrada e de saída (as barras de cada linha), com {qty} contratos, pelo mesmo caminho de preços desta partida.","The engine played each structure by its own entry and exit rule (the bars on each row), with {qty} contracts, along this run's price path."
 comparison.col.structure,Estrutura,Structure
 comparison.col.bars,Barras,Bars
 comparison.col.net,Resultado líquido,Net result
@@ -308,6 +309,38 @@ comparison.iron_condor,Iron condor (asas 4 strikes fora),Iron condor (wings 4 st
 comparison.hold_to_settlement,Put vendida até a liquidação,"Put written, held to settlement"
 comparison.close_before_expiry,"Put vendida, recomprada 5 barras antes","Put written, bought back 5 bars before"
 comparison.roll_before_expiry,"Put vendida, rolada 5 barras antes de cada vencimento","Put written, rolled 5 bars before each expiry"
+comparison.unhedged_straddle,"Straddle no dinheiro, sem hedge, até o vencimento","At-the-money straddle, unhedged, to expiry"
+comparison.hedged_every_4,"O mesmo straddle, delta zerado com o perpétuo a cada 4 barras","The same straddle, delta zeroed with the perpetual every 4 bars"
+comparison.hedged_band,"O mesmo straddle, delta zerado quando passa de 40% dos contratos","The same straddle, delta zeroed when it exceeds 40% of the contracts"
+comparison.unhedged_short,"Short no perpétuo sozinho, a 5x","Short perpetual alone, at 5x"
+comparison.hedged_carry_5x,"Short + long sintético (call comprada, put vendida), perpétuo a 5x","Short + synthetic long (call bought, put written), perpetual at 5x"
+comparison.hedged_carry_2x,"O mesmo carrego protegido, perpétuo a 2x","The same hedged carry, perpetual at 2x"
+comparison.early_sell_before,"Straddle comprado no anúncio, vendido 1 barra antes da divulgação","Straddle bought at the announcement, sold 1 bar before the release"
+comparison.early_hold_through,"Straddle comprado no anúncio, segurado através da divulgação","Straddle bought at the announcement, held through the release"
+comparison.late_hold_through,"Straddle comprado 1 barra antes, segurado através da divulgação","Straddle bought 1 bar before, held through the release"
+comparison.short_straddle_through,"Straddle vendido 1 barra antes, segurado através da divulgação","Straddle written 1 bar before, held through the release"
+comparison.calendar_atm,"Calendário no dinheiro: call curta vendida, call seguinte comprada","At-the-money calendar: near call written, next call bought"
+comparison.diagonal_up,"Diagonal: call curta vendida, call seguinte um strike acima comprada","Diagonal: near call written, next call one strike up bought"
+comparison.short_straddle_near,Straddle do vencimento curto vendido até a liquidação,Near-expiry straddle written to settlement
+comparison.all_out_2r,"Tudo de uma vez: entrada após a manchete, saída inteira em 2R","All at once: in after the headline, all out at 2R"
+comparison.managed_exit,"Metade em +1R, stop no ponto de entrada, resto com stop móvel a 2×ATR","Half at +1R, stop to breakeven, the rest trailed at 2×ATR"
+comparison.hold_initial_stop,"Só o stop inicial, segurado até o fim","The initial stop only, held to the end"
+debrief.showMoment,ver barra {step},see bar {step}
+debrief.objectives,Objetivos lidos no registro,Objectives read from the log
+debrief.objectiveMet,cumprido,met
+debrief.objectiveMissed,não cumprido,missed
+episodes.title,"Posições, do zero ao zero","Positions, flat to flat"
+episodes.entries,Entradas,Entries
+episodes.exits,Saídas,Exits
+episodes.stops,Stop,Stop
+episodes.scaled,em partes,scaled in
+episodes.open,aberta no fim,open at the end
+episodes.trailing,stop móvel,trailing stop
+episodes.move.to_breakeven,→ entrada,→ breakeven
+episodes.move.toward,↑ mais perto,↑ closer
+episodes.move.away,↓ afastado,↓ moved away
+episodes.show,ver a entrada da barra {step} no gráfico,see the entry at bar {step} on the chart
+episodes.note,"Cada linha vai de sem posição a sem posição no perpétuo. MFE e MAE: o melhor e o pior momento das barras em aberto, em R, contra a primeira entrada (só com risco planejado). Calculado pelo motor depois da partida; nunca entra na pontuação.","Each row runs from flat to flat on the perpetual. MFE and MAE: the best and worst moment of the bars held, in R, against the first entry (with planned risk only). Computed by the engine after the run; never a score input."
 debrief.revealSynthetic,Mercado {alias} foi gerado sinteticamente (semente {seed}). Preços simulados; não representam um ativo real.,Market {alias} was generated synthetically (seed {seed}). Simulated prices; not a real asset.
 debrief.outcome,Resultado,Outcome
 debrief.netPnl,P&L líquido,Net P&L
@@ -716,6 +749,12 @@ stage.patterns,Padrões e indicadores,Patterns and indicators
 stage.evaluation,Avaliação de resultados,Evaluating results
 stage.events,Eventos,Events
 stage.strategies,"Estratégias · travas, venda coberta e condors","Strategies · spreads, covered calls and condors"
+stage.management,Gestão de trade · entradas e saídas em partes,Trade management · scaling in and out
+stage.advanced,Opções avançadas e carrego,Advanced options and carry
+stage.psychology,Psicologia · disciplina depois do resultado,Psychology · discipline after the result
+curriculum.branch,Ramo de {stage},Branch of {stage}
+curriculum.elective,ELETIVO,ELECTIVE
+curriculum.electiveNote,Fora da campanha: uma partida livre ou um desafio diário concluídos (sem ajuda) avaliam a missão.,Not in the campaign: a finished free-play run or daily challenge (unassisted) assesses the mission.
 journal.open,Diário de planos,Plan journal
 journal.title,Diário,Journal
 journal.note,"As hipóteses que você registrou antes de cada entrada, partida por partida. O texto fica só neste dispositivo e nunca entra na pontuação.","The hypotheses you recorded before each entry, run by run. The text stays on this device and is never scored."
@@ -775,6 +814,12 @@ tut.art.width,largura,width
 tut.art.open,aberta,open
 tut.art.near,próximo,near
 tut.art.next,seguinte,next
+tut.art.hedge,hedge,hedge
+tut.art.carryIn,funding recebido,funding received
+tut.art.costs,custos,costs
+tut.art.release,divulgação,release
+tut.art.far,longo,far
+tut.art.wait,esperar,wait
 tut.art.condor,condor,condor
 tut.art.strangle,strangle,strangle
 debrief.releasesTitle,Divulgações: esperado × surpresa,Releases: expectation vs surprise
@@ -1503,6 +1548,38 @@ mission.m17-before-expiry.title,Missão 17 · Vencimento,Mission 17 · Expiry
 mission.m17-before-expiry.tagline,"Um vencimento a cada 25 barras. Quando o relógio aperta: fechar, rolar ou segurar?","An expiry every 25 bars. When the clock runs down: close, roll or hold?"
 mission.m17-before-expiry.topic,"Estratégias · gestão antes do vencimento: theta, gama e rolagem","Strategies · managing before expiry: theta, gamma and rolling"
 mission.m17-before-expiry.reveal,"Este cenário foi desenhado para a GESTÃO ANTES DO VENCIMENTO: o mercado alternou lateral, tendência e volatilidade alta num caminho sorteado, sem manchetes. Perto do vencimento, o theta por barra e o gama de uma opção no dinheiro quase sempre mais que dobraram entre 20 e 3 barras antes. 5 barras antes, restava só cerca de 12% do prêmio de uma put vendida no dinheiro para ganhar, enquanto uma barra ainda podia mexer nela tanto quanto no começo. Rolar 5 barras antes custou cerca de 3 vezes os custos de segurar: são duas operações a mais. Uma call fora do dinheiro segurada até o vencimento terminou sem valor em cerca de 7 de cada 10 partidas. A faixa abaixo mostra o caminho de regimes desta partida.","This scenario was designed for MANAGING BEFORE EXPIRY: the market moved between ranges, trends and high volatility on a drawn path, with no headlines. Near expiry, the theta per bar and the gamma of an at-the-money option almost always more than doubled from 20 to 3 bars before. 5 bars before, only about 12% of a written at-the-money put’s premium was left to earn, while one bar could still move it as much as at the start. Rolling 5 bars before cost about 3 times the costs of holding: it is two more trades. An out-of-the-money call held to expiry ended worthless in about 7 runs in 10. The band below shows this run’s path of regimes."
+mission.m18-gamma-scalp.title,Missão 18 · Hedge,Mission 18 · Hedge
+mission.m18-gamma-scalp.tagline,Opções compradas e um perpétuo para equilibrar o delta. Quanto este mercado vai se mexer?,Bought options and a perpetual to balance the delta. How much will this market move?
+mission.m18-gamma-scalp.topic,Opções avançadas · gamma scalping e hedge de delta,Advanced options · gamma scalping and delta hedging
+mission.m18-gamma-scalp.reveal,"Este cenário foi desenhado para o GAMMA SCALPING: um caminho sorteado alternou trechos agitados, que se mexeram mais do que as opções cobravam (volatilidade realizada acima da implícita), e trechos calmos, que se mexeram menos. Um straddle comprado no dinheiro e neutralizado em delta com o perpétuo numa faixa de delta ganhou na maioria das partidas em que a volatilidade realizada ficou pelo menos 1,2 vez acima da implícita, e perdeu na grande maioria das partidas em que ficou abaixo de 0,85 vez: o theta é o aluguel do gama. Neutralizar a cada barra pagou pelo menos o dobro de taxas de neutralizar na faixa. A faixa abaixo mostra o caminho de regimes desta partida.","This scenario was designed for GAMMA SCALPING: a drawn path alternated busy stretches, which moved more than the options priced in (realized volatility above implied), and calm stretches, which moved less. An at-the-money straddle bought and delta-hedged with the perpetual on a delta band made money in most runs where realized volatility was at least 1.2 times the implied, and lost in the great majority where it was below 0.85 times: theta is the rent paid for gamma. Hedging every bar paid at least twice the fees of hedging on the band. The band below shows this run’s path of regimes."
+mission.m19-funding-carry.title,Missão 19 · Carrego,Mission 19 · Carry
+mission.m19-funding-carry.tagline,Os longs pagam funding. Dá para receber esse funding sem apostar na direção?,Longs pay funding. Can you collect it without betting on direction?
+mission.m19-funding-carry.topic,Opções avançadas · carrego de funding e paridade put-call,Advanced options · funding carry and put-call parity
+mission.m19-funding-carry.reveal,"Este cenário foi desenhado para o CARREGO DE FUNDING: os longs estavam lotados e pagavam funding; um short no perpétuo recebia, e um long sintético (call comprada e put vendida no mesmo strike e vencimento) tirava o risco de preço. Em parte das partidas a multidão desmontou: o funding virou negativo (os shorts passaram a pagar) e apertos levantaram o preço. Sem desmonte, o carrego protegido rendeu depois dos custos em pelo menos 3 de cada 4 partidas; com desmonte, perdeu na maioria. O hedge tira o risco de preço, não o de margem: a 5x, a perna do perpétuo foi liquidada em pelo menos 1 de cada 4 partidas com desmonte enquanto as opções ganhavam; a 2x, quase nunca.","This scenario was designed for FUNDING CARRY: longs were crowded and paid funding; a short perpetual collected it, and a synthetic long (a call bought and a put written at the same strike and expiry) removed the price risk. In some runs the crowd unwound: funding turned negative (shorts started paying) and squeezes lifted the price. Without an unwind, the hedged carry made money after costs in at least 3 runs in 4; with one, it lost in most. The hedge removes price risk, not margin risk: at 5x the perpetual leg was liquidated in at least 1 unwind run in 4 while the options gained; at 2x, almost never."
+mission.m20-event-vol.title,Missão 20 · Anúncio,Mission 20 · Announcement
+mission.m20-event-vol.tagline,"Uma divulgação está marcada. As opções sabem disso — e você, sabe o que fazer com elas?",A release is scheduled. The options know it — do you know what to do with them?
+mission.m20-event-vol.topic,Opções avançadas · volatilidade em torno de um evento,Advanced options · volatility around an event
+mission.m20-event-vol.reveal,"Este cenário foi desenhado para a VOLATILIDADE EM TORNO DE UM EVENTO: a divulgação foi anunciada 35 barras antes. A volatilidade implícita subiu em dois degraus até ela e despencou logo depois — em todas as partidas, para no máximo 70% do nível da barra anterior —, qualquer que fosse o resultado. Comprar o straddle cedo e vendê-lo uma barra antes da divulgação superou segurá-lo através dela na maioria das partidas. Segurar através ganhou quase sempre que o movimento superou o preço pago pelo straddle (o movimento implícito), e perdeu na grande maioria das outras partidas.","This scenario was designed for VOLATILITY AROUND AN EVENT: the release was announced 35 bars ahead. Implied volatility rose in two steps toward it and collapsed right after — in every run, to at most 70% of the level the bar before —, whatever the outcome. Buying the straddle early and selling it the bar before the release beat holding it through in most runs. Holding through won almost always when the move beat the price paid for the straddle (the implied move), and lost in the great majority of the other runs."
+mission.m21-calendar.title,Missão 21 · Calendário,Mission 21 · Calendar
+mission.m21-calendar.tagline,"Três vencimentos, uma volatilidade estável. O tempo passa diferente em cada um.","Three expiries, a steady volatility. Time passes differently in each one."
+mission.m21-calendar.topic,Opções avançadas · travas de calendário e diagonais,Advanced options · calendar and diagonal spreads
+mission.m21-calendar.reveal,"Este cenário foi desenhado para o CALENDÁRIO: um range com volatilidade implícita estável e um rompimento de direção sorteada, antes ou depois do vencimento curto. No vencimento curto, a perda de um calendário no dinheiro nunca passou do débito pago mais os custos. Ele ganhou na maioria das partidas em que o preço terminou a até um degrau de strike do strike, e perdeu em quase todas em que terminou a mais de três degraus. A margem de calendário (a call longa cobrindo a curta) deixou a estrutura sem chamada de margem.","This scenario was designed for the CALENDAR: a range with steady implied volatility and a breakout of drawn direction, before or after the near expiry. At the near expiry, an at-the-money calendar’s loss never exceeded the debit paid plus the costs. It made money in most runs where the price ended within one strike step of the strike, and lost in almost all where it ended more than three steps away. Calendar margin (the long call covering the short one) left the structure without a margin call."
+mission.m22-scale-manage.title,Missão 22 · Gestão,Mission 22 · Management
+mission.m22-scale-manage.tagline,Entrar é metade do trabalho. A outra metade é o que fazer depois.,Entering is half the job. The other half is what you do next.
+mission.m22-scale-manage.topic,"Gestão de trade · entradas em partes, saídas parciais e stop no ponto de entrada","Trade management · scaling in, partial exits and the stop to breakeven"
+mission.m22-scale-manage.reveal,"Este cenário foi desenhado para a GESTÃO DA POSIÇÃO: uma manchete sem aviso deu início a uma tendência com recuos; a perna seguinte foi sorteada de novo, então às vezes a tendência foi longe, às vezes parou e às vezes falhou. Realizar metade em +1R, levar o stop ao ponto de entrada e acompanhar o resto ganhou com mais frequência e com resultados mais estreitos que entrar e sair de uma vez em 2R; já o tudo-ou-nada em 2R rendeu mais na maioria das partidas em que a tendência alcançou o alvo. Cada forma de gestão perdeu em parte das partidas.","This scenario was designed for MANAGING THE POSITION: an unannounced headline started a trend with pullbacks; the next leg was drawn again, so the trend sometimes ran far, sometimes stalled and sometimes failed. Taking half at +1R, moving the stop to breakeven and trailing the rest won more often and with narrower results than all in and all out at 2R; all in and all out at 2R earned more in most runs where the trend reached the target. Every way of managing lost in some runs."
+mission.m23-second-chance.title,Missão 23 · Recomeço,Mission 23 · Restart
+mission.m23-second-chance.tagline,Um mercado em range. Cada trade é uma decisão nova.,A ranging market. Every trade is a new decision.
+mission.m23-second-chance.topic,Psicologia · disciplina depois de um stop,Psychology · discipline after a stop
+mission.m23-second-chance.reveal,"Este cenário foi desenhado como um RECOMEÇO: um rompimento limpo no começo falhou rápido e parou muitos stops; depois veio um trecho picotado, e só mais tarde um movimento de verdade, de direção sorteada. Esperar pelo menos 3 barras depois do stop e voltar só no próximo sinal, com o tamanho normal, perdeu menos que voltar na hora com o dobro do tamanho em pelo menos 7 de cada 10 partidas. Os vieses que o seu registro mostra estão em “O que aconteceu”, com as barras em que aconteceram.","This scenario was designed as a RESTART: an early clean-looking breakout failed fast and stopped many players out; choppy trading followed, and only later a real move of drawn direction. Waiting at least 3 bars after the stop and coming back only on the next signal, at normal size, lost less than coming back at once at twice the size in at least 7 runs in 10. The biases your log shows are under “What happened”, with the bars they happened on."
+mission.m24-fast-market.title,Missão 24 · Disparada,Mission 24 · Rally
+mission.m24-fast-market.tagline,Um mercado quieto. Até que deixa de ser.,A quiet market. Until it is not.
+mission.m24-fast-market.topic,"Psicologia · planejar antes do movimento, não durante","Psychology · plan before the move, not during it"
+mission.m24-fast-market.reveal,"Este cenário foi desenhado como uma DISPARADA: depois de um range quieto, uma alta íngreme com volume pesado e funding extremo, que nenhuma notícia sustentava. Na maioria das partidas ela devolveu a alta; em algumas continuou. Entrar no rompimento do range com o stop abaixo dele rendeu mais R que perseguir o preço depois de 4 altas seguidas, longe da média, em cerca de 2 de cada 3 partidas — e a perseguição ainda ganhou em parte delas: correr atrás nem sempre está errado, só custa mais caro quando está. Os vieses que o seu registro mostra estão em “O que aconteceu”.","This scenario was designed as a RALLY: after a quiet range, a steep climb on heavy volume and extreme funding that no headline supported. In most runs it gave the gains back; in some it kept going. Entering on the range break with the stop below it earned more R than chasing the price after 4 rising closes far from the average in about 2 runs in 3 — and the chase still won in some of them: chasing is not always wrong, it just costs more when it is. The biases your log shows are under “What happened”."
+mission.m25-the-dip.title,Missão 25 · Queda,Mission 25 · Dip
+mission.m25-the-dip.tagline,Uma tendência com sustos no caminho. O que você faz no próximo?,A trend with scares along the way. What do you do at the next one?
+mission.m25-the-dip.topic,Psicologia · aumentar uma posição perdedora só com plano,Psychology · adding to a loser only with a plan
+mission.m25-the-dip.reveal,"Este cenário foi desenhado como uma QUEDA: uma tendência de alta com quedas bruscas no caminho, que se recuperavam — até que, em cerca de 3 de cada 10 partidas, uma não se recuperou. Uma entrada única com stop planejado igualou ou superou o preço médio para baixo até o mesmo stop na maioria das partidas; o preço médio ganhou em algumas (a armadilha funciona às vezes), mas sua pior partida foi pelo menos o dobro da pior da entrada única. Os vieses que o seu registro mostra estão em “O que aconteceu”.","This scenario was designed as a DIP: an uptrend with sharp drops along the way that recovered — until, in about 3 runs in 10, one did not. A single entry with a planned stop matched or beat averaging down to the same stop in most runs; averaging down won in some (the trap works sometimes), but its worst run was at least twice as bad as the single entry’s worst. The biases your log shows are under “What happened”."
 news.headline.rate_decision.pos,Banco Central de Varena corta juros,Central Bank of Varena cuts rates
 news.headline.rate_decision.neu,Banco Central de Varena mantém juros,Central Bank of Varena holds rates
 news.headline.rate_decision.neg,Banco Central de Varena sobe juros,Central Bank of Varena hikes rates
@@ -1711,6 +1788,19 @@ objective.size_by_max_loss,Dimensione pela perda máxima: até {pct} do patrimô
 objective.breakout_exit_rule,"Antes de entrar, escreva o que fará se o mercado romper o range.","Before entering, write what you will do if the market breaks out of the range."
 objective.decide_before_expiry,"Antes das 5 últimas barras de um vencimento, decida fechar, rolar ou manter, e registre por quê.","Before an expiry’s last 5 bars, decide to close, roll or hold, and record why."
 objective.no_roll_without_thesis,Não role sem uma tese nova: julgue a rolagem como uma entrada nova.,Do not roll without a new thesis: judge the roll as a fresh entry.
+objective.delta_within_limit,"Mantenha o delta (em valor) dentro de {pct} do patrimônio, o limite de risco da missão.","Keep the delta (notional) within {pct} of equity, the mission’s risk limit."
+objective.rehedge_rule_first,"Antes de entrar, registre a regra de rebalanceamento: a cada N barras ou numa faixa de delta.","Before entering, record the rehedge rule: every N bars or on a delta band."
+objective.carry_breakeven_first,"Antes de entrar, escreva o ponto de equilíbrio do carrego: o funding necessário para pagar os custos.","Before entering, write the carry break-even: the funding needed to pay the costs."
+objective.vega_within_limit,"Mantenha o vega por ponto de volatilidade dentro de {pct} do patrimônio, o limite de risco da missão.","Keep the vega per volatility point within {pct} of equity, the mission’s risk limit."
+objective.hold_through_decision,"Antes da barra da divulgação, decida se segura através dela e registre por quê.","Before the release bar, decide whether to hold through it, and record why."
+objective.net_debit_first,"Antes de entrar, escreva o débito líquido: a perda máxima no vencimento curto.","Before entering, write the net debit: the maximum loss at the near expiry."
+objective.gamma_within_limit,"Mantenha o gama de um movimento de 1% dentro de {pct} do patrimônio, o limite de risco da missão.","Keep the gamma of a 1% move within {pct} of equity, the mission’s risk limit."
+objective.total_risk_all_entries,Risco planejado total de até {pct} somando todas as entradas da mesma ideia.,Total planned risk of at most {pct} across every entry of the same idea.
+objective.partial_exit_or_trail,Use pelo menos uma saída parcial ou um stop móvel.,Use at least one partial exit or a trailing stop.
+objective.never_stop_away,Nunca afaste o stop da entrada.,Never move a stop away from the entry.
+objective.cooldown_after_stop,"Nas 3 barras seguintes a um trade fechado com perda, nenhuma entrada nova sem um plano novo nem com 1,5× o tamanho.","Within 3 bars of a losing close, no new entry without a new plan or at 1.5× the size."
+objective.plan_before_entry_atr_stop,Cada entrada com o plano registrado antes e o stop a até 2×ATR.,Every entry with its plan recorded first and the stop within 2×ATR.
+objective.no_add_beyond_plan,Não aumente uma posição perdedora além do risco total planejado.,Do not add to a losing position beyond the planned total risk.
 tutorial.m01-false-breakout.0.title,Leia o gráfico,Read the chart
 tutorial.m01-false-breakout.0.body,"Cada candle é uma hora: abertura, máxima, mínima e fechamento. A área hachurada à direita é o futuro, que ninguém conhece. Espaço avança uma barra; Shift+Espaço avança cinco.","Each candle is one hour: open, high, low and close. The hatched area on the right is the future, which nobody knows. Space advances one bar; Shift+Space advances five."
 tutorial.m01-false-breakout.0.art,chart,chart
@@ -1936,6 +2026,93 @@ tutorial.m17-before-expiry.2.art,chain,chain
 tutorial.m17-before-expiry.3.title,Decida antes,Decide beforehand
 tutorial.m17-before-expiry.3.body,"Antes das 5 últimas barras de um vencimento, decida fechar, rolar ou segurar até a liquidação, e registre por quê. Sem tese nova, não role. Na margem, cada vendida coberta por uma comprada do mesmo tipo e vencimento pede só o que o par pode perder.","Before an expiry’s last 5 bars, decide to close, roll or hold to settlement, and record why. Without a new thesis, do not roll. For margin, each written option covered by a bought one of the same kind and expiry needs only what the pair can lose."
 tutorial.m17-before-expiry.3.art,plan,plan
+tutorial.m18-gamma-scalp.0.title,Gamma e hedge,Gamma and the hedge
+tutorial.m18-gamma-scalp.0.body,Um straddle comprado tem gama positivo: o delta sobe com o preço e cai com ele. Neutralizar o delta com o perpétuo (hedge de delta) vende depois de uma alta e compra depois de uma queda. Decida a regra antes: a cada N barras ou numa faixa de delta.,A long straddle has positive gamma: its delta rises with the price and falls with it. Neutralizing the delta with the perpetual (delta hedge) sells after a rise and buys after a fall. Decide the rule beforehand: every N bars or on a delta band.
+tutorial.m18-gamma-scalp.0.art,scalp,scalp
+tutorial.m18-gamma-scalp.1.title,Delta neutro,Delta neutral
+tutorial.m18-gamma-scalp.1.body,"Delta da carteira = delta das opções + o perpétuo. O painel Carteira mostra o total e propõe o hedge, arredondado para o lote em direção a zero. Nunca é enviado sem a sua confirmação.","The book’s delta = the options’ delta + the perpetual. The Portfolio panel shows the total and proposes the hedge, rounded to the lot toward zero. It is never sent without your confirmation."
+tutorial.m18-gamma-scalp.1.art,straddle,straddle
+tutorial.m18-gamma-scalp.2.title,O aluguel,The rent
+tutorial.m18-gamma-scalp.2.body,O theta é o que o gama custa por barra. O hedge ganha com os movimentos; o theta cobra pelo tempo. Compare o tamanho das barras com a volatilidade implícita da cadeia.,Theta is what gamma costs per bar. The hedge earns from the moves; theta charges for time. Compare the size of the bars with the chain’s implied volatility.
+tutorial.m18-gamma-scalp.2.art,decay,decay
+tutorial.m18-gamma-scalp.3.title,Custos,Costs
+tutorial.m18-gamma-scalp.3.body,"Cada rebalanceamento é uma ordem no perpétuo: taxa e spread. Rebalancear a cada barra captura mais dos movimentos e paga mais custos. A missão limita o delta em % do patrimônio: o painel avisa, nunca bloqueia.","Each rehedge is a perpetual order: a fee and the spread. Rehedging every bar captures more of the moves and pays more costs. The mission caps the delta as a % of equity: the panel warns, it never blocks."
+tutorial.m18-gamma-scalp.3.art,book,book
+tutorial.m19-funding-carry.0.title,Carrego,Carry
+tutorial.m19-funding-carry.0.body,"Com funding positivo, os longs pagam e um short no perpétuo recebe. O carrego é o funding recebido menos os custos das pernas. Antes de entrar, escreva quanto funding paga os custos.","With positive funding, longs pay and a short perpetual receives. The carry is the funding received minus the legs’ costs. Before entering, write how much funding pays the costs."
+tutorial.m19-funding-carry.0.art,carry,carry
+tutorial.m19-funding-carry.1.title,O funding muda,Funding changes
+tutorial.m19-funding-carry.1.body,"A taxa é publicada a cada fechamento e paga a cada 8 barras. Ela segue quem está lotado, e pode virar: com funding negativo, os shorts pagam.","The rate is published at each close and paid every 8 bars. It follows whoever is crowded, and it can turn: with negative funding, shorts pay."
+tutorial.m19-funding-carry.1.art,funding,funding
+tutorial.m19-funding-carry.2.title,Margem isolada,Isolated margin
+tutorial.m19-funding-carry.2.body,O short no perpétuo tem a sua própria margem isolada: o ganho das opções não a reforça. Um aperto pode liquidar o short enquanto as opções ganham. Mantenha a liquidação a pelo menos 15% de distância.,The short perpetual has its own isolated margin: the options’ gain does not top it up. A squeeze can liquidate the short while the options gain. Keep liquidation at least 15% away.
+tutorial.m19-funding-carry.2.art,margin,margin
+tutorial.m19-funding-carry.3.title,Paridade,Parity
+tutorial.m19-funding-carry.3.body,"Call comprada e put vendida no mesmo strike e vencimento se comportam como um long: call − put = forward − strike (paridade put-call). Somadas a um short no perpétuo, o risco de preço se anula e sobra o funding.","A call bought and a put written at the same strike and expiry behave like a long: call − put = forward − strike (put-call parity). Added to a short perpetual, the price risk cancels and the funding is left."
+tutorial.m19-funding-carry.3.art,parity,parity
+tutorial.m20-event-vol.0.title,Antes e depois,Before and after
+tutorial.m20-event-vol.0.body,"Antes de uma divulgação conhecida a volatilidade implícita costuma subir; depois, costuma cair qualquer que seja o resultado (esmagamento da IV). Decida antes da barra da divulgação se segura através dela, e registre por quê.","Ahead of a known release implied volatility tends to rise; after it, it tends to fall whatever the outcome (IV crush). Decide before the release bar whether to hold through it, and record why."
+tutorial.m20-event-vol.0.art,crush,crush
+tutorial.m20-event-vol.1.title,O que a IV mede,What IV measures
+tutorial.m20-event-vol.1.body,A IV é o movimento que as opções cobram. Compare-a com o tamanho das barras e com o anúncio na agenda. O vega diz quanto o valor muda por ponto de IV.,IV is the move the options charge for. Compare it with the size of the bars and with the scheduled announcement. Vega says how much the value changes per IV point.
+tutorial.m20-event-vol.1.art,volatility,volatility
+tutorial.m20-event-vol.2.title,O movimento implícito,The implied move
+tutorial.m20-event-vol.2.body,Um straddle no dinheiro custa mais ou menos o movimento que o mercado espera: os pontos de equilíbrio ficam no strike ± o prêmio. Escreva-os antes de comprar.,An at-the-money straddle costs about the move the market expects: the breakevens sit at the strike ± the premium. Write them down before buying.
+tutorial.m20-event-vol.2.art,straddle,straddle
+tutorial.m20-event-vol.3.title,O tempo corre,Time runs
+tutorial.m20-event-vol.3.body,"Comprar cedo dá tempo à alta da IV, mas cada barra cobra theta. A missão limita o vega em % do patrimônio: o painel Carteira avisa.","Buying early gives the IV rise time, but every bar charges theta. The mission caps vega as a % of equity: the Portfolio panel warns."
+tutorial.m20-event-vol.3.art,decay,decay
+tutorial.m21-calendar.0.title,Dois vencimentos,Two expiries
+tutorial.m21-calendar.0.body,"Um calendário vende a opção do vencimento curto e compra a do longo, no mesmo strike. O curto perde valor de tempo mais depressa. No vencimento curto, a perda máxima é o débito pago: escreva-o antes de entrar.","A calendar sells the near expiry’s option and buys the far one, at the same strike. The near one loses time value faster. At the near expiry the largest loss is the debit paid: write it down before entering."
+tutorial.m21-calendar.0.art,calendarSpread,calendarSpread
+tutorial.m21-calendar.1.title,Onde ele ganha,Where it earns
+tutorial.m21-calendar.1.body,"O calendário ganha mais com o preço perto do strike no vencimento curto. Longe dele, as duas pernas perdem o valor de tempo. Uma diagonal muda o strike da comprada para inclinar a estrutura.","The calendar earns most with the price near the strike at the near expiry. Away from it, both legs lose their time value. A diagonal moves the long’s strike to lean the structure."
+tutorial.m21-calendar.1.art,decay,decay
+tutorial.m21-calendar.2.title,Margem de calendário,Calendar margin
+tutorial.m21-calendar.2.body,"Aqui a comprada do vencimento longo cobre a vendida do curto, do mesmo tipo: a margem é a do par. O gama da carteira tem um limite em % do patrimônio: o painel avisa.",Here the far expiry’s long covers the near short of the same kind: the margin is the pair’s. The book’s gamma has a cap as a % of equity: the panel warns.
+tutorial.m21-calendar.2.art,margin,margin
+tutorial.m21-calendar.3.title,Antes do vencimento curto,Before the near expiry
+tutorial.m21-calendar.3.body,"Antes das últimas 5 barras do vencimento curto, decida fechar, rolar a vendida ou segurar, e registre por quê. Rolar são duas operações a mais.","Before the near expiry’s last 5 bars, decide to close, roll the short or hold, and record why. Rolling is two more trades."
+tutorial.m21-calendar.3.art,roll,roll
+tutorial.m22-scale-manage.0.title,Entrar e sair em partes,In and out in parts
+tutorial.m22-scale-manage.0.body,Entrar em partes só vale com o risco somado de todas as entradas até o mesmo stop dentro de 1% (entrada em partes). Uma realização parcial em +1R garante parte do resultado.,Scaling in is worth it only with the risk of every entry to the same stop adding up within 1% (scaling in). A partial take-profit at +1R locks in part of the result.
+tutorial.m22-scale-manage.0.art,scale,scale
+tutorial.m22-scale-manage.1.title,Deixar o resto correr,Letting the rest run
+tutorial.m22-scale-manage.1.body,"Depois da parcial, um stop móvel acompanha o melhor fechamento e nunca recua. Na boleta, a aba Trailing coloca o stop móvel numa posição aberta.","After the partial, a trailing stop follows the best close and never steps back. In the ticket, the Trailing tab places it on an open position."
+tutorial.m22-scale-manage.1.art,trail,trail
+tutorial.m22-scale-manage.2.title,Stop no ponto de entrada,The stop to breakeven
+tutorial.m22-scale-manage.2.body,"Levar o stop à entrada tira o risco que sobra, mas um recuo normal pode parar uma tendência certa. Nunca afaste um stop da entrada.","Moving the stop to the entry removes the risk that was left, but a normal pullback can stop a sound trend. Never move a stop away from the entry."
+tutorial.m22-scale-manage.2.art,risk,risk
+tutorial.m22-scale-manage.3.title,Ordens arrumadas,Tidy orders
+tutorial.m22-scale-manage.3.body,"Use OCO para que o alvo e o stop se cancelem e validade (tempo em vigor) para ordens que não devem ficar abertas. Registre o plano de cada entrada, também das que aumentam a posição.","Use OCO so the target and the stop cancel each other, and a time in force for orders that should not stay open. Record the plan of every entry, the adds included."
+tutorial.m22-scale-manage.3.art,plan,plan
+tutorial.m23-second-chance.0.title,Uma decisão de cada vez,One decision at a time
+tutorial.m23-second-chance.0.body,"Cada trade é uma decisão nova: o resultado do anterior não muda o próximo setup. Depois de um stop, espere o setup se formar de novo antes de entrar (pausa depois do stop).","Every trade is a new decision: the last result does not change the next setup. After a stop-out, wait for the setup to form again before entering (cooldown)."
+tutorial.m23-second-chance.0.art,cooldown,cooldown
+tutorial.m23-second-chance.1.title,Plano antes da entrada,Plan before the entry
+tutorial.m23-second-chance.1.body,"Antes de cada entrada, a hipótese, a invalidação e o tamanho. Uma entrada nova pede um plano novo, também logo depois de um stop.","Before every entry, the thesis, the invalidation and the size. A new entry needs a new plan, also right after a stop."
+tutorial.m23-second-chance.1.art,plan,plan
+tutorial.m23-second-chance.2.title,Tamanho constante,Constant size
+tutorial.m23-second-chance.2.body,"Risco de até 1% por ideia, com a quantidade calculada pelo stop. O tamanho não sobe para recuperar.","Risk at most 1% per idea, with the quantity set by the stop. Size does not go up to win it back."
+tutorial.m23-second-chance.2.art,risk,risk
+tutorial.m24-fast-market.0.title,Planejar antes do movimento,Plan before the move
+tutorial.m24-fast-market.0.body,"O melhor momento para planejar é antes do preço andar: a hipótese, o ponto de entrada e a invalidação. Registre o plano antes de cada entrada.","The best time to plan is before the price moves: the thesis, the entry and the invalidation. Record the plan before every entry."
+tutorial.m24-fast-market.0.art,plan,plan
+tutorial.m24-fast-market.1.title,Stop e tamanho,Stop and size
+tutorial.m24-fast-market.1.body,"Risco de até 1% por ideia. Quanto mais longe a invalidação, menor a quantidade; o stop fica a até 2×ATR da entrada.","Risk at most 1% per idea. The farther the invalidation, the smaller the quantity; the stop sits within 2×ATR of the entry."
+tutorial.m24-fast-market.1.art,risk,risk
+tutorial.m24-fast-market.2.title,Esperar é uma decisão,Waiting is a decision
+tutorial.m24-fast-market.2.body,"Sem setup, esperar é uma decisão válida. O mercado oferece outras entradas; um plano pronto ajuda a reconhecê-las.","Without a setup, waiting is a valid decision. The market offers other entries; a ready plan helps you recognize them."
+tutorial.m24-fast-market.2.art,cooldown,cooldown
+tutorial.m25-the-dip.0.title,O risco total,The total risk
+tutorial.m25-the-dip.0.body,"Uma posição tem um risco total até a invalidação, somando todas as entradas. Risco de até 1% por ideia, com plano e stop em cada entrada.","A position has one total risk to its invalidation, adding up every entry. Risk at most 1% per idea, with a plan and a stop on each entry."
+tutorial.m25-the-dip.0.art,risk,risk
+tutorial.m25-the-dip.1.title,O plano decide os aumentos,The plan decides the adds
+tutorial.m25-the-dip.1.body,"Se a ideia prevê aumentar a posição, escreva na entrada onde e quanto, com o risco total até o mesmo stop. Um aumento fora do plano é uma entrada nova.","If the idea foresees adding, write at entry where and how much, with the total risk to the same stop. An add outside the plan is a new entry."
+tutorial.m25-the-dip.1.art,plan,plan
+tutorial.m25-the-dip.2.title,Ler antes de agir,Read before acting
+tutorial.m25-the-dip.2.body,"Antes de cada decisão, releia o plano e a invalidação. Se a invalidação foi atingida, a ideia acabou.","Before every decision, reread the plan and the invalidation. If the invalidation was hit, the idea is over."
+tutorial.m25-the-dip.2.art,cooldown,cooldown
 lessonq.m01-false-breakout.breakout-plan.prompt,O preço rompe o topo de um range sem notícia nova. O que o plano precisa ter antes de comprar o rompimento?,Price breaks the top of a range with no new headline. What must the plan have before buying the breakout?
 lessonq.m01-false-breakout.breakout-plan.choice0,Nada: rompimento é sinal de compra,Nothing: a breakout is a buy signal
 lessonq.m01-false-breakout.breakout-plan.choice1,Um ponto de invalidação (stop) e o risco calculado,An invalidation level (stop) and the risk computed
@@ -2035,6 +2212,52 @@ lessonq.m17-before-expiry.what-is-roll.prompt,O que é rolar uma opção?,What i
 lessonq.m17-before-expiry.what-is-roll.choice0,Adiar o vencimento da mesma opção sem custo,Postponing the same option’s expiry at no cost
 lessonq.m17-before-expiry.what-is-roll.choice1,Fechar a posição de um vencimento e abrir outra num vencimento seguinte: duas operações,Closing the position in one expiry and opening another in a later one: two trades
 lessonq.m17-before-expiry.what-is-roll.choice2,Trocar a call por uma put do mesmo strike,Swapping the call for a put at the same strike
+lessonq.m18-gamma-scalp.hedge-units.prompt,"Um straddle tem delta de +0,20 por unidade, em 50 unidades. Quantas unidades do perpétuo vender para ficar neutro em delta?",A straddle has a delta of +0.20 per unit on 50 units. How many perpetual units to sell to be delta-neutral?
+lessonq.m18-gamma-scalp.hedge-units.unit,unidades,units
+lessonq.m18-gamma-scalp.what-pays-theta.prompt,O que paga o theta de um straddle comprado e neutralizado em delta?,What pays the theta of a delta-hedged long straddle?
+lessonq.m18-gamma-scalp.what-pays-theta.choice0,A queda da volatilidade implícita depois da compra,Implied volatility falling after the purchase
+lessonq.m18-gamma-scalp.what-pays-theta.choice1,O funding do perpétuo usado no hedge,The funding of the perpetual used to hedge
+lessonq.m18-gamma-scalp.what-pays-theta.choice2,Movimentos realizados maiores que a volatilidade implícita cobrada,Realized moves larger than the implied volatility priced in
+lessonq.m19-funding-carry.funding-one-day.prompt,"Um short de 20 unidades a 100 recebe +0,03% por intervalo, 3 intervalos por dia. Quanto recebe de funding num dia?","A short of 20 units at 100 receives +0.03% per interval, 3 intervals a day. How much funding does it receive in a day?"
+lessonq.m19-funding-carry.funding-one-day.unit,cr,cr
+lessonq.m19-funding-carry.carry-turns.prompt,Quando o carrego de um short no perpétuo se volta contra quem carrega?,When does a short-perpetual carry turn against the holder?
+lessonq.m19-funding-carry.carry-turns.choice0,Quando o funding fica negativo: os shorts passam a pagar,When funding turns negative: shorts start paying
+lessonq.m19-funding-carry.carry-turns.choice1,"Quando o preço sobe, mesmo com o hedge no lugar","When the price rises, even with the hedge in place"
+lessonq.m19-funding-carry.carry-turns.choice2,"Nunca: com o hedge, o resultado é fixo",Never: with the hedge the result is locked in
+lessonq.m20-event-vol.straddle-upper-breakeven.prompt,Um straddle no dinheiro de strike 100 custou 6. Qual é o ponto de equilíbrio de cima no vencimento?,An at-the-money 100 straddle cost 6. What is the upper breakeven at expiry?
+lessonq.m20-event-vol.iv-after-release.prompt,O que acontece com a volatilidade implícita logo depois da divulgação?,What happens to implied volatility right after the release?
+lessonq.m20-event-vol.iv-after-release.choice0,"Sobe, porque o preço se mexeu","It rises, because the price moved"
+lessonq.m20-event-vol.iv-after-release.choice1,"Cai, qualquer que seja o resultado","It falls, whatever the outcome"
+lessonq.m20-event-vol.iv-after-release.choice2,Fica igual até o vencimento,It stays the same until expiry
+lessonq.m21-calendar.calendar-debit.prompt,"Venda a call 100 curta por 2,00 e compre a call 100 longa por 3,50. Qual é o débito líquido, a perda máxima no vencimento curto?","Sell the near 100 call for 2.00 and buy the far 100 call for 3.50. What is the net debit, the maximum loss at the near expiry?"
+lessonq.m21-calendar.calendar-best-price.prompt,Onde um calendário comprado lucra mais no vencimento curto?,Where does a long calendar profit most at the near expiry?
+lessonq.m21-calendar.calendar-best-price.choice0,Com o preço perto do strike,With the price near the strike
+lessonq.m21-calendar.calendar-best-price.choice1,Com o preço muito acima do strike,With the price far above the strike
+lessonq.m21-calendar.calendar-best-price.choice2,Com o preço muito abaixo do strike,With the price far below the strike
+lessonq.m22-scale-manage.risk-after-partial.prompt,"Long de 30 a 100 com stop em 96. Você vende 15 a 104 e leva o stop a 100. Qual é o pior resultado que sobra para o trade, antes dos custos?","Long 30 at 100 with a stop at 96. You sell 15 at 104 and move the stop to 100. What is the worst result left for the trade, before costs?"
+lessonq.m22-scale-manage.risk-after-partial.unit,cr,cr
+lessonq.m22-scale-manage.breakeven-stop-cost.prompt,Do que você abre mão ao levar o stop ao ponto de entrada?,What does moving the stop to breakeven give up?
+lessonq.m22-scale-manage.breakeven-stop-cost.choice0,De nada: o trade não pode mais perder e não pode ser parado,Nothing: the trade can no longer lose and cannot be stopped
+lessonq.m22-scale-manage.breakeven-stop-cost.choice1,Do lucro já realizado na saída parcial,The profit already taken on the partial exit
+lessonq.m22-scale-manage.breakeven-stop-cost.choice2,Pode ser parado num recuo normal de uma tendência que estava certa,It can be stopped out on a normal pullback of a trend that was right
+lessonq.m23-second-chance.drawdown-after-doubling.prompt,"Duas perdas de 1%, e o terceiro trade, dimensionado em 2%, também perde. Qual é a queda total, sem juros compostos (em %)?","Two 1% losses, then the third trade, sized at 2%, also loses. What is the total drawdown before compounding (in %)?"
+lessonq.m23-second-chance.drawdown-after-doubling.unit,%,%
+lessonq.m23-second-chance.after-stop-out.prompt,Qual é o passo sensato depois de um stop?,What is the sound step after a stop-out?
+lessonq.m23-second-chance.after-stop-out.choice0,"Entrar de novo na hora, com mais tamanho, para recuperar","Get back in at once, bigger, to win it back"
+lessonq.m23-second-chance.after-stop-out.choice1,Esperar o setup se formar de novo e entrar com o tamanho normal,Wait for the setup to form again and enter at normal size
+lessonq.m23-second-chance.after-stop-out.choice2,Tirar o stop no próximo trade para não ser parado de novo,Drop the stop on the next trade so it cannot be hit again
+lessonq.m24-fast-market.chase-quantity.prompt,"Entrada em 112, invalidação em 104 e orçamento de risco de 100. Qual é a maior quantidade?","Entry 112, invalidation 104 and a risk budget of 100. What is the largest quantity?"
+lessonq.m24-fast-market.chase-quantity.unit,unidades,units
+lessonq.m24-fast-market.why-chase-worse.prompt,Por que uma entrada perseguindo o preço é pior para o mesmo risco?,Why is a chased entry worse for the same risk?
+lessonq.m24-fast-market.why-chase-worse.choice0,"O stop fica mais longe, então o tamanho é menor ou a relação ganho/risco piora","The stop sits farther away, so the size is smaller or the reward to risk is worse"
+lessonq.m24-fast-market.why-chase-worse.choice1,O spread é sempre maior numa alta,The spread is always wider in a rally
+lessonq.m24-fast-market.why-chase-worse.choice2,Não é pior: o movimento confirma a entrada,It is not worse: the move confirms the entry
+lessonq.m25-the-dip.average-down-loss.prompt,"Long de 10 a 100, você aumenta 10 a 90, stop em 85. Qual é a perda no stop?","Long 10 at 100, you add 10 at 90, stop at 85. What is the loss at the stop?"
+lessonq.m25-the-dip.average-down-loss.unit,cr,cr
+lessonq.m25-the-dip.consistent-add.prompt,Quando aumentar uma posição perdedora é coerente com um plano?,When is adding to a losing position consistent with a plan?
+lessonq.m25-the-dip.consistent-add.choice0,Sempre que o preço estiver mais barato que a entrada,Whenever the price is cheaper than the entry
+lessonq.m25-the-dip.consistent-add.choice1,Quando o prejuízo ainda é pequeno,While the loss is still small
+lessonq.m25-the-dip.consistent-add.choice2,"Quando o aumento foi planejado na entrada, com o risco total até a mesma invalidação","When the add was planned at entry, with the total risk to the same invalidation"
 finding.waited,"Você não operou. Sem hipótese clara, esperar é uma decisão válida — não há penalidade por não girar.","You did not trade. Without a clear hypothesis, waiting is a valid decision — no penalty for low turnover."
 finding.liquidated,Liquidação na barra {step} a {price}: a margem isolada inteira ({amount}) foi perdida. Alavancagem menor teria colocado o stop antes da liquidação.,Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost. Lower leverage would have put the stop before liquidation.
 finding.stop_beyond_liq,Houve stop posicionado além do preço de liquidação: a liquidação dispara antes do stop.,A stop sat beyond the liquidation price: liquidation fires before the stop.
@@ -2057,11 +2280,23 @@ finding.wrote_options,"Você vendeu opções a descoberto: o risco não fica lim
 finding.leverage_vs_stop,"Na entrada da barra {step}, a {count}x, a liquidação ({requested}) ficava a menos de duas distâncias do stop ({price}) da entrada: um gap do tamanho do stop além dele já liquidaria a posição. Com alavancagem menor o stop teria folga.","At the entry on bar {step}, at {count}x, liquidation ({requested}) sat less than twice the stop’s distance ({price}) from the entry: a gap one stop-distance beyond the stop would already liquidate it. Lower leverage gives the stop room."
 finding.liq_buffer,"A liquidação chegou a {pct} do preço, mais perto que a distância de aviso desta missão{warn}. Deixe margem para o ruído e para os gaps.","Liquidation came within {pct} of the price, closer than this mission’s warning distance{warn}. Leave room for noise and gaps."
 finding.drawdown_budget,O drawdown máximo ({amount} cr) passou do orçamento de drawdown da missão ({pct} do capital). Dimensione cada ideia pelo orçamento que sobra.,The maximum drawdown ({amount} cr) went past the mission’s drawdown budget ({pct} of capital). Size each idea from the budget that is left.
+finding.revenge_trade,"Vingança: o trade {trade} fechou com perda de {loss} cr na barra {exit}, e na barra {entry} veio uma entrada nova com {ratio}× o tamanho dele. Depois de uma perda, espere o setup se formar de novo e entre com o tamanho normal.","Revenge trade: trade {trade} closed at a loss of {loss} cr on bar {exit}, and on bar {entry} a new entry came at {ratio}× its size. After a loss, wait for the setup to form again and enter at normal size."
+finding.fomo_entry,"Medo de ficar de fora (FOMO): a entrada da barra {entry} veio depois de {closes} fechamentos seguidos na mesma direção, a {ext} ATR da média de 20 barras, {stopText}. Longe da estrutura, o stop fica longe ou o tamanho fica minúsculo.","Fear of missing out (FOMO): the entry on bar {entry} came after {closes} closes in a row the same way, {ext} ATR from the 20-bar average, {stopText}. Far from structure, the stop sits far away or the size gets tiny."
+finding.averaging_down,"Preço médio para baixo: na barra {entry} você aumentou uma posição que perdia {loss} cr, e o preço médio foi de {avgBefore} para {avgAfter}; o risco até o stop passou de {riskBefore} para {riskAfter} cr (plano da primeira entrada: {planRisk} cr). Aumentar só é coerente se foi planejado na entrada, com o risco total até a mesma invalidação.","Averaging down: on bar {entry} you added to a position losing {loss} cr, and the average entry went from {avgBefore} to {avgAfter}; the risk to the stop went from {riskBefore} to {riskAfter} cr (the first entry’s plan: {planRisk} cr). Adding is consistent only when it was planned at entry, with the total risk to the same invalidation."
+finding.risk_limit_exceeded,"O limite de risco de {limit} ({limitPct} do patrimônio) foi passado em {count} fechamentos, a partir da barra {step} (pior: {worstPct}). Reduza ou neutralize antes que o limite seja passado.","The {limit} risk limit ({limitPct} of equity) was exceeded at {count} closes, from bar {step} (worst: {worstPct}). Reduce or hedge before the limit is crossed."
 finding.liquidated.safe,Liquidação na barra {step} a {price}: a margem isolada inteira ({amount}) foi perdida. O stop estava além da liquidação: com até {count}x de alavancagem ele teria ficado na frente.,Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost. The stop sat beyond liquidation: up to {count}x leverage would have kept it in front.
 finding.stop_beyond_liq.safe,O stop em {price} (entrada na barra {step}) ficou além da liquidação em {requested}: a liquidação dispara antes. Com até {count}x de alavancagem o stop teria ficado na frente.,The stop at {price} (entry at bar {step}) sat beyond the liquidation price {requested}: liquidation fires first. Up to {count}x leverage would have kept the stop in front.
 finding.no_stop.one,"1 entrada sem stop de proteção logo em seguida. Sem stop, o risco planejado é indefinido.","1 entry without a protective stop right after. Without a stop, planned risk is undefined."
 finding.ambiguous.one,1 execução usou a aproximação intrabar conservadora (OHLC não revela a ordem máxima/mínima).,1 fill used the conservative intrabar approximation (OHLC does not reveal whether high or low came first).
 finding.capacity.one,1 execução foi limitada pela capacidade simulada da barra.,1 fill was limited by the simulated bar capacity.
+findingVariant.revenge_trade.unplanned,"Vingança: o trade {trade} fechou com perda de {loss} cr na barra {exit}, e na barra {entry} veio uma entrada nova sem plano registrado ({ratio}× o tamanho dele). Depois de uma perda, espere o setup se formar de novo e entre com o tamanho normal.","Revenge trade: trade {trade} closed at a loss of {loss} cr on bar {exit}, and on bar {entry} a new entry came with no plan recorded ({ratio}× its size). After a loss, wait for the setup to form again and enter at normal size."
+findingVariant.averaging_down.nostop,"Preço médio para baixo: na barra {entry} você aumentou uma posição que perdia {loss} cr, sem stop, e o preço médio foi de {avgBefore} para {avgAfter}. Aumentar só é coerente se foi planejado na entrada, com o risco total até a mesma invalidação.","Averaging down: on bar {entry} you added to a position losing {loss} cr, with no stop, and the average entry went from {avgBefore} to {avgAfter}. Adding is consistent only when it was planned at entry, with the total risk to the same invalidation."
+findingVariant.stop.none,sem stop,with no stop
+findingVariant.stop.far,"com o stop em {stop}, a mais de 2 ATR","with the stop at {stop}, more than 2 ATR away"
+findingLimit.delta,delta,delta
+findingLimit.gamma,gama,gamma
+findingLimit.vega,vega,vega
+findingLimit.theta,theta,theta
 finding.liquidatedOnly,Liquidação na barra {step} a {price}: a margem isolada inteira ({amount}) foi perdida.,Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost.
 nextLesson.futures2,"Futuros II — margem, alavancagem e preço de liquidação","Futures II — margin, leverage and liquidation price"
 nextLesson.risk,Risco — dimensionar pelo stop e orçamento de risco,Risk — sizing from the stop and a risk budget
@@ -2594,6 +2829,196 @@ academyLesson.mind-plan.fomo.cell.planned,"plano escrito, stop abaixo do suporte
 academyLesson.mind-plan.fomo.cell.waited,sem sinal claro: esperei,no clear signal: waited
 academyLesson.mind-plan.fomo.column.0,Trade,Trade
 academyLesson.mind-plan.fomo.column.1,Anotação,Note
+academyLesson.vol-gamma-scalping.title,Gamma scalping,Gamma scalping
+academyLesson.vol-gamma-scalping.summary,Straddle comprado é gama comprado; o hedge de delta com o perpétuo trava o vaivém; o theta é o aluguel; realizada contra implícita.,A long straddle is long gamma; delta-hedging with the perpetual locks in the back-and-forth; theta is the rent; realized against implied.
+academyLesson.vol-gamma-scalping.long-gamma.title,"Comprar o movimento, não a direção","Buying the movement, not the direction"
+academyLesson.vol-gamma-scalping.long-gamma.body,"Um straddle comprado no dinheiro tem gama positivo: o delta sobe quando o preço sobe e cai quando ele cai. Neutralizando o delta com o perpétuo (delta neutro), cada rebalanceamento vende depois de uma alta e compra depois de uma queda. O theta é o aluguel desse gama: a estratégia ganha quando o mercado se mexe mais do que a volatilidade implícita cobrava, e perde quando se mexe menos.","An at-the-money straddle bought has positive gamma: its delta rises when the price rises and falls when it falls. Neutralizing the delta with the perpetual (delta neutral), each rehedge sells after a rise and buys after a fall. Theta is the rent for that gamma: the strategy earns when the market moves more than the implied volatility priced in, and loses when it moves less."
+academyLesson.vol-gamma-scalping.path.title,"Um vaivém, rebalanceado","A back-and-forth, rehedged"
+academyLesson.vol-gamma-scalping.path.body,"Um straddle em 50 unidades, gama de 0,04 por unidade. O preço vai a 103: o delta passa a +6 (0,04 × 3 × 50) e o hedge vende 6. O preço volta a 100: o hedge recompra 6 mais barato. Cada movimento de 3 rende cerca de ½ × 0,04 × 3² × 50 = 9 antes do theta; os dois, 18.","A straddle on 50 units, gamma 0.04 per unit. The price goes to 103: the delta becomes +6 (0.04 × 3 × 50) and the hedge sells 6. The price returns to 100: the hedge buys the 6 back cheaper. Each 3-point move earns about ½ × 0.04 × 3² × 50 = 9 before theta; the two, 18."
+academyLesson.vol-gamma-scalping.path.column.0,Barra,Bar
+academyLesson.vol-gamma-scalping.path.column.1,Preço,Price
+academyLesson.vol-gamma-scalping.path.column.2,Delta,Delta
+academyLesson.vol-gamma-scalping.path.column.3,Hedge,Hedge
+academyLesson.vol-gamma-scalping.hedge-units.title,Decisão: quanto vender,Decision: how much to sell
+academyLesson.vol-gamma-scalping.hedge-units.body,"Um straddle tem delta de +0,20 por unidade, em 50 unidades. Quantas unidades do perpétuo vender para ficar neutro em delta?",A straddle has a delta of +0.20 per unit on 50 units. How many perpetual units to sell to be delta neutral?
+academyLesson.vol-gamma-scalping.hedge-units.right,"0,20 × 50 = 10 unidades vendidas: o delta total volta a 0. Arredonde para o lote em direção a zero, para não inverter o delta.","0.20 × 50 = 10 units sold: the total delta is back to 0. Round to the lot toward zero, so the delta never flips."
+academyLesson.vol-gamma-scalping.hedge-units.wrong,"Multiplique o delta por unidade pelo número de unidades: é o delta da carteira, e o hedge é o oposto.","Multiply the delta per unit by the number of units: that is the book’s delta, and the hedge is its opposite."
+academyLesson.vol-gamma-scalping.what-pays.title,Decisão: o que paga o theta,Decision: what pays the theta
+academyLesson.vol-gamma-scalping.what-pays.body,"Num straddle comprado e neutralizado em delta, o que paga o theta que você perde a cada barra?","In a delta-hedged long straddle, what pays for the theta you lose every bar?"
+academyLesson.vol-gamma-scalping.what-pays.right,"Movimentos realizados maiores que a volatilidade implícita cobrada: o rebalanceamento os transforma em ganho. Num mercado parado, o theta vence.","Realized moves larger than the implied volatility priced in: rehedging turns them into gains. In a still market, theta wins."
+academyLesson.vol-gamma-scalping.what-pays.wrong,O hedge tira a direção; sobra o tamanho dos movimentos contra o preço pago por eles.,The hedge removes the direction; what is left is the size of the moves against the price paid for them.
+academyLesson.vol-gamma-scalping.what-pays.choice.realized,Movimentos realizados maiores que a volatilidade implícita,Realized moves larger than the implied volatility
+academyLesson.vol-gamma-scalping.what-pays.choice.ivDrop,A queda da volatilidade implícita,Implied volatility falling
+academyLesson.vol-gamma-scalping.what-pays.choice.funding,O funding do perpétuo,The perpetual’s funding
+academyLesson.vol-gamma-scalping.what-pays.feedback.ivDrop,A queda da IV prejudica quem comprou opções: o vega é positivo.,Falling IV hurts an option buyer: vega is positive.
+academyLesson.vol-gamma-scalping.what-pays.feedback.funding,"O funding do hedge pode ajudar ou atrapalhar, mas não é o que a estratégia compra.","The hedge’s funding can help or hurt, but it is not what the strategy buys."
+academyLesson.vol-gamma-scalping.short-delta.title,Transferência: o hedge do outro lado,Transfer: the hedge on the other side
+academyLesson.vol-gamma-scalping.short-delta.body,"Mercado H. O preço caiu e o straddle está com delta de −0,30 por unidade, em 40 unidades. Quantas unidades do perpétuo comprar para voltar ao neutro?",Market H. The price fell and the straddle has a delta of −0.30 per unit on 40 units. How many perpetual units to buy to be neutral again?
+academyLesson.vol-gamma-scalping.short-delta.right,"−0,30 × 40 = −12: comprar 12 unidades. Depois de uma queda o hedge compra; depois de uma alta, vende.","−0.30 × 40 = −12: buy 12 units. After a fall the hedge buys; after a rise, it sells."
+academyLesson.vol-gamma-scalping.short-delta.wrong,Agora o delta é negativo: o hedge compra o número de unidades que zera o delta.,The delta is negative now: the hedge buys the number of units that zeroes it.
+academyLesson.vol-gamma-scalping.short-delta.cell.delta,delta por unidade,delta per unit
+academyLesson.vol-gamma-scalping.short-delta.cell.units,unidades do straddle,straddle units
+academyLesson.vol-gamma-scalping.short-delta.column.0,Item,Item
+academyLesson.vol-gamma-scalping.short-delta.column.1,Valor,Value
+academyLesson.carry-funding.title,Carrego de funding,Funding carry
+academyLesson.carry-funding.summary,"Receber funding com o preço protegido: carrego menos custos, o long sintético, a paridade put-call e a margem que o hedge não cobre.","Collecting funding with the price hedged: carry minus costs, the synthetic long, put-call parity and the margin the hedge does not cover."
+academyLesson.carry-funding.carry.title,Receber para esperar,Being paid to wait
+academyLesson.carry-funding.carry.body,"Quando os longs estão lotados, o funding é positivo e um short no perpétuo recebe. Um long sintético (call comprada e put vendida no mesmo strike e vencimento) tira o risco de preço. O carrego é o funding recebido menos os custos: spreads e taxas das opções e do perpétuo. O hedge tira o risco de preço, não o de margem: na margem isolada, um aperto pode liquidar o short enquanto as opções ganham.","When longs are crowded, funding is positive and a short perpetual collects it. A synthetic long (a call bought and a put written at the same strike and expiry) removes the price risk. The carry is the funding received minus the costs: the options’ and the perpetual’s spreads and fees. The hedge removes price risk, not margin risk: on isolated margin, a squeeze can liquidate the short while the options gain."
+academyLesson.carry-funding.numbers.title,As contas do carrego,The carry’s numbers
+academyLesson.carry-funding.numbers.body,"Um short de nocional 2.000 com funding de +0,03% por intervalo recebe 0,60 por intervalo; com 3 intervalos por dia, 1,80 por dia. Se montar e desmontar a estrutura custa 3, são precisos 5 intervalos de funding só para empatar.","A short with 2,000 notional and funding of +0.03% per interval receives 0.60 per interval; with 3 intervals a day, 1.80 a day. If opening and closing the structure costs 3, it takes 5 funding intervals just to break even."
+academyLesson.carry-funding.numbers.cell.notional,nocional do short,short notional
+academyLesson.carry-funding.numbers.cell.rate,funding por intervalo (%),funding per interval (%)
+academyLesson.carry-funding.numbers.cell.interval,recebido por intervalo,received per interval
+academyLesson.carry-funding.numbers.cell.day,recebido por dia,received per day
+academyLesson.carry-funding.numbers.cell.costs,custos das pernas,the legs’ costs
+academyLesson.carry-funding.numbers.column.0,Item,Item
+academyLesson.carry-funding.numbers.column.1,Valor,Value
+academyLesson.carry-funding.breakeven.title,Decisão: o empate do carrego,Decision: the carry’s break-even
+academyLesson.carry-funding.breakeven.body,"Custos de 3 e funding de 0,60 por intervalo. Quantos intervalos com esse funding pagam os custos?",Costs of 3 and funding of 0.60 per interval. How many intervals at that funding pay the costs?
+academyLesson.carry-funding.breakeven.right,"3 / 0,60 = 5 intervalos. Se o funding cair ou virar antes disso, o carrego perde mesmo com o preço protegido.","3 / 0.60 = 5 intervals. If funding falls or turns before that, the carry loses even with the price hedged."
+academyLesson.carry-funding.breakeven.wrong,Divida os custos pelo funding recebido em um intervalo.,Divide the costs by the funding received in one interval.
+academyLesson.carry-funding.turns.title,Decisão: quando o carrego vira,Decision: when the carry turns
+academyLesson.carry-funding.turns.body,Quando um carrego com short no perpétuo se volta contra quem carrega?,When does a short-perpetual carry turn against the holder?
+academyLesson.carry-funding.turns.right,Quando o funding fica negativo: os shorts passam a pagar. Também quando os custos passam do funding que falta e quando a alavancagem do short é alta demais para um aperto.,"When funding turns negative: shorts start paying. Also when costs exceed the funding left, and when the short’s leverage is too high for a squeeze."
+academyLesson.carry-funding.turns.wrong,O hedge cuida do preço; pense no que o short recebe — ou paga — a cada intervalo.,The hedge takes care of price; think about what the short receives — or pays — each interval.
+academyLesson.carry-funding.turns.choice.negative,Quando o funding fica negativo,When funding turns negative
+academyLesson.carry-funding.turns.choice.rises,"Quando o preço sobe, mesmo com o hedge","When the price rises, even with the hedge"
+academyLesson.carry-funding.turns.choice.never,Nunca: com o hedge o resultado é fixo,Never: with the hedge the result is locked in
+academyLesson.carry-funding.turns.feedback.rises,"Com o long sintético, a alta que o short perde as opções ganham — salvo se a margem do short acabar antes.","With the synthetic long, what the short loses on a rise the options gain — unless the short’s margin runs out first."
+academyLesson.carry-funding.turns.feedback.never,O funding muda a cada intervalo; nada nele é fixo.,Funding changes every interval; nothing about it is locked in.
+academyLesson.carry-funding.parity.title,Transferência: a paridade,Transfer: parity
+academyLesson.carry-funding.parity.body,"Mercado P: forward 103, strike 100, call a 4,50, juro zero. Pela paridade put-call, quanto vale a put do mesmo strike e vencimento?","Market P: forward 103, strike 100, a call at 4.50, zero rate. By put-call parity, what is the put of the same strike and expiry worth?"
+academyLesson.carry-funding.parity.right,"Call − put = forward − strike = 3, então put = 4,50 − 3 = 1,50. Por isso call comprada e put vendida se comportam como um long no forward.","Call − put = forward − strike = 3, so put = 4.50 − 3 = 1.50. That is why a call bought and a put written behave like a long forward."
+academyLesson.carry-funding.parity.wrong,Call − put = forward − strike. Calcule a diferença e tire da call.,Call − put = forward − strike. Work out the gap and take it from the call.
+academyLesson.carry-funding.parity.cell.forward,forward,forward
+academyLesson.carry-funding.parity.cell.strike,strike,strike
+academyLesson.carry-funding.parity.cell.call,call,call
+academyLesson.carry-funding.parity.column.0,Item,Item
+academyLesson.carry-funding.parity.column.1,Valor,Value
+academyLesson.vol-events.title,Volatilidade e eventos,Volatility and events
+academyLesson.vol-events.summary,A IV sobe antes de um evento conhecido e despenca depois; o straddle mede o movimento implícito; quando comprar e quando vender.,IV rises before a known event and collapses after it; the straddle measures the implied move; when to buy and when to sell.
+academyLesson.vol-events.bid.title,O prêmio de evento,The event premium
+academyLesson.vol-events.bid.body,"Antes de uma divulgação conhecida, as opções ficam mais caras: a volatilidade de evento sobe. Depois dela, a IV cai qualquer que seja o resultado: o esmagamento da IV. Comprar cedo e vender antes da divulgação ganha a alta sem pagar a queda. Segurar através pede um movimento maior que o movimento implícito.","Ahead of a known release, options get dearer: event volatility rises. After it, IV falls whatever the outcome: the IV crush. Buying early and selling before the release earns the rise without paying the fall. Holding through needs a move larger than the implied move."
+academyLesson.vol-events.straddle.title,O straddle mede o movimento,The straddle measures the move
+academyLesson.vol-events.straddle.body,"Call e put 100 compradas por 3 cada: 6 no total, 6% do preço. No vencimento, o straddle empata em 94 e 106. Esse é o movimento que o mercado cobra: menos que isso, perde; mais, ganha.","A 100 call and put bought for 3 each: 6 in all, 6% of the price. At expiry the straddle breaks even at 94 and 106. That is the move the market charges: less than that loses, more wins."
+academyLesson.vol-events.crush.title,Decisão: o tamanho do esmagamento,Decision: the size of the crush
+academyLesson.vol-events.crush.body,"Seu straddle tem vega de 0,20 por ponto de volatilidade. Depois da divulgação a IV cai 10 pontos. Quanto ele perde por unidade, só pelo vega?","Your straddle has a vega of 0.20 per volatility point. After the release IV falls 10 points. How much does it lose per unit, from vega alone?"
+academyLesson.vol-events.crush.right,"0,20 × 10 = 2 por unidade, um terço do straddle de 6. O preço precisa andar para compensar.","0.20 × 10 = 2 per unit, a third of the 6 straddle. The price has to move to make up for it."
+academyLesson.vol-events.crush.wrong,Vega é o quanto o valor muda por ponto de IV: multiplique pela queda.,Vega is how much the value changes per IV point: multiply by the drop.
+academyLesson.vol-events.timing.title,Decisão: quando comprar e vender,Decision: when to buy and sell
+academyLesson.vol-events.timing.body,Você não tem opinião sobre o resultado da divulgação. Qual plano ganha com a alta da IV sem pagar a queda?,You have no view on the release’s outcome. Which plan earns the IV rise without paying the fall?
+academyLesson.vol-events.timing.right,"Comprar cedo e vender antes da divulgação. Segurar através só faz sentido com uma tese de movimento grande, e o resultado sorteado pode não vir.","Buy early and sell before the release. Holding through makes sense only with a thesis of a large move, and the drawn outcome may not deliver it."
+academyLesson.vol-events.timing.wrong,A IV sobe até a divulgação e cai logo depois. Em que janela você quer estar comprado?,IV rises up to the release and falls right after. In which window do you want to be long?
+academyLesson.vol-events.timing.choice.early,Comprar cedo e vender antes da divulgação,Buy early and sell before the release
+academyLesson.vol-events.timing.choice.through,Comprar cedo e segurar através,Buy early and hold through
+academyLesson.vol-events.timing.choice.after,Comprar logo depois da divulgação,Buy right after the release
+academyLesson.vol-events.timing.feedback.through,Segurar através paga o esmagamento: só ganha se o movimento superar o implícito.,Holding through pays the crush: it wins only if the move beats the implied one.
+academyLesson.vol-events.timing.feedback.after,Depois da divulgação a IV já caiu; não há alta para ganhar.,After the release IV has already fallen; there is no rise left to earn.
+academyLesson.vol-events.lower.title,Transferência: outro straddle,Transfer: another straddle
+academyLesson.vol-events.lower.body,"Mercado N, perto de 50: call e put 50 compradas por 2 cada. Qual é o ponto de equilíbrio de baixo no vencimento?","Market N, near 50: a 50 call and put bought for 2 each. What is the lower breakeven at expiry?"
+academyLesson.vol-events.lower.right,"50 − 4 = 46 (e 54 em cima): o movimento implícito é de 4, 8% do preço.","50 − 4 = 46 (and 54 above): the implied move is 4, 8% of the price."
+academyLesson.vol-events.lower.wrong,Some os dois prêmios e tire do strike.,Add the two premiums and take them from the strike.
+academyLesson.options-calendars.title,Calendários e diagonais,Calendars and diagonals
+academyLesson.options-calendars.summary,"Vender o vencimento curto e comprar o longo: o débito é a perda máxima no curto, o lucro mora perto do strike, e a diagonal inclina a estrutura.","Selling the near expiry and buying the far one: the debit is the maximum loss at the near expiry, the profit lives near the strike, and a diagonal leans the structure."
+academyLesson.options-calendars.calendar.title,Dois relógios,Two clocks
+academyLesson.options-calendars.calendar.body,"Um calendário comprado vende a opção do vencimento curto e compra a do longo, no mesmo strike. O curto perde valor de tempo mais depressa (estrutura a termo): é isso que o calendário colhe. Ele ganha mais com o preço perto do strike no vencimento curto, tem vega positivo e, no vencimento curto, perde no máximo o débito pago. Uma diagonal muda o strike da comprada para inclinar a estrutura.","A long calendar sells the near expiry’s option and buys the far one, at the same strike. The near one loses time value faster (term structure): that is what the calendar harvests. It earns most with the price near the strike at the near expiry, it is long vega and, at the near expiry, it loses at most the debit paid. A diagonal moves the long’s strike to lean the structure."
+academyLesson.options-calendars.debit.title,O débito é o pior caso,The debit is the worst case
+academyLesson.options-calendars.debit.body,"Vende a call 100 do vencimento curto por 2,00 e compra a call 100 do longo por 3,50: débito de 1,50. No vencimento curto, a comprada vale pelo menos o que a vendida cobra, então a perda não passa de 1,50 (mais os custos). Aqui a margem de calendário deixa a comprada cobrir a vendida.","Sell the near expiry’s 100 call for 2.00 and buy the far 100 call for 3.50: a debit of 1.50. At the near expiry the long is worth at least what the short charges, so the loss does not exceed 1.50 (plus costs). Here calendar margin lets the long cover the short."
+academyLesson.options-calendars.debit.cell.near,"call 100 curta, vendida","near 100 call, written"
+academyLesson.options-calendars.debit.cell.far,"call 100 longa, comprada","far 100 call, bought"
+academyLesson.options-calendars.debit.column.0,Perna,Leg
+academyLesson.options-calendars.debit.column.1,Prêmio,Premium
+academyLesson.options-calendars.where.title,Decisão: onde o calendário ganha,Decision: where the calendar earns
+academyLesson.options-calendars.where.body,Onde um calendário comprado lucra mais no vencimento curto?,Where does a long calendar profit most at the near expiry?
+academyLesson.options-calendars.where.right,"Com o preço perto do strike: a vendida vence quase sem valor e a comprada ainda tem todo o seu valor de tempo. Longe do strike, as duas perdem o valor de tempo e sobra pouco.",With the price near the strike: the short expires almost worthless and the long still has all its time value. Far from the strike both lose their time value and little is left.
+academyLesson.options-calendars.where.wrong,Pense no valor de tempo de cada perna no dia do vencimento curto.,Think about each leg’s time value on the near expiry’s day.
+academyLesson.options-calendars.where.choice.near,Com o preço perto do strike,With the price near the strike
+academyLesson.options-calendars.where.choice.above,Com o preço muito acima do strike,With the price far above the strike
+academyLesson.options-calendars.where.choice.below,Com o preço muito abaixo do strike,With the price far below the strike
+academyLesson.options-calendars.where.feedback.above,"Muito acima, a vendida custa o seu valor intrínseco e a comprada quase não tem valor de tempo além dele.","Far above, the short costs its intrinsic value and the long has little time value beyond it."
+academyLesson.options-calendars.where.feedback.below,"Muito abaixo, as duas calls valem pouco: o calendário perde a maior parte do débito.","Far below, both calls are worth little: the calendar loses most of its debit."
+academyLesson.options-calendars.size.title,Decisão: o débito de 10 contratos,Decision: the debit of 10 contracts
+academyLesson.options-calendars.size.body,"Um calendário de 10 contratos: curta vendida a 1,20 e longa comprada a 2,00. Qual é o débito total, a perda máxima no vencimento curto antes dos custos?","A 10-contract calendar: the near one written at 1.20 and the far one bought at 2.00. What is the total debit, the maximum loss at the near expiry before costs?"
+academyLesson.options-calendars.size.right,"(2,00 − 1,20) × 10 = 8. Dimensione pelo débito: é o pior caso no vencimento curto.",(2.00 − 1.20) × 10 = 8. Size by the debit: it is the worst case at the near expiry.
+academyLesson.options-calendars.size.wrong,Débito por contrato = longa − curta; multiplique pelos contratos.,Debit per contract = far − near; multiply by the contracts.
+academyLesson.options-calendars.diagonal.title,Transferência: uma diagonal,Transfer: a diagonal
+academyLesson.options-calendars.diagonal.body,"Mercado D: vende a call 105 do vencimento curto por 1,40 e compra a call 110 do longo por 1,90. Qual é o débito por contrato?",Market D: sell the near expiry’s 105 call for 1.40 and buy the far 110 call for 1.90. What is the debit per contract?
+academyLesson.options-calendars.diagonal.right,"1,90 − 1,40 = 0,50. Numa diagonal o pior caso também depende da distância entre os strikes, não só do débito.","1.90 − 1.40 = 0.50. In a diagonal the worst case also depends on the gap between the strikes, not just the debit."
+academyLesson.options-calendars.diagonal.wrong,"Mesmo com strikes diferentes, o débito é o que paga menos o que recebe.","Even with different strikes, the debit is what you pay minus what you receive."
+academyLesson.options-calendars.diagonal.cell.near,"call 105 curta, vendida","near 105 call, written"
+academyLesson.options-calendars.diagonal.cell.far,"call 110 longa, comprada","far 110 call, bought"
+academyLesson.options-calendars.diagonal.column.0,Perna,Leg
+academyLesson.options-calendars.diagonal.column.1,Prêmio,Premium
+academyLesson.management-scaling.title,Gestão em partes,Managing in parts
+academyLesson.management-scaling.summary,"Entrar em partes com o risco total no orçamento, realizar em +1R, levar o stop à entrada e deixar o resto correr com um stop móvel.","Scaling in with the total risk within budget, taking profit at +1R, moving the stop to breakeven and letting the rest run on a trailing stop."
+academyLesson.management-scaling.parts.title,Entrar e sair em partes,Entering and leaving in parts
+academyLesson.management-scaling.parts.body,"Entrar em partes só é coerente quando o risco somado de todas as entradas até a mesma invalidação cabe no orçamento. Na saída, uma realização parcial em +1R paga a paciência com o resto; o stop no ponto de entrada tira o risco que sobrava, mas pode parar uma tendência certa num recuo normal; um stop móvel deixa o resto correr. Nunca afaste um stop da entrada.","Scaling in is consistent only when the risk of every entry to the same invalidation adds up within budget. On the way out, a partial take-profit at +1R pays for patience with the rest; the breakeven stop removes the risk that was left, but can stop a sound trend on a normal pullback; a trailing stop lets the rest run. Never move a stop away from the entry."
+academyLesson.management-scaling.plan.title,Um plano de 1%,A 1% plan
+academyLesson.management-scaling.plan.body,"Capital de 10.000 e 1% de risco: 100 até o stop. Entrada 100 e stop 96 dão 25 unidades. Se você quer entrar em duas partes, as duas juntas continuam limitadas a esse risco até o mesmo stop.","Equity of 10,000 and 1% risk: 100 to the stop. Entry 100 and stop 96 give 25 units. If you want to enter in two parts, both together stay limited to that risk to the same stop."
+academyLesson.management-scaling.plan.cell.entry,entrada,entry
+academyLesson.management-scaling.plan.cell.stop,stop,stop
+academyLesson.management-scaling.plan.cell.qty,quantidade,quantity
+academyLesson.management-scaling.plan.cell.budget,risco até o stop,risk to the stop
+academyLesson.management-scaling.plan.column.0,Item,Item
+academyLesson.management-scaling.plan.column.1,Valor,Value
+academyLesson.management-scaling.left.title,Decisão: o que sobra depois da parcial,Decision: what is left after the partial
+academyLesson.management-scaling.left.body,"Long de 30 a 100 com stop em 96 (risco de 120). Você vende 15 a 104 e leva o stop a 100. Qual é o pior resultado que sobra para o trade, antes dos custos?","Long 30 at 100 with the stop at 96 (a risk of 120). You sell 15 at 104 and move the stop to 100. What is the worst result left for the trade, before costs?"
+academyLesson.management-scaling.left.right,"15 × 4 = 60 já realizados, e as 15 restantes saem no zero a zero se o stop em 100 executar: o pior caso agora é +60.","15 × 4 = 60 already taken, and the remaining 15 exit at breakeven if the stop at 100 fills: the worst case is now +60."
+academyLesson.management-scaling.left.wrong,Some o que a parcial realizou com o que as unidades restantes fazem no novo stop.,Add what the partial took to what the remaining units make at the new stop.
+academyLesson.management-scaling.cost.title,Decisão: o preço do stop na entrada,Decision: the price of a breakeven stop
+academyLesson.management-scaling.cost.body,Do que você abre mão ao levar o stop ao ponto de entrada?,What does moving the stop to breakeven give up?
+academyLesson.management-scaling.cost.right,"Ele pode parar, num recuo normal, uma tendência que estava certa. Use quando o setup já entregou o que prometia, ou combine com um stop móvel mais folgado.","It can stop out, on a normal pullback, a trend that was right. Use it when the setup has delivered what it promised, or pair it with a looser trailing stop."
+academyLesson.management-scaling.cost.wrong,"O stop no ponto de entrada tira o risco, mas o preço ainda oscila.","A breakeven stop removes the risk, but the price still swings."
+academyLesson.management-scaling.cost.choice.nothing,De nada: o trade não pode perder e não será parado,Nothing: the trade cannot lose and will not be stopped
+academyLesson.management-scaling.cost.choice.taken,Do lucro já realizado na parcial,The profit already taken on the partial
+academyLesson.management-scaling.cost.choice.pullback,Pode ser parado num recuo normal de uma tendência certa,It can be stopped on a normal pullback of a sound trend
+academyLesson.management-scaling.cost.feedback.nothing,"Não pode perder, mas pode ser parado: um recuo até a entrada executa o stop.","It cannot lose, but it can be stopped: a pullback to the entry fills the stop."
+academyLesson.management-scaling.cost.feedback.taken,O que a parcial realizou fica: o stop só mexe nas unidades restantes.,What the partial took stays: the stop only touches the remaining units.
+academyLesson.management-scaling.short.title,Transferência: um short em partes,Transfer: a short in parts
+academyLesson.management-scaling.short.body,"Mercado T: short de 20 a 50 com stop em 52. Você recompra 10 a 48 (+1R) e leva o stop a 50. Qual é o pior resultado que sobra, antes dos custos?","Market T: short 20 at 50 with the stop at 52. You buy back 10 at 48 (+1R) and move the stop to 50. What is the worst result left, before costs?"
+academyLesson.management-scaling.short.right,"10 × 2 = 20 realizados, e as 10 restantes saem no zero a zero em 50: o pior caso é +20.","10 × 2 = 20 taken, and the remaining 10 exit at breakeven at 50: the worst case is +20."
+academyLesson.management-scaling.short.wrong,"Num short, a recompra abaixo da entrada realiza lucro. Some com o que as restantes fazem no novo stop.","In a short, buying back below the entry takes profit. Add what the rest makes at the new stop."
+academyLesson.management-scaling.short.cell.entry,entrada (short),entry (short)
+academyLesson.management-scaling.short.cell.stop,stop,stop
+academyLesson.management-scaling.short.cell.qty,quantidade,quantity
+academyLesson.management-scaling.short.cell.exit,recompra parcial,partial buy-back
+academyLesson.management-scaling.short.cell.exitQty,quantidade recomprada,quantity bought back
+academyLesson.management-scaling.short.column.0,Item,Item
+academyLesson.management-scaling.short.column.1,Valor,Value
+academyLesson.mind-biases.title,Disciplina depois do resultado,Discipline after the result
+academyLesson.mind-biases.summary,"Depois de um stop, esperar o setup; antes de um movimento, planejar; aumentar no prejuízo só como estava planejado.","After a stop, wait for the setup; before a move, plan; add to a loser only as planned."
+academyLesson.mind-biases.rules.title,Três regras para depois do resultado,Three rules for after the result
+academyLesson.mind-biases.rules.body,"Depois de um stop, faça uma pausa: espere o setup se formar de novo e entre com o tamanho normal — a vingança aumenta o tamanho logo depois da perda. Planeje antes do movimento, não durante: entrar longe da estrutura pede um stop longe ou um tamanho minúsculo (FOMO). E aumente uma posição perdedora só se isso estava no plano da entrada, com o risco total até a mesma invalidação (preço médio para baixo).","After a stop, take a cooldown: wait for the setup to form again and enter at normal size — revenge raises the size right after the loss. Plan before the move, not during it: entering far from structure needs a far stop or a tiny size (FOMO). And add to a losing position only if it was in the entry’s plan, with the total risk to the same invalidation (averaging down)."
+academyLesson.mind-biases.journal.title,Um diário depois de dois stops,A journal after two stops
+academyLesson.mind-biases.journal.body,"Dois stops de 1R seguiram o plano. O terceiro trade veio logo depois, com o dobro do tamanho e sem plano, e perdeu 2R: a queda foi de 4R, quando três trades normais teriam perdido 3R. O quarto esperou o setup e voltou ao tamanho normal.","Two 1R stops followed the plan. The third trade came right after, at twice the size and with no plan, and lost 2R: the drawdown was 4R, where three normal trades would have lost 3R. The fourth waited for the setup and came back at normal size."
+academyLesson.mind-biases.journal.cell.planned,"plano escrito, stop, risco de 1%","written plan, stop, 1% risk"
+academyLesson.mind-biases.journal.cell.doubled,"na barra seguinte ao stop, tamanho dobrado, sem plano","the bar after the stop, twice the size, no plan"
+academyLesson.mind-biases.journal.cell.waited,"esperou 5 barras e um setup novo, tamanho normal","waited 5 bars and a new setup, normal size"
+academyLesson.mind-biases.journal.column.0,Trade,Trade
+academyLesson.mind-biases.journal.column.1,Resultado,Result
+academyLesson.mind-biases.journal.column.2,Anotação,Note
+academyLesson.mind-biases.chase.title,Decisão: o tamanho de uma entrada atrasada,Decision: the size of a late entry
+academyLesson.mind-biases.chase.body,"O preço disparou. Uma entrada agora em 112 tem a invalidação em 104, e o seu orçamento de risco é 1% de 10.000. Qual é a maior quantidade?","The price has run. An entry now at 112 has its invalidation at 104, and your risk budget is 1% of 10,000. What is the largest quantity?"
+academyLesson.mind-biases.chase.right,"100 / 8 = 12,5. Entrar no rompimento, perto da estrutura, deixaria o stop mais perto e o tamanho maior para o mesmo risco.","100 / 8 = 12.5. Entering on the break, near the structure, would keep the stop closer and the size larger for the same risk."
+academyLesson.mind-biases.chase.wrong,Quantidade = orçamento de risco / distância até a invalidação.,Quantity = risk budget / distance to the invalidation.
+academyLesson.mind-biases.average.title,Decisão: o custo de aumentar no prejuízo,Decision: the cost of adding to a loser
+academyLesson.mind-biases.average.body,"Long de 10 a 100 com stop em 85. O preço cai a 90 e você compra mais 10, com o mesmo stop. Qual é a perda se o stop executar, antes dos custos?","Long 10 at 100 with the stop at 85. The price falls to 90 and you buy 10 more, same stop. What is the loss if the stop fills, before costs?"
+academyLesson.mind-biases.average.right,"10 × 15 + 10 × 5 = 200, contra 150 da entrada única. Se o aumento não estava no plano, o risco passou do orçamento.","10 × 15 + 10 × 5 = 200, against 150 for the single entry. If the add was not in the plan, the risk went past the budget."
+academyLesson.mind-biases.average.wrong,Some a perda de cada entrada até o stop: (entrada − stop) × quantidade.,Add each entry’s loss to the stop: (entry − stop) × quantity.
+academyLesson.mind-biases.which.title,Transferência: qual aumento foge do plano,Transfer: which add leaves the plan
+academyLesson.mind-biases.which.body,"Mercado W, outro diário. Qual aumento foi preço médio para baixo fora do plano?","Market W, another journal. Which add was averaging down outside the plan?"
+academyLesson.mind-biases.which.right,"O trade 2: aumentou no prejuízo sem estar no plano, e o risco até o stop passou do orçamento. O trade 1 também aumentou no prejuízo, mas como estava escrito na entrada.","Trade 2: it added to a loser without a plan, and the risk to the stop went past the budget. Trade 1 also added to a loser, but as written at entry."
+academyLesson.mind-biases.which.wrong,O problema não é aumentar: é aumentar no prejuízo além do risco que o plano previa.,Adding is not the problem: adding to a loser beyond the risk the plan allowed is.
+academyLesson.mind-biases.which.choice.t1,Trade 1,Trade 1
+academyLesson.mind-biases.which.choice.t2,Trade 2,Trade 2
+academyLesson.mind-biases.which.choice.t3,Trade 3,Trade 3
+academyLesson.mind-biases.which.feedback.t1,"Aumentou no prejuízo, mas era o plano da entrada, com o risco total limitado: coerente.","It added to a loser, but that was the entry’s plan, with the total risk capped: consistent."
+academyLesson.mind-biases.which.feedback.t3,"Aumentar a favor, subindo o stop, não é preço médio para baixo.",Adding in your favour while raising the stop is not averaging down.
+academyLesson.mind-biases.which.cell.plannedAdd,"plano: metade agora, metade 1 ATR abaixo, risco total de 1% até o mesmo stop","plan: half now, half 1 ATR lower, 1% total risk to the same stop"
+academyLesson.mind-biases.which.cell.unplannedAdd,"o preço caiu, comprei o dobro para baixar o preço médio, tirei o stop","the price fell, I bought twice as much to lower my average, removed the stop"
+academyLesson.mind-biases.which.cell.trend,aumentei com o preço a favor e subi o stop,added with the price in my favour and raised the stop
+academyLesson.mind-biases.which.column.0,Trade,Trade
+academyLesson.mind-biases.which.column.1,Anotação,Note
 glossary.perpetual.term,Futuro perpétuo,Perpetual future
 glossary.perpetual.short,Contrato que acompanha o preço de um ativo e não vence. Você ganha ou perde a diferença de preço vezes a quantidade.,A contract that tracks an asset's price and never expires. You gain or lose the price change times the quantity.
 glossary.perpetual.long,"Um perpétuo é linear: cada unidade ganha o que o preço sobe (long) ou o que ele cai (short). Como não vence, uma taxa periódica, o funding, mantém o contrato perto do preço do ativo. Aqui ele usa margem isolada: só a margem da posição está em risco.","A perpetual is linear: each unit earns what the price rises (long) or what it falls (short). Since it never expires, a periodic payment, funding, keeps it close to the asset's price. Here it uses isolated margin: only the position's margin is at risk."
@@ -2973,6 +3398,82 @@ glossary.delta-hedge.short,"Uma posição no perpétuo do tamanho contrário ao 
 glossary.delta-hedge.long,"Um straddle comprado com delta 6 fica neutro vendendo 6 unidades do perpétuo. Quando o preço anda, o delta muda (gama) e o hedge precisa ser refeito: comprar barato e vender caro nesse refazer é o que paga o tempo perdido.","A long straddle with delta 6 becomes neutral by selling 6 units of the perpetual. As price moves, delta changes (gamma) and the hedge must be redone: buying low and selling high while redoing it is what pays for the time lost."
 glossary.delta-hedge.example,Delta de 6 unidades: vender 6 unidades do perpétuo deixa o delta em 0.,Delta of 6 units: selling 6 units of the perpetual leaves delta at 0.
 glossary.delta-hedge.aliases,hedge; delta neutro,hedge; delta neutral
+glossary.gamma-scalping.term,Gamma scalping,Gamma scalping
+glossary.gamma-scalping.short,"Comprar opções (gama positivo) e neutralizar o delta com o perpétuo várias vezes, para ganhar com o vaivém do preço.","Buying options (positive gamma) and delta-hedging them with the perpetual again and again, to earn from the price’s back-and-forth."
+glossary.gamma-scalping.long,"Cada vez que o preço anda e volta, o hedge vende mais caro e recompra mais barato: cerca de ½ × gama × (movimento)² por rebalanceamento. O theta é o aluguel desse gama: a estratégia ganha quando o mercado se mexe mais do que a volatilidade implícita cobrava, e perde quando se mexe menos.","Each time the price moves and comes back, the hedge sells higher and buys back lower: about ½ × gamma × (move)² per rehedge. Theta is the rent paid for that gamma: the strategy earns when the market moves more than the implied volatility priced in, and loses when it moves less."
+glossary.gamma-scalping.example,"Gama de 0,05 por unidade em 40 unidades e um movimento de 2: cerca de ½ × 0,05 × 2² × 40 = 4 por rebalanceamento.",A gamma of 0.05 per unit on 40 units and a move of 2: about ½ × 0.05 × 2² × 40 = 4 per rehedge.
+glossary.gamma-scalping.aliases,scalp de gama,gamma scalp
+glossary.delta-neutral.term,Delta neutro,Delta neutral
+glossary.delta-neutral.short,Uma carteira cujo delta total é zero: um movimento pequeno do preço quase não muda o seu resultado.,A book whose total delta is zero: a small price move barely changes its result.
+glossary.delta-neutral.long,"Neutro em delta não é sem risco: o gama muda o delta quando o preço anda, o vega responde à volatilidade implícita e o theta cobra o tempo. A neutralidade vale para o preço de agora e precisa ser refeita.","Delta neutral is not riskless: gamma changes the delta as the price moves, vega responds to implied volatility and theta charges for time. The neutrality holds for the price now and must be redone."
+glossary.delta-neutral.example,Um straddle com delta +4 e um short de 4 unidades no perpétuo somam delta 0.,A straddle with delta +4 and a short of 4 perpetual units add up to a delta of 0.
+glossary.delta-neutral.aliases,neutro em delta,delta-neutral
+glossary.rehedge.term,Rebalanceamento do hedge,Rehedge
+glossary.rehedge.short,"Refazer o hedge de delta depois que o preço andou, para voltar a ficar neutro.","Redoing the delta hedge after the price moved, to be neutral again."
+glossary.rehedge.long,"A regra de rebalanceamento se decide antes: a cada N barras ou quando o delta sai de uma faixa. Rebalancear mais vezes captura mais dos movimentos, mas paga mais taxas e spread: cada ajuste é uma ordem no perpétuo.",The rehedge rule is decided beforehand: every N bars or when the delta leaves a band. Rehedging more often captures more of the moves but pays more fees and spread: every adjustment is a perpetual order.
+glossary.rehedge.example,O delta foi de 0 a +3 unidades: vender 3 unidades do perpétuo volta a deixar a carteira neutra.,The delta went from 0 to +3 units: selling 3 perpetual units makes the book neutral again.
+glossary.rehedge.aliases,rehedge; rebalancear,rebalance
+glossary.carry.term,Carrego,Carry
+glossary.carry.short,"O que uma posição rende por ser mantida: aqui, o funding recebido menos os custos de montá-la e mantê-la.","What a position earns for being held: here, the funding received minus the costs of opening and holding it."
+glossary.carry.long,"Um short no perpétuo recebe funding quando a taxa é positiva (os longs pagam). Protegido do preço, o carrego é funding recebido menos spreads e taxas das pernas. Ele se volta contra você quando o funding fica negativo ou quando os custos passam do funding que ainda falta receber.","A short perpetual receives funding when the rate is positive (longs pay). Hedged from price, the carry is funding received minus the legs’ spreads and fees. It turns against you when funding turns negative or when costs exceed the funding left to earn."
+glossary.carry.example,"Funding de +0,03% por intervalo num short de nocional 2.000: 0,60 por intervalo; custos de 3 pedem 5 intervalos para empatar.","Funding of +0.03% per interval on a short with 2,000 notional: 0.60 per interval; costs of 3 need 5 intervals to break even."
+glossary.carry.aliases,carry,carry trade
+glossary.basis.term,Base,Basis
+glossary.basis.short,A diferença entre o preço de um futuro ou perpétuo e o preço à vista.,The gap between a future’s or perpetual’s price and the spot price.
+glossary.basis.long,"Nos mercados reais, a base de um futuro converge a zero no vencimento e o perpétuo usa o funding para ficar perto do à vista. Neste jogo não há preço à vista separado: o funding é o carrego, e as opções fornecem o termo (o forward sintético).","In real markets a future’s basis converges to zero at expiry and a perpetual uses funding to stay near spot. In this game there is no separate spot price: funding is the carry, and options supply the forward (the synthetic forward)."
+glossary.basis.aliases,basis,basis spread
+glossary.synthetic-forward.term,Forward sintético,Synthetic forward
+glossary.synthetic-forward.short,"Call comprada e put vendida no mesmo strike e vencimento: ganha e perde como um long no preço, desde o strike.","A call bought and a put written at the same strike and expiry: it gains and loses like a long in the price, from the strike."
+glossary.synthetic-forward.long,"No vencimento, a call paga acima do strike e a put vendida cobra abaixo dele, então a soma vale preço − strike em qualquer cenário. Somado a um short no perpétuo, o risco de preço se anula e sobra o funding.","At expiry the call pays above the strike and the written put charges below it, so together they are worth price − strike in every case. Added to a short perpetual, the price risk cancels and the funding is left."
+glossary.synthetic-forward.example,"Strike 100, preço 108 no vencimento: a call vale 8, a put 0; o sintético vale 108 − 100 = 8.","Strike 100, price 108 at expiry: the call is worth 8, the put 0; the synthetic is worth 108 − 100 = 8."
+glossary.synthetic-forward.aliases,long sintético; termo sintético,synthetic long
+glossary.put-call-parity.term,Paridade put-call,Put-call parity
+glossary.put-call-parity.short,"Com juro zero, call menos put do mesmo strike e vencimento é igual a forward menos strike.","At a zero rate, a call minus a put of the same strike and expiry equals the forward minus the strike."
+glossary.put-call-parity.long,"Se a diferença entre call e put se afastasse de F − K, comprar o lado barato e vender o caro renderia sem risco. Por isso o preço de uma determina o da outra, e um long sintético se comporta como um long no forward.","If the call-put gap drifted from F − K, buying the cheap side and selling the dear one would earn without risk. So one’s price pins the other’s, and a synthetic long behaves like a long forward."
+glossary.put-call-parity.example,"Forward 103, strike 100: call − put = 3, por exemplo call 4,5 e put 1,5.","Forward 103, strike 100: call − put = 3, for example a call of 4.5 and a put of 1.5."
+glossary.put-call-parity.aliases,paridade,parity
+glossary.implied-move.term,Movimento implícito,Implied move
+glossary.implied-move.short,O movimento que as opções precificam até um vencimento: perto do preço de um straddle no dinheiro.,The move options price in up to an expiry: close to an at-the-money straddle’s price.
+glossary.implied-move.long,"Um straddle no dinheiro custa mais ou menos o tamanho do movimento que o mercado espera. Segurá-lo através de um evento só compensa se o movimento real superar esse preço; antes da divulgação, ele costuma ficar mais caro.",An at-the-money straddle costs roughly the size of the move the market expects. Holding it through an event pays only if the real move beats that price; ahead of the release it tends to get dearer.
+glossary.implied-move.example,"Straddle 100 por 6 com o preço em 100: movimento implícito de 6%, pontos de equilíbrio 94 e 106.","A 100 straddle for 6 with the price at 100: an implied move of 6%, breakevens 94 and 106."
+glossary.implied-move.aliases,movimento esperado,expected move
+glossary.event-volatility.term,Volatilidade de evento,Event volatility
+glossary.event-volatility.short,"A volatilidade implícita extra que as opções cobram antes de uma divulgação conhecida, e que some depois dela.","The extra implied volatility options charge ahead of a known release, which is gone after it."
+glossary.event-volatility.long,"Antes do evento a IV sobe; depois, cai qualquer que seja o resultado (o esmagamento da IV). Comprar cedo e vender antes da divulgação ganha a alta da IV sem pagar a queda; segurar através pede um movimento maior que o implícito. Vega × variação da IV mede o efeito.","Before the event IV rises; after it, it falls whatever the outcome (the IV crush). Buying early and selling before the release earns the rise without paying the fall; holding through needs a move larger than the implied one. Vega × the IV change sizes the effect."
+glossary.event-volatility.example,"Vega de 0,20 por ponto e uma queda de 10 pontos de IV: −2 por unidade.",A vega of 0.20 per point and a 10-point IV drop: −2 per unit.
+glossary.event-volatility.aliases,prêmio de evento,event premium
+glossary.term-structure.term,Estrutura a termo,Term structure
+glossary.term-structure.short,Como a volatilidade implícita e o valor de tempo mudam de um vencimento para o seguinte.,How implied volatility and time value change from one expiry to the next.
+glossary.term-structure.long,"Um vencimento curto perde valor de tempo mais depressa que um longo: é isso que um calendário comprado colhe. Quando a IV do vencimento curto sobe por causa de um evento, a estrutura se inclina e o calendário muda de valor mesmo sem o preço andar.","A near expiry loses time value faster than a far one: that is what a long calendar harvests. When the near expiry’s IV rises for an event, the structure tilts and the calendar changes value even with the price still."
+glossary.term-structure.aliases,estrutura de vencimentos,volatility term structure
+glossary.scale-in.term,Entrada em partes,Scaling in
+glossary.scale-in.short,"Montar a posição em mais de uma entrada, com o risco total até uma única invalidação dentro do orçamento.","Building the position over more than one entry, with the total risk to one invalidation within budget."
+glossary.scale-in.long,Entrar em partes só é coerente quando a soma do risco de todas as entradas até o mesmo stop cabe no orçamento planejado. Aumentar a favor do movimento com o stop subindo é diferente de aumentar contra ele.,Scaling in is consistent only when the risk of every entry to the same stop adds up within the planned budget. Adding with the move while the stop rises is not the same as adding against it.
+glossary.scale-in.example,Duas entradas de 15 a 100 e a 102 com stop em 97: 15 × 3 + 15 × 5 = 120 de risco total.,Two entries of 15 at 100 and at 102 with the stop at 97: 15 × 3 + 15 × 5 = 120 of total risk.
+glossary.scale-in.aliases,escalonar a entrada; scale in,scale in
+glossary.scale-out.term,Saída em partes,Scaling out
+glossary.scale-out.short,"Fechar a posição em mais de uma saída: parte num alvo, o resto com outra regra.","Closing the position over more than one exit: part at a target, the rest with another rule."
+glossary.scale-out.long,Sair em partes troca um pouco do ganho máximo por mais acertos: a primeira parte garante resultado e o resto pode correr com um stop no ponto de entrada ou um stop móvel. Cada saída paga a sua taxa.,Scaling out trades a little of the largest gain for more winners: the first part locks in a result and the rest can run with a stop at breakeven or a trailing stop. Each exit pays its own fee.
+glossary.scale-out.aliases,escalonar a saída; scale out,scale out
+glossary.breakeven-stop.term,Stop no ponto de entrada,Breakeven stop
+glossary.breakeven-stop.short,"Levar o stop até o preço de entrada depois de um ganho, para o trade não virar perda.","Moving the stop to the entry price after a gain, so the trade cannot turn into a loss."
+glossary.breakeven-stop.long,"Tira o risco que restava, mas um recuo normal de uma tendência que estava certa pode parar o trade no zero a zero. Use quando o setup já cumpriu o que prometia, não por medo.","It removes the risk that was left, but a normal pullback of a trend that was right can stop the trade at breakeven. Use it when the setup has delivered what it promised, not out of fear."
+glossary.breakeven-stop.example,Long 15 a 100 com stop movido de 96 para 100: o risco que sobra vai de 60 a 0.,Long 15 at 100 with the stop moved from 96 to 100: the risk left goes from 60 to 0.
+glossary.breakeven-stop.aliases,stop no zero a zero; breakeven stop,stop to breakeven
+glossary.partial-take-profit.term,Realização parcial,Partial take-profit
+glossary.partial-take-profit.short,"Vender parte da posição num alvo, normalmente em +1R, e deixar o resto seguir.","Selling part of the position at a target, usually at +1R, and letting the rest run."
+glossary.partial-take-profit.long,"A parte realizada paga a paciência com o resto: com metade fora em +1R e o stop no ponto de entrada, o pior resultado que sobra é positivo. O custo é ganhar menos nas tendências que vão longe.","The part taken pays for patience with the rest: with half out at +1R and the stop at breakeven, the worst result left is positive. The cost is earning less in the trends that run far."
+glossary.partial-take-profit.example,"Long 30 a 100, stop 96: metade (15) vendida a 104 garante 15 × 4 = 60.","Long 30 at 100, stop 96: half (15) sold at 104 locks in 15 × 4 = 60."
+glossary.partial-take-profit.aliases,lucro parcial; partial take-profit,partial profit
+glossary.averaging-down.term,Preço médio para baixo,Averaging down
+glossary.averaging-down.short,"Aumentar uma posição que está perdendo, a um preço pior, o que baixa o preço médio e aumenta o risco.","Adding to a losing position at a worse price, which lowers the average entry and raises the risk."
+glossary.averaging-down.long,"Parece barato, mas cada aumento sem plano soma risco até o mesmo stop — ou leva a tirar o stop. Só é coerente quando o aumento foi planejado na entrada, com o risco total até a mesma invalidação dentro do orçamento.","It looks cheap, but each unplanned add stacks risk to the same stop — or leads to removing the stop. It is consistent only when the add was planned at entry, with the total risk to the same invalidation within budget."
+glossary.averaging-down.example,"Long 10 a 100, mais 10 a 90, stop em 85: perda no stop de 10 × 15 + 10 × 5 = 200, contra 150 da entrada única.","Long 10 at 100, plus 10 at 90, stop at 85: a loss at the stop of 10 × 15 + 10 × 5 = 200, against 150 for the single entry."
+glossary.averaging-down.aliases,aumentar no prejuízo; averaging down,adding to a loser
+glossary.cooldown.term,Pausa depois do stop,Cooldown
+glossary.cooldown.short,"Uma regra pessoal: depois de um stop, esperar algumas barras e um setup novo antes de entrar de novo.","A personal rule: after a stop-out, wait a few bars and for a fresh setup before entering again."
+glossary.cooldown.long,"A pausa separa a próxima decisão da perda anterior. Volte só quando o setup se formar de novo, com plano escrito e tamanho normal; o tamanho nunca sobe para recuperar.","The pause separates the next decision from the last loss. Come back only when the setup forms again, with a written plan and normal size; size never goes up to win it back."
+glossary.cooldown.aliases,cooldown; esfriar,cool-down
 coach.chart.title,O gráfico,The chart
 coach.chart.body,"Cada barra fechada é informação; a próxima ainda não existe. Comece lendo a última barra: onde abriu, até onde foi e onde fechou.","Every closed bar is information; the next one does not exist yet. Start by reading the last bar: where it opened, how far it went and where it closed."
 coach.ticket.title,A boleta,The ticket
@@ -3029,6 +3530,7 @@ desktop.csv.unreadable,Não foi possível ler o arquivo: confira o caminho.,The 
 desktop.pack.missingFile,O arquivo deste pacote não está mais na pasta de dados. Remova-o e baixe ou importe de novo.,This pack's file is no longer in the data folder. Remove it and download or import it again.
 desktop.debrief.chart,Gráfico da partida,Run chart
 desktop.debrief.chartNote,"Quadrados: entradas (azul) e saídas (amarelo) de cada trade, ligadas por uma linha verde (ganho) ou vermelha (perda).","Squares: each trade's entry (blue) and exit (yellow), joined by a green (gain) or red (loss) line."
+desktop.debrief.moments,Momentos no gráfico: escolha um para marcar a barra no gráfico da partida (▼).,Moments on the chart: pick one to mark its bar on the run chart (▼).
 desktop.panel.chart,Gráfico,Chart
 desktop.panel.account,Conta,Account
 desktop.panel.book,Opções e ordens,Options and orders

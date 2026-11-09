@@ -8,6 +8,11 @@
 // where they are taught and assessed). A stage taught only by Academy lessons (Foundations) is
 // passed when its lessons are completed; like a stage with no content yet ("coming soon") it never
 // blocks the stages after it, because the campaign does not gate on lessons.
+//
+// Branches (add-practice-and-advanced-strategies design D14): Trade management, Advanced options and
+// carry and Psychology hang beside the path; existing stages keep their `requires`, so nothing passed
+// or open becomes locked. An elective stage (`campaign: false`) is never a campaign leg: a finished,
+// non-assisted free-play or daily-challenge run of its mission assesses it (campaign.ts assessElective).
 
 export type StageId =
 	| 'foundations'
@@ -17,12 +22,15 @@ export type StageId =
 	| 'futures2'
 	| 'futures3'
 	| 'risk'
+	| 'management'
 	| 'options1'
 	| 'options2'
 	| 'options3'
 	| 'strategies'
+	| 'advanced'
 	| 'patterns'
 	| 'events'
+	| 'psychology'
 	| 'evaluation';
 
 /** Tools a campaign mission may use only once their stage is passed. Never purchasable. */
@@ -37,6 +45,10 @@ export interface Stage {
 	/** Academy lessons (content/academy ids), in order; no missions and no lessons = no content yet. */
 	lessons: string[];
 	unlocks: Unlock[];
+	/** Drawn beside the path, as a branch of its first requirement (design D14). */
+	branch?: true;
+	/** false: elective, its missions are never campaign legs (design D14). */
+	campaign?: false;
 }
 
 export const STAGES: readonly Stage[] = [
@@ -47,6 +59,8 @@ export const STAGES: readonly Stage[] = [
 	{ id: 'futures2', requires: ['futures1'], missions: ['m03-volatility-shock'], lessons: ['futures-margin'], unlocks: ['leverage'] },
 	{ id: 'futures3', requires: ['futures2'], missions: ['m02-funding-squeeze'], lessons: ['futures-funding'], unlocks: [] },
 	{ id: 'risk', requires: ['futures3'], missions: ['m07-trend-trailing'], lessons: ['risk-sizing', 'risk-expectancy'], unlocks: [] },
+	// Trade management (design D14): a branch after Risk, on the campaign path right after m07.
+	{ id: 'management', requires: ['risk'], missions: ['m22-scale-manage'], lessons: ['management-scaling'], unlocks: [], branch: true },
 	{ id: 'options1', requires: ['risk'], missions: ['m04-options-buyer'], lessons: ['options-payoff'], unlocks: ['optionsBuy'] },
 	{ id: 'options2', requires: ['options1'], missions: ['m04-options-buyer', 'm09-event-straddle'], lessons: ['options-greeks', 'options-iv'], unlocks: [] },
 	{ id: 'options3', requires: ['options2'], missions: ['m05-options-writer', 'm10-hedged-book'], lessons: ['options-writing'], unlocks: ['optionsWrite'] },
@@ -59,9 +73,29 @@ export const STAGES: readonly Stage[] = [
 		lessons: ['strategies-shapes'],
 		unlocks: []
 	},
+	// Advanced options and carry (design D14): an elective branch after Strategies; the capstone does
+	// not assess these specialist structures, and 25 campaign missions would be too long.
+	{
+		id: 'advanced',
+		requires: ['strategies'],
+		missions: ['m18-gamma-scalp', 'm19-funding-carry', 'm20-event-vol', 'm21-calendar'],
+		lessons: ['vol-gamma-scalping', 'carry-funding', 'vol-events', 'options-calendars'],
+		unlocks: [],
+		branch: true,
+		campaign: false
+	},
 	{ id: 'patterns', requires: ['strategies'], missions: ['m08-regime-switch'], lessons: ['patterns-lag'], unlocks: [] },
 	// Events before Evaluation (design D8.4): the capstone builds on the news lesson and comes last.
 	{ id: 'events', requires: ['patterns'], missions: ['m11-news-calendar'], lessons: ['events-surprise'], unlocks: [] },
+	// Psychology (design D14): a branch after Events, on the campaign path before the capstone.
+	{
+		id: 'psychology',
+		requires: ['events'],
+		missions: ['m23-second-chance', 'm24-fast-market', 'm25-the-dip'],
+		lessons: ['mind-biases'],
+		unlocks: [],
+		branch: true
+	},
 	{ id: 'evaluation', requires: ['events'], missions: ['m12-capstone'], lessons: ['mind-plan'], unlocks: [] }
 ];
 
@@ -76,9 +110,17 @@ function stage(id: StageId): Stage {
 	return s;
 }
 
-/** Campaign missions in curriculum order (a mission assessing two stages appears once). */
+/**
+ * Campaign missions in curriculum order (a mission assessing two stages appears once); an elective
+ * stage's missions are never campaign legs. A new campaign run snapshots this order (campaign.ts).
+ */
 export function campaignMissions(): string[] {
-	return [...new Set(STAGES.flatMap((s) => s.missions))];
+	return [...new Set(STAGES.filter((s) => s.campaign !== false).flatMap((s) => s.missions))];
+}
+
+/** A mission of an elective stage: assessed by a finished free-play or daily run, never a campaign leg. */
+export function isElectiveMission(missionId: string): boolean {
+	return STAGES.some((s) => s.campaign === false && s.missions.includes(missionId)) && !campaignMissions().includes(missionId);
 }
 
 const hasContent = (s: Stage) => s.missions.length > 0 || s.lessons.length > 0;

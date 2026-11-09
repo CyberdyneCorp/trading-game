@@ -4,7 +4,7 @@
 	import { sound } from '#lib/game/sound.svelte.ts';
 	import type { GameSession } from '#lib/game/session.svelte.ts';
 	import { marketTagKey, missionText, packModeKey } from '#lib/game/missions.ts';
-	import { campaignMissions } from '#lib/game/curriculum.ts';
+	import { campaignOrder } from '#lib/game/campaign.ts';
 	import { branchTurn, intervalLabel } from '#lib/game/packs.ts';
 	import { pwa } from '#lib/game/pwa.svelte.ts';
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
@@ -40,7 +40,7 @@
 				<span class="tag attention" title={t('top.branchNote', { bar: branch })} data-testid="branch-tag">{t('top.branch')}</span>
 			{/if}
 			{#if session.runCampaign}
-				<span class="tag info" data-testid="campaign-tag">{t('campaign.tag', { n: session.runCampaign.index + 1, total: campaignMissions().length })}</span>
+				<span class="tag info" data-testid="campaign-tag">{t('campaign.tag', { n: session.runCampaign.index + 1, total: campaignOrder(session.progress.campaign).length })}</span>
 			{/if}
 			<span class="muted mission" title={missionTitle}>{missionTitle}</span>
 			{#if !pwa.online}<span class="tag attention" title={t('pwa.offlineNote')}>{t('pwa.offline')}</span>{/if}

@@ -143,6 +143,60 @@
 				"pt-BR": "Hipótese, invalidação e tamanho antes da entrada; o diário; FOMO, vingança e excesso de confiança; calibração.",
 				"en": "Thesis, invalidation and size before the entry; the journal; FOMO, revenge and overconfidence; calibration."
 			}
+		},
+		{
+			"id": "vol-gamma-scalping",
+			"stage": "advanced",
+			"title": { "pt-BR": "Gamma scalping", "en": "Gamma scalping" },
+			"summary": {
+				"pt-BR": "Straddle comprado é gama comprado; o hedge de delta com o perpétuo trava o vaivém; o theta é o aluguel; realizada contra implícita.",
+				"en": "A long straddle is long gamma; delta-hedging with the perpetual locks in the back-and-forth; theta is the rent; realized against implied."
+			}
+		},
+		{
+			"id": "carry-funding",
+			"stage": "advanced",
+			"title": { "pt-BR": "Carrego de funding", "en": "Funding carry" },
+			"summary": {
+				"pt-BR": "Receber funding com o preço protegido: carrego menos custos, o long sintético, a paridade put-call e a margem que o hedge não cobre.",
+				"en": "Collecting funding with the price hedged: carry minus costs, the synthetic long, put-call parity and the margin the hedge does not cover."
+			}
+		},
+		{
+			"id": "vol-events",
+			"stage": "advanced",
+			"title": { "pt-BR": "Volatilidade e eventos", "en": "Volatility and events" },
+			"summary": {
+				"pt-BR": "A IV sobe antes de um evento conhecido e despenca depois; o straddle mede o movimento implícito; quando comprar e quando vender.",
+				"en": "IV rises before a known event and collapses after it; the straddle measures the implied move; when to buy and when to sell."
+			}
+		},
+		{
+			"id": "options-calendars",
+			"stage": "advanced",
+			"title": { "pt-BR": "Calendários e diagonais", "en": "Calendars and diagonals" },
+			"summary": {
+				"pt-BR": "Vender o vencimento curto e comprar o longo: o débito é a perda máxima no curto, o lucro mora perto do strike, e a diagonal inclina a estrutura.",
+				"en": "Selling the near expiry and buying the far one: the debit is the maximum loss at the near expiry, the profit lives near the strike, and a diagonal leans the structure."
+			}
+		},
+		{
+			"id": "management-scaling",
+			"stage": "management",
+			"title": { "pt-BR": "Gestão em partes", "en": "Managing in parts" },
+			"summary": {
+				"pt-BR": "Entrar em partes com o risco total no orçamento, realizar em +1R, levar o stop à entrada e deixar o resto correr com um stop móvel.",
+				"en": "Scaling in with the total risk within budget, taking profit at +1R, moving the stop to breakeven and letting the rest run on a trailing stop."
+			}
+		},
+		{
+			"id": "mind-biases",
+			"stage": "psychology",
+			"title": { "pt-BR": "Disciplina depois do resultado", "en": "Discipline after the result" },
+			"summary": {
+				"pt-BR": "Depois de um stop, esperar o setup; antes de um movimento, planejar; aumentar no prejuízo só como estava planejado.",
+				"en": "After a stop, wait for the setup; before a move, plan; add to a loser only as planned."
+			}
 		}
 	]
 }

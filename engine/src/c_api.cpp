@@ -446,6 +446,72 @@ void write_strategy_comparison(JsonOut& j, const std::optional<StrategyCompariso
   j.end_arr().end_obj();
 }
 
+const char* limit_kind_name(RiskLimitKind k) {
+  switch (k) {
+    case RiskLimitKind::Delta: return "delta";
+    case RiskLimitKind::Gamma: return "gamma";
+    case RiskLimitKind::Vega: return "vega";
+    case RiskLimitKind::Theta: return "theta";
+  }
+  return "delta";
+}
+
+// Scoring v14: a bias or risk-limit finding's evidence, with the members its code uses (and only then,
+// so every earlier finding serializes as before).
+void write_evidence(JsonOut& j, FindingCode code, const FindingEvidence& e) {
+  j.key("evidence").begin_obj();
+  if (code == FindingCode::RevengeTrade) {
+    j.field("trade", e.trade).field("exitStep", e.exit_step).field("loss", e.loss).field("entryStep", e.entry_step);
+    j.field("sizeRatioBp", e.ratio_bp).field("planned", e.planned);
+  } else if (code == FindingCode::FomoEntry) {
+    j.field("entryStep", e.entry_step).field("extensionAtr", e.extension_atr).field("closes", e.closes).field("stop", e.stop);
+  } else if (code == FindingCode::AveragingDown) {
+    j.field("addStep", e.entry_step).field("avgBefore", e.avg_before).field("avgAfter", e.avg_after).field("unrealized", e.loss);
+    j.field("riskBefore", e.risk_before).field("riskAfter", e.risk_after).field("planRisk", e.risk_plan).field("stop", e.stop);
+    j.field("planned", e.planned);
+  } else {
+    j.field("limit", limit_kind_name(e.limit)).field("limitBp", e.limit_bp).field("worstBp", e.worst_bp);
+  }
+  j.end_obj();
+}
+
+const char* stop_move_name(StopMoveKind k) {
+  if (k == StopMoveKind::ToBreakeven) return "to_breakeven";
+  return k == StopMoveKind::Away ? "away" : "toward";
+}
+
+void write_episode_fills(JsonOut& j, const char* key, const std::vector<EpisodeFill>& fills) {
+  j.key(key).begin_arr();
+  for (const EpisodeFill& f : fills) j.begin_obj().field("step", f.step).field("qty", f.qty).field("price", f.price).end_obj();
+  j.end_arr();
+}
+
+void write_optional_bp(JsonOut& j, const char* key, const std::optional<std::int64_t>& v) {
+  j.key(key);
+  if (v) j.num(*v); else j.null();
+}
+
+// Debrief only (scoring v14, report-only): perpetual positions from flat to flat.
+void write_episodes(JsonOut& j, const std::vector<Episode>& eps) {
+  j.key("episodes").begin_arr();
+  for (const Episode& e : eps) {
+    j.begin_obj().field("n", e.n).field("side", e.is_long ? "long" : "short").field("entryStep", e.entry_step).key("exitStep");
+    if (e.exit_step) j.num(*e.exit_step); else j.null();
+    write_episode_fills(j, "entries", e.entries);
+    write_episode_fills(j, "exits", e.exits);
+    j.key("stopMoves").begin_arr();
+    for (const EpisodeStopMove& m : e.stop_moves) {
+      j.begin_obj().field("step", m.step).field("kind", stop_move_name(m.kind)).field("price", m.price).end_obj();
+    }
+    j.end_arr().field("trailing", e.trailing).field("net", e.net).field("plannedRisk", e.planned_risk);
+    write_optional_bp(j, "rBp", e.r_bp);
+    write_optional_bp(j, "mfeRBp", e.mfe_r_bp);
+    write_optional_bp(j, "maeRBp", e.mae_r_bp);
+    j.end_obj();
+  }
+  j.end_arr();
+}
+
 void write_score(JsonOut& j, const ScoreReport& r, const std::vector<RegimeSpan>& spans) {
   j.key("score").begin_obj().field("version", kScoringVersion).key("total");
   if (r.total) j.num(*r.total); else j.null();
@@ -458,7 +524,9 @@ void write_score(JsonOut& j, const ScoreReport& r, const std::vector<RegimeSpan>
   j.key("findings").begin_arr();
   for (const Finding& f : r.findings) {
     j.begin_obj().field("code", json_name(f.code)).field("tone", json_name(f.tone)).field("step", f.step);
-    j.field("count", f.count).field("price", f.price).field("requested", f.requested).field("amount", f.amount).end_obj();
+    j.field("count", f.count).field("price", f.price).field("requested", f.requested).field("amount", f.amount);
+    if (f.evidence) write_evidence(j, f.code, *f.evidence);
+    j.end_obj();
   }
   j.end_arr().field("lesson", json_name(r.lesson)).field("entries", r.entries).field("netPnl", r.net_pnl);
   j.key("calibration").begin_obj().field("resolved", r.resolved_answers).key("brierBp");
@@ -914,6 +982,7 @@ const char* tl_debrief(tl_run* run) {
   write_decisions(j, run->state);
   write_lessons(j, sc, run->state, report);
   write_strategy_comparison(j, run->from_pack ? std::nullopt : strategy_comparison(sc, run->state));
+  write_episodes(j, position_episodes(sc, run->state, report.trades));
   j.end_obj();
   run->buffer = j.text();
   return run->buffer.c_str();

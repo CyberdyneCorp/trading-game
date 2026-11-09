@@ -152,7 +152,11 @@ export type FindingCode =
 	| 'wrote_options'
 	| 'leverage_vs_stop'
 	| 'liq_buffer'
-	| 'drawdown_budget';
+	| 'drawdown_budget'
+	| 'revenge_trade'
+	| 'fomo_entry'
+	| 'averaging_down'
+	| 'risk_limit_exceeded';
 
 export type FindingTone = 'good' | 'warn' | 'bad' | 'info';
 
@@ -205,7 +209,20 @@ export type ObjectiveCode =
 	| 'size_by_max_loss'
 	| 'breakout_exit_rule'
 	| 'decide_before_expiry'
-	| 'no_roll_without_thesis';
+	| 'no_roll_without_thesis'
+	| 'delta_within_limit'
+	| 'rehedge_rule_first'
+	| 'carry_breakeven_first'
+	| 'vega_within_limit'
+	| 'hold_through_decision'
+	| 'net_debit_first'
+	| 'gamma_within_limit'
+	| 'total_risk_all_entries'
+	| 'partial_exit_or_trail'
+	| 'never_stop_away'
+	| 'cooldown_after_stop'
+	| 'plan_before_entry_atr_stop'
+	| 'no_add_beyond_plan';
 
 /** What the player did at a decision point (task 4.2, spec gameplay-loop "Waiting is a decision"). */
 export type DecisionKind = 'wait' | 'hold' | 'act';
@@ -221,7 +238,10 @@ export type ExitReason =
 	| 'margin_call'
 	| 'trailing';
 
-/** A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8). */
+/**
+ * A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8;
+ * m18-m22 since scoring v14).
+ */
 export type ComparisonStrategy =
 	| 'naked_call'
 	| 'bull_call_spread'
@@ -234,7 +254,23 @@ export type ComparisonStrategy =
 	| 'iron_condor'
 	| 'hold_to_settlement'
 	| 'close_before_expiry'
-	| 'roll_before_expiry';
+	| 'roll_before_expiry'
+	| 'unhedged_straddle'
+	| 'hedged_every_4'
+	| 'hedged_band'
+	| 'unhedged_short'
+	| 'hedged_carry_5x'
+	| 'hedged_carry_2x'
+	| 'early_sell_before'
+	| 'early_hold_through'
+	| 'late_hold_through'
+	| 'short_straddle_through'
+	| 'calendar_atm'
+	| 'diagonal_up'
+	| 'short_straddle_near'
+	| 'all_out_2r'
+	| 'managed_exit'
+	| 'hold_initial_stop';
 
 /** Advice in the debrief: a long or short read is right when the close 5 bars after the next open moved its way. */
 export type AdviceOutcome = 'right' | 'wrong' | 'wait' | 'open';
@@ -742,6 +778,46 @@ export interface EngineFinding {
 	price: Decimal;
 	requested: Decimal;
 	amount: Decimal;
+	/** Scoring v14 findings only (revenge_trade, fomo_entry, averaging_down, risk_limit_exceeded). */
+	evidence?: FindingEvidence;
+}
+
+/**
+ * Scoring v14: what a bias or risk-limit finding rests on (the action log and data visible at its step).
+ * Each code writes only its own members.
+ */
+export interface FindingEvidence {
+	/** revenge_trade: the losing trade's number, its exit bar and net loss. */
+	trade?: number;
+	exitStep?: number;
+	loss?: Decimal;
+	/** revenge_trade, fomo_entry: the entry's decision step. */
+	entryStep?: number;
+	/** revenge_trade: entry size over the losing trade's (planned risk, else quantity), basis points. */
+	sizeRatioBp?: number;
+	/** revenge_trade, averaging_down: the entry had a plan of its own. */
+	planned?: boolean;
+	/** fomo_entry: (close - SMA20) / ATR14 in hundredths, signed by the side. */
+	extensionAtr?: number;
+	/** fomo_entry: consecutive closes in the entry's direction. */
+	closes?: number;
+	/** fomo_entry, averaging_down: the protective stop ("0" = none). */
+	stop?: Decimal;
+	/**
+	 * averaging_down: the add's decision step, the average entry before and after, the unrealized loss
+	 * at the add, the risk to the stop before and after, and the first entry's planned risk.
+	 */
+	addStep?: number;
+	avgBefore?: Decimal;
+	avgAfter?: Decimal;
+	unrealized?: Decimal;
+	riskBefore?: Decimal;
+	riskAfter?: Decimal;
+	planRisk?: Decimal;
+	/** risk_limit_exceeded: the limit, its value and the largest value seen at a close. */
+	limit?: RiskLimitKind;
+	limitBp?: number;
+	worstBp?: number;
 }
 
 export interface EngineTrade {
@@ -951,9 +1027,48 @@ export interface DebriefData {
 	lessons: LessonResults | null;
 	/**
 	 * Scoring v13 (report-only): the mission's reference structures on this seed; null for a mission
-	 * without a comparison (every mission but m13-m17) and for pack runs.
+	 * without a comparison (every mission but m13-m22) and for pack runs.
 	 */
 	strategyComparison: StrategyComparison | null;
+	/** Scoring v14 (report-only): perpetual positions from flat to flat. */
+	episodes: PositionEpisode[];
+}
+
+export type StopMoveKind = 'to_breakeven' | 'toward' | 'away';
+
+/** One perpetual fill of an episode. */
+export interface EpisodeFill {
+	step: number;
+	qty: Decimal;
+	price: Decimal;
+}
+
+export interface EpisodeStopMove {
+	step: number;
+	kind: StopMoveKind;
+	price: Decimal;
+}
+
+/** Scoring v14: a perpetual position from flat to flat (a flip ends one and starts the next). */
+export interface PositionEpisode {
+	/** The matching perpetual trade row's number. */
+	n: number;
+	side: TradeSide;
+	entryStep: number;
+	exitStep: number | null;
+	/** The first entry and every scale-in. */
+	entries: EpisodeFill[];
+	/** Partial exits and the final one. */
+	exits: EpisodeFill[];
+	stopMoves: EpisodeStopMove[];
+	/** A trailing stop was working at some point. */
+	trailing: boolean;
+	net: Decimal;
+	plannedRisk: Decimal;
+	rBp: number | null;
+	/** Best and worst excursion of the bars held against the first entry, in R (planned risk known). */
+	mfeRBp: number | null;
+	maeRBp: number | null;
 }
 
 export type ComparisonBasis = 'player' | 'reference';

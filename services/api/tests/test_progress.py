@@ -21,6 +21,7 @@ from tradelab_api.domain.preferences import merge
 from tradelab_api.domain.progress import (
     CAMPAIGN_MIN_CAPITAL,
     CAMPAIGN_MISSIONS,
+    CAMPAIGN_MISSIONS_V3,
     achievements,
     mission_progress,
 )
@@ -35,13 +36,21 @@ WRONG = [{"k": "lesson", "q": 0, "choice": 0, "value": None, "skipped": False},
 
 def test_campaign_order_and_minimum_match_the_web_client():
     curriculum = (WEB_GAME / "curriculum.ts").read_text()
-    stages = re.findall(r"missions: \[([^\]]*)\]", curriculum.split("export const STAGES")[1].split("];")[0])
+    block = curriculum.split("export const STAGES")[1].split("\n];")[0]
+    # One stage per `{ id: ...` entry; an elective stage (`campaign: false`) is never a campaign leg.
+    entries = re.split(r"\n\t\{", block)
     order: list[str] = []
-    for group in stages:
-        for mission in re.findall(r"'([^']+)'", group):
+    for entry in entries:
+        group = re.search(r"missions: \[([^\]]*)\]", entry)
+        if group is None or "campaign: false" in entry:
+            continue
+        for mission in re.findall(r"'([^']+)'", group.group(1)):
             if mission not in order:
                 order.append(mission)
     assert tuple(order) == CAMPAIGN_MISSIONS
+    campaign_ts = (WEB_GAME / "campaign.ts").read_text()
+    v3 = re.findall(r"'(m\d\d-[a-z-]+)'", campaign_ts.split("CAMPAIGN_ORDER_V3")[1].split("];")[0])
+    assert tuple(v3) == CAMPAIGN_MISSIONS_V3
     campaign = (WEB_GAME / "campaign.ts").read_text()
     assert f"CAMPAIGN_MIN_CAPITAL = '{CAMPAIGN_MIN_CAPITAL}'" in campaign
 
@@ -225,3 +234,17 @@ def test_engine_still_reports_lessons_in_the_debrief():
     # The lesson achievement reads debrief["lessons"]; this pins the field the server depends on.
     debrief = te.replay("m01-false-breakout", 5, [*RIGHT, FINISH]).debrief
     assert debrief["lessons"]["points"] == debrief["lessons"]["total"] == 2
+
+
+def test_a_campaign_started_before_progress_v4_completes_with_its_17_missions():
+    old = [_run(f"old-{i}", m, i, campaign={"id": "old", "index": i}) for i, m in enumerate(CAMPAIGN_MISSIONS_V3)]
+    earned = {a.id: a for a in achievements(old)}
+    assert earned["campaign-complete"].campaign_id == "old"
+    assert "campaign:m22-scale-manage" not in earned
+    # A leg at index 5 is m04 in the old order and m22 in the new one: both are campaign legs.
+    mixed = [_run("a5", "m04-options-buyer", 0, campaign={"id": "a", "index": 5}),
+             _run("b5", "m22-scale-manage", 1, campaign={"id": "b", "index": 5})]
+    assert {a.id for a in achievements(mixed)} == {"campaign:m04-options-buyer", "campaign:m22-scale-manage"}
+    # 17 legs of the new order are not a complete campaign.
+    partial = [_run(f"n-{i}", m, i, campaign={"id": "n", "index": i}) for i, m in enumerate(CAMPAIGN_MISSIONS[:17])]
+    assert "campaign-complete" not in {a.id for a in achievements(partial)}

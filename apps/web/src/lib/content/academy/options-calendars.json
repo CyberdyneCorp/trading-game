@@ -1,0 +1,125 @@
+{
+	"id": "options-calendars",
+	"stage": "advanced",
+	"givens": [100, 105, 110],
+	"checks": [
+		{ "kind": "calendar", "near": 2, "far": 3.5, "qty": 1, "expect": 1.5 },
+		{ "kind": "calendar", "near": 1.2, "far": 2, "qty": 10, "expect": 8 },
+		{ "kind": "calendar", "near": 1.4, "far": 1.9, "qty": 1, "expect": 0.5 }
+	],
+	"steps": [
+		{
+			"id": "calendar",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Dois relógios",
+					"body": "Um [[calendar-spread|calendário]] comprado vende a opção do vencimento curto e compra a do longo, no mesmo strike. O curto perde [[time-value|valor de tempo]] mais depressa ([[term-structure|estrutura a termo]]): é isso que o calendário colhe. Ele ganha mais com o preço perto do strike no vencimento curto, tem [[vega|vega]] positivo e, no vencimento curto, perde no máximo o débito pago. Uma [[diagonal-spread|diagonal]] muda o strike da comprada para inclinar a estrutura."
+				},
+				"en": {
+					"title": "Two clocks",
+					"body": "A long [[calendar-spread|calendar]] sells the near expiry’s option and buys the far one, at the same strike. The near one loses [[time-value|time value]] faster ([[term-structure|term structure]]): that is what the calendar harvests. It earns most with the price near the strike at the near expiry, it is long [[vega|vega]] and, at the near expiry, it loses at most the debit paid. A [[diagonal-spread|diagonal]] moves the long’s strike to lean the structure."
+				}
+			}
+		},
+		{
+			"id": "debit",
+			"phase": "demo",
+			"widget": { "kind": "table", "market": "C", "columns": [{ "id": "leg" }, { "id": "premium", "digits": 2 }], "rows": [["near", 2], ["far", 3.5]] },
+			"text": {
+				"pt-BR": {
+					"title": "O débito é o pior caso",
+					"body": "Vende a call 100 do vencimento curto por 2,00 e compra a call 100 do longo por 3,50: débito de 1,50. No vencimento curto, a comprada vale pelo menos o que a vendida cobra, então a perda não passa de 1,50 (mais os custos). Aqui a margem de calendário deixa a comprada cobrir a vendida.",
+					"columns": ["Perna", "Prêmio"],
+					"cells": { "near": "call 100 curta, vendida", "far": "call 100 longa, comprada" }
+				},
+				"en": {
+					"title": "The debit is the worst case",
+					"body": "Sell the near expiry’s 100 call for 2.00 and buy the far 100 call for 3.50: a debit of 1.50. At the near expiry the long is worth at least what the short charges, so the loss does not exceed 1.50 (plus costs). Here calendar margin lets the long cover the short.",
+					"columns": ["Leg", "Premium"],
+					"cells": { "near": "near 100 call, written", "far": "far 100 call, bought" }
+				}
+			}
+		},
+		{
+			"id": "where",
+			"phase": "decision",
+			"question": { "choices": [{ "kind": "text", "id": "near" }, { "kind": "text", "id": "above" }, { "kind": "text", "id": "below" }], "answer": 0 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: onde o calendário ganha",
+					"body": "Onde um calendário comprado lucra mais no vencimento curto?",
+					"right": "Com o preço perto do strike: a vendida vence quase sem valor e a comprada ainda tem todo o seu valor de tempo. Longe do strike, as duas perdem o valor de tempo e sobra pouco.",
+					"wrong": "Pense no valor de tempo de cada perna no dia do vencimento curto.",
+					"choices": {
+						"near": "Com o preço perto do strike",
+						"above": "Com o preço muito acima do strike",
+						"below": "Com o preço muito abaixo do strike"
+					},
+					"feedback": {
+						"above": "Muito acima, a vendida custa o seu valor intrínseco e a comprada quase não tem valor de tempo além dele.",
+						"below": "Muito abaixo, as duas calls valem pouco: o calendário perde a maior parte do débito."
+					}
+				},
+				"en": {
+					"title": "Decision: where the calendar earns",
+					"body": "Where does a long calendar profit most at the near expiry?",
+					"right": "With the price near the strike: the short expires almost worthless and the long still has all its time value. Far from the strike both lose their time value and little is left.",
+					"wrong": "Think about each leg’s time value on the near expiry’s day.",
+					"choices": {
+						"near": "With the price near the strike",
+						"above": "With the price far above the strike",
+						"below": "With the price far below the strike"
+					},
+					"feedback": {
+						"above": "Far above, the short costs its intrinsic value and the long has little time value beyond it.",
+						"below": "Far below, both calls are worth little: the calendar loses most of its debit."
+					}
+				}
+			}
+		},
+		{
+			"id": "size",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 8, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o débito de 10 contratos",
+					"body": "Um calendário de 10 contratos: curta vendida a 1,20 e longa comprada a 2,00. Qual é o débito total, a perda máxima no vencimento curto antes dos custos?",
+					"right": "(2,00 − 1,20) × 10 = 8. Dimensione pelo débito: é o pior caso no vencimento curto.",
+					"wrong": "Débito por contrato = longa − curta; multiplique pelos contratos."
+				},
+				"en": {
+					"title": "Decision: the debit of 10 contracts",
+					"body": "A 10-contract calendar: the near one written at 1.20 and the far one bought at 2.00. What is the total debit, the maximum loss at the near expiry before costs?",
+					"right": "(2.00 − 1.20) × 10 = 8. Size by the debit: it is the worst case at the near expiry.",
+					"wrong": "Debit per contract = far − near; multiply by the contracts."
+				}
+			}
+		},
+		{
+			"id": "diagonal",
+			"phase": "transfer",
+			"widget": { "kind": "table", "market": "D", "columns": [{ "id": "leg" }, { "id": "premium", "digits": 2 }], "rows": [["near", 1.4], ["far", 1.9]] },
+			"question": { "type": "number", "answer": 0.5, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: uma diagonal",
+					"body": "Mercado D: vende a call 105 do vencimento curto por 1,40 e compra a call 110 do longo por 1,90. Qual é o débito por contrato?",
+					"right": "1,90 − 1,40 = 0,50. Numa diagonal o pior caso também depende da distância entre os strikes, não só do débito.",
+					"wrong": "Mesmo com strikes diferentes, o débito é o que paga menos o que recebe.",
+					"columns": ["Perna", "Prêmio"],
+					"cells": { "near": "call 105 curta, vendida", "far": "call 110 longa, comprada" }
+				},
+				"en": {
+					"title": "Transfer: a diagonal",
+					"body": "Market D: sell the near expiry’s 105 call for 1.40 and buy the far 110 call for 1.90. What is the debit per contract?",
+					"right": "1.90 − 1.40 = 0.50. In a diagonal the worst case also depends on the gap between the strikes, not just the debit.",
+					"wrong": "Even with different strikes, the debit is what you pay minus what you receive.",
+					"columns": ["Leg", "Premium"],
+					"cells": { "near": "near 105 call, written", "far": "far 110 call, bought" }
+				}
+			}
+		}
+	]
+}

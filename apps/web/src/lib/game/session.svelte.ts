@@ -35,6 +35,7 @@ import { assistAllowed, rewindPrefix, type AssistedLink } from './assisted.ts';
 import { stepsUntilNextQuestion } from './calibration.ts';
 import {
 	abandonCampaign,
+	assessElective,
 	nextCampaignMission,
 	settleCampaignRun,
 	startCampaign,
@@ -43,7 +44,7 @@ import {
 } from './campaign.ts';
 import { legReport } from './campaignReport.ts';
 import { CatalogModel, type CatalogHost, type CatalogStore } from './catalog.svelte.ts';
-import { campaignPermissions } from './curriculum.ts';
+import { campaignPermissions, isElectiveMission } from './curriculum.ts';
 import { applyReview, localDay, scheduleOnComplete } from './review.ts';
 import { i18n, t } from './i18n.svelte.ts';
 import { adviceUsed, allowanceFor, settleRun } from './points.ts';
@@ -1422,6 +1423,9 @@ export class GameSession implements CatalogHost, SharingHost {
 			const report = legReport(d, s.totals);
 			next = settleCampaignRun(next, this.runCampaign, { runId: this.runId, missionId: this.missionId, result, equity: d.finalEquity, report });
 		}
+		// An elective stage's mission finished outside the campaign assesses it (design D14).
+		const out = { missionId: this.missionId, finished: s.status === 'finished', assisted: false, campaign: this.runCampaign != null };
+		next = assessElective(next, out, isElectiveMission);
 		this.saveProgress(next);
 	}
 

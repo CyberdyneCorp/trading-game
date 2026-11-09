@@ -1,0 +1,138 @@
+{
+	"id": "management-scaling",
+	"stage": "management",
+	"checks": [
+		{ "kind": "size", "equity": 10000, "riskPct": 1, "entry": 100, "stop": 96, "expect": 25 },
+		{ "kind": "risk", "entry": 100, "stop": 96, "qty": 30, "expect": 120 },
+		{ "kind": "scale", "side": "buy", "entry": 100, "qty": 30, "exitPrice": 104, "exitQty": 15, "newStop": 100, "expect": 60 },
+		{ "kind": "scale", "side": "sell", "entry": 50, "qty": 20, "exitPrice": 48, "exitQty": 10, "newStop": 50, "expect": 20 }
+	],
+	"steps": [
+		{
+			"id": "parts",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Entrar e sair em partes",
+					"body": "[[scale-in|Entrar em partes]] só é coerente quando o risco somado de todas as entradas até a mesma invalidação cabe no orçamento. Na saída, uma [[partial-take-profit|realização parcial]] em +1R paga a paciência com o resto; o [[breakeven-stop|stop no ponto de entrada]] tira o risco que sobrava, mas pode parar uma tendência certa num recuo normal; um [[trailing-stop|stop móvel]] deixa o resto correr. Nunca afaste um stop da entrada."
+				},
+				"en": {
+					"title": "Entering and leaving in parts",
+					"body": "[[scale-in|Scaling in]] is consistent only when the risk of every entry to the same invalidation adds up within budget. On the way out, a [[partial-take-profit|partial take-profit]] at +1R pays for patience with the rest; the [[breakeven-stop|breakeven stop]] removes the risk that was left, but can stop a sound trend on a normal pullback; a [[trailing-stop|trailing stop]] lets the rest run. Never move a stop away from the entry."
+				}
+			}
+		},
+		{
+			"id": "plan",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "S",
+				"columns": [{ "id": "item" }, { "id": "value", "digits": 0 }],
+				"rows": [["entry", 100], ["stop", 96], ["qty", 25], ["budget", 100]]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Um plano de 1%",
+					"body": "Capital de 10.000 e 1% de risco: 100 até o stop. Entrada 100 e stop 96 dão 25 unidades. Se você quer entrar em duas partes, as duas juntas continuam limitadas a esse risco até o mesmo stop.",
+					"columns": ["Item", "Valor"],
+					"cells": { "entry": "entrada", "stop": "stop", "qty": "quantidade", "budget": "risco até o stop" }
+				},
+				"en": {
+					"title": "A 1% plan",
+					"body": "Equity of 10,000 and 1% risk: 100 to the stop. Entry 100 and stop 96 give 25 units. If you want to enter in two parts, both together stay limited to that risk to the same stop.",
+					"columns": ["Item", "Value"],
+					"cells": { "entry": "entry", "stop": "stop", "qty": "quantity", "budget": "risk to the stop" }
+				}
+			}
+		},
+		{
+			"id": "left",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 60, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o que sobra depois da parcial",
+					"body": "Long de 30 a 100 com stop em 96 (risco de 120). Você vende 15 a 104 e leva o stop a 100. Qual é o pior resultado que sobra para o trade, antes dos custos?",
+					"right": "15 × 4 = 60 já realizados, e as 15 restantes saem no zero a zero se o stop em 100 executar: o pior caso agora é +60.",
+					"wrong": "Some o que a parcial realizou com o que as unidades restantes fazem no novo stop."
+				},
+				"en": {
+					"title": "Decision: what is left after the partial",
+					"body": "Long 30 at 100 with the stop at 96 (a risk of 120). You sell 15 at 104 and move the stop to 100. What is the worst result left for the trade, before costs?",
+					"right": "15 × 4 = 60 already taken, and the remaining 15 exit at breakeven if the stop at 100 fills: the worst case is now +60.",
+					"wrong": "Add what the partial took to what the remaining units make at the new stop."
+				}
+			}
+		},
+		{
+			"id": "cost",
+			"phase": "decision",
+			"question": {
+				"choices": [{ "kind": "text", "id": "nothing" }, { "kind": "text", "id": "taken" }, { "kind": "text", "id": "pullback" }],
+				"answer": 2
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o preço do stop na entrada",
+					"body": "Do que você abre mão ao levar o stop ao ponto de entrada?",
+					"right": "Ele pode parar, num recuo normal, uma tendência que estava certa. Use quando o setup já entregou o que prometia, ou combine com um stop móvel mais folgado.",
+					"wrong": "O stop no ponto de entrada tira o risco, mas o preço ainda oscila.",
+					"choices": {
+						"nothing": "De nada: o trade não pode perder e não será parado",
+						"taken": "Do lucro já realizado na parcial",
+						"pullback": "Pode ser parado num recuo normal de uma tendência certa"
+					},
+					"feedback": {
+						"nothing": "Não pode perder, mas pode ser parado: um recuo até a entrada executa o stop.",
+						"taken": "O que a parcial realizou fica: o stop só mexe nas unidades restantes."
+					}
+				},
+				"en": {
+					"title": "Decision: the price of a breakeven stop",
+					"body": "What does moving the stop to breakeven give up?",
+					"right": "It can stop out, on a normal pullback, a trend that was right. Use it when the setup has delivered what it promised, or pair it with a looser trailing stop.",
+					"wrong": "A breakeven stop removes the risk, but the price still swings.",
+					"choices": {
+						"nothing": "Nothing: the trade cannot lose and will not be stopped",
+						"taken": "The profit already taken on the partial",
+						"pullback": "It can be stopped on a normal pullback of a sound trend"
+					},
+					"feedback": {
+						"nothing": "It cannot lose, but it can be stopped: a pullback to the entry fills the stop.",
+						"taken": "What the partial took stays: the stop only touches the remaining units."
+					}
+				}
+			}
+		},
+		{
+			"id": "short",
+			"phase": "transfer",
+			"widget": {
+				"kind": "table",
+				"market": "T",
+				"columns": [{ "id": "item" }, { "id": "value", "digits": 0 }],
+				"rows": [["entry", 50], ["stop", 52], ["qty", 20], ["exit", 48], ["exitQty", 10]]
+			},
+			"question": { "type": "number", "answer": 20, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: um short em partes",
+					"body": "Mercado T: short de 20 a 50 com stop em 52. Você recompra 10 a 48 (+1R) e leva o stop a 50. Qual é o pior resultado que sobra, antes dos custos?",
+					"right": "10 × 2 = 20 realizados, e as 10 restantes saem no zero a zero em 50: o pior caso é +20.",
+					"wrong": "Num short, a recompra abaixo da entrada realiza lucro. Some com o que as restantes fazem no novo stop.",
+					"columns": ["Item", "Valor"],
+					"cells": { "entry": "entrada (short)", "stop": "stop", "qty": "quantidade", "exit": "recompra parcial", "exitQty": "quantidade recomprada" }
+				},
+				"en": {
+					"title": "Transfer: a short in parts",
+					"body": "Market T: short 20 at 50 with the stop at 52. You buy back 10 at 48 (+1R) and move the stop to 50. What is the worst result left, before costs?",
+					"right": "10 × 2 = 20 taken, and the remaining 10 exit at breakeven at 50: the worst case is +20.",
+					"wrong": "In a short, buying back below the entry takes profit. Add what the rest makes at the new stop.",
+					"columns": ["Item", "Value"],
+					"cells": { "entry": "entry (short)", "stop": "stop", "qty": "quantity", "exit": "partial buy-back", "exitQty": "quantity bought back" }
+				}
+			}
+		}
+	]
+}

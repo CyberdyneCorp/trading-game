@@ -1,0 +1,151 @@
+{
+	"id": "vol-events",
+	"stage": "advanced",
+	"checks": [
+		{
+			"kind": "breakeven",
+			"legs": [
+				{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 3 },
+				{ "kind": "put", "side": "buy", "qty": 1, "strike": 100, "price": 3 }
+			],
+			"expect": [94, 106]
+		},
+		{ "kind": "share", "a": 6, "b": 100, "expect": 6 },
+		{ "kind": "product", "a": 0.2, "b": 10, "expect": 2 },
+		{
+			"kind": "breakeven",
+			"legs": [
+				{ "kind": "call", "side": "buy", "qty": 1, "strike": 50, "price": 2 },
+				{ "kind": "put", "side": "buy", "qty": 1, "strike": 50, "price": 2 }
+			],
+			"expect": [46, 54]
+		},
+		{ "kind": "share", "a": 4, "b": 50, "expect": 8 }
+	],
+	"steps": [
+		{
+			"id": "bid",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "O prêmio de evento",
+					"body": "Antes de uma divulgação conhecida, as opções ficam mais caras: a [[event-volatility|volatilidade de evento]] sobe. Depois dela, a IV cai qualquer que seja o resultado: o [[iv-crush|esmagamento da IV]]. Comprar cedo e vender antes da divulgação ganha a alta sem pagar a queda. Segurar através pede um movimento maior que o [[implied-move|movimento implícito]]."
+				},
+				"en": {
+					"title": "The event premium",
+					"body": "Ahead of a known release, options get dearer: [[event-volatility|event volatility]] rises. After it, IV falls whatever the outcome: the [[iv-crush|IV crush]]. Buying early and selling before the release earns the rise without paying the fall. Holding through needs a move larger than the [[implied-move|implied move]]."
+				}
+			}
+		},
+		{
+			"id": "straddle",
+			"phase": "demo",
+			"widget": {
+				"kind": "payoff",
+				"market": "E",
+				"legs": [
+					{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 3 },
+					{ "kind": "put", "side": "buy", "qty": 1, "strike": 100, "price": 3 }
+				],
+				"lo": 85,
+				"hi": 115
+			},
+			"text": {
+				"pt-BR": {
+					"title": "O straddle mede o movimento",
+					"body": "Call e put 100 compradas por 3 cada: 6 no total, 6% do preço. No vencimento, o straddle empata em 94 e 106. Esse é o movimento que o mercado cobra: menos que isso, perde; mais, ganha."
+				},
+				"en": {
+					"title": "The straddle measures the move",
+					"body": "A 100 call and put bought for 3 each: 6 in all, 6% of the price. At expiry the straddle breaks even at 94 and 106. That is the move the market charges: less than that loses, more wins."
+				}
+			}
+		},
+		{
+			"id": "crush",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 2, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o tamanho do esmagamento",
+					"body": "Seu straddle tem [[vega|vega]] de 0,20 por ponto de volatilidade. Depois da divulgação a IV cai 10 pontos. Quanto ele perde por unidade, só pelo vega?",
+					"right": "0,20 × 10 = 2 por unidade, um terço do straddle de 6. O preço precisa andar para compensar.",
+					"wrong": "Vega é o quanto o valor muda por ponto de IV: multiplique pela queda."
+				},
+				"en": {
+					"title": "Decision: the size of the crush",
+					"body": "Your straddle has a [[vega|vega]] of 0.20 per volatility point. After the release IV falls 10 points. How much does it lose per unit, from vega alone?",
+					"right": "0.20 × 10 = 2 per unit, a third of the 6 straddle. The price has to move to make up for it.",
+					"wrong": "Vega is how much the value changes per IV point: multiply by the drop."
+				}
+			}
+		},
+		{
+			"id": "timing",
+			"phase": "decision",
+			"question": { "choices": [{ "kind": "text", "id": "early" }, { "kind": "text", "id": "through" }, { "kind": "text", "id": "after" }], "answer": 0 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: quando comprar e vender",
+					"body": "Você não tem opinião sobre o resultado da divulgação. Qual plano ganha com a alta da IV sem pagar a queda?",
+					"right": "Comprar cedo e vender antes da divulgação. Segurar através só faz sentido com uma tese de movimento grande, e o resultado sorteado pode não vir.",
+					"wrong": "A IV sobe até a divulgação e cai logo depois. Em que janela você quer estar comprado?",
+					"choices": {
+						"early": "Comprar cedo e vender antes da divulgação",
+						"through": "Comprar cedo e segurar através",
+						"after": "Comprar logo depois da divulgação"
+					},
+					"feedback": {
+						"through": "Segurar através paga o esmagamento: só ganha se o movimento superar o implícito.",
+						"after": "Depois da divulgação a IV já caiu; não há alta para ganhar."
+					}
+				},
+				"en": {
+					"title": "Decision: when to buy and sell",
+					"body": "You have no view on the release’s outcome. Which plan earns the IV rise without paying the fall?",
+					"right": "Buy early and sell before the release. Holding through makes sense only with a thesis of a large move, and the drawn outcome may not deliver it.",
+					"wrong": "IV rises up to the release and falls right after. In which window do you want to be long?",
+					"choices": {
+						"early": "Buy early and sell before the release",
+						"through": "Buy early and hold through",
+						"after": "Buy right after the release"
+					},
+					"feedback": {
+						"through": "Holding through pays the crush: it wins only if the move beats the implied one.",
+						"after": "After the release IV has already fallen; there is no rise left to earn."
+					}
+				}
+			}
+		},
+		{
+			"id": "lower",
+			"phase": "transfer",
+			"widget": {
+				"kind": "payoff",
+				"market": "N",
+				"legs": [
+					{ "kind": "call", "side": "buy", "qty": 1, "strike": 50, "price": 2 },
+					{ "kind": "put", "side": "buy", "qty": 1, "strike": 50, "price": 2 }
+				],
+				"lo": 40,
+				"hi": 60,
+				"hideAnalytics": true
+			},
+			"question": { "type": "number", "answer": 46, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: outro straddle",
+					"body": "Mercado N, perto de 50: call e put 50 compradas por 2 cada. Qual é o ponto de equilíbrio de baixo no vencimento?",
+					"right": "50 − 4 = 46 (e 54 em cima): o movimento implícito é de 4, 8% do preço.",
+					"wrong": "Some os dois prêmios e tire do strike."
+				},
+				"en": {
+					"title": "Transfer: another straddle",
+					"body": "Market N, near 50: a 50 call and put bought for 2 each. What is the lower breakeven at expiry?",
+					"right": "50 − 4 = 46 (and 54 above): the implied move is 4, 8% of the price.",
+					"wrong": "Add the two premiums and take them from the strike."
+				}
+			}
+		}
+	]
+}

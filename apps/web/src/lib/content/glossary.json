@@ -1799,6 +1799,346 @@
 				}
 			},
 			"checks": [{ "kind": "diff", "a": 6, "b": 6, "expect": 0 }]
+		},
+		{
+			"id": "gamma-scalping",
+			"stage": "advanced",
+			"related": ["gamma", "delta-hedge", "rehedge", "realized-volatility"],
+			"text": {
+				"pt-BR": {
+					"term": "Gamma scalping",
+					"aliases": ["scalp de gama"],
+					"short": "Comprar opções (gama positivo) e neutralizar o delta com o perpétuo várias vezes, para ganhar com o vaivém do preço.",
+					"long": "Cada vez que o preço anda e volta, o hedge vende mais caro e recompra mais barato: cerca de ½ × gama × (movimento)² por rebalanceamento. O theta é o aluguel desse gama: a estratégia ganha quando o mercado se mexe mais do que a volatilidade implícita cobrava, e perde quando se mexe menos.",
+					"example": "Gama de 0,05 por unidade em 40 unidades e um movimento de 2: cerca de ½ × 0,05 × 2² × 40 = 4 por rebalanceamento."
+				},
+				"en": {
+					"term": "Gamma scalping",
+					"aliases": ["gamma scalp"],
+					"short": "Buying options (positive gamma) and delta-hedging them with the perpetual again and again, to earn from the price’s back-and-forth.",
+					"long": "Each time the price moves and comes back, the hedge sells higher and buys back lower: about ½ × gamma × (move)² per rehedge. Theta is the rent paid for that gamma: the strategy earns when the market moves more than the implied volatility priced in, and loses when it moves less.",
+					"example": "A gamma of 0.05 per unit on 40 units and a move of 2: about ½ × 0.05 × 2² × 40 = 4 per rehedge."
+				}
+			},
+			"checks": [{ "kind": "scalp", "gamma": 0.05, "move": 2, "units": 40, "expect": 4 }]
+		},
+		{
+			"id": "delta-neutral",
+			"stage": "advanced",
+			"related": ["delta", "delta-hedge", "portfolio-greeks"],
+			"text": {
+				"pt-BR": {
+					"term": "Delta neutro",
+					"aliases": ["neutro em delta"],
+					"short": "Uma carteira cujo delta total é zero: um movimento pequeno do preço quase não muda o seu resultado.",
+					"long": "Neutro em delta não é sem risco: o gama muda o delta quando o preço anda, o vega responde à volatilidade implícita e o theta cobra o tempo. A neutralidade vale para o preço de agora e precisa ser refeita.",
+					"example": "Um straddle com delta +4 e um short de 4 unidades no perpétuo somam delta 0."
+				},
+				"en": {
+					"term": "Delta neutral",
+					"aliases": ["delta-neutral"],
+					"short": "A book whose total delta is zero: a small price move barely changes its result.",
+					"long": "Delta neutral is not riskless: gamma changes the delta as the price moves, vega responds to implied volatility and theta charges for time. The neutrality holds for the price now and must be redone.",
+					"example": "A straddle with delta +4 and a short of 4 perpetual units add up to a delta of 0."
+				}
+			},
+			"checks": [{ "kind": "diff", "a": 4, "b": 4, "expect": 0 }]
+		},
+		{
+			"id": "rehedge",
+			"stage": "advanced",
+			"related": ["delta-hedge", "gamma-scalping", "fee"],
+			"text": {
+				"pt-BR": {
+					"term": "Rebalanceamento do hedge",
+					"aliases": ["rehedge", "rebalancear"],
+					"short": "Refazer o hedge de delta depois que o preço andou, para voltar a ficar neutro.",
+					"long": "A regra de rebalanceamento se decide antes: a cada N barras ou quando o delta sai de uma faixa. Rebalancear mais vezes captura mais dos movimentos, mas paga mais taxas e spread: cada ajuste é uma ordem no perpétuo.",
+					"example": "O delta foi de 0 a +3 unidades: vender 3 unidades do perpétuo volta a deixar a carteira neutra."
+				},
+				"en": {
+					"term": "Rehedge",
+					"aliases": ["rebalance"],
+					"short": "Redoing the delta hedge after the price moved, to be neutral again.",
+					"long": "The rehedge rule is decided beforehand: every N bars or when the delta leaves a band. Rehedging more often captures more of the moves but pays more fees and spread: every adjustment is a perpetual order.",
+					"example": "The delta went from 0 to +3 units: selling 3 perpetual units makes the book neutral again."
+				}
+			},
+			"checks": [{ "kind": "hedge", "deltaPerUnit": 0.3, "units": 10, "expect": 3 }]
+		},
+		{
+			"id": "carry",
+			"stage": "advanced",
+			"related": ["funding-rate", "basis", "fee"],
+			"text": {
+				"pt-BR": {
+					"term": "Carrego",
+					"aliases": ["carry"],
+					"short": "O que uma posição rende por ser mantida: aqui, o funding recebido menos os custos de montá-la e mantê-la.",
+					"long": "Um short no perpétuo recebe funding quando a taxa é positiva (os longs pagam). Protegido do preço, o carrego é funding recebido menos spreads e taxas das pernas. Ele se volta contra você quando o funding fica negativo ou quando os custos passam do funding que ainda falta receber.",
+					"example": "Funding de +0,03% por intervalo num short de nocional 2.000: 0,60 por intervalo; custos de 3 pedem 5 intervalos para empatar."
+				},
+				"en": {
+					"term": "Carry",
+					"aliases": ["carry trade"],
+					"short": "What a position earns for being held: here, the funding received minus the costs of opening and holding it.",
+					"long": "A short perpetual receives funding when the rate is positive (longs pay). Hedged from price, the carry is funding received minus the legs’ spreads and fees. It turns against you when funding turns negative or when costs exceed the funding left to earn.",
+					"example": "Funding of +0.03% per interval on a short with 2,000 notional: 0.60 per interval; costs of 3 need 5 intervals to break even."
+				}
+			},
+			"checks": [{ "kind": "funding", "notional": 2000, "ratePct": 0.03, "expect": 0.6 }, { "kind": "ratio", "a": 3, "b": 0.6, "expect": 5 }]
+		},
+		{
+			"id": "basis",
+			"stage": "advanced",
+			"related": ["carry", "perpetual", "funding-rate"],
+			"text": {
+				"pt-BR": {
+					"term": "Base",
+					"aliases": ["basis"],
+					"short": "A diferença entre o preço de um futuro ou perpétuo e o preço à vista.",
+					"long": "Nos mercados reais, a base de um futuro converge a zero no vencimento e o perpétuo usa o funding para ficar perto do à vista. Neste jogo não há preço à vista separado: o funding é o carrego, e as opções fornecem o termo (o forward sintético)."
+				},
+				"en": {
+					"term": "Basis",
+					"aliases": ["basis spread"],
+					"short": "The gap between a future’s or perpetual’s price and the spot price.",
+					"long": "In real markets a future’s basis converges to zero at expiry and a perpetual uses funding to stay near spot. In this game there is no separate spot price: funding is the carry, and options supply the forward (the synthetic forward)."
+				}
+			}
+		},
+		{
+			"id": "synthetic-forward",
+			"stage": "advanced",
+			"related": ["put-call-parity", "call", "put"],
+			"text": {
+				"pt-BR": {
+					"term": "Forward sintético",
+					"aliases": ["long sintético", "termo sintético"],
+					"short": "Call comprada e put vendida no mesmo strike e vencimento: ganha e perde como um long no preço, desde o strike.",
+					"long": "No vencimento, a call paga acima do strike e a put vendida cobra abaixo dele, então a soma vale preço − strike em qualquer cenário. Somado a um short no perpétuo, o risco de preço se anula e sobra o funding.",
+					"example": "Strike 100, preço 108 no vencimento: a call vale 8, a put 0; o sintético vale 108 − 100 = 8."
+				},
+				"en": {
+					"term": "Synthetic forward",
+					"aliases": ["synthetic long"],
+					"short": "A call bought and a put written at the same strike and expiry: it gains and loses like a long in the price, from the strike.",
+					"long": "At expiry the call pays above the strike and the written put charges below it, so together they are worth price − strike in every case. Added to a short perpetual, the price risk cancels and the funding is left.",
+					"example": "Strike 100, price 108 at expiry: the call is worth 8, the put 0; the synthetic is worth 108 − 100 = 8."
+				}
+			},
+			"checks": [{ "kind": "payoff", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 0 }, { "kind": "put", "side": "sell", "qty": 1, "strike": 100, "price": 0 }], "at": 108, "expect": 8 }]
+		},
+		{
+			"id": "put-call-parity",
+			"stage": "advanced",
+			"related": ["synthetic-forward", "call", "put"],
+			"text": {
+				"pt-BR": {
+					"term": "Paridade put-call",
+					"aliases": ["paridade"],
+					"short": "Com juro zero, call menos put do mesmo strike e vencimento é igual a forward menos strike.",
+					"long": "Se a diferença entre call e put se afastasse de F − K, comprar o lado barato e vender o caro renderia sem risco. Por isso o preço de uma determina o da outra, e um long sintético se comporta como um long no forward.",
+					"example": "Forward 103, strike 100: call − put = 3, por exemplo call 4,5 e put 1,5."
+				},
+				"en": {
+					"term": "Put-call parity",
+					"aliases": ["parity"],
+					"short": "At a zero rate, a call minus a put of the same strike and expiry equals the forward minus the strike.",
+					"long": "If the call-put gap drifted from F − K, buying the cheap side and selling the dear one would earn without risk. So one’s price pins the other’s, and a synthetic long behaves like a long forward.",
+					"example": "Forward 103, strike 100: call − put = 3, for example a call of 4.5 and a put of 1.5."
+				}
+			},
+			"checks": [{ "kind": "diff", "a": 103, "b": 100, "expect": 3 }, { "kind": "diff", "a": 4.5, "b": 1.5, "expect": 3 }]
+		},
+		{
+			"id": "implied-move",
+			"stage": "advanced",
+			"related": ["straddle", "implied-volatility", "event-volatility"],
+			"text": {
+				"pt-BR": {
+					"term": "Movimento implícito",
+					"aliases": ["movimento esperado"],
+					"short": "O movimento que as opções precificam até um vencimento: perto do preço de um straddle no dinheiro.",
+					"long": "Um straddle no dinheiro custa mais ou menos o tamanho do movimento que o mercado espera. Segurá-lo através de um evento só compensa se o movimento real superar esse preço; antes da divulgação, ele costuma ficar mais caro.",
+					"example": "Straddle 100 por 6 com o preço em 100: movimento implícito de 6%, pontos de equilíbrio 94 e 106."
+				},
+				"en": {
+					"term": "Implied move",
+					"aliases": ["expected move"],
+					"short": "The move options price in up to an expiry: close to an at-the-money straddle’s price.",
+					"long": "An at-the-money straddle costs roughly the size of the move the market expects. Holding it through an event pays only if the real move beats that price; ahead of the release it tends to get dearer.",
+					"example": "A 100 straddle for 6 with the price at 100: an implied move of 6%, breakevens 94 and 106."
+				}
+			},
+			"checks": [{ "kind": "share", "a": 6, "b": 100, "expect": 6 }, { "kind": "breakeven", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": 100, "price": 3 }, { "kind": "put", "side": "buy", "qty": 1, "strike": 100, "price": 3 }], "expect": [94, 106] }]
+		},
+		{
+			"id": "event-volatility",
+			"stage": "advanced",
+			"related": ["iv-crush", "implied-volatility", "vega"],
+			"text": {
+				"pt-BR": {
+					"term": "Volatilidade de evento",
+					"aliases": ["prêmio de evento"],
+					"short": "A volatilidade implícita extra que as opções cobram antes de uma divulgação conhecida, e que some depois dela.",
+					"long": "Antes do evento a IV sobe; depois, cai qualquer que seja o resultado (o esmagamento da IV). Comprar cedo e vender antes da divulgação ganha a alta da IV sem pagar a queda; segurar através pede um movimento maior que o implícito. Vega × variação da IV mede o efeito.",
+					"example": "Vega de 0,20 por ponto e uma queda de 10 pontos de IV: −2 por unidade."
+				},
+				"en": {
+					"term": "Event volatility",
+					"aliases": ["event premium"],
+					"short": "The extra implied volatility options charge ahead of a known release, which is gone after it.",
+					"long": "Before the event IV rises; after it, it falls whatever the outcome (the IV crush). Buying early and selling before the release earns the rise without paying the fall; holding through needs a move larger than the implied one. Vega × the IV change sizes the effect.",
+					"example": "A vega of 0.20 per point and a 10-point IV drop: −2 per unit."
+				}
+			},
+			"checks": [{ "kind": "product", "a": 0.2, "b": 10, "expect": 2 }]
+		},
+		{
+			"id": "term-structure",
+			"stage": "advanced",
+			"related": ["calendar-spread", "theta", "implied-volatility"],
+			"text": {
+				"pt-BR": {
+					"term": "Estrutura a termo",
+					"aliases": ["estrutura de vencimentos"],
+					"short": "Como a volatilidade implícita e o valor de tempo mudam de um vencimento para o seguinte.",
+					"long": "Um vencimento curto perde valor de tempo mais depressa que um longo: é isso que um calendário comprado colhe. Quando a IV do vencimento curto sobe por causa de um evento, a estrutura se inclina e o calendário muda de valor mesmo sem o preço andar."
+				},
+				"en": {
+					"term": "Term structure",
+					"aliases": ["volatility term structure"],
+					"short": "How implied volatility and time value change from one expiry to the next.",
+					"long": "A near expiry loses time value faster than a far one: that is what a long calendar harvests. When the near expiry’s IV rises for an event, the structure tilts and the calendar changes value even with the price still."
+				}
+			}
+		},
+		{
+			"id": "scale-in",
+			"stage": "management",
+			"related": ["position-sizing", "risk-budget", "averaging-down"],
+			"text": {
+				"pt-BR": {
+					"term": "Entrada em partes",
+					"aliases": ["escalonar a entrada", "scale in"],
+					"short": "Montar a posição em mais de uma entrada, com o risco total até uma única invalidação dentro do orçamento.",
+					"long": "Entrar em partes só é coerente quando a soma do risco de todas as entradas até o mesmo stop cabe no orçamento planejado. Aumentar a favor do movimento com o stop subindo é diferente de aumentar contra ele.",
+					"example": "Duas entradas de 15 a 100 e a 102 com stop em 97: 15 × 3 + 15 × 5 = 120 de risco total."
+				},
+				"en": {
+					"term": "Scaling in",
+					"aliases": ["scale in"],
+					"short": "Building the position over more than one entry, with the total risk to one invalidation within budget.",
+					"long": "Scaling in is consistent only when the risk of every entry to the same stop adds up within the planned budget. Adding with the move while the stop rises is not the same as adding against it.",
+					"example": "Two entries of 15 at 100 and at 102 with the stop at 97: 15 × 3 + 15 × 5 = 120 of total risk."
+				}
+			},
+			"checks": [{ "kind": "risk", "entry": 100, "stop": 97, "qty": 15, "expect": 45 }, { "kind": "risk", "entry": 102, "stop": 97, "qty": 15, "expect": 75 }, { "kind": "product", "a": 15, "b": 8, "expect": 120 }]
+		},
+		{
+			"id": "scale-out",
+			"stage": "management",
+			"related": ["partial-take-profit", "take-profit", "trailing-stop"],
+			"text": {
+				"pt-BR": {
+					"term": "Saída em partes",
+					"aliases": ["escalonar a saída", "scale out"],
+					"short": "Fechar a posição em mais de uma saída: parte num alvo, o resto com outra regra.",
+					"long": "Sair em partes troca um pouco do ganho máximo por mais acertos: a primeira parte garante resultado e o resto pode correr com um stop no ponto de entrada ou um stop móvel. Cada saída paga a sua taxa."
+				},
+				"en": {
+					"term": "Scaling out",
+					"aliases": ["scale out"],
+					"short": "Closing the position over more than one exit: part at a target, the rest with another rule.",
+					"long": "Scaling out trades a little of the largest gain for more winners: the first part locks in a result and the rest can run with a stop at breakeven or a trailing stop. Each exit pays its own fee."
+				}
+			}
+		},
+		{
+			"id": "breakeven-stop",
+			"stage": "management",
+			"related": ["stop-loss", "trailing-stop", "scale-out"],
+			"text": {
+				"pt-BR": {
+					"term": "Stop no ponto de entrada",
+					"aliases": ["stop no zero a zero", "breakeven stop"],
+					"short": "Levar o stop até o preço de entrada depois de um ganho, para o trade não virar perda.",
+					"long": "Tira o risco que restava, mas um recuo normal de uma tendência que estava certa pode parar o trade no zero a zero. Use quando o setup já cumpriu o que prometia, não por medo.",
+					"example": "Long 15 a 100 com stop movido de 96 para 100: o risco que sobra vai de 60 a 0."
+				},
+				"en": {
+					"term": "Breakeven stop",
+					"aliases": ["stop to breakeven"],
+					"short": "Moving the stop to the entry price after a gain, so the trade cannot turn into a loss.",
+					"long": "It removes the risk that was left, but a normal pullback of a trend that was right can stop the trade at breakeven. Use it when the setup has delivered what it promised, not out of fear.",
+					"example": "Long 15 at 100 with the stop moved from 96 to 100: the risk left goes from 60 to 0."
+				}
+			},
+			"checks": [{ "kind": "risk", "entry": 100, "stop": 96, "qty": 15, "expect": 60 }, { "kind": "risk", "entry": 100, "stop": 100, "qty": 15, "expect": 0 }]
+		},
+		{
+			"id": "partial-take-profit",
+			"stage": "management",
+			"related": ["scale-out", "take-profit", "r-multiple"],
+			"text": {
+				"pt-BR": {
+					"term": "Realização parcial",
+					"aliases": ["lucro parcial", "partial take-profit"],
+					"short": "Vender parte da posição num alvo, normalmente em +1R, e deixar o resto seguir.",
+					"long": "A parte realizada paga a paciência com o resto: com metade fora em +1R e o stop no ponto de entrada, o pior resultado que sobra é positivo. O custo é ganhar menos nas tendências que vão longe.",
+					"example": "Long 30 a 100, stop 96: metade (15) vendida a 104 garante 15 × 4 = 60."
+				},
+				"en": {
+					"term": "Partial take-profit",
+					"aliases": ["partial profit"],
+					"short": "Selling part of the position at a target, usually at +1R, and letting the rest run.",
+					"long": "The part taken pays for patience with the rest: with half out at +1R and the stop at breakeven, the worst result left is positive. The cost is earning less in the trends that run far.",
+					"example": "Long 30 at 100, stop 96: half (15) sold at 104 locks in 15 × 4 = 60."
+				}
+			},
+			"checks": [{ "kind": "scale", "side": "buy", "entry": 100, "qty": 30, "exitPrice": 104, "exitQty": 15, "newStop": 100, "expect": 60 }]
+		},
+		{
+			"id": "averaging-down",
+			"stage": "psychology",
+			"related": ["scale-in", "risk-budget", "invalidation"],
+			"text": {
+				"pt-BR": {
+					"term": "Preço médio para baixo",
+					"aliases": ["aumentar no prejuízo", "averaging down"],
+					"short": "Aumentar uma posição que está perdendo, a um preço pior, o que baixa o preço médio e aumenta o risco.",
+					"long": "Parece barato, mas cada aumento sem plano soma risco até o mesmo stop — ou leva a tirar o stop. Só é coerente quando o aumento foi planejado na entrada, com o risco total até a mesma invalidação dentro do orçamento.",
+					"example": "Long 10 a 100, mais 10 a 90, stop em 85: perda no stop de 10 × 15 + 10 × 5 = 200, contra 150 da entrada única."
+				},
+				"en": {
+					"term": "Averaging down",
+					"aliases": ["adding to a loser"],
+					"short": "Adding to a losing position at a worse price, which lowers the average entry and raises the risk.",
+					"long": "It looks cheap, but each unplanned add stacks risk to the same stop — or leads to removing the stop. It is consistent only when the add was planned at entry, with the total risk to the same invalidation within budget.",
+					"example": "Long 10 at 100, plus 10 at 90, stop at 85: a loss at the stop of 10 × 15 + 10 × 5 = 200, against 150 for the single entry."
+				}
+			},
+			"checks": [{ "kind": "risk", "entry": 100, "stop": 85, "qty": 10, "expect": 150 }, { "kind": "risk", "entry": 90, "stop": 85, "qty": 10, "expect": 50 }, { "kind": "product", "a": 10, "b": 20, "expect": 200 }]
+		},
+		{
+			"id": "cooldown",
+			"stage": "psychology",
+			"related": ["revenge-trading", "journal", "thesis"],
+			"text": {
+				"pt-BR": {
+					"term": "Pausa depois do stop",
+					"aliases": ["cooldown", "esfriar"],
+					"short": "Uma regra pessoal: depois de um stop, esperar algumas barras e um setup novo antes de entrar de novo.",
+					"long": "A pausa separa a próxima decisão da perda anterior. Volte só quando o setup se formar de novo, com plano escrito e tamanho normal; o tamanho nunca sobe para recuperar."
+				},
+				"en": {
+					"term": "Cooldown",
+					"aliases": ["cool-down"],
+					"short": "A personal rule: after a stop-out, wait a few bars and for a fresh setup before entering again.",
+					"long": "The pause separates the next decision from the last loss. Come back only when the setup forms again, with a written plan and normal size; size never goes up to win it back."
+				}
+			}
 		}
 	]
 }

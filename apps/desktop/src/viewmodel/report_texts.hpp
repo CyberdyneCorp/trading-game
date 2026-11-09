@@ -33,6 +33,10 @@ std::string stop_advice_text(const Catalog& c, const json::Value& trade);
 // "▲ LONG", "▼ SHORT", or "▲ COMPRA P 100,00 · exp 96" for an option.
 std::string trade_label(const Catalog& c, const json::Value& trade);
 
+// EpisodesPanel.svelte: one scoring v14 position episode as table cells (#, side, entries, exits,
+// stop moves, R with the net, MFE · MAE).
+std::vector<std::string> episode_cells(const Catalog& c, const json::Value& episode);
+
 std::string regime_name(const Catalog& c, const std::string& label, int direction = 0);
 std::string fmt_tally(const Catalog& c, const json::Value& tally);
 // A trade's entry regime with the direction of the revealed span it was entered in.
@@ -76,6 +80,9 @@ struct ComparisonLine {
   bool best = false;    // the best net result among the rows (the player's included); ties all marked
 };
 std::vector<ComparisonLine> comparison_lines(const json::Value& comparison, double player_net);
+// debrief.ts comparisonBasisKey: the intro's key; rows played by their own entry rule (m20, m22) start on
+// other bars than the basis and name their own rules.
+std::string comparison_basis_key(const json::Value& comparison);
 
 struct DecisionCounts {
   int act = 0;

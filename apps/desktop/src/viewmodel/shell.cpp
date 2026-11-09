@@ -158,6 +158,12 @@ void AppViewModel::settle_ended_run() {
                    d.final_equity, leg_report(d.raw, snap_->state["totals"])};
     shell_.progress = settle_campaign_run(web_content(), shell_.progress, *shell_.run_campaign, out);
   }
+  // An elective stage's mission finished outside the campaign assesses it (design D14); a pack run
+  // (a known scenario) never does.
+  if (!known) {
+    const FreeRunOutcome free{shell_.run_mission, snap_->status == "finished", false, shell_.run_campaign.has_value()};
+    shell_.progress = assess_elective(web_content(), shell_.progress, free);
+  }
   save_progress();
 }
 

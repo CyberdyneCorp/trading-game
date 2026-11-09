@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ComparisonStrategy, EngineFinding, EngineTrade, NewsView, PackReveal, RegimeSpan } from '#lib/engine/types.ts';
 import { describeFinding, describeFindings, describeLesson } from './analysis.ts';
-import { comparisonLines, decisionCounts, entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from './debrief.ts';
+import { comparisonBasisKey, comparisonLines, decisionCounts, entryRegimeName, fmtLeverageBp, fmtLiqDistance, greekRows, newsTimeline, openPnl, revealTexts, stopAdvice } from './debrief.ts';
 import { headline } from './news.ts';
 import { missionText, packModeKey } from './missions.ts';
 import { i18n } from './i18n.svelte.ts';
@@ -259,6 +259,15 @@ describe('strategy comparison (scoring v13, report-only)', () => {
 		);
 		expect(lines[1]).toMatchObject({ net: null, drawdown: null, marginCalls: null, exitStep: null, refused: 'insufficient_margin', best: false });
 		expect(lines[0].best).toBe(true);
+	});
+
+	it('the intro names each row\'s own rule when rows start on other bars (W2-X2: m20 and m22 claimed one entry bar)', () => {
+		const at = (basis: string, entryStep: number, rows: unknown[]) => ({ basis, entryStep, qty: '10', rows }) as never;
+		expect(comparisonBasisKey(at('player', 60, [row('unhedged_straddle', '1')]))).toBe('comparison.basisPlayer');
+		expect(comparisonBasisKey(at('reference', 60, [row('naked_call', '1')]))).toBe('comparison.basisReference');
+		expect(comparisonBasisKey(at('player', 62, [row('early_sell_before', '1', { entryStep: 62 }), row('late_hold_through', '1', { entryStep: 96 })]))).toBe('comparison.basisOwn');
+		expect(comparisonBasisKey(at('reference', 75, [row('all_out_2r', '1', { entryStep: 78 })]))).toBe('comparison.basisOwn');
+		expect(comparisonBasisKey(at('player', 61, [row('short_strangle', '0', { refused: 'insufficient_margin' })]))).toBe('comparison.basisPlayer');
 	});
 
 	it('every structure the engine names has a label in both locales', async () => {
