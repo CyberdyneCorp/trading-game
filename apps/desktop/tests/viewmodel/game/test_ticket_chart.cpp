@@ -206,6 +206,28 @@ TEST_CASE("chart: a frame has candles, volume, the future zone, levels with tags
   CHECK_FALSE(std::any_of(done.texts.begin(), done.texts.end(), [&](const SceneText& t) { return t.text == x.t.tr("chart.future"); }));
 }
 
+// W3-X2: the future zone's label ran past the zone into the price axis ("UNKNOWN FUTURE" over 92.69 on the
+// guess reveal at 1280x800): its fit was estimated at 8 px a byte while the 16 px IBM Plex Mono advance
+// is 9.6 px a character. Whenever it is drawn, it now ends inside the zone, at every width.
+TEST_CASE("chart: the future zone's label is drawn only where it fits inside the zone") {
+  Texted x;
+  const GameState g = base_state();
+  const std::string label = x.t.tr("chart.future");
+  const auto chars = static_cast<float>(std::count_if(label.begin(), label.end(), [](char ch) { return (ch & 0xC0) != 0x80; }));
+  int drawn = 0;
+  for (float width = 500; width <= 1600; width += 3) {
+    ChartViewModel c;
+    const ChartScene s = c.build(x.t, g, std::nullopt, false, width, 420);
+    for (const SceneText& t : s.texts) {
+      if (t.text != label) continue;
+      ++drawn;
+      INFO("width " << width);
+      CHECK(t.x + chars * t.size * 0.6f / 2 <= width - ChartViewModel::kAxisW);
+    }
+  }
+  CHECK(drawn > 0);
+}
+
 TEST_CASE("chart: a trailing stop's line names the best close it follows; its marker carries no text") {
   Texted x;
   GameState g = base_state();
