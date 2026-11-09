@@ -1,0 +1,37 @@
+diff --git a/src/render/vulkan/vk_surface.c b/src/render/vulkan/vk_surface.c
+index a81540e..c1d9429 100644
+--- a/src/render/vulkan/vk_surface.c
++++ b/src/render/vulkan/vk_surface.c
+@@ -141,6 +141,16 @@ rvn_vk_surface_t* rvn_vk_surface_find(Rid window) {
+ 	return &g_vk.surfaces[index];
+ }
+ 
++/* Frame fences cover the rendering only: MoltenVK presents from a command buffer of its own, whose
++ * scheduled handler still touches the swapchain image. The whole queue goes idle before a swapchain is
++ * destroyed, or that handler runs on freed memory (a SIGSEGV in the Metal completion thread on macOS). */
++static void rvn_vk_wait_presents(void) {
++	if (!g_vk.device || g_vk.device_lost || !rvn_vk.DeviceWaitIdle) return;
++	rvn_vk_queue_lock();
++	rvn_vk.DeviceWaitIdle(g_vk.device);
++	rvn_vk_queue_unlock();
++}
++
+ void rvn_vk_wait_frames(void) {
+ 	uint32_t i, f;
+ 	for (i = 0; i < g_vk.surface_cap; i++) {
+@@ -298,6 +308,7 @@ int rvn_vk_swapchain_create(rvn_vk_surface_t* surface, uint32_t width, uint32_t
+ 
+ 	if (rvn_vk_failed(rvn_vk.CreateSwapchainKHR(g_vk.device, &info, NULL, &created), "vkCreateSwapchainKHR")) return R_FALSE;
+ 
++	if (surface->swapchain) rvn_vk_wait_presents();
+ 	rvn_vk_swapchain_release_images(surface);
+ 	if (surface->swapchain) rvn_vk.DestroySwapchainKHR(g_vk.device, surface->swapchain, NULL);
+ 	surface->swapchain = created;
+@@ -386,6 +397,7 @@ static int rvn_vk_frame_create(rvn_vk_frame_t* frame) {
+ 
+ static void rvn_vk_surface_release(rvn_vk_surface_t* surface) {
+ 	uint32_t i;
++	rvn_vk_wait_presents();
+ 	rvn_vk_wait_frames();
+ 	for (i = 0; i < RVN_VK_FRAMES; i++) {
+ 		rvn_vk_frame_t* frame = &surface->frames[i];
