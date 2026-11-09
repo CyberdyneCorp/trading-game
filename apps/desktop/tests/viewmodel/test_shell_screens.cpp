@@ -308,7 +308,8 @@ TEST_CASE("shell: curriculum map statuses, Academy lesson to completion, stage p
   CHECK(stages->rows[8][0] == "8");
   CHECK(stages->rows[12][0] == "\xE2\x86\xB3");
   CHECK(stages->rows[12][2] == "BLOQUEADO · ELETIVO");
-  CHECK(stages->rows[12][3].starts_with("Fora da campanha"));
+  CHECK(stages->rows[12][3].starts_with("Avaliação: "));
+  CHECK(stages->rows[12][3].find("Fora da campanha") != std::string::npos);
   CHECK(stages->rows[16][0] == "14");
   CHECK(m.text_of(names::kCurriculumLessonStart) == "Começar lição");
 

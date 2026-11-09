@@ -814,6 +814,15 @@ Where the build departs from or adds to D11–D14 and D20:
   - Two art labels fixed on the way (both on origin/main): the straddle's "strike" sat on "breakeven" in PT-BR, and the trailing art's TRAIL sat on a candle.
   - The API keeps both campaign orders; a leg fits either, and a campaign is complete when its legs cover one order they all fit.
 
+### As built: wave 2 desktop (W2-D)
+
+- **Content and progress.** `content.json` carries each stage's `branch` and `campaign` flags and `campaignOrderV3`; `strings.csv` gains the evidence wording's variants (`findingVariant.*`) and limit names (`findingLimit.*`). A `CampaignRun` read without `order` plays `campaignOrderV3`; a new run writes its snapshot. The SQLite progress row is version 4: the practice keys are read with the web's validators (damaged entries dropped, the newest 30 drill sessions, 90 days and 200 guesses kept) and written back as JSON for wave 3.
+- **Parity over real debriefs.** The web helpers of the v14 debrief (`objectiveChecks.ts`, `describeFindings`, the episodes panel's cells) run over the m18–m25 goldens' engine debriefs, replayed by the desktop (`apps/desktop/tests/fixtures/engine/debriefs-w2.json`, checked against the live engine on every test run), and over variants of their findings that reach every wording branch (`debriefV14.json`).
+- **Debrief layout.** A table cell cannot wrap, so the web's "see bar N" buttons become one list of moments (findings, objective readings, episodes) under the findings; picking one marks its bar on the run chart (a shaded column and ▼) and widens the view when the bar is before it. The comparison table keeps a short head of each structure name (before its first " (", ": " or ", "), numbered when two heads match (m17, m18, m20), with the full rule listed under the table; the long m18–m22 names were cut and hid the [best] tag.
+- **Tutorial art.** The seven new drawings and the eight earlier ones the m18–m25 cards reuse are display lists; only `book` (m18's fourth card, whose "capacity" label runs past the web's frame) is still not drawn. The straddle's "−premium" label sat on the payoff's right arm on both clients and moved to x=90 (desktop regression test; the web's label-crossing e2e covers m13–m17's first cards only).
+- **References (W2-D4, open).** `tutorial-scalp` and `curriculum-branches` were captured on macOS (MoltenVK); one set serves both platforms, so the task stays open until the Linux (lavapipe) job compares them.
+- **Curriculum map.** Branch rows are marked ↳ and named "Branch of <stage>"; the path keeps its numbering (1–14); the elective row's status reads "LOCKED · ELECTIVE" and its content ends with the elective note.
+
 ## Risks / Trade-offs
 
 - **Policy v18 changes every frozen state digest.** This is mitigated by an event-digest equality test, the documented history and the policy cache. Replays of v17 runs depend on the cache being built in CI (`TRADELAB_REQUIRE_POLICY_CACHE=1`).

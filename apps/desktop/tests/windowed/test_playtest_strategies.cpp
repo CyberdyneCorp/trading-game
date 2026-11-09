@@ -150,7 +150,7 @@ namespace {
 void campaign_leg(Player& p, testing::Terminal& t, int leg) {
   REQUIRE(p.d->to_briefing());
   const std::string mode = p.d->text(names::kBriefMode);
-  CHECK(mode.find(std::to_string(leg) + " de 17") != std::string::npos);
+  CHECK(mode.find(std::to_string(leg) + " de 21") != std::string::npos);
   REQUIRE(p.d->click(names::kBriefGo));
   t.skip_question();
   const std::string id = t.g().mission;
@@ -173,11 +173,11 @@ TEST_CASE("playtest strategies: a campaign through the Strategies stage (pt-BR, 
   testing::Terminal t(p.app, *p.d);
   REQUIRE(p.d->click(names::kCampaignStart));
   campaign_leg(p, t, 1);
-  for (int leg = 2; leg <= 14; ++leg) {
+  for (int leg = 2; leg <= 15; ++leg) {  // m22 (Trade management) is leg 6 since progress v4
     REQUIRE(p.d->click(names::kDebriefCampaignNext));
     campaign_leg(p, t, leg);
   }
-  p.run->shot("leg14-debrief");
+  p.run->shot("leg15-debrief");
   REQUIRE(p.d->click(names::kDebriefMenu));
   REQUIRE(p.d->click(names::kMenuCurriculum));
   p.run->shot("curriculum");

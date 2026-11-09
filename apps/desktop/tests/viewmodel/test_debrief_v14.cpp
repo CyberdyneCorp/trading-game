@@ -14,6 +14,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "model/engine_run.hpp"
@@ -156,6 +157,62 @@ TEST_CASE("debrief v14: m23's revenge trade, its objective, moment and episodes 
   CHECK(std::any_of(scene.rects.begin(), scene.rects.end(), [](const game::SceneRect& r) { return r.alpha < 0.2f && r.ink == game::Ink::Attention; }));
   vm.debrief_show_moment(-1);
   CHECK_FALSE(vm.debrief_moment());
+}
+
+namespace {
+
+// A golden's run played into the shell up to its debrief.
+void golden_debrief(AppViewModel& vm, const std::string& name, int index) {
+  testing::tutorials_seen(vm);
+  vm.select(index);
+  vm.start_selected();
+  const auto fx = json::parse(read_file(std::string(TRADELAB_GOLDEN_DIR) + "/" + name + ".json"));
+  REQUIRE(fx);
+  auto run = EngineRun::create(name, static_cast<std::uint32_t>((*fx)["seed"].as_int()), {});
+  Snapshot started = run->snapshot();
+  started.results.push_back(CommandResult{CommandKind::Start, true, "none"});
+  vm.on_snapshot(std::make_shared<Snapshot>(std::move(started)));
+  vm.open_terminal();
+  for (const auto& a : (*fx)["actions"].items()) storage::apply_action(*run, a);
+  vm.on_snapshot(std::make_shared<Snapshot>(run->snapshot()));
+  REQUIRE(vm.screen() == Screen::Debrief);
+}
+
+}  // namespace
+
+// Regression: m18-m22's structure names ("Tudo de uma vez: entrada após a manchete, saída inteira em 2R")
+// were cut by the comparison table's first column, the [best] tag with them; two m18 rows began with the
+// same words. The table keeps a short name (told apart by its order) and the rule is listed under it.
+TEST_CASE("debrief v14: the m18 and m22 comparisons keep short distinct names with the rules listed") {
+  for (const auto& [name, index] : {std::pair<std::string, int>{"m22-scale-manage", 21}, {"m18-gamma-scalp", 17}}) {
+    INFO(name);
+    testing::FakeEngine engine;
+    AppViewModel vm{builtin_catalog(), engine_missions(), engine, [] { return 1u; }};
+    golden_debrief(vm, name, index);
+    const ScreenModel m = vm.screen_model();
+    const WidgetTable* t = m.table_of(names::kDebriefComparison);
+    REQUIRE(t != nullptr);
+    REQUIRE(t->rows.size() == 4);
+    std::vector<std::string> heads;
+    for (std::size_t i = 1; i < t->rows.size(); ++i) {
+      const std::string& cell = t->rows[i][0];
+      const std::string head = cell.substr(0, cell.find(" ["));
+      CHECK(head.size() <= 32);
+      CHECK(std::find(heads.begin(), heads.end(), head) == heads.end());
+      heads.push_back(head);
+    }
+    CHECK(std::any_of(t->rows.begin(), t->rows.end(), [](const auto& r) { return r[0].find("[melhor aqui]") != std::string::npos; }));
+    const WidgetLines* notes = m.lines_of(names::kDebriefComparisonNotes);
+    REQUIRE(notes != nullptr);
+    CHECK(notes->lines.size() == 3);
+  }
+  testing::FakeEngine engine;
+  AppViewModel vm{builtin_catalog(), engine_missions(), engine, [] { return 1u; }};
+  golden_debrief(vm, "m22-scale-manage", 21);
+  const ScreenModel model = vm.screen_model();
+  const WidgetLines* notes = model.lines_of(names::kDebriefComparisonNotes);
+  REQUIRE(notes != nullptr);
+  CHECK(notes->lines[0].text == "Tudo de uma vez: entrada após a manchete, saída inteira em 2R");
 }
 
 // A mission without v14 facts (m01) shows none of these panels.

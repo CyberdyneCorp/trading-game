@@ -222,9 +222,9 @@ Suggested PRs, in order:
 
 ### W2-D. Desktop
 
-- [ ] W2-D1 Generator and content: new lessons, glossary terms, the stages' structure and the campaign order into `strings.csv`/`content.json`; drift check.
-- [ ] W2-D2 Progress v4 in the SQLite progress row (a v3 row reads with defaults; an active campaign keeps its order).
-- [ ] W2-D3 Missions m18–m25: menu, campaign, curriculum branches, briefing (risk limits, calendar margin), tutorials with the new art as display lists (`viewmodel/game/tutorial_art`, no label crossing a line in either locale), debrief (biases with evidence, episodes, comparison); headless and windowed flows; the playtest extended to 25 missions.
+- [x] W2-D1 Generator and content: new lessons, glossary terms, the stages' structure and the campaign order into `strings.csv`/`content.json`; drift check.
+- [x] W2-D2 Progress v4 in the SQLite progress row (a v3 row reads with defaults; an active campaign keeps its order).
+- [x] W2-D3 Missions m18–m25: menu, campaign, curriculum branches, briefing (risk limits, calendar margin), tutorials with the new art as display lists (`viewmodel/game/tutorial_art`, no label crossing a line in either locale), debrief (biases with evidence, episodes, comparison); headless and windowed flows; the playtest extended to 25 missions.
 - [ ] W2-D4 Windowed reference captures on macOS and Linux; desktop README.
 
 ### W2-X. Playtest and cross-check

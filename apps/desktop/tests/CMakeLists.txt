@@ -83,7 +83,8 @@ set_tests_properties(desktop_golden PROPERTIES LABELS golden)
 # ---- Headless: Raven null platform + null backend, every view loaded and m01 played to the debrief. ----
 add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp
   headless/test_headless_shell.cpp headless/test_headless_flows.cpp headless/test_headless_academy.cpp
-  headless/test_headless_strategies.cpp headless/test_headless_run_files.cpp headless/test_headless_wave1.cpp)
+  headless/test_headless_strategies.cpp headless/test_headless_run_files.cpp headless/test_headless_wave1.cpp
+  headless/test_headless_wave2.cpp)
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)
@@ -119,7 +120,7 @@ if(RAVEN_BACKEND_VULKAN)
     ENVIRONMENT "TRADELAB_CAPTURE_DIR=${CMAKE_BINARY_DIR}/captures;RAVEN_AUTO_LOAD=0;RAVEN_LIVE_RELOAD=0;TRADELAB_AUDIO=null;TRADELAB_DATA_DIR=${CMAKE_BINARY_DIR}/test-data/windowed")
 
   # Playtest: the twelve missions to the debrief with captures and text reports (README "Playtest").
-  add_executable(tradelab_desktop_playtest_tests main.cpp windowed/test_playtest.cpp windowed/test_playtest_strategies.cpp windowed/test_playtest_wave1.cpp windowed/test_screenshots.cpp
+  add_executable(tradelab_desktop_playtest_tests main.cpp windowed/test_playtest.cpp windowed/test_playtest_strategies.cpp windowed/test_playtest_wave1.cpp windowed/test_playtest_wave2.cpp windowed/test_screenshots.cpp
     support/png.cpp)
   target_include_directories(tradelab_desktop_playtest_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
   target_include_directories(tradelab_desktop_playtest_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

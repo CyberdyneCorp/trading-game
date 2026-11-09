@@ -58,7 +58,7 @@ std::vector<std::string> stage_row(const AppViewModel& vm, const Stage& st, std:
   std::string content = stage_content(vm, st);
   if (!st.campaign) {
     state += std::string(kSep) + vm.tr("curriculum.elective");
-    content = vm.tr("curriculum.electiveNote") + " " + content;
+    content += std::string(kSep) + vm.tr("curriculum.electiveNote");
   }
   return {std::move(index), std::move(name), std::move(state), std::move(content), stage_unlocks(vm, st)};
 }

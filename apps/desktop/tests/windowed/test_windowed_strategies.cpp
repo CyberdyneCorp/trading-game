@@ -184,3 +184,20 @@ TEST_CASE("windowed references: m16's tutorial card art and a lesson's strategy 
   Rwidget_scroll_into_view(s.d->widget(names::kLessonBuilderPayoff));
   s.reference("lesson-builder-condor");
 }
+
+// add-practice-and-advanced-strategies W2-D4: m18's first card (the gamma-scalp drawing) and the
+// curriculum map with its branch stages, against their reference images.
+TEST_CASE("windowed references: m18's tutorial card art and the curriculum's branches (1280x800)") {
+  {
+    Session s;
+    s.app.vm().select(testing::mission_index("m18-gamma-scalp"));
+    s.d->frames(2);
+    REQUIRE(s.d->click(names::kMenuStart));
+    REQUIRE(s.d->until([&] { return s.app.vm().screen() == Screen::Tutorial; }));
+    s.reference("tutorial-scalp");
+  }
+  Session s;
+  REQUIRE(s.d->click(names::kMenuCurriculum));
+  REQUIRE(s.app.vm().screen() == Screen::Curriculum);
+  s.reference("curriculum-branches");
+}
