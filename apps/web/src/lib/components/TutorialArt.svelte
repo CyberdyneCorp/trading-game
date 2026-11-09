@@ -176,7 +176,7 @@
 		<text x="37" y="50" class="small info" text-anchor="middle">BE</text>
 		<text x="123" y="50" class="small info" text-anchor="middle">BE</text>
 		<text x="76" y="94" class="small muted" text-anchor="end">strike</text>
-		<text x="84" y="76" class="small down-fill">−{t('tut.art.premium')}</text>
+		<text x="90" y="76" class="small down-fill">−{t('tut.art.premium')}</text>
 		<text x="150" y="98" class="small muted" text-anchor="end">{t('tut.art.breakeven')}</text>
 	{:else if art === 'report'}
 		<!-- R multiples of a handful of trades: the average is a guess until the sample grows. -->

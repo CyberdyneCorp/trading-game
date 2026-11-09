@@ -1,5 +1,6 @@
 // Tutorial card art (web TutorialArt.svelte) as a display list: the schematic drawings of the strategy
-// missions' cards (spread, covered, insurance, condor, roll), drawn on the web's 160x100 view box scaled
+// missions' cards (spread, covered, insurance, condor, roll) and of the wave 2 missions m18-m25 (scalp,
+// carry, parity, crush, calendarSpread, scale, cooldown), drawn on the web's 160x100 view box scaled
 // into the widget, in the terminal palette. Other art keys draw nothing on the desktop yet.
 #pragma once
 
