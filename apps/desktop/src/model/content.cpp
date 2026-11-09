@@ -198,13 +198,14 @@ std::optional<WebContent> parse_web_content(std::string_view text) {
   const json::Value& d = *doc;
   WebContent c;
   for (const auto& s : d["stages"].items()) {
-    c.stages.push_back(
-        {s["id"].as_string(), strings(s["requires"]), strings(s["missions"]), strings(s["lessons"]), strings(s["unlocks"])});
+    c.stages.push_back({s["id"].as_string(), strings(s["requires"]), strings(s["missions"]), strings(s["lessons"]),
+                        strings(s["unlocks"]), s["branch"].as_bool(false), s["campaign"].as_bool(true)});
   }
   c.locked_leverage_cap = to_int(d["lockedLeverageCap"], 2);
   c.campaign_capital = d["campaignCapital"].as_string("10000");
   c.campaign_min_capital = d["campaignMinCapital"].as_string("100");
   c.campaign_history = to_int(d["campaignHistory"], 20);
+  c.campaign_order_v3 = strings(d["campaignOrderV3"]);
   c.report_min_trades = to_int(d["reportMinTrades"], 30);
   c.after_release_bars = to_int(d["afterReleaseBars"], 10);
   c.shortcut_actions = strings(d["shortcutActions"]);

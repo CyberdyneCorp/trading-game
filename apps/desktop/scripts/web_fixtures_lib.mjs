@@ -272,6 +272,28 @@ function campaignFixture(m, curriculum) {
 	];
 	add('bestCompletedCapital', [history], m.bestCompletedCapital(history));
 	add('bestCompletedCapital', [history.slice(1, 2)], m.bestCompletedCapital(history.slice(1, 2)));
+	// Progress v4: a run stored before v4 has no order snapshot and keeps the 17-mission order; a new run
+	// snapshots today's order (design D14 "Campaign order snapshot").
+	const legacy = (index) => ({ id: 'old', startedAt: 1, capital: '10000', index, status: 'active', legs: [] });
+	for (const [index, missionId] of [[5, 'm04-options-buyer'], [5, 'm22-scale-manage'], [16, 'm12-capstone'], [20, 'm12-capstone']]) {
+		const run = legacy(index);
+		const after = m.settleCampaignRun({ campaign: run, campaignHistory: [], assessed: [] }, { id: 'old', index }, { runId: 'l', missionId, result: 'finished', equity: '10500' });
+		add('legacy', [run, { id: 'old', index }, { runId: 'l', missionId, result: 'finished', equity: '10500' }], { ...campaignSummary(after), next: m.nextCampaignMission(after.campaign), orderBefore: m.campaignOrder(run) });
+	}
+	add('newCampaignOrder', [], m.newCampaign('n', 1).order);
+	// Elective stages (design D14): a finished, non-assisted run outside the campaign assesses its mission.
+	const elective = (id) => curriculum.isElectiveMission(id);
+	const outs = [
+		{ missionId: 'm18-gamma-scalp', finished: true, assisted: false, campaign: false },
+		{ missionId: 'm21-calendar', finished: false, assisted: false, campaign: false },
+		{ missionId: 'm19-funding-carry', finished: true, assisted: true, campaign: false },
+		{ missionId: 'm20-event-vol', finished: true, assisted: false, campaign: true },
+		{ missionId: 'm22-scale-manage', finished: true, assisted: false, campaign: false },
+		{ missionId: 'm18-gamma-scalp', finished: true, assisted: false, campaign: false }
+	];
+	for (const assessed of [[], ['m18-gamma-scalp']]) {
+		for (const out of outs) add('assessElective', [assessed, out], m.assessElective({ assessed, campaign: null, campaignHistory: [] }, out, elective).assessed);
+	}
 	return { helper: 'campaign.ts', cases: list };
 }
 
@@ -279,6 +301,7 @@ function curriculumFixture(m) {
 	const { list, add } = cases();
 	const missions = m.campaignMissions();
 	add('campaignMissions', [], missions);
+	for (const id of [...new Set(m.STAGES.flatMap((s) => s.missions))]) add('isElectiveMission', [id], m.isElectiveMission(id));
 	const assessedSets = [[], missions.slice(0, 1), missions.slice(0, 3), missions.slice(0, 7), missions];
 	const lessonSets = [[], ['foundations-bar']];
 	for (const assessed of assessedSets) {

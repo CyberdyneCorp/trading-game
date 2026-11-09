@@ -42,6 +42,9 @@ function analysisRows(ts, file, readConsts, out) {
 	addTable(out, c.get('findingText'), 'finding', 'web analysis');
 	addTable(out, c.get('safeLeverageText'), 'finding', 'web analysis', '.safe');
 	addTable(out, c.get('singularText'), 'finding', 'web analysis', '.one');
+	// Scoring v14 evidence wording: the unplanned / no-stop variants and the stop clause, the limit names.
+	addTable(out, c.get('variantText'), 'findingVariant', 'web analysis');
+	addTable(out, c.get('LIMIT_NAMES'), 'findingLimit', 'web analysis');
 	const only = c.get('liquidatedOnlyText');
 	out.push(['finding.liquidatedOnly', only['pt-BR'], only.en, 'web analysis']);
 	addTable(out, c.get('lessonText'), 'nextLesson', 'web analysis');
@@ -167,6 +170,7 @@ function contentOf(ts, paths, readConsts) {
 		campaignCapital: campaign.get('CAMPAIGN_CAPITAL'),
 		campaignMinCapital: campaign.get('CAMPAIGN_MIN_CAPITAL'),
 		campaignHistory: campaign.get('KEEP_HISTORY'),
+		campaignOrderV3: campaign.get('CAMPAIGN_ORDER_V3'),
 		reportMinTrades: readConsts(ts, paths.webCampaignReport).get('REPORT_MIN_TRADES'),
 		afterReleaseBars: readConsts(ts, paths.webDebrief).get('AFTER_RELEASE_BARS'),
 		shortcutActions: shortcuts.get('SHORTCUT_ACTIONS'),

@@ -22,6 +22,10 @@ struct Stage {
   std::vector<std::string> missions;   // assessment missions
   std::vector<std::string> lessons;    // Academy lessons (stages without a mission)
   std::vector<std::string> unlocks;    // "short", "leverage", "optionsBuy", "optionsWrite"
+  // add-practice-and-advanced-strategies D14: drawn beside the path as a branch of its first requirement;
+  // an elective stage (campaign = false) is never a campaign leg.
+  bool branch = false;
+  bool campaign = true;
 };
 
 struct LessonCandle {
@@ -186,6 +190,8 @@ struct WebContent {
   std::string campaign_capital;
   std::string campaign_min_capital;
   int campaign_history = 20;
+  // campaign.ts CAMPAIGN_ORDER_V3: the order of every campaign run started before progress v4.
+  std::vector<std::string> campaign_order_v3;
   int report_min_trades = 30;
   int after_release_bars = 10;
   std::vector<std::string> shortcut_actions;

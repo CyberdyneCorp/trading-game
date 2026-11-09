@@ -33,7 +33,7 @@ Catalog en() {
 }  // namespace
 
 TEST_CASE("web content: stages, lessons, shortcuts and constants come from the web sources") {
-  CHECK(C().stages.size() == 14);
+  CHECK(C().stages.size() == 17);
   CHECK(C().stages.front().id == "foundations");
   CHECK(C().locked_leverage_cap == 2);
   CHECK(C().campaign_capital == "10000");
@@ -56,10 +56,23 @@ TEST_CASE("curriculum: statuses, campaign order and the leverage gate") {
   CHECK(stage_status(C(), "futures1", none) == StageStatus::Locked);
   CHECK(stage_status(C(), "foundations", none, {"foundations-bar"}) == StageStatus::Passed);
   const Ids order = campaign_missions(C());
-  REQUIRE(order.size() == 17);
+  REQUIRE(order.size() == 21);
   CHECK(order.front() == "m06-thin-book");
   CHECK(order[1] == "m01-false-breakout");
   CHECK(order.back() == "m12-capstone");
+  // Branches (add-practice-and-advanced-strategies D14): m22 right after m07, psychology before the
+  // capstone, the advanced options elective and never a campaign leg.
+  CHECK(order[5] == "m22-scale-manage");
+  CHECK(order[17] == "m23-second-chance");
+  CHECK_FALSE(contains(order, "m18-gamma-scalp"));
+  CHECK(is_elective_mission(C(), "m21-calendar"));
+  CHECK_FALSE(is_elective_mission(C(), "m22-scale-manage"));
+  REQUIRE(C().stage("advanced") != nullptr);
+  CHECK(C().stage("advanced")->branch);
+  CHECK_FALSE(C().stage("advanced")->campaign);
+  CHECK(C().stage("psychology")->campaign);
+  CHECK(C().campaign_order_v3.size() == 17);
+  CHECK(stage_status(C(), "advanced", {}) == StageStatus::Locked);
   CHECK(stage_passed(C(), "orders", {"m06-thin-book"}));  // its lesson never gates it
   CHECK_FALSE(stage_passed(C(), "orders", {}, {"orders-execution"}));
   CHECK(stage_status(C(), "futures1", {"m06-thin-book"}) == StageStatus::Open);
@@ -77,7 +90,7 @@ TEST_CASE("curriculum: statuses, campaign order and the leverage gate") {
   CHECK_FALSE(campaign_permissions(C(), "m02-funding-squeeze", {"m03-volatility-shock"}).leverage_cap.has_value());
   const CurriculumSummary s = curriculum_summary(C(), {"m06-thin-book"}, {"foundations-bar"});
   CHECK(s.passed == 3);
-  CHECK(s.with_content == 14);
+  CHECK(s.with_content == 17);
 }
 
 TEST_CASE("campaign: capital carries on, bankruptcy and the minimum end it, settling is idempotent") {
@@ -126,20 +139,20 @@ TEST_CASE("campaign: completing every mission, best capital and the report") {
                              std::to_string(10000 + i), r});
   }
   CHECK(p.campaign->status == CampaignStatus::Complete);
-  CHECK(best_completed_capital(p.campaign_history) == "10016");
+  CHECK(best_completed_capital(p.campaign_history) == "10020");
   const CampaignReport r = campaign_report(C(), p.campaign->legs);
-  CHECK(r.missions == 17);
-  CHECK(r.trades == 51);
-  CHECK(r.wins == 34);
-  CHECK(r.without_r == 17);
+  CHECK(r.missions == 21);
+  CHECK(r.trades == 63);
+  CHECK(r.wins == 42);
+  CHECK(r.without_r == 21);
   CHECK(r.avg_win_r.value() == doctest::Approx(0.5));
   CHECK(r.avg_loss_r.value() == doctest::Approx(-1.0));
   CHECK(r.expectancy_r.value() == doctest::Approx(-0.25));
-  CHECK(r.costs == doctest::Approx(17 * 2.0));  // fees + spread + funding paid
-  CHECK(r.cost_share.value() == doctest::Approx(34.0 / (136 + 34)));
+  CHECK(r.costs == doctest::Approx(21 * 2.0));  // fees + spread + funding paid
+  CHECK(r.cost_share.value() == doctest::Approx(42.0 / (168 + 42)));
   CHECK_FALSE(r.too_few);
   REQUIRE(r.by_regime.size() == 3);
-  CHECK(r.by_regime[0].trades == 17);
+  CHECK(r.by_regime[0].trades == 21);
   CHECK(r.by_regime[2].regime == "unlabeled");
 }
 

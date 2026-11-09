@@ -17,8 +17,11 @@ std::string_view stage_status_name(StageStatus s);  // "passed", "open", "locked
 
 using Ids = std::vector<std::string>;
 
-// Campaign missions in curriculum order (a mission assessing two stages appears once).
+// Campaign missions in curriculum order (a mission assessing two stages appears once); an elective
+// stage's missions are never campaign legs. A new campaign run snapshots this order (campaign.hpp).
 Ids campaign_missions(const WebContent& c);
+// A mission of an elective stage: assessed by a finished free-play run, never a campaign leg.
+bool is_elective_mission(const WebContent& c, std::string_view mission);
 bool stage_passed(const WebContent& c, std::string_view id, const Ids& assessed, const Ids& lessons_done = {});
 StageStatus stage_status(const WebContent& c, std::string_view id, const Ids& assessed, const Ids& lessons_done = {});
 Ids stages_of(const WebContent& c, std::string_view mission);

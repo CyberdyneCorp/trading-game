@@ -70,7 +70,7 @@ void campaign_outcome(const Ctx& c, ScreenModel& m) {
   if (leg == nullptr) return;
   const WebContent& content = web_content();
   const CampaignRun& camp = *c.vm.progress().campaign;
-  const auto total = campaign_missions(content).size();
+  const auto total = campaign_order(content, camp).size();
   WidgetLines out{names::kDebriefCampaign, {}};
   out.lines.push_back({c.tr("campaign.tag", {{"n", str(c.vm.shell().run_campaign->index + 1)}, {"total", str(static_cast<long>(total))}}), Tone::Title});
   out.lines.push_back({c.tr("campaign.leg", {{"start", c.money(leg->start_capital)}, {"end", c.money(leg->end_capital)}})});

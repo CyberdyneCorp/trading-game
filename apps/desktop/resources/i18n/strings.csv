@@ -2288,6 +2288,14 @@ finding.stop_beyond_liq.safe,O stop em {price} (entrada na barra {step}) ficou a
 finding.no_stop.one,"1 entrada sem stop de proteção logo em seguida. Sem stop, o risco planejado é indefinido.","1 entry without a protective stop right after. Without a stop, planned risk is undefined."
 finding.ambiguous.one,1 execução usou a aproximação intrabar conservadora (OHLC não revela a ordem máxima/mínima).,1 fill used the conservative intrabar approximation (OHLC does not reveal whether high or low came first).
 finding.capacity.one,1 execução foi limitada pela capacidade simulada da barra.,1 fill was limited by the simulated bar capacity.
+findingVariant.revenge_trade.unplanned,"Vingança: o trade {trade} fechou com perda de {loss} cr na barra {exit}, e na barra {entry} veio uma entrada nova sem plano registrado ({ratio}× o tamanho dele). Depois de um stop, espere o setup se formar de novo e entre com o tamanho normal.","Revenge trade: trade {trade} closed at a loss of {loss} cr on bar {exit}, and on bar {entry} a new entry came with no plan recorded ({ratio}× its size). After a stop-out, wait for the setup to form again and enter at normal size."
+findingVariant.averaging_down.nostop,"Preço médio para baixo: na barra {entry} você aumentou uma posição que perdia {loss} cr, sem stop, e o preço médio foi de {avgBefore} para {avgAfter}. Aumentar só é coerente se foi planejado na entrada, com o risco total até a mesma invalidação.","Averaging down: on bar {entry} you added to a position losing {loss} cr, with no stop, and the average entry went from {avgBefore} to {avgAfter}. Adding is consistent only when it was planned at entry, with the total risk to the same invalidation."
+findingVariant.stop.none,sem stop,with no stop
+findingVariant.stop.far,"com o stop em {stop}, a mais de 2 ATR","with the stop at {stop}, more than 2 ATR away"
+findingLimit.delta,delta,delta
+findingLimit.gamma,gama,gamma
+findingLimit.vega,vega,vega
+findingLimit.theta,theta,theta
 finding.liquidatedOnly,Liquidação na barra {step} a {price}: a margem isolada inteira ({amount}) foi perdida.,Liquidated at bar {step} at {price}: the whole isolated margin ({amount}) was lost.
 nextLesson.futures2,"Futuros II — margem, alavancagem e preço de liquidação","Futures II — margin, leverage and liquidation price"
 nextLesson.risk,Risco — dimensionar pelo stop e orçamento de risco,Risk — sizing from the stop and a risk budget

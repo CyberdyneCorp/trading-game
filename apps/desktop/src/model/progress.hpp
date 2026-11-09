@@ -54,6 +54,9 @@ struct CampaignRun {
   int index = 0;        // next mission in the campaign order
   CampaignStatus status = CampaignStatus::Active;
   std::vector<CampaignLeg> legs;
+  // The run's missions, snapshotted when it started (progress v4); none for a run stored before v4,
+  // which plays the 17-mission order (campaign.hpp campaign_order).
+  std::optional<std::vector<std::string>> order;
 };
 
 // Links a run to the campaign mission it plays.
@@ -67,7 +70,7 @@ struct CampaignLink {
 // the run `from`, or the same mission on another market ("seed").
 struct AssistedLink {
   std::string from;
-  std::string kind = "rewind";  // rewind | seed
+  std::string kind = "rewind";  // rewind | seed | mistake (progress v4: a retry from a debrief moment)
   std::optional<int> step;      // rewind: the decision step the attempt resumes at
   bool operator==(const AssistedLink&) const = default;
 };

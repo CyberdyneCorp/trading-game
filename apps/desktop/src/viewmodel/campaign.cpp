@@ -32,7 +32,7 @@ void advance(const WebContent& c, CampaignRun& run, LegResult result) {
   }
   if (result == LegResult::Left) return;
   run.index += 1;
-  const auto total = static_cast<int>(campaign_missions(c).size());
+  const auto total = static_cast<int>(campaign_order(c, run).size());
   run.status = run.index >= total ? CampaignStatus::Complete : CampaignStatus::Active;
 }
 
@@ -62,12 +62,16 @@ std::vector<RegimeResult> by_regime(const std::vector<const LegTrade*>& trades) 
 }  // namespace
 
 CampaignRun new_campaign(const WebContent& c, std::string id, std::int64_t now) {
-  return CampaignRun{std::move(id), now, c.campaign_capital, 0, CampaignStatus::Active, {}};
+  return CampaignRun{std::move(id), now, c.campaign_capital, 0, CampaignStatus::Active, {}, campaign_missions(c)};
+}
+
+const std::vector<std::string>& campaign_order(const WebContent& c, const CampaignRun& run) {
+  return run.order ? *run.order : c.campaign_order_v3;
 }
 
 std::string next_campaign_mission(const WebContent& c, const std::optional<CampaignRun>& run) {
   if (!active(run)) return {};
-  const Ids missions = campaign_missions(c);
+  const Ids& missions = campaign_order(c, *run);
   return run->index >= 0 && run->index < static_cast<int>(missions.size()) ? missions[static_cast<std::size_t>(run->index)]
                                                                          : std::string();
 }
@@ -97,6 +101,12 @@ Progress settle_campaign_run(const WebContent& c, Progress p, const CampaignLink
   advance(c, run, result);
   if (result == LegResult::Finished && !contains(p.assessed, out.mission_id)) p.assessed.push_back(out.mission_id);
   archive(c, p.campaign_history, p.campaign);
+  return p;
+}
+
+Progress assess_elective(const WebContent& c, Progress p, const FreeRunOutcome& out) {
+  if (!out.finished || out.assisted || out.campaign || !is_elective_mission(c, out.mission_id)) return p;
+  if (!contains(p.assessed, out.mission_id)) p.assessed.push_back(out.mission_id);
   return p;
 }
 
