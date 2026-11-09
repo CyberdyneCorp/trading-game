@@ -116,6 +116,22 @@ TEST_CASE("windowed: mission 01 to the debrief on the Vulkan renderer, with capt
   CHECK(d.text(names::kDebriefTitle) == "Missão concluída");
 }
 
+// Regression (third_party/raven-patches/0001): a window destroyed right after it presented crashed on
+// macOS, MoltenVK's present handler running on the freed swapchain while ~App closed the NSWindow
+// (SIGSEGV in the Metal completion thread). A resize swaps the swapchain out the same way.
+TEST_CASE("windowed: windows closed right after presenting, and resized while presenting, do not crash") {
+  RavenSession raven;
+  for (int i = 0; i < 25; ++i) {
+    CAPTURE(i);
+    App app(builtin_catalog(), [] { return 1u; });
+    REQUIRE(app.build(1024, 645));
+    Driver d(app);
+    d.frames(2);
+    Rwindow_set_size(app.view().window(), 900 + (i % 3) * 60, 600);
+    d.frames(2);
+  }
+}
+
 TEST_CASE("windowed: 1024x768 still shows the account line and the ticket") {
   RavenSession raven;
   App app(builtin_catalog(), [] { return 3u; });

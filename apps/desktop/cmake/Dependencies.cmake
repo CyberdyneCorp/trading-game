@@ -48,9 +48,13 @@ if(RAVEN_BACKEND_VULKAN)
   set(RAVEN_VULKAN_INCLUDE_DIR "${raven_vulkan_headers_SOURCE_DIR}/include" CACHE PATH "" FORCE)
 endif()
 
+# Fixes that cannot wait for upstream (third_party/raven-patches, see the README). A source folder given
+# with FETCHCONTENT_SOURCE_DIR_RAVEN is used as it is: apply the patches to it yourself.
 FetchContent_Declare(raven
   GIT_REPOSITORY ${TRADELAB_RAVEN_URL}
-  GIT_TAG ${TRADELAB_RAVEN_SHA})
+  GIT_TAG ${TRADELAB_RAVEN_SHA}
+  PATCH_COMMAND ${CMAKE_COMMAND} -DPATCH_DIR=${CMAKE_CURRENT_LIST_DIR}/../third_party/raven-patches
+                -P ${CMAKE_CURRENT_LIST_DIR}/ApplyRavenPatches.cmake)
 FetchContent_MakeAvailable(raven)
 
 if(TRADELAB_DESKTOP_BUILD_TESTS)

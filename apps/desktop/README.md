@@ -48,7 +48,11 @@ Raven is pre-1.0 and changes daily, so it is pinned to one full commit, `0fc7386
 The Vulkan headers are declared first, pinned by the commit of tag `v1.3.290`:
 `b379292b2ab6df5771ba9870d53cf8b2c9295daf` (the pin check only reads lines that name the GUI library).
 
-Bumping Raven: change `TRADELAB_RAVEN_SHA`, this README and `openspec/changes/add-native-clients/design.md` (and any other OpenSpec file naming the sha) in a PR of its own, run the full windowed suite on Linux and macOS and attach the captures. `python3 scripts/check_raven_pin.py` (CI) fails when the sha differs between them. Raven calls live only in `src/view/` (thin adapter in `src/view/raven/`), so API churn stays there; patches that cannot wait for upstream go to `third_party/raven-patches/` (none yet).
+Bumping Raven: change `TRADELAB_RAVEN_SHA`, this README and `openspec/changes/add-native-clients/design.md` (and any other OpenSpec file naming the sha) in a PR of its own, run the full windowed suite on Linux and macOS and attach the captures. `python3 scripts/check_raven_pin.py` (CI) fails when the sha differs between them. Raven calls live only in `src/view/` (thin adapter in `src/view/raven/`), so API churn stays there; patches that cannot wait for upstream go to `third_party/raven-patches/`, applied in name order by the Raven fetch (`cmake/ApplyRavenPatches.cmake`; one already applied is skipped, a source folder given with `FETCHCONTENT_SOURCE_DIR_RAVEN` is used as it is). A bump checks each one still applies and drops those upstream has taken.
+
+| Patch | Why |
+|---|---|
+| `0001-vulkan-wait-presents-before-destroying-swapchain.patch` | Raven waited only for its frame fences before destroying a swapchain (window closed, or a resize). MoltenVK presents from a command buffer of its own whose handler still uses the swapchain image, so closing a window right after it presented crashed on macOS (SIGSEGV in the Metal completion thread, seen in CI). The device goes idle first. Regression test: `windowed: windows closed right after presenting…`. Not yet upstream. |
 
 ## Layout (MVVM)
 
