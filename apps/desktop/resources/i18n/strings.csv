@@ -1480,6 +1480,162 @@ adjust.button,Ajustar,Adjust
 portfolio.perUnit,Greeks por unidade (o motor soma a carteira nos totais abaixo).,Greeks per unit (the engine sums the book in the totals below).
 builder.expiryShort,venc. {step},exp. {step}
 portfolio.close,Fechar,Close
+menu.practiceFormats,Prática,Practice
+menu.practiceFormatsNote,Formatos curtos para treinar o que as lições ensinam. Nada aqui conta sequência nem compara você com outros jogadores.,Short formats to train what the lessons teach. Nothing here counts a streak or compares you with other players.
+drills.open,Exercícios do dia,Daily drills
+daily.open,Desafio do dia,Daily challenge
+guess.open,Qual o próximo movimento?,Guess the next move
+practice.back,Voltar ao menu,Back to the menu
+drills.title,Exercícios do dia,Daily drills
+drills.intro,"Seis perguntas curtas sobre payoffs, Greeks, tamanho, liquidação e o resto, escolhidas pela revisão espaçada: primeiro o que as lições a revisar pedem, depois o que você mais erra. O relógio de 2 minutos é só uma referência: quando ele acaba, as perguntas sem resposta ficam como puladas, e nada mais muda.","Six short questions on payoffs, Greeks, sizing, liquidation and the rest, picked by the spaced review: first what your due lessons ask for, then what you miss most. The 2-minute clock is only a guide: when it runs out, unanswered questions count as skipped, and nothing else changes."
+drills.start,Começar,Start
+drills.timerSetting,Mostrar o relógio de 2 minutos,Show the 2-minute clock
+drills.timeLeft,{time} restantes,{time} left
+drills.noClock,sem relógio,no clock
+drills.item,Pergunta {n} de {total},Question {n} of {total}
+drills.answer,Sua resposta,Your answer
+drills.check,Conferir,Check
+drills.right,Certo.,Right.
+drills.wrong,Não é isso: a resposta é {answer}.,Not quite: the answer is {answer}.
+drills.invalid,Digite um número (vírgula ou ponto).,Type a number (comma or dot).
+drills.next,Próxima,Next
+drills.finish,Ver o resultado,See the results
+drills.timeUp,O tempo acabou: as perguntas sem resposta ficam como puladas.,Time is up: unanswered questions count as skipped.
+drills.endTitle,Resultado da sessão,Session results
+drills.firstTry,{n} de {total} certas na primeira tentativa,{n} of {total} right on the first try
+drills.result.right,certa,right
+drills.result.wrong,errada,wrong
+drills.result.skipped,pulada,skipped
+drills.lesson,Rever a lição: {title},Review the lesson: {title}
+drills.again,Outra sessão,Another session
+drills.reviewNote,Os exercícios não contam como a revisão de uma lição: a revisão da lição continua no mapa e na Academia.,Drills do not count as a lesson's review: the lesson review stays on the map and in the Academy.
+drills.skill.payoff,Payoff,Payoff
+drills.skill.breakeven,Empate,Breakeven
+drills.skill.greeks-read,Ler Greeks,Reading Greeks
+drills.skill.greeks-sign,Sinal dos Greeks,Greek signs
+drills.skill.sizing,Tamanho,Sizing
+drills.skill.liquidation,Liquidação,Liquidation
+drills.skill.funding,Funding,Funding
+drills.skill.r-multiple,Múltiplo de R,R multiple
+drills.skill.hedge,Hedge,Hedge
+drills.skill.calendar,Calendar,Calendar
+drills.skill.trail,Trailing stop,Trailing stop
+daily.title,Desafio do dia,Daily challenge
+daily.intro,"Todo mundo que joga na mesma data recebe a mesma missão e o mesmo mercado. Sem conselheiro, sem perks e com o saldo padrão, para as tentativas se compararem. Vale o primeiro resultado do dia; o melhor fica ao lado. A nota é a do processo, nunca o lucro. Não há placar nem sequência.","Everyone playing on the same date gets the same mission and the same market. No advisor, no perks and the default balance, so attempts compare. The day's first result is the record; the best stands beside it. The score is the process score, never the profit. No leaderboard, no streak."
+daily.today,"Hoje, {date}","Today, {date}"
+daily.market,Mercado do dia: semente {seed},Today's market: seed {seed}
+daily.play,Jogar o desafio,Play the challenge
+daily.replay,Tentar de novo,Try again
+daily.first,Primeira,First
+daily.best,Melhor,Best
+daily.attempts,Tentativas,Attempts
+daily.history,Seus últimos 90 dias,Your last 90 days
+daily.noHistory,Nenhum desafio terminado ainda.,No challenge finished yet.
+daily.result,nota {score} · {pnl} cr,score {score} · {pnl} cr
+daily.noScore,sem nota,no score
+daily.colDate,Data,Date
+daily.colMission,Missão,Mission
+daily.tag,Desafio do dia {date},Daily challenge {date}
+daily.todayFirst,Primeiro resultado de hoje: {result},Today's first result: {result}
+guess.title,Qual o próximo movimento?,Guess the next move
+guess.intro,"Leia o gráfico até a barra da decisão e comprometa-se com um plano: comprar, vender ou não operar, a chance de o fechamento daqui a 12 barras ficar acima do de agora e, num trade, a invalidação e o alvo. Depois as 12 barras aparecem. A nota mede a decisão (calibração 50, plano 40, coerência 10), nunca o lucro.","Read the chart up to the decision bar and commit to a plan: buy, sell or stay out, the chance that the close 12 bars from now ends above the current one and, for a trade, the invalidation and the target. Then the 12 bars appear. The score measures the decision (calibration 50, plan 40, consistency 10), never the profit."
+guess.start,Nova rodada,New round
+guess.loading,Montando a rodada…,Setting up the round…
+guess.market,Mercado de treino {alias} · decisão na barra {step},Practice market {alias} · decision at bar {step}
+guess.decision,Decisão,Decision
+guess.long,Comprar (long),Buy (long)
+guess.short,Vender (short),Sell (short)
+guess.none,Não operar,Stay out
+guess.p,Chance de o fechamento daqui a 12 barras ficar acima do de agora: {p}%,Chance the close 12 bars from now ends above the current one: {p}%
+guess.close,Fechamento agora: {close} · ATR(14): {atr},Close now: {close} · ATR(14): {atr}
+guess.invalidation,Invalidação (onde a ideia está errada),Invalidation (where the idea is wrong)
+guess.target,Alvo,Target
+guess.commit,Confirmar e revelar,Commit and reveal
+guess.needLevels,Um trade precisa de invalidação e alvo.,A trade needs an invalidation and a target.
+guess.committed,"Compromisso: {decision}, {p}%.","Commitment: {decision}, {p}%."
+guess.levels,Invalidação {inv} · alvo {target},Invalidation {inv} · target {target}
+guess.revealTitle,As 12 barras seguintes,The next 12 bars
+guess.higher,O fechamento ficou acima: {from} → {to}.,The close ended higher: {from} → {to}.
+guess.lower,O fechamento não ficou acima: {from} → {to}.,The close did not end higher: {from} → {to}.
+guess.first.invalidation,"A invalidação foi atingida antes do alvo (informação, fora da nota).","The invalidation was reached before the target (information, not scored)."
+guess.first.target,"O alvo foi atingido antes da invalidação (informação, fora da nota).","The target was reached before the invalidation (information, not scored)."
+guess.first.both,Uma mesma barra tocou a invalidação e o alvo: a ordem dentro dela não é conhecida.,One bar touched both the invalidation and the target: the order inside it is unknown.
+guess.first.neither,Nem a invalidação nem o alvo foram atingidos em 12 barras.,Neither the invalidation nor the target was reached in 12 bars.
+guess.score,Nota {score} de 100,Score {score} of 100
+guess.part.calibration,Calibração: {v} de 50,Calibration: {v} of 50
+guess.part.plan,Plano: {v} de 40,Plan: {v} of 40
+guess.part.consistency,Coerência: {v} de 10,Consistency: {v} of 10
+guess.check.side,Invalidação do lado da perda (10),Invalidation on the losing side (10)
+guess.check.distance,"Distância da invalidação entre 0,5 e 3 ATR (15)",Invalidation between 0.5 and 3 ATR away (15)
+guess.check.reward,"Ganho até o alvo de pelo menos 1,5× o risco (15)",Gain to the target at least 1.5× the risk (15)
+guess.noTradePlan,"Sem trade, o plano vale 40 quando a chance fica entre 40% e 60%: sem vantagem, sem trade.","With no trade, the plan scores 40 when the chance is between 40% and 60%: no edge, no trade."
+guess.oneSample,"Uma amostra: uma rodada sozinha não diz se a decisão foi boa. A tabela de calibração, depois de 20 rodadas, diz mais.","One sample: a single round does not tell whether the decision was good. The calibration table, after 20 rounds, tells more."
+guess.next,Próxima rodada,Next round
+guess.rounds,Rodadas jogadas: {n},Rounds played: {n}
+guess.tableTitle,Calibração: o que você disse contra o que aconteceu,Calibration: what you said against what happened
+guess.tableLocked,A tabela de calibração aparece depois de {n} rodadas (até agora: {done}).,The calibration table appears after {n} rounds (so far: {done}).
+guess.colBucket,Chance dita,Stated chance
+guess.colRounds,Rodadas,Rounds
+guess.colStated,Média dita,Mean stated
+guess.colObserved,Fechou acima,Closed higher
+guess.unsupported,Esta versão do motor não tem os mercados de treino.,This engine build has no practice markets.
+coachReview.open,Revisar com o coach,Review with the coach
+coachReview.title,Revisão com o coach,Coach review
+coachReview.intro,Cada momento mostra o gráfico só até a barra dele: o que você via quando decidiu. O coach lê só o que já tinha acontecido naquela barra.,Each moment shows the chart only up to its bar: what you saw when you decided. The coach reads only what had happened by that bar.
+coachReview.none,O coach não marcou nenhum momento nesta partida.,The coach flagged no moment in this run.
+coachReview.loading,O coach está revendo a partida…,The coach is reviewing the run…
+coachReview.unavailable,A revisão com o coach não está disponível para esta partida ({reason}).,The coach review is not available for this run ({reason}).
+coachReview.position,Momento {n} de {total} · barra {step},Moment {n} of {total} · bar {step}
+coachReview.warn,Atenção,Watch out
+coachReview.good,Bem feito,Well done
+coachReview.prev,Anterior,Previous
+coachReview.next,Próximo,Next
+coachReview.close,Fechar a revisão,Close the review
+coachReview.retry,Tentar de novo daqui,Retry from here
+coachReview.lesson,Lição: {title},Lesson: {title}
+coachReview.term,Termo: {term},Term: {term}
+coachReview.end,Fim da revisão. O que o mercado guardava está na revelação do debrief.,End of the review. What the market held is in the debrief's reveal.
+coachReview.toReveal,Ver a revelação,See the reveal
+coachReview.moment.entry_without_stop,"Barra {step}: a posição ({qty} a {entry}) ficou aberta no fechamento ({close}) sem nenhum stop. Sem stop, a perda não tem um limite que você escolheu.","Bar {step}: the position ({qty} at {entry}) stayed open at the close ({close}) with no stop working. Without a stop, the loss has no limit you chose."
+coachReview.moment.stop_moved_away,"Barra {step}: o stop saiu de {from} e foi para {to}, mais longe do preço (entrada média {entry}). Afastar o stop aumenta o risco que você tinha planejado.","Bar {step}: the stop moved from {from} to {to}, further from the price (average entry {entry}). Moving a stop away raises the risk you had planned."
+coachReview.moment.added_against_structure,Barra {step}: você aumentou {qty} com o fechamento ({close}) abaixo da média de 20 barras ({sma}) e da mínima das 10 barras anteriores ({level}). Aqui você aumentou o risco enquanto a tendência quebrava.,Bar {step}: you added {qty} with the close ({close}) below the 20-bar average ({sma}) and below the lowest low of the previous 10 bars ({level}). Here you added risk while the trend broke.
+coachReview.moment.added_against_structure.short,Barra {step}: você aumentou o short em {qty} com o fechamento ({close}) acima da média de 20 barras ({sma}) e da máxima das 10 barras anteriores ({level}). Aqui você aumentou o risco enquanto a tendência quebrava.,Bar {step}: you added {qty} to the short with the close ({close}) above the 20-bar average ({sma}) and above the highest high of the previous 10 bars ({level}). Here you added risk while the trend broke.
+coachReview.moment.risk_above_budget,"Barra {step}: esta entrada arriscava {risk} cr até o stop ({stop}), acima do orçamento de {budget} cr (2% do capital inicial). Dimensione pelo stop antes de entrar.","Bar {step}: this entry risked {risk} cr to its stop ({stop}), above the budget of {budget} cr (2% of the initial capital). Size from the stop before entering."
+coachReview.moment.held_into_release_unhedged,Barra {step}: o anúncio da barra {release} estava marcado e a posição ({qty}) seguia sem stop. A surpresa de um anúncio chega no gap da abertura.,Bar {step}: the release at bar {release} was announced and the position ({qty}) still had no stop. A release's surprise lands in the opening gap.
+coachReview.moment.held_into_release_unhedged.vega,"Barra {step}: o anúncio da barra {release} estava marcado e o vega da carteira estava em {valuePct} do patrimônio, acima do limite de {limitPct}. Depois do anúncio a volatilidade implícita costuma cair.","Bar {step}: the release at bar {release} was announced and the book's vega stood at {valuePct} of equity, above the limit of {limitPct}. After a release implied volatility tends to fall."
+coachReview.moment.revenge_trade,"Barra {step}: logo depois de o trade {trade} fechar com perda de {loss} cr na barra {exit}, veio uma entrada nova, sem plano, com {ratio}× o tamanho dele. Depois de uma perda, espere o setup se formar de novo.","Bar {step}: right after trade {trade} closed at a loss of {loss} cr on bar {exit}, a new entry came, with no plan, at {ratio}× its size. After a loss, wait for the setup to form again."
+coachReview.moment.revenge_trade.planned,"Barra {step}: logo depois de o trade {trade} fechar com perda de {loss} cr na barra {exit}, a entrada nova planejou {ratio}× o risco dele. Depois de uma perda, volte ao tamanho normal.","Bar {step}: right after trade {trade} closed at a loss of {loss} cr on bar {exit}, the new entry planned {ratio}× its risk. After a loss, go back to the normal size."
+coachReview.moment.fomo_entry,"Barra {step}: a entrada veio depois de {closes} fechamentos seguidos na mesma direção, a {ext} ATR da média de 20 barras ({sma}), com o stop longe ({stop}). Longe da estrutura, o stop fica longe ou o tamanho fica minúsculo.","Bar {step}: the entry came after {closes} closes in a row the same way, {ext} ATR from the 20-bar average ({sma}), with the stop far away ({stop}). Far from the structure, the stop ends up far or the size tiny."
+coachReview.moment.fomo_entry.nostop,"Barra {step}: a entrada veio depois de {closes} fechamentos seguidos na mesma direção, a {ext} ATR da média de 20 barras ({sma}), e sem stop. Longe da estrutura, não há onde a ideia esteja claramente errada.","Bar {step}: the entry came after {closes} closes in a row the same way, {ext} ATR from the 20-bar average ({sma}), and with no stop. Far from the structure, there is no place where the idea is clearly wrong."
+coachReview.moment.averaging_down,Barra {step}: você aumentou uma posição que perdia {loss} cr; o preço médio foi de {avgBefore} para {avgAfter} e o risco até o stop de {riskBefore} para {riskAfter} cr (plano da primeira entrada: {planRisk} cr).,Bar {step}: you added to a position losing {loss} cr; the average went from {avgBefore} to {avgAfter} and the risk to the stop from {riskBefore} to {riskAfter} cr (first entry's plan: {planRisk} cr).
+coachReview.moment.averaging_down.nostop,"Barra {step}: você aumentou uma posição que perdia {loss} cr, sem stop; o preço médio foi de {avgBefore} para {avgAfter}. Sem stop, o risco do aumento não tem fim.","Bar {step}: you added to a position losing {loss} cr, with no stop; the average went from {avgBefore} to {avgAfter}. Without a stop, the add's risk has no end."
+coachReview.moment.risk_limit_exceeded,"Barra {step}: o {limit} da carteira chegou a {valuePct} do patrimônio, acima do limite da missão de {limitPct}.","Bar {step}: the book's {limit} reached {valuePct} of equity, above the mission's limit of {limitPct}."
+coachReview.moment.cut_at_invalidation,"Barra {step}: o trade fechou a {price}, onde o plano dizia que a ideia estava errada. A perda, {loss} cr, ficou perto do risco planejado de {plannedRisk} cr.","Bar {step}: the trade closed at {price}, where the plan said the idea was wrong. The loss, {loss} cr, stayed near the planned risk of {plannedRisk} cr."
+coachReview.moment.stop_to_breakeven_after_1r,"Barra {step}: com o trade {r}R à frente, o stop foi de {from} para {to}, na entrada média ({entry}) ou além. O resto do trade fica protegido na entrada (um gap ainda pode executá-lo pior).","Bar {step}: with the trade {r}R ahead, the stop went from {from} to {to}, at or past the average entry ({entry}). The rest of the trade is protected at the entry (a gap can still fill it worse)."
+coachReview.moment.partial_at_target,"Barra {step}: {qty} foram fechados a {price}, {r}R sobre a posição, e o resto continuou.","Bar {step}: {qty} closed at {price}, {r}R on the position, and the rest kept running."
+coachReview.moment.stayed_flat_before_release,Barra {step}: sem posição e sem entrada pendente antes do anúncio da barra {release}. Esperar a surpresa passar é uma decisão.,"Bar {step}: flat, with no entry working, before the release at bar {release}. Waiting for the surprise to pass is a decision."
+mistake.retry,Tentar de novo daqui,Retry from here
+mistake.banner,"Nova tentativa a partir da barra {step}: {moment}. É uma tentativa assistida: não conta para o progresso, pontos, campanha nem estatísticas.","New attempt from bar {step}: {moment}. It is an assisted attempt: it does not count for progress, points, the campaign or the statistics."
+mistake.title,O erro se repetiu?,Did the mistake repeat?
+mistake.repeated,Repetido: {moment} apareceu de novo entre as barras {from} e {to}.,Repeated: {moment} showed again between bars {from} and {to}.
+mistake.avoided,Evitado: {moment} não apareceu entre as barras {from} e {to}.,Avoided: {moment} did not show between bars {from} and {to}.
+mistake.sideBySide,Original e nova tentativa lado a lado. Uma amostra: um mercado só não prova nada.,Original and new attempt side by side. One sample: one market proves nothing.
+mistake.original,Original,Original
+mistake.retryRun,Nova tentativa,New attempt
+mistake.colScore,Nota,Score
+mistake.colPnl,Resultado,Result
+mistake.name.entry_without_stop,posição sem stop,a position with no stop
+mistake.name.stop_moved_away,stop afastado,a stop moved away
+mistake.name.added_against_structure,aumento contra a estrutura,an add against the structure
+mistake.name.risk_above_budget,risco acima do orçamento,risk above the budget
+mistake.name.held_into_release_unhedged,posição desprotegida num anúncio,an unprotected position into a release
+mistake.name.revenge_trade,trade de vingança,a revenge trade
+mistake.name.fomo_entry,entrada por FOMO,a FOMO entry
+mistake.name.averaging_down,preço médio para baixo,averaging down
+mistake.name.risk_limit_exceeded,limite de risco estourado,a risk limit exceeded
+mistake.name.oversized,trade grande demais,an oversized trade
+mistake.name.leverage_vs_stop,liquidação mais perto que o stop,liquidation closer than the stop
+mistake.name.other,um aviso do debrief,a debrief warning
 mission.m01-false-breakout.title,Missão 01 · Range,Mission 01 · Range
 mission.m01-false-breakout.tagline,O mercado passou semanas andando de lado. O que vem a seguir é com você.,The market has been moving sideways for weeks. What comes next is up to you.
 mission.m01-false-breakout.topic,"Futuros I · long e short, ordens e stops","Futures I · long and short, orders and stops"

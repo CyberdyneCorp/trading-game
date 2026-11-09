@@ -1,0 +1,27 @@
+{
+	"skill": "calendar",
+	"templates": [
+		{
+			"id": "calendar-debit",
+			"stage": "advanced",
+			"lessons": ["options-calendars"],
+			"params": {
+				"near": { "lo": "0.5", "hi": "3", "step": "0.1" },
+				"extra": { "lo": "0.5", "hi": "3", "step": "0.1" },
+				"qty": { "lo": "1", "hi": "10", "step": "1" },
+				"far": { "add": ["near", "extra"] }
+			},
+			"answer": { "kind": "calendar", "near": "$near", "far": "$far", "qty": "$qty" },
+			"text": {
+				"pt-BR": {
+					"prompt": "Um calendar de {qty} contratos: você compra a call do vencimento longo por {far} e vende a do vencimento curto, mesmo strike, por {near}. Qual é o débito, antes das taxas?",
+					"explain": "Você paga a longa e recebe a curta: ({far} − {near}) × {qty} = {answer}. Esse débito é a perda máxima no vencimento curto."
+				},
+				"en": {
+					"prompt": "A calendar of {qty} contracts: you buy the far expiry's call for {far} and sell the near expiry's call at the same strike for {near}. What is the debit, before fees?",
+					"explain": "You pay for the far leg and collect the near one: ({far} − {near}) × {qty} = {answer}. That debit is the most you can lose at the near expiry."
+				}
+			}
+		}
+	]
+}

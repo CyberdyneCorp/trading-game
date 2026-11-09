@@ -54,6 +54,8 @@ interface Api {
 	placeTif: Fn | null;
 	optionTif: Fn | null;
 	linkOco: Fn | null;
+	// Coach review (add-practice-and-advanced-strategies D17); null on builds that predate it.
+	coach: Fn | null;
 }
 
 const TIF_CODE: Record<TimeInForceName, number> = { gtc: 0, bars: 1, ioc: 2, fok: 3 };
@@ -129,7 +131,8 @@ async function load(): Promise<Api> {
 		optionTif: exported(mod, 'tl_place_option_order_tif')
 			? w('tl_place_option_order_tif', 'number', ['number', 'number', 'number', 'number', 'number', 'string', 'string', 'number', 'number'])
 			: null,
-		linkOco: exported(mod, 'tl_link_oco') ? w('tl_link_oco', 'number', ['number', 'number', 'number', 'number']) : null
+		linkOco: exported(mod, 'tl_link_oco') ? w('tl_link_oco', 'number', ['number', 'number', 'number', 'number']) : null,
+		coach: exported(mod, 'tl_coach_review') ? w('tl_coach_review', 'number', ['number']) : null
 	};
 	return api;
 }
@@ -234,6 +237,15 @@ function reveal(a: Api): unknown {
 	const status = (json(a.state(requireRun())) as GameState).status;
 	if (!revealAllowed(status)) throw new Error('run_active');
 	return current ? json(a.reveal(current.missionId, current.seed)) : null;
+}
+
+// The coach review reads the whole finished run: like the reveal, it crosses only after the end.
+function coach(a: Api): { ok: true; value: unknown } | { ok: false; error: string } {
+	if (!a.coach) return { ok: false, error: 'unsupported' };
+	const status = (json(a.state(requireRun())) as GameState).status;
+	if (!revealAllowed(status)) return { ok: false, error: 'run_active' };
+	const out = json(a.coach(requireRun())) as { error?: string };
+	return out.error ? { ok: false, error: out.error } : { ok: true, value: out };
 }
 
 // The mission's lesson questions (no answer key crosses: the engine keeps it until the debrief).
@@ -386,6 +398,8 @@ async function handle(req: EngineRequest): Promise<unknown> {
 			return json(a.debrief(requireRun()));
 		case 'reveal':
 			return reveal(a);
+		case 'coach':
+			return coach(a);
 		case 'checkpoint':
 			return json(a.checkpoint(requireRun()));
 		case 'restore':

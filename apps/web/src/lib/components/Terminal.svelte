@@ -36,6 +36,7 @@
 	import PlanDialog from './PlanDialog.svelte';
 	import RightRail from './RightRail.svelte';
 	import AssistPanel from './AssistPanel.svelte';
+	import { mistakeName } from '#lib/game/coachReview.ts';
 	import TopBar from './TopBar.svelte';
 	import StrategyBuilder, { type ComboDraft } from './StrategyBuilder.svelte';
 	import ComboNotice from './ComboNotice.svelte';
@@ -401,7 +402,16 @@
 
 {#if session.state}
 	<div class="terminal">
+		<div class="head">
 		<TopBar {session} {auto} onHelp={() => (help = true)} onPatterns={() => openPattern(null)} />
+		{#if session.runAssisted?.kind === 'mistake' && session.runAssisted.step != null}
+			<!-- Design D18: names the moment being retried, never what happened after it. -->
+			<p class="mistake-banner" role="status" data-testid="mistake-banner">
+				↺ {t('mistake.banner', { step: session.runAssisted.step, moment: t(mistakeName(session.runAssisted.code ?? '')) })}
+			</p>
+		{/if}
+		{#if session.runDaily}<p class="daily-banner muted small" data-testid="daily-banner">☀ {t('daily.tag', { date: session.runDaily.date })}</p>{/if}
+		</div>
 		<div class="main">
 			<section class="panel chart" data-coach="chart"><Chart
 					game={session.state}
@@ -546,6 +556,15 @@
 		gap: 0.5rem;
 		height: 100vh;
 		padding: 0.5rem;
+	}
+	.mistake-banner,
+	.daily-banner {
+		margin: 0.25rem 0 0;
+	}
+	.mistake-banner {
+		border: 1px solid var(--attention);
+		padding: 0.25rem 0.5rem;
+		color: var(--attention);
 	}
 	.main {
 		display: grid;

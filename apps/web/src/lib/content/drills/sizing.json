@@ -1,0 +1,28 @@
+{
+	"skill": "sizing",
+	"templates": [
+		{
+			"id": "sizing-from-stop",
+			"stage": "risk",
+			"lessons": ["risk-sizing"],
+			"params": {
+				"equity": { "lo": "5000", "hi": "20000", "step": "1000" },
+				"risk": { "lo": "0.5", "hi": "2", "step": "0.5" },
+				"entry": { "lo": "80", "hi": "120", "step": "0.5" },
+				"dist": { "lo": "1", "hi": "5", "step": "0.5" },
+				"stop": { "sub": ["entry", "dist"] }
+			},
+			"answer": { "kind": "size", "equity": "$equity", "riskPct": "$risk", "entry": "$entry", "stop": "$stop" },
+			"text": {
+				"pt-BR": {
+					"prompt": "Patrimônio {equity}, risco de {risk}% por trade. Entrada {entry}, stop {stop}. Qual é a quantidade?",
+					"explain": "Primeiro o risco aceito: {risk}% de {equity}. A distância até o stop é {entry} − {stop} = {dist}. Quantidade = risco aceito / distância = {answer}."
+				},
+				"en": {
+					"prompt": "Equity {equity}, risk {risk}% per trade. Entry {entry}, stop {stop}. What is the quantity?",
+					"explain": "First the accepted risk: {risk}% of {equity}. The distance to the stop is {entry} − {stop} = {dist}. Quantity = accepted risk / distance = {answer}."
+				}
+			}
+		}
+	]
+}

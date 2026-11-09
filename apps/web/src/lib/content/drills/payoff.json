@@ -1,0 +1,47 @@
+{
+	"skill": "payoff",
+	"templates": [
+		{
+			"id": "payoff-long-call",
+			"stage": "options1",
+			"lessons": ["options-payoff"],
+			"params": {
+				"K": { "lo": "90", "hi": "110", "step": "5" },
+				"prem": { "lo": "1", "hi": "6", "step": "0.5" },
+				"S": { "lo": "80", "hi": "125", "step": "1" }
+			},
+			"answer": { "kind": "payoff", "legs": [{ "kind": "call", "side": "buy", "qty": 1, "strike": "$K", "price": "$prem" }], "at": "$S" },
+			"text": {
+				"pt-BR": {
+					"prompt": "Você comprou uma call de strike {K} por {prem}. No vencimento o preço é {S}. Qual é o resultado por unidade?",
+					"explain": "No vencimento a call vale o quanto o preço passa do strike: max({S} − {K}, 0). Tire o prêmio pago, {prem}: o resultado é {answer}."
+				},
+				"en": {
+					"prompt": "You bought a call with strike {K} for {prem}. At expiry the price is {S}. What is the P&L per unit?",
+					"explain": "At expiry the call is worth how far the price is above the strike: max({S} − {K}, 0). Take off the premium paid, {prem}: the result is {answer}."
+				}
+			}
+		},
+		{
+			"id": "payoff-short-put",
+			"stage": "options3",
+			"lessons": ["options-writing", "options-payoff"],
+			"params": {
+				"K": { "lo": "90", "hi": "110", "step": "5" },
+				"prem": { "lo": "1", "hi": "5", "step": "0.5" },
+				"S": { "lo": "80", "hi": "120", "step": "1" }
+			},
+			"answer": { "kind": "payoff", "legs": [{ "kind": "put", "side": "sell", "qty": 1, "strike": "$K", "price": "$prem" }], "at": "$S" },
+			"text": {
+				"pt-BR": {
+					"prompt": "Você vendeu uma put de strike {K} e recebeu {prem}. No vencimento o preço é {S}. Qual é o resultado por unidade?",
+					"explain": "Quem vende a put fica com o prêmio, {prem}, e paga o quanto o preço ficou abaixo do strike: max({K} − {S}, 0). O resultado é {answer}."
+				},
+				"en": {
+					"prompt": "You sold a put with strike {K} and received {prem}. At expiry the price is {S}. What is the P&L per unit?",
+					"explain": "The put's seller keeps the premium, {prem}, and pays how far the price ended below the strike: max({K} − {S}, 0). The result is {answer}."
+				}
+			}
+		}
+	]
+}

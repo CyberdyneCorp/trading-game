@@ -1,0 +1,25 @@
+{
+	"skill": "funding",
+	"templates": [
+		{
+			"id": "funding-long-pays",
+			"stage": "futures3",
+			"lessons": ["futures-funding"],
+			"params": {
+				"notional": { "lo": "1000", "hi": "20000", "step": "500" },
+				"rate": { "lo": "0.01", "hi": "0.1", "step": "0.01" }
+			},
+			"answer": { "kind": "funding", "notional": "$notional", "ratePct": "$rate" },
+			"text": {
+				"pt-BR": {
+					"prompt": "Você está long com nocional {notional} e a taxa de funding publicada é {rate}%. Quanto você paga no próximo funding?",
+					"explain": "Funding = nocional × taxa: {notional} × {rate}% = {answer}. Com a taxa positiva os longs pagam e os shorts recebem."
+				},
+				"en": {
+					"prompt": "You are long with a notional of {notional} and the published funding rate is {rate}%. How much do you pay at the next funding?",
+					"explain": "Funding = notional × rate: {notional} × {rate}% = {answer}. With a positive rate longs pay and shorts receive."
+				}
+			}
+		}
+	]
+}

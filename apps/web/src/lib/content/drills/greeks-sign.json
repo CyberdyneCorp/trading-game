@@ -1,0 +1,47 @@
+{
+	"skill": "greeks-sign",
+	"templates": [
+		{
+			"id": "greeks-sign-delta",
+			"stage": "options2",
+			"lessons": ["options-greeks"],
+			"params": { "case": { "of": ["0", "1", "2", "3"] } },
+			"answer": { "kind": "choice", "from": "case", "answers": [0, 1, 1, 0] },
+			"text": {
+				"pt-BR": {
+					"prompt": "Qual é o sinal do delta de {case}?",
+					"cases": ["uma call comprada", "uma call vendida", "uma put comprada", "uma put vendida"],
+					"choices": ["Positivo", "Negativo"],
+					"explain": "Call comprada e put vendida ganham quando o preço sobe: delta positivo. Call vendida e put comprada ganham quando o preço cai: delta negativo."
+				},
+				"en": {
+					"prompt": "What is the sign of the delta of {case}?",
+					"cases": ["a bought call", "a sold call", "a bought put", "a sold put"],
+					"choices": ["Positive", "Negative"],
+					"explain": "A bought call and a sold put gain when the price rises: positive delta. A sold call and a bought put gain when it falls: negative delta."
+				}
+			}
+		},
+		{
+			"id": "greeks-sign-theta",
+			"stage": "options2",
+			"lessons": ["options-greeks"],
+			"params": { "case": { "of": ["0", "1", "2", "3"] } },
+			"answer": { "kind": "choice", "from": "case", "answers": [1, 1, 0, 0] },
+			"text": {
+				"pt-BR": {
+					"prompt": "Com o resto parado, a passagem do tempo ajuda ou atrapalha {case}?",
+					"cases": ["um straddle comprado", "uma put comprada", "um straddle vendido", "uma call vendida coberta"],
+					"choices": ["Ajuda (theta positivo)", "Atrapalha (theta negativo)"],
+					"explain": "Quem compra opção paga o valor no tempo, que derrete até o vencimento: theta negativo. Quem vende recebe esse derretimento: theta positivo."
+				},
+				"en": {
+					"prompt": "With everything else still, does the passing of time help or hurt {case}?",
+					"cases": ["a bought straddle", "a bought put", "a sold straddle", "a covered sold call"],
+					"choices": ["Helps (positive theta)", "Hurts (negative theta)"],
+					"explain": "An option buyer pays for time value, which melts until expiry: negative theta. A seller collects that melt: positive theta."
+				}
+			}
+		}
+	]
+}

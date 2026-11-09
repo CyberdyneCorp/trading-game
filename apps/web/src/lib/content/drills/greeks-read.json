@@ -1,0 +1,46 @@
+{
+	"skill": "greeks-read",
+	"templates": [
+		{
+			"id": "greeks-delta-units",
+			"stage": "options2",
+			"lessons": ["options-greeks"],
+			"params": {
+				"n": { "lo": "1", "hi": "10", "step": "1" },
+				"d": { "lo": "0.2", "hi": "0.8", "step": "0.05" }
+			},
+			"answer": { "kind": "hedge", "deltaPerUnit": "$d", "units": "$n" },
+			"text": {
+				"pt-BR": {
+					"prompt": "Você tem {n} calls com delta {d} cada (uma unidade por contrato). Para um movimento pequeno do preço, elas variam como quantas unidades do perpétuo?",
+					"explain": "Delta é quanto o prêmio muda para cada 1 de movimento do preço. {n} contratos × {d} = {answer} unidades."
+				},
+				"en": {
+					"prompt": "You hold {n} calls with a delta of {d} each (one unit per contract). For a small price move, they move like how many units of the perpetual?",
+					"explain": "Delta is how much the premium changes for each 1 the price moves. {n} contracts × {d} = {answer} units."
+				}
+			}
+		},
+		{
+			"id": "greeks-gamma-pnl",
+			"stage": "advanced",
+			"lessons": ["vol-gamma-scalping", "options-greeks"],
+			"params": {
+				"g": { "lo": "0.02", "hi": "0.1", "step": "0.01" },
+				"m": { "lo": "1", "hi": "4", "step": "0.5" },
+				"n": { "lo": "5", "hi": "20", "step": "5" }
+			},
+			"answer": { "kind": "scalp", "gamma": "$g", "move": "$m", "units": "$n" },
+			"text": {
+				"pt-BR": {
+					"prompt": "Um straddle com delta zero tem gamma {g} por contrato e você tem {n} contratos. O preço anda {m}. Quanto o gamma rende nesse movimento, antes do theta?",
+					"explain": "Com delta zero, o ganho do gamma é ½ × gamma × movimento² × contratos: ½ × {g} × {m}² × {n} = {answer}."
+				},
+				"en": {
+					"prompt": "A delta-neutral straddle has a gamma of {g} per contract and you hold {n} contracts. The price moves {m}. What does gamma earn on that move, before theta?",
+					"explain": "Delta neutral, the gamma gain is ½ × gamma × move² × contracts: ½ × {g} × {m}² × {n} = {answer}."
+				}
+			}
+		}
+	]
+}

@@ -25,6 +25,9 @@
 	import Debrief from '#lib/components/Debrief.svelte';
 	import MissionMenu from '#lib/components/MissionMenu.svelte';
 	import Terminal from '#lib/components/Terminal.svelte';
+	import DrillScreen from '#lib/components/DrillScreen.svelte';
+	import DailyScreen from '#lib/components/DailyScreen.svelte';
+	import GuessScreen from '#lib/components/GuessScreen.svelte';
 
 	const session = new GameSession();
 	const stings = new StingTracker();
@@ -91,6 +94,12 @@
 	<Journal {session} />
 {:else if session.screen === 'stats'}
 	<JournalStats {session} />
+{:else if session.screen === 'drills'}
+	<DrillScreen {session} />
+{:else if session.screen === 'daily'}
+	<DailyScreen {session} />
+{:else if session.screen === 'guess'}
+	<GuessScreen {session} />
 {:else if session.screen === 'replay' && session.viewing && session.state}
 	<ReplayScreen {session} />
 {:else if session.screen === 'tutorial'}

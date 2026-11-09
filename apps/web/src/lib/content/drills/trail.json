@@ -1,0 +1,45 @@
+{
+	"skill": "trail",
+	"templates": [
+		{
+			"id": "trail-distance",
+			"stage": "orders",
+			"lessons": ["orders-execution"],
+			"params": {
+				"close": { "lo": "90", "hi": "130", "step": "0.25" },
+				"dist": { "lo": "0.5", "hi": "3", "step": "0.25" }
+			},
+			"answer": { "kind": "trail", "side": "sell", "close": "$close", "distance": "$dist", "tick": 0.01 },
+			"text": {
+				"pt-BR": {
+					"prompt": "Seu long tem um trailing stop a {dist} do melhor fechamento. O melhor fechamento até agora é {close}. Onde está o gatilho?",
+					"explain": "O gatilho segue o melhor fechamento a {dist} de distância e nunca desce: {close} − {dist} = {answer}."
+				},
+				"en": {
+					"prompt": "Your long has a trailing stop {dist} from the best close. The best close so far is {close}. Where is the trigger?",
+					"explain": "The trigger follows the best close at a distance of {dist} and never moves down: {close} − {dist} = {answer}."
+				}
+			}
+		},
+		{
+			"id": "trail-percent",
+			"stage": "orders",
+			"lessons": ["orders-execution"],
+			"params": {
+				"close": { "lo": "90", "hi": "130", "step": "0.25" },
+				"rate": { "lo": "1", "hi": "5", "step": "0.5" }
+			},
+			"answer": { "kind": "trail", "side": "sell", "close": "$close", "ratePct": "$rate", "tick": 0.01 },
+			"text": {
+				"pt-BR": {
+					"prompt": "Seu long tem um trailing stop de {rate}% do melhor fechamento (tick 0,01). O melhor fechamento até agora é {close}. Onde está o gatilho?",
+					"explain": "A distância é {rate}% de {close}, arredondada para cima até o tick; o gatilho é o melhor fechamento menos essa distância: {answer}."
+				},
+				"en": {
+					"prompt": "Your long has a trailing stop at {rate}% of the best close (tick 0.01). The best close so far is {close}. Where is the trigger?",
+					"explain": "The distance is {rate}% of {close}, rounded up to the tick; the trigger is the best close minus that distance: {answer}."
+				}
+			}
+		}
+	]
+}

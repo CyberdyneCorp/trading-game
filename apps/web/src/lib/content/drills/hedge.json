@@ -1,0 +1,25 @@
+{
+	"skill": "hedge",
+	"templates": [
+		{
+			"id": "hedge-straddle",
+			"stage": "advanced",
+			"lessons": ["vol-gamma-scalping"],
+			"params": {
+				"d": { "lo": "0.05", "hi": "0.4", "step": "0.05" },
+				"n": { "lo": "2", "hi": "20", "step": "2" }
+			},
+			"answer": { "kind": "hedge", "deltaPerUnit": "$d", "units": "$n" },
+			"text": {
+				"pt-BR": {
+					"prompt": "Seu straddle tem delta líquido de +{d} por contrato e você tem {n} contratos. Quantas unidades do perpétuo você vende para ficar com delta zero?",
+					"explain": "Venda o delta total: {d} × {n} = {answer} unidades. Cada unidade do perpétuo tem delta 1."
+				},
+				"en": {
+					"prompt": "Your straddle has a net delta of +{d} per contract and you hold {n} contracts. How many units of the perpetual do you sell to be delta neutral?",
+					"explain": "Sell the total delta: {d} × {n} = {answer} units. Each unit of the perpetual has a delta of 1."
+				}
+			}
+		}
+	]
+}

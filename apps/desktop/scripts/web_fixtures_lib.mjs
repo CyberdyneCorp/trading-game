@@ -6,6 +6,7 @@
 import { combosFixture, comparisonFixture, gameOf, strategiesFixture, whatifLabFixture } from './web_fixtures_options.mjs';
 import { heatmapFixture, orderRulesFixture } from './web_fixtures_wave1.mjs';
 import { debriefV14Fixture } from './web_fixtures_wave2.mjs';
+import { coachFixture, dailyFixture, drillsFixture, guessFixture } from './web_fixtures_wave3.mjs';
 
 const SIDES = ['buy', 'sell'];
 const LOCALES = ['pt-BR', 'en'];
@@ -571,6 +572,11 @@ export async function buildFixtures(load, golden) {
 		heatmap: heatmapFixture(await load('heatmap.ts'), await load('portfolio.ts'), null, golden('whatif-heatmap'), [
 			gameOf(),
 			gameOf({ multiplier: '10', lot: '0.01', optLot: '1' })
-		])
+		]),
+		// Wave 3 practice formats (W3-D2, W3-D3).
+		drills: drillsFixture(await load('prng.ts'), await load('drills.ts'), await load('content/drills.ts')),
+		daily: dailyFixture(await load('daily.ts')),
+		guess: guessFixture(await load('guessRound.ts')),
+		coach: coachFixture(await load('coachReview.ts'), i18n)
 	};
 }
