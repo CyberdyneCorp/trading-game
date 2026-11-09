@@ -7,9 +7,13 @@
 //   {"k":"opt","series","side","type","qty","premium"}  {"k":"lev","lev"}  {"k":"margin","amount"}
 //   {"k":"plan","side","skipped","option","lose","inv","target","conf","risk"}  {"k":"ans","pBp","skipped"}
 //   {"k":"lesson","q","choice","value","skipped"}  {"k":"cancel","id"}  {"k":"move","id","price"}
-//   {"k":"close"}  {"k":"advice"}
+//   {"k":"close"}  {"k":"advice"}  {"k":"oco","a","b"}
+// Policy v18 (add-practice-and-advanced-strategies D6, D7): "order" and "opt" may carry "tif"
+// (bars | ioc | fok; absent = gtc) and "tifBars"; they go through tl_place_order_tif /
+// tl_place_option_order_tif, and actions without one through the pre-v18 calls. "oco" links two working
+// orders (tl_link_oco).
 // Strategy-builder legs (orders, option orders, the cancels of a withdrawn combo) add "combo" and
-// "strategy" as the web does; replay ignores them, so a tagged log reaches the untagged log's digest.
+// "strategy" (and "roll"/"adjust" for a roll or an adjustment of a live combo) as the web does; replay ignores them, so a tagged log reaches the untagged log's digest.
 #pragma once
 
 #include <cstdint>
@@ -37,6 +41,8 @@ struct OrderAction {
   std::optional<std::string> take_profit;
   std::optional<std::string> trail;
   std::optional<std::string> trail_rate;
+  std::string tif;  // "" or "gtc" = not logged
+  int tif_bars = 0;
 };
 
 struct PlanAction {
@@ -61,6 +67,7 @@ Action plan(const PlanAction& p);
 Action answer(int p_bp, bool skipped);
 Action lesson(std::uint32_t question, std::uint32_t choice, const std::optional<std::string>& value, bool skipped);
 Action cancel(std::uint32_t order_id);
+Action oco(std::uint32_t order_a, std::uint32_t order_b);
 Action move(std::uint32_t order_id, const std::string& price);
 Action close();
 Action advice();

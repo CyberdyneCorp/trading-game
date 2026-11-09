@@ -14,13 +14,32 @@
 
 namespace tradelab::desktop::game {
 
+// One submission of a combo (add-practice-and-advanced-strategies D3): its opening, a roll or an
+// adjustment, placed at one decision step.
+enum class SubmissionKind : std::uint8_t { Open, Roll, Adjust };
+std::string_view submission_kind_code(SubmissionKind k);  // open | roll | adjust
+
+struct ComboSubmission {
+  SubmissionKind kind = SubmissionKind::Open;
+  std::string n;  // the roll's or adjustment's number ("1", ...); "" for the opening
+  int step = 0;
+  std::vector<OrderLeg> legs;
+  bool withdrawn = false;  // the legs were cancelled at placement (a leg was refused)
+};
+
 struct ComboRecord {
   std::string id;
-  std::string strategy;  // a template code, "short_straddle", "short_strangle" or "custom"
-  int step = 0;          // decision step the legs were placed at; they execute at the next open
-  std::vector<OrderLeg> legs;  // in submission order; series 0 = the perpetual
-  bool withdrawn = false;      // the legs were cancelled at placement (a leg was refused)
+  std::string strategy;  // a template code, its short version ("short_straddle", ...) or "custom"
+  int step = 0;          // decision step the opening legs were placed at; they execute at the next open
+  std::vector<OrderLeg> legs;  // the opening legs in submission order; series 0 = the perpetual
+  bool withdrawn = false;      // the opening legs were cancelled at placement (a leg was refused)
+  // The opening, then every roll and adjustment, in log order (one journal and debrief row). Empty in a
+  // record built by hand: the opening alone.
+  std::vector<ComboSubmission> submissions;
 };
+
+// The next roll or adjustment number of a combo ("1", "2", ...).
+std::string next_submission_number(const ComboRecord& rec, SubmissionKind kind);
 
 // The next free combo id ("c1", "c2", ...).
 std::string next_combo_id(const std::vector<ComboRecord>& combos);
@@ -46,14 +65,22 @@ std::string_view combo_state_code(ComboState s);  // working | filled | withdraw
 
 struct ComboStatus {
   ComboRecord record;
-  ComboState state = ComboState::Working;
-  std::vector<LegStatus> legs;
+  ComboState state = ComboState::Working;  // the latest submission's state
+  std::vector<LegStatus> legs;             // the latest submission's legs
+  std::vector<LegStatus> all_legs;         // every submission's legs, in order
 };
 
-// Order ids of a combo's legs: the last run of consecutive orders accepted at the combo's step whose
-// sides and quantities match the legs in order.
+// Order ids of a submission's legs: the last run of consecutive orders accepted at its step whose sides
+// and quantities match the legs in order.
+std::vector<std::optional<int>> combo_order_ids(const std::vector<EngineEvent>& events, int step, const std::vector<OrderLeg>& legs);
 std::vector<std::optional<int>> combo_order_ids(const std::vector<EngineEvent>& events, const ComboRecord& rec);
 ComboStatus combo_status(const std::vector<EngineEvent>& events, const ComboRecord& rec);
+
+// The combo's live holdings (what a roll or an adjustment starts from): the filled legs of every
+// submission netted per series (signed contracts, > 0 long), zero nets dropped.
+std::vector<HeldLeg> combo_holdings(const ComboStatus& status);
+// The order ids of the latest submission's legs still working ("Cancel working legs").
+std::vector<int> working_legs(const ComboStatus& status);
 // Option premium cash of the filled legs: credit > 0, debit < 0.
 double net_premium(const ComboStatus& status, double multiplier);
 // The legs a player still carries after an incomplete combo: the filled ones.

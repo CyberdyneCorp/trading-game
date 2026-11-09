@@ -128,6 +128,21 @@ GameCommand GameCommand::advice() {
   return c;
 }
 
+GameCommand GameCommand::link_oco(int order_a, int order_b) {
+  GameCommand c;
+  c.kind = GameCommandKind::LinkOco;
+  c.id = order_a;
+  c.number = order_b;
+  return c;
+}
+
+GameCommand GameCommand::with_tif(std::string tif_name, int bars) const {
+  GameCommand c = *this;
+  c.tif = std::move(tif_name);
+  c.tif_bars = c.tif == "bars" ? bars : 0;
+  return c;
+}
+
 GameCommand GameCommand::tagged(std::string combo_id, std::string strategy_name) const {
   GameCommand c = *this;
   c.combo = std::move(combo_id);

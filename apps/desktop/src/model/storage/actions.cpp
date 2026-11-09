@@ -31,11 +31,13 @@ int32_t order_type_code(std::string_view type) {
 
 Action finish(JsonWriter& w) { return Action{w.end_object().text()}; }
 
-// The web spreads the ComboTag after the action's own fields ({...action, combo, strategy}).
+// The web spreads the ComboTag after the action's own fields ({...action, combo, strategy, roll|adjust}).
 Action with_tag(Action a, const GameCommand& c) {
   if (c.combo.empty() || a.json.empty() || a.json.back() != '}') return a;
   JsonWriter w;
   w.begin_object().field("combo", c.combo).field("strategy", c.strategy.empty() ? "custom" : c.strategy);
+  if (!c.roll.empty()) w.field("roll", c.roll);
+  if (!c.adjust.empty()) w.field("adjust", c.adjust);
   const std::string tag = w.end_object().text();
   a.json.pop_back();
   a.json += "," + tag.substr(1);
@@ -47,6 +49,30 @@ std::optional<std::string> present(const std::string& s) {
 }
 
 Side side_of(bool buy) { return buy ? Side::Buy : Side::Sell; }
+
+std::uint32_t id_of(int v) { return static_cast<std::uint32_t>(v); }
+
+// Only a non-default time in force is logged (web tifFields): gtc = absent, bars carries its count.
+void write_tif(JsonWriter& w, const std::string& tif, int bars) {
+  if (tif.empty() || tif == "gtc") return;
+  w.field("tif", tif);
+  if (tif == "bars") w.field("tifBars", bars > 0 ? bars : 1);
+}
+
+constexpr std::array<std::string_view, 4> kTifs = {"gtc", "bars", "ioc", "fok"};
+
+// The TimeInForce code of a logged action; nullopt when it has none (the pre-v18 calls), -1 when unknown
+// (the engine refuses it).
+std::optional<int32_t> tif_code(const json::Value& a) {
+  if (a["tif"].kind() != json::Value::Kind::String) return std::nullopt;
+  const std::string name = a["tif"].as_string();
+  for (std::size_t i = 0; i < kTifs.size(); ++i) {
+    if (kTifs[i] == name) return static_cast<int32_t>(i);
+  }
+  return -1;
+}
+
+std::uint32_t tif_bars_of(const json::Value& a) { return static_cast<std::uint32_t>(a["tifBars"].as_int(0)); }
 
 Action order_from(const GameCommand& c) {
   constexpr std::array<const char*, 5> kTypes = {"market", "limit", "stop_market", "take_profit", "trailing_stop"};
@@ -60,6 +86,8 @@ Action order_from(const GameCommand& c) {
   o.stop = present(c.stop);
   o.take_profit = present(c.tp);
   o.trail = present(c.trail);
+  o.tif = c.tif;
+  o.tif_bars = c.tif_bars;
   return actions::order(o);
 }
 
@@ -70,7 +98,21 @@ Action trailing_rate_from(const GameCommand& c) {
   o.qty = c.qty;
   o.reduce_only = c.reduce_only;
   o.trail_rate = c.trail;
+  o.tif = c.tif;
+  o.tif_bars = c.tif_bars;
   return actions::order(o);
+}
+
+Action option_from(const GameCommand& c) {
+  Action a = actions::option(id_of(c.id), side_of(c.buy), c.type == 1, c.qty, present(c.price));
+  if (c.tif.empty() || c.tif == "gtc") return a;
+  JsonWriter w;
+  w.begin_object();
+  write_tif(w, c.tif, c.tif_bars);
+  const std::string extra = w.end_object().text();
+  a.json.pop_back();
+  a.json += "," + extra.substr(1);
+  return a;
 }
 
 Action plan_from(const GameCommand& c) {
@@ -85,8 +127,6 @@ Action plan_from(const GameCommand& c) {
   p.risk = present(c.amount);
   return actions::plan(p);
 }
-
-std::uint32_t id_of(int v) { return static_cast<std::uint32_t>(v); }
 
 JsonWriter begin(std::string_view kind) {
   JsonWriter w;
@@ -104,11 +144,16 @@ const char* call_order(EngineRun& r, std::uint32_t id, const json::Value& a) {
   const int32_t ro = flag(a["ro"]);
   const std::string qty = a["qty"].as_string();
   const std::string rate = text_or_empty(a["trailRate"]);
-  if (type == "trailing_stop" && !rate.empty()) return tl_place_trailing_rate(r.handle(), id, side, qty.c_str(), ro, rate.c_str());
   const std::string price = text_or_empty(a["price"]);
   const std::string stop = text_or_empty(a["stop"]);
   const std::string tp = text_or_empty(a["tp"]);
   const std::string trail = text_or_empty(a["trail"]);
+  if (const auto tif = tif_code(a)) {  // policy v18: a trailing stop's rate rides along on type 4
+    const std::string tif_rate = type == "trailing_stop" ? rate : std::string();
+    return tl_place_order_tif(r.handle(), id, order_type_code(type), side, qty.c_str(), price.c_str(), ro, stop.c_str(),
+                              tp.c_str(), trail.c_str(), tif_rate.c_str(), *tif, tif_bars_of(a));
+  }
+  if (type == "trailing_stop" && !rate.empty()) return tl_place_trailing_rate(r.handle(), id, side, qty.c_str(), ro, rate.c_str());
   return tl_place_order_ex(r.handle(), id, order_type_code(type), side, qty.c_str(), price.c_str(), ro, stop.c_str(),
                            tp.c_str(), trail.c_str());
 }
@@ -117,8 +162,16 @@ const char* call_option(EngineRun& r, std::uint32_t id, const json::Value& a) {
   const std::string qty = a["qty"].as_string();
   const std::string premium = text_or_empty(a["premium"]);
   const int32_t type = a["type"].as_string() == "limit" ? 1 : 0;
-  return tl_place_option_order(r.handle(), id, static_cast<std::uint32_t>(a["series"].as_int()), side_code(a["side"]), type,
-                               qty.c_str(), premium.c_str());
+  const auto series = static_cast<std::uint32_t>(a["series"].as_int());
+  if (const auto tif = tif_code(a)) {
+    return tl_place_option_order_tif(r.handle(), id, series, side_code(a["side"]), type, qty.c_str(), premium.c_str(), *tif,
+                                     tif_bars_of(a));
+  }
+  return tl_place_option_order(r.handle(), id, series, side_code(a["side"]), type, qty.c_str(), premium.c_str());
+}
+
+const char* call_oco(EngineRun& r, std::uint32_t id, const json::Value& a) {
+  return tl_link_oco(r.handle(), id, static_cast<std::uint32_t>(a["a"].as_int()), static_cast<std::uint32_t>(a["b"].as_int()));
 }
 
 const char* call_plan(EngineRun& r, std::uint32_t id, const json::Value& a) {
@@ -165,7 +218,7 @@ const char* call_advice(EngineRun& r, std::uint32_t id, const json::Value& /*a*/
   return tl_request_advice(r.handle(), id);
 }
 
-constexpr std::array<std::pair<std::string_view, Call>, 11> kCalls = {{
+constexpr std::array<std::pair<std::string_view, Call>, 12> kCalls = {{
     {"order", call_order},
     {"opt", call_option},
     {"plan", call_plan},
@@ -175,6 +228,7 @@ constexpr std::array<std::pair<std::string_view, Call>, 11> kCalls = {{
     {"ans", call_answer},
     {"cancel", call_cancel},
     {"move", call_move},
+    {"oco", call_oco},
     {"close", call_close},
     {"advice", call_advice},
 }};
@@ -211,6 +265,7 @@ Action order(const OrderAction& o) {
   if (o.take_profit) w.field("tp", o.take_profit);
   if (o.trail) w.field("trail", o.trail);
   if (o.trail_rate) w.field("trailRate", o.trail_rate);
+  write_tif(w, o.tif, o.tif_bars);
   return finish(w);
 }
 
@@ -258,6 +313,12 @@ Action cancel(std::uint32_t order_id) {
   return finish(w);
 }
 
+Action oco(std::uint32_t order_a, std::uint32_t order_b) {
+  JsonWriter w = begin("oco");
+  w.field("a", order_a).field("b", order_b);
+  return finish(w);
+}
+
 Action move(std::uint32_t order_id, const std::string& price) {
   JsonWriter w = begin("move");
   w.field("id", order_id).field("price", price);
@@ -278,8 +339,8 @@ Action from_game(const GameCommand& c) {
   switch (c.kind) {
     case GameCommandKind::Order: return with_tag(order_from(c), c);
     case GameCommandKind::TrailingRate: return trailing_rate_from(c);
-    case GameCommandKind::Option:
-      return with_tag(option(id_of(c.id), side_of(c.buy), c.type == 1, c.qty, present(c.price)), c);
+    case GameCommandKind::Option: return with_tag(option_from(c), c);
+    case GameCommandKind::LinkOco: return oco(id_of(c.id), id_of(c.number));
     case GameCommandKind::Cancel: return with_tag(cancel(id_of(c.id)), c);
     case GameCommandKind::Move: return actions::move(id_of(c.id), c.price);
     case GameCommandKind::Leverage: return leverage(c.number);

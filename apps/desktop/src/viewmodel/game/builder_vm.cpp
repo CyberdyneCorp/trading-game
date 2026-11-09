@@ -35,14 +35,95 @@ std::string order_leg_name(const Texts& t, const GameState& g, const OrderLeg& o
   return std::string(o.buy ? "+" : "\xE2\x88\x92") + fmt::fmt_qty(o.qty, L) + " " + what;
 }
 
+TifView tif_view(const Texts& t, TifChoice choice, const std::string& bars_input, std::string_view type, int step_seconds, int step,
+                 int left) {
+  TifView v;
+  v.label = t.tr("tif.label");
+  const int day = std::min(day_bars(step_seconds), left);
+  for (const TifChoice c : kTifChoices) {
+    const std::string code(tif_choice_code(c));
+    v.items.push_back(c == TifChoice::Day ? t.tr("tif.day", {{"n", std::to_string(day)}}) : t.tr("tif." + code));
+    const std::string why = tif_block(c, type);
+    v.blocked.push_back(why.empty() ? std::string() : t.tr("tif.block." + why));
+  }
+  const TifChoice shown = tif_block(choice, type).empty() ? choice : TifChoice::Gtc;
+  v.index = static_cast<int>(shown);
+  v.bars = shown == TifChoice::Bars;
+  v.bars_label = t.tr("tif.barsInput");
+  const TifOrder o = tif_order(shown, fmt::parse_decimal(bars_input), step_seconds, left);
+  v.error = !o.ok();
+  if (v.error) v.hint = t.tr("tif.barsRange", {{"left", std::to_string(left)}});
+  else if (o.tif == "bars") v.hint = t.tr("tif.hint.bars", {{"from", std::to_string(step + 1)}, {"to", std::to_string(step + o.bars)}});
+  else if (o.tif == "ioc" || o.tif == "fok") v.hint = t.tr("tif.hint." + o.tif, {{"from", std::to_string(step + 1)}});
+  else v.hint = t.tr("tif.hint.gtc");
+  return v;
+}
+
 void BuilderViewModel::sync(const GameState& g) {
   const auto e = expiries_of(g.options.chain);
   if (std::find(e.begin(), e.end(), expiry) == e.end()) expiry = e.empty() ? 0 : e.front();
+  const auto far = later(g);
+  if (std::find(far.begin(), far.end(), far_expiry) == far.end()) far_expiry = far.empty() ? 0 : far.front();
 }
 
 void BuilderViewModel::set_expiry_index(const GameState& g, int index) {
   const auto e = expiries_of(g.options.chain);
   if (index >= 0 && index < static_cast<int>(e.size())) expiry = e[static_cast<std::size_t>(index)];
+  sync(g);
+}
+
+std::vector<int> BuilderViewModel::later(const GameState& g) const { return roll_targets(g.options.chain, expiry); }
+
+void BuilderViewModel::set_far_index(const GameState& g, int index) {
+  const auto far = later(g);
+  if (index >= 0 && index < static_cast<int>(far.size())) far_expiry = far[static_cast<std::size_t>(index)];
+}
+
+std::vector<int> BuilderViewModel::leg_expiry_steps(const GameState& g) const {
+  std::vector<int> out{expiry};
+  const auto far = later(g);
+  out.insert(out.end(), far.begin(), far.end());
+  return out;
+}
+
+void BuilderViewModel::set_leg_expiry(const GameState& g, std::size_t i, int index) {
+  const auto steps = leg_expiry_steps(g);
+  if (i >= legs.size() || index < 0 || index >= static_cast<int>(steps.size()) || legs[i].kind == LegKind::Perp) return;
+  BuilderLeg& l = legs[i];
+  l.expiry = steps[static_cast<std::size_t>(index)];
+  l.limit.reset();
+  const auto strikes = strikes_of(g.options.chain, *l.expiry);
+  if (l.strike && std::find(strikes.begin(), strikes.end(), *l.strike) == strikes.end() && !strikes.empty()) l.strike = strikes.front();
+  strategy = "custom";
+}
+
+void BuilderViewModel::set_leg_limit(const GameState& g, std::size_t i, bool on) {
+  if (i >= legs.size()) return;
+  BuilderLeg& l = legs[i];
+  const OptionQuote* q = l.kind == LegKind::Perp || !l.strike ? nullptr : series_for(g.options.chain, l.expiry.value_or(expiry), l.kind, *l.strike);
+  if (on && q != nullptr) l.limit = default_limit(q->mid, l.buy, g.options.premium_tick);
+  else l.limit.reset();
+}
+
+void BuilderViewModel::set_leg_limit_text(std::size_t i, const std::string& text) {
+  if (i >= legs.size() || !legs[i].limit) return;
+  const double v = fmt::parse_decimal(text);
+  legs[i].limit = std::isfinite(v) ? std::max(0.0, v) : 0.0;
+}
+
+bool BuilderViewModel::has_limit() const {
+  return std::any_of(legs.begin(), legs.end(), [](const BuilderLeg& l) { return l.kind != LegKind::Perp && l.limit; });
+}
+
+std::optional<ComboTif> BuilderViewModel::tif(const GameState& g) const {
+  if (!has_limit()) return std::nullopt;
+  const TifOrder o = tif_order(tif_choice, fmt::parse_decimal(tif_bars), g.step_seconds, bars_left(g.total_bars, g.step));
+  if (!o.ok()) return std::nullopt;
+  return ComboTif{o.tif, o.bars};
+}
+
+bool BuilderViewModel::tif_error(const GameState& g) const {
+  return has_limit() && !tif_order(tif_choice, fmt::parse_decimal(tif_bars), g.step_seconds, bars_left(g.total_bars, g.step)).ok();
 }
 
 double BuilderViewModel::contracts(Locale L) const {
@@ -58,8 +139,11 @@ void BuilderViewModel::pick(const GameState& g, Template t, Locale L) {
   use_long = held && covers_long(t);
   if (use_long) qty = fmt::fmt_num(cover_contracts(g, *held), L, 1);
   const double n = contracts(L);
-  legs = template_legs(t, strikes_of(g.options.chain, expiry), g.last_price(), n > 0 ? n : 1, short_side)
-             .value_or(std::vector<BuilderLeg>{});
+  const auto& chain = g.options.chain;
+  const auto made = two_expiry(t) ? two_expiry_template_legs(t, {expiry, strikes_of(chain, expiry)}, {far_expiry, strikes_of(chain, far_expiry)},
+                                                             g.last_price(), n > 0 ? n : 1, short_side)
+                                  : template_legs(t, strikes_of(chain, expiry), g.last_price(), n > 0 ? n : 1, short_side);
+  legs = made.value_or(std::vector<BuilderLeg>{});
 }
 
 void BuilderViewModel::toggle_short(const GameState& g, Locale L) {
@@ -85,13 +169,16 @@ void BuilderViewModel::set_kind(const GameState& g, std::size_t i, LegKind kind)
 void BuilderViewModel::set_side(std::size_t i, bool buy) {
   if (i >= legs.size()) return;
   legs[i].buy = buy;
+  legs[i].limit.reset();
   strategy = "custom";
 }
 
 void BuilderViewModel::set_strike(const GameState& g, std::size_t i, int index) {
-  const auto strikes = strikes_of(g.options.chain, expiry);
-  if (i >= legs.size() || index < 0 || index >= static_cast<int>(strikes.size())) return;
+  if (i >= legs.size()) return;
+  const auto strikes = strikes_of(g.options.chain, legs[i].expiry.value_or(expiry));
+  if (index < 0 || index >= static_cast<int>(strikes.size())) return;
   legs[i].strike = strikes[static_cast<std::size_t>(index)];
+  legs[i].limit.reset();
 }
 
 void BuilderViewModel::set_leg_qty(std::size_t i, const std::string& text) {
@@ -117,7 +204,7 @@ void BuilderViewModel::add_leg(const GameState& g, Locale L) {
   }
   if (!k && !strikes.empty()) k = strikes.front();
   const double n = contracts(L);
-  legs.push_back({LegKind::Call, true, k, n > 0 ? n : 1});
+  legs.push_back({LegKind::Call, true, k, n > 0 ? n : 1, std::nullopt, std::nullopt});
   strategy = "custom";
 }
 
@@ -127,8 +214,9 @@ bool BuilderViewModel::same_qty(Locale L) const {
 }
 
 std::optional<double> BuilderViewModel::max_loss_now() const {
-  if (!whatif_ || !whatif_->ok() || !whatif_->value->expiry || !whatif_->value->expiry->max_loss) return std::nullopt;
-  return fmt::num(*whatif_->value->expiry->max_loss);
+  const WhatIfExpiry* e = whatif_ && whatif_->ok() ? analytics_of(*whatif_->value) : nullptr;
+  if (e == nullptr || !e->max_loss) return std::nullopt;
+  return fmt::num(*e->max_loss);
 }
 
 std::optional<double> BuilderViewModel::sized(const GameState& g, Locale L) const {
@@ -161,7 +249,7 @@ std::optional<std::vector<OrderLeg>> BuilderViewModel::orders(const GameState& g
 
 std::string BuilderViewModel::problem(const GameState& g) const {
   const auto s = sent(g);
-  std::string p = legs_problem(s);
+  std::string p = legs_problem(s, expiry);
   if (!p.empty()) return p;
   if (!orders(g)) return "unlisted";
   return writes_options(s) && !write_allowed(g) ? "write_locked" : "";
@@ -169,10 +257,10 @@ std::string BuilderViewModel::problem(const GameState& g) const {
 
 std::optional<BuilderViewModel::Requests> BuilderViewModel::requests(const GameState& g) const {
   const auto o = orders(g);
-  if (!o || o->empty() || !legs_problem(sent(g)).empty()) return std::nullopt;
+  if (!o || o->empty() || !legs_problem(sent(g), expiry).empty()) return std::nullopt;
   Requests r;
   r.whatif = run_request(whatif_legs(*o, covered(g)));
-  r.preview = combo_request(combo_legs(*o));
+  r.preview = combo_request(combo_legs(*o, tif(g)));
   // Valued again whenever the state they are valued in moves (a bar, a fill, an order placed).
   r.key = r.whatif + r.preview + "|" + std::to_string(g.step) + "|" + std::to_string(g.events.size()) + "|" +
           std::to_string(g.account.available);
@@ -199,13 +287,11 @@ void BuilderViewModel::answer_preview(const std::string& text) {
 bool BuilderViewModel::can_submit(const GameState& g, bool busy) const {
   const auto o = orders(g);
   const bool combo_ok = !preview_ || !preview_->ok() || preview_->value->accepted;
-  return problem(g).empty() && !pending() && !busy && o && !o->empty() && combo_ok && g.active();
+  return problem(g).empty() && !pending() && !busy && o && !o->empty() && combo_ok && g.active() && !tif_error(g);
 }
 
 std::optional<double> BuilderViewModel::risk() const {
-  if (whatif_ && whatif_->ok() && whatif_->value->expiry && whatif_->value->expiry->max_loss) {
-    return std::max(0.0, fmt::num(*whatif_->value->expiry->max_loss));
-  }
+  if (const auto loss = max_loss_now()) return std::max(0.0, *loss);
   if (preview_ && preview_->ok()) return fmt::num(preview_->value->required);
   return std::nullopt;
 }
@@ -219,7 +305,9 @@ std::optional<ComboDraft> BuilderViewModel::draft(const Texts& t, const GameStat
   d.strategy = strategy;
   d.label = t.count("combo.label", static_cast<long>(d.orders.size()), {{"name", t.tr("strategy." + strategy)}});
   d.risk = risk();
-  d.unbounded = whatif_ && whatif_->ok() && whatif_->value->expiry && !whatif_->value->expiry->max_loss;
+  const WhatIfExpiry* e = whatif_ && whatif_->ok() ? analytics_of(*whatif_->value) : nullptr;
+  d.unbounded = e != nullptr && !e->max_loss;
+  d.tif = tif(g);
   return d;
 }
 
@@ -242,10 +330,12 @@ BuilderView BuilderViewModel::view(const Texts& t, const GameState& g, bool busy
     v.expiries.push_back(t.tr("builder.expiryAt", {{"step", std::to_string(expiries[i])}, {"n", std::to_string(expiries[i] - g.step)}}));
     if (expiries[i] == expiry) v.expiry_index = static_cast<int>(i);
   }
+  const bool no_far = later(g).empty();
   for (const Template id : kTemplates) {
-    v.templates.push_back({id, t.tr("strategy." + strategy_of(id, short_side)), !(template_writes(id, short_side) && !write_allowed(g)),
-                           tmpl == id});
+    const bool locked = (template_writes(id, short_side) && !write_allowed(g)) || (two_expiry(id) && no_far);
+    v.templates.push_back({id, t.tr("strategy." + strategy_of(id, short_side)), !locked, tmpl == id});
   }
+  view_expiries(t, g, v);
   if (!write_allowed(g)) v.write_locked = t.tr("builder.writeLocked");
   v.caption = t.tr("strategy." + strategy);
   view_legs(t, g, v);
@@ -257,20 +347,46 @@ BuilderView BuilderViewModel::view(const Texts& t, const GameState& g, bool busy
   return v;
 }
 
+void BuilderViewModel::view_expiries(const Texts& t, const GameState& g, BuilderView& v) const {
+  const auto far = later(g);
+  v.far_label = t.tr("builder.expiryFar");
+  for (std::size_t i = 0; i < far.size(); ++i) {
+    v.far_expiries.push_back(t.tr("builder.expiryAt", {{"step", std::to_string(far[i])}, {"n", std::to_string(far[i] - g.step)}}));
+    if (far[i] == far_expiry) v.far_index = static_cast<int>(i);
+  }
+  for (const int e : leg_expiry_steps(g)) v.leg_expiries.push_back(t.tr("builder.expiryShort", {{"step", std::to_string(e)}}));
+  v.leg_types = {t.tr("builder.legMarket"), t.tr("builder.legLimit")};
+  v.has_limit = has_limit();
+  if (!v.has_limit) return;
+  v.limit_note = t.tr("builder.limitNote");
+  v.tif_note = t.tr("builder.comboTifNote");
+  v.tif = tif_view(t, tif_choice, tif_bars, "limit", g.step_seconds, g.step, bars_left(g.total_bars, g.step));
+}
+
+BuilderLegRow BuilderViewModel::leg_row(const GameState& g, const BuilderLeg& l, Locale L) const {
+  const int e = l.expiry.value_or(expiry);
+  const auto strikes = strikes_of(g.options.chain, e);
+  BuilderLegRow row{kind_index(l.kind), l.buy ? 0 : 1, strike_index(strikes, l.strike), fmt::fmt_num(l.qty, L, 1), false, {}, 0, false, {}};
+  for (const double k : strikes) row.strikes.push_back(fmt::fmt_price(js_number(k), L));
+  const auto steps = leg_expiry_steps(g);
+  const auto at = std::find(steps.begin(), steps.end(), e);
+  row.expiry = at == steps.end() ? 0 : static_cast<int>(at - steps.begin());
+  row.limit = l.kind != LegKind::Perp && l.limit.has_value();
+  if (row.limit) row.limit_text = fmt::price_input_text(*l.limit, g.options.premium_tick, L);
+  if (l.kind != LegKind::Perp && !l.buy && l.strike && !l.limit) {
+    const OptionQuote* q = series_for(g.options.chain, e, l.kind, *l.strike);
+    row.no_bid = q != nullptr && q->bid <= 0;
+  }
+  return row;
+}
+
 void BuilderViewModel::view_legs(const Texts& t, const GameState& g, BuilderView& v) const {
   const Locale L = t.locale();
   const auto strikes = strikes_of(g.options.chain, expiry);
   v.kinds = {"Call", "Put", t.tr("lab.perp")};
   v.sides = {t.tr("opt.buy"), t.tr("opt.sell")};
   for (const double k : strikes) v.strikes.push_back(fmt::fmt_price(js_number(k), L));
-  for (const auto& l : legs) {
-    BuilderLegRow row{kind_index(l.kind), l.buy ? 0 : 1, strike_index(strikes, l.strike), fmt::fmt_num(l.qty, L, 1), false};
-    if (l.kind != LegKind::Perp && !l.buy && l.strike) {
-      const OptionQuote* q = series_for(g.options.chain, expiry, l.kind, *l.strike);
-      row.no_bid = q != nullptr && q->bid <= 0;
-    }
-    v.legs.push_back(row);
-  }
+  for (const auto& l : legs) v.legs.push_back(leg_row(g, l, L));
   const auto options = std::count_if(legs.begin(), legs.end(), [](const BuilderLeg& l) { return l.kind != LegKind::Perp; });
   v.can_add_leg = static_cast<std::size_t>(options) < kMaxOptionLegs;
   const auto held = held_long(g);
@@ -308,7 +424,11 @@ void BuilderViewModel::view_analysis(const Texts& t, const GameState& g, Builder
   if (!whatif_ || !whatif_->ok()) return;
   const WhatIfResult& w = *whatif_->value;
   v.has_whatif = true;
-  if (w.expiry) {
+  if (const auto h = horizon_step(w)) {
+    v.horizon = t.tr("builder.horizon", {{"step", std::to_string(g.step + *h)}});
+    v.horizon_note = t.tr("builder.horizonNote");
+  }
+  if (analytics_of(w) != nullptr) {
     v.analysis.emplace_back(t.tr("opt.breakeven"), breakevens_text(w, L));
     v.analysis.emplace_back(t.tr("lab.maxProfit"), max_profit_text(t, w));
     v.analysis.emplace_back(t.tr("lab.maxLoss"), max_loss_text(t, w));

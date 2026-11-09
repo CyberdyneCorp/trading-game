@@ -21,7 +21,27 @@ bool relevant(const std::string& line) {
 
 OrderLeg leg_of(const json::Value& a) {
   const bool option = a["k"].as_string() == "opt";
-  return {option ? static_cast<int>(a["series"].as_int()) : 0, a["side"].as_string("buy") != "sell", a["qty"].as_string("0")};
+  OrderLeg leg{option ? static_cast<int>(a["series"].as_int()) : 0, a["side"].as_string("buy") != "sell", a["qty"].as_string("0"),
+               std::nullopt};
+  const std::string premium = a["premium"].as_string();
+  if (option && a["type"].as_string() == "limit" && !premium.empty()) leg.premium = premium;
+  return leg;
+}
+
+ComboSubmission submission_key(const json::Value& a, int step) {
+  const std::string roll = a["roll"].as_string();
+  const std::string adjust = a["adjust"].as_string();
+  if (!roll.empty()) return {SubmissionKind::Roll, roll, step, {}, false};
+  if (!adjust.empty()) return {SubmissionKind::Adjust, adjust, step, {}, false};
+  return {SubmissionKind::Open, "", step, {}, false};
+}
+
+ComboSubmission& submission_of(ComboRecord& rec, const ComboSubmission& key) {
+  for (auto& s : rec.submissions) {
+    if (s.kind == key.kind && s.n == key.n) return s;
+  }
+  rec.submissions.push_back(key);
+  return rec.submissions.back();
 }
 
 LegStatus leg_status(const std::vector<EngineEvent>& events, const OrderLeg& leg, std::optional<int> order_id) {
@@ -45,8 +65,8 @@ LegStatus leg_status(const std::vector<EngineEvent>& events, const OrderLeg& leg
   return out;
 }
 
-ComboState overall(const ComboRecord& rec, const std::vector<LegStatus>& legs) {
-  if (rec.withdrawn) return ComboState::Withdrawn;
+ComboState overall(bool withdrawn, const std::vector<LegStatus>& legs) {
+  if (withdrawn) return ComboState::Withdrawn;
   if (std::any_of(legs.begin(), legs.end(), [](const LegStatus& l) { return l.state == LegState::Working; })) {
     return ComboState::Working;
   }
@@ -56,10 +76,10 @@ ComboState overall(const ComboRecord& rec, const std::vector<LegStatus>& legs) {
 }
 
 // The accepted orders from `start` match the legs in order (side and quantity).
-bool run_matches(const std::vector<const EngineEvent*>& accepted, std::size_t start, const ComboRecord& rec) {
-  for (std::size_t i = 0; i < rec.legs.size(); ++i) {
+bool run_matches(const std::vector<const EngineEvent*>& accepted, std::size_t start, const std::vector<OrderLeg>& legs) {
+  for (std::size_t i = 0; i < legs.size(); ++i) {
     const EngineEvent& e = *accepted[start + i];
-    const OrderLeg& leg = rec.legs[i];
+    const OrderLeg& leg = legs[i];
     if (e.side != (leg.buy ? "buy" : "sell") || !same_qty(e.qty, leg.qty)) return false;
   }
   return true;
@@ -98,12 +118,30 @@ std::vector<ComboRecord> combos_from_log(const std::vector<std::string>& log, in
     const std::string id = (*a)["combo"].as_string();
     if (id.empty()) continue;
     auto [it, fresh] = index.try_emplace(id, out.size());
-    if (fresh) out.push_back({id, (*a)["strategy"].as_string("custom"), step, {}, false});
+    if (fresh) out.push_back({id, (*a)["strategy"].as_string("custom"), step, {}, false, {}});
     ComboRecord& rec = out[it->second];
-    if (k == "cancel") rec.withdrawn = true;
-    else rec.legs.push_back(leg_of(*a));
+    ComboSubmission& sub = submission_of(rec, submission_key(*a, step));
+    if (k == "cancel") sub.withdrawn = true;
+    else sub.legs.push_back(leg_of(*a));
+    if (sub.kind != SubmissionKind::Open) continue;
+    rec.legs = sub.legs;
+    rec.withdrawn = sub.withdrawn;
   }
   return out;
+}
+
+std::string_view submission_kind_code(SubmissionKind k) {
+  switch (k) {
+    case SubmissionKind::Open: return "open";
+    case SubmissionKind::Roll: return "roll";
+    case SubmissionKind::Adjust: break;
+  }
+  return "adjust";
+}
+
+std::string next_submission_number(const ComboRecord& rec, SubmissionKind kind) {
+  const auto n = std::count_if(rec.submissions.begin(), rec.submissions.end(), [&](const ComboSubmission& s) { return s.kind == kind; });
+  return std::to_string(n + 1);
 }
 
 std::string_view leg_state_code(LegState s) {
@@ -126,26 +164,61 @@ std::string_view combo_state_code(ComboState s) {
   return "incomplete";
 }
 
-std::vector<std::optional<int>> combo_order_ids(const std::vector<EngineEvent>& events, const ComboRecord& rec) {
+std::vector<std::optional<int>> combo_order_ids(const std::vector<EngineEvent>& events, int step, const std::vector<OrderLeg>& legs) {
   std::vector<const EngineEvent*> accepted;
   for (const auto& e : events) {
-    if (e.type == "order" && e.status == "accepted" && e.step == rec.step) accepted.push_back(&e);
+    if (e.type == "order" && e.status == "accepted" && e.step == step) accepted.push_back(&e);
   }
-  const auto n = static_cast<std::ptrdiff_t>(rec.legs.size());
+  const auto n = static_cast<std::ptrdiff_t>(legs.size());
   for (auto start = static_cast<std::ptrdiff_t>(accepted.size()) - n; start >= 0; --start) {
-    if (!run_matches(accepted, static_cast<std::size_t>(start), rec)) continue;
+    if (!run_matches(accepted, static_cast<std::size_t>(start), legs)) continue;
     std::vector<std::optional<int>> ids;
     for (std::ptrdiff_t i = 0; i < n; ++i) ids.emplace_back(accepted[static_cast<std::size_t>(start + i)]->order_id);
     return ids;
   }
-  return std::vector<std::optional<int>>(rec.legs.size());
+  return std::vector<std::optional<int>>(legs.size());
+}
+
+std::vector<std::optional<int>> combo_order_ids(const std::vector<EngineEvent>& events, const ComboRecord& rec) {
+  return combo_order_ids(events, rec.step, rec.legs);
 }
 
 ComboStatus combo_status(const std::vector<EngineEvent>& events, const ComboRecord& rec) {
-  const auto ids = combo_order_ids(events, rec);
-  ComboStatus out{rec, ComboState::Working, {}};
-  for (std::size_t i = 0; i < rec.legs.size(); ++i) out.legs.push_back(leg_status(events, rec.legs[i], ids[i]));
-  out.state = overall(rec, out.legs);
+  const std::vector<ComboSubmission> subs =
+      rec.submissions.empty() ? std::vector<ComboSubmission>{{SubmissionKind::Open, "", rec.step, rec.legs, rec.withdrawn}}
+                              : rec.submissions;
+  ComboStatus out{rec, ComboState::Working, {}, {}};
+  for (const auto& sub : subs) {
+    const auto ids = combo_order_ids(events, sub.step, sub.legs);
+    out.legs.clear();
+    for (std::size_t i = 0; i < sub.legs.size(); ++i) out.legs.push_back(leg_status(events, sub.legs[i], ids[i]));
+    out.all_legs.insert(out.all_legs.end(), out.legs.begin(), out.legs.end());
+    out.state = overall(sub.withdrawn, out.legs);
+  }
+  return out;
+}
+
+std::vector<HeldLeg> combo_holdings(const ComboStatus& status) {
+  std::vector<HeldLeg> net;  // first-fill order, as the web's Map keeps it
+  for (const auto& l : status.all_legs) {
+    if (l.state != LegState::Filled) continue;
+    const double q = fmt::num(l.leg.qty) * (l.leg.buy ? 1 : -1);
+    auto it = std::find_if(net.begin(), net.end(), [&](const HeldLeg& h) { return h.series == l.leg.series; });
+    if (it == net.end()) net.push_back({l.leg.series, q});
+    else it->qty += q;
+  }
+  std::vector<HeldLeg> out;
+  for (const auto& h : net) {
+    if (std::fabs(h.qty) > 1e-9) out.push_back({h.series, std::round(h.qty * 1e8) / 1e8});
+  }
+  return out;
+}
+
+std::vector<int> working_legs(const ComboStatus& status) {
+  std::vector<int> out;
+  for (const auto& l : status.legs) {
+    if (l.state == LegState::Working && l.order_id) out.push_back(*l.order_id);
+  }
   return out;
 }
 
@@ -202,7 +275,8 @@ GroupedTrades group_trades(const std::vector<ComboTrade>& trades, const std::vec
   GroupedTrades out;
   for (const auto& status : statuses) {
     ComboTrades group{status, {}, 0, std::nullopt};
-    for (const auto& l : status.legs) {
+    // A rolled or adjusted combo stays one row: every submission's legs (D3).
+    for (const auto& l : status.all_legs.empty() ? status.legs : status.all_legs) {
       const ComboTrade* t = l.state == LegState::Filled ? trade_of_leg(trades, l) : nullptr;
       if (t == nullptr || used.count(t->n) != 0) continue;
       used.insert(t->n);

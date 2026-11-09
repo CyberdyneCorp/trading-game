@@ -61,6 +61,13 @@ void GameView::bind_builder() {
   };
   cb_.click(find(b::kTab), [this] { vm().set_tab(game::Tab::Builder); });
   cb_.choose(find(b::kExpiry), [changed](int i) { changed([i](GameViewModel& m, const GameState& g) { m.builder.set_expiry_index(g, i); }); });
+  cb_.choose(find(b::kFar), [changed](int i) { changed([i](GameViewModel& m, const GameState& g) { m.builder.set_far_index(g, i); }); });
+  cb_.choose(find(b::kTif), [changed](int i) {
+    changed([i](GameViewModel& m, const GameState&) { m.builder.tif_choice = game::kTifChoices.at(static_cast<std::size_t>(i)); });
+  });
+  cb_.text(find(b::kTifBars), [changed](const std::string& text) {
+    changed([text](GameViewModel& m, const GameState&) { m.builder.tif_bars = text; });
+  });
   cb_.text(find(b::kQty), [this](const std::string& text) { vm().builder.qty = text; });
   cb_.commit(find(b::kQty), [this, changed] {
     changed([this](GameViewModel& m, const GameState&) { m.builder.apply_qty(vm().texts().locale()); });
@@ -123,6 +130,7 @@ void GameView::apply_builder(const game::Texts& t, const GameState& g) {
     fill(find(b::kExpiry), v.expiries);
   }
   select(find(b::kExpiry), v.expiry_index);
+  apply_builder_expiries(t, v);
   set_label(find(b::kQtyLabel), t.tr("opt.qty"));
   ui::set_text(find(b::kQty), m.builder.qty);
   ui::set_text(find(b::kShort), t.tr("builder.short"));
@@ -152,6 +160,10 @@ void GameView::apply_builder(const game::Texts& t, const GameState& g) {
   builder_preview_.set(v.preview);
   set_label(find(b::kTotals), kv(v.totals));
   set_label(find(b::kAnalysis), kv(v.analysis));
+  set_label(find(b::kHorizon), v.horizon);
+  set_visible(find(b::kHorizon), !v.horizon.empty());
+  set_label(find(b::kHorizonNote), v.horizon_note);
+  set_visible(find(b::kHorizonNote), !v.horizon_note.empty());
   apply_sizing(t, v);
   set_visible(find(b::kPayoff), v.has_whatif);
   Rwidget_set_accessible_name(find(b::kPayoff), v.chart_summary.c_str());
@@ -164,6 +176,36 @@ void GameView::apply_builder(const game::Texts& t, const GameState& g) {
   ui::set_text(find(b::kSubmit), t.tr("builder.submit"));
   set_enabled(find(b::kSubmit), v.can_submit);
   Rwidget_invalidate(find(b::kPayoff));
+}
+
+// D3: the far expiry; D2: the combo's time in force when a leg is a limit.
+void GameView::apply_builder_expiries(const game::Texts& /*t*/, const game::BuilderView& v) {
+  set_visible(find(b::kFarRow), !v.far_expiries.empty());
+  set_label(find(b::kFarLabel), v.far_label);
+  Rwidget_set_accessible_name(find(b::kFar), v.far_label.c_str());
+  if (joined(v.far_expiries) != far_key_) {
+    far_key_ = joined(v.far_expiries);
+    fill(find(b::kFar), v.far_expiries);
+  }
+  select(find(b::kFar), v.far_index);
+  set_visible(find(b::kLimitTif), v.has_limit);
+  if (!v.has_limit) return;
+  set_label(find(b::kLimitNote), v.limit_note);
+  set_label(find(b::kTifLabel), v.tif.label);
+  Rwidget_set_accessible_name(find(b::kTif), v.tif.label.c_str());
+  if (joined(v.tif.items) != tif_key_) {
+    tif_key_ = joined(v.tif.items);
+    fill(find(b::kTif), v.tif.items);
+  }
+  select(find(b::kTif), v.tif.index);
+  set_visible(find(b::kTifBarsRow), v.tif.bars);
+  set_label(find(b::kTifBarsLabel), v.tif.bars_label);
+  Rwidget_set_accessible_name(find(b::kTifBars), v.tif.bars_label.c_str());
+  const Rid bars = find(b::kTifBars);
+  if (Rwidget_is_focused(bars) == 0) ui::set_text(bars, vm().builder.tif_bars);
+  set_label(find(b::kTifHint), v.tif.hint);
+  set_color(find(b::kTifHint), v.tif.error ? game::Tone::Down : game::Tone::Muted);
+  set_label(find(b::kTifNote), v.tif_note);
 }
 
 namespace {
@@ -194,8 +236,8 @@ game::LegKind kind_at(int k) {
 // One row per leg: kind, side, strike (options), quantity, remove; and its no-bid warning. Rebuilt only
 // when the rows' shape changes, so a quantity being typed keeps its field.
 void GameView::build_leg_rows(const game::BuilderView& v) {
-  std::string key = std::to_string(static_cast<int>(vm().texts().locale())) + "|" + joined(v.strikes);
-  for (const auto& l : v.legs) key += std::to_string(l.kind == 2 ? 2 : 0);
+  std::string key = std::to_string(static_cast<int>(vm().texts().locale())) + "|" + joined(v.leg_expiries);
+  for (const auto& l : v.legs) key += std::to_string(l.kind == 2 ? 2 : 0) + joined(l.strikes) + (l.limit ? "L" : "M");
   if (key == legs_key_ && leg_rows_.size() == v.legs.size()) return;
   legs_key_ = key;
   clear_leg_rows();
@@ -230,7 +272,7 @@ void GameView::add_leg_row(const game::BuilderView& v, std::size_t i) {
   if (v.legs[i].kind == 2) {
     add_filler(row);
   } else {
-    const Rid strike = add_combo(row, v.strikes, t.tr("opt.strike"), 0);
+    const Rid strike = add_combo(row, v.legs[i].strikes, t.tr("opt.strike"), 0);
     Rslot_set_fill(strike, 1);
     cb_.choose(strike, [this, i](int s) {
       if (vm().state() == nullptr) return;
@@ -251,6 +293,7 @@ void GameView::add_leg_row(const game::BuilderView& v, std::size_t i) {
     vm().builder.remove_leg(i);
     vm().builder_changed();
   });
+  add_leg_extra(v, i, leg);
   const Rid warn = Rlabel_create(t.tr("builder.noBid").c_str());
   Rlabel_set_wrap(warn, R_TRUE);
   Rlabel_set_text_size(warn, 11);
@@ -263,6 +306,31 @@ void GameView::add_leg_row(const game::BuilderView& v, std::size_t i) {
   leg_rows_.push_back(leg);
 }
 
+// D2/D3: the leg's expiry (two at most) and market or limit, on a line of their own (row 1).
+void GameView::add_leg_extra(const game::BuilderView& v, std::size_t i, Rid leg) {
+  const game::Texts t = vm().texts();
+  const Rid row = Rwidget_create(R_WIDGET_HBOX);
+  Rwidget_add_child(leg, row);
+  const Rid expiry = add_combo(row, v.leg_expiries, t.tr("builder.legExpiry"), 0);
+  Rslot_set_fill(expiry, 1);
+  cb_.choose(expiry, [this, i](int e) {
+    if (vm().state() == nullptr) return;
+    vm().builder.set_leg_expiry(*vm().state(), i, e);
+    vm().builder_changed();
+  });
+  cb_.choose(add_combo(row, v.leg_types, t.tr("builder.legType"), 96), [this, i](int k) {
+    if (vm().state() == nullptr) return;
+    vm().builder.set_leg_limit(*vm().state(), i, k == 1);
+    vm().builder_changed();
+  });
+  const Rid limit = Rwidget_create(R_WIDGET_TEXT_INPUT);
+  Rwidget_set_size(limit, 64, -1);
+  Rwidget_set_accessible_name(limit, t.tr("builder.limitPremium").c_str());
+  Rwidget_add_child(row, limit);
+  cb_.text(limit, [this, i](const std::string& text) { vm().builder.set_leg_limit_text(i, text); });
+  cb_.commit(limit, [this] { vm().builder_changed(); });
+}
+
 void GameView::apply_leg_rows(const game::BuilderView& v) {
   for (std::size_t i = 0; i < v.legs.size() && i < leg_rows_.size(); ++i) {
     const auto& l = v.legs[i];
@@ -272,7 +340,15 @@ void GameView::apply_leg_rows(const game::BuilderView& v) {
     if (l.kind != 2) select(row_child(leg, 0, 2), l.strike);
     const Rid qty = row_child(leg, 0, 3);
     if (Rwidget_is_focused(qty) == 0) ui::set_text(qty, l.qty);
-    set_visible(Rwidget_get_child(leg, 1), l.no_bid);
+    const Rid extra = Rwidget_get_child(leg, 1);
+    set_visible(extra, l.kind != 2);
+    set_visible(row_child(leg, 1, 0), v.leg_expiries.size() > 1);
+    select(row_child(leg, 1, 0), l.expiry);
+    select(row_child(leg, 1, 1), l.limit ? 1 : 0);
+    const Rid limit = row_child(leg, 1, 2);
+    set_visible(limit, l.limit);
+    if (Rwidget_is_focused(limit) == 0) ui::set_text(limit, l.limit_text);
+    set_visible(Rwidget_get_child(leg, 2), l.no_bid);
   }
 }
 

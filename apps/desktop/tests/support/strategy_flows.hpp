@@ -80,8 +80,15 @@ inline void flow_each_template(App& app, Driver& d, Terminal& t, const StrategyS
   t.skip_question();
   game::GameViewModel& vm = app.vm().game();
   REQUIRE(t.g().options.enabled);
+  const std::size_t condor = 6;  // game::Template::IronCondor
   for (std::size_t i = 0; i < game::kTemplates.size(); ++i) {
     INFO("template " << game::template_code(game::kTemplates[i]));
+    // A calendar or diagonal needs a later listed expiry (add-practice-and-advanced-strategies D3).
+    if (!vm.builder_view().templates[i].enabled) {
+      CHECK(game::two_expiry(game::kTemplates[i]));
+      CHECK(vm.builder.later(t.g()).empty());
+      continue;
+    }
     pick_template(app, d, i);
     const game::BuilderView v = vm.builder_view();
     CHECK_FALSE(v.legs.empty());
@@ -95,7 +102,8 @@ inline void flow_each_template(App& app, Driver& d, Terminal& t, const StrategyS
     CHECK(v.can_submit);
     if (shot) shot("builder-" + std::string(game::template_code(game::kTemplates[i])));
   }
-  // The condor (the last template) goes out as four tagged market orders, longs first.
+  // The condor goes out as four tagged market orders, longs first.
+  if (vm.builder.tmpl != game::kTemplates[condor]) pick_template(app, d, condor);
   submit_combo(app, d);
   REQUIRE(vm.combos().size() == 1);
   CHECK(vm.combos()[0].strategy == "iron_condor");

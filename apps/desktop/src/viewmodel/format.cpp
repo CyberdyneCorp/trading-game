@@ -203,6 +203,10 @@ std::string_view sign_mark(double v) {
   return "\xE2\x80\xA2";             // •
 }
 
+std::string to_fixed_text(double v, int digits) { return to_fixed(v, digits); }
+
+int step_decimals(double step) { return decimals_of(step); }
+
 std::string qty_to_lot(double qty, double lot) {
   if (!std::isfinite(qty) || qty <= 0) return "0";
   const double lots = std::floor(qty / lot + 1e-9);

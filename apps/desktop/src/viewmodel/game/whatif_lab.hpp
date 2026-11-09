@@ -95,6 +95,35 @@ struct WhatIfExpiry {
   Curve curve;
 };
 
+// Analytics at the first expiry when option legs have different expiries (add-practice-and-advanced-
+// strategies D4): later legs at their model value then.
+struct WhatIfHorizon : WhatIfExpiry {
+  int expiry_step = 0;  // a bar (run) or minutes from now (run-less)
+  bool unbounded_above = false;
+};
+
+// pnl[t][p]: the position's P&L at prices[p] after times[t] (D4).
+struct WhatIfHeatmap {
+  std::vector<std::string> prices;
+  std::vector<int> times;
+  std::vector<std::vector<std::string>> pnl;
+};
+
+// One declared risk limit and the measured value it compares (D9).
+struct RiskLimitCheck {
+  std::string kind;  // delta | gamma | vega | theta
+  int limit_bp = 0;
+  int value_bp = 0;
+  bool exceeded = false;
+};
+
+// Portfolio risk of the reply's legs (holdings: true), engine-computed (D4, D9).
+struct WhatIfRisk {
+  std::string delta_units, delta_notional, gamma_1pct, vega_point, theta_bar, funding_next, equity;
+  int delta_bp = 0, gamma_bp = 0, vega_bp = 0, theta_bp = 0, funding_bp = 0;
+  std::vector<RiskLimitCheck> limits;
+};
+
 struct WhatIfResult {
   std::string forward;
   bool at_expiry = false;
@@ -102,7 +131,15 @@ struct WhatIfResult {
   WhatIfNet net;
   std::optional<WhatIfExpiry> expiry;
   Curve today;
+  std::optional<WhatIfHorizon> horizon;  // only when option legs span expiries
+  std::optional<WhatIfHeatmap> heatmap;  // when requested
+  std::optional<WhatIfRisk> risk;        // with holdings: true
 };
+
+// The analytics a chart and the builder show (web analyticsOf): the common expiry's, or the engine's
+// horizon at the first expiry; nullptr otherwise. horizon_step: the horizon's bar offset, or nullopt.
+const WhatIfExpiry* analytics_of(const WhatIfResult& r);
+std::optional<int> horizon_step(const WhatIfResult& r);
 
 struct ComboLegPreview {
   bool accepted = false;

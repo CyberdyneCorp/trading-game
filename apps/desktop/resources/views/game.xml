@@ -231,6 +231,10 @@
                                         <Label Name="game-builder-expiry-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
                                         <ComboBox Name="game-builder-expiry" Slot.Fill="1"/>
                                     </HBox>
+                                    <HBox Name="game-builder-far-row" Spacing="4">
+                                        <Label Name="game-builder-far-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                        <ComboBox Name="game-builder-far" Slot.Fill="1"/>
+                                    </HBox>
                                     <HBox Spacing="4">
                                         <Label Name="game-builder-qty-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
                                         <TextInput Name="game-builder-qty" Slot.Fill="1"/>
@@ -244,11 +248,30 @@
                                         <Button Name="game-builder-tpl-4"/>
                                         <Button Name="game-builder-tpl-5"/>
                                         <Button Name="game-builder-tpl-6"/>
+                                        <Button Name="game-builder-tpl-7"/>
+                                        <Button Name="game-builder-tpl-8"/>
+                                        <Button Name="game-builder-tpl-9"/>
+                                        <Button Name="game-builder-tpl-10"/>
                                     </WrapBox>
                                     <Label Name="game-builder-write-locked" Color="#FFC857" Wrap="true" TextSize="12"/>
                                     <Label Name="game-builder-caption" Color="#8FB3A1" Wrap="true" TextSize="12"/>
                                     <VBox Name="game-builder-legs" Spacing="3"/>
                                     <Button Name="game-builder-add-leg"/>
+                                    <!-- add-practice-and-advanced-strategies D2: one time in force for the combo's limit legs. -->
+                                    <VBox Name="game-builder-limit-tif" Spacing="3">
+                                        <Separator/>
+                                        <Label Name="game-builder-limit-note" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                                        <HBox Spacing="4">
+                                            <Label Name="game-builder-tif-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                            <ComboBox Name="game-builder-tif" Slot.Fill="1"/>
+                                        </HBox>
+                                        <HBox Name="game-builder-tif-bars-row" Spacing="4">
+                                            <Label Name="game-builder-tif-bars-label" Color="#8FB3A1" TextSize="12" Slot.VAlign="Center"/>
+                                            <TextInput Name="game-builder-tif-bars" Width="56"/>
+                                        </HBox>
+                                        <Label Name="game-builder-tif-hint" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                                        <Label Name="game-builder-tif-note" Color="#8FB3A1" Wrap="true" TextSize="11"/>
+                                    </VBox>
                                     <HBox Name="game-builder-use-long-row" Spacing="4">
                                         <Checkbox Name="game-builder-use-long" Slot.VAlign="Center"/>
                                         <Label Name="game-builder-use-long-text" Color="#E3F5EA" Wrap="true" TextSize="12" Slot.Fill="1"/>
@@ -257,7 +280,9 @@
                                     <Label Name="game-builder-no-analysis" Color="#8FB3A1" Wrap="true" TextSize="12"/>
                                     <VBox Name="game-builder-preview" Spacing="1"/>
                                     <Label Name="game-builder-totals" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                                    <Label Name="game-builder-horizon" Color="#5FD7FF" Wrap="true" TextSize="12"/>
                                     <Label Name="game-builder-analysis" Color="#E3F5EA" Wrap="true" TextSize="12"/>
+                                    <Label Name="game-builder-horizon-note" Color="#8FB3A1" Wrap="true" TextSize="11"/>
                                     <Label Name="game-builder-size-held" Color="#8FB3A1" Wrap="true" TextSize="12"/>
                                     <VBox Name="game-builder-sizing" Spacing="3" AccessibleRole="Group">
                                         <HBox Spacing="4">

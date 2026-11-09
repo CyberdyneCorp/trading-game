@@ -52,6 +52,12 @@ MissionRules rules_from(const Value& r) {
   m.drawdown_budget_bp = to_int(r["drawdownBudgetBp"]);
   m.confirm_stop_beyond_liq = r["confirmStopBeyondLiq"].as_bool(false);
   m.spread_margin = r["spreadMargin"].as_bool(false);
+  m.calendar_margin = r["calendarMargin"].as_bool(false);
+  const Value& limits = r["riskLimits"];
+  m.risk_delta_bp = to_int(limits["deltaBp"]);
+  m.risk_gamma_bp = to_int(limits["gammaBp"]);
+  m.risk_vega_bp = to_int(limits["vegaBp"]);
+  m.risk_theta_bp = to_int(limits["thetaBp"]);
   return m;
 }
 
@@ -97,6 +103,13 @@ Order order_from(const Value& o) {
   out.trail_rate = dbl(o["trailRate"]);
   out.bracket = dbl(o["bracketStop"]) != 0 || dbl(o["bracketTp"]) != 0;
   out.series = to_int(o["series"]);
+  out.placed_step = to_int(o["placedStep"]);
+  out.trail_distance_text = o["trailDistance"].as_string();
+  out.trail_rate_text = o["trailRate"].as_string();
+  out.tif = o["tif"].as_string("gtc");
+  out.tif_bars = to_int(o["tifBars"]);
+  out.expire_step = to_int(o["expireStep"]);
+  out.link_group = to_int(o["linkGroup"]);
   return out;
 }
 

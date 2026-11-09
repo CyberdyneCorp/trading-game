@@ -35,6 +35,14 @@ struct GameCommand {
   // ("iron_condor"), logged with the action and ignored by replay (design D3). "" = not a combo leg.
   std::string combo;
   std::string strategy;
+  // add-practice-and-advanced-strategies D3: the n-th roll or adjustment of the combo ("1", ...), logged
+  // with the tag and ignored by replay. "" = the opening submission.
+  std::string roll;
+  std::string adjust;
+  // Time in force (execution policy v18): "" or "gtc" = absent (the pre-v18 call), "bars" with tif_bars,
+  // "ioc" or "fok". Only a non-default value is logged, so older logs replay unchanged.
+  std::string tif;
+  int tif_bars = 0;
 
   static GameCommand order(OrderType type, bool buy, std::string qty, std::string price, bool reduce_only,
                            std::string stop = {}, std::string tp = {}, std::string trail = {});
@@ -50,6 +58,10 @@ struct GameCommand {
   static GameCommand answer(int p_bp, bool skipped);
   static GameCommand lesson(int question, int choice, std::string value, bool skipped);
   static GameCommand advice();
+  // Links two working orders as one-cancels-the-other (tl_link_oco, policy v18).
+  static GameCommand link_oco(int order_a, int order_b);
+  // This command with a time in force (orders and option orders).
+  [[nodiscard]] GameCommand with_tif(std::string tif_name, int bars = 0) const;
   // This command tagged as a leg of `combo` (structure `strategy`).
   [[nodiscard]] GameCommand tagged(std::string combo_id, std::string strategy_name) const;
 };

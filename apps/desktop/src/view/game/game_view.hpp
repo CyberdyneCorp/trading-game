@@ -90,6 +90,8 @@ class GameView {
   void apply_sizing(const game::Texts& t, const game::BuilderView& v);
   void clear_leg_rows();
   void add_leg_row(const game::BuilderView& v, std::size_t i);
+  void add_leg_extra(const game::BuilderView& v, std::size_t i, Rid leg);
+  void apply_builder_expiries(const game::Texts& t, const game::BuilderView& v);
   void apply_leg_rows(const game::BuilderView& v);
   void apply_combo_notice();
   void apply_lab_dialog(const game::Texts& t);
@@ -119,7 +121,7 @@ class GameView {
   std::chrono::steady_clock::time_point last_tick_ = std::chrono::steady_clock::now();
   LineList builder_preview_, builder_table_;
   std::vector<Rid> leg_rows_;
-  std::string legs_key_, expiries_key_;
+  std::string legs_key_, expiries_key_, far_key_, tif_key_;
   std::unique_ptr<LabPanel> lab_;
 };
 

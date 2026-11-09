@@ -59,7 +59,8 @@ enum class GameCommandKind : std::uint8_t {
   Plan,
   Answer,
   Lesson,
-  Advice
+  Advice,
+  LinkOco  // policy v18: two working orders linked one-cancels-the-other
 };
 
 struct CommandResult {
