@@ -166,3 +166,64 @@ def test_mirror_matches_the_web_request_shape():
     assert r["shift"] == {"forward": "110.00", "minutesElapsed": 2880, "ivPoints": "-5"}
     assert r["legs"][0]["iv"] == "0.6000" and r["legs"][0]["minutesToExpiry"] == 43200
     assert math.isclose(float(option_whatif(r)["legs"][0]["iv"]), 0.55)
+
+
+# ---- trailing stop triggers (add-practice-and-advanced-strategies D10) ---------------------------
+# A `trail` check states the trigger of a trailing stop for a best close. The engine computes it only on
+# a live order, so the formula below (the engine's: ceil(close x rate) at 1e-8, outward on the tick) is
+# first proven against a scripted engine run, bar by bar, then applied to every stated check.
+
+def _trail_trigger(side, close, tick, rate=None, distance=None):
+    """accounting.cpp trail_trigger in exact decimals: Price 1e-8, Rate 1e-10."""
+    from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
+
+    c, t = Decimal(str(close)), Decimal(str(tick))
+    if rate is not None:
+        dist = (c * Decimal(str(rate)).quantize(Decimal("1e-10"))).quantize(Decimal("1e-8"), rounding=ROUND_CEILING)
+    else:
+        dist = Decimal(str(distance))
+    raw = c - dist if side == "sell" else c + dist
+    ticks = (raw / t).to_integral_value(rounding=ROUND_FLOOR if side == "sell" else ROUND_CEILING)
+    return max(ticks, Decimal(1)) * t
+
+
+def test_trail_formula_matches_a_scripted_engine_run():
+    from tradelab_engine import Run
+
+    with Run("m07-trend-trailing", 3) as run:
+        assert run.place_order(1, 0, 0, "10", None, False)["accepted"]
+        run.advance(1)
+        placed = run.state()["step"]
+        assert run.place_trailing_rate(2, 1, "10", True, "0.02")["accepted"]
+        compared = 0
+        for _ in range(12):
+            s = run.advance(1)
+            trail = next((o for o in s["orders"] if o["type"] == "trailing_stop"), None)
+            if trail is None:
+                break
+            best = max(float(b[3]) for b in s["bars"][placed:])
+            close = next(b[3] for b in s["bars"][placed:] if float(b[3]) == best)
+            assert float(trail["price"]) == float(_trail_trigger("sell", close, s["contract"]["tickSize"], rate="0.02"))
+            compared += 1
+        assert compared > 3
+
+
+def _trail_checks():
+    sources = [(l["id"], l.get("checks", [])) for l in _lessons()]
+    glossary = json.loads((CONTENT / "glossary.json").read_text())
+    sources += [(t["id"], t.get("checks", [])) for t in glossary["terms"]]
+    return [(owner, c) for owner, checks in sources for c in checks if c["kind"] == "trail"]
+
+
+TRAIL_CHECKS = _trail_checks()
+
+
+@pytest.mark.parametrize("owner,check", TRAIL_CHECKS, ids=[f"{o}-trail-{i}" for i, (o, _) in enumerate(TRAIL_CHECKS)])
+def test_trail_check(owner, check):
+    rate = check["ratePct"] / 100 if "ratePct" in check else None
+    got = _trail_trigger(check["side"], check["close"], check["tick"], rate=rate, distance=check.get("distance"))
+    assert float(got) == check["expect"], owner
+
+
+def test_every_trail_check_is_covered():
+    assert len(TRAIL_CHECKS) >= 3  # the orders-execution step's two and the glossary example

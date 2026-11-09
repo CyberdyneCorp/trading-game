@@ -2,6 +2,7 @@
 // Pure functions over plain numbers: the engine still validates every price it receives.
 
 import type { Side } from './sizing.ts';
+import type { Decimal, OrderSideName } from '#lib/engine/types.ts';
 
 /** Bars as [open, high, low, close, volume]. */
 export type BarTuple = [number, number, number, number, number];
@@ -95,3 +96,41 @@ export function stopOnLosingSide(side: Side, entry: number, stop: number): boole
 export function targetOnWinningSide(side: Side, entry: number, tp: number): boolean {
 	return side === 'buy' ? tp > entry : tp < entry;
 }
+
+// ---- the engine's trailing trigger, exact (add-practice-and-advanced-strategies D10) ----
+
+const SCALE = 100_000_000n; // Price/Qty decimals (1e-8)
+const RATE_SCALE = 10_000_000_000n; // Rate decimals (1e-10)
+
+/** A decimal string as a fixed-point integer with `decimals` decimals (truncated beyond them). */
+export function toRaw(d: string, decimals = 8): bigint {
+	const neg = d.startsWith('-');
+	const [whole, frac = ''] = (neg ? d.slice(1) : d).split('.');
+	const raw = BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt((frac + '0'.repeat(decimals)).slice(0, decimals) || '0');
+	return neg ? -raw : raw;
+}
+
+function fromRaw(raw: bigint): string {
+	const neg = raw < 0n;
+	const v = neg ? -raw : raw;
+	const frac = (v % SCALE).toString().padStart(8, '0');
+	return `${neg ? '-' : ''}${v / SCALE}.${frac}`;
+}
+
+const ceilDiv = (a: bigint, b: bigint) => (a + b - 1n) / b;
+
+/**
+ * The engine's trailing trigger for a best close (accounting.cpp trail_trigger, exact): the distance is
+ * the fixed one, or ceil(close x rate) at 1e-8; the trigger is close - distance for a sell (a long's
+ * stop), close + distance for a buy, rounded outward onto the tick, at least one tick.
+ */
+export function trailTrigger(exit: OrderSideName, close: Decimal, trail: { distance?: Decimal; rate?: Decimal }, tick: Decimal): string {
+	const c = toRaw(close);
+	const t = toRaw(tick);
+	const rate = trail.rate ? toRaw(trail.rate, 10) : 0n;
+	const dist = rate > 0n ? ceilDiv(c * rate, RATE_SCALE) : toRaw(trail.distance ?? '0');
+	const raw = exit === 'sell' ? c - dist : c + dist;
+	const ticks = exit === 'sell' ? (raw >= 0n ? raw / t : -ceilDiv(-raw, t)) : ceilDiv(raw, t);
+	return fromRaw((ticks > 1n ? ticks : 1n) * t);
+}
+

@@ -1286,6 +1286,144 @@ statsFinding.wrote_options,Opção vendida descoberta,Uncovered written option
 statsFinding.leverage_vs_stop,Alavancagem alta para o stop,Leverage too high for the stop
 statsFinding.liq_buffer,Liquidação perto demais,Liquidation too close
 statsFinding.drawdown_budget,Drawdown acima do orçamento,Drawdown above budget
+tif.label,Validade,Time in force
+tif.gtc,Até cancelar (GTC),Good till cancelled (GTC)
+tif.day,Um dia ({n} barras),One day ({n} bars)
+tif.bars,N barras,N bars
+tif.ioc,Imediata ou cancela (IOC),Immediate or cancel (IOC)
+tif.fok,Tudo ou nada (FOK),Fill or kill (FOK)
+tif.barsInput,Barras,Bars
+tif.block.needs_limit,IOC e FOK só valem para ordem limitada: ela tenta executar só na abertura da próxima barra.,IOC and FOK are for limit orders only: the order tries to execute only at the next bar's open.
+tif.block.market_immediate,"Ordem a mercado já é imediata: executa na próxima abertura, sem validade.","A market order is already immediate: it executes at the next open, with no time in force."
+tif.barsRange,Escolha entre 1 e {left} barras (o que resta da partida).,Choose between 1 and {left} bars (what is left of the run).
+tif.hint.gtc,"Trabalha até executar, ser cancelada ou a partida acabar.","Works until it fills, is cancelled or the run ends."
+tif.hint.bars,Pode executar nas barras {from} a {to}; o que sobrar expira no fechamento da barra {to}.,Can execute on bars {from} to {to}; whatever is left expires at the close of bar {to}.
+tif.hint.ioc,Só na abertura da barra {from}: executa o que o preço e a capacidade permitirem e cancela o resto. Nunca executa dentro da barra.,Only at the open of bar {from}: fills what the price and capacity allow and cancels the rest. It never fills intrabar.
+tif.hint.fok,Só na abertura da barra {from}: a quantidade inteira ou nada.,Only at the open of bar {from}: the whole quantity or nothing.
+orders.tifTitle,Validade: {kind},Time in force: {kind}
+orders.until,até a barra {step},until bar {step}
+orders.select,Selecionar #{id} para ligar como OCO,Select #{id} to link as OCO
+orders.link,Ligar OCO,Link OCO
+orders.linkHint,Marque duas ordens e ligue-as: a primeira que executar cancela a outra.,Tick two orders and link them: the first to fill cancels the other.
+orders.linked,ligada a #{id}: a primeira que executar cancela a outra,linked to #{id}: the first to fill cancels the other
+orders.linkTitle,Ligar #{a} e #{b} como OCO?,Link #{a} and #{b} as OCO?
+orders.linkBody,"Quando uma das duas executar (qualquer quantidade), o motor cancela o restante da outra antes da vez dela, mesmo se os dois preços forem tocados na mesma barra. Duas saídas reduce-only da mesma posição só reduzem uma à outra. Cancelar uma delas desfaz a ligação; mover mantém.","When either fills (any quantity), the engine cancels the rest of the other before its turn, even if both prices trade on one bar. Two reduce-only exits of the same position only reduce each other. Cancelling one dissolves the link; moving keeps it."
+orders.linkYes,Ligar,Link
+orders.linkNo,Voltar,Back
+orders.linkProblem.same,Escolha duas ordens diferentes.,Choose two different orders.
+orders.linkProblem.child,Stop ou alvo de bracket já formam OCO com o par; ligue a ordem de entrada.,Bracket stops and targets are already OCO with their pair; link the entry order.
+orders.linkProblem.linked,Uma das ordens já está ligada a outra.,One of the orders is already linked to another.
+orders.linkedOk,"#{a} e #{b} ligadas: a primeira execução cancela a outra.","#{a} and #{b} linked: the first fill cancels the other."
+reason.time_in_force,a validade da ordem acabou,the order's time in force ended
+reason.invalid_time_in_force,validade inválida para esta ordem (IOC e FOK só em limitada; N barras entre 1 e o que resta),invalid time in force for this order (IOC and FOK on limits only; N bars between 1 and what is left)
+reason.invalid_oco,"estas ordens não podem ser ligadas como OCO (mesma ordem, inativa, filha de bracket ou já ligada)","these orders cannot be linked as OCO (same order, inactive, a bracket child or already linked)"
+ticket.protectWith,Proteger com,Protect with
+ticket.protectFixed,Stop fixo,Fixed stop
+ticket.protectTrail,Trailing stop,Trailing stop
+ticket.trailPlanned,planejado agora: depois da execução um aviso oferece colocá-lo. Nada é enviado sem o seu clique.,planned now: after the fill a notice offers to place it. Nothing is sent without your click.
+ticket.tab.stop,Stop,Stop
+ticket.tab.trail,Trailing,Trailing
+ticket.tab.target,Alvo,Target
+ticket.trailRule,O gatilho segue o melhor fechamento e nunca recua. Gatilho agora: {price} (vale a partir da próxima barra).,The trigger follows the best close and never moves back. Trigger now: {price} (in force from the next bar).
+ticket.trailExplain,"Um trailing stop sobe junto com cada fechamento melhor (cai, num short) e nunca recua: protege o lucro sem fixar o alvo.","A trailing stop rises with every better close (falls, on a short) and never moves back: it protects the profit without fixing a target."
+trail.notice,Você planejou um trailing stop de {rule}. Primeiro gatilho ≈ {price}.,You planned a trailing stop of {rule}. First trigger ≈ {price}.
+trail.place,Colocar o trailing planejado,Place the planned trailing stop
+trail.dismiss,Agora não,Not now
+trail.filled,Ticket preenchido com o trailing planejado: confira e clique em Proteger.,Ticket filled with the planned trailing stop: check it and click Protect.
+chart.bestClose,melhor fechamento {price},best close {price}
+builder.legType,Tipo da perna,Leg type
+builder.legMarket,Mercado,Market
+builder.legLimit,Limitada,Limit
+builder.limitPremium,Prêmio limite,Limit premium
+builder.limitNote,"Pernas limitadas são analisadas aos seus prêmios limite. O padrão é o meio da cotação, arredondado para o lado passivo.","Limit legs are analysed at their limit premiums. The default is the quote's mid, rounded to the passive side."
+builder.comboTif,Validade das pernas limitadas,Time in force of the limit legs
+builder.comboTifNote,"IOC: cada perna executa na próxima abertura ou nunca, o que limita o risco de pernas soltas a uma barra.","IOC: each leg fills at the next open or never, which bounds legging risk to one bar."
+combo.workingTitle,Pernas trabalhando: {name},Legs working: {name}
+combo.working,{done} de {total} pernas executadas; as outras ainda esperam o preço limite.,{done} of {total} legs filled; the others still wait for their limit.
+combo.cancelWorking,Cancelar pernas que trabalham,Cancel working legs
+builder.expiryFar,Vencimento longo,Far expiry
+builder.legExpiry,Vencimento da perna,Leg expiry
+builder.horizon,"No primeiro vencimento (barra {step}), ao nível de volatilidade implícita de hoje","At the first expiry (bar {step}), at today's implied volatility level"
+builder.horizonNote,As pernas mais longas valem o modelo de hoje: o resultado real depende de como a volatilidade implícita andar.,The longer legs are valued with today's model: the real outcome depends on the implied volatility path.
+builder.problem.expiries,No máximo dois vencimentos por estrutura.,At most two expiries per structure.
+builder.problem.needs_far,Esta estrutura precisa de um vencimento mais longo listado.,This structure needs a later listed expiry.
+strategy.calendar_call,Calendário com calls,Call calendar
+strategy.calendar_put,Calendário com puts,Put calendar
+strategy.diagonal_call,Diagonal com calls,Call diagonal
+strategy.diagonal_put,Diagonal com puts,Put diagonal
+strategy.short_calendar_call,Calendário vendido com calls,Short call calendar
+strategy.short_calendar_put,Calendário vendido com puts,Short put calendar
+strategy.short_diagonal_call,Diagonal vendida com calls,Short call diagonal
+strategy.short_diagonal_put,Diagonal vendida com puts,Short put diagonal
+roll.button,Rolar,Roll
+roll.title,Rolar {name},Roll {name}
+roll.to,Para o vencimento,To expiry
+roll.recenter,Recentrar no dinheiro,Re-centre at the money
+roll.limitIoc,Pernas limitadas IOC (ao meio),IOC limit legs (at the mid)
+roll.close,Fecha,Closes
+roll.open,Abre,Opens
+roll.net,Prêmio líquido da rolagem,Net premium of the roll
+roll.send,Enviar a rolagem,Send the roll
+roll.sent,Rolagem de {name} enviada: executa na próxima abertura.,Roll of {name} sent: it executes at the next open.
+roll.none,Nenhum vencimento mais longo listado para rolar.,No later listed expiry to roll to.
+adjust.title,Ajustar {name},Adjust {name}
+adjust.closeLeg,Fechar perna,Close leg
+adjust.addHedge,Adicionar hedge,Add hedge
+adjust.hedgePerp,Perpétuo (delta neutro),Perpetual (delta neutral)
+adjust.after,Depois do ajuste,After the adjustment
+adjust.uncoveredTitle,Deixar uma venda descoberta?,Leave a short uncovered?
+adjust.uncovered,Fechar esta perna deixa {leg} vendida sem proteção: a perda máxima passa a ser ilimitada. Enviar mesmo assim?,Closing this leg leaves {leg} written without protection: the maximum loss becomes unbounded. Send anyway?
+adjust.uncoveredYes,Enviar,Send
+adjust.send,Enviar o ajuste,Send the adjustment
+adjust.sent,Ajuste de {name} enviado: executa na próxima abertura.,Adjustment of {name} sent: it executes at the next open.
+combo.live,Estruturas abertas,Open structures
+heatmap.title,Mapa de P&L: preço × tempo,P&L heatmap: price × time
+heatmap.caption,Resultado contra as entradas em cada preço (colunas) depois de cada número de barras (linhas); vencidas valem o intrínseco.,P&L against the entries at each price (columns) after each number of bars (rows); expired legs are worth their intrinsic value.
+heatmap.cell,"Preço {price}, depois de {bars} barras: {pnl}","Price {price}, after {bars} bars: {pnl}"
+heatmap.focus,Célula: {text},Cell: {text}
+heatmap.table,Ver como tabela,Show as a table
+heatmap.grid,Ver como mapa,Show as a map
+heatmap.bars,Barras,Bars
+heatmap.price,Preço,Price
+heatmap.open,Mapa de P&L,P&L heatmap
+heatmap.legend,"verde = ganho, vermelho = perda (azul e laranja na paleta para daltonismo)","green = gain, red = loss (blue and orange in the colorblind palette)"
+portfolio.title,Carteira,Portfolio
+portfolio.position,Posição,Position
+portfolio.qty,Qtd.,Qty
+portfolio.value,Valor,Value
+portfolio.pnl,P&L,P&L
+portfolio.total,Total,Total
+portfolio.deltaUnits,Delta (unidades),Delta (units)
+portfolio.deltaNotional,Delta em dinheiro,Delta notional
+portfolio.gamma1pct,Gama de um movimento de 1%,Gamma of a 1% move
+portfolio.vegaPoint,Vega por ponto de volatilidade,Vega per volatility point
+portfolio.thetaBar,Theta por barra,Theta per bar
+portfolio.fundingNext,Próximo funding,Next funding
+portfolio.bp,{bp} bp do patrimônio,{bp} bp of equity
+portfolio.empty,Sem posições abertas.,No open positions.
+portfolio.limits,Limites de risco da missão,Mission risk limits
+portfolio.noLimits,"Esta missão não define limites de Greeks: valem a alavancagem máxima, o aviso de liquidação e a regra de 2% de risco.","This mission sets no Greek limits: the leverage cap, the liquidation warning and the 2% risk rule apply."
+portfolio.limit.delta,delta,delta
+portfolio.limit.gamma,gama,gamma
+portfolio.limit.vega,vega,vega
+portfolio.limit.theta,theta,theta
+portfolio.limitRow,{kind}: {value} de {limit} bp,{kind}: {value} of {limit} bp
+portfolio.exceeded,⚠ {kind} acima do limite da missão: {value} bp > {limit} bp do patrimônio. É um aviso: nenhuma ordem é bloqueada.,⚠ {kind} above the mission limit: {value} bp > {limit} bp of equity. A warning: no order is blocked.
+portfolio.hedge,Hedge do delta,Hedge delta
+portfolio.hedgeNote,"Propõe {qty} contratos de perpétuo ({side}) para zerar o delta, arredondado para baixo no lote. Passa pelo plano e por uma confirmação.","Proposes {qty} perpetual contracts ({side}) to flatten delta, rounded down to the lot. It goes through the plan and a confirmation."
+portfolio.hedgeNone,O delta já é menor que um lote do perpétuo.,Delta is already below one perpetual lot.
+portfolio.hedgeTitle,Enviar o hedge do delta?,Send the delta hedge?
+portfolio.hedgeConfirm,"Ordem a mercado: {side} {qty} do perpétuo, na próxima abertura. Delta depois ≈ {after} unidades.","Market order: {side} {qty} of the perpetual, at the next open. Delta after ≈ {after} units."
+portfolio.hedgeYes,Enviar,Send
+portfolio.open,Carteira e limites,Portfolio and limits
+rail.riskWarn,⚠ {kind} acima do limite: {value} > {limit} bp,⚠ {kind} above the limit: {value} > {limit} bp
+brief.riskLimits,Limites de risco (bp do patrimônio),Risk limits (bp of equity)
+brief.riskLimit.deltaBp,Delta em dinheiro ≤ {n} bp,Delta notional ≤ {n} bp
+brief.riskLimit.gammaBp,Gama de 1% ≤ {n} bp,1% gamma ≤ {n} bp
+brief.riskLimit.vegaBp,Vega por ponto ≤ {n} bp,Vega per point ≤ {n} bp
+brief.riskLimit.thetaBp,Theta por barra ≤ {n} bp,Theta per bar ≤ {n} bp
+brief.calendarMargin,Margem de calendário: uma compra que vence depois cobre a venda do mesmo tipo.,Calendar margin: a long expiring later covers a short of the same kind.
+lab.unsupportedV18,"Esta partida roda num motor anterior: validade, OCO, mapa e carteira não estão disponíveis.","This run plays on an earlier engine: time in force, OCO, the heatmap and the portfolio are not available."
 mission.m01-false-breakout.title,Missão 01 · Range,Mission 01 · Range
 mission.m01-false-breakout.tagline,O mercado passou semanas andando de lado. O que vem a seguir é com você.,The market has been moving sideways for weeks. What comes next is up to you.
 mission.m01-false-breakout.topic,"Futuros I · long e short, ordens e stops","Futures I · long and short, orders and stops"
@@ -1644,7 +1782,7 @@ tutorial.m07-trend-trailing.0.title,Tamanho pelo stop,Size from the stop
 tutorial.m07-trend-trailing.0.body,"Quantidade = risco em dinheiro ÷ distância até o stop. A alavancagem muda só a margem, não o risco: é o stop que decide quanto você perde. Ponha o stop além da estrutura (um fundo ou um topo), não num número redondo.","Quantity = money at risk ÷ distance to the stop. Leverage changes only the margin, not the risk: the stop decides how much you lose. Put the stop beyond structure (a low or a high), not at a round number."
 tutorial.m07-trend-trailing.0.art,risk,risk
 tutorial.m07-trend-trailing.1.title,Stop móvel,Trailing stop
-tutorial.m07-trend-trailing.1.body,"O stop móvel segue o melhor fechamento a uma distância fixa e nunca recua. Ele é recalculado no fechamento e passa a valer na barra seguinte. Perto demais do preço, recuos normais o atingem: compare a distância com o ATR.","A trailing stop follows the best close at a fixed distance and never moves back. It is recomputed at the close and takes effect from the next bar. Too close to price, ordinary pullbacks hit it: compare the distance with the ATR."
+tutorial.m07-trend-trailing.1.body,"O stop móvel segue o melhor fechamento a uma distância fixa (ou a uma porcentagem dele) e nunca recua. Ele é recalculado no fechamento e passa a valer na barra seguinte. Perto demais do preço, recuos normais o atingem: compare a distância com o ATR.","A trailing stop follows the best close at a fixed distance (or a percent of it) and never moves back. It is recomputed at the close and takes effect from the next bar. Too close to price, ordinary pullbacks hit it: compare the distance with the ATR."
 tutorial.m07-trend-trailing.1.art,trail,trail
 tutorial.m07-trend-trailing.2.title,Tendência e recuos,Trends and pullbacks
 tutorial.m07-trend-trailing.2.body,"As médias (SMA20, EMA50) mostram a direção; o ADX acima de 25 indica tendência. Numa tendência, recuos até a média são comuns e não mudam a direção por si só.","The averages (SMA20, EMA50) show direction; ADX above 25 signals a trend. In a trend, pullbacks to the average are common and do not change the direction by themselves."
@@ -1987,6 +2125,8 @@ academyLesson.orders-execution.spread.body,"Quem quer vender agora encontra a me
 academyLesson.orders-execution.spread.column.0,Compra (bid),Bid
 academyLesson.orders-execution.spread.column.1,Venda (ask),Ask
 academyLesson.orders-execution.spread.column.2,Spread,Spread
+academyLesson.orders-execution.trail.title,Demonstração: o stop móvel só sobe,Demonstration: the trailing stop only rises
+academyLesson.orders-execution.trail.body,"Long no mercado T, comprado a 100,00, com um stop móvel de 2% do melhor fechamento. No fechamento de 100,00 o gatilho começa em 98,00. O melhor fechamento vai a 103,47: 2% dele é 2,0694, e 103,47 − 2,0694 = 101,4006, arredondado para baixo no tick: o gatilho sobe para 101,40. Quando os fechamentos recuam para 102,60 e 101,30, o gatilho fica em 101,40: ele segue o melhor fechamento e nunca recua. O novo gatilho vale a partir da barra seguinte; se ela tocar 101,40, o stop executa a mercado.","Long on market T, bought at 100.00, with a trailing stop at 2% of the best close. At the 100.00 close the trigger starts at 98.00. The best close reaches 103.47: 2% of it is 2.0694, and 103.47 − 2.0694 = 101.4006, rounded down to the tick: the trigger rises to 101.40. When the closes pull back to 102.60 and 101.30, the trigger stays at 101.40: it follows the best close and never moves back. The new trigger is in force from the next bar; if that bar trades 101.40, the stop fills at market."
 academyLesson.orders-execution.roundtrip.title,Decisão: o custo de ir e voltar,Decision: the cost of a round trip
 academyLesson.orders-execution.roundtrip.body,"Você compra 10 unidades a mercado e vende as 10 logo em seguida, sem o preço mudar. Quanto perdeu, sem contar taxas?","You buy 10 units at market and sell the 10 right after, with no change in price. How much did you lose, before fees?"
 academyLesson.orders-execution.roundtrip.right,"Compra a 100,10 e venda a 99,90: 0,20 × 10 = 2,00. Cada entrada e saída a mercado paga o spread; uma limitada pode evitá-lo, mas pode não executar.","Bought at 100.10 and sold at 99.90: 0.20 × 10 = 2.00. Every market entry and exit pays the spread; a limit order can avoid it, but may not fill."
@@ -2526,6 +2666,7 @@ glossary.take-profit.aliases,alvo; take profit; TP,target; TP
 glossary.trailing-stop.term,Stop móvel,Trailing stop
 glossary.trailing-stop.short,"Um stop que acompanha o preço a uma distância fixa (ou percentual) quando ele anda a seu favor, e nunca recua.","A stop that follows the price at a fixed (or percent) distance when it moves your way, and never moves back."
 glossary.trailing-stop.long,"O stop móvel deixa uma tendência correr e protege parte do ganho. Num mercado lateral, ele sai cedo com frequência: a ferramenta depende do regime.",A trailing stop lets a trend run and protects part of the gain. In a range it often exits early: the tool depends on the regime.
+glossary.trailing-stop.example,"Long com trailing de 2%: melhor fechamento 103,47, gatilho 101,40 (103,47 − 2,0694, para baixo no tick).","A long with a 2% trailing stop: best close 103.47, trigger 101.40 (103.47 − 2.0694, down to the tick)."
 glossary.trailing-stop.aliases,trailing; stop móvel,trailing
 glossary.spread.term,Spread (compra/venda),Bid/ask spread
 glossary.spread.short,A diferença entre o ask (o menor preço pedido por quem vende) e o bid (o maior preço oferecido por quem compra). Quem compra a mercado paga o ask e quem vende recebe o bid: uma ida e volta perde essa diferença.,The gap between the ask (the lowest price sellers ask) and the bid (the highest price buyers offer). A market buy pays the ask and a market sell gets the bid: a round trip loses the gap.
@@ -2776,6 +2917,51 @@ glossary.calibration.term,Calibração,Calibration
 glossary.calibration.short,Previsões feitas com 70% de confiança devem acertar cerca de 70% das vezes.,Forecasts made with 70% confidence should come true about 70% of the time.
 glossary.calibration.long,"Se você diz 70% e acerta 4 de 10, está confiante demais. A calibração só aparece em muitas previsões: uma partida é uma amostra só.","If you say 70% and get 4 out of 10 right, you are overconfident. Calibration only shows over many forecasts: one run is one sample."
 glossary.calibration.aliases,calibrado,calibrated
+glossary.time-in-force.term,Validade da ordem,Time in force
+glossary.time-in-force.short,"Por quanto tempo uma ordem trabalha: até ser cancelada (GTC), por N barras, ou só na próxima abertura (IOC, FOK).","How long an order works: until cancelled (GTC), for N bars, or only at the next open (IOC, FOK)."
+glossary.time-in-force.long,"Aqui uma ordem aceita só pode executar a partir da próxima barra. Com validade de N barras, o que sobrar expira no fechamento da última; ""um dia"" são as barras de um dia no intervalo do mercado. A validade nunca muda o preço: só o tempo em que a ordem pode executar.","Here an accepted order can only execute from the next bar. With N bars, whatever is left expires at the close of the last one; ""one day"" is a day of bars at the market's interval. Time in force never changes the price, only when the order may execute."
+glossary.time-in-force.example,Uma ordem com validade de 3 barras colocada na barra 60 pode executar nas barras 61 a 63.,An order valid for 3 bars placed at bar 60 can execute on bars 61 to 63.
+glossary.time-in-force.aliases,time in force; validade; GTC; day,TIF; GTC; day order
+glossary.ioc.term,IOC (imediata ou cancela),IOC (immediate or cancel)
+glossary.ioc.short,Uma limitada que só vale na abertura da próxima barra: executa o que o preço e a capacidade permitirem e o resto é cancelado.,A limit order valid only at the next bar's open: it fills what the price and capacity allow and the rest is cancelled.
+glossary.ioc.long,"Num jogo de barras, ""imediato"" é a próxima abertura: é o único preço sem informação do futuro. Uma IOC nunca executa dentro da barra, mesmo que a mínima toque o seu preço depois. Se a capacidade só cobre parte, você fica com a parte executada.","In a bar game, ""immediate"" is the next open: the only price without future information. An IOC never fills intrabar, even if the low touches its price later. If capacity covers only part of it, you keep the filled part."
+glossary.ioc.aliases,imediata ou cancela; immediate or cancel,immediate or cancel
+glossary.fok.term,FOK (tudo ou nada),FOK (fill or kill)
+glossary.fok.short,"Como a IOC, só na abertura da próxima barra, mas executa a quantidade inteira ou nada.","Like an IOC, only at the next bar's open, but it fills the whole quantity or nothing."
+glossary.fok.long,"A checagem acontece na vez da ordem: se ordens servidas antes dela já levaram parte da capacidade da barra e não sobra o bastante, a FOK é cancelada sem executar nada. Uma FOK reduce-only maior que a posição também não executa.","The check happens at the order's turn: if orders served before it took part of the bar's capacity and too little is left, the FOK is cancelled with nothing filled. A reduce-only FOK larger than the position does not fill either."
+glossary.fok.aliases,tudo ou nada; fill or kill,fill or kill; all or nothing
+glossary.oco.term,OCO (uma cancela a outra),OCO (one cancels the other)
+glossary.oco.short,"Duas ordens ligadas: quando uma executa, a outra é cancelada. O motor decide mesmo quando os dois preços são tocados na mesma barra.","Two linked orders: when one fills, the other is cancelled. The engine decides even when both prices trade on one bar."
+glossary.oco.long,"Um par clássico é a entrada de rompimento: uma compra stop acima da faixa e uma venda stop abaixo. Sem a ligação, uma barra larga executaria as duas. Duas saídas reduce-only da mesma posição (alvo e stop) só se reduzem: uma saída parcial deixa a outra protegendo o resto.","A classic pair is a breakout entry: a buy stop above the range and a sell stop below it. Without the link, a wide bar would fill both. Two reduce-only exits of one position (target and stop) only reduce each other: a partial exit leaves the other protecting the rest."
+glossary.oco.aliases,one cancels the other; ordens ligadas,one cancels the other; linked orders
+glossary.calendar-spread.term,Calendário,Calendar spread
+glossary.calendar-spread.short,Vende uma opção de vencimento curto e compra o mesmo strike num vencimento longo. Ganha com o tempo da curta quando o preço fica perto do strike.,Sells a short-dated option and buys the same strike on a later expiry. It earns the short one's time decay when price stays near the strike.
+glossary.calendar-spread.long,"A opção curta perde valor mais rápido (theta maior), e a longa ainda tem valor de tempo quando a curta vence. O risco é um movimento grande para qualquer lado ou uma queda da volatilidade implícita da longa. A perda máxima, no primeiro vencimento, é o débito pago.","The short option loses value faster (larger theta), and the long still has time value when the short expires. The risk is a large move either way or a fall in the long's implied volatility. The maximum loss at the first expiry is the debit paid."
+glossary.calendar-spread.example,Vender a de 10 dias por 4 e comprar a de 40 dias por 8 custa 4 de débito.,Selling the 10-day option for 4 and buying the 40-day one for 8 costs a debit of 4.
+glossary.calendar-spread.aliases,calendar; spread de calendário; horizontal,calendar; horizontal spread
+glossary.diagonal-spread.term,Diagonal,Diagonal spread
+glossary.diagonal-spread.short,Um calendário com strikes diferentes: vende o vencimento curto num strike e compra o longo em outro.,A calendar with different strikes: sells the near expiry at one strike and buys the far one at another.
+glossary.diagonal-spread.long,"Com calls, a longa fica num strike abaixo da curta; com puts, acima. Assim ela também ganha com o movimento até a curta. Com margem de calendário, a venda coberta por uma compra mais longa exige no máximo a diferença de strikes.","With calls the long sits at a strike below the short; with puts, above. That way it also gains from a move toward the short. Under calendar margin, a short covered by a later long needs at most the strike gap."
+glossary.diagonal-spread.aliases,diagonal; spread diagonal,diagonal
+glossary.heatmap.term,Mapa de P&L,P&L heatmap
+glossary.heatmap.short,Uma grade com o resultado da estrutura em cada preço (colunas) depois de cada número de barras (linhas).,A grid of the structure's result at each price (columns) after each number of bars (rows).
+glossary.heatmap.long,"O mapa mostra como o tempo muda o resultado: perto do vencimento a grade vira o gráfico no vencimento; hoje, ela é a curva de hoje. Os valores vêm do modelo do motor com a volatilidade implícita de hoje, não de uma previsão.","The map shows how time changes the result: near expiry the grid becomes the expiry chart; today, it is today's curve. The values come from the engine's model at today's implied volatility, not from a forecast."
+glossary.heatmap.aliases,heatmap; mapa de calor,heatmap
+glossary.portfolio-greeks.term,Greeks da carteira,Portfolio Greeks
+glossary.portfolio-greeks.short,"A soma das Greeks de todas as posições, perpétuo incluído (delta 1 por unidade): o risco da carteira inteira.","The sum of the Greeks of every position, the perpetual included (delta 1 per unit): the whole book's risk."
+glossary.portfolio-greeks.long,Delta em dinheiro é delta × preço. O gama de um movimento de 1% é ½ × |gama| × (1% do preço)²: o P&L que a curvatura sozinha dá. Vega por ponto e theta por barra completam o quadro.,Delta notional is delta × price. The gamma of a 1% move is ½ × |gamma| × (1% of the price)²: the P&L curvature alone gives. Vega per point and theta per bar complete the picture.
+glossary.portfolio-greeks.example,Gama de 4 unidades por ponto a 100: ½ × 4 × 1² = 2 de P&L num movimento de 1%.,Gamma of 4 units per point at 100: ½ × 4 × 1² = 2 of P&L on a 1% move.
+glossary.portfolio-greeks.aliases,gregas da carteira; risco da carteira,portfolio risk
+glossary.risk-limit.term,Limite de risco,Risk limit
+glossary.risk-limit.short,"Um teto para uma Greek da carteira, em pontos-base do patrimônio. Passar do limite é um aviso, não um bloqueio.","A ceiling for a portfolio Greek, in basis points of equity. Going over it is a warning, not a block."
+glossary.risk-limit.long,"Uma mesa limita o risco da carteira, não só o de cada trade. Um limite de delta de 1.500 bp com patrimônio de 10.000 deixa até 1.500 de delta em dinheiro.","A desk limits the book's risk, not just each trade's. A delta limit of 1,500 bp with equity of 10,000 allows up to 1,500 of delta notional."
+glossary.risk-limit.example,1.500 bp de 10.000 = 1.500 de delta em dinheiro.,"1,500 bp of 10,000 = 1,500 of delta notional."
+glossary.risk-limit.aliases,limite; limites de risco,limit; risk limits
+glossary.delta-hedge.term,Hedge de delta,Delta hedge
+glossary.delta-hedge.short,"Uma posição no perpétuo do tamanho contrário ao delta da carteira, para o resultado não depender da direção do preço.","A perpetual position sized against the book's delta, so the result does not depend on the price's direction."
+glossary.delta-hedge.long,"Um straddle comprado com delta 6 fica neutro vendendo 6 unidades do perpétuo. Quando o preço anda, o delta muda (gama) e o hedge precisa ser refeito: comprar barato e vender caro nesse refazer é o que paga o tempo perdido.","A long straddle with delta 6 becomes neutral by selling 6 units of the perpetual. As price moves, delta changes (gamma) and the hedge must be redone: buying low and selling high while redoing it is what pays for the time lost."
+glossary.delta-hedge.example,Delta de 6 unidades: vender 6 unidades do perpétuo deixa o delta em 0.,Delta of 6 units: selling 6 units of the perpetual leaves delta at 0.
+glossary.delta-hedge.aliases,hedge; delta neutro,hedge; delta neutral
 coach.chart.title,O gráfico,The chart
 coach.chart.body,"Cada barra fechada é informação; a próxima ainda não existe. Comece lendo a última barra: onde abriu, até onde foi e onde fechou.","Every closed bar is information; the next one does not exist yet. Start by reading the last bar: where it opened, how far it went and where it closed."
 coach.ticket.title,A boleta,The ticket

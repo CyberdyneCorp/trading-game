@@ -26,7 +26,8 @@
 	import { newsArrived } from '#lib/game/news.ts';
 	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import HelpOverlay from './HelpOverlay.svelte';
-	import OrderTicket, { type OrderDraft, type TicketOrderType, type TicketPreview } from './OrderTicket.svelte';
+	import OrderTicket, { type OrderDraft, type ProtectTab, type TicketOrderType, type TicketPreview } from './OrderTicket.svelte';
+	import TrailNotice from './TrailNotice.svelte';
 	import OptionChain from './OptionChain.svelte';
 	import OptionTicket, { type OptionDraft } from './OptionTicket.svelte';
 	import type { OptionQuoteView } from '#lib/engine/types.ts';
@@ -93,6 +94,11 @@
 	let ticketQty = $state('10');
 	let ticketLeverage = $state(1);
 	let ticketType = $state<TicketOrderType>('market');
+	// The protective section's tab and trailing fields (design D10): the planned-trailing notice fills them.
+	let protectTab = $state<ProtectTab>('stop');
+	let protTrail = $state('');
+	let protTrailPct = $state('');
+	let trailMode = $state<'price' | 'pct'>('price');
 
 	// The advisor's stop and size go to the perpetual ticket; nothing is sent until the player submits.
 	function onApplyAdvice(a: AdviceView) {
@@ -169,7 +175,7 @@
 	}
 
 	async function sendOption(d: OptionDraft) {
-		const res = await session.placeOptionOrder(d.series, d.side, d.type, d.qty, d.premium);
+		const res = await session.placeOptionOrder(d.series, d.side, d.type, d.qty, d.premium, undefined, { tif: d.tif, tifBars: d.tifBars });
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason, d.risk != null ? { need: d.risk, available: num(session.state!.account.available) } : {});
 		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${d.label} × ${fmtQty(d.qty, i18n.locale)}` };
@@ -271,7 +277,7 @@
 			const r = await session.setLeverage(d.leverage);
 			if (r && !r.accepted) return notify(r.reason, releverFacts(s, d.leverage));
 		}
-		const res = await session.placeOrder(d.type, d.side, d.qty, d.price, false, { stop: d.stop, takeProfit: d.takeProfit });
+		const res = await session.placeOrder(d.type, d.side, d.qty, d.price, false, { stop: d.stop, takeProfit: d.takeProfit, tif: d.tif, tifBars: d.tifBars });
 		if (!res) return;
 		if (!res.accepted) return notify(res.reason, orderFacts(session.state!, d.required, d.leverage));
 		session.notice = { tone: 'ok', text: `#${res.orderId} ✓ ${sideWord(d.side)} ${fmtQty(d.qty, i18n.locale)}` };
@@ -292,9 +298,20 @@
 		const d = draft;
 		draft = null;
 		void session.sequence(async () => {
-			await session.recordPlan(p);
+			// A planned trailing stop rides with the plan (client data): the notice offers it after the fill.
+			await session.recordPlan(d?.plannedTrail ? { ...p, trail: d.plannedTrail } : p);
 			if (d) await send(d);
 		});
+	}
+
+	// The planned trailing stop's notice filled the protective section: one more click sends it.
+	function fillPlannedTrail(mode: 'price' | 'pct', value: string) {
+		trailMode = mode;
+		if (mode === 'pct') protTrailPct = value;
+		else protTrail = value;
+		protectTab = 'trail';
+		tab = 'perp';
+		session.notice = { tone: 'ok', text: t('trail.filled') };
 	}
 
 	function typing(e: KeyboardEvent): boolean {
@@ -380,9 +397,9 @@
 				{#if tab === 'builder' && optionsOn}
 					<StrategyBuilder {session} onSubmit={(d) => (comboDraft = d)} onLab={(legs) => (labLegs = legs)} />
 				{:else if tab === 'options' && optionsOn}
-					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} onSubmit={onOptionSubmit} />
+					<OptionTicket game={session.state} quote={optQuote} bind:side={optSide} busy={session.busy} tifAllowed={session.orderRulesV18} onSubmit={onOptionSubmit} />
 				{:else}
-					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} bind:leverage={ticketLeverage} bind:orderType={ticketType} {onSubmit} onPick={(set) => (pick = set)} />
+					<OrderTicket {session} bind:side bind:preview bind:stopInput={ticketStop} bind:tpInput={ticketTp} bind:sizeBy={ticketSizeBy} bind:qtyInput={ticketQty} bind:leverage={ticketLeverage} bind:orderType={ticketType} bind:protectTab bind:protTrail bind:protTrailPct bind:trailMode {onSubmit} onPick={(set) => (pick = set)} />
 				{/if}
 			</div>
 			<div class="stack">
@@ -392,6 +409,7 @@
 				{#if incomplete}
 					<ComboNotice {session} status={incomplete} onDone={() => (dismissed = [...dismissed, incomplete.record.id])} />
 				{/if}
+				<TrailNotice game={session.state} journal={session.journal} onFill={fillPlannedTrail} />
 				<OrdersPanel {session} />
 				{#if session.notice}
 					<div class="notice {session.notice.tone}" role="status">{session.notice.text}</div>

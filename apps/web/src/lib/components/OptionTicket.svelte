@@ -8,6 +8,9 @@
 		premium: string | null;
 		opensExposure: boolean;
 		risk: number | null; // max loss for buys, initial margin for writes (planning reference)
+		/** Time in force (policy v18): limits only; absent = gtc. */
+		tif?: import('#lib/engine/types.ts').TimeInForceName;
+		tifBars?: number;
 	}
 </script>
 
@@ -17,20 +20,31 @@
 	import { i18n, t } from '#lib/game/i18n.svelte.ts';
 	import { breakeven, legFromQuote, maxLoss, optionBuyCost, optionFee, payoffCurve, seriesLabel, writeMargin } from '#lib/game/optionsMath.ts';
 	import { lastPrice } from '#lib/game/lastPrice.ts';
+	import { barsLeft, tifOrder, type TifChoice } from '#lib/game/orderRules.ts';
+	import TifField from './TifField.svelte';
 
 	let {
 		game,
 		quote,
 		side = $bindable('buy'),
 		busy,
+		tifAllowed = false,
 		onSubmit
 	}: {
 		game: GameState;
 		quote: OptionQuoteView | null;
 		side?: 'buy' | 'sell';
 		busy: boolean;
+		/** The engine build takes a time in force (policy v18). */
+		tifAllowed?: boolean;
 		onSubmit: (d: OptionDraft) => void;
 	} = $props();
+
+	let tifChoice = $state<TifChoice>('gtc');
+	let tifBarsInput = $state('3');
+	// An option order's last eligible bar is before its settlement window (the engine refuses one inside it).
+	const tifLeft = $derived(Math.min(barsLeft(game), quote ? Math.max(0, quote.expiryStep - game.step - 1) : 0));
+	const tif = $derived(tifAllowed ? tifOrder(tifChoice, parseDecimal(tifBarsInput), game.stepSeconds, tifLeft) : { tif: 'gtc' as const });
 
 	const L = $derived(i18n.locale);
 	const mult = $derived(num(game.options.multiplier));
@@ -62,7 +76,9 @@
 	const noBid = $derived(!!quote && side === 'sell' && type === 'market' && num(quote.bid) <= 0);
 	// Inside the settlement window the engine refuses the order (series_settling, policy v17).
 	const settling = $derived(!!quote?.settling);
-	const canSubmit = $derived(!!quote && !busy && qty > 0 && !shortBlocked && !cantAfford && !noBid && !settling && (type === 'market' || parseDecimal(limitInput) > 0));
+	const canSubmit = $derived(
+		!!quote && !busy && qty > 0 && !shortBlocked && !cantAfford && !noBid && !settling && !('error' in tif) && (type === 'market' || parseDecimal(limitInput) > 0)
+	);
 
 	// Payoff diagram geometry (SVG viewBox units).
 	const W = 300;
@@ -96,7 +112,8 @@
 			qty: qtyToLot(qty, lot),
 			premium: type === 'limit' ? priceToTick(parseDecimal(limitInput), num(game.options.premiumTick)) : null,
 			opensExposure: side === 'buy' ? held >= 0 : opensShort,
-			risk: loss ?? margin
+			risk: loss ?? margin,
+			...('error' in tif || tif.tif === 'gtc' ? {} : tif)
 		});
 	}
 </script>
@@ -125,6 +142,9 @@
 				<label class="full">{t('opt.limit')}<input inputmode="decimal" bind:value={limitInput} placeholder={fmtPrice(side === 'buy' ? quote.ask : quote.bid, L)} /></label>
 			{/if}
 		</div>
+		{#if tifAllowed}
+			<TifField bind:choice={tifChoice} bind:barsInput={tifBarsInput} {type} stepSeconds={game.stepSeconds} step={game.step} left={tifLeft} testid="opt-tif" />
+		{/if}
 		<dl class="kv est">
 			<dt>{t('opt.premium')}</dt><dd>{fmtPrice(String(premium), L)} × {fmtQty(String(qty), L)} × {mult}</dd>
 			<dt>{t('opt.breakeven')}</dt><dd>{legAtPx ? fmtPrice(String(breakeven(legAtPx)), L) : '—'}</dd>

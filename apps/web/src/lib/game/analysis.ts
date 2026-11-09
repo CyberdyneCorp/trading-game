@@ -18,6 +18,8 @@ export interface PlanEntry {
 	loseScenario?: string;
 	instrument?: string; // option series label or combo name; absent = perpetual
 	combo?: string; // the strategy-builder combo this plan opened (its id)
+	/** "Protect with: trailing stop" (add-practice-and-advanced-strategies D10): offered after the fill; client data only. */
+	trail?: { mode: 'price' | 'pct'; value: string };
 }
 
 const findingText: Record<Locale, Record<EngineFinding['code'], string>> = {

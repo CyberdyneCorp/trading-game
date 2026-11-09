@@ -353,7 +353,7 @@ const m07: Cards = {
 		{
 			art: 'trail',
 			title: 'Stop móvel',
-			body: 'O stop móvel segue o melhor fechamento a uma distância fixa e nunca recua. Ele é recalculado no fechamento e passa a valer na barra seguinte. Perto demais do preço, recuos normais o atingem: compare a distância com o ATR.'
+			body: 'O [[trailing-stop|stop móvel]] segue o melhor fechamento a uma distância fixa (ou a uma porcentagem dele) e nunca recua. Ele é recalculado no fechamento e passa a valer na barra seguinte. Perto demais do preço, recuos normais o atingem: compare a distância com o ATR.'
 		},
 		{
 			art: 'trend',
@@ -375,7 +375,7 @@ const m07: Cards = {
 		{
 			art: 'trail',
 			title: 'Trailing stop',
-			body: 'A trailing stop follows the best close at a fixed distance and never moves back. It is recomputed at the close and takes effect from the next bar. Too close to price, ordinary pullbacks hit it: compare the distance with the ATR.'
+			body: 'A [[trailing-stop|trailing stop]] follows the best close at a fixed distance (or a percent of it) and never moves back. It is recomputed at the close and takes effect from the next bar. Too close to price, ordinary pullbacks hit it: compare the distance with the ATR.'
 		},
 		{
 			art: 'trend',

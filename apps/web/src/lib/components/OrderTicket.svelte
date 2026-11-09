@@ -1,7 +1,8 @@
 <script lang="ts" module>
 	import { untrack } from 'svelte';
-	import type { OrderSideName, OrderTypeName } from '#lib/engine/types.ts';
+	import type { OrderSideName, OrderTypeName, TimeInForceName } from '#lib/engine/types.ts';
 	import type { TicketEstimate } from '#lib/game/sizing.ts';
+	import type { PlannedTrail } from '#lib/game/orderRules.ts';
 
 	export type TicketOrderType = 'market' | 'limit' | 'stop_market';
 
@@ -17,7 +18,15 @@
 		increases: boolean;
 		/** Margin plus fee of the part that adds exposure (the ticket's estimate, quoted if refused). */
 		required: number;
+		/** Time in force (policy v18); absent = gtc. */
+		tif?: TimeInForceName;
+		tifBars?: number;
+		/** "Protect with: trailing stop" (design D10): recorded with the plan, offered after the fill. */
+		plannedTrail?: PlannedTrail;
 	}
+
+	/** The protective section's tabs (design D10): the trailing stop has its own, never hidden. */
+	export type ProtectTab = 'stop' | 'trail' | 'target';
 
 	/** Draft levels the chart previews while the player edits the ticket. */
 	export interface TicketPreview {
@@ -51,6 +60,8 @@
 	import { keyLabel } from '#lib/game/shortcuts.ts';
 	import { lastPrice } from '#lib/game/lastPrice.ts';
 	import TrailField from './TrailField.svelte';
+	import TifField from './TifField.svelte';
+	import { barsLeft, tifOrder, trailTrigger, type TifChoice } from '#lib/game/orderRules.ts';
 
 	let {
 		session,
@@ -62,6 +73,10 @@
 		qtyInput = $bindable('10'),
 		leverage = $bindable(1),
 		orderType = $bindable('market'),
+		protectTab = $bindable('stop'),
+		protTrail = $bindable(''),
+		protTrailPct = $bindable(''),
+		trailMode = $bindable('price'),
 		onSubmit,
 		onPick
 	}: {
@@ -78,6 +93,11 @@
 		leverage?: number;
 		/** Order type; bindable so applying the advisor's read (sized for a market entry) can reset it. */
 		orderType?: TicketOrderType;
+		/** Protective tab and trailing fields; bindable so the planned-trailing notice can fill them (D10). */
+		protectTab?: ProtectTab;
+		protTrail?: string;
+		protTrailPct?: string;
+		trailMode?: 'price' | 'pct';
 		onSubmit: (d: OrderDraft) => void;
 		onPick?: (set: (price: number) => void) => void;
 	} = $props();
@@ -173,8 +193,22 @@
 		beyondConfirmed = false;
 	});
 	const needsBeyondConfirm = $derived(est.stopBeyondLiquidation && s.missionRules.confirmStopBeyondLiq);
+	// Time in force (policy v18, design D6): only on an engine build that takes it.
+	let tifChoice = $state<TifChoice>('gtc');
+	let tifBarsInput = $state('3');
+	const tif = $derived(session.orderRulesV18 ? tifOrder(tifChoice, parseDecimal(tifBarsInput), s.stepSeconds, barsLeft(s)) : { tif: 'gtc' as const });
+	// "Protect with" (design D10): a fixed stop rides on the order as a bracket; a trailing stop is
+	// planned now and offered after the fill (the engine attaches no trailing stop to an entry).
+	let protectWith = $state<'fixed' | 'trail'>('fixed');
+	let planTrail = $state('');
+	let planTrailPct = $state('');
+	let planTrailMode = $state<'price' | 'pct'>('price');
+	const plannedTrail = $derived<PlannedTrail | null>(
+		protectWith !== 'trail' ? null : planTrailMode === 'pct' ? (planTrailPct ? { mode: 'pct', value: planTrailPct } : null) : planTrail ? { mode: 'price', value: planTrail } : null
+	);
 	const canSubmit = $derived(
 		!session.busy &&
+			!('error' in tif) &&
 			qty > 0 &&
 			!shortBlocked &&
 			!cantAfford &&
@@ -197,7 +231,9 @@
 			takeProfit: tpInput ? priceToTick(parseDecimal(tpInput), tick) : null,
 			estimate: est,
 			increases,
-			required: needMargin
+			required: needMargin,
+			...('error' in tif || tif.tif === 'gtc' ? {} : tif),
+			...(plannedTrail ? { plannedTrail } : {})
 		});
 	}
 
@@ -238,9 +274,6 @@
 	// Protection for an existing position.
 	let protStop = $state('');
 	let protTp = $state('');
-	let protTrail = $state('');
-	let protTrailPct = $state('');
-	let trailMode = $state<'price' | 'pct'>('price');
 	const trailRate = $derived(trailMode === 'pct' && protTrailPct ? trailRateFromPercent(parseDecimal(protTrailPct)) : null);
 	const trailSet = $derived(trailMode === 'pct' ? trailRate != null : !!protTrail);
 	const posSide = $derived<OrderSideName>(posQty > 0 ? 'buy' : 'sell');
@@ -288,6 +321,22 @@
 	function trailExtras() {
 		return trailMode === 'pct' ? { trailRate } : { trail: priceToTick(parseDecimal(protTrail), tick) };
 	}
+
+	const PROTECT_TABS: readonly ProtectTab[] = ['stop', 'trail', 'target'];
+	const filled = $derived<Record<ProtectTab, boolean>>({ stop: !!protStop, trail: trailSet, target: !!protTp });
+	// The rule in words with the engine's first trigger (exact fixed point, design D10).
+	const trailRule = $derived.by(() => {
+		const exit: OrderSideName = posQty > 0 ? 'sell' : 'buy';
+		const close = String(last);
+		if (trailMode === 'pct' && trailRate) {
+			return t('ticket.trailRule', { price: fmtPrice(trailTrigger(exit, close, { rate: trailRate }, s.contract.tickSize), L) });
+		}
+		if (trailMode === 'price' && protTrail) {
+			const dist = priceToTick(parseDecimal(protTrail), tick);
+			return dist ? t('ticket.trailRule', { price: fmtPrice(trailTrigger(exit, close, { distance: dist }, s.contract.tickSize), L) }) : t('ticket.trailExplain');
+		}
+		return t('ticket.trailExplain');
+	});
 </script>
 
 <section class="panel ticket" aria-label={t('ticket.title')} data-coach="ticket">
@@ -352,7 +401,17 @@
 			</label>
 		{/if}
 	</div>
+	<div class="protect-with" role="radiogroup" aria-label={t('ticket.protectWith')} data-testid="ticket-protect-with">
+		<span class="cap">{t('ticket.protectWith')}</span>
+		<button type="button" role="radio" aria-checked={protectWith === 'fixed'} class:active={protectWith === 'fixed'} onclick={() => (protectWith = 'fixed')}>{t('ticket.protectFixed')}</button>
+		<button type="button" role="radio" aria-checked={protectWith === 'trail'} class:active={protectWith === 'trail'} onclick={() => ((protectWith = 'trail'), (stopInput = ''))} data-testid="ticket-protect-trail">{t('ticket.protectTrail')}</button>
+	</div>
+	{#if protectWith === 'trail'}
+		<TrailField bind:distance={planTrail} bind:pct={planTrailPct} bind:mode={planTrailMode} {tick} chips={trailChips} exit={side === 'buy' ? 'sell' : 'buy'} close={last} testid="ticket-plan-trail" />
+		<p class="small info" data-testid="ticket-trail-planned"><Term id="trailing-stop">{t('ticket.protectTrail')}</Term> {t('ticket.trailPlanned')}</p>
+	{/if}
 	<div class="levels">
+		{#if protectWith === 'fixed'}
 		<LevelField
 			testid="ticket-stop"
 			label={t('ticket.stopLoss')}
@@ -363,6 +422,7 @@
 			warn={stopWarn}
 			{onPick}
 		/>
+		{/if}
 		<LevelField
 			testid="ticket-tp"
 			label={t('ticket.takeProfit')}
@@ -374,6 +434,9 @@
 			{onPick}
 		/>
 	</div>
+	{#if session.orderRulesV18}
+		<TifField bind:choice={tifChoice} bind:barsInput={tifBarsInput} type={orderType} stepSeconds={s.stepSeconds} step={s.step} left={barsLeft(s)} testid="ticket-tif" />
+	{/if}
 	{#if sizeBy === 'risk' && stop == null}
 		<p class="small attention">↳ {t('ticket.riskNeedsStop')}</p>
 	{/if}
@@ -439,7 +502,20 @@
 		<hr />
 		<h3>{t('ticket.protect')}</h3>
 		{#if !hasStop}<p class="warnbox" role="status">⚠ {t('ticket.unprotected')}</p>{/if}
-		<div class="levels">
+		<div class="tabs" role="tablist" aria-label={t('ticket.protect')} data-testid="protect-tabs">
+			{#each PROTECT_TABS as tab (tab)}
+				<button
+					role="tab"
+					aria-selected={protectTab === tab}
+					class:primary={protectTab === tab}
+					onclick={() => (protectTab = tab)}
+					data-testid={`protect-tab-${tab}`}
+				>{t(`ticket.tab.${tab}`)}{filled[tab] ? ' •' : ''}</button>
+			{/each}
+		</div>
+		<div class="levels" role="tabpanel">
+			{#if protectTab === 'stop'}
+			<div class="full">
 			<LevelField
 				testid="protect-stop"
 				label={t('ticket.stopLoss')}
@@ -450,6 +526,9 @@
 				warn={protStopWarn}
 				{onPick}
 			/>
+			</div>
+			{:else if protectTab === 'target'}
+			<div class="full">
 			<LevelField
 				testid="protect-tp"
 				label={t('ticket.takeProfit')}
@@ -460,9 +539,13 @@
 				warn={protTpWarn}
 				{onPick}
 			/>
+			</div>
+			{:else}
 			<div class="full">
 				<TrailField bind:distance={protTrail} bind:pct={protTrailPct} bind:mode={trailMode} {tick} chips={trailChips} exit={posQty > 0 ? 'sell' : 'buy'} close={last} />
+				<p class="small muted" data-testid="protect-trail-rule">{trailRule}</p>
 			</div>
+			{/if}
 		</div>
 		<div class="row">
 			{#if protBeyond}
@@ -521,6 +604,30 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0.45rem 0.5rem;
+	}
+	.tabs {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.25rem;
+	}
+	.protect-with {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		flex-wrap: wrap;
+	}
+	.protect-with .cap {
+		font-size: 0.78rem;
+		color: var(--muted);
+	}
+	.protect-with button {
+		font-size: 0.78rem;
+		padding: 0.15rem 0.45rem;
+		border-style: dashed;
+	}
+	.protect-with button.active {
+		border-style: solid;
+		background: rgba(57, 255, 136, 0.12);
 	}
 	label {
 		font-size: 0.78rem;

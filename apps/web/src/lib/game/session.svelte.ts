@@ -24,6 +24,7 @@ import type {
 	OrderView,
 	PackCheck,
 	RunOptionsView,
+	TimeInForceName,
 	TrustedKey,
 	WhatIfRequest,
 	WhatIfResult
@@ -92,8 +93,10 @@ type Action =
 			tp?: string | null;
 			trail?: string | null;
 			trailRate?: string | null;
-	  } & Partial<ComboTag>)
-	| ({ k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null } & Partial<ComboTag>)
+	  } & Partial<ComboTag> &
+			TifFields)
+	| ({ k: 'opt'; series: number; side: OrderSideName; type: 'market' | 'limit'; qty: string; premium: string | null } & Partial<ComboTag> &
+			TifFields)
 	| { k: 'margin'; amount: string }
 	| {
 			k: 'plan';
@@ -110,11 +113,19 @@ type Action =
 	| { k: 'lesson'; q: number; choice: number; value: string | null; skipped: boolean }
 	| ({ k: 'cancel'; id: number } & Partial<ComboTag>)
 	| { k: 'move'; id: number; price: string }
+	// Policy v18 (add-practice-and-advanced-strategies D7): two working orders linked one-cancels-the-other.
+	| { k: 'oco'; a: number; b: number }
 	| { k: 'close' }
 	| { k: 'advice' }
 	| { k: 'adv'; n: number };
 
 export type CommandAction = Exclude<Action, { k: 'adv' }>;
+
+/** An order's time in force as logged (policy v18): absent means gtc, so older logs replay unchanged. */
+export interface TifFields {
+	tif?: TimeInForceName;
+	tifBars?: number;
+}
 
 /** A checkpoint every this many logged actions: resume restores it and replays at most this many. */
 export const CHECKPOINT_EVERY = 20;
@@ -170,6 +181,15 @@ export interface OrderExtras {
 	trailRate?: string | null;
 	/** The strategy-builder combo this order is a leg of (logged, ignored by replay). */
 	tag?: ComboTag;
+	/** Time in force (policy v18); absent or gtc logs nothing. */
+	tif?: TimeInForceName;
+	tifBars?: number;
+}
+
+/** Only a non-default time in force is logged (gtc = absent), so a log without one is unchanged. */
+export function tifFields(tif?: TimeInForceName, tifBars?: number): TifFields {
+	if (!tif || tif === 'gtc') return {};
+	return tif === 'bars' ? { tif, tifBars: tifBars ?? 1 } : { tif };
 }
 
 export interface Notice {
@@ -272,7 +292,7 @@ export class GameSession implements CatalogHost, SharingHost {
 	get currentRunId(): string {
 		return this.runId;
 	}
-	private policy = 0;
+	private policy = $state(0);
 
 	async init(): Promise<void> {
 		try {
@@ -1102,6 +1122,7 @@ export class GameSession implements CatalogHost, SharingHost {
 			tp: extras.takeProfit ?? null,
 			trail: extras.trail ?? null,
 			...(extras.trailRate ? { trailRate: extras.trailRate } : {}),
+			...tifFields(extras.tif, extras.tifBars),
 			...(extras.tag ?? {})
 		});
 		if (res?.warning === 'stop_beyond_liquidation') this.stopWarnings += 1;
@@ -1114,9 +1135,23 @@ export class GameSession implements CatalogHost, SharingHost {
 		type: 'market' | 'limit',
 		qty: string,
 		premium: string | null,
-		tag?: ComboTag
+		tag?: ComboTag,
+		tif?: { tif?: TimeInForceName; tifBars?: number }
 	): Promise<CommandResult | null> {
-		return this.command({ k: 'opt', series, side, type, qty, premium, ...(tag ?? {}) });
+		return this.command({ k: 'opt', series, side, type, qty, premium, ...tifFields(tif?.tif, tif?.tifBars), ...(tag ?? {}) });
+	}
+
+	/**
+	 * Links two working orders one-cancels-the-other (policy v18, design D7): the first fill on either
+	 * cancels the other's remainder in the engine, even when both levels trade on one bar.
+	 */
+	async linkOco(a: number, b: number): Promise<CommandResult | null> {
+		return this.command({ k: 'oco', a, b });
+	}
+
+	/** The loaded engine build takes time in force and OCO links (execution policy v18 or later). */
+	get orderRulesV18(): boolean {
+		return this.policy >= 18;
 	}
 
 	/** Adds (positive) or removes (negative) isolated margin; amount is a decimal string. */
@@ -1441,6 +1476,11 @@ export class GameSession implements CatalogHost, SharingHost {
 	}
 }
 
+// The time in force of a logged order, for the engine request (absent = gtc: the pre-v18 call).
+function tifRequest(a: TifFields): { tif?: TimeInForceName; tifBars?: number } {
+	return a.tif ? { tif: a.tif, ...(a.tifBars != null ? { tifBars: a.tifBars } : {}) } : {};
+}
+
 // The engine request for one logged command (client ids are assigned in log order).
 export function commandRequest(a: CommandAction, clientId: number): Extract<EngineRequest, { clientId: number }> {
 	switch (a.k) {
@@ -1458,10 +1498,13 @@ export function commandRequest(a: CommandAction, clientId: number): Extract<Engi
 				attachStop: a.stop ?? null,
 				attachTp: a.tp ?? null,
 				trailDistance: a.trail ?? null,
-				trailRate: a.trailRate ?? null
+				trailRate: a.trailRate ?? null,
+				...tifRequest(a)
 			};
 		case 'opt':
-			return { kind: 'option', clientId, series: a.series, side: a.side, type: a.type, qty: a.qty, premium: a.premium };
+			return { kind: 'option', clientId, series: a.series, side: a.side, type: a.type, qty: a.qty, premium: a.premium, ...tifRequest(a) };
+		case 'oco':
+			return { kind: 'oco', clientId, orderA: a.a, orderB: a.b };
 		case 'plan':
 			return {
 				kind: 'plan',

@@ -9,7 +9,8 @@ const CODES = [
 	'numeric_overflow', 'invalid_leverage', 'position_open', 'stop_beyond_liquidation', 'short_not_allowed',
 	'expired', 'invalid_bracket', 'oco_sibling_filled', 'series_not_listed', 'short_options_not_allowed', 'no_bid',
 	'margin_call', 'margin_below_initial', 'no_question_due', 'invalid_plan', 'no_advice_left', 'order_moved',
-	'leverage_above_tier', 'series_settling', 'unknown_question', 'already_answered', 'invalid_answer'
+	'leverage_above_tier', 'series_settling', 'unknown_question', 'already_answered', 'invalid_answer',
+	'time_in_force', 'invalid_time_in_force', 'invalid_oco'
 ];
 
 describe('reasonText', () => {

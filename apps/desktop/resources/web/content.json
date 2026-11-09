@@ -1391,6 +1391,64 @@
      ]
     },
     {
+     "id": "trail",
+     "phase": "demo",
+     "chart": {
+      "market": "T",
+      "interval": "1h",
+      "candles": [
+       {
+        "o": 99.6,
+        "h": 100.2,
+        "l": 99.4,
+        "c": 100,
+        "v": 40
+       },
+       {
+        "o": 100,
+        "h": 101.5,
+        "l": 99.9,
+        "c": 101.2,
+        "v": 44
+       },
+       {
+        "o": 101.2,
+        "h": 103.8,
+        "l": 101,
+        "c": 103.47,
+        "v": 52
+       },
+       {
+        "o": 103.5,
+        "h": 103.6,
+        "l": 102.3,
+        "c": 102.6,
+        "v": 38
+       },
+       {
+        "o": 102.6,
+        "h": 102.8,
+        "l": 101.1,
+        "c": 101.3,
+        "v": 47
+       }
+      ],
+      "levels": [
+       {
+        "kind": "entry",
+        "price": 100
+       },
+       {
+        "kind": "stop",
+        "price": 101.4
+       }
+      ]
+     },
+     "terms": [
+      "trailing-stop"
+     ]
+    },
+    {
      "id": "roundtrip",
      "phase": "decision",
      "widget": {
@@ -4599,6 +4657,96 @@
    "related": [
     "overconfidence",
     "journal"
+   ]
+  },
+  {
+   "id": "time-in-force",
+   "stage": "orders",
+   "related": [
+    "limit-order",
+    "ioc",
+    "fok"
+   ]
+  },
+  {
+   "id": "ioc",
+   "stage": "orders",
+   "related": [
+    "time-in-force",
+    "fok",
+    "capacity"
+   ]
+  },
+  {
+   "id": "fok",
+   "stage": "orders",
+   "related": [
+    "time-in-force",
+    "ioc",
+    "capacity"
+   ]
+  },
+  {
+   "id": "oco",
+   "stage": "orders",
+   "related": [
+    "stop-order",
+    "take-profit",
+    "breakout"
+   ]
+  },
+  {
+   "id": "calendar-spread",
+   "stage": "strategies",
+   "related": [
+    "theta",
+    "vega",
+    "expiry"
+   ]
+  },
+  {
+   "id": "diagonal-spread",
+   "stage": "strategies",
+   "related": [
+    "calendar-spread",
+    "vertical-spread",
+    "strike"
+   ]
+  },
+  {
+   "id": "heatmap",
+   "stage": "strategies",
+   "related": [
+    "pnl",
+    "theta",
+    "expiry"
+   ]
+  },
+  {
+   "id": "portfolio-greeks",
+   "stage": "options3",
+   "related": [
+    "delta",
+    "gamma",
+    "vega"
+   ]
+  },
+  {
+   "id": "risk-limit",
+   "stage": "risk",
+   "related": [
+    "portfolio-greeks",
+    "risk-budget",
+    "delta"
+   ]
+  },
+  {
+   "id": "delta-hedge",
+   "stage": "options3",
+   "related": [
+    "delta",
+    "perpetual",
+    "portfolio-greeks"
    ]
   }
  ],

@@ -22,7 +22,7 @@ interface IndexEntry {
 }
 const index = JSON.parse(read('engine/tests/runfiles/index.json')) as { files: IndexEntry[] };
 
-const STAMP = { executionPolicy: 17, abi: 1, version: '0.1.0' };
+const STAMP = { executionPolicy: 18, abi: 1, version: '0.1.0' };
 
 function record(p: Partial<RunRecord<PlanEntry, unknown>> = {}): RunRecord<PlanEntry, unknown> {
 	return {
@@ -30,7 +30,7 @@ function record(p: Partial<RunRecord<PlanEntry, unknown>> = {}): RunRecord<PlanE
 		missionId: 'm01-false-breakout',
 		seed: 7,
 		createdAt: 1_700_000_000_000,
-		executionPolicy: 17,
+		executionPolicy: 18,
 		journal: [],
 		questions: [],
 		stopWarnings: 0,
