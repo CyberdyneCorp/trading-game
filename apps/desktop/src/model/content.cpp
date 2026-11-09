@@ -162,6 +162,35 @@ AcademyLesson lesson_of(const json::Value& l) {
   return lesson;
 }
 
+DrillParam drill_param(const json::Value& p) {
+  DrillParam out;
+  out.name = p["name"].as_string();
+  if (p.has("of")) {
+    out.kind = DrillParam::Kind::List;
+    out.of = strings(p["of"]);
+  } else if (p.has("add") || p.has("sub")) {
+    const bool add = p.has("add");
+    const json::Value& operands = p[add ? "add" : "sub"];
+    out.kind = add ? DrillParam::Kind::Add : DrillParam::Kind::Sub;
+    out.a = operands[0].as_string();
+    out.b = operands[1].as_string();
+  } else {
+    out.lo = p["lo"].as_string();
+    out.hi = p["hi"].as_string();
+    out.step = p["step"].as_string();
+  }
+  return out;
+}
+
+DrillTemplate drill_template(const json::Value& t) {
+  DrillTemplate out{t["id"].as_string(), t["skill"].as_string(), t["stage"].as_string(), strings(t["lessons"]), {},
+                    t["answer"], std::nullopt, std::nullopt, to_int(t["cases"]), to_int(t["choices"])};
+  for (const auto& p : t["params"].items()) out.params.push_back(drill_param(p));
+  if (t.has("digits")) out.digits = to_int(t["digits"]);
+  if (t.has("tolerance")) out.tolerance = t["tolerance"].as_double();
+  return out;
+}
+
 }  // namespace
 
 const Stage* WebContent::stage(std::string_view id) const {
@@ -214,6 +243,8 @@ std::optional<WebContent> parse_web_content(std::string_view text) {
   for (const auto& t : d["glossary"].items()) c.glossary.push_back({t["id"].as_string(), t["stage"].as_string(), strings(t["related"])});
   for (const auto& k : d["coach"].items()) c.coach.push_back({k["id"].as_string(), k["target"].as_string(), k["completes"].as_string()});
   for (const auto& [code, term] : d["findingTerms"].fields()) c.finding_terms.emplace(code, term.as_string());
+  c.drill_skills = strings(d["drillSkills"]);
+  for (const auto& t : d["drills"].items()) c.drills.push_back(drill_template(t));
   return c;
 }
 

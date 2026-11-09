@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <system_error>
 
+#include "model/practice_json.hpp"
 #include "model/progress_json.hpp"
 #include "model/storage/json_writer.hpp"
 
@@ -122,6 +123,10 @@ desktop::Progress ProfileStore::load_progress() {
     out.coach_done = p.coach_done;
     out.glossary_seen = p.glossary_seen;
     out.assessed = p.assessed;
+    out.drill_reviews = practice_json::drill_reviews_from(parse_or_null(p.drill_reviews));
+    out.drill_history = practice_json::drill_history_from(parse_or_null(p.drill_history));
+    out.daily_challenges = practice_json::daily_challenges_from(parse_or_null(p.daily_challenges));
+    out.guess_history = practice_json::guess_history_from(parse_or_null(p.guess_history));
     if (p.campaign) out.campaign = progress_json::campaign_from(parse_or_null(p.campaign));
     for (const std::string& c : p.campaign_history) {
       if (auto run = progress_json::campaign_from(parse_or_null(c))) out.campaign_history.push_back(std::move(*run));
@@ -183,6 +188,10 @@ void ProfileStore::save_progress(const desktop::Progress& p) {
     row.coach_done = p.coach_done;
     row.glossary_seen = p.glossary_seen;
     row.assessed = p.assessed;
+    row.drill_reviews = practice_json::drill_reviews(p.drill_reviews);
+    row.drill_history = practice_json::drill_history(p.drill_history);
+    row.daily_challenges = practice_json::daily_challenges(p.daily_challenges);
+    row.guess_history = practice_json::guess_history(p.guess_history);
     row.campaign = p.campaign ? std::optional<std::string>(progress_json::campaign(*p.campaign)) : std::nullopt;
     row.campaign_history.clear();
     for (const CampaignRun& c : p.campaign_history) row.campaign_history.push_back(progress_json::campaign(c));

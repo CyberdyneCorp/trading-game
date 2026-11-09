@@ -96,6 +96,7 @@ add_library(tradelab_desktop_model STATIC
   src/model/json.cpp
   src/model/content.cpp
   src/model/progress_json.cpp
+  src/model/practice_json.cpp
   ${CMAKE_BINARY_DIR}/generated/resources.cpp)
 target_include_directories(tradelab_desktop_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 find_package(Threads REQUIRED)
@@ -147,6 +148,11 @@ set(TRADELAB_DESKTOP_ACADEMY_VIEWMODEL_SOURCES
   src/viewmodel/academy/lesson_lab.cpp
   src/viewmodel/academy/payoff.cpp
   src/viewmodel/academy/review.cpp
+  src/viewmodel/practice/prng.cpp
+  src/viewmodel/practice/daily.cpp
+  src/viewmodel/practice/drills.cpp
+  src/viewmodel/practice/guess_round.cpp
+  src/viewmodel/practice/coach_review.cpp
   src/viewmodel/academy/ticket_sandbox.cpp
   src/viewmodel/academy_flow.cpp
   src/viewmodel/screens/academy.cpp

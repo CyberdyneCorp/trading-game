@@ -31,6 +31,7 @@ add_executable(tradelab_desktop_unit_tests
   viewmodel/test_theme.cpp
   viewmodel/test_web_parity.cpp
   viewmodel/test_debrief_v14.cpp
+  viewmodel/test_practice_parity.cpp
   viewmodel/test_academy_parity.cpp
   viewmodel/test_academy.cpp
   viewmodel/test_audio.cpp

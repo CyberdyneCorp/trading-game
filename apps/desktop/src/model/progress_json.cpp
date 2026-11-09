@@ -150,13 +150,15 @@ std::string assisted(const AssistedLink& a) {
   JsonWriter w;
   w.begin_object().field("from", a.from).field("kind", a.kind);
   if (a.step) w.field("step", *a.step);
+  if (!a.code.empty()) w.field("code", a.code);
   return w.end_object().text();
 }
 
 std::optional<AssistedLink> assisted_from(const json::Value& v) {
   if (v.kind() != Kind::Object) return std::nullopt;
-  AssistedLink a{v["from"].as_string(), v["kind"].as_string("rewind"), std::nullopt};
+  AssistedLink a{v["from"].as_string(), v["kind"].as_string("rewind"), std::nullopt, {}};
   if (v["step"].kind() == Kind::Number) a.step = static_cast<int>(v["step"].as_int());
+  if (v["code"].kind() == Kind::String) a.code = v["code"].as_string();
   return a;
 }
 

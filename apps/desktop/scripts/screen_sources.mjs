@@ -24,6 +24,8 @@ export const SCREEN_PATHS = {
 	webCampaignReport: path.join(WEB_GAME, 'campaignReport.ts'),
 	webShortcuts: path.join(WEB_GAME, 'shortcuts.ts'),
 	webDebrief: path.join(WEB_GAME, 'debrief.ts'),
+	webDrills: path.join(WEB_CONTENT, 'drills'),
+	webDrillsTs: path.join(WEB_CONTENT, 'drills.ts'),
 	content: path.join(DESKTOP_DIR, 'resources/web/content.json')
 };
 
@@ -142,6 +144,46 @@ function coachRows(_ts, file, _readConsts, out) {
 	return [];
 }
 
+/**
+ * The daily drill templates (add-practice-and-advanced-strategies D15), skill by skill in DRILL_SKILLS
+ * order, then by file order, as content/drills.ts lists them; [] without the sources.
+ */
+function drillTemplates(ts, paths, readConsts) {
+	if (!has(paths, 'webDrills') || !has(paths, 'webDrillsTs')) return [];
+	const skills = readConsts(ts, paths.webDrillsTs).get('DRILL_SKILLS');
+	return skills.flatMap((skill) => {
+		const file = path.join(paths.webDrills, `${skill}.json`);
+		return existsSync(file) ? readJson(file).templates.map((t) => ({ ...t, skill })) : [];
+	});
+}
+
+/** drills/<skill>.json -> drill.<id>.prompt/explain, drill.<id>.case.<k> and drill.<id>.choice.<k>. */
+function drillRows(ts, paths, readConsts, out) {
+	for (const t of drillTemplates(ts, paths, readConsts)) {
+		const [pt, en] = LOCALES.map((l) => t.text[l] ?? {});
+		const base = `drill.${t.id}`;
+		for (const field of ['prompt', 'explain']) out.push([`${base}.${field}`, pt[field], en[field] ?? '', 'web drills']);
+		for (const list of ['cases', 'choices']) {
+			const key = list === 'cases' ? 'case' : 'choice';
+			(pt[list] ?? []).forEach((label, k) => out.push([`${base}.${key}.${k}`, label, en[list]?.[k] ?? '', 'web drills']));
+		}
+	}
+	return [];
+}
+
+/**
+ * A template's structure for content.json (texts: the drill.* rows). Parameters become a list of
+ * {name, ...spec}: they are drawn in the file's key order, which a JSON object reader may not keep.
+ */
+function drillStructure({ text, params, ...rest }) {
+	return {
+		...rest,
+		params: Object.entries(params).map(([name, spec]) => ({ name, ...spec })),
+		cases: (text['pt-BR']?.cases ?? []).length,
+		choices: (text['pt-BR']?.choices ?? []).length
+	};
+}
+
 // objectives.ts (objective.*) and news.ts (news.kind.*, news.level.*) are read once, by i18n_game.mjs.
 const ROW_SOURCES = [
 	['webAnalysis', analysisRows],
@@ -157,6 +199,7 @@ export function screenRows(ts, paths, readConsts) {
 	for (const [key, read] of ROW_SOURCES) {
 		if (has(paths, key)) problems.push(...read(ts, paths[key], readConsts, rows));
 	}
+	problems.push(...drillRows(ts, paths, readConsts, rows));
 	return { rows, problems };
 }
 
@@ -188,7 +231,10 @@ function contentOf(ts, paths, readConsts) {
 		glossary: has(paths, 'webGlossary') ? readJson(paths.webGlossary).terms.map(({ id, stage, related }) => ({ id, stage, related })) : [],
 		coach: has(paths, 'webCoach') ? readJson(paths.webCoach).steps.map(({ id, target, completes }) => ({ id, target, completes })) : [],
 		// The glossary term each debrief finding is about (glossary.ts FINDING_TERMS).
-		findingTerms: has(paths, 'webGlossaryTs') ? readConsts(ts, paths.webGlossaryTs).get('FINDING_TERMS') : {}
+		findingTerms: has(paths, 'webGlossaryTs') ? readConsts(ts, paths.webGlossaryTs).get('FINDING_TERMS') : {},
+		// Daily drills (D15): the skills in order and the templates' structure (texts: the drill.* rows).
+		drillSkills: has(paths, 'webDrillsTs') ? readConsts(ts, paths.webDrillsTs).get('DRILL_SKILLS') : [],
+		drills: drillTemplates(ts, paths, readConsts).map(drillStructure)
 	};
 }
 

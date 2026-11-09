@@ -71,7 +71,8 @@ struct CampaignLink {
 struct AssistedLink {
   std::string from;
   std::string kind = "rewind";  // rewind | seed | mistake (progress v4: a retry from a debrief moment)
-  std::optional<int> step;      // rewind: the decision step the attempt resumes at
+  std::optional<int> step;      // rewind and mistake: the decision step the attempt resumes at
+  std::string code;             // mistake: the coach moment's or debrief finding's code ("" = none)
   bool operator==(const AssistedLink&) const = default;
 };
 
@@ -129,6 +130,65 @@ struct ReviewEntry {
 };
 using LessonReviews = std::map<std::string, ReviewEntry, std::less<>>;
 
+// ---- Practice formats (progress v4, add-practice-and-advanced-strategies D15, D16, D19; storage.ts) ----
+
+// A drill skill's place in the spaced review: box 1/3/7/21 days, due as epoch ms (local midnight).
+struct DrillReview {
+  int box = 1;
+  std::int64_t due = 0;
+  bool operator==(const DrillReview&) const = default;
+};
+
+struct SkillStats {
+  int n = 0;
+  int right = 0;
+  bool operator==(const SkillStats&) const = default;
+};
+using SkillMap = std::map<std::string, SkillStats, std::less<>>;
+
+// One drill session: the local date, items asked and right on the first try, and per skill (absent on
+// sessions kept before wave 3).
+struct DrillSession {
+  std::string date;
+  int items = 0;
+  int first_try = 0;
+  std::optional<SkillMap> skills;
+  bool operator==(const DrillSession&) const = default;
+};
+
+// One daily-challenge attempt: the mission score (none when the debrief had none), the net P&L as the
+// engine's decimal, and the run.
+struct DailyAttempt {
+  std::optional<int> score;
+  std::string pnl;
+  std::string run_id;
+  bool operator==(const DailyAttempt&) const = default;
+};
+
+// A day of the daily challenge: its first finished attempt is the record, the best beside it.
+struct DailyChallenge {
+  std::string mission;
+  std::uint32_t seed = 0;
+  std::optional<DailyAttempt> first;
+  std::optional<DailyAttempt> best;
+  int attempts = 0;
+  bool operator==(const DailyChallenge&) const = default;
+};
+using DailyChallenges = std::map<std::string, DailyChallenge, std::less<>>;  // by local date
+
+// One "guess the next move" round; score in hundredths of a point; `higher` absent on rounds kept
+// before wave 3.
+struct GuessRound {
+  std::string market;
+  std::uint32_t seed = 0;
+  int step = 0;
+  std::string decision;  // long | short | none
+  int p = 50;
+  int score = 0;
+  std::optional<bool> higher;
+  bool operator==(const GuessRound&) const = default;
+};
+
 struct Progress {
   std::vector<std::string> completed;     // missions played to the end (not bankrupt)
   std::vector<std::string> assessed;      // missions finished in a campaign run: their stages are passed
@@ -139,7 +199,17 @@ struct Progress {
   std::optional<CampaignRun> campaign;
   std::vector<CampaignRun> campaign_history;  // ended campaign runs, oldest first
   std::vector<RunRecord> runs;
+  // Progress v4 practice keys (drills, the daily challenge, guess rounds).
+  std::map<std::string, DrillReview, std::less<>> drill_reviews;
+  std::vector<DrillSession> drill_history;  // the newest kDrillHistoryKeep, oldest first
+  DailyChallenges daily_challenges;         // the last kDailyKeepDays days
+  std::vector<GuessRound> guess_history;    // the newest kGuessHistoryKeep, oldest first
 };
+
+// storage.ts DRILL_HISTORY_KEEP, DAILY_KEEP_DAYS, GUESS_HISTORY_KEEP.
+inline constexpr std::size_t kDrillHistoryKeep = 30;
+inline constexpr std::size_t kDailyKeepDays = 90;
+inline constexpr std::size_t kGuessHistoryKeep = 200;
 
 class ProgressRepository {
  public:
