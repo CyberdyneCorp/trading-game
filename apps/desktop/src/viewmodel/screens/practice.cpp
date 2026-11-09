@@ -106,7 +106,7 @@ void drill_end(const AppViewModel& vm, const DrillsState& d, ScreenModel& m) {
   m.items.push_back(std::move(lessons));
   m.name(names::kDrillsLessons, vm.tr("drills.endTitle"));
   const auto& picked = d.items.empty() ? std::vector<std::string>{} : d.items[static_cast<std::size_t>(std::clamp(d.lesson, 0, static_cast<int>(d.items.size()) - 1))].lessons;
-  m.text(names::kDrillsLesson, "\xF0\x9F\x8E\x93 " + vm.tr("drills.lesson", {{"title", picked.empty() ? std::string() : lesson_title(vm, picked.front())}}));
+  m.text(names::kDrillsLesson, vm.tr("drills.lesson", {{"title", picked.empty() ? std::string() : lesson_title(vm, picked.front())}}));
   m.text(names::kDrillsAgain, vm.tr("drills.again"));
 }
 
@@ -197,7 +197,7 @@ void guess_reveal_box(const AppViewModel& vm, const GuessState& g, ScreenModel& 
   WidgetLines lines{names::kGuessReveal, {}};
   lines.lines.push_back({vm.tr("guess.committed", {{"decision", decision_name(vm, g.decision)}, {"p", std::to_string(g.p)}})});
   if (trade) {
-    lines.lines.push_back({vm.tr("guess.levels", {{"inv", price(vm, g.invalidation)}, {"target", price(vm, g.target)}}), Tone::Muted});
+    lines.lines.push_back({vm.tr("guess.levels", {{"inv", price(vm, practice::typed_decimal(g.invalidation))}, {"target", price(vm, practice::typed_decimal(g.target))}}), Tone::Muted});
   }
   lines.lines.push_back({vm.tr(o.higher ? "guess.higher" : "guess.lower", {{"from", price(vm, o.from)}, {"to", price(vm, o.to)}})});
   if (trade) lines.lines.push_back({vm.tr("guess.first." + o.hit), Tone::Muted});
@@ -248,7 +248,7 @@ void review_moment(const AppViewModel& vm, const CoachReviewState& c, const prac
   m.text(names::kReviewText, practice::moment_text(mo, vm.catalog()));
   const bool lesson = web_content().lesson(mo.lesson) != nullptr;
   m.show(names::kReviewLesson, lesson);
-  if (lesson) m.text(names::kReviewLesson, "\xF0\x9F\x8E\x93 " + vm.tr("coachReview.lesson", {{"title", lesson_title(vm, mo.lesson)}}));
+  if (lesson) m.text(names::kReviewLesson, vm.tr("coachReview.lesson", {{"title", lesson_title(vm, mo.lesson)}}));
   const bool term = web_content().term(mo.glossary) != nullptr;
   m.show(names::kReviewTerm, term);
   if (term) m.text(names::kReviewTerm, vm.tr("coachReview.term", {{"term", vm.tr("glossary." + mo.glossary + ".term")}}));

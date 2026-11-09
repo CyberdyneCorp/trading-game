@@ -374,13 +374,7 @@ const MissionInfo* market_of(const std::vector<MissionInfo>& rounds, const std::
   return it == rounds.end() ? nullptr : &*it;
 }
 
-// A typed price with a comma or a dot, as the decimal string the score compares in fixed point.
-std::string typed_decimal(std::string_view v) {
-  std::string s(v);
-  std::erase_if(s, [](char c) { return c == ' '; });
-  if (const auto comma = s.find(','); comma != std::string::npos) s[comma] = '.';
-  return s;
-}
+using practice::typed_decimal;
 
 constexpr std::array<std::string_view, 3> kDecisions = {"long", "short", "none"};
 

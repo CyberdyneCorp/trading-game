@@ -75,6 +75,12 @@ RoundPick pick_round(const std::vector<MissionInfo>& markets, const std::string&
   return {m.id, seed, lo + pick(next, std::max(1, hi - lo + 1))};
 }
 
+std::string typed_decimal(std::string_view v) {
+  std::string s(trim(v));
+  if (const auto comma = s.find(','); comma != std::string::npos) s[comma] = '.';
+  return s;
+}
+
 std::optional<std::int64_t> fixed(std::string_view text) {
   std::string_view s = trim(text);
   const bool negative = !s.empty() && s.front() == '-';

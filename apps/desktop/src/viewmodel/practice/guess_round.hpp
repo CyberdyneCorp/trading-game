@@ -34,6 +34,9 @@ struct RoundPick {
 // [warm-up + 20, total - 13]. `markets` must not be empty.
 RoundPick pick_round(const std::vector<MissionInfo>& markets, const std::string& date, int index);
 
+// A typed price with a comma or a dot, as the decimal string the score compares (GuessScreen typedDecimal).
+std::string typed_decimal(std::string_view v);
+
 // A decimal string as an integer of 1e-8 units (extra digits truncated, either decimal mark); none when
 // malformed.
 std::optional<std::int64_t> fixed(std::string_view text);

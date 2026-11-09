@@ -246,8 +246,9 @@ TEST_CASE("practice: a guess round runs its own market to the decision, then rev
   const double close = g.at_decision->bars.back().close;
   p.vm.guess_set_p(13);  // 70%
   CHECK(g.p == 70);
-  p.vm.guess_set_level(false, fmt::to_fixed_text(close - 2, 2));
-  p.vm.guess_set_level(true, fmt::to_fixed_text(close + 4, 2));
+  // Typed as a PT-BR player types them (decimal comma).
+  p.vm.guess_set_level(false, fmt::price_input_text(close - 2, 0.01, Locale::PtBR));
+  p.vm.guess_set_level(true, fmt::price_input_text(close + 4, 0.01, Locale::PtBR));
   p.vm.guess_commit();
   REQUIRE(p.engine.analyses.size() == 1);
   CHECK(p.engine.analyses[0].request == R"({"mission":"r01-trend","seed":32247478,"advance":65})");
@@ -266,6 +267,11 @@ TEST_CASE("practice: a guess round runs its own market to the decision, then rev
   CHECK(r.higher == g.outcome->higher);
   m = p.vm.screen_model();
   CHECK(line_with(m.lines_of(names::kGuessReveal), "Uma amostra") != nullptr);
+  // Regression: levels typed with a comma read as "—" in the reveal.
+  const Line* levels = line_with(m.lines_of(names::kGuessReveal), "Invalida");
+  REQUIRE(levels != nullptr);
+  CHECK(levels->text.find("\xE2\x80\x94") == std::string::npos);
+  CHECK(levels->text.find(fmt::fmt_price(fmt::to_fixed_text(close - 2, 2), Locale::PtBR)) != std::string::npos);
   CHECK(m.text_of(names::kGuessRounds).find("1") != std::string::npos);
   CHECK(m.is_visible(names::kGuessTableLocked, false));
   const game::ChartScene scene = p.vm.guess_scene(900, 300);
