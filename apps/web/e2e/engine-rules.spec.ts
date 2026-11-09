@@ -36,6 +36,7 @@ test('a trailing stop by percent of the close protects a position and survives a
 	await advance(page);
 	await expect(page.getByText(/Execução #1/)).toBeVisible();
 
+	await page.getByTestId('protect-tab-trail').click(); // its own tab since add-practice-and-advanced-strategies D10
 	await page.getByTestId('trail-mode-pct').click();
 	const pct = page.getByTestId('protect-trail-pct');
 	await pct.fill('2,5'); // PT-BR decimal comma

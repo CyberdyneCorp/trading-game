@@ -58,6 +58,7 @@
 					{@const tif = tifCell(o)}
 					{@const mark = linkMark(o, orders)}
 					<tr data-testid="order-row" data-order={o.id}>
+						<td class="muted">#{o.id}</td>
 						{#if v18}
 							<td>
 								<input
@@ -69,7 +70,6 @@
 								/>
 							</td>
 						{/if}
-						<td class="muted">#{o.id}</td>
 						<td>{o.series ? `${session.names.seriesName(o.series, i18n.locale)} ` : ''}{ORDER_TYPE_LABEL[o.type]}</td>
 						<td class={o.side === 'buy' ? 'up' : 'down'}>{o.side === 'buy' ? '▲' : '▼'} {sideLabel(o.side)}</td>
 						<td class="num">{fmtQty(o.qty, i18n.locale)}</td>
