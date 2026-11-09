@@ -237,7 +237,7 @@ Suggested PRs, in order:
 
 ### W3-E. Engine
 
-- [ ] W3-E1 Coach review (design D17), needs W2-E3:
+- [x] W3-E1 Coach review (design D17), needs W2-E3:
   - `tl_coach_review(run)` (refused while active), `CoachMomentCode` in the IDL, Python `Run.coach_review`, worker `coach`;
   - replay of the log on a fresh state with rules at each step from the state of that step only;
   - at most 9 warn and 3 good moments.
@@ -248,11 +248,13 @@ Suggested PRs, in order:
   - purity.
 
   A new fixture kind `coach` (two fixtures, listed in `index.json`, replayed by native, WASM, Python and the desktop); the engine README fixture table.
-- [ ] W3-E2 Round markets `r01-trend`, `r02-range`, `r03-breakout`, `r04-event` (design D19): existing capabilities, `"practice": "round"` in `tl_missions`, one golden each, realism bands pooled with the missions; menus and the daily pool skip them (a test).
+
+  Status: done on the engine, WASM, Python and the desktop's golden reader (W3-D1).
+- [x] W3-E2 Round markets `r01-trend`, `r02-range`, `r03-breakout`, `r04-event` (design D19): existing capabilities, `"practice": "round"` in `tl_missions`, one golden each, realism bands pooled with the missions; menus and the daily pool skip them (a test).
 
 ### W3-W. Web
 
-- [ ] W3-W1 Daily drills (design D15), needs W2-W0:
+- [x] W3-W1 Daily drills (design D15), needs W2-W0:
   - `content/drills/*.json` with the schema validator;
   - mulberry32/FNV-1a generation;
   - the choice of items from due lesson reviews, then `drillReviews`, then weak skills;
@@ -267,33 +269,35 @@ Suggested PRs, in order:
   - parity fixture `drills.json`.
 
   E2E: a session.
-- [ ] W3-W2 Daily challenge (design D16), needs W2-W0: date-to-mission-and-seed (`DAILY_POOL_V1`, parity fixture `daily.json` over 400 dates), the run with no advisor or perks and the `daily` link, the first and best attempt, the 90-day history, no streak.
+- [x] W3-W2 Daily challenge (design D16), needs W2-W0: date-to-mission-and-seed (`DAILY_POOL_V1`, parity fixture `daily.json` over 400 dates), the run with no advisor or perks and the `daily` link, the first and best attempt, the 90-day history, no streak.
 
   E2E: two attempts on a mocked date.
-- [ ] W3-W3 Guess rounds (design D19), needs W3-E2 and W2-W0: the round flow (commit, then reveal), `guessRound.ts` integer scoring (parity fixture `guess.json`), "one sample", the calibration table after 20 rounds, `guessHistory`.
+- [x] W3-W3 Guess rounds (design D19), needs W3-E2 and W2-W0: the round flow (commit, then reveal), `guessRound.ts` integer scoring (parity fixture `guess.json`), "one sample", the calibration table after 20 rounds, `guessHistory`.
 
   E2E: five rounds.
-- [ ] W3-W4 Coach mode (design D17), needs W3-E1: "Review with the coach" from the debrief, the chart cut at the moment's bar, moment texts per code (PT-BR, en), "Retry from here" on warn moments, axe.
-- [ ] W3-W5 Mistake replay (design D18), needs W4: "Retry from here" on findings with a step and on coach moments; the assisted rewind with link `mistake`; the terminal banner; the repeated or avoided comparison at the retry's debrief; excluded from progress, points, campaign and journal statistics (tests).
+- [x] W3-W4 Coach mode (design D17), needs W3-E1: "Review with the coach" from the debrief, the chart cut at the moment's bar, moment texts per code (PT-BR, en), "Retry from here" on warn moments, axe.
+- [x] W3-W5 Mistake replay (design D18), needs W4: "Retry from here" on findings with a step and on coach moments; the assisted rewind with link `mistake`; the terminal banner; the repeated or avoided comparison at the retry's debrief; excluded from progress, points, campaign and journal statistics (tests).
 
   E2E: a mistake retried with the assisted label.
-- [ ] W3-W6 Menu entries (Drills, Daily, Guess), web README, e2e list.
+- [x] W3-W6 Menu entries (Drills, Daily, Guess), web README, e2e list.
 
 ### W3-D. Desktop
 
-- [ ] W3-D1 Engine adapter: `tl_coach_review`, the round markets and the `coach` fixtures.
-- [ ] W3-D2 Drills, Daily challenge and Guess screens, with ports of `drills`, `daily` and `guessRound` checked by web parity fixtures; keyboard and screen reader; headless flows.
-- [ ] W3-D3 Coach overlay on the debrief and mistake replay (assisted link `mistake`, banner, comparison); headless flows.
+- [x] W3-D1 Engine adapter: `tl_coach_review`, the round markets and the `coach` fixtures.
+- [x] W3-D2 Drills, Daily challenge and Guess screens, with ports of `drills`, `daily` and `guessRound` checked by web parity fixtures; keyboard and screen reader; headless flows.
+- [x] W3-D3 Coach overlay on the debrief and mistake replay (assisted link `mistake`, banner, comparison); headless flows.
 - [ ] W3-D4 Windowed captures on macOS and Linux; the playtest extended to the practice formats; desktop README.
+
+  Status: macOS references (drills-wrong, guess-commit, review-moment, the menu with its practice row), the playtest (`playtest practice*`) and the desktop README are done; open until the Linux (lavapipe) job compares the references, as W2-D4.
 
 ### W3-X. Playtest and cross-check
 
-- [ ] W3-X1 Same numbers on both clients:
+- [x] W3-X1 Same numbers on both clients:
   - the drill items of one date and session;
   - the daily mission and seed for 10 dates;
   - five guess rounds' scores;
   - the coach moments and a mistake retry of an m23 run (seed 3).
 
   Recorded in the design.
-- [ ] W3-X2 Playtest as a new player in both locales: a drill with wrong answers (the explanations checked by hand), the daily challenge twice, ten guess rounds (scores recomputed by hand), coach mode on a reckless run (each moment checked against the chart up to its bar: no future used), a retry that avoids the mistake and one that repeats it.
-- [ ] W3-X3 Root README (practice formats, progress v4), `docs/product-spec.md` (game modes, metrics), `openspec validate --all --strict`, complexity, every earlier golden unchanged except the documented v18 state digests; build directories, captures and test results deleted.
+- [x] W3-X2 Playtest as a new player in both locales: a drill with wrong answers (the explanations checked by hand), the daily challenge twice, ten guess rounds (scores recomputed by hand), coach mode on a reckless run (each moment checked against the chart up to its bar: no future used), a retry that avoids the mistake and one that repeats it.
+- [x] W3-X3 Root README (practice formats, progress v4), `docs/product-spec.md` (game modes, metrics), `openspec validate --all --strict`, complexity, every earlier golden unchanged except the documented v18 state digests; build directories, captures and test results deleted.

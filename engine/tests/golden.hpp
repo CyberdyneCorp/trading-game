@@ -35,10 +35,11 @@ struct RunResult {
   bool ok = false;     // false: the market could not be built (unknown mission, pack refused)
   std::string state;   // tl_state after the last action
   std::string debrief; // tl_debrief (an error object while the run is active)
+  std::string coach;   // tl_coach_review (an error object while the run is active)
   std::vector<Rejection> rejected;
 };
 
-// Replays a "run" fixture: its market (mission or CSV pack), seed, start options and action log.
+// Replays a "run" or "coach" fixture: its market (mission or CSV pack), seed, start options and action log.
 RunResult replay_run(const detail::JsonValue& fx);
 
 // SHA-256 (hex) of the exact bytes tl_mission_reveal returns for a "reveal" fixture.
@@ -48,6 +49,10 @@ std::string reveal_sha256(const detail::JsonValue& fx);
 // in canonical JSON (RFC 8785) so they compare as text.
 std::string whatif_output(const detail::JsonValue& fx);
 std::string whatif_expected(const detail::JsonValue& fx);
+
+// A "coach" fixture's expected review in canonical JSON, and a replay's review in canonical JSON.
+std::string coach_expected(const detail::JsonValue& fx);
+std::string coach_output(const RunResult& r);
 
 // The CSV text of a "csvPack" market: its lines joined with '\n', with a final '\n'.
 std::string csv_text(const detail::JsonValue& pack);

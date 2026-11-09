@@ -9,8 +9,10 @@ export interface AssistedLink {
 	from: string;
 	/** 'mistake' (progress v4, design D18): a retry from a debrief moment, also never counted. */
 	kind: 'rewind' | 'seed' | 'mistake';
-	/** Rewind: the decision step the new attempt resumes at. */
+	/** Rewind and mistake: the decision step the new attempt resumes at. */
 	step?: number;
+	/** Mistake: the coach moment's or debrief finding's code the retry is about. */
+	code?: string;
 }
 
 type LoggedAction = { k: string; n?: number };

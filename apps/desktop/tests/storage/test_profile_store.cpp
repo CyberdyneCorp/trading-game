@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "model/game_prefs.hpp"
+#include "model/practice_json.hpp"
 #include "model/progress_json.hpp"
 #include "model/storage/profile_store.hpp"
 #include "support/storage_fixtures.hpp"
@@ -88,6 +89,35 @@ TEST_CASE("profile store: the Academy's progress (reviews, tours, glossary) is r
   const LessonReviews read = progress_json::reviews_from(*bad);
   REQUIRE(read.size() == 1);
   CHECK(read.at("c").box == kReviewRetired);
+}
+
+// Progress v4 practice keys (add-practice-and-advanced-strategies D20): the wave 3 fields a session's
+// per-skill results and a round's outcome survive the round trip; the web's readers drop damaged entries.
+TEST_CASE("profile store: the practice formats' progress is read back with every wave 3 field") {
+  TempDir dir;
+  tradelab::desktop::Progress p;
+  p.drill_reviews = {{"trail", {2, 1'795'996'800'000}}};
+  p.drill_history = {{"2026-11-08", 6, 4, std::nullopt}, {"2026-11-09", 6, 5, SkillMap{{"sizing", {2, 1}}, {"trail", {1, 1}}}}};
+  p.daily_challenges["2026-11-09"] = {"m01-false-breakout", 373315357, DailyAttempt{61, "-12.50000000", "run-a"},
+                                      DailyAttempt{74, "3.10000000", "run-b"}, 2};
+  p.daily_challenges["2026-11-08"] = {"m25-the-dip", 9, DailyAttempt{std::nullopt, "0", "run-c"}, std::nullopt, 1};
+  p.guess_history = {{"r01-trend", 32247478, 113, "long", 70, 5125, true}, {"r02-range", 5, 90, "none", 50, 7500, std::nullopt}};
+  {
+    storage::ProfileStore store(dir.path() / "tradelab.db");
+    store.save_progress(p);
+  }
+  storage::ProfileStore again(dir.path() / "tradelab.db");
+  const tradelab::desktop::Progress back = again.load_progress();
+  CHECK(back.drill_reviews == p.drill_reviews);
+  CHECK(back.drill_history == p.drill_history);
+  CHECK(back.daily_challenges == p.daily_challenges);
+  CHECK(back.guess_history == p.guess_history);
+  const auto damaged = json::parse(R"([{"market":"r01","seed":1,"step":2,"decision":"up","p":5,"score":1},)"
+                                   R"({"market":"r01","seed":1,"step":2,"decision":"short","p":5,"score":1,"higher":"no"}])");
+  REQUIRE(damaged);
+  const auto rounds = practice_json::guess_history_from(*damaged);
+  REQUIRE(rounds.size() == 1);
+  CHECK_FALSE(rounds[0].higher.has_value());
 }
 
 TEST_CASE("profile store: the runs table is the shell's run list; the shell writes journal, campaign link and left") {

@@ -2,6 +2,9 @@
 
 #include <tradelab/c_api.h>
 
+#include <algorithm>
+#include <iterator>
+
 namespace tradelab::desktop {
 
 namespace {
@@ -49,8 +52,20 @@ std::vector<MissionInfo> engine_missions() {
   const json::Value list = parse_or_null(tl_missions());
   for (const auto& m : list.items()) {
     out.push_back(MissionInfo{m["id"].as_string(), to_int(m["totalBars"]), to_int(m["warmupBars"]),
-                              to_int(m["leverageCap"]), m["allowShort"].as_bool(true)});
+                              to_int(m["leverageCap"]), m["allowShort"].as_bool(true), m["practice"].as_string()});
   }
+  return out;
+}
+
+std::vector<MissionInfo> missions_only(const std::vector<MissionInfo>& list) {
+  std::vector<MissionInfo> out;
+  std::ranges::copy_if(list, std::back_inserter(out), [](const MissionInfo& m) { return m.practice.empty(); });
+  return out;
+}
+
+std::vector<MissionInfo> round_markets(const std::vector<MissionInfo>& list) {
+  std::vector<MissionInfo> out;
+  std::ranges::copy_if(list, std::back_inserter(out), [](const MissionInfo& m) { return m.practice == "round"; });
   return out;
 }
 
@@ -139,6 +154,19 @@ std::string EngineRun::run_whatif(const std::string& request_json) const {
 
 std::string EngineRun::combo_preview(const std::string& legs_json) const {
   return tl_combo_preview(run_, legs_json.c_str());
+}
+
+std::string EngineRun::coach_review() const { return tl_coach_review(run_); }
+
+// A guess round's market (D19): a fresh run of {"mission","seed"} advanced `advance` bars with no
+// action, answered with its tl_state; {"error":"unknown_mission"} for an id the engine does not know.
+std::string EngineRun::round_state(const std::string& request_json) {
+  const json::Value req = parse_or_null(request_json.c_str());
+  auto run = create(req["mission"].as_string(), static_cast<std::uint32_t>(req["seed"].as_int()));
+  if (!run) return R"({"error":"unknown_mission"})";
+  const int steps = to_int(req["advance"]);
+  if (steps > 0) run->advance(steps);
+  return run->state_json();
 }
 
 Snapshot EngineRun::snapshot() const {

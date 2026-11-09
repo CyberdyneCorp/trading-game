@@ -101,7 +101,7 @@ MissionDef false_breakout() {
   // The denial is a credible negative surprise: most of it is priced in the next bar's gap.
   m.gen.events = {{{72, NewsKind::InstitutionalAdoption, 1, 45, 1, 1}, 0.15, 0.25, 0.004, 6, 1.6, 1.2},
                   {{82, NewsKind::RumorDenied, -1, 85, 1, -1}, 0.2, 0.6, 0.002, 5, 1.3, 1.1}};
-  m.info = {"m01-false-breakout", total_bars(m.gen), 60, 5, true};
+  m.info = {"m01-false-breakout", total_bars(m.gen), 60, 5, true, {}};
   return m;
 }
 
@@ -126,7 +126,7 @@ MissionDef funding_squeeze() {
   m.gen.lead_jitter_max = 10;
   m.gen.events = {{{100, NewsKind::LiquidityInflow, 1, 70, 1, 1}, 0.3, 0.5, 0.002, 4, 1.2, 1.0},
                   {{112, NewsKind::RateDecision, -1, 100, 0, -1}, 0.15, 0.7, 0.004, 8, 1.6, 1.3}};
-  m.info = {"m02-funding-squeeze", total_bars(m.gen), 50, 10, true};
+  m.info = {"m02-funding-squeeze", total_bars(m.gen), 50, 10, true, {}};
   m.objectives = {{ObjectiveCode::PlanEveryEntry, 0}, {ObjectiveCode::RiskPerIdea, 200}, {ObjectiveCode::LiqDistance, 1000}};
   m.liq_warning_bp = 1000;  // objective: keep the distance to liquidation above 10%
   m.funding_interval = 4;
@@ -151,7 +151,7 @@ MissionDef volatility_shock() {
   m.gen.lead_jitter_min = -10;
   m.gen.lead_jitter_max = 10;
   m.gen.events = {{{79, NewsKind::ExchangeIncident, -1, 90, 0, -2}, 0.05, 0.85, 0.003, 6, 1.8, 1.5, 0.05}};
-  m.info = {"m03-volatility-shock", total_bars(m.gen), 60, 20, true};
+  m.info = {"m03-volatility-shock", total_bars(m.gen), 60, 20, true, {}};
   m.objectives = {{ObjectiveCode::LeverageFromStop, 0}, {ObjectiveCode::LiquidationLosesMargin, 0}, {ObjectiveCode::BankruptcyGameOver, 0}};
   return m;
 }
@@ -174,7 +174,7 @@ MissionDef options_buyer() {
   m.gen.lead_jitter_min = -6;
   m.gen.lead_jitter_max = 6;
   m.gen.events = {{{81, NewsKind::RateDecision, 1, 100, 0, 1}, 0.2, 0.6, 0.004, 8, 1.4, 1.0}};
-  m.info = {"m04-options-buyer", total_bars(m.gen), 60, 3, true};
+  m.info = {"m04-options-buyer", total_bars(m.gen), 60, 3, true, {}};
   m.objectives = {{ObjectiveCode::OptionLoseScenario, 0}, {ObjectiveCode::PremiumVsBreakeven, 0}, {ObjectiveCode::WatchIvEvent, 0}};
   m.options = true;
   m.chain = {0, {36, 76}, 2, 5.0};
@@ -198,7 +198,7 @@ MissionDef options_writer() {
   m.gen.lead_jitter_min = -14;
   m.gen.lead_jitter_max = 2;
   m.gen.events = {{{99, NewsKind::NetworkOutage, -1, 80, 0, -2}, 0.05, 0.8, 0.003, 5, 1.6, 1.4, 0.06}};
-  m.info = {"m05-options-writer", total_bars(m.gen), 60, 3, true};
+  m.info = {"m05-options-writer", total_bars(m.gen), 60, 3, true, {}};
   m.objectives = {{ObjectiveCode::WriterWorstCase, 0}, {ObjectiveCode::MaintenanceBuffer, 0}, {ObjectiveCode::ThetaForSeller, 0}};
   m.options = true;
   m.allow_short_options = true;
@@ -227,7 +227,7 @@ MissionDef thin_book() {
   // modest positive surprise of middling credibility, two bars before the market leaves the range.
   m.gen.events = {{{79, NewsKind::LiquidityOutflow, -1, 80, 0, 0}, 0.4, 0.5, 0.002, 4, 1.3, 1.1},
                   {{113, NewsKind::LiquidityInflow, 1, 60, 0, 1}, 0.3, 0.6, 0.003, 5, 1.2, 1.0}};
-  m.info = {"m06-thin-book", total_bars(m.gen), 60, 2, false};
+  m.info = {"m06-thin-book", total_bars(m.gen), 60, 2, false, {}};
   m.objectives = {{ObjectiveCode::LimitOrdersAtZones, 0}, {ObjectiveCode::RiskPerIdea, 100}, {ObjectiveCode::UnfilledLimitOk, 0}};
   CostModel thin;
   thin.half_spread = Rate::from_raw(10'000'000);           // 0.10%
@@ -254,7 +254,7 @@ MissionDef trend_trailing() {
   // Released at the close of the range's last bar: the trend's direction is drawn with the news in
   // the fair value (up in most seeds, never all).
   m.gen.events = {{{71, NewsKind::InstitutionalAdoption, 1, 75, 0, 1}, 0.25, 0.6, 0.003, 6, 1.3, 1.1, 0.02}};
-  m.info = {"m07-trend-trailing", total_bars(m.gen), 60, 5, true};
+  m.info = {"m07-trend-trailing", total_bars(m.gen), 60, 5, true, {}};
   m.objectives = {{ObjectiveCode::RiskFromStop, 100}, {ObjectiveCode::TrailNotTighterThanAtr, 0}, {ObjectiveCode::DrawdownBudget, 1000}};
   m.drawdown_budget_bp = 1000;  // objective: finish without a drawdown above 10%
   return m;
@@ -278,7 +278,7 @@ MissionDef regime_switch() {
   c.bars = 180;
   c.at = 0;
   m.gen.chain = c;
-  m.info = {"m08-regime-switch", 180, 60, 5, true};
+  m.info = {"m08-regime-switch", 180, 60, 5, true, {}};
   m.objectives = {{ObjectiveCode::RegimeInPlan, 0}, {ObjectiveCode::OneToolPerRegime, 0}, {ObjectiveCode::RiskPerIdea, 100}};
   return m;
 }
@@ -313,7 +313,7 @@ MissionDef event_straddle() {
                    .actual_weights = Weights{100, 200, 400, 200, 100},
                    .intensity_min = 0.6,
                    .intensity_max = 1.4}};
-  m.info = {"m09-event-straddle", total_bars(m.gen), 60, 3, true};
+  m.info = {"m09-event-straddle", total_bars(m.gen), 60, 3, true, {}};
   m.objectives = {{ObjectiveCode::StraddleBreakevens, 0}, {ObjectiveCode::StraddleLoseScenario, 0}, {ObjectiveCode::PremiumBudget, 200}};
   m.options = true;
   m.chain = {0, {25, 70}, 3, 2.5};
@@ -346,7 +346,7 @@ MissionDef hedged_book() {
                    .actual_weights = Weights{450, 350, 200, 0, 0},
                    .intensity_min = 0.7,
                    .intensity_max = 1.3}};
-  m.info = {"m10-hedged-book", total_bars(m.gen), 60, 5, true};
+  m.info = {"m10-hedged-book", total_bars(m.gen), 60, 5, true, {}};
   m.objectives = {{ObjectiveCode::StructureMaxLoss, 0}, {ObjectiveCode::WrittenMarginBuffer, 0}, {ObjectiveCode::FundingVsTheta, 0}};
   m.funding_interval = 4;
   m.options = true;
@@ -396,7 +396,7 @@ MissionDef news_calendar() {
        .p_none = 0.25, .p_align = 0.6, .drift = 0.002, .duration = 5, .vol_mult = 1.4, .iv_mult = 1.0, .fair_impact = 0.035,
        .actual_weights = Weights{0, 0, 350, 500, 150}, .intensity_min = 0.7, .intensity_max = 1.3},
   };
-  m.info = {"m11-news-calendar", 200, 60, 5, true};
+  m.info = {"m11-news-calendar", 200, 60, 5, true, {}};
   m.objectives = {{ObjectiveCode::DecideBeforeRelease, 0}, {ObjectiveCode::NoChasingHeadline, 0}, {ObjectiveCode::RiskWithGap, 100}};
   return m;
 }
@@ -442,7 +442,7 @@ MissionDef capstone() {
        .p_none = 0.1, .p_align = 0.8, .drift = 0.003, .duration = 5, .vol_mult = 1.6, .iv_mult = 1.4, .fair_impact = 0.04,
        .actual_weights = Weights{250, 150, 600, 0, 0}, .intensity_min = 0.7, .intensity_max = 1.3},
   };
-  m.info = {"m12-capstone", 230, 60, 10, true};
+  m.info = {"m12-capstone", 230, 60, 10, true, {}};
   m.objectives = {{ObjectiveCode::FinishMission, 0}, {ObjectiveCode::PlanAndStopEveryEntry, 0}, {ObjectiveCode::NoLiquidationNoMarginCall, 0}, {ObjectiveCode::ReadCampaignReport, 0}};
   m.options = true;
   m.allow_short_options = true;
@@ -457,7 +457,7 @@ MissionDef capstone() {
 
 MissionDef strategy_base(const char* id, std::uint32_t bars) {
   MissionDef m;
-  m.info = {id, bars, 60, 3, true};
+  m.info = {id, bars, 60, 3, true, {}};
   m.options = true;
   m.allow_short_options = true;
   m.spread_margin = true;
@@ -612,7 +612,7 @@ MissionDef before_expiry() {
 
 MissionDef advanced_base(const char* id, std::uint32_t bars, std::int32_t leverage) {
   MissionDef m;
-  m.info = {id, bars, 60, leverage, true};
+  m.info = {id, bars, 60, leverage, true, {}};
   return m;
 }
 
@@ -854,12 +854,121 @@ MissionDef the_dip() {
   return m;
 }
 
+// ---- Round markets of "guess the next move" (add-practice-and-advanced-strategies D19) ---------------
+// Practice markets, not missions: listed with practice "round", no rubric, no story to spoil. A round
+// reads a chart at a drawn decision step in [warm-up + 20, total - 13] and judges the next 12 bars, so
+// each market mixes regimes whose next leg no single indicator gives away (the pooled realism bands).
+// Existing generator capabilities only (generator v5).
+
+MissionDef round_base(const char* id) {
+  MissionDef m;
+  m.info = {id, 0, 60, 3, true, "round"};
+  return m;
+}
+
+// r01 Trend: a drawn path (G1) of trends of drawn direction, pullbacks to the average and pauses.
+MissionDef round_trend() {
+  MissionDef m = round_base("r01-trend");
+  RegimeChain c;
+  c.states = {
+      {.drift = 0.0022, .vol = 0.0060, .volume_mult = 1.3, .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.05,
+       .random_direction = true, .label = Trend},
+      {.vol = 0.0055, .anchor = Anchor::Level, .reversion = 0.008, .band = 0.015, .label = Range},
+      {.vol = 0.0095, .volume_mult = 1.4, .anchor = Anchor::Level, .reversion = 0.012, .band = 0.03, .label = HighVol},
+  };
+  c.transitions = {{0, 600, 400}, {700, 0, 300}, {700, 300, 0}};
+  c.initial = {500, 300, 200};
+  c.min_dwell = 15;
+  c.max_dwell = 40;
+  c.bars = 160;
+  c.at = 0;
+  m.gen.chain = c;
+  m.info.total_bars = 160;
+  return m;
+}
+
+// r02 Range: support and resistance with false breaks (jumps of drawn direction that the range takes
+// back) and, in some seeds, a break of drawn direction.
+MissionDef round_range() {
+  MissionDef m = round_base("r02-range");
+  RegimeChain c;
+  c.states = {
+      {.vol = 0.0055, .jump_prob = 0.04, .jump_mean = 0.013, .anchor = Anchor::Level, .reversion = 0.010, .band = 0.018,
+       .random_direction = true, .label = Range},
+      {.vol = 0.0080, .jump_prob = 0.05, .jump_mean = 0.015, .volume_mult = 1.3, .anchor = Anchor::Level, .reversion = 0.015, .band = 0.025,
+       .random_direction = true, .label = HighVol},
+      {.drift = 0.0025, .vol = 0.0065, .volume_mult = 1.4, .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.05,
+       .random_direction = true, .label = Trend},
+  };
+  c.transitions = {{0, 650, 350}, {750, 0, 250}, {800, 200, 0}};
+  c.initial = {700, 200, 100};
+  c.min_dwell = 20;
+  c.max_dwell = 50;
+  c.bars = 160;
+  c.at = 0;
+  m.gen.chain = c;
+  m.info.total_bars = 160;
+  return m;
+}
+
+// r03 Breakout: a tightening range, then a break of drawn direction at a drawn bar that follows
+// through or fails back into the range (a one-visit chain).
+MissionDef round_breakout() {
+  MissionDef m = round_base("r03-breakout");
+  m.gen.lead_jitter_min = -15;
+  m.gen.lead_jitter_max = 15;
+  const Segment follow{.drift = 0.0025, .vol = 0.0070, .volume_mult = 1.6, .anchor = Anchor::Trend, .reversion = 0.03, .momentum = 0.06,
+                       .random_direction = true, .label = Trend};
+  const Segment fail{.vol = 0.0085, .volume_mult = 1.3, .anchor = Anchor::Level, .reversion = 0.015, .band = 0.02, .label = HighVol};
+  RegimeChain c;
+  c.states = {follow, fail};
+  c.transitions = {{0, 1000}, {1000, 0}};
+  c.initial = {550, 450};
+  c.min_dwell = 200;
+  c.max_dwell = 200;
+  c.bars = 55;
+  c.at = 2;
+  m.gen.chain = c;
+  m.gen.segments = {
+      {.bars = 90, .vol = 0.0050, .volume_mult = 0.9, .anchor = Anchor::Level, .reversion = 0.010, .band = 0.015, .vol_decay = 0.995,
+       .label = Range},
+      {.bars = 5, .drift = 0.0040, .vol = 0.0070, .volume_mult = 2.0, .momentum = 0.08, .random_direction = true, .label = Trend},
+  };
+  m.info.total_bars = 150;
+  return m;
+}
+
+// r04 Event: an announced release (G3) with a drawn outcome and size (G2), in a range; the reaction
+// leans on the surprise but is often faded.
+MissionDef round_event() {
+  MissionDef m = round_base("r04-event");
+  m.gen.lead_jitter_min = -10;
+  m.gen.lead_jitter_max = 10;
+  m.gen.segments = {
+      {.bars = 95, .vol = 0.0050, .anchor = Anchor::Level, .reversion = 0.008, .band = 0.02, .label = Range},
+      {.bars = 15, .drift = 0.0006, .vol = 0.0070, .volume_mult = 1.4, .momentum = 0.04, .random_direction = true, .label = Trend},
+      {.bars = 50, .vol = 0.0060, .anchor = Anchor::Level, .reversion = 0.008, .band = 0.03, .label = Range},
+  };
+  m.gen.events = {{.item = {94, NewsKind::MacroData, 0, 85, 0, 0, 15},
+                   .p_none = 0.35,
+                   .p_align = 0.6,
+                   .drift = 0.003,
+                   .duration = 5,
+                   .vol_mult = 1.4,
+                   .fair_impact = 0.03,
+                   .actual_weights = Weights{100, 200, 400, 200, 100},
+                   .intensity_min = 0.6,
+                   .intensity_max = 1.4}};
+  m.info.total_bars = 160;
+  return m;
+}
+
 std::vector<MissionDef> all_missions() {
   return {false_breakout(), funding_squeeze(), volatility_shock(), options_buyer(),     options_writer(), thin_book(),
           trend_trailing(), regime_switch(),   event_straddle(),   hedged_book(),       news_calendar(),  capstone(),
           call_spread(),    covered_call(),    protective_put(),   range_condor(),      before_expiry(),  gamma_scalp(),
           funding_carry(),  event_vol(),       calendar_spread(),  scale_manage(),      second_chance(),  fast_market(),
-          the_dip()};
+          the_dip(),        round_trend(),     round_range(),      round_breakout(),    round_event()};
 }
 
 OptionSpec default_option_spec(bool allow_short) {

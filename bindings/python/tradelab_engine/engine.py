@@ -66,6 +66,7 @@ def _declare(lib: ctypes.CDLL) -> ctypes.CDLL:
         "tl_advance": (c_char_p, [c_void_p, i32]),
         "tl_state": (c_char_p, [c_void_p]),
         "tl_debrief": (c_char_p, [c_void_p]),
+        "tl_coach_review": (c_char_p, [c_void_p]),
         "tl_mission_reveal": (c_char_p, [c_char_p, u32]),
         "tl_option_whatif": (c_char_p, [c_char_p]),
         "tl_run_option_whatif": (c_char_p, [c_void_p, c_char_p]),
@@ -383,6 +384,12 @@ class Run:
 
     def debrief(self) -> Any:
         return _json(self._lib.tl_debrief(self._h))
+
+    def coach_review(self) -> Any:
+        """The coach moments of a finished run (tl_coach_review, add-practice-and-advanced-strategies
+        D17): {"mission","seed","moments":[...]}, each read from data visible at its step; {"error":
+        "run_active"} while the run is active. Report-only."""
+        return _json(self._lib.tl_coach_review(self._h))
 
     # --- report-only option analysis (never changes the run) ---
     def option_whatif(self, request: Mapping[str, Any]) -> Any:

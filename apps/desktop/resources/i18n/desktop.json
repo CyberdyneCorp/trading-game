@@ -179,6 +179,14 @@
     "pt-BR": "Momentos no gráfico: escolha um para marcar a barra no gráfico da partida (▼).",
     "en": "Moments on the chart: pick one to mark its bar on the run chart (▼)."
   },
+  "desktop.debrief.retryPick": {
+    "pt-BR": "Aviso do debrief para tentar de novo a partir da barra dele:",
+    "en": "Debrief warning to retry from its bar:"
+  },
+  "desktop.review.chart": {
+    "pt-BR": "Gráfico da partida até a barra {step}; nada depois dela é desenhado.",
+    "en": "The run's chart up to bar {step}; nothing after it is drawn."
+  },
   "desktop.panel.chart": {
     "pt-BR": "Gráfico",
     "en": "Chart"

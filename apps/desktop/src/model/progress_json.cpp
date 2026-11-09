@@ -150,13 +150,15 @@ std::string assisted(const AssistedLink& a) {
   JsonWriter w;
   w.begin_object().field("from", a.from).field("kind", a.kind);
   if (a.step) w.field("step", *a.step);
+  if (!a.code.empty()) w.field("code", a.code);
   return w.end_object().text();
 }
 
 std::optional<AssistedLink> assisted_from(const json::Value& v) {
   if (v.kind() != Kind::Object) return std::nullopt;
-  AssistedLink a{v["from"].as_string(), v["kind"].as_string("rewind"), std::nullopt};
+  AssistedLink a{v["from"].as_string(), v["kind"].as_string("rewind"), std::nullopt, {}};
   if (v["step"].kind() == Kind::Number) a.step = static_cast<int>(v["step"].as_int());
+  if (v["code"].kind() == Kind::String) a.code = v["code"].as_string();
   return a;
 }
 
@@ -208,6 +210,7 @@ std::string settings(const Settings& s) {
   w.field("bloom", s.crt.bloom).field("noise", s.crt.noise).end_object();
   w.field("colorblind", s.colorblind).key("textScale").raw(number_text(static_cast<double>(s.text_scale)));
   if (!s.review_dismissed_on.empty()) w.field("reviewDismissed", s.review_dismissed_on);
+  w.field("drillTimer", s.drill_timer);
   return w.end_object().text();
 }
 
@@ -220,6 +223,7 @@ Settings settings_from(const json::Value& v) {
   s.colorblind = v["colorblind"].as_bool(false);
   s.text_scale = static_cast<float>(v["textScale"].as_double(1.0));
   s.review_dismissed_on = v["reviewDismissed"].as_string();
+  s.drill_timer = v["drillTimer"].as_bool(true);  // absent = shown (settings.svelte.ts)
   return s;
 }
 

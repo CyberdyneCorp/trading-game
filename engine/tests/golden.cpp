@@ -100,6 +100,7 @@ RunResult replay_run(const JsonValue& fx) {
   out.ok = true;
   out.state = tl_state(run);
   out.debrief = tl_debrief(run);
+  out.coach = tl_coach_review(run);
   tl_run_destroy(run);
   return out;
 }
@@ -118,5 +119,12 @@ std::string whatif_output(const JsonValue& fx) {
 }
 
 std::string whatif_expected(const JsonValue& fx) { return detail::canonical_json(member(member(fx, "expected"), "result")); }
+
+std::string coach_expected(const JsonValue& fx) { return detail::canonical_json(member(member(fx, "expected"), "review")); }
+
+std::string coach_output(const RunResult& r) {
+  const detail::JsonParse p = detail::parse_json(r.coach);
+  return p.ok ? detail::canonical_json(p.value) : r.coach;
+}
 
 }  // namespace tradelab::golden

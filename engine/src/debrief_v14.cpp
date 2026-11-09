@@ -8,30 +8,14 @@
 #include <vector>
 
 #include "accounting.hpp"
+#include "bias_rules.hpp"
 #include "options_exec.hpp"
 #include "tradelab/indicators.hpp"
 #include "tradelab/scoring.hpp"
 #include "tradelab/whatif.hpp"
 
 namespace tradelab {
-namespace {
-
-constexpr std::int64_t kBp = 10'000;
-constexpr std::uint32_t kRevengeBars = 3;
-constexpr std::int64_t kRevengeRatioBp = 15'000;
-constexpr std::uint32_t kFomoCloses = 4;
-constexpr std::int64_t kFomoExtension = 200;  // hundredths of ATR
-constexpr std::uint32_t kAtrPeriod = 14;
-constexpr std::uint32_t kSmaPeriod = 20;
-
-std::int64_t abs64(std::int64_t v) { return v < 0 ? -v : v; }
-std::int64_t dir_of(OrderSide s) { return s == OrderSide::Buy ? 1 : -1; }
-bool perp_fill(const Event& e) { return e.type == EventType::Fill && e.series == 0; }
-
-std::int64_t ratio_bp(i128 num, i128 den) {
-  if (den <= 0) return 0;
-  return static_cast<std::int64_t>(div_round(num * kBp, den, Rounding::HalfEven));
-}
+namespace bias {
 
 const Order* order_by_id(const RunState& st, std::uint32_t id) {
   for (const Order& o : st.orders) {
@@ -58,12 +42,9 @@ bool holds_options(const RunState& st, std::uint32_t step) {
   return std::any_of(held.begin(), held.end(), [](const auto& h) { return h.second != 0; });
 }
 
-// An exposure-increasing perpetual entry the bias rules judge: no reduce-only exit, no bracket child,
-// and no option structure held when it was decided.
 bool speculative_entry(const RunState& st, const Order* o) { return entry_order(o) && !holds_options(st, o->placed_step); }
 bool is_stop(const Order& o) { return o.type == OrderType::StopMarket || o.type == OrderType::TrailingStop; }
 
-// Last step an order could act on: the step of its last update or fill, or "still working".
 std::uint32_t end_step(const RunState& st, const Order& o) {
   if (o.active()) return UINT32_MAX;
   std::uint32_t end = o.placed_step;
@@ -73,8 +54,6 @@ std::uint32_t end_step(const RunState& st, const Order& o) {
   return end;
 }
 
-// The protective stop of an entry: its bracket stop, else the nearest reduce-only perpetual stop on the
-// exit side that was working at decision step d.
 Price protective_stop(const RunState& st, const Order& entry, std::uint32_t d) {
   if (entry.bracket_stop.raw > 0) return entry.bracket_stop;
   Price best{};
@@ -87,36 +66,74 @@ Price protective_stop(const RunState& st, const Order& entry, std::uint32_t d) {
   return best;
 }
 
-// ---- A running perpetual position over the fills, as the engine books it ----
-
-struct Book {
-  std::int64_t qty = 0;  // signed raw Qty
-  Price entry;           // average entry (half-even weighted, like accounting's increase)
-
-  // Applies a fill; returns the quantity (raw, unsigned) that grew the position.
-  std::int64_t apply(OrderSide side, Qty q, Price px) {
-    const std::int64_t d = dir_of(side);
-    std::int64_t rest = q.raw;
-    if (qty != 0 && (qty > 0) != (d > 0)) {
-      const std::int64_t closing = std::min(rest, abs64(qty));
-      qty += d * closing;
-      rest -= closing;
-      if (qty == 0) entry = Price{};
-    }
-    if (rest == 0) return 0;
-    const std::int64_t old_abs = abs64(qty);
-    const i128 w = static_cast<i128>(old_abs) * entry.raw + static_cast<i128>(rest) * px.raw;
-    entry = Price::from_raw(static_cast<std::int64_t>(div_round(w, old_abs + rest, Rounding::HalfEven)));
-    qty = d * (old_abs + rest);
-    return rest;
-  }
-};
-
-Money risk_to(Price avg, Price stop, std::int64_t qty_abs) {
-  if (stop.raw == 0 || qty_abs == 0) return Money{};
-  const std::int64_t gap = abs64(avg.raw - stop.raw);
-  return Money::from_raw(static_cast<std::int64_t>(div_round(static_cast<i128>(gap) * qty_abs, Qty::kScale, Rounding::HalfEven)));
+std::uint32_t closes_in_direction(const Scenario& sc, std::uint32_t d, std::int64_t dir) {
+  std::uint32_t k = 0;
+  while (d > k && dir * (sc.bars[d - k].close.raw - sc.bars[d - k - 1].close.raw) > 0) ++k;
+  return k;
 }
+
+constexpr std::uint32_t kFomoCloses = 4;
+constexpr std::int64_t kFomoExtension = 200;  // hundredths of ATR
+
+std::optional<Finding> fomo_at(const Scenario& sc, const RunState& st, const Reads& r, const Order& o) {
+  const std::uint32_t d = o.placed_step;
+  const std::int64_t dir = dir_of(o.side);
+  const std::uint32_t closes = closes_in_direction(sc, d, dir);
+  const std::optional<Price> a = r.atr[d];
+  const std::optional<Price> m = r.sma[d];
+  if (closes < kFomoCloses || !a || !m || a->raw <= 0) return std::nullopt;
+  const std::int64_t close = sc.bars[d].close.raw;
+  const auto ext = static_cast<std::int64_t>(div_round(static_cast<i128>(dir) * (close - m->raw) * 100, a->raw, Rounding::HalfEven));
+  if (ext <= kFomoExtension) return std::nullopt;
+  const Price stop = protective_stop(st, o, d);
+  if (stop.raw != 0 && dir * (close - stop.raw) <= 2 * a->raw) return std::nullopt;
+  FindingEvidence ev;
+  ev.entry_step = d;
+  ev.extension_atr = static_cast<std::int32_t>(ext);
+  ev.closes = closes;
+  ev.stop = stop;
+  return Finding{FindingCode::FomoEntry, FindingTone::Warn, d, closes, stop, Price{}, Money{}, ev};
+}
+
+void Shadow::perp_fill_event(const Event& e) {
+  Book b{st.position.qty.raw, st.position.entry};
+  b.apply(e.side, e.qty, e.price);
+  st.position.qty = Qty::from_raw(b.qty);
+  st.position.entry = b.entry;
+  st.wallet = Money::from_raw(st.wallet.raw + e.pnl.raw - e.amount.raw);
+}
+
+void Shadow::option_fill_event(const Scenario& sc, const Event& e) {
+  auto it = std::find_if(st.option_positions.begin(), st.option_positions.end(), [&e](const OptionPosition& p) { return p.series == e.series; });
+  if (it == st.option_positions.end()) it = st.option_positions.insert(st.option_positions.end(), {e.series, Qty{}, Price{}});
+  it->qty = Qty::from_raw(it->qty.raw + dir_of(e.side) * e.qty.raw);
+  const Money cash = detail::units_value(sc, e.qty, e.price, Rounding::HalfEven);
+  st.wallet = Money::from_raw(st.wallet.raw + (e.side == OrderSide::Buy ? -cash.raw : cash.raw) - e.amount.raw);
+  st.wallet = Money::from_raw(std::max<std::int64_t>(0, st.wallet.raw));  // a forced buy-back floors it
+  if (it->qty.raw == 0) st.option_positions.erase(it);
+}
+
+void Shadow::apply(const Scenario& sc, const Event& e) {
+  if (perp_fill(e)) perp_fill_event(e);
+  else if (e.type == EventType::Fill) option_fill_event(sc, e);
+  else if (e.type == EventType::Funding) st.wallet = Money::from_raw(st.wallet.raw + e.amount.raw);
+  else if (e.type == EventType::Liquidation) {
+    st.wallet = Money::from_raw(st.wallet.raw - e.amount.raw);
+    st.position = Position{};
+  } else if (e.type == EventType::OptionSettlement) {
+    st.wallet = Money::from_raw(st.wallet.raw + e.amount.raw);
+    std::erase_if(st.option_positions, [&e](const OptionPosition& p) { return p.series == e.series; });
+  }
+}
+
+}  // namespace bias
+
+namespace {
+
+using namespace bias;  // NOLINT(google-build-using-namespace): this file's own helpers
+
+constexpr std::uint32_t kRevengeBars = 3;
+constexpr std::int64_t kRevengeRatioBp = 15'000;
 
 // ---- revenge_trade ----
 
@@ -157,37 +174,6 @@ void revenge_findings(const RunState& st, const std::vector<TradeRow>& trades, s
 }
 
 // ---- fomo_entry ----
-
-struct Reads {
-  Series atr;
-  Series sma;
-};
-
-std::uint32_t closes_in_direction(const Scenario& sc, std::uint32_t d, std::int64_t dir) {
-  std::uint32_t k = 0;
-  while (d > k && dir * (sc.bars[d - k].close.raw - sc.bars[d - k - 1].close.raw) > 0) ++k;
-  return k;
-}
-
-std::optional<Finding> fomo_at(const Scenario& sc, const RunState& st, const Reads& r, const Order& o) {
-  const std::uint32_t d = o.placed_step;
-  const std::int64_t dir = dir_of(o.side);
-  const std::uint32_t closes = closes_in_direction(sc, d, dir);
-  const std::optional<Price> a = r.atr[d];
-  const std::optional<Price> m = r.sma[d];
-  if (closes < kFomoCloses || !a || !m || a->raw <= 0) return std::nullopt;
-  const std::int64_t close = sc.bars[d].close.raw;
-  const auto ext = static_cast<std::int64_t>(div_round(static_cast<i128>(dir) * (close - m->raw) * 100, a->raw, Rounding::HalfEven));
-  if (ext <= kFomoExtension) return std::nullopt;
-  const Price stop = protective_stop(st, o, d);
-  if (stop.raw != 0 && dir * (close - stop.raw) <= 2 * a->raw) return std::nullopt;
-  FindingEvidence ev;
-  ev.entry_step = d;
-  ev.extension_atr = static_cast<std::int32_t>(ext);
-  ev.closes = closes;
-  ev.stop = stop;
-  return Finding{FindingCode::FomoEntry, FindingTone::Warn, d, closes, stop, Price{}, Money{}, ev};
-}
 
 void fomo_findings(const Scenario& sc, const RunState& st, std::vector<Finding>& out) {
   const std::uint32_t last = st.step;
@@ -263,40 +249,6 @@ void averaging_findings(const Scenario& sc, const RunState& st, std::vector<Find
 }
 
 // ---- risk_limit_exceeded: the holdings at each close, rebuilt from the events ----
-
-// The account as the engine books it, applied event by event (accounting.cpp, options_exec.cpp).
-struct Shadow {
-  RunState st;
-
-  void perp_fill_event(const Event& e) {
-    Book b{st.position.qty.raw, st.position.entry};
-    b.apply(e.side, e.qty, e.price);
-    st.position.qty = Qty::from_raw(b.qty);
-    st.position.entry = b.entry;
-    st.wallet = Money::from_raw(st.wallet.raw + e.pnl.raw - e.amount.raw);
-  }
-  void option_fill_event(const Scenario& sc, const Event& e) {
-    auto it = std::find_if(st.option_positions.begin(), st.option_positions.end(), [&e](const OptionPosition& p) { return p.series == e.series; });
-    if (it == st.option_positions.end()) it = st.option_positions.insert(st.option_positions.end(), {e.series, Qty{}, Price{}});
-    it->qty = Qty::from_raw(it->qty.raw + dir_of(e.side) * e.qty.raw);
-    const Money cash = detail::units_value(sc, e.qty, e.price, Rounding::HalfEven);
-    st.wallet = Money::from_raw(st.wallet.raw + (e.side == OrderSide::Buy ? -cash.raw : cash.raw) - e.amount.raw);
-    st.wallet = Money::from_raw(std::max<std::int64_t>(0, st.wallet.raw));  // a forced buy-back floors it
-    if (it->qty.raw == 0) st.option_positions.erase(it);
-  }
-  void apply(const Scenario& sc, const Event& e) {
-    if (perp_fill(e)) perp_fill_event(e);
-    else if (e.type == EventType::Fill) option_fill_event(sc, e);
-    else if (e.type == EventType::Funding) st.wallet = Money::from_raw(st.wallet.raw + e.amount.raw);
-    else if (e.type == EventType::Liquidation) {
-      st.wallet = Money::from_raw(st.wallet.raw - e.amount.raw);
-      st.position = Position{};
-    } else if (e.type == EventType::OptionSettlement) {
-      st.wallet = Money::from_raw(st.wallet.raw + e.amount.raw);
-      std::erase_if(st.option_positions, [&e](const OptionPosition& p) { return p.series == e.series; });
-    }
-  }
-};
 
 struct LimitTally {
   RiskLimitKind kind = RiskLimitKind::Delta;

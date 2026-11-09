@@ -42,7 +42,7 @@ def _pack_run(pack: dict[str, Any], seed: int) -> Run:
 def replay_run(fx: dict[str, Any]) -> ReplayResult:
     """Replays a "run" fixture: its market (a built-in mission or a CSV pack), seed, start options and
     action log (the web client's format, tradelab_engine/replay.py)."""
-    assert fx["kind"] == "run"
+    assert fx["kind"] in ("run", "coach")
     if "csvPack" in fx:
         with _pack_run(fx["csvPack"], fx["seed"]) as run:
             return replay_on(run, fx["actions"])
@@ -61,6 +61,14 @@ def whatif_result(fx: dict[str, Any]) -> dict[str, Any]:
     return option_whatif(fx["request"])
 
 
+def coach_review(fx: dict[str, Any]) -> dict[str, Any]:
+    """tl_coach_review of a "coach" fixture's replayed run (add-practice-and-advanced-strategies D17)."""
+    assert fx["kind"] == "coach"
+    with Run(fx["mission"], fx["seed"], RunOptions.from_json(fx.get("options"))) as run:
+        replay_on(run, fx["actions"])
+        return run.coach_review()
+
+
 def actual(fx: dict[str, Any]) -> dict[str, Any]:
     """The values a fixture's "expected" block freezes, as produced by this engine build."""
     if fx["kind"] == "reveal":
@@ -70,5 +78,8 @@ def actual(fx: dict[str, Any]) -> dict[str, Any]:
     result = replay_run(fx)
     rejected = [{"action": i, "reason": r["reason"]} for i, r in enumerate(result.results)
                 if r is not None and not r["accepted"]]
-    return {"digest": result.state["digest"], "eventsDigest": result.state["eventsDigest"],
-            "status": result.status, "rejected": rejected}
+    out = {"digest": result.state["digest"], "eventsDigest": result.state["eventsDigest"],
+           "status": result.status, "rejected": rejected}
+    if fx["kind"] == "coach":
+        out["review"] = coach_review(fx)
+    return out

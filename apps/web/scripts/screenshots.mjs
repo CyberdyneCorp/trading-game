@@ -140,8 +140,58 @@ const SHOTS = [
 			await page.getByTestId('open-glossary').click();
 			await page.getByRole('searchbox').first().fill('liquidation');
 		}
+	],
+	// Practice formats: the device clock is fixed to 2026-11-09 (the drills, the daily challenge and the
+	// guess rounds follow the local date).
+	[
+		'12-drills',
+		async (page) => {
+			await fixedDay(page);
+			await page.getByTestId('open-drills').click();
+			await page.getByTestId('drills-start').click();
+			await page.getByTestId('drills-input').fill('2.6');
+			await page.getByTestId('drills-check').click();
+			await page.getByTestId('drills-explain').waitFor();
+		}
+	],
+	['13-daily', async (page) => fixedDay(page).then(() => page.getByTestId('open-daily').click())],
+	[
+		'14-guess',
+		async (page) => {
+			await fixedDay(page);
+			await page.getByTestId('open-guess').click();
+			await page.getByTestId('guess-start').click();
+			await page.getByTestId('guess-long').check();
+			await page.getByTestId('guess-p').selectOption('70');
+			await page.getByTestId('guess-inv').fill('89.08');
+			await page.getByTestId('guess-target').fill('93.58');
+			await page.getByTestId('guess-commit-btn').click();
+			await page.getByTestId('guess-reveal').waitFor();
+			await page.getByTestId('guess-market').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+		}
+	],
+	[
+		'15-coach-review',
+		async (page) => {
+			// m24 chased: 38 bars waited, then 20 bought with no plan or stop; the coach's first moment.
+			await terminal(page, 3, 23);
+			await advance(page, 38);
+			await page.locator('label:has-text("Size by") select').selectOption('qty');
+			await page.locator('label:has-text("Quantity") input').fill('20');
+			await page.getByRole('button', { name: /Submit order/ }).click();
+			await page.getByRole('button', { name: /Submit without a plan/ }).click();
+			for (let i = 0; i < 40 && !(await page.getByText(/Mission complete|GAME OVER/).count()); i++) await advance(page, 1, 'Shift+Space');
+			await page.getByTestId('open-coach').click();
+			await page.getByTestId('coach-text').waitFor();
+		}
 	]
 ];
+
+async function fixedDay(page) {
+	await page.clock.install({ time: new Date(2026, 10, 9, 10, 0, 0) });
+	await page.goto(`${BASE}/`);
+	await page.getByTestId('open-drills').waitFor();
+}
 
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();

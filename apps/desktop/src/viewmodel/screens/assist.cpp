@@ -45,6 +45,7 @@ ScreenModel game(const AppViewModel& vm) {
   assist_panel(vm, names::kGameAssist, m);
   game_replay(vm, m);
   academy_game(vm, m);
+  practice_game(vm, m);
   return m;
 }
 

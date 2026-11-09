@@ -34,12 +34,18 @@ test('the real sources give objectives, findings, news names, Academy texts and 
 	assert.match(csv, /^news\.level\.4,muito positivo,very positive$/m);
 	assert.match(csv, /^academyLesson\.foundations-bar\.known\.choice\.close6,O fechamento da barra 6,/m);
 	const data = JSON.parse(content);
-	assert.equal(data.stages.length, 14);
-	assert.equal(data.lessons.length, 16);
+	assert.equal(data.stages.length, 17);  // with the wave 2 branch stages
+	assert.equal(data.lessons.length, 22);
 	assert.doesNotMatch(csv, /\[\[/); // glossary links become plain text
 	assert.equal(data.lessons[0].steps.length, 8);
 	assert.equal(data.defaultKeymap.advance, 'Space');
 	assert.equal(data.campaignCapital, '10000');
+	// Daily drills (add-practice-and-advanced-strategies D15): the skills in order, every template's
+	// parameters as an ordered list, and its texts as drill.* rows.
+	assert.equal(data.drillSkills.length, 11);
+	assert.ok(data.drills.length >= 11);
+	assert.deepEqual(data.drills.find((t) => t.id === 'calendar-debit').params.map((p) => p.name), ['near', 'extra', 'qty', 'far']);
+	assert.match(csv, /^drill\.greeks-sign-delta\.choice\.1,Negativo,Negative$/m);
 });
 
 test('the glossary, the guided first trade and the finding terms reach the catalog and content.json', () => {

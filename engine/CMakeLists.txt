@@ -46,6 +46,7 @@ add_library(tradelab_engine STATIC
   src/c_api_pack.cpp
   src/c_api_whatif.cpp
   src/c_api_run_file.cpp
+  src/c_api_coach.cpp
   src/run_file.cpp
   src/combo_preview.cpp
   src/options_whatif.cpp
@@ -70,6 +71,7 @@ add_library(tradelab_engine STATIC
   src/scoring.cpp
   src/debrief.cpp
   src/debrief_v14.cpp
+  src/coach_review.cpp
   src/lessons.cpp
   src/sha256.cpp
   src/serialize.cpp
@@ -112,7 +114,7 @@ if(EMSCRIPTEN)
   target_link_options(tradelab_wasm PRIVATE
     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createTradelab -sSINGLE_FILE=1
     -sENVIRONMENT=web,worker -sALLOW_MEMORY_GROWTH=1 -sFILESYSTEM=0
-    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_abi_version','_tl_missions','_tl_run_create','_tl_run_create_ex','_tl_run_destroy','_tl_request_advice','_tl_place_order','_tl_place_order_ex','_tl_place_trailing_rate','_tl_place_option_order','_tl_place_order_tif','_tl_place_option_order_tif','_tl_link_oco','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_answer_lesson','_tl_lesson','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_move_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_tl_mission_reveal','_tl_option_whatif','_tl_run_option_whatif','_tl_combo_preview','_tl_csv_validate','_tl_pack_build_csv','_tl_pack_validate','_tl_run_create_pack','_tl_run_restore_pack','_tl_device_key','_tl_blob_data','_tl_blob_size','_tl_run_file_verify','_tl_run_file_seal','_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_tl_version','_tl_abi_version','_tl_missions','_tl_run_create','_tl_run_create_ex','_tl_run_destroy','_tl_request_advice','_tl_place_order','_tl_place_order_ex','_tl_place_trailing_rate','_tl_place_option_order','_tl_place_order_tif','_tl_place_option_order_tif','_tl_link_oco','_tl_adjust_margin','_tl_record_plan','_tl_answer_question','_tl_answer_lesson','_tl_lesson','_tl_checkpoint','_tl_run_restore','_tl_cancel_order','_tl_move_order','_tl_set_leverage','_tl_close_position','_tl_advance','_tl_state','_tl_debrief','_tl_coach_review','_tl_mission_reveal','_tl_option_whatif','_tl_run_option_whatif','_tl_combo_preview','_tl_csv_validate','_tl_pack_build_csv','_tl_pack_validate','_tl_run_create_pack','_tl_run_restore_pack','_tl_device_key','_tl_blob_data','_tl_blob_size','_tl_run_file_verify','_tl_run_file_seal','_malloc','_free']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','HEAPU8']")
 endif()
 
@@ -219,6 +221,7 @@ if(TRADELAB_BUILD_TESTS)
     tests/test_prng.cpp
     tests/test_scoring.cpp
     tests/test_scoring_v14.cpp
+    tests/test_coach_review.cpp
     tests/test_lessons.cpp
     tests/test_decisions.cpp
     tests/test_debrief.cpp

@@ -1,0 +1,47 @@
+{
+	"skill": "liquidation",
+	"templates": [
+		{
+			"id": "liquidation-long",
+			"stage": "futures2",
+			"lessons": ["futures-margin"],
+			"params": {
+				"entry": { "lo": "50", "hi": "150", "step": "1" },
+				"lev": { "lo": "2", "hi": "20", "step": "1" },
+				"mmr": { "of": ["0.5"] }
+			},
+			"answer": { "kind": "liquidation", "side": "buy", "entry": "$entry", "leverage": "$lev", "mmr": 0.005 },
+			"text": {
+				"pt-BR": {
+					"prompt": "Long a {entry} com alavancagem {lev}× e margem de manutenção de {mmr}% do nocional. Em que preço ele é liquidado?",
+					"explain": "A margem por unidade é {entry} / {lev}. O long é liquidado quando a perda deixa só a manutenção, {mmr}% do nocional no preço de liquidação: ({entry} − {entry} / {lev}) / (1 − {mmr}%) = {answer}."
+				},
+				"en": {
+					"prompt": "A long at {entry} with {lev}× leverage and a maintenance margin of {mmr}% of notional. At what price is it liquidated?",
+					"explain": "The margin per unit is {entry} / {lev}. The long is liquidated when the loss leaves only the maintenance, {mmr}% of the notional at the liquidation price: ({entry} − {entry} / {lev}) / (1 − {mmr}%) = {answer}."
+				}
+			}
+		},
+		{
+			"id": "liquidation-short",
+			"stage": "futures2",
+			"lessons": ["futures-margin"],
+			"params": {
+				"entry": { "lo": "50", "hi": "150", "step": "1" },
+				"lev": { "lo": "2", "hi": "20", "step": "1" },
+				"mmr": { "of": ["0.5"] }
+			},
+			"answer": { "kind": "liquidation", "side": "sell", "entry": "$entry", "leverage": "$lev", "mmr": 0.005 },
+			"text": {
+				"pt-BR": {
+					"prompt": "Short a {entry} com alavancagem {lev}× e margem de manutenção de {mmr}% do nocional. Em que preço ele é liquidado?",
+					"explain": "A margem por unidade é {entry} / {lev}. O short é liquidado quando a alta come a margem até sobrar a manutenção, {mmr}% do nocional no preço de liquidação: ({entry} + {entry} / {lev}) / (1 + {mmr}%) = {answer}."
+				},
+				"en": {
+					"prompt": "A short at {entry} with {lev}× leverage and a maintenance margin of {mmr}% of notional. At what price is it liquidated?",
+					"explain": "The margin per unit is {entry} / {lev}. The short is liquidated when the rise eats the margin down to the maintenance, {mmr}% of the notional at the liquidation price: ({entry} + {entry} / {lev}) / (1 + {mmr}%) = {answer}."
+				}
+			}
+		}
+	]
+}

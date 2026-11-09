@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "kind": "run",
+  "name": "r01-trend",
+  "description": "A long bought 30 decisions in with a plan and a stop 2% below the close, held to the end.",
+  "mission": "r01-trend",
+  "seed": 2026,
+  "actions": [
+    {"k": "adv", "n": 30},
+    {"k": "plan", "side": "buy", "skipped": false, "option": false, "lose": true, "inv": "107.66", "target": "113.16", "conf": 60, "risk": "44.00"},
+    {"k": "order", "type": "market", "side": "buy", "qty": "20", "price": null, "ro": false, "stop": "107.66", "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "2cfe8cfad7d874b7b5b3714f0ff7af5c1b4a9bd081f3c248cbe863a71ed73f57",
+    "eventsDigest": "d3bc5be68b32ce2c9722d21ec3c855646458e1f7571791773f765393ae422717",
+    "status": "finished",
+    "rejected": []
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

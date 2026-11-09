@@ -143,6 +143,8 @@ export interface DrillSession {
 	date: string;
 	items: number;
 	firstTry: number;
+	/** First-try results per skill (skipped items left out); absent on sessions kept before W3. */
+	skills?: Record<string, { n: number; right: number }>;
 }
 
 /** One daily-challenge attempt kept in the history (design D16). */
@@ -168,7 +170,10 @@ export interface GuessRound {
 	step: number;
 	decision: 'long' | 'short' | 'none';
 	p: number;
+	/** Hundredths of a point (9600 = 96). */
 	score: number;
+	/** Was the close 12 bars later higher (the calibration table); absent on rounds kept before W3. */
+	higher?: boolean;
 }
 
 export const DRILL_HISTORY_KEEP = 30;
@@ -247,9 +252,20 @@ function readDrillReviews(v: unknown): Record<string, DrillReview> {
 	return out;
 }
 
+function readSkills(v: unknown): DrillSession['skills'] {
+	if (!isRecord(v)) return undefined;
+	const out: NonNullable<DrillSession['skills']> = {};
+	for (const [k, x] of Object.entries(v)) if (isRecord(x) && num(x.n) && num(x.right)) out[k] = { n: x.n, right: x.right };
+	return out;
+}
+
 function readDrillHistory(v: unknown): DrillSession[] {
 	const ok = (x: unknown): x is DrillSession => isRecord(x) && typeof x.date === 'string' && num(x.items) && num(x.firstTry);
-	return (Array.isArray(v) ? v.filter(ok) : []).slice(-DRILL_HISTORY_KEEP);
+	const read = (x: DrillSession): DrillSession => {
+		const skills = readSkills(x.skills);
+		return { date: x.date, items: x.items, firstTry: x.firstTry, ...(skills ? { skills } : {}) };
+	};
+	return (Array.isArray(v) ? v.filter(ok) : []).slice(-DRILL_HISTORY_KEEP).map(read);
 }
 
 function readAttempt(v: unknown): DailyAttempt | null {
@@ -273,7 +289,11 @@ function readGuesses(v: unknown): GuessRound[] {
 	const decisions = ['long', 'short', 'none'];
 	const ok = (x: unknown): x is GuessRound =>
 		isRecord(x) && typeof x.market === 'string' && num(x.seed) && num(x.step) && decisions.includes(x.decision as string) && num(x.p) && num(x.score);
-	return (Array.isArray(v) ? v.filter(ok) : []).slice(-GUESS_HISTORY_KEEP);
+	const read = (x: GuessRound): GuessRound => {
+		const { market, seed, step, decision, p, score } = x;
+		return { market, seed, step, decision, p, score, ...(typeof x.higher === 'boolean' ? { higher: x.higher } : {}) };
+	};
+	return (Array.isArray(v) ? v.filter(ok) : []).slice(-GUESS_HISTORY_KEEP).map(read);
 }
 
 /**

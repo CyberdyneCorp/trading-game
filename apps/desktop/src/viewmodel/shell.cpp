@@ -84,6 +84,7 @@ void AppViewModel::record_started_run() {
   shell_.run_mission = run_mission_;
   shell_.run_settled = false;
   shell_.assist_turn = "1";
+  practice_run_started();  // the daily challenge it attempts; no earlier run's coach review
   if (find_run(shell_.progress, shell_.run_id) != nullptr) return;
   RunRecord r;
   r.run_id = shell_.run_id;
@@ -145,6 +146,7 @@ void AppViewModel::settle_ended_run() {
     // The journal statistics read this compact debrief later (add-run-sharing-and-journal-stats D7).
     if (const auto summary = summarize(d.raw)) r->summary = summary_json(*summary);
   }
+  practice_run_ended();  // a daily attempt's history; a mistake retry's comparison
   if (shell_.run_assisted) {  // assisted practice never counts for progress or the campaign
     save_progress();
     return;

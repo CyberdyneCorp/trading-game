@@ -32,6 +32,8 @@ class ShellView {
   // The tutorial's keys (Tutorial.svelte): Enter / Right next, Left previous, Esc skips. A key pressed
   // on a focused button is the button's (it activates it), so Enter there is left alone.
   static bool tutorial_key(AppViewModel& vm, Rid window, const REvent* e);
+  // The coach review's keys: Esc closes it, the arrows move between moments (shell_view_practice.cpp).
+  static bool review_key(AppViewModel& vm, const REvent* e);
   // Once per frame: the focused term's definition on the screen's help line (shell_view_academy.cpp).
   void focus_help(Rid window);
 
@@ -50,6 +52,8 @@ class ShellView {
   void bind_academy();
   void bind_academy_callbacks();
   void apply_tips(const ScreenModel& m);
+  // Practice formats: drills, daily challenge, guess rounds, coach review, mistake retry (shell_view_practice.cpp).
+  void bind_practice();
 
   AppViewModel& vm_;
   Rid scope_;

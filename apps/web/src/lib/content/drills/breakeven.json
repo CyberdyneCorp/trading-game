@@ -1,0 +1,53 @@
+{
+	"skill": "breakeven",
+	"templates": [
+		{
+			"id": "breakeven-long-put",
+			"stage": "options1",
+			"lessons": ["options-payoff"],
+			"params": {
+				"K": { "lo": "90", "hi": "110", "step": "5" },
+				"prem": { "lo": "1", "hi": "6", "step": "0.25" }
+			},
+			"answer": { "kind": "breakeven", "legs": [{ "kind": "put", "side": "buy", "qty": 1, "strike": "$K", "price": "$prem" }], "index": 0 },
+			"text": {
+				"pt-BR": {
+					"prompt": "Você comprou uma put de strike {K} por {prem}. Em que preço no vencimento ela empata?",
+					"explain": "A put comprada ganha abaixo do strike e empata quando o valor dela paga o prêmio: {K} − {prem} = {answer}."
+				},
+				"en": {
+					"prompt": "You bought a put with strike {K} for {prem}. At what price at expiry does it break even?",
+					"explain": "A bought put gains below the strike and breaks even when its value pays back the premium: {K} − {prem} = {answer}."
+				}
+			}
+		},
+		{
+			"id": "breakeven-straddle-up",
+			"stage": "strategies",
+			"lessons": ["strategies-shapes", "options-payoff"],
+			"params": {
+				"K": { "lo": "90", "hi": "110", "step": "5" },
+				"pc": { "lo": "1", "hi": "4", "step": "0.25" },
+				"pp": { "lo": "1", "hi": "4", "step": "0.25" }
+			},
+			"answer": {
+				"kind": "breakeven",
+				"legs": [
+					{ "kind": "call", "side": "buy", "qty": 1, "strike": "$K", "price": "$pc" },
+					{ "kind": "put", "side": "buy", "qty": 1, "strike": "$K", "price": "$pp" }
+				],
+				"index": 1
+			},
+			"text": {
+				"pt-BR": {
+					"prompt": "Um straddle de strike {K}: call comprada por {pc} e put comprada por {pp}. Qual é o empate de cima no vencimento?",
+					"explain": "O straddle custou {pc} + {pp}. Acima do strike só a call vale algo, então o empate de cima é {K} + {pc} + {pp} = {answer}."
+				},
+				"en": {
+					"prompt": "A straddle at strike {K}: a call bought for {pc} and a put bought for {pp}. What is the upper breakeven at expiry?",
+					"explain": "The straddle cost {pc} + {pp}. Above the strike only the call is worth anything, so the upper breakeven is {K} + {pc} + {pp} = {answer}."
+				}
+			}
+		}
+	]
+}

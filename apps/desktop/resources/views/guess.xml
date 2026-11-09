@@ -1,0 +1,69 @@
+<!-- "Guess the next move" rounds (web GuessScreen.svelte): the chart up to the decision bar only, the
+     commitment (decision, probability, invalidation and target), then the next 12 bars and the score of
+     the decision, never the P&L. Texts, lines, items and the table from screens::guess(); the chart is
+     painted from AppViewModel::guess_scene(). -->
+<ScrollBox Name="guess-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="guess-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="guess-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Border Name="guess-intro-box" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <Label Name="guess-intro" Wrap="true"/>
+                <Button Name="guess-start" Style="Primary" OnClicked="tl.guess.start" Slot.HAlign="Left"/>
+            </VBox>
+        </Border>
+        <Label Name="guess-status" Wrap="true" Class="muted"/>
+        <Border Name="guess-chart-box" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="guess-market" Wrap="true" Class="muted"/>
+                <Custom Name="guess-chart" Height="300" AccessibleRole="Image"/>
+            </VBox>
+        </Border>
+        <Border Name="guess-commit-box" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <Label Name="guess-close" Wrap="true"/>
+                <WrapBox Spacing="12">
+                    <VBox Spacing="4">
+                        <Label Name="guess-decision-label"/>
+                        <ComboBox Name="guess-decision" Width="220"/>
+                    </VBox>
+                    <VBox Spacing="4">
+                        <Label Name="guess-p-label" Wrap="true"/>
+                        <ComboBox Name="guess-p" Width="140"/>
+                    </VBox>
+                </WrapBox>
+                <WrapBox Name="guess-levels" Spacing="12">
+                    <VBox Spacing="4">
+                        <Label Name="guess-inv-label"/>
+                        <TextInput Name="guess-inv" Width="160"/>
+                    </VBox>
+                    <VBox Spacing="4">
+                        <Label Name="guess-target-label"/>
+                        <TextInput Name="guess-target" Width="160"/>
+                    </VBox>
+                </WrapBox>
+                <Label Name="guess-problem" Wrap="true" Class="attention"/>
+                <Button Name="guess-commit" Style="Primary" OnClicked="tl.guess.commit" Slot.HAlign="Left"/>
+            </VBox>
+        </Border>
+        <Border Name="guess-reveal-box" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="guess-reveal-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <VBox Name="guess-reveal" Spacing="3"/>
+                <Button Name="guess-next" Style="Primary" OnClicked="tl.guess.start" Slot.HAlign="Left"/>
+            </VBox>
+        </Border>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="6">
+                <Label Name="guess-rounds" Wrap="true"/>
+                <Label Name="guess-table-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Table Name="guess-table" Height="200"/>
+                <Label Name="guess-table-locked" Wrap="true" Class="muted"/>
+            </VBox>
+        </Border>
+    </VBox>
+</Border>
+</ScrollBox>

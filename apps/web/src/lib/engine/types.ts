@@ -239,6 +239,25 @@ export type ExitReason =
 	| 'trailing';
 
 /**
+ * A moment of the coach review (tl_coach_review, add-practice-and-advanced-strategies design D17): the
+ * first nine are warnings, the last four good moments.
+ */
+export type CoachMomentCode =
+	| 'entry_without_stop'
+	| 'stop_moved_away'
+	| 'added_against_structure'
+	| 'risk_above_budget'
+	| 'held_into_release_unhedged'
+	| 'revenge_trade'
+	| 'fomo_entry'
+	| 'averaging_down'
+	| 'risk_limit_exceeded'
+	| 'cut_at_invalidation'
+	| 'stop_to_breakeven_after_1r'
+	| 'partial_at_target'
+	| 'stayed_flat_before_release';
+
+/**
  * A reference structure of the strategy comparison (scoring v13, add-academy-and-strategies design D8;
  * m18-m22 since scoring v14).
  */
@@ -288,6 +307,11 @@ export interface MissionInfo {
 	warmupBars: number;
 	leverageCap: number;
 	allowShort: boolean;
+	/**
+	 * "round": a practice market of the guess rounds (design D19); menus, the campaign, the curriculum and
+	 * the daily pool skip it. Absent for missions.
+	 */
+	practice?: string;
 }
 
 /** Maintenance-margin tier by notional at entry (policy v16). */
@@ -1130,6 +1154,76 @@ export interface MissionReveal {
 	seed: number;
 	spans: RegimeSpan[];
 	events: RevealEvent[];
+}
+
+/** What a coach moment rests on, read at its step only. Each code writes only its own members. */
+export interface CoachEvidence {
+	/**
+	 * entry_without_stop, held_into_release_unhedged: the position; added_against_structure,
+	 * risk_above_budget: the entry's quantity; partial_at_target: the quantity closed.
+	 */
+	qty?: Decimal;
+	/** The average entry of the position at the step. */
+	entry?: Decimal;
+	/** The close of the step. */
+	close?: Decimal;
+	/** added_against_structure: SMA(20) and the lowest low (long) or highest high (short) of the previous 10 bars. */
+	sma?: Decimal;
+	level?: Decimal;
+	/** The protective stop ("0" = none). */
+	stop?: Decimal;
+	/** stop_moved_away, stop_to_breakeven_after_1r: the trigger before and after the move. */
+	from?: Decimal;
+	to?: Decimal;
+	/** partial_at_target, cut_at_invalidation: the exit price. */
+	price?: Decimal;
+	/** risk_above_budget: the risk to the stop and the budget (2% of the initial capital). */
+	risk?: Decimal;
+	budget?: Decimal;
+	/** revenge_trade, cut_at_invalidation: the trade's net loss; averaging_down: the unrealized loss. */
+	loss?: Decimal;
+	/** cut_at_invalidation, stop_to_breakeven_after_1r, partial_at_target: the planned risk. */
+	plannedRisk?: Decimal;
+	/** revenge_trade: the losing trade's number and exit bar, the size ratio in basis points, a plan of its own. */
+	trade?: number;
+	exitStep?: number;
+	sizeRatioBp?: number;
+	planned?: boolean;
+	/** fomo_entry: consecutive closes its way and (close - SMA20) / ATR14 in hundredths. */
+	closes?: number;
+	extensionAtr?: number;
+	/** averaging_down: the averages and the risk to the stop before and after, the first entry's plan. */
+	avgBefore?: Decimal;
+	avgAfter?: Decimal;
+	riskBefore?: Decimal;
+	riskAfter?: Decimal;
+	planRisk?: Decimal;
+	/** held_into_release_unhedged, stayed_flat_before_release: the release bar. */
+	releaseStep?: number;
+	/** risk_limit_exceeded, held_into_release_unhedged (vega): the limit and the value at the step. */
+	limit?: RiskLimitKind;
+	limitBp?: number;
+	valueBp?: number;
+	/** stop_to_breakeven_after_1r, partial_at_target: the open (or banked) profit in R, basis points. */
+	profitRBp?: number;
+}
+
+export interface CoachMoment {
+	step: number;
+	code: CoachMomentCode;
+	/** warn or good. */
+	tone: FindingTone;
+	evidence: CoachEvidence;
+	/** Academy lesson and glossary term ids (apps/web/src/lib/content). */
+	lesson: string;
+	glossary: string;
+}
+
+/** tl_coach_review: refused while the run is active ({"error":"run_active"}). */
+export interface CoachReview {
+	mission: string;
+	seed: number;
+	moments: CoachMoment[];
 }
 
 export interface CsvIssue {

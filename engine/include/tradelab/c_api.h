@@ -113,6 +113,11 @@ const char* tl_state(tl_run* run);
  * with 10 contracts ("reference"); per structure the entry and exit bar, net P&L, maximum drawdown,
  * margin calls, or the reason a leg was refused at entry. */
 const char* tl_debrief(tl_run* run);
+/* Coach review of a finished run (design D17 of add-practice-and-advanced-strategies): {"mission","seed",
+ * "moments":[{"step","code","tone","evidence","lesson","glossary"}]}, at most 9 warnings and 3 good
+ * moments in step order, each read from the data visible at its step. {"error":"run_active"} while the
+ * run is active. Report-only: the run, its log and its digests are unchanged. */
+const char* tl_coach_review(tl_run* run);
 
 /* G4 seeded reveal of a built-in mission (run-less, static buffer): the regime spans as played
  * {"start","bars","label","direction"} and each event's {"step","kind","actual","surprise",

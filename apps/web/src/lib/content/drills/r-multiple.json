@@ -1,0 +1,28 @@
+{
+	"skill": "r-multiple",
+	"templates": [
+		{
+			"id": "r-multiple-target",
+			"stage": "risk",
+			"lessons": ["risk-expectancy", "risk-sizing"],
+			"params": {
+				"entry": { "lo": "80", "hi": "120", "step": "0.5" },
+				"dist": { "lo": "1", "hi": "5", "step": "0.5" },
+				"gain": { "lo": "2", "hi": "10", "step": "0.5" },
+				"stop": { "sub": ["entry", "dist"] },
+				"target": { "add": ["entry", "gain"] }
+			},
+			"answer": { "kind": "r", "entry": "$entry", "stop": "$stop", "target": "$target" },
+			"text": {
+				"pt-BR": {
+					"prompt": "Long a {entry}, stop em {stop}, alvo em {target}. Quantos R o alvo vale?",
+					"explain": "R é o ganho até o alvo dividido pelo risco até o stop: ({target} − {entry}) / ({entry} − {stop}) = {gain} / {dist} = {answer}."
+				},
+				"en": {
+					"prompt": "A long at {entry}, stop at {stop}, target at {target}. How many R is the target worth?",
+					"explain": "R is the gain to the target divided by the risk to the stop: ({target} − {entry}) / ({entry} − {stop}) = {gain} / {dist} = {answer}."
+				}
+			}
+		}
+	]
+}

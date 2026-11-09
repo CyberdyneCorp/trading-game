@@ -147,8 +147,10 @@ class Builder {
       const float by = h - (bx - (x0 + i));
       if (bx > ax) line(ax, ay, bx, by, Ink::Muted, 0.12f);
     }
-    // The web writes it vertically; here it is written across only when the zone is wide enough.
-    if (static_cast<float>(label.size()) * 8 < plot_w_ - x0 - 8) {
+    // The web writes it vertically; here it is written across only when the zone is wide enough, measured
+    // on the text font's advance (IBM Plex Mono: 0.6 em a character) with a margin on each side.
+    const auto chars = std::count_if(label.begin(), label.end(), [](char ch) { return (ch & 0xC0) != 0x80; });
+    if (static_cast<float>(chars) * 16 * 0.6f < plot_w_ - x0 - 8) {
       text(x0 + (plot_w_ - x0) / 2, h / 2 - 9, label, Ink::Muted, 16, Anchor::Center);
     }
   }
@@ -568,6 +570,16 @@ ChartScene ChartViewModel::build(const Texts& t, const GameState& g, const std::
   b.hover(hover_, osc != Oscillator::None);
   if (picking && hover_y_) b.pick(hover_y_, price_at(*hover_y_), L);
   return scene;
+}
+
+void mark_moment(ChartScene& scene, const ChartViewModel& chart, int step) {
+  const ChartViewModel::Frame& f = chart.frame();
+  const long i = step - static_cast<long>(f.first);
+  if (i < 0) return;
+  const float x = static_cast<float>(i) * f.slot_w;
+  if (x + f.slot_w > f.width) return;
+  scene.rects.push_back({x, 0, f.slot_w, f.price_h, Ink::Attention, 0.18f, false});
+  scene.texts.push_back({x + f.slot_w / 2, 0, "\xE2\x96\xBC", Ink::Attention, 12, Anchor::Center});  // ▼
 }
 
 }  // namespace tradelab::desktop::game

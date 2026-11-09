@@ -14,6 +14,8 @@
 #include <variant>
 #include <vector>
 
+#include "model/json.hpp"
+
 namespace tradelab::desktop {
 
 struct Stage {
@@ -184,6 +186,33 @@ struct CoachStepDef {
   std::string completes;  // next, stop, advance
 };
 
+// Daily drills (content/drills.ts, add-practice-and-advanced-strategies D15): a template's parameter,
+// drawn in the file's order: a range on a decimal grid, a list, or the sum or difference of two earlier
+// parameters (which draws nothing). Decimals stay strings, as the web keeps them.
+struct DrillParam {
+  enum class Kind : std::uint8_t { Range, List, Add, Sub };
+  std::string name;
+  Kind kind = Kind::Range;
+  std::string lo, hi, step;      // Range
+  std::vector<std::string> of;   // List
+  std::string a, b;              // Add, Sub: the operands' names
+};
+
+// A drill template (texts: the drill.<id>.* catalog rows). `answer` is the web's answer spec: a lesson
+// check kind with "$name" references, or {"kind":"choice","from","answers"}.
+struct DrillTemplate {
+  std::string id;
+  std::string skill;
+  std::string stage;
+  std::vector<std::string> lessons;
+  std::vector<DrillParam> params;
+  json::Value answer;
+  std::optional<int> digits;       // default 2
+  std::optional<double> tolerance;  // default half a unit of the last digit
+  int cases = 0;                    // choice templates: labels of the choice parameter's values
+  int choices = 0;                  // and the choices offered
+};
+
 struct WebContent {
   std::vector<Stage> stages;
   int locked_leverage_cap = 2;
@@ -200,6 +229,8 @@ struct WebContent {
   std::vector<GlossaryEntry> glossary;
   std::vector<CoachStepDef> coach;
   std::map<std::string, std::string, std::less<>> finding_terms;  // debrief finding code -> glossary term
+  std::vector<std::string> drill_skills;  // drills.ts DRILL_SKILLS, in order
+  std::vector<DrillTemplate> drills;      // skill by skill in that order, then by file order
 
   [[nodiscard]] const Stage* stage(std::string_view id) const;
   [[nodiscard]] const AcademyLesson* lesson(std::string_view id) const;

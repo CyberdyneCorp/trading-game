@@ -9,6 +9,7 @@ import { EngineClient } from '#lib/engine/client.ts';
 import type { Analysis, CsvBuildResult, EngineRequest, EngineResponse } from '#lib/engine/protocol.ts';
 import { DEFAULT_RUN_OPTIONS } from '#lib/engine/defaults.ts';
 import type {
+	CoachReview,
 	ComboPreview,
 	ComboRequest,
 	CommandResult,
@@ -53,9 +54,24 @@ import { randomSeedBytes, trustedKeys } from './packs.ts';
 import { missingCapabilities, type MissingCapability } from './browserSupport.ts';
 import { enginesToKeep, gcEngines, pinEngine } from './engineCache.ts';
 import { formatBytes, MemoryPackIndex, opfsPackDir, PackLibrary, playableDigests, quotaShortfall, storageQuota, type PackEntry, type Quota } from './packStore.ts';
-import { EMPTY_PROGRESS, newRunId, openDb, RunStore, type PackOrigin, type Progress, type RunRecord } from './storage.ts';
+import {
+	EMPTY_PROGRESS,
+	GUESS_HISTORY_KEEP,
+	newRunId,
+	openDb,
+	RunStore,
+	type DailyLink,
+	type GuessRound,
+	type PackOrigin,
+	type Progress,
+	type RunRecord
+} from './storage.ts';
 import { tutorialFor } from './tutorials.ts';
 import { packOriginOf, packTextsOf } from './missions.ts';
+import { dailyChallenge, recordDailyAttempt } from './daily.ts';
+import { finishSession, type DrillItem, type ItemResult } from './drills.ts';
+import { mistakeOutcome } from './coachReview.ts';
+import { missionsOnly, roundMarkets, type MistakeReport } from './practice.ts';
 import type { PackText } from '#lib/engine/types.ts';
 import type { RunFileReply } from '#lib/engine/protocol.ts';
 import { RunSharing, type ExportOutcome, type SharingHost } from './runSharing.svelte.ts';
@@ -79,7 +95,11 @@ export type Screen =
 	| 'lab'
 	| 'catalog'
 	| 'replay'
-	| 'stats';
+	| 'stats'
+	// Practice formats (add-practice-and-advanced-strategies D15, D16, D19).
+	| 'drills'
+	| 'daily'
+	| 'guess';
 
 type Action =
 	| { k: 'lev'; lev: number }
@@ -202,6 +222,8 @@ export class GameSession implements CatalogHost, SharingHost {
 	screen = $state<Screen>('loading');
 	error = $state<string | null>(null);
 	missions = $state<MissionInfo[]>([]);
+	/** The guess rounds' practice markets (tl_missions with practice "round"); never in a menu (design D19). */
+	roundMarkets = $state<MissionInfo[]>([]);
 	missionId = $state('');
 	seed = $state(0);
 	// Raw, not a deep proxy: each engine reply replaces the whole state, and proxied reads of the
@@ -258,6 +280,12 @@ export class GameSession implements CatalogHost, SharingHost {
 	lessonsAnswered = $state<number[]>([]);
 	/** Assisted practice (rewind or another market): never counts for progress, points or the campaign. */
 	runAssisted = $state<AssistedLink | null>(null);
+	/** The daily challenge the current run attempts (design D16); null otherwise. */
+	runDaily = $state<DailyLink | null>(null);
+	/** The finished run's coach review (design D17), loaded on demand; an error code when there is none. */
+	coach = $state<{ review: CoachReview | null; error: string | null } | null>(null);
+	/** A mistake retry's comparison with its original (design D18), at the retry's debrief. */
+	mistake = $state<MistakeReport | null>(null);
 	/** Run headers for the journal screen (loaded when it opens). */
 	journalRecords = $state<RunRecord<PlanEntry, never>[]>([]);
 	/** Strategy-builder combos of this run, rebuilt from the action log (tags only; replay ignores them). */
@@ -303,7 +331,8 @@ export class GameSession implements CatalogHost, SharingHost {
 			this.enginePath = currentEnginePath();
 			const info = await this.engine.request({ kind: 'init', engineUrl: engineUrl(this.enginePath) });
 			this.loadedEngine = this.enginePath;
-			this.missions = info.missions;
+			this.missions = missionsOnly(info.missions);
+			this.roundMarkets = roundMarkets(info.missions);
 			this.engineVersion = info.version.engine;
 			this.policy = info.version.executionPolicy;
 			await this.openStore();
@@ -511,7 +540,8 @@ export class GameSession implements CatalogHost, SharingHost {
 		options: RunOptionsView,
 		campaign: CampaignLink | null,
 		perks: PerkId[] = [],
-		assisted: AssistedLink | null = null
+		assisted: AssistedLink | null = null,
+		daily: DailyLink | null = null
 	): Promise<void> {
 		await this.useCurrentEngine();
 		this.resetRun(missionId, seed);
@@ -519,9 +549,10 @@ export class GameSession implements CatalogHost, SharingHost {
 		this.perkChoice = perks;
 		this.runCampaign = campaign;
 		this.runAssisted = assisted;
+		this.runDaily = daily;
 		this.state = await this.eng().request({ kind: 'start', missionId, seed, options: { ...options } });
 		this.lessonInfo = await this.eng().request({ kind: 'lesson', missionId });
-		await this.createRunRecord(missionId, seed, { campaign: campaign ?? undefined, assisted: assisted ?? undefined });
+		await this.createRunRecord(missionId, seed, { campaign: campaign ?? undefined, assisted: assisted ?? undefined, daily: daily ?? undefined });
 		this.screen = this.needsTutorial(missionId) ? 'tutorial' : 'briefing';
 	}
 
@@ -843,7 +874,7 @@ export class GameSession implements CatalogHost, SharingHost {
 	private async createRunRecord(
 		missionId: string,
 		seed: number,
-		link: { packDigest?: string; campaign?: CampaignLink; assisted?: AssistedLink } = {}
+		link: { packDigest?: string; campaign?: CampaignLink; assisted?: AssistedLink; daily?: DailyLink } = {}
 	): Promise<void> {
 		this.runId = newRunId();
 		await this.store
@@ -864,7 +895,8 @@ export class GameSession implements CatalogHost, SharingHost {
 				engine: this.loadedEngine,
 				...(link.packDigest ? { packDigest: link.packDigest } : {}),
 				...(link.campaign ? { campaign: { ...link.campaign } } : {}),
-				...(link.assisted ? { assisted: { ...link.assisted } } : {})
+				...(link.assisted ? { assisted: { ...link.assisted } } : {}),
+				...(link.daily ? { daily: { ...link.daily } } : {})
 			})
 			.catch(() => (this.durable = false));
 		void this.requestPersistence();
@@ -1002,6 +1034,7 @@ export class GameSession implements CatalogHost, SharingHost {
 		this.runId = r.runId;
 		this.runCampaign = r.campaign ?? null;
 		this.runAssisted = r.assisted ?? null;
+		this.runDaily = r.daily ?? null;
 		this.lessonInfo = r.packDigest ? null : await this.eng().request({ kind: 'lesson', missionId: r.missionId });
 		this.lessonsAnswered = run.actions.flatMap((a) => (a.k === 'lesson' ? [a.q] : []));
 		this.runPack = r.packDigest ?? null;
@@ -1336,6 +1369,9 @@ export class GameSession implements CatalogHost, SharingHost {
 		this.queued = 0;
 		this.runCampaign = null;
 		this.runAssisted = null;
+		this.runDaily = null;
+		this.coach = null;
+		this.mistake = null;
 		this.lessonsAnswered = [];
 		this.runPack = null;
 		this.perkChoice = [];
@@ -1401,6 +1437,93 @@ export class GameSession implements CatalogHost, SharingHost {
 		if (this.viewing) return; // a watched run settles nothing and keeps no summary
 		this.settleEnded();
 		this.saveSummary();
+		if (this.runAssisted?.kind === 'mistake') await this.compareMistake(this.runAssisted);
+	}
+
+	// ---- coach mode and mistake replay (design D17, D18) ----
+
+	/** The finished run's coach moments (engine tl_coach_review), loaded once per run. */
+	async loadCoach(): Promise<void> {
+		if (this.coach?.review || !this.state || this.state.status === 'active') return;
+		const r = await this.eng().request({ kind: 'coach' });
+		this.coach = r.ok ? { review: r.value, error: null } : { review: null, error: r.error };
+	}
+
+	/** "Retry from here" is offered on finished runs outside the replay viewer (never on imported runs). */
+	get mistakeRetryAllowed(): boolean {
+		return !!this.state && this.state.status !== 'active' && !this.viewing && !this.state.knownScenario && this.assistAllowed;
+	}
+
+	/**
+	 * Retries a flagged moment as an assisted attempt: the actions logged before `step` are replayed, so the
+	 * player is back at that decision, before the mistaken action. Never counts for progress (design D18).
+	 */
+	async retryMistake(step: number, code: string): Promise<void> {
+		const s = this.state;
+		if (!s || !this.mistakeRetryAllowed || step < s.warmupBars || step > s.step) return;
+		const prefix = rewindPrefix(this.log, s.warmupBars, step);
+		const journal = this.journal.filter((p) => p.step < step);
+		await this.exclusive(async () => {
+			await this.settleAbandoned();
+			const link: AssistedLink = { from: this.runId, kind: 'mistake', step, code };
+			await this.startAssisted(this.missionId, this.seed, { ...this.options, adviceAllowance: 0 }, link);
+			for (const a of prefix) await this.exec(a, true);
+			this.lessonsAnswered = prefix.flatMap((a) => (a.k === 'lesson' ? [a.q] : []));
+			this.journal = journal;
+			this.persist();
+			this.screen = 'terminal';
+		});
+	}
+
+	// The retry's debrief: its coach moments and findings against the original moment, and both results.
+	private async compareMistake(link: AssistedLink): Promise<void> {
+		const d = this.debrief;
+		if (!d || link.step == null || !link.code) return;
+		await this.loadCoach();
+		const outcome = mistakeOutcome(link.code, link.step, { moments: this.coach?.review?.moments ?? [], findings: d.findings });
+		const original = ((await this.store?.runs().catch(() => null)) ?? []).find((r) => r.runId === link.from)?.summary ?? null;
+		this.mistake = {
+			code: link.code,
+			step: link.step,
+			outcome,
+			original: original ? { score: original.score, pnl: original.net.toFixed(2) } : null,
+			retry: { score: d.score.total, pnl: d.netPnl }
+		};
+	}
+
+	// ---- practice formats (design D15, D16, D19) ----
+
+	openPractice(screen: 'drills' | 'daily' | 'guess'): void {
+		this.screen = screen;
+	}
+
+	/** Today's daily challenge (local date). */
+	get dailyToday(): DailyLink {
+		return dailyChallenge(this.today());
+	}
+
+	/** Plays today's challenge: the mission's own rules, no advisor, no perks, the default balance. */
+	async startDaily(): Promise<void> {
+		const link = this.dailyToday;
+		await this.exclusive(async () => {
+			await this.settleAbandoned();
+			await this.launch(link.mission, link.seed, { ...DEFAULT_RUN_OPTIONS }, null, [], null, link);
+		});
+	}
+
+	/** A finished drill session: the drill schedule and history (never a lesson review). */
+	finishDrills(items: readonly DrillItem[], results: readonly ItemResult[]): void {
+		this.saveProgress(finishSession(this.progress, items, results, this.today()));
+	}
+
+	/** A finished guess round, kept in the last GUESS_HISTORY_KEEP. */
+	saveGuess(round: GuessRound): void {
+		this.saveProgress({ ...this.progress, guessHistory: [...this.progress.guessHistory, round].slice(-GUESS_HISTORY_KEEP) });
+	}
+
+	/** This version's engine build, for the guess rounds' own worker (the session's run stays untouched). */
+	get practiceEngineUrl(): string {
+		return engineUrl(this.enginePath);
 	}
 
 	// The run's compact debrief for the journal statistics (design D7), kept on its run record.
@@ -1417,7 +1540,9 @@ export class GameSession implements CatalogHost, SharingHost {
 		const d = this.debrief;
 		// Assisted practice settles nothing: no points, no campaign leg (it starts without the advisor).
 		if (!s || !d || s.status === 'active' || s.knownScenario || this.runAssisted) return;
-		let next = settleRun(this.progress, this.runId, s.advisor.advice.length, d.advisorPointsEarned);
+		// A daily challenge starts without the advisor and earns no points; its attempt joins the day's history.
+		let next = settleRun(this.progress, this.runId, s.advisor.advice.length, this.runDaily ? 0 : d.advisorPointsEarned);
+		if (this.runDaily) next = recordDailyAttempt(next, this.runDaily, { score: d.score.total, pnl: d.netPnl, runId: this.runId });
 		if (this.runCampaign) {
 			const result: LegResult = s.status === 'bankrupt' ? 'bankrupt' : 'finished';
 			const report = legReport(d, s.totals);

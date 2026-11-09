@@ -31,9 +31,12 @@ LIMITS = {"m18-gamma-scalp": {"deltaBp": 1500}, "m19-funding-carry": {"deltaBp":
 SCORES_V13 = Path(__file__).parent / "data" / "scores_v13.json"
 
 
-def test_batch_d_closes_the_catalog():
-    ids = [m["id"] for m in missions()]
+def test_batch_d_closes_the_missions_and_the_rounds_follow():
+    ids = [m["id"] for m in missions() if "practice" not in m]
     assert ids[-8:] == BATCH_D
+    rounds = [m for m in missions() if m.get("practice") == "round"]  # design D19: after every mission
+    assert [m["id"] for m in rounds] == ["r01-trend", "r02-range", "r03-breakout", "r04-event"]
+    assert [m["id"] for m in missions()][-4:] == [m["id"] for m in rounds]
     caps = {m["id"]: m["leverageCap"] for m in missions()}
     assert [caps[m] for m in BATCH_D] == [3, 5, 3, 3, 5, 3, 3, 3]
 

@@ -180,4 +180,8 @@ class ChartViewModel {
   std::uint64_t revision_ = 1;
 };
 
+// A moment on a built frame (web Chart.svelte drawMoment): a shaded column on the bar with a ▼ above it;
+// nothing when the bar is outside the frame.
+void mark_moment(ChartScene& scene, const ChartViewModel& chart, int step);
+
 }  // namespace tradelab::desktop::game

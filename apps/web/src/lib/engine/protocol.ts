@@ -7,6 +7,7 @@ import type {
 	AnswerQuestionCommand,
 	CancelOrderCommand,
 	ClientIdCommand,
+	CoachReview,
 	ComboPreview,
 	ComboRequest,
 	CommandResult,
@@ -71,6 +72,9 @@ export type EngineRequest =
 	| { kind: 'debrief' }
 	// The current run's seeded reveal (G4); refused while the run is active (design D6).
 	| { kind: 'reveal' }
+	// The current run's coach moments (tl_coach_review, design D17): refused while the run is active;
+	// 'unsupported' from a build that predates it.
+	| { kind: 'coach' }
 	// Checkpoints (opaque engine RunState: no scenario bars) and restore + replay of the tail.
 	| { kind: 'checkpoint' }
 	| { kind: 'restore'; missionId: string; seed: number; checkpoint: string; pack?: Uint8Array; keys?: TrustedKey[] };
@@ -118,6 +122,7 @@ interface ResponseMap {
 	comboPreview: Analysis<ComboPreview>;
 	/** Null for runs on imported packs (their reveal is in the debrief). */
 	reveal: MissionReveal | null;
+	coach: Analysis<CoachReview>;
 	verifyRun: RunFileReply;
 	sealRun: RunFileReply;
 }

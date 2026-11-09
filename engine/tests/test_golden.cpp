@@ -24,9 +24,9 @@ std::string digest_tail(const JsonValue& expected) {
          golden::text(expected, "eventsDigest") + "\"}";
 }
 
-void check_run(const JsonValue& fx) {
+golden::RunResult check_run(const JsonValue& fx) {
   const JsonValue& expected = *fx.find("expected");
-  const golden::RunResult r = golden::replay_run(fx);
+  golden::RunResult r = golden::replay_run(fx);
   REQUIRE(r.ok);
   CHECK(r.state.substr(r.state.find("\"digest\"")) == digest_tail(expected));
   CHECK(r.state.find("\"status\":\"" + golden::text(expected, "status") + "\"") != std::string::npos);
@@ -36,6 +36,7 @@ void check_run(const JsonValue& fx) {
     CHECK(r.rejected[i].action == static_cast<std::size_t>(rejected[i].find("action")->integer));
     CHECK(r.rejected[i].reason == golden::text(rejected[i], "reason"));
   }
+  return r;
 }
 
 }  // namespace
@@ -57,12 +58,16 @@ TEST_CASE("Golden fixtures: every shared scripted run, reveal and what-if replay
     } else if (kind == "whatif") {
       CHECK(golden::whatif_expected(fx).find("\"breakevens\"") != std::string::npos);
       CHECK(golden::whatif_output(fx) == golden::whatif_expected(fx));
+    } else if (kind == "coach") {  // a scripted run and its coach review (add-practice-and-advanced-strategies D17)
+      const golden::RunResult r = check_run(fx);
+      CHECK(golden::coach_expected(fx).find("\"moments\":[{") != std::string::npos);
+      CHECK(golden::coach_output(r) == golden::coach_expected(fx));
     } else {
       REQUIRE(kind == "run");
       check_run(fx);
     }
   }
-  CHECK(kinds == std::set<std::string>{"reveal", "run", "whatif"});
+  CHECK(kinds == std::set<std::string>{"coach", "reveal", "run", "whatif"});
   CHECK(golden::fixtures().size() >= 16);  // m01, m02 (advice), m05-m12, the CSV pack, two reveals, three what-ifs
 }
 

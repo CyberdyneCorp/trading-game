@@ -18,6 +18,7 @@
 #include "support/academy_flows.hpp"
 #include "support/playtest_run.hpp"
 #include "support/png.hpp"
+#include "support/practice_flows.hpp"
 #include "support/strategy_flows.hpp"
 #include "viewmodel/academy_names.hpp"
 #include "viewmodel/game/builder_widgets.hpp"
@@ -152,6 +153,45 @@ void academy_curriculum_glossary() {
   s.shot("10-glossary");
 }
 
+// The practice formats on 2026-11-09 (the drills, the daily challenge and the guess rounds follow the
+// local date): the first drill answered wrong, the day's challenge, the first guess round's reveal and
+// the coach's first moment of m24 chased (38 bars waited, then 40 bought with no plan or stop).
+void practice_formats() {
+  Session s(3);
+  const std::int64_t noon = practice::day_start("2026-11-09") + 12 * 3'600'000LL;
+  s.app.vm().set_clock([noon] { return noon; });
+  AppViewModel& vm = s.app.vm();
+  testing::press(*s.d, names::kMenuDrills);
+  testing::press(*s.d, names::kDrillsStart);
+  s.d->type_into(names::kDrillsInput, "2.6");
+  s.d->key(R_KEY_ENTER);
+  s.shot("12-drills");
+  vm.back_to_menu();
+  s.d->frames(4);
+  testing::press(*s.d, names::kMenuDaily);
+  s.shot("13-daily");
+  vm.back_to_menu();
+  s.d->frames(4);
+  testing::press(*s.d, names::kMenuGuess);
+  testing::press(*s.d, names::kGuessStart);
+  const GuessState& g = vm.practice().guess;
+  REQUIRE(s.d->until([&] { return g.phase == GuessState::Phase::Commit; }));
+  vm.guess_set_p(13);  // 70%
+  s.d->type_into(names::kGuessInv, "89.08");
+  s.d->type_into(names::kGuessTarget, "93.58");
+  testing::press(*s.d, names::kGuessCommit);
+  REQUIRE(s.d->until([&] { return g.phase == GuessState::Phase::Reveal; }));
+  Rwidget_scroll_into_view(s.d->widget(names::kGuessReveal));
+  s.shot("14-guess");
+  vm.back_to_menu();
+  s.d->frames(4);
+  Terminal t(s.app, *s.d);
+  testing::flow_chase(s.app, *s.d, t);
+  testing::press(*s.d, names::kDebriefOpenReview);
+  REQUIRE(s.d->until([&] { return vm.practice().coach.review.has_value(); }));
+  s.shot("15-coach-review");
+}
+
 }  // namespace
 
 TEST_CASE("screenshots: README images of the desktop game (only with TRADELAB_SCREENSHOT_DIR)") {
@@ -161,4 +201,5 @@ TEST_CASE("screenshots: README images of the desktop game (only with TRADELAB_SC
   options_chain();
   builder_and_lab();
   academy_curriculum_glossary();
+  practice_formats();
 }

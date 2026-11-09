@@ -102,6 +102,12 @@
 		<button onclick={() => session.openStats()} data-testid="open-stats">∑ {t('menu.stats')}</button>
 		<button onclick={() => session.openCatalog()} data-testid="open-catalog">⇩ {t('catalog.open')}</button>
 	</nav>
+	<nav class="screens practice-formats" aria-label={t('menu.practiceFormats')} data-testid="practice-formats">
+		<span class="muted small">{t('menu.practiceFormats')}:</span>
+		<button onclick={() => session.openPractice('drills')} data-testid="open-drills">✎ {t('drills.open')}</button>
+		<button onclick={() => session.openPractice('daily')} data-testid="open-daily">☀ {t('daily.open')}</button>
+		<button onclick={() => session.openPractice('guess')} data-testid="open-guess">? {t('guess.open')}</button>
+	</nav>
 	<RunImport {session} from="menu" />
 
 	<CampaignPanel {session} />

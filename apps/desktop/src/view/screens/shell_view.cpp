@@ -240,6 +240,7 @@ void ShellView::bind() {
   bind_callbacks();
   bind_flows();
   bind_academy();
+  bind_practice();
 }
 
 void ShellView::bind_callbacks() {

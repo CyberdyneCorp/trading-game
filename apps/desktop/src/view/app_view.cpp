@@ -20,6 +20,7 @@
 #include "view/raven/raven_ui.hpp"
 #include "viewmodel/academy_names.hpp"
 #include "viewmodel/game/builder_widgets.hpp"
+#include "viewmodel/practice_names.hpp"
 #include "viewmodel/run_file_names.hpp"
 #include "viewmodel/screen_names.hpp"
 #include "viewmodel/widget_names.hpp"
@@ -135,6 +136,7 @@ bool AppView::build(int width, int height) {
 bool AppView::on_key(const REvent* e) {
   if (ShellView::capture_key(vm_, e)) return true;  // Settings waits for a new shortcut key
   if (ShellView::tutorial_key(vm_, window_, e)) return true;
+  if (ShellView::review_key(vm_, e)) return true;
   if (coach_view_) {
     if (const auto used = coach_view_->on_key(e)) return *used;  // Esc skips; the callout's keys are its own
   }
@@ -181,6 +183,7 @@ void AppView::refresh() {
   vm_.tick_audio(std::chrono::duration<double>(now - last_frame_).count());
   last_frame_ = now;
   vm_.tick_coach();
+  vm_.tick_practice();  // the drills' soft clock
   if (game_view_) game_view_->refresh();
   shell_->focus_help(window_);
   if (coach_view_) coach_view_->refresh();
@@ -196,6 +199,8 @@ void AppView::refresh() {
   if (vm_.screen() == Screen::Debrief) Rwidget_invalidate(find(names::kDebriefChart));
   if (vm_.screen() == Screen::Lesson) Rwidget_invalidate(find(names::kLessonPayoff));
   if (vm_.screen() == Screen::Tutorial) Rwidget_invalidate(find(names::kTutArt));
+  if (vm_.screen() == Screen::Guess) Rwidget_invalidate(find(names::kGuessChart));
+  if (vm_.screen() == Screen::CoachReview) Rwidget_invalidate(find(names::kReviewChart));
   if (coach_view_) coach_view_->refresh();
 }
 
@@ -219,12 +224,14 @@ std::vector<std::string> AppView::missing_names() const {
   missing_widgets(names::kFlowWidgets, missing);
   missing_widgets(names::kAcademyWidgets, missing);
   missing_widgets(names::kRunFileWidgets, missing);
+  missing_widgets(names::kPracticeWidgets, missing);
   if (shell_->look().overlay() == R_INVALID_ID) missing.push_back("widget " + std::string(names::kCrtOverlay));
   missing_actions(names::kActions, missing);
   missing_actions(names::kShellActions, missing);
   missing_actions(names::kFlowActions, missing);
   missing_actions(names::kAcademyActions, missing);
   missing_actions(names::kRunFileActions, missing);
+  missing_actions(names::kPracticeActions, missing);
   if (game_view_) {
     for (auto& m : game_view_->missing_names()) missing.push_back(std::move(m));
   }

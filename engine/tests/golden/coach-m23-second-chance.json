@@ -1,0 +1,54 @@
+{
+  "format": 1,
+  "kind": "coach",
+  "name": "coach-m23-second-chance",
+  "description": "Coach review (design D17) of the m23 golden run: an oversized entry, the revenge re-entry right after a losing close, and the loss cut at the plan's invalidation.",
+  "mission": "m23-second-chance",
+  "seed": 2026,
+  "actions": [
+    {"k": "lev", "lev": 3},
+    {"k": "adv", "n": 14},
+    {"k": "plan", "side": "buy", "skipped": false, "option": false, "lose": true, "inv": "98.00", "target": null, "conf": 60, "risk": "99.91"},
+    {"k": "order", "type": "market", "side": "buy", "qty": "100.7", "price": null, "ro": false, "stop": "98.00", "tp": null, "trail": null},
+    {"k": "adv", "n": 9},
+    {"k": "order", "type": "market", "side": "buy", "qty": "201.4", "price": null, "ro": false, "stop": "97.07", "tp": null, "trail": null},
+    {"k": "adv", "n": 1000}
+  ],
+  "expected": {
+    "digest": "8a2c2fb27eee58748580c50d3b1fcfbf860ef73bf0257f42e069c6dfbe5cf8a1",
+    "eventsDigest": "8172974dd59a14b7a6720f6b124761682de3eafa836cb7168ea847402291244b",
+    "status": "finished",
+    "rejected": [],
+    "review": {
+      "mission": "m23-second-chance",
+      "seed": 2026,
+      "moments": [
+        {
+          "step": 83,
+          "code": "cut_at_invalidation",
+          "tone": "good",
+          "evidence": {"price": "97.97000000", "loss": "112.81024645", "plannedRisk": "99.91000000"},
+          "lesson": "mind-plan",
+          "glossary": "invalidation"
+        },
+        {
+          "step": 83,
+          "code": "risk_above_budget",
+          "tone": "warn",
+          "evidence": {"qty": "201.40000000", "stop": "97.07000000", "risk": "298.07200000", "budget": "200.00000000"},
+          "lesson": "risk-sizing",
+          "glossary": "risk-budget"
+        },
+        {
+          "step": 83,
+          "code": "revenge_trade",
+          "tone": "warn",
+          "evidence": {"loss": "112.81024645", "trade": 1, "exitStep": 83, "sizeRatioBp": 20000, "planned": false},
+          "lesson": "mind-biases",
+          "glossary": "revenge-trading"
+        }
+      ]
+    }
+  },
+  "versions": {"engine": "0.1.0", "executionPolicy": 18}
+}

@@ -175,7 +175,8 @@ void GameViewModel::on_run_end(const Snapshot& s) {
   run_settled_ = true;
   if (assisted_) return;  // no points, no finished mission (web: an assisted run is never settled)
   const GameState& g = *state_;
-  settle_run(prefs_, run_id_, g.advisor.allowance - g.advisor.left, s.debrief->advisor_points_earned);
+  // A daily challenge (no advisor) earns no points either (add-practice-and-advanced-strategies D16).
+  settle_run(prefs_, run_id_, g.advisor.allowance - g.advisor.left, daily_ ? 0 : s.debrief->advisor_points_earned);
   const bool counts = g.status == "finished" && !g.known_scenario;
   if (counts && std::find(prefs_.finished.begin(), prefs_.finished.end(), g.mission) == prefs_.finished.end()) {
     prefs_.finished.push_back(g.mission);

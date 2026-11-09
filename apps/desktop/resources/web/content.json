@@ -5737,5 +5737,661 @@
   "fomo_entry": "fomo",
   "averaging_down": "averaging-down",
   "risk_limit_exceeded": "risk-limit"
- }
+ },
+ "drillSkills": [
+  "payoff",
+  "breakeven",
+  "greeks-read",
+  "greeks-sign",
+  "sizing",
+  "liquidation",
+  "funding",
+  "r-multiple",
+  "hedge",
+  "calendar",
+  "trail"
+ ],
+ "drills": [
+  {
+   "id": "payoff-long-call",
+   "stage": "options1",
+   "lessons": [
+    "options-payoff"
+   ],
+   "answer": {
+    "kind": "payoff",
+    "legs": [
+     {
+      "kind": "call",
+      "side": "buy",
+      "qty": 1,
+      "strike": "$K",
+      "price": "$prem"
+     }
+    ],
+    "at": "$S"
+   },
+   "skill": "payoff",
+   "params": [
+    {
+     "name": "K",
+     "lo": "90",
+     "hi": "110",
+     "step": "5"
+    },
+    {
+     "name": "prem",
+     "lo": "1",
+     "hi": "6",
+     "step": "0.5"
+    },
+    {
+     "name": "S",
+     "lo": "80",
+     "hi": "125",
+     "step": "1"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "payoff-short-put",
+   "stage": "options3",
+   "lessons": [
+    "options-writing",
+    "options-payoff"
+   ],
+   "answer": {
+    "kind": "payoff",
+    "legs": [
+     {
+      "kind": "put",
+      "side": "sell",
+      "qty": 1,
+      "strike": "$K",
+      "price": "$prem"
+     }
+    ],
+    "at": "$S"
+   },
+   "skill": "payoff",
+   "params": [
+    {
+     "name": "K",
+     "lo": "90",
+     "hi": "110",
+     "step": "5"
+    },
+    {
+     "name": "prem",
+     "lo": "1",
+     "hi": "5",
+     "step": "0.5"
+    },
+    {
+     "name": "S",
+     "lo": "80",
+     "hi": "120",
+     "step": "1"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "breakeven-long-put",
+   "stage": "options1",
+   "lessons": [
+    "options-payoff"
+   ],
+   "answer": {
+    "kind": "breakeven",
+    "legs": [
+     {
+      "kind": "put",
+      "side": "buy",
+      "qty": 1,
+      "strike": "$K",
+      "price": "$prem"
+     }
+    ],
+    "index": 0
+   },
+   "skill": "breakeven",
+   "params": [
+    {
+     "name": "K",
+     "lo": "90",
+     "hi": "110",
+     "step": "5"
+    },
+    {
+     "name": "prem",
+     "lo": "1",
+     "hi": "6",
+     "step": "0.25"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "breakeven-straddle-up",
+   "stage": "strategies",
+   "lessons": [
+    "strategies-shapes",
+    "options-payoff"
+   ],
+   "answer": {
+    "kind": "breakeven",
+    "legs": [
+     {
+      "kind": "call",
+      "side": "buy",
+      "qty": 1,
+      "strike": "$K",
+      "price": "$pc"
+     },
+     {
+      "kind": "put",
+      "side": "buy",
+      "qty": 1,
+      "strike": "$K",
+      "price": "$pp"
+     }
+    ],
+    "index": 1
+   },
+   "skill": "breakeven",
+   "params": [
+    {
+     "name": "K",
+     "lo": "90",
+     "hi": "110",
+     "step": "5"
+    },
+    {
+     "name": "pc",
+     "lo": "1",
+     "hi": "4",
+     "step": "0.25"
+    },
+    {
+     "name": "pp",
+     "lo": "1",
+     "hi": "4",
+     "step": "0.25"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "greeks-delta-units",
+   "stage": "options2",
+   "lessons": [
+    "options-greeks"
+   ],
+   "answer": {
+    "kind": "hedge",
+    "deltaPerUnit": "$d",
+    "units": "$n"
+   },
+   "skill": "greeks-read",
+   "params": [
+    {
+     "name": "n",
+     "lo": "1",
+     "hi": "10",
+     "step": "1"
+    },
+    {
+     "name": "d",
+     "lo": "0.2",
+     "hi": "0.8",
+     "step": "0.05"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "greeks-gamma-pnl",
+   "stage": "advanced",
+   "lessons": [
+    "vol-gamma-scalping",
+    "options-greeks"
+   ],
+   "answer": {
+    "kind": "scalp",
+    "gamma": "$g",
+    "move": "$m",
+    "units": "$n"
+   },
+   "skill": "greeks-read",
+   "params": [
+    {
+     "name": "g",
+     "lo": "0.02",
+     "hi": "0.1",
+     "step": "0.01"
+    },
+    {
+     "name": "m",
+     "lo": "1",
+     "hi": "4",
+     "step": "0.5"
+    },
+    {
+     "name": "n",
+     "lo": "5",
+     "hi": "20",
+     "step": "5"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "greeks-sign-delta",
+   "stage": "options2",
+   "lessons": [
+    "options-greeks"
+   ],
+   "answer": {
+    "kind": "choice",
+    "from": "case",
+    "answers": [
+     0,
+     1,
+     1,
+     0
+    ]
+   },
+   "skill": "greeks-sign",
+   "params": [
+    {
+     "name": "case",
+     "of": [
+      "0",
+      "1",
+      "2",
+      "3"
+     ]
+    }
+   ],
+   "cases": 4,
+   "choices": 2
+  },
+  {
+   "id": "greeks-sign-theta",
+   "stage": "options2",
+   "lessons": [
+    "options-greeks"
+   ],
+   "answer": {
+    "kind": "choice",
+    "from": "case",
+    "answers": [
+     1,
+     1,
+     0,
+     0
+    ]
+   },
+   "skill": "greeks-sign",
+   "params": [
+    {
+     "name": "case",
+     "of": [
+      "0",
+      "1",
+      "2",
+      "3"
+     ]
+    }
+   ],
+   "cases": 4,
+   "choices": 2
+  },
+  {
+   "id": "sizing-from-stop",
+   "stage": "risk",
+   "lessons": [
+    "risk-sizing"
+   ],
+   "answer": {
+    "kind": "size",
+    "equity": "$equity",
+    "riskPct": "$risk",
+    "entry": "$entry",
+    "stop": "$stop"
+   },
+   "skill": "sizing",
+   "params": [
+    {
+     "name": "equity",
+     "lo": "5000",
+     "hi": "20000",
+     "step": "1000"
+    },
+    {
+     "name": "risk",
+     "lo": "0.5",
+     "hi": "2",
+     "step": "0.5"
+    },
+    {
+     "name": "entry",
+     "lo": "80",
+     "hi": "120",
+     "step": "0.5"
+    },
+    {
+     "name": "dist",
+     "lo": "1",
+     "hi": "5",
+     "step": "0.5"
+    },
+    {
+     "name": "stop",
+     "sub": [
+      "entry",
+      "dist"
+     ]
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "liquidation-long",
+   "stage": "futures2",
+   "lessons": [
+    "futures-margin"
+   ],
+   "answer": {
+    "kind": "liquidation",
+    "side": "buy",
+    "entry": "$entry",
+    "leverage": "$lev",
+    "mmr": 0.005
+   },
+   "skill": "liquidation",
+   "params": [
+    {
+     "name": "entry",
+     "lo": "50",
+     "hi": "150",
+     "step": "1"
+    },
+    {
+     "name": "lev",
+     "lo": "2",
+     "hi": "20",
+     "step": "1"
+    },
+    {
+     "name": "mmr",
+     "of": [
+      "0.5"
+     ]
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "liquidation-short",
+   "stage": "futures2",
+   "lessons": [
+    "futures-margin"
+   ],
+   "answer": {
+    "kind": "liquidation",
+    "side": "sell",
+    "entry": "$entry",
+    "leverage": "$lev",
+    "mmr": 0.005
+   },
+   "skill": "liquidation",
+   "params": [
+    {
+     "name": "entry",
+     "lo": "50",
+     "hi": "150",
+     "step": "1"
+    },
+    {
+     "name": "lev",
+     "lo": "2",
+     "hi": "20",
+     "step": "1"
+    },
+    {
+     "name": "mmr",
+     "of": [
+      "0.5"
+     ]
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "funding-long-pays",
+   "stage": "futures3",
+   "lessons": [
+    "futures-funding"
+   ],
+   "answer": {
+    "kind": "funding",
+    "notional": "$notional",
+    "ratePct": "$rate"
+   },
+   "skill": "funding",
+   "params": [
+    {
+     "name": "notional",
+     "lo": "1000",
+     "hi": "20000",
+     "step": "500"
+    },
+    {
+     "name": "rate",
+     "lo": "0.01",
+     "hi": "0.1",
+     "step": "0.01"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "r-multiple-target",
+   "stage": "risk",
+   "lessons": [
+    "risk-expectancy",
+    "risk-sizing"
+   ],
+   "answer": {
+    "kind": "r",
+    "entry": "$entry",
+    "stop": "$stop",
+    "target": "$target"
+   },
+   "skill": "r-multiple",
+   "params": [
+    {
+     "name": "entry",
+     "lo": "80",
+     "hi": "120",
+     "step": "0.5"
+    },
+    {
+     "name": "dist",
+     "lo": "1",
+     "hi": "5",
+     "step": "0.5"
+    },
+    {
+     "name": "gain",
+     "lo": "2",
+     "hi": "10",
+     "step": "0.5"
+    },
+    {
+     "name": "stop",
+     "sub": [
+      "entry",
+      "dist"
+     ]
+    },
+    {
+     "name": "target",
+     "add": [
+      "entry",
+      "gain"
+     ]
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "hedge-straddle",
+   "stage": "advanced",
+   "lessons": [
+    "vol-gamma-scalping"
+   ],
+   "answer": {
+    "kind": "hedge",
+    "deltaPerUnit": "$d",
+    "units": "$n"
+   },
+   "skill": "hedge",
+   "params": [
+    {
+     "name": "d",
+     "lo": "0.05",
+     "hi": "0.4",
+     "step": "0.05"
+    },
+    {
+     "name": "n",
+     "lo": "2",
+     "hi": "20",
+     "step": "2"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "calendar-debit",
+   "stage": "advanced",
+   "lessons": [
+    "options-calendars"
+   ],
+   "answer": {
+    "kind": "calendar",
+    "near": "$near",
+    "far": "$far",
+    "qty": "$qty"
+   },
+   "skill": "calendar",
+   "params": [
+    {
+     "name": "near",
+     "lo": "0.5",
+     "hi": "3",
+     "step": "0.1"
+    },
+    {
+     "name": "extra",
+     "lo": "0.5",
+     "hi": "3",
+     "step": "0.1"
+    },
+    {
+     "name": "qty",
+     "lo": "1",
+     "hi": "10",
+     "step": "1"
+    },
+    {
+     "name": "far",
+     "add": [
+      "near",
+      "extra"
+     ]
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "trail-distance",
+   "stage": "orders",
+   "lessons": [
+    "orders-execution"
+   ],
+   "answer": {
+    "kind": "trail",
+    "side": "sell",
+    "close": "$close",
+    "distance": "$dist",
+    "tick": 0.01
+   },
+   "skill": "trail",
+   "params": [
+    {
+     "name": "close",
+     "lo": "90",
+     "hi": "130",
+     "step": "0.25"
+    },
+    {
+     "name": "dist",
+     "lo": "0.5",
+     "hi": "3",
+     "step": "0.25"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  },
+  {
+   "id": "trail-percent",
+   "stage": "orders",
+   "lessons": [
+    "orders-execution"
+   ],
+   "answer": {
+    "kind": "trail",
+    "side": "sell",
+    "close": "$close",
+    "ratePct": "$rate",
+    "tick": 0.01
+   },
+   "skill": "trail",
+   "params": [
+    {
+     "name": "close",
+     "lo": "90",
+     "hi": "130",
+     "step": "0.25"
+    },
+    {
+     "name": "rate",
+     "lo": "1",
+     "hi": "5",
+     "step": "0.5"
+    }
+   ],
+   "cases": 0,
+   "choices": 0
+  }
+ ]
 }

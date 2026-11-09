@@ -280,4 +280,35 @@ std::vector<RegimeSignals> signals_by_regime(const Scenario& sc, const RunState&
 // scenario's end, or the game-over bar), taker fees both ways; 0 before the first decision.
 Money buy_and_hold_pnl(const Scenario& sc, const RunState& st);
 
+// ---- Coach review (report-only; src/coach_review.cpp, add-practice-and-advanced-strategies D17) ----
+
+// What a moment rests on; only the members its code uses are set.
+struct CoachEvidence {
+  std::optional<Qty> qty;
+  std::optional<Price> entry, close, sma, level, stop, from, to, price, avg_before, avg_after;
+  std::optional<Money> risk, budget, loss, planned_risk, risk_before, risk_after, plan_risk;
+  std::optional<std::int64_t> trade, exit_step, size_ratio_bp, closes, extension_atr, release_step, limit_bp, value_bp, profit_r_bp;
+  std::optional<bool> planned;
+  std::optional<RiskLimitKind> limit;
+};
+
+struct CoachMoment {
+  std::uint32_t step = 0;
+  CoachMomentCode code = CoachMomentCode::EntryWithoutStop;
+  FindingTone tone = FindingTone::Warn;
+  CoachEvidence evidence;
+};
+
+constexpr std::size_t kCoachMaxWarn = 9;
+constexpr std::size_t kCoachMaxGood = 3;
+
+// The coach review of a finished run: at each decision step the rules read only what had happened by
+// that step's close (the recorded events, orders and plans up to it) and the bars up to it. At most
+// kCoachMaxWarn warnings (ranked by risk impact, then step) and kCoachMaxGood good moments (the
+// earliest), in step order.
+std::vector<CoachMoment> coach_review(const Scenario& sc, const RunState& st);
+// The Academy lesson and glossary term a moment's text links (ids of apps/web/src/lib/content).
+const char* coach_lesson(CoachMomentCode code);
+const char* coach_glossary(CoachMomentCode code);
+
 }  // namespace tradelab

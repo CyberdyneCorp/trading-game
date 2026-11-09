@@ -28,6 +28,9 @@
 	import type { EngineTrade } from '#lib/engine/types.ts';
 	import { comboStatus, groupTrades, netPremium } from '#lib/game/combos.ts';
 	import RunExport from './RunExport.svelte';
+	import CoachReview from './CoachReview.svelte';
+	import MistakeReport from './MistakeReport.svelte';
+	import { findingRetryable } from '#lib/game/coachReview.ts';
 
 	let { session }: { session: GameSession } = $props();
 	const s = $derived(session.state!);
@@ -107,7 +110,19 @@
 		return s.mission === CAPSTONE_MISSION && link && c && c.id === link.id ? c.legs : null;
 	});
 	// Assisted practice earns no points (it is never settled), whatever the engine counted for the run.
-	const points = $derived({ used: s.advisor.advice.length, earned: session.runAssisted ? 0 : d.advisorPointsEarned, balance: session.progress.advisorPoints });
+	// A daily challenge (no advisor) earns none either.
+	const points = $derived({
+		used: s.advisor.advice.length,
+		earned: session.runAssisted || session.runDaily ? 0 : d.advisorPointsEarned,
+		balance: session.progress.advisorPoints
+	});
+	// Coach mode (design D17): the moments overlay, and the reveal it links after the last one.
+	let coachOpen = $state(false);
+	let revealBox: HTMLElement | undefined = $state();
+	function toReveal(): void {
+		coachOpen = false;
+		revealBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
 	const judged = $derived(d.advice.filter((x) => x.outcome === 'right' || x.outcome === 'wrong').length);
 	const dimLabels = { risk: 'debrief.risk', plan: 'debrief.plan', understanding: 'debrief.understanding', calibration: 'debrief.calibration' } as const;
 </script>
@@ -154,6 +169,16 @@
 	{#if session.runAssisted}
 		<p class="assisted" data-testid="debrief-assisted"><span class="tag attention">{t('assist.tag')}</span> {t('assist.banner')}</p>
 	{/if}
+	{#if session.runDaily}
+		<p data-testid="debrief-daily"><span class="tag info">{t('daily.tag', { date: session.runDaily.date })}</span></p>
+	{/if}
+	{#if session.mistake}<MistakeReport report={session.mistake} />{/if}
+	{#if !session.viewing}
+		<p>
+			<button onclick={() => (coachOpen = true)} data-testid="open-coach">🧭 {t('coachReview.open')}</button>
+		</p>
+	{/if}
+	{#if coachOpen}<CoachReview {session} onClose={() => (coachOpen = false)} onReveal={toReveal} />{/if}
 	{#if intel.length}
 		<p class="intel" data-testid="debrief-intel">
 			<span class="tag attention">{t('debrief.intel')}</span>
@@ -201,7 +226,7 @@
 			<p class="muted small">{t('debrief.scoreNote')}</p>
 		</section>
 
-		<section class="panel">
+		<section class="panel" bind:this={revealBox} data-testid="debrief-reveal">
 			<h2 class="panel-title">{t('debrief.reveal')}</h2>
 			{#if d.reveal}
 				<p data-testid="pack-reveal">{reveal?.line}</p>
@@ -228,6 +253,9 @@
 					{#if FINDING_TERMS[f.code]}{@const term = FINDING_TERMS[f.code]!}<span class="muted small"> · <Term id={term}>{termById(term)?.text[L].term}</Term></span>{/if}
 					{#if findingMoment(f) != null}{@const at = findingMoment(f)!}
 						<button class="moment" onclick={() => showMoment(at)} data-testid="finding-moment">{t('debrief.showMoment', { step: at })}</button>
+					{/if}
+					{#if session.mistakeRetryAllowed && findingRetryable(f, s.warmupBars)}
+						<button class="moment" onclick={() => session.retryMistake(f.step, f.code)} disabled={session.busy} data-testid="finding-retry">↺ {t('mistake.retry')}</button>
 					{/if}
 				</li>
 			{/each}

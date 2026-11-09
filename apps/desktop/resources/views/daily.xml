@@ -1,0 +1,30 @@
+<!-- Daily challenge (web DailyScreen.svelte): today's mission and market, the same for everyone on this
+     local date; the player's own history only (first and best attempt by the mission score). Texts and
+     the table from screens::daily(). -->
+<ScrollBox Name="daily-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="daily-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="daily-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <Label Name="daily-intro" Wrap="true"/>
+                <Label Name="daily-today" TextSize="25" Class="title" Wrap="true" AccessibleRole="Heading"/>
+                <Label Name="daily-mission" Wrap="true"/>
+                <Label Name="daily-seed" Wrap="true" Class="muted"/>
+                <Label Name="daily-record" Wrap="true" Class="info"/>
+                <Button Name="daily-play" Style="Primary" OnClicked="tl.daily.play" Slot.HAlign="Left"/>
+            </VBox>
+        </Border>
+        <Border Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <Label Name="daily-history-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Label Name="daily-empty" Wrap="true" Class="muted"/>
+                <Table Name="daily-history" Height="260" Striped="true"/>
+            </VBox>
+        </Border>
+    </VBox>
+</Border>
+</ScrollBox>

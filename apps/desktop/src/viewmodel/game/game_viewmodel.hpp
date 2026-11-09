@@ -134,6 +134,8 @@ class GameViewModel {
   void mark_tutorial_seen(const std::string& mission);
   // The run in play is an assisted practice attempt: it settles no points and finishes no mission.
   [[nodiscard]] bool assisted() const { return assisted_; }
+  // The run in play is a daily challenge (set by the shell when it starts): it earns no advisor points.
+  void set_daily(bool on) { daily_ = on; }
   // Terminal.svelte: practice packs and assisted attempts start without the advisor, so it is not offered.
   [[nodiscard]] bool advisor_offered() const { return state_ && !state_->known_scenario && !assisted_; }
   [[nodiscard]] int tutorial_index() const { return tutorial_index_; }
@@ -337,6 +339,7 @@ class GameViewModel {
   std::string run_id_;
   bool run_settled_ = false;
   bool assisted_ = false;
+  bool daily_ = false;
   void begin_run(const Snapshot& s, bool rewound);
   int run_counter_ = 0;
   int actions_ = 0;  // non-lesson commands this run (perks can change only before the first)

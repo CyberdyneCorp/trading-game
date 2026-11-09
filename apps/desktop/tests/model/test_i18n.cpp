@@ -57,7 +57,7 @@ TEST_CASE("i18n: the built-in catalog is the generated web catalog plus desktop 
 // first skipped, so the menu showed raw keys for them.
 TEST_CASE("i18n: every engine mission has its web title, tagline and topic in both languages") {
   Catalog c = builtin_catalog();
-  const auto missions = engine_missions();
+  const auto missions = missions_only(engine_missions());
   REQUIRE(missions.size() == 25);
   for (const auto& m : missions) {
     for (const char* field : {"title", "tagline", "topic", "reveal"}) {
