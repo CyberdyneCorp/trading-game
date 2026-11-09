@@ -292,12 +292,12 @@ Suggested PRs, in order:
 
 ### W3-X. Playtest and cross-check
 
-- [ ] W3-X1 Same numbers on both clients:
+- [x] W3-X1 Same numbers on both clients:
   - the drill items of one date and session;
   - the daily mission and seed for 10 dates;
   - five guess rounds' scores;
   - the coach moments and a mistake retry of an m23 run (seed 3).
 
   Recorded in the design.
-- [ ] W3-X2 Playtest as a new player in both locales: a drill with wrong answers (the explanations checked by hand), the daily challenge twice, ten guess rounds (scores recomputed by hand), coach mode on a reckless run (each moment checked against the chart up to its bar: no future used), a retry that avoids the mistake and one that repeats it.
-- [ ] W3-X3 Root README (practice formats, progress v4), `docs/product-spec.md` (game modes, metrics), `openspec validate --all --strict`, complexity, every earlier golden unchanged except the documented v18 state digests; build directories, captures and test results deleted.
+- [x] W3-X2 Playtest as a new player in both locales: a drill with wrong answers (the explanations checked by hand), the daily challenge twice, ten guess rounds (scores recomputed by hand), coach mode on a reckless run (each moment checked against the chart up to its bar: no future used), a retry that avoids the mistake and one that repeats it.
+- [x] W3-X3 Root README (practice formats, progress v4), `docs/product-spec.md` (game modes, metrics), `openspec validate --all --strict`, complexity, every earlier golden unchanged except the documented v18 state digests; build directories, captures and test results deleted.

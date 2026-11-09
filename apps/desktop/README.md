@@ -267,9 +267,11 @@ Wave 2 has its own playtest (`playtest wave 2*`, `tests/windowed/test_playtest_w
 
 The practice formats have their own playtest (`playtest practice*`, `tests/windowed/test_playtest_practice.cpp`): a drill session with a wrong first answer, the daily challenge twice (first and best), ten guess rounds (each round's close, ATR, levels, outcome and score parts in the report, for recomputing by hand), the coach review of m24 chased on seed 3 and two retries from its debrief (the mistake repeated, then avoided), in PT-BR at 1280x800 and en at 1024x768, plus the drills and a round at 150% text in a 1024x768 window (`playtest/w3-*.png` and their reports; no text cut by its panel).
 
+The W3-X1 cross-check (`playtest wave 3 X1*`, `tests/windowed/test_playtest_wave3.cpp`, PT-BR 1280x800, the clock at noon of 2026-11-09) plays the practice formats with the inputs of the web's `e2e/cross-check-w3.spec.ts` and asserts the web's texts word for word: the first drill session's answers, the daily challenge of ten dates, five guess rounds (close, ATR, levels, outcome, score) and the coach review of m23 at seed 3 with its first warning retried twice, once avoiding the mistake and once repeating it (the final state digests asserted).
+
 ### Screenshots
 
-The README images of the desktop game (`docs/screenshots/desktop/NN-name.png`: menu, briefing, m01 terminal mid-trade, m05 option chain, m16 iron condor in the builder, options lab, debrief, Academy lesson, curriculum, glossary) come from a playtest case that runs only when `TRADELAB_SCREENSHOT_DIR` is set (`tests/windowed/test_screenshots.cpp`: 1280x800, English, fixed seeds, CRT off, a Retina capture reduced to 1280 px wide). After a change to those screens:
+The README images of the desktop game (`docs/screenshots/desktop/NN-name.png`: menu, briefing, m01 terminal mid-trade, m05 option chain, m16 iron condor in the builder, options lab, debrief, Academy lesson, curriculum, glossary, and the practice formats on 2026-11-09: a drill answered wrong, the daily challenge, a guess round's reveal and the coach review of m24 chased) come from a playtest case that runs only when `TRADELAB_SCREENSHOT_DIR` is set (`tests/windowed/test_screenshots.cpp`: 1280x800, English, fixed seeds, CRT off, a Retina capture reduced to 1280 px wide). After a change to those screens:
 
 ```bash
 TRADELAB_SCREENSHOT_DIR=$PWD/../../docs/screenshots/desktop build/macos-release/tests/tradelab_desktop_playtest_tests -tc="screenshots*"
