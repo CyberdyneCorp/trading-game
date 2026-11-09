@@ -97,7 +97,11 @@ export const FINDING_TERMS: Partial<Record<FindingCode, string>> = {
 	wrote_options: 'writing',
 	leverage_vs_stop: 'leverage',
 	liq_buffer: 'liquidation-price',
-	drawdown_budget: 'drawdown'
+	drawdown_budget: 'drawdown',
+	revenge_trade: 'revenge-trading',
+	fomo_entry: 'fomo',
+	averaging_down: 'averaging-down',
+	risk_limit_exceeded: 'risk-limit'
 };
 
 /** Term ids linked in a text. */

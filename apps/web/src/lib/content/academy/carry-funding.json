@@ -1,0 +1,148 @@
+{
+	"id": "carry-funding",
+	"stage": "advanced",
+	"checks": [
+		{ "kind": "funding", "notional": 2000, "ratePct": 0.03, "expect": 0.6 },
+		{ "kind": "product", "a": 0.6, "b": 3, "expect": 1.8 },
+		{ "kind": "ratio", "a": 3, "b": 0.6, "expect": 5 },
+		{ "kind": "diff", "a": 103, "b": 100, "expect": 3 },
+		{ "kind": "diff", "a": 4.5, "b": 3, "expect": 1.5 }
+	],
+	"steps": [
+		{
+			"id": "carry",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Receber para esperar",
+					"body": "Quando os longs estão lotados, o [[funding-rate|funding]] é positivo e um short no perpétuo recebe. Um [[synthetic-forward|long sintético]] (call comprada e put vendida no mesmo strike e vencimento) tira o risco de preço. O [[carry|carrego]] é o funding recebido menos os custos: spreads e taxas das opções e do perpétuo. O hedge tira o risco de preço, não o de margem: na [[isolated-margin|margem isolada]], um aperto pode liquidar o short enquanto as opções ganham."
+				},
+				"en": {
+					"title": "Being paid to wait",
+					"body": "When longs are crowded, [[funding-rate|funding]] is positive and a short perpetual collects it. A [[synthetic-forward|synthetic long]] (a call bought and a put written at the same strike and expiry) removes the price risk. The [[carry|carry]] is the funding received minus the costs: the options’ and the perpetual’s spreads and fees. The hedge removes price risk, not margin risk: on [[isolated-margin|isolated margin]], a squeeze can liquidate the short while the options gain."
+				}
+			}
+		},
+		{
+			"id": "numbers",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "F",
+				"columns": [{ "id": "item" }, { "id": "value", "digits": 2 }],
+				"rows": [["notional", 2000], ["rate", 0.03], ["interval", 0.6], ["day", 1.8], ["costs", 3]]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "As contas do carrego",
+					"body": "Um short de nocional 2.000 com funding de +0,03% por intervalo recebe 0,60 por intervalo; com 3 intervalos por dia, 1,80 por dia. Se montar e desmontar a estrutura custa 3, são precisos 5 intervalos de funding só para empatar.",
+					"columns": ["Item", "Valor"],
+					"cells": {
+						"notional": "nocional do short",
+						"rate": "funding por intervalo (%)",
+						"interval": "recebido por intervalo",
+						"day": "recebido por dia",
+						"costs": "custos das pernas"
+					}
+				},
+				"en": {
+					"title": "The carry’s numbers",
+					"body": "A short with 2,000 notional and funding of +0.03% per interval receives 0.60 per interval; with 3 intervals a day, 1.80 a day. If opening and closing the structure costs 3, it takes 5 funding intervals just to break even.",
+					"columns": ["Item", "Value"],
+					"cells": {
+						"notional": "short notional",
+						"rate": "funding per interval (%)",
+						"interval": "received per interval",
+						"day": "received per day",
+						"costs": "the legs’ costs"
+					}
+				}
+			}
+		},
+		{
+			"id": "breakeven",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 5, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o empate do carrego",
+					"body": "Custos de 3 e funding de 0,60 por intervalo. Quantos intervalos com esse funding pagam os custos?",
+					"right": "3 / 0,60 = 5 intervalos. Se o funding cair ou virar antes disso, o carrego perde mesmo com o preço protegido.",
+					"wrong": "Divida os custos pelo funding recebido em um intervalo."
+				},
+				"en": {
+					"title": "Decision: the carry’s break-even",
+					"body": "Costs of 3 and funding of 0.60 per interval. How many intervals at that funding pay the costs?",
+					"right": "3 / 0.60 = 5 intervals. If funding falls or turns before that, the carry loses even with the price hedged.",
+					"wrong": "Divide the costs by the funding received in one interval."
+				}
+			}
+		},
+		{
+			"id": "turns",
+			"phase": "decision",
+			"question": { "choices": [{ "kind": "text", "id": "negative" }, { "kind": "text", "id": "rises" }, { "kind": "text", "id": "never" }], "answer": 0 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: quando o carrego vira",
+					"body": "Quando um carrego com short no perpétuo se volta contra quem carrega?",
+					"right": "Quando o funding fica negativo: os shorts passam a pagar. Também quando os custos passam do funding que falta e quando a alavancagem do short é alta demais para um aperto.",
+					"wrong": "O hedge cuida do preço; pense no que o short recebe — ou paga — a cada intervalo.",
+					"choices": {
+						"negative": "Quando o funding fica negativo",
+						"rises": "Quando o preço sobe, mesmo com o hedge",
+						"never": "Nunca: com o hedge o resultado é fixo"
+					},
+					"feedback": {
+						"rises": "Com o long sintético, a alta que o short perde as opções ganham — salvo se a margem do short acabar antes.",
+						"never": "O funding muda a cada intervalo; nada nele é fixo."
+					}
+				},
+				"en": {
+					"title": "Decision: when the carry turns",
+					"body": "When does a short-perpetual carry turn against the holder?",
+					"right": "When funding turns negative: shorts start paying. Also when costs exceed the funding left, and when the short’s leverage is too high for a squeeze.",
+					"wrong": "The hedge takes care of price; think about what the short receives — or pays — each interval.",
+					"choices": {
+						"negative": "When funding turns negative",
+						"rises": "When the price rises, even with the hedge",
+						"never": "Never: with the hedge the result is locked in"
+					},
+					"feedback": {
+						"rises": "With the synthetic long, what the short loses on a rise the options gain — unless the short’s margin runs out first.",
+						"never": "Funding changes every interval; nothing about it is locked in."
+					}
+				}
+			}
+		},
+		{
+			"id": "parity",
+			"phase": "transfer",
+			"widget": {
+				"kind": "table",
+				"market": "P",
+				"columns": [{ "id": "item" }, { "id": "value", "digits": 2 }],
+				"rows": [["forward", 103], ["strike", 100], ["call", 4.5]]
+			},
+			"question": { "type": "number", "answer": 1.5, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: a paridade",
+					"body": "Mercado P: forward 103, strike 100, call a 4,50, juro zero. Pela [[put-call-parity|paridade put-call]], quanto vale a put do mesmo strike e vencimento?",
+					"right": "Call − put = forward − strike = 3, então put = 4,50 − 3 = 1,50. Por isso call comprada e put vendida se comportam como um long no forward.",
+					"wrong": "Call − put = forward − strike. Calcule a diferença e tire da call.",
+					"columns": ["Item", "Valor"],
+					"cells": { "forward": "forward", "strike": "strike", "call": "call" }
+				},
+				"en": {
+					"title": "Transfer: parity",
+					"body": "Market P: forward 103, strike 100, a call at 4.50, zero rate. By [[put-call-parity|put-call parity]], what is the put of the same strike and expiry worth?",
+					"right": "Call − put = forward − strike = 3, so put = 4.50 − 3 = 1.50. That is why a call bought and a put written behave like a long forward.",
+					"wrong": "Call − put = forward − strike. Work out the gap and take it from the call.",
+					"columns": ["Item", "Value"],
+					"cells": { "forward": "forward", "strike": "strike", "call": "call" }
+				}
+			}
+		}
+	]
+}

@@ -1,0 +1,143 @@
+{
+	"id": "mind-biases",
+	"stage": "psychology",
+	"checks": [
+		{ "kind": "size", "equity": 10000, "riskPct": 1, "entry": 112, "stop": 104, "expect": 12.5 },
+		{ "kind": "risk", "entry": 100, "stop": 85, "qty": 10, "expect": 150 },
+		{ "kind": "risk", "entry": 90, "stop": 85, "qty": 10, "expect": 50 },
+		{ "kind": "product", "a": 10, "b": 20, "expect": 200 }
+	],
+	"steps": [
+		{
+			"id": "rules",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Três regras para depois do resultado",
+					"body": "Depois de um stop, faça uma [[cooldown|pausa]]: espere o setup se formar de novo e entre com o tamanho normal — a [[revenge-trading|vingança]] aumenta o tamanho logo depois da perda. Planeje antes do movimento, não durante: entrar longe da estrutura pede um stop longe ou um tamanho minúsculo ([[fomo|FOMO]]). E aumente uma posição perdedora só se isso estava no plano da entrada, com o risco total até a mesma invalidação ([[averaging-down|preço médio para baixo]])."
+				},
+				"en": {
+					"title": "Three rules for after the result",
+					"body": "After a stop, take a [[cooldown|cooldown]]: wait for the setup to form again and enter at normal size — [[revenge-trading|revenge]] raises the size right after the loss. Plan before the move, not during it: entering far from structure needs a far stop or a tiny size ([[fomo|FOMO]]). And add to a losing position only if it was in the entry’s plan, with the total risk to the same invalidation ([[averaging-down|averaging down]])."
+				}
+			}
+		},
+		{
+			"id": "journal",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "B",
+				"columns": [{ "id": "trade" }, { "id": "r", "digits": 0, "suffix": "R" }, { "id": "note" }],
+				"rows": [[1, -1, "planned"], [2, -1, "planned"], [3, -2, "doubled"], [4, 1, "waited"]]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Um diário depois de dois stops",
+					"body": "Dois stops de 1R seguiram o plano. O terceiro trade veio logo depois, com o dobro do tamanho e sem plano, e perdeu 2R: a queda foi de 4R, quando três trades normais teriam perdido 3R. O quarto esperou o setup e voltou ao tamanho normal.",
+					"columns": ["Trade", "Resultado", "Anotação"],
+					"cells": {
+						"planned": "plano escrito, stop, risco de 1%",
+						"doubled": "na barra seguinte ao stop, tamanho dobrado, sem plano",
+						"waited": "esperou 5 barras e um setup novo, tamanho normal"
+					}
+				},
+				"en": {
+					"title": "A journal after two stops",
+					"body": "Two 1R stops followed the plan. The third trade came right after, at twice the size and with no plan, and lost 2R: the drawdown was 4R, where three normal trades would have lost 3R. The fourth waited for the setup and came back at normal size.",
+					"columns": ["Trade", "Result", "Note"],
+					"cells": {
+						"planned": "written plan, stop, 1% risk",
+						"doubled": "the bar after the stop, twice the size, no plan",
+						"waited": "waited 5 bars and a new setup, normal size"
+					}
+				}
+			}
+		},
+		{
+			"id": "chase",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 12.5, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o tamanho de uma entrada atrasada",
+					"body": "O preço disparou. Uma entrada agora em 112 tem a invalidação em 104, e o seu orçamento de risco é 1% de 10.000. Qual é a maior quantidade?",
+					"right": "100 / 8 = 12,5. Entrar no rompimento, perto da estrutura, deixaria o stop mais perto e o tamanho maior para o mesmo risco.",
+					"wrong": "Quantidade = orçamento de risco / distância até a invalidação."
+				},
+				"en": {
+					"title": "Decision: the size of a late entry",
+					"body": "The price has run. An entry now at 112 has its invalidation at 104, and your risk budget is 1% of 10,000. What is the largest quantity?",
+					"right": "100 / 8 = 12.5. Entering on the break, near the structure, would keep the stop closer and the size larger for the same risk.",
+					"wrong": "Quantity = risk budget / distance to the invalidation."
+				}
+			}
+		},
+		{
+			"id": "average",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 200, "tolerance": 0.001, "unit": "cr" },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o custo de aumentar no prejuízo",
+					"body": "Long de 10 a 100 com stop em 85. O preço cai a 90 e você compra mais 10, com o mesmo stop. Qual é a perda se o stop executar, antes dos custos?",
+					"right": "10 × 15 + 10 × 5 = 200, contra 150 da entrada única. Se o aumento não estava no plano, o risco passou do orçamento.",
+					"wrong": "Some a perda de cada entrada até o stop: (entrada − stop) × quantidade."
+				},
+				"en": {
+					"title": "Decision: the cost of adding to a loser",
+					"body": "Long 10 at 100 with the stop at 85. The price falls to 90 and you buy 10 more, same stop. What is the loss if the stop fills, before costs?",
+					"right": "10 × 15 + 10 × 5 = 200, against 150 for the single entry. If the add was not in the plan, the risk went past the budget.",
+					"wrong": "Add each entry’s loss to the stop: (entry − stop) × quantity."
+				}
+			}
+		},
+		{
+			"id": "which",
+			"phase": "transfer",
+			"widget": {
+				"kind": "table",
+				"market": "W",
+				"columns": [{ "id": "trade" }, { "id": "note" }],
+				"rows": [[1, "plannedAdd"], [2, "unplannedAdd"], [3, "trend"]]
+			},
+			"question": { "choices": [{ "kind": "text", "id": "t1" }, { "kind": "text", "id": "t2" }, { "kind": "text", "id": "t3" }], "answer": 1 },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: qual aumento foge do plano",
+					"body": "Mercado W, outro diário. Qual aumento foi preço médio para baixo fora do plano?",
+					"right": "O trade 2: aumentou no prejuízo sem estar no plano, e o risco até o stop passou do orçamento. O trade 1 também aumentou no prejuízo, mas como estava escrito na entrada.",
+					"wrong": "O problema não é aumentar: é aumentar no prejuízo além do risco que o plano previa.",
+					"choices": { "t1": "Trade 1", "t2": "Trade 2", "t3": "Trade 3" },
+					"columns": ["Trade", "Anotação"],
+					"cells": {
+						"plannedAdd": "plano: metade agora, metade 1 ATR abaixo, risco total de 1% até o mesmo stop",
+						"unplannedAdd": "o preço caiu, comprei o dobro para baixar o preço médio, tirei o stop",
+						"trend": "aumentei com o preço a favor e subi o stop"
+					},
+					"feedback": {
+						"t1": "Aumentou no prejuízo, mas era o plano da entrada, com o risco total limitado: coerente.",
+						"t3": "Aumentar a favor, subindo o stop, não é preço médio para baixo."
+					}
+				},
+				"en": {
+					"title": "Transfer: which add leaves the plan",
+					"body": "Market W, another journal. Which add was averaging down outside the plan?",
+					"right": "Trade 2: it added to a loser without a plan, and the risk to the stop went past the budget. Trade 1 also added to a loser, but as written at entry.",
+					"wrong": "Adding is not the problem: adding to a loser beyond the risk the plan allowed is.",
+					"choices": { "t1": "Trade 1", "t2": "Trade 2", "t3": "Trade 3" },
+					"columns": ["Trade", "Note"],
+					"cells": {
+						"plannedAdd": "plan: half now, half 1 ATR lower, 1% total risk to the same stop",
+						"unplannedAdd": "the price fell, I bought twice as much to lower my average, removed the stop",
+						"trend": "added with the price in my favour and raised the stop"
+					},
+					"feedback": {
+						"t1": "It added to a loser, but that was the entry’s plan, with the total risk capped: consistent.",
+						"t3": "Adding in your favour while raising the stop is not averaging down."
+					}
+				}
+			}
+		}
+	]
+}

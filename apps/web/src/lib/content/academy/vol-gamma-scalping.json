@@ -1,0 +1,137 @@
+{
+	"id": "vol-gamma-scalping",
+	"stage": "advanced",
+	"checks": [
+		{ "kind": "scalp", "gamma": 0.04, "move": 3, "units": 50, "expect": 9 },
+		{ "kind": "product", "a": 9, "b": 2, "expect": 18 },
+		{ "kind": "hedge", "deltaPerUnit": 0.04, "units": 150, "expect": 6 },
+		{ "kind": "hedge", "deltaPerUnit": 0.2, "units": 50, "expect": 10 },
+		{ "kind": "hedge", "deltaPerUnit": -0.3, "units": 40, "expect": 12 }
+	],
+	"steps": [
+		{
+			"id": "long-gamma",
+			"phase": "concept",
+			"text": {
+				"pt-BR": {
+					"title": "Comprar o movimento, não a direção",
+					"body": "Um [[straddle|straddle]] comprado no dinheiro tem [[gamma|gama]] positivo: o delta sobe quando o preço sobe e cai quando ele cai. Neutralizando o delta com o perpétuo ([[delta-neutral|delta neutro]]), cada [[rehedge|rebalanceamento]] vende depois de uma alta e compra depois de uma queda. O [[theta|theta]] é o aluguel desse gama: a estratégia ganha quando o mercado se mexe mais do que a [[implied-volatility|volatilidade implícita]] cobrava, e perde quando se mexe menos."
+				},
+				"en": {
+					"title": "Buying the movement, not the direction",
+					"body": "An at-the-money [[straddle|straddle]] bought has positive [[gamma|gamma]]: its delta rises when the price rises and falls when it falls. Neutralizing the delta with the perpetual ([[delta-neutral|delta neutral]]), each [[rehedge|rehedge]] sells after a rise and buys after a fall. [[theta|Theta]] is the rent for that gamma: the strategy earns when the market moves more than the [[implied-volatility|implied volatility]] priced in, and loses when it moves less."
+				}
+			}
+		},
+		{
+			"id": "path",
+			"phase": "demo",
+			"widget": {
+				"kind": "table",
+				"market": "G",
+				"columns": [{ "id": "bar" }, { "id": "price", "digits": 0 }, { "id": "delta", "digits": 0 }, { "id": "hedge", "digits": 0 }],
+				"rows": [[1, 100, 0, 0], [2, 103, 6, -6], [3, 100, 0, 0]]
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Um vaivém, rebalanceado",
+					"body": "Um straddle em 50 unidades, gama de 0,04 por unidade. O preço vai a 103: o delta passa a +6 (0,04 × 3 × 50) e o hedge vende 6. O preço volta a 100: o hedge recompra 6 mais barato. Cada movimento de 3 rende cerca de ½ × 0,04 × 3² × 50 = 9 antes do theta; os dois, 18.",
+					"columns": ["Barra", "Preço", "Delta", "Hedge"]
+				},
+				"en": {
+					"title": "A back-and-forth, rehedged",
+					"body": "A straddle on 50 units, gamma 0.04 per unit. The price goes to 103: the delta becomes +6 (0.04 × 3 × 50) and the hedge sells 6. The price returns to 100: the hedge buys the 6 back cheaper. Each 3-point move earns about ½ × 0.04 × 3² × 50 = 9 before theta; the two, 18.",
+					"columns": ["Bar", "Price", "Delta", "Hedge"]
+				}
+			}
+		},
+		{
+			"id": "hedge-units",
+			"phase": "decision",
+			"question": { "type": "number", "answer": 10, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: quanto vender",
+					"body": "Um straddle tem delta de +0,20 por unidade, em 50 unidades. Quantas unidades do perpétuo vender para ficar neutro em delta?",
+					"right": "0,20 × 50 = 10 unidades vendidas: o delta total volta a 0. Arredonde para o lote em direção a zero, para não inverter o delta.",
+					"wrong": "Multiplique o delta por unidade pelo número de unidades: é o delta da carteira, e o hedge é o oposto."
+				},
+				"en": {
+					"title": "Decision: how much to sell",
+					"body": "A straddle has a delta of +0.20 per unit on 50 units. How many perpetual units to sell to be delta neutral?",
+					"right": "0.20 × 50 = 10 units sold: the total delta is back to 0. Round to the lot toward zero, so the delta never flips.",
+					"wrong": "Multiply the delta per unit by the number of units: that is the book’s delta, and the hedge is its opposite."
+				}
+			}
+		},
+		{
+			"id": "what-pays",
+			"phase": "decision",
+			"question": {
+				"choices": [{ "kind": "text", "id": "realized" }, { "kind": "text", "id": "ivDrop" }, { "kind": "text", "id": "funding" }],
+				"answer": 0
+			},
+			"text": {
+				"pt-BR": {
+					"title": "Decisão: o que paga o theta",
+					"body": "Num straddle comprado e neutralizado em delta, o que paga o theta que você perde a cada barra?",
+					"right": "Movimentos realizados maiores que a volatilidade implícita cobrada: o rebalanceamento os transforma em ganho. Num mercado parado, o theta vence.",
+					"wrong": "O hedge tira a direção; sobra o tamanho dos movimentos contra o preço pago por eles.",
+					"choices": {
+						"realized": "Movimentos realizados maiores que a volatilidade implícita",
+						"ivDrop": "A queda da volatilidade implícita",
+						"funding": "O funding do perpétuo"
+					},
+					"feedback": {
+						"ivDrop": "A queda da IV prejudica quem comprou opções: o vega é positivo.",
+						"funding": "O funding do hedge pode ajudar ou atrapalhar, mas não é o que a estratégia compra."
+					}
+				},
+				"en": {
+					"title": "Decision: what pays the theta",
+					"body": "In a delta-hedged long straddle, what pays for the theta you lose every bar?",
+					"right": "Realized moves larger than the implied volatility priced in: rehedging turns them into gains. In a still market, theta wins.",
+					"wrong": "The hedge removes the direction; what is left is the size of the moves against the price paid for them.",
+					"choices": {
+						"realized": "Realized moves larger than the implied volatility",
+						"ivDrop": "Implied volatility falling",
+						"funding": "The perpetual’s funding"
+					},
+					"feedback": {
+						"ivDrop": "Falling IV hurts an option buyer: vega is positive.",
+						"funding": "The hedge’s funding can help or hurt, but it is not what the strategy buys."
+					}
+				}
+			}
+		},
+		{
+			"id": "short-delta",
+			"phase": "transfer",
+			"widget": {
+				"kind": "table",
+				"market": "H",
+				"columns": [{ "id": "item" }, { "id": "value", "digits": 2 }],
+				"rows": [["delta", -0.3], ["units", 40]]
+			},
+			"question": { "type": "number", "answer": 12, "tolerance": 0.001 },
+			"text": {
+				"pt-BR": {
+					"title": "Transferência: o hedge do outro lado",
+					"body": "Mercado H. O preço caiu e o straddle está com delta de −0,30 por unidade, em 40 unidades. Quantas unidades do perpétuo comprar para voltar ao neutro?",
+					"right": "−0,30 × 40 = −12: comprar 12 unidades. Depois de uma queda o hedge compra; depois de uma alta, vende.",
+					"wrong": "Agora o delta é negativo: o hedge compra o número de unidades que zera o delta.",
+					"columns": ["Item", "Valor"],
+					"cells": { "delta": "delta por unidade", "units": "unidades do straddle" }
+				},
+				"en": {
+					"title": "Transfer: the hedge on the other side",
+					"body": "Market H. The price fell and the straddle has a delta of −0.30 per unit on 40 units. How many perpetual units to buy to be neutral again?",
+					"right": "−0.30 × 40 = −12: buy 12 units. After a fall the hedge buys; after a rise, it sells.",
+					"wrong": "The delta is negative now: the hedge buys the number of units that zeroes it.",
+					"columns": ["Item", "Value"],
+					"cells": { "delta": "delta per unit", "units": "straddle units" }
+				}
+			}
+		}
+	]
+}
