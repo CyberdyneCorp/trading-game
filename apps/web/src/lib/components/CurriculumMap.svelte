@@ -19,6 +19,9 @@
 	const summary = $derived(curriculumSummary(assessed, lessonsDone));
 	const best = $derived(bestCompletedCapital(session.progress.campaignHistory));
 	const unlockText = (u: Unlock) => t(`unlock.${u}`, { cap: LOCKED_LEVERAGE_CAP });
+	// The path's stages are numbered in order; a branch beside it is marked ↳ instead.
+	const PATH = STAGES.filter((st) => !st.branch).map((st) => st.id);
+	const pathIndex = (id: string) => PATH.indexOf(id as (typeof PATH)[number]) + 1;
 	const missionsText = (ids: string[]) =>
 		ids.map((m) => `${assessed.includes(m) ? '✓ ' : ''}${missionText(m, L).title}`).join(', ');
 </script>
@@ -43,11 +46,11 @@
 	</section>
 
 	<ol class="stages">
-		{#each STAGES as st, i (st.id)}
+		{#each STAGES as st (st.id)}
 			{@const status = stageStatus(st.id, assessed, lessonsDone)}
 			<li class="panel stage {status}" class:branch={st.branch} data-testid="stage" data-stage={st.id} data-status={status} data-branch={st.branch ? 'true' : undefined}>
 				<div class="head">
-					<span class="idx" aria-hidden={st.branch ? 'true' : undefined}>{st.branch ? '↳' : i + 1}</span>
+					<span class="idx" aria-hidden={st.branch ? 'true' : undefined}>{st.branch ? '↳' : pathIndex(st.id)}</span>
 					<strong>{t(`stage.${st.id}`)}</strong>
 					<span class="tag status">{t(`curriculum.status.${status}`)}</span>
 					{#if st.campaign === false}<span class="tag info" data-testid="stage-elective">{t('curriculum.elective')}</span>{/if}

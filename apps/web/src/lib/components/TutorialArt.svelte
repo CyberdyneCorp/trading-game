@@ -156,7 +156,7 @@
 		<!-- A trailing stop ratchets up behind the best close, one bar late, and never moves down. -->
 		{@render candles(TREND, 14, 18)}
 		<path class="trail" d="M8,{y(10)} H32 V{y(18)} H50 V{y(28)} H86 V{y(34)} H104 V{y(45)} H140 V{y(56)} H156" />
-		<text x="150" y={y(62)} class="small attention" text-anchor="end">TRAIL</text>
+		<text x="12" y="14" class="small attention">TRAIL</text>
 	{:else if art === 'regime'}
 		<!-- The same chart in two regimes: a range (fade the edges), then a trend (follow); ADX turns late. -->
 		{@render candles(RANGE.slice(0, 4), 12, 11)}
@@ -175,7 +175,7 @@
 		<circle class="be" cx="123" cy="56" r="3" />
 		<text x="37" y="50" class="small info" text-anchor="middle">BE</text>
 		<text x="123" y="50" class="small info" text-anchor="middle">BE</text>
-		<text x="84" y="94" class="small muted">strike</text>
+		<text x="76" y="94" class="small muted" text-anchor="end">strike</text>
 		<text x="84" y="76" class="small down-fill">−{t('tut.art.premium')}</text>
 		<text x="150" y="98" class="small muted" text-anchor="end">{t('tut.art.breakeven')}</text>
 	{:else if art === 'report'}
@@ -262,9 +262,9 @@
 	{:else if art === 'parity'}
 		<!-- A bought call (dashed) and a written put (dashed) at one strike add up to a straight long line. -->
 		<line class="axis" x1="8" x2="152" y1="56" y2="56" />
-		<path class="strike" d="M8,56 L80,56 L152,14" />
+		<path class="strike" d="M8,56 L80,56 L152,20" />
 		<path class="strike" d="M8,92 L80,56 L152,56" />
-		<path class="payoff" d="M8,92 L152,14" />
+		<path class="payoff" d="M8,92 L152,20" />
 		<line class="muted-line" x1="80" x2="80" y1="60" y2="96" />
 		<text x="12" y="16" class="small attention">C − P = F − K</text>
 		<text x="86" y="96" class="small muted">K</text>
@@ -274,7 +274,7 @@
 		<path class="payoff" d="M8,70 L50,62 L80,42 L102,24 L106,70 L152,74" />
 		<line class="muted-line" x1="105" x2="105" y1="8" y2="88" />
 		<text x="12" y="16" class="small attention">IV</text>
-		<text x="110" y="16" class="small muted">{t('tut.art.release')}</text>
+		<text x="100" y="16" class="small muted" text-anchor="end">{t('tut.art.release')}</text>
 	{:else if art === 'calendarSpread'}
 		<!-- Two expiries: the near option (sold) loses time value faster than the far one (bought). -->
 		<line class="axis" x1="8" x2="152" y1="88" y2="88" />

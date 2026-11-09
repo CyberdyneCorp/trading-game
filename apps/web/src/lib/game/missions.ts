@@ -400,17 +400,17 @@ texts['m22-scale-manage'] = {
 texts['m23-second-chance'] = {
 	'pt-BR': {
 		title: 'Missão 23 · Recomeço',
-		tagline: 'Um mercado em range que acorda. Cada trade é uma decisão nova.',
+		tagline: 'Um mercado em range. Cada trade é uma decisão nova.',
 		topic: 'Psicologia · disciplina depois de um stop',
 		reveal:
-			'Este cenário foi desenhado como um RECOMEÇO: um rompimento limpo no começo falhou rápido e parou muitos stops; depois veio um trecho picotado, e só mais tarde um movimento de verdade, de direção sorteada. Esperar pelo menos 3 barras depois do stop e voltar só no próximo sinal, com o tamanho normal, perdeu menos que voltar na hora com o dobro do tamanho em pelo menos 7 de cada 10 partidas. Os vieses que o seu registro mostra estão acima, com as barras em que aconteceram.'
+			'Este cenário foi desenhado como um RECOMEÇO: um rompimento limpo no começo falhou rápido e parou muitos stops; depois veio um trecho picotado, e só mais tarde um movimento de verdade, de direção sorteada. Esperar pelo menos 3 barras depois do stop e voltar só no próximo sinal, com o tamanho normal, perdeu menos que voltar na hora com o dobro do tamanho em pelo menos 7 de cada 10 partidas. Os vieses que o seu registro mostra estão em “O que aconteceu”, com as barras em que aconteceram.'
 	},
 	en: {
 		title: 'Mission 23 · Restart',
-		tagline: 'A ranging market wakes up. Every trade is a new decision.',
+		tagline: 'A ranging market. Every trade is a new decision.',
 		topic: 'Psychology · discipline after a stop',
 		reveal:
-			'This scenario was designed as a RESTART: an early clean-looking breakout failed fast and stopped many players out; choppy trading followed, and only later a real move of drawn direction. Waiting at least 3 bars after the stop and coming back only on the next signal, at normal size, lost less than coming back at once at twice the size in at least 7 runs in 10. The biases your log shows are listed above, with the bars they happened on.'
+			'This scenario was designed as a RESTART: an early clean-looking breakout failed fast and stopped many players out; choppy trading followed, and only later a real move of drawn direction. Waiting at least 3 bars after the stop and coming back only on the next signal, at normal size, lost less than coming back at once at twice the size in at least 7 runs in 10. The biases your log shows are under “What happened”, with the bars they happened on.'
 	}
 };
 
@@ -420,14 +420,14 @@ texts['m24-fast-market'] = {
 		tagline: 'Um mercado quieto. Até que deixa de ser.',
 		topic: 'Psicologia · planejar antes do movimento, não durante',
 		reveal:
-			'Este cenário foi desenhado como uma DISPARADA: depois de um range quieto, uma alta íngreme com volume pesado e funding extremo, que nenhuma notícia sustentava. Na maioria das partidas ela devolveu a alta; em algumas continuou. Entrar no rompimento do range com o stop abaixo dele rendeu mais R que perseguir o preço depois de 4 altas seguidas, longe da média, em cerca de 2 de cada 3 partidas — e a perseguição ainda ganhou em parte delas: correr atrás nem sempre está errado, só custa mais caro quando está. Os vieses que o seu registro mostra estão acima.'
+			'Este cenário foi desenhado como uma DISPARADA: depois de um range quieto, uma alta íngreme com volume pesado e funding extremo, que nenhuma notícia sustentava. Na maioria das partidas ela devolveu a alta; em algumas continuou. Entrar no rompimento do range com o stop abaixo dele rendeu mais R que perseguir o preço depois de 4 altas seguidas, longe da média, em cerca de 2 de cada 3 partidas — e a perseguição ainda ganhou em parte delas: correr atrás nem sempre está errado, só custa mais caro quando está. Os vieses que o seu registro mostra estão em “O que aconteceu”.'
 	},
 	en: {
 		title: 'Mission 24 · Rally',
 		tagline: 'A quiet market. Until it is not.',
 		topic: 'Psychology · plan before the move, not during it',
 		reveal:
-			'This scenario was designed as a RALLY: after a quiet range, a steep climb on heavy volume and extreme funding that no headline supported. In most runs it gave the gains back; in some it kept going. Entering on the range break with the stop below it earned more R than chasing the price after 4 rising closes far from the average in about 2 runs in 3 — and the chase still won in some of them: chasing is not always wrong, it just costs more when it is. The biases your log shows are listed above.'
+			'This scenario was designed as a RALLY: after a quiet range, a steep climb on heavy volume and extreme funding that no headline supported. In most runs it gave the gains back; in some it kept going. Entering on the range break with the stop below it earned more R than chasing the price after 4 rising closes far from the average in about 2 runs in 3 — and the chase still won in some of them: chasing is not always wrong, it just costs more when it is. The biases your log shows are under “What happened”.'
 	}
 };
 
@@ -437,14 +437,14 @@ texts['m25-the-dip'] = {
 		tagline: 'Uma tendência com sustos no caminho. O que você faz no próximo?',
 		topic: 'Psicologia · aumentar uma posição perdedora só com plano',
 		reveal:
-			'Este cenário foi desenhado como uma QUEDA: uma tendência de alta com quedas bruscas no caminho, que se recuperavam — até que, em cerca de 3 de cada 10 partidas, uma não se recuperou. Uma entrada única com stop planejado igualou ou superou o preço médio para baixo até o mesmo stop na maioria das partidas; o preço médio ganhou em algumas (a armadilha funciona às vezes), mas sua pior partida foi pelo menos o dobro da pior da entrada única. Os vieses que o seu registro mostra estão acima.'
+			'Este cenário foi desenhado como uma QUEDA: uma tendência de alta com quedas bruscas no caminho, que se recuperavam — até que, em cerca de 3 de cada 10 partidas, uma não se recuperou. Uma entrada única com stop planejado igualou ou superou o preço médio para baixo até o mesmo stop na maioria das partidas; o preço médio ganhou em algumas (a armadilha funciona às vezes), mas sua pior partida foi pelo menos o dobro da pior da entrada única. Os vieses que o seu registro mostra estão em “O que aconteceu”.'
 	},
 	en: {
 		title: 'Mission 25 · Dip',
 		tagline: 'A trend with scares along the way. What do you do at the next one?',
 		topic: 'Psychology · adding to a loser only with a plan',
 		reveal:
-			'This scenario was designed as a DIP: an uptrend with sharp drops along the way that recovered — until, in about 3 runs in 10, one did not. A single entry with a planned stop matched or beat averaging down to the same stop in most runs; averaging down won in some (the trap works sometimes), but its worst run was at least twice as bad as the single entry’s worst. The biases your log shows are listed above.'
+			'This scenario was designed as a DIP: an uptrend with sharp drops along the way that recovered — until, in about 3 runs in 10, one did not. A single entry with a planned stop matched or beat averaging down to the same stop in most runs; averaging down won in some (the trap works sometimes), but its worst run was at least twice as bad as the single entry’s worst. The biases your log shows are under “What happened”.'
 	}
 };
 
