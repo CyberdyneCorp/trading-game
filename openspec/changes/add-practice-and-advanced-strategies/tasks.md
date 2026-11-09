@@ -237,7 +237,7 @@ Suggested PRs, in order:
 
 ### W3-E. Engine
 
-- [ ] W3-E1 Coach review (design D17), needs W2-E3:
+- [x] W3-E1 Coach review (design D17), needs W2-E3:
   - `tl_coach_review(run)` (refused while active), `CoachMomentCode` in the IDL, Python `Run.coach_review`, worker `coach`;
   - replay of the log on a fresh state with rules at each step from the state of that step only;
   - at most 9 warn and 3 good moments.
@@ -249,7 +249,7 @@ Suggested PRs, in order:
 
   A new fixture kind `coach` (two fixtures, listed in `index.json`, replayed by native, WASM, Python and the desktop); the engine README fixture table.
 
-  Status: done on the engine, WASM and Python; open only for the desktop's golden reader (W3-D1), which still refuses the kind `coach`.
+  Status: done on the engine, WASM, Python and the desktop's golden reader (W3-D1).
 - [x] W3-E2 Round markets `r01-trend`, `r02-range`, `r03-breakout`, `r04-event` (design D19): existing capabilities, `"practice": "round"` in `tl_missions`, one golden each, realism bands pooled with the missions; menus and the daily pool skip them (a test).
 
 ### W3-W. Web
@@ -283,10 +283,12 @@ Suggested PRs, in order:
 
 ### W3-D. Desktop
 
-- [ ] W3-D1 Engine adapter: `tl_coach_review`, the round markets and the `coach` fixtures.
-- [ ] W3-D2 Drills, Daily challenge and Guess screens, with ports of `drills`, `daily` and `guessRound` checked by web parity fixtures; keyboard and screen reader; headless flows.
-- [ ] W3-D3 Coach overlay on the debrief and mistake replay (assisted link `mistake`, banner, comparison); headless flows.
+- [x] W3-D1 Engine adapter: `tl_coach_review`, the round markets and the `coach` fixtures.
+- [x] W3-D2 Drills, Daily challenge and Guess screens, with ports of `drills`, `daily` and `guessRound` checked by web parity fixtures; keyboard and screen reader; headless flows.
+- [x] W3-D3 Coach overlay on the debrief and mistake replay (assisted link `mistake`, banner, comparison); headless flows.
 - [ ] W3-D4 Windowed captures on macOS and Linux; the playtest extended to the practice formats; desktop README.
+
+  Status: macOS references (drills-wrong, guess-commit, review-moment, the menu with its practice row), the playtest (`playtest practice*`) and the desktop README are done; open until the Linux (lavapipe) job compares the references, as W2-D4.
 
 ### W3-X. Playtest and cross-check
 

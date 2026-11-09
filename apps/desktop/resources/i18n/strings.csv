@@ -3733,6 +3733,8 @@ desktop.pack.missingFile,O arquivo deste pacote não está mais na pasta de dado
 desktop.debrief.chart,Gráfico da partida,Run chart
 desktop.debrief.chartNote,"Quadrados: entradas (azul) e saídas (amarelo) de cada trade, ligadas por uma linha verde (ganho) ou vermelha (perda).","Squares: each trade's entry (blue) and exit (yellow), joined by a green (gain) or red (loss) line."
 desktop.debrief.moments,Momentos no gráfico: escolha um para marcar a barra no gráfico da partida (▼).,Moments on the chart: pick one to mark its bar on the run chart (▼).
+desktop.debrief.retryPick,Aviso do debrief para tentar de novo a partir da barra dele:,Debrief warning to retry from its bar:
+desktop.review.chart,Gráfico da partida até a barra {step}; nada depois dela é desenhado.,The run's chart up to bar {step}; nothing after it is drawn.
 desktop.panel.chart,Gráfico,Chart
 desktop.panel.account,Conta,Account
 desktop.panel.book,Opções e ordens,Options and orders
