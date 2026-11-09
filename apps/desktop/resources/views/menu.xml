@@ -30,6 +30,14 @@
             <Button Name="menu-glossary" OnClicked="tl.glossary.open"/>
             <Button Name="menu-lab" OnClicked="tl.menu.lab"/>
         </WrapBox>
+        <!-- Practice formats (web MissionMenu.svelte practice-formats): drills, the daily challenge, guess rounds. -->
+        <WrapBox Spacing="8">
+            <Label Name="menu-practice-title" Class="muted" Slot.VAlign="Center"/>
+            <Button Name="menu-drills" OnClicked="tl.menu.drills"/>
+            <Button Name="menu-daily" OnClicked="tl.menu.daily"/>
+            <Button Name="menu-guess" OnClicked="tl.menu.guess"/>
+            <Label Name="menu-practice-note" Class="muted" Wrap="true" Slot.VAlign="Center"/>
+        </WrapBox>
         <!-- Spaced review (web ReviewPrompt.svelte): never blocks play; dismissed until tomorrow. -->
         <HBox Name="menu-review-row" Spacing="12">
             <Label Name="menu-review-text" Wrap="true" Class="attention" Slot.Fill="1" Slot.VAlign="Center"/>

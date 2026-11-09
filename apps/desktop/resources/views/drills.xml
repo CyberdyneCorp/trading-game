@@ -1,0 +1,56 @@
+<!-- Daily drills (web DrillScreen.svelte). Texts, lines and flags from screens::drills(); widget and
+     action names in practice_names.hpp. Six items with a soft two-minute clock (never failing; off in
+     the intro's switch), the worked explanation after a wrong answer, the end screen with each item's
+     lesson. -->
+<ScrollBox Name="drills-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="drills-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="drills-back" OnClicked="tl.shell.menu" Slot.VAlign="Center"/>
+        </HBox>
+        <Border Name="drills-intro-box" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <Label Name="drills-intro" Wrap="true"/>
+                <Checkbox Name="drills-timer" Style="Switch"/>
+                <Label Name="drills-review-note" Wrap="true" Class="muted"/>
+                <Button Name="drills-start" Style="Primary" OnClicked="tl.drills.start" Slot.HAlign="Left"/>
+            </VBox>
+        </Border>
+        <Border Name="drills-ask-box" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <HBox Spacing="12">
+                    <Label Name="drills-position" Class="muted" Wrap="true" Slot.Fill="1"/>
+                    <Label Name="drills-clock" Class="muted" AccessibleRole="Status"/>
+                </HBox>
+                <Label Name="drills-prompt" Wrap="true" TextSize="17"/>
+                <WrapBox Name="drills-choices" Spacing="8">
+                    <Button Name="drills-choice-0" OnClicked="tl.drills.choice0"/>
+                    <Button Name="drills-choice-1" OnClicked="tl.drills.choice1"/>
+                </WrapBox>
+                <HBox Name="drills-input-row" Spacing="8">
+                    <Label Name="drills-answer-label" Slot.VAlign="Center"/>
+                    <TextInput Name="drills-input" Width="160"/>
+                    <Button Name="drills-check" Style="Primary" OnClicked="tl.drills.check"/>
+                </HBox>
+                <VBox Name="drills-feedback" Spacing="2"/>
+                <Label Name="drills-explain" Wrap="true" Class="info"/>
+                <Button Name="drills-next" Style="Primary" OnClicked="tl.drills.next" Slot.HAlign="Left"/>
+            </VBox>
+        </Border>
+        <Border Name="drills-end-box" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <Label Name="drills-end-title" TextSize="25" Class="title" AccessibleRole="Heading"/>
+                <Label Name="drills-time-up" Wrap="true" Class="attention"/>
+                <Label Name="drills-first-try" Wrap="true"/>
+                <VBox Name="drills-results" Spacing="3"/>
+                <ListView Name="drills-lessons" Height="150"/>
+                <HBox Spacing="8">
+                    <Button Name="drills-lesson" OnClicked="tl.drills.lesson"/>
+                    <Button Name="drills-again" Style="Primary" OnClicked="tl.drills.start"/>
+                </HBox>
+            </VBox>
+        </Border>
+    </VBox>
+</Border>
+</ScrollBox>

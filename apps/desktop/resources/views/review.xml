@@ -1,0 +1,39 @@
+<!-- Coach review over the debrief (web CoachReview.svelte): the engine's moments of the finished run, one
+     at a time, each with the chart cut at its bar (nothing after it is drawn). Esc or Close returns to
+     the debrief; the last screen links the reveal. Texts from screens::coach_review(); the chart is
+     painted from AppViewModel::coach_review_scene(). -->
+<ScrollBox Name="review-scroll">
+<Border Background="#0B1010" Padding="16">
+    <VBox Spacing="10">
+        <HBox Spacing="12">
+            <Label Name="review-title" TextSize="50" Class="title" Slot.Fill="1" AccessibleRole="Heading"/>
+            <Button Name="review-close" OnClicked="tl.review.close" Slot.VAlign="Center"/>
+        </HBox>
+        <Label Name="review-intro" Wrap="true" Class="muted"/>
+        <Label Name="review-status" Wrap="true"/>
+        <Border Name="review-moment-box" Background="#121C1B" BorderColor="#24413A" BorderWidth="1" Padding="12">
+            <VBox Spacing="8">
+                <HBox Spacing="12">
+                    <Label Name="review-position" Wrap="true" Slot.Fill="1"/>
+                    <VBox Name="review-tone" Spacing="0"/>
+                </HBox>
+                <Custom Name="review-chart" Height="300" AccessibleRole="Image"/>
+                <Label Name="review-text" Wrap="true" TextSize="17"/>
+                <WrapBox Spacing="8">
+                    <Button Name="review-lesson" Style="Flat" OnClicked="tl.review.lesson"/>
+                    <Button Name="review-term" Style="Flat" OnClicked="tl.review.term"/>
+                </WrapBox>
+                <HBox Spacing="8">
+                    <Button Name="review-prev" OnClicked="tl.review.prev"/>
+                    <Button Name="review-retry" OnClicked="tl.review.retry"/>
+                    <Spacer Slot.Fill="1"/>
+                    <Button Name="review-next" Style="Primary" OnClicked="tl.review.next"/>
+                </HBox>
+            </VBox>
+        </Border>
+        <HBox Spacing="8">
+            <Button Name="review-reveal" Style="Primary" OnClicked="tl.review.reveal"/>
+        </HBox>
+    </VBox>
+</Border>
+</ScrollBox>

@@ -247,6 +247,8 @@ struct Settings {
   std::map<std::string, std::string> keymap;  // action -> key; empty = the web's defaults
   // The day the menu's review prompt was dismissed ("YYYY-MM-DD"; the web's tradelab.reviewDismissed.v1).
   std::string review_dismissed_on;
+  // Daily drills: the soft two-minute clock is shown (the web's settings.drillTimer); off = no clock.
+  bool drill_timer = true;
 };
 
 class SettingsRepository {

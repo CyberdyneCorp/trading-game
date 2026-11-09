@@ -24,6 +24,15 @@ ScreenModel game(const AppViewModel& vm);        // the terminal's shell parts: 
 ScreenModel academy(const AppViewModel& vm);     // Academy.svelte
 ScreenModel glossary(const AppViewModel& vm);    // Glossary.svelte + GlossaryList.svelte
 ScreenModel stats(const AppViewModel& vm);       // JournalStats.svelte (add-run-sharing-and-journal-stats D7)
+// Practice formats (screens/practice.cpp; add-practice-and-advanced-strategies D15-D19).
+ScreenModel drills(const AppViewModel& vm);        // DrillScreen.svelte
+ScreenModel daily(const AppViewModel& vm);         // DailyScreen.svelte
+ScreenModel guess(const AppViewModel& vm);         // GuessScreen.svelte
+ScreenModel coach_review(const AppViewModel& vm);  // CoachReview.svelte
+// Their parts of the menu, the debrief (coach button, daily tag, retry, mistake report) and the terminal.
+void practice_menu(const AppViewModel& vm, ScreenModel& m);
+void practice_debrief(const AppViewModel& vm, ScreenModel& m);
+void practice_game(const AppViewModel& vm, ScreenModel& m);
 
 // The runs the journal statistics count: own runs with a summary, never assisted, oldest first.
 std::vector<StatsRun> stats_runs(const Progress& p);

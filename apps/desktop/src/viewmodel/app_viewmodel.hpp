@@ -44,7 +44,12 @@ enum class Screen : std::uint8_t {
   Academy = 11,  // lessons by stage, status, retake, reviews due (add-academy-and-strategies D8)
   Glossary = 12,  // the glossary's search and terms (D6)
   Lab = 13,  // the Academy's options lab (web LabScreen.svelte; viewmodel/academy_lab.cpp)
-  Stats = 14  // journal statistics (web JournalStats.svelte; add-run-sharing-and-journal-stats D7)
+  Stats = 14,  // journal statistics (web JournalStats.svelte; add-run-sharing-and-journal-stats D7)
+  // Practice formats (add-practice-and-advanced-strategies D15-D19; viewmodel/practice_flow.cpp).
+  Drills = 15,       // DrillScreen.svelte
+  Daily = 16,        // DailyScreen.svelte
+  Guess = 17,        // GuessScreen.svelte
+  CoachReview = 18   // CoachReview.svelte: the coach's moments over the debrief (Esc returns to it)
 };
 
 // A run left unfinished in an earlier launch (the active run of the store), offered by the menu: a
@@ -260,6 +265,53 @@ class AppViewModel {
   void debrief_show_moment(int index);
   [[nodiscard]] std::optional<int> debrief_moment() const { return debrief_moment_; }
 
+  // ---- Practice formats (viewmodel/practice_flow.cpp; add-practice-and-advanced-strategies D15-D19) ----
+  [[nodiscard]] const PracticeState& practice() const { return shell_.practice; }
+  [[nodiscard]] const std::vector<MissionInfo>& round_markets() const { return rounds_; }
+  void open_drills();
+  void open_daily();
+  void open_guess();
+  // Once per frame: the drills' soft two-minute clock (shown, never failing: time up ends the session).
+  void tick_practice();
+  // Daily drills (DrillScreen.svelte).
+  void drills_set_timer(bool on);
+  void drills_start();
+  void drills_choose(int choice);
+  void drills_set_typed(std::string text);
+  void drills_check();
+  void drills_next();
+  [[nodiscard]] int drills_seconds_left() const;
+  void drills_pick_lesson(int index);
+  void drills_open_lesson();  // the end screen's picked item's lesson
+  // Daily challenge (DailyScreen.svelte): today's mission and seed by the local date.
+  [[nodiscard]] practice::DailyLink daily_today() const;
+  void daily_play();
+  [[nodiscard]] const std::optional<practice::DailyLink>& run_daily() const { return shell_.practice.run_daily; }
+  // Guess rounds (GuessScreen.svelte): a round market in a run of its own, the run in play untouched.
+  void guess_start();
+  void guess_set_decision(int index);  // 0 long, 1 short, 2 no trade
+  void guess_set_p(int index);         // practice::probabilities()[index]
+  void guess_set_level(bool target, std::string text);
+  void guess_commit();
+  [[nodiscard]] game::ChartScene guess_scene(float width, float height);
+  // Coach review of the finished run (CoachReview.svelte), opened from the debrief.
+  void open_coach_review();
+  void coach_review_step(int delta);
+  void coach_review_close();
+  void coach_review_to_reveal();
+  void coach_review_retry();
+  void coach_review_lesson();
+  void coach_review_term();
+  [[nodiscard]] const practice::CoachMoment* coach_review_moment() const;
+  [[nodiscard]] game::ChartScene coach_review_scene(float width, float height);
+  // Mistake replay (D18): an assisted attempt from a flagged moment's decision, compared at its debrief.
+  [[nodiscard]] bool mistake_retry_allowed() const;
+  void retry_mistake(int step, const std::string& code);
+  // The debrief moment picked (screens::debrief_moments), when it is a warning finding at a decision step.
+  [[nodiscard]] std::optional<std::pair<int, std::string>> debrief_retry_target() const;
+  void debrief_retry_pick(int index);
+  void debrief_retry();
+
   // ---- Packs: catalog and CSV-import screens (viewmodel/packs.cpp) ----
   void attach_packs(packs::PackCommands* packs);
   void on_pack_event(const packs::PackEvent& e);  // UI thread
@@ -370,6 +422,14 @@ class AppViewModel {
   void apply_run_file_message(const runfiles::RunFileEvent& e);
   void mark_coach_done();
   void coach_watch_terminal();
+  // Practice formats (practice_flow.cpp).
+  void drills_finish();
+  void guess_reply(std::uint64_t request, bool reveal, const std::string& text);
+  void guess_revealed(const json::Value& state);
+  void load_coach_review(std::function<void()> then);
+  void practice_run_started();
+  void practice_run_ended();
+  void compare_mistake();
 
   Catalog catalog_;
   std::vector<MissionInfo> missions_;  // built-in missions (tl_missions without practice markets)

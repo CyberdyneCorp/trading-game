@@ -41,6 +41,7 @@ list(APPEND TRADELAB_DESKTOP_RESOURCES
   web/content.json)
 # Academy and glossary screens (add-academy-and-strategies).
 list(APPEND TRADELAB_DESKTOP_RESOURCES views/academy.xml views/glossary.xml views/stats.xml)
+list(APPEND TRADELAB_DESKTOP_RESOURCES views/drills.xml views/daily.xml views/guess.xml views/review.xml)
 tradelab_embed_resources(${CMAKE_BINARY_DIR}/generated/resources.cpp ${CMAKE_CURRENT_SOURCE_DIR}/resources
   ${TRADELAB_DESKTOP_RESOURCES})
 
@@ -155,6 +156,7 @@ set(TRADELAB_DESKTOP_ACADEMY_VIEWMODEL_SOURCES
   src/viewmodel/practice/coach_review.cpp
   src/viewmodel/academy/ticket_sandbox.cpp
   src/viewmodel/academy_flow.cpp
+  src/viewmodel/practice_flow.cpp
   src/viewmodel/screens/academy.cpp
   src/viewmodel/screens/lesson_widgets.cpp)
 
@@ -174,6 +176,7 @@ add_library(tradelab_desktop_viewmodel STATIC
   src/viewmodel/journal_stats.cpp
   src/viewmodel/run_sharing_vm.cpp
   src/viewmodel/screens/stats.cpp
+  src/viewmodel/screens/practice.cpp
   src/viewmodel/screens/run_files.cpp
   src/viewmodel/keymap.cpp
   src/viewmodel/lesson_runner.cpp
@@ -232,6 +235,7 @@ add_library(tradelab_desktop_view STATIC
   src/view/screens/shell_view.cpp
   src/view/screens/shell_view_flows.cpp
   src/view/screens/shell_view_academy.cpp
+  src/view/screens/shell_view_practice.cpp
   src/view/game/coach_view.cpp
   src/view/raven/raven_ui.cpp
   ${TRADELAB_DESKTOP_GAME_VIEW_SOURCES})

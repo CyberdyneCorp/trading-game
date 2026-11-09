@@ -12,6 +12,7 @@
 #include "viewmodel/academy/academy_state.hpp"
 #include "viewmodel/keymap.hpp"
 #include "viewmodel/lesson_runner.hpp"
+#include "viewmodel/practice/practice_state.hpp"
 
 namespace tradelab::desktop {
 
@@ -89,6 +90,7 @@ struct ShellState {
   int lesson_selected = 0;
   LessonRunner lesson;
   AcademyState academy;  // Academy, lesson widgets, glossary, review prompt, guided first trade
+  PracticeState practice;  // drills, daily challenge, guess rounds, coach review, mistake replay
   int key_row = 0;
   bool capturing_key = false;
   std::string key_message;

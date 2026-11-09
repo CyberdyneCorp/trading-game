@@ -210,6 +210,7 @@ std::string settings(const Settings& s) {
   w.field("bloom", s.crt.bloom).field("noise", s.crt.noise).end_object();
   w.field("colorblind", s.colorblind).key("textScale").raw(number_text(static_cast<double>(s.text_scale)));
   if (!s.review_dismissed_on.empty()) w.field("reviewDismissed", s.review_dismissed_on);
+  w.field("drillTimer", s.drill_timer);
   return w.end_object().text();
 }
 
@@ -222,6 +223,7 @@ Settings settings_from(const json::Value& v) {
   s.colorblind = v["colorblind"].as_bool(false);
   s.text_scale = static_cast<float>(v["textScale"].as_double(1.0));
   s.review_dismissed_on = v["reviewDismissed"].as_string();
+  s.drill_timer = v["drillTimer"].as_bool(true);  // absent = shown (settings.svelte.ts)
   return s;
 }
 

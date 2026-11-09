@@ -570,5 +570,15 @@ ChartScene ChartViewModel::build(const Texts& t, const GameState& g, const std::
   return scene;
 }
 
+void mark_moment(ChartScene& scene, const ChartViewModel& chart, int step) {
+  const ChartViewModel::Frame& f = chart.frame();
+  const long i = step - static_cast<long>(f.first);
+  if (i < 0) return;
+  const float x = static_cast<float>(i) * f.slot_w;
+  if (x + f.slot_w > f.width) return;
+  scene.rects.push_back({x, 0, f.slot_w, f.price_h, Ink::Attention, 0.18f, false});
+  scene.texts.push_back({x + f.slot_w / 2, 0, "\xE2\x96\xBC", Ink::Attention, 12, Anchor::Center});  // ▼
+}
+
 }  // namespace tradelab::desktop::game
 

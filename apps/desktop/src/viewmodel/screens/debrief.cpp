@@ -435,6 +435,7 @@ ScreenModel debrief(const AppViewModel& vm) {
   chart_panel(vm, *s, m);
   assist_panel(vm, names::kDebriefAssist, m);
   academy_debrief(vm, m);
+  practice_debrief(vm, m);
   m.show(names::kDebriefAgain, !vm.shell().run_campaign);
   m.text(names::kDebriefAgain, "\xE2\x86\xBB " + vm.tr(vm.run_pack().empty() ? "debrief.again" : "debrief.againPack"));  // ↻
   debrief_replay(vm, m);

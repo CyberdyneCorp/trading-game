@@ -167,18 +167,6 @@ void mark_trades(game::ChartScene& scene, const game::ChartViewModel& chart, con
   }
 }
 
-// Scoring v14: the debrief moment as a shaded column on its bar with a ▼ above it (web Chart.svelte
-// drawMoment).
-void mark_moment(game::ChartScene& scene, const game::ChartViewModel& chart, int step) {
-  const game::ChartViewModel::Frame& f = chart.frame();
-  const long i = step - static_cast<long>(f.first);
-  if (i < 0) return;
-  const float x = static_cast<float>(i) * f.slot_w;
-  if (x + f.slot_w > f.width) return;
-  scene.rects.push_back({x, 0, f.slot_w, f.price_h, game::Ink::Attention, 0.18f, false});
-  scene.texts.push_back({x + f.slot_w / 2, 0, "\xE2\x96\xBC", game::Ink::Attention, 12, game::Anchor::Center});  // ▼
-}
-
 }  // namespace
 
 game::ChartScene AppViewModel::debrief_scene(float width, float height) {
@@ -186,7 +174,7 @@ game::ChartScene AppViewModel::debrief_scene(float width, float height) {
   game::ChartScene scene = debrief_chart_.build(game_->texts(), *snap_->game, std::nullopt, false, width, height);
   if (scene.empty) return scene;
   mark_trades(scene, debrief_chart_, snap_->debrief->raw["trades"]);
-  if (debrief_moment_) mark_moment(scene, debrief_chart_, *debrief_moment_);
+  if (debrief_moment_) game::mark_moment(scene, debrief_chart_, *debrief_moment_);
   return scene;
 }
 

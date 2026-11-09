@@ -173,6 +173,7 @@ ScreenModel menu(const AppViewModel& vm) {
   campaign_panel(vm, m);
   mission_list(vm, m);
   academy_menu(vm, m);
+  practice_menu(vm, m);
   return m;
 }
 

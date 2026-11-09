@@ -12,7 +12,7 @@ AppViewModel::AppViewModel(Catalog catalog, std::vector<MissionInfo> missions, E
                            SeedSource seeds)
     : catalog_(std::move(catalog)),
       missions_(missions_only(missions)),
-      rounds_(round_markets(missions)),
+      rounds_(desktop::round_markets(missions)),
       engine_(engine),
       seeds_(std::move(seeds)) {
   std::vector<std::string> ids;
@@ -188,6 +188,7 @@ void AppViewModel::run_started(const CommandResult& r) {
   if (!r.accepted) {
     notice_ = reason_text(r.reason);
     shell_.pending_assisted.reset();
+    shell_.practice.pending_daily.reset();
     return;
   }
   shell_.run_files.viewing.reset();  // a new run leaves the replay viewer

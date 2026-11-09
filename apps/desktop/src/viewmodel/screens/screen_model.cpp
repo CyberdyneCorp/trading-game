@@ -83,6 +83,10 @@ ScreenModel AppViewModel::screen_model() const {
     case Screen::Academy: return screens::academy(*this);
     case Screen::Glossary: return screens::glossary(*this);
     case Screen::Stats: return screens::stats(*this);
+    case Screen::Drills: return screens::drills(*this);
+    case Screen::Daily: return screens::daily(*this);
+    case Screen::Guess: return screens::guess(*this);
+    case Screen::CoachReview: return screens::coach_review(*this);
     case Screen::Game: return screens::game(*this);
     case Screen::Lab: break;  // view/screens/lab_screen.cpp reads the lab viewmodel itself
   }
