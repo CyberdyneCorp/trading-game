@@ -152,7 +152,7 @@ TEST_CASE("wave 1 orders: two working orders ticked and linked OCO after a confi
   CHECK_FALSE(f.vm.link_picked(3));
   // Linked orders name their partner, in the panel and on the chart; a second link is refused.
   const auto rows = order_rows(f.t(), *f.vm.state(), f.vm.series_names());
-  CHECK(rows[0].text.find("\xE2\x9B\x93#4") != std::string::npos);
+  CHECK(rows[0].text.find("OCO\xE2\x86\x94#4") != std::string::npos);
   f.vm.toggle_link_pick(3);
   f.vm.toggle_link_pick(4);
   CHECK_FALSE(f.vm.link_view().can_link);

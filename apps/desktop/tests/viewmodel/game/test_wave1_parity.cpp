@@ -103,25 +103,9 @@ std::vector<Order> orders(const Value& v) {
 
 TifChoice choice(const Value& v) { return tif_choice_from(v.as_string()).value_or(TifChoice::Gtc); }
 
-std::map<std::string, Port> order_rule_ports() {
+// OCO links and the trailing stop.
+std::map<std::string, Port> link_trail_ports() {
   return {
-      {"dayBars", [](const Value& a) { return std::to_string(day_bars(static_cast<int>(a[0].as_int()))); }},
-      {"barsLeft",
-       [](const Value& a) {
-         return std::to_string(bars_left(static_cast<int>(a[0]["totalBars"].as_int()), static_cast<int>(a[0]["step"].as_int())));
-       }},
-      {"tifBlock", [](const Value& a) { return null_or_text(tif_block(choice(a[0]), a[1].as_string())); }},
-      {"tifOrder",
-       [](const Value& a) {
-         const TifOrder o = tif_order(choice(a[0]), a[1].as_double(), static_cast<int>(a[2].as_int()), static_cast<int>(a[3].as_int()));
-         if (!o.ok()) return "{\"error\":" + text(o.error) + "}";
-         return "{\"tif\":" + text(o.tif) + (o.tif == "bars" ? ",\"tifBars\":" + std::to_string(o.bars) : "") + "}";
-       }},
-      {"tifCell",
-       [](const Value& a) {
-         const TifCell c = tif_cell(order(a[0]));
-         return "{\"kind\":" + text(c.kind) + ",\"until\":" + (c.until ? std::to_string(*c.until) : "null") + "}";
-       }},
       {"linkProblem", [](const Value& a) { return null_or_text(link_problem(order(a[0]), order(a[1]))); }},
       {"linkMark", [](const Value& a) { return null_or_text(link_mark(order(a[0]), orders(a[1]))); }},
       {"bestClose",
@@ -142,6 +126,28 @@ std::map<std::string, Port> order_rule_ports() {
          const auto o = planned_trail_order({a[0]["mode"].as_string() == "pct", a[0]["value"].as_string()}, a[1].as_double(), Locale::En);
          if (!o) return std::string("null");
          return o->rate.empty() ? "{\"trail\":" + text(o->trail) + "}" : "{\"trailRate\":" + text(o->rate) + "}";
+       }},
+  };
+}
+
+std::map<std::string, Port> order_rule_ports() {
+  return {
+      {"dayBars", [](const Value& a) { return std::to_string(day_bars(static_cast<int>(a[0].as_int()))); }},
+      {"barsLeft",
+       [](const Value& a) {
+         return std::to_string(bars_left(static_cast<int>(a[0]["totalBars"].as_int()), static_cast<int>(a[0]["step"].as_int())));
+       }},
+      {"tifBlock", [](const Value& a) { return null_or_text(tif_block(choice(a[0]), a[1].as_string())); }},
+      {"tifOrder",
+       [](const Value& a) {
+         const TifOrder o = tif_order(choice(a[0]), a[1].as_double(), static_cast<int>(a[2].as_int()), static_cast<int>(a[3].as_int()));
+         if (!o.ok()) return "{\"error\":" + text(o.error) + "}";
+         return "{\"tif\":" + text(o.tif) + (o.tif == "bars" ? ",\"tifBars\":" + std::to_string(o.bars) : "") + "}";
+       }},
+      {"tifCell",
+       [](const Value& a) {
+         const TifCell c = tif_cell(order(a[0]));
+         return "{\"kind\":" + text(c.kind) + ",\"until\":" + (c.until ? std::to_string(*c.until) : "null") + "}";
        }},
   };
 }
@@ -251,7 +257,9 @@ std::map<std::string, Port> heatmap_ports() {
 }  // namespace
 
 TEST_CASE("web parity: orderRules.ts (time in force, OCO links, trailing stop) and stops.ts trailTrigger") {
-  replay("orderRules", order_rule_ports());
+  auto ports = order_rule_ports();
+  ports.merge(link_trail_ports());
+  replay("orderRules", ports);
 }
 
 TEST_CASE("web parity: heatmap.ts and portfolio.ts (requests, cells, rows, limits, hedge ticket)") {

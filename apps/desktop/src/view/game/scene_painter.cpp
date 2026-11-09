@@ -22,7 +22,13 @@ constexpr Rgb hex(unsigned v) {
 constexpr Rgb kInk[] = {hex(0x0B1010), hex(0xE3F5EA), hex(0x8FB3A1), hex(0x24413A), hex(0x39FF88), hex(0xFF5F7A),
                         hex(0x4FD8FF), hex(0xFFC857), hex(0x39FF88), hex(0xFF5F7A), hex(0xC792FF), hex(0x7F9CFF)};
 
-Rgb ink(game::Ink i) { return kInk[static_cast<int>(i)]; }
+// The colorblind palette (web app.css [data-palette='cb']): gains blue, losses and danger orange.
+constexpr Rgb kInkColorblind[] = {hex(0x0B1010), hex(0xE3F5EA), hex(0x8FB3A1), hex(0x24413A), hex(0x4FD8FF), hex(0xFFA64D),
+                                  hex(0x4FD8FF), hex(0xFFC857), hex(0x39FF88), hex(0xFFA64D), hex(0xC792FF), hex(0x7F9CFF)};
+
+bool g_colorblind = false;
+
+Rgb ink(game::Ink i) { return (g_colorblind ? kInkColorblind : kInk)[static_cast<int>(i)]; }
 
 void dashed(RPainter* p, const game::SceneLine& l, Rgb c) {
   const float dx = l.x1 - l.x0;
@@ -50,6 +56,8 @@ void text(RPainter* p, const game::SceneText& t) {
 }
 
 }  // namespace
+
+void set_scene_colorblind(bool on) { g_colorblind = on; }
 
 void paint_scene(RPainter* p, const game::ChartScene& s) {
   for (const auto& r : s.rects) {

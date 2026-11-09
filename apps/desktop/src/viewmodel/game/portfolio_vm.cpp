@@ -1,5 +1,7 @@
 #include "viewmodel/game/portfolio_vm.hpp"
 
+#include <array>
+
 #include "viewmodel/format.hpp"
 #include "viewmodel/report_texts.hpp"
 
@@ -141,32 +143,43 @@ constexpr float kAxisBottom = 14;
 
 }  // namespace
 
+// One row of cells: the background, then the gain or loss ink at the cell's share.
+void heatmap_row(ChartScene& s, const std::vector<HeatmapCell>& cells, float y, float cw, float ch) {
+  for (std::size_t c = 0; c < cells.size(); ++c) {
+    const float x = kAxisLeft + static_cast<float>(c) * cw;
+    s.rects.push_back({x, y, cw, ch, Ink::Bg, 1, false});
+    s.rects.push_back({x, y, cw, ch, cells[c].up ? Ink::Up : Ink::Down, static_cast<float>(cells[c].share) / 100.0F, false});
+  }
+}
+
+// The first, middle and last prices under the grid.
+void heatmap_prices(ChartScene& s, const HeatmapView& v, float height, float cw) {
+  const std::size_t cols = v.prices.size();
+  const std::array<std::pair<std::size_t, Anchor>, 3> at = {{{0, Anchor::Left}, {cols / 2, Anchor::Center}, {cols - 1, Anchor::Right}}};
+  const std::array<float, 3> offset = {0.0F, 0.5F, 1.0F};
+  for (std::size_t i = 0; i < at.size(); ++i) {
+    const float x = kAxisLeft + (static_cast<float>(at[i].first) + offset[i]) * cw;
+    s.texts.push_back({x, height - kAxisBottom + 2, v.prices.at(at[i].first), Ink::Muted, 10, at[i].second});
+  }
+}
+
 ChartScene heatmap_scene(const HeatmapView& v, float width, float height, std::size_t focus_t, std::size_t focus_p) {
   ChartScene s;
   const std::size_t rows = v.cells.size();
   const std::size_t cols = rows ? v.cells.front().size() : 0;
-  if (rows == 0 || cols == 0) return s;
+  if (rows == 0 || cols == 0 || v.prices.size() != cols) return s;
   s.empty = false;
   const float cw = (width - kAxisLeft) / static_cast<float>(cols);
   const float ch = (height - kAxisBottom) / static_cast<float>(rows);
   for (std::size_t r = 0; r < rows; ++r) {
     const float y = static_cast<float>(r) * ch;
     s.texts.push_back({0, y + ch / 2 - 5, v.times.at(r), Ink::Muted, 10, Anchor::Left});
-    for (std::size_t c = 0; c < cols && c < v.cells[r].size(); ++c) {
-      const float x = kAxisLeft + static_cast<float>(c) * cw;
-      const HeatmapCell& cell = v.cells[r][c];
-      s.rects.push_back({x, y, cw, ch, Ink::Bg, 1, false});
-      s.rects.push_back({x, y, cw, ch, cell.up ? Ink::Up : Ink::Down, static_cast<float>(cell.share) / 100.0F, false});
-    }
+    heatmap_row(s, v.cells[r], y, cw, ch);
   }
   if (focus_t < rows && focus_p < cols) {
     s.rects.push_back({kAxisLeft + static_cast<float>(focus_p) * cw, static_cast<float>(focus_t) * ch, cw, ch, Ink::Text, 1, true});
   }
-  for (const std::size_t c : {std::size_t{0}, cols / 2, cols - 1}) {
-    const auto anchor = c == 0 ? Anchor::Left : (c == cols - 1 ? Anchor::Right : Anchor::Center);
-    const float x = kAxisLeft + (static_cast<float>(c) + (c == 0 ? 0.0F : (c == cols - 1 ? 1.0F : 0.5F))) * cw;
-    s.texts.push_back({x, height - kAxisBottom + 2, v.prices.at(c), Ink::Muted, 10, anchor});
-  }
+  heatmap_prices(s, v, height, cw);
   return s;
 }
 

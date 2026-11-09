@@ -130,7 +130,7 @@ GameViewModel::LinkView GameViewModel::link_view() const {
   if (!state_ || state_->orders.size() < 2) return v;
   const Texts t = texts();
   v.shown = true;
-  v.button = "\xE2\x9B\x93 " + t.tr("orders.link");
+  v.button = t.tr("orders.link");
   std::vector<const Order*> pair;
   for (const int id : link_picks_) {
     if (const Order* o = order_of(*state_, id)) pair.push_back(o);
@@ -445,6 +445,11 @@ std::optional<std::string> GameViewModel::live_uncovered() const {
   const WhatIfExpiry* was = analytics_of(*live_->before);
   const WhatIfExpiry* now = analytics_of(*live_->after);
   if (was == nullptr || !was->max_loss || now == nullptr || now->max_loss) return std::nullopt;
+  return uncovered_name(orders);
+}
+
+// The leg named by the uncovered confirmation: a roll's last sale, or the short left by a closed leg.
+std::string GameViewModel::uncovered_name(const std::vector<OrderLeg>& orders) const {
   const Texts t = texts();
   if (live_->roll) {
     const auto sale = std::find_if(orders.rbegin(), orders.rend(), [](const OrderLeg& o) { return !o.buy; });
@@ -470,6 +475,26 @@ void live_preview_lines(const Texts& t, const GameState& g, const std::vector<Or
 
 }  // namespace
 
+void GameViewModel::live_roll_view(const Texts& t, const ComboStatus& st, LiveView& v) const {
+  const auto targets = roll_targets(state_->options.chain, near_expiry(*state_, held_options(st)));
+  if (targets.empty()) v.none = t.tr("roll.none");
+  for (std::size_t i = 0; i < targets.size(); ++i) {
+    v.targets.push_back(t.tr("builder.expiryAt", {{"step", std::to_string(targets[i])}, {"n", std::to_string(targets[i] - state_->step)}}));
+    if (targets[i] == live_->to) v.target_index = static_cast<int>(i);
+  }
+  v.recenter = t.tr("roll.recenter");
+  v.limit_ioc = t.tr("roll.limitIoc");
+  v.recenter_on = live_->recenter;
+  v.limit_on = live_->limit_ioc;
+}
+
+void GameViewModel::live_adjust_view(const Texts& t, const ComboStatus& st, LiveView& v) const {
+  for (const auto& h : combo_holdings(st)) v.held.push_back(held_name(t, *state_, h.series, h.qty));
+  v.close_leg = t.tr("adjust.closeLeg");
+  v.add_hedge = "+ " + t.tr("adjust.addHedge") + ": " + t.tr("adjust.hedgePerp");
+  if (!live_->adjust_close && live_->adjustment.empty()) v.hedge_none = t.tr("portfolio.hedgeNone");
+}
+
 GameViewModel::LiveView GameViewModel::live_view() const {
   LiveView v;
   const auto st = live_status();
@@ -480,34 +505,17 @@ GameViewModel::LiveView GameViewModel::live_view() const {
   v.shown = true;
   v.roll = live_->roll;
   v.title = t.tr(live_->roll ? "roll.title" : "adjust.title", {{"name", name}});
-  if (live_->roll) {
-    const auto targets = roll_targets(state_->options.chain, near_expiry(*state_, held_options(*st)));
-    if (targets.empty()) v.none = t.tr("roll.none");
-    for (std::size_t i = 0; i < targets.size(); ++i) {
-      v.targets.push_back(t.tr("builder.expiryAt", {{"step", std::to_string(targets[i])}, {"n", std::to_string(targets[i] - state_->step)}}));
-      if (targets[i] == live_->to) v.target_index = static_cast<int>(i);
-    }
-    v.recenter = t.tr("roll.recenter");
-    v.limit_ioc = t.tr("roll.limitIoc");
-    v.recenter_on = live_->recenter;
-    v.limit_on = live_->limit_ioc;
-  } else {
-    for (const auto& h : combo_holdings(*st)) v.held.push_back(held_name(t, *state_, h.series, h.qty));
-    v.close_leg = t.tr("adjust.closeLeg");
-    v.add_hedge = "+ " + t.tr("adjust.addHedge") + ": " + t.tr("adjust.hedgePerp");
-    if (!live_->adjust_close && live_->adjustment.empty()) v.hedge_none = t.tr("portfolio.hedgeNone");
-  }
+  if (live_->roll) live_roll_view(t, *st, v);
+  else live_adjust_view(t, *st, v);
   const auto orders = live_orders();
   v.send = t.tr(live_->roll ? "roll.send" : "adjust.send");
   if (orders.empty() || !live_->preview || !live_->preview->ok()) return v;
   const ComboPreview& p = *live_->preview->value;
   live_preview_lines(t, *state_, orders, p, v);
   v.totals.emplace_back(t.tr(live_->roll ? "roll.net" : "builder.credit"), fmt::fmt_money(p.net_premium, L, true));
-  if (live_->after) {
-    const WhatIfExpiry* a = analytics_of(*live_->after);
-    v.totals.emplace_back(t.tr("adjust.after") + ": " + t.tr("lab.maxLoss"),
-                          a != nullptr && a->max_loss ? fmt::fmt_money(*a->max_loss, L) : t.tr("lab.unbounded"));
-  }
+  const WhatIfExpiry* a = live_->after ? analytics_of(*live_->after) : nullptr;
+  const bool bounded = a != nullptr && a->max_loss.has_value();
+  if (live_->after) v.totals.emplace_back(t.tr("adjust.after") + ": " + t.tr("lab.maxLoss"), bounded ? fmt::fmt_money(*a->max_loss, L) : t.tr("lab.unbounded"));
   v.can_send = p.accepted && !busy() && state_->active();
   return v;
 }

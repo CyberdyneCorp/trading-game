@@ -329,23 +329,10 @@ WhatIfResult result(const Value& r) {
 
 // ---- ports ----
 
-std::map<std::string, Port> strategy_ports() {
+// Wave 1 of add-practice-and-advanced-strategies: two expiries, limits, roll and hedge.
+std::map<std::string, Port> wave1_strategy_ports() {
   const auto tmpl = [](const Value& v) { return *template_from(v.as_string()); };
   return {
-      {"expiriesOf", [](const Value& a) { return array(expiries_of(chain(a[0])), [](int e) { return std::to_string(e); }); }},
-      {"strikesOf",
-       [](const Value& a) {
-         return array(strikes_of(chain(a[0]), static_cast<int>(a[1].as_int())), [](double k) { return num(k); });
-       }},
-      {"templateWrites", [tmpl](const Value& a) { return boolean(template_writes(tmpl(a[0]), a[1].as_bool())); }},
-      {"strategyOf", [tmpl](const Value& a) { return text(strategy_of(tmpl(a[0]), a[1].as_bool())); }},
-      {"templateShortable", [tmpl](const Value& a) { return boolean(template_shortable(tmpl(a[0]))); }},
-      {"templateLegs",
-       [tmpl](const Value& a) {
-         const auto legs = template_legs(tmpl(a[0]), doubles(a[1]), a[2].as_double(), a[3].as_double(), a[4].as_bool());
-         return legs ? json_of(*legs) : std::string("null");
-       }},
-      {"submissionOrder", [](const Value& a) { return json_of(submission_order(builder_legs(a[0]))); }},
       {"twoExpiryTemplateLegs",
        [tmpl](const Value& a) {
          const auto strikes_of_arg = [](const Value& e) { return ExpiryStrikes{static_cast<int>(e["step"].as_int()), doubles(e["strikes"])}; };
@@ -374,6 +361,26 @@ std::map<std::string, Port> strategy_ports() {
          const auto h = hedge_order(game(a[0]), a[1].as_double());
          return h ? json_of(*h) : std::string("null");
        }},
+  };
+}
+
+std::map<std::string, Port> strategy_ports() {
+  const auto tmpl = [](const Value& v) { return *template_from(v.as_string()); };
+  return {
+      {"expiriesOf", [](const Value& a) { return array(expiries_of(chain(a[0])), [](int e) { return std::to_string(e); }); }},
+      {"strikesOf",
+       [](const Value& a) {
+         return array(strikes_of(chain(a[0]), static_cast<int>(a[1].as_int())), [](double k) { return num(k); });
+       }},
+      {"templateWrites", [tmpl](const Value& a) { return boolean(template_writes(tmpl(a[0]), a[1].as_bool())); }},
+      {"strategyOf", [tmpl](const Value& a) { return text(strategy_of(tmpl(a[0]), a[1].as_bool())); }},
+      {"templateShortable", [tmpl](const Value& a) { return boolean(template_shortable(tmpl(a[0]))); }},
+      {"templateLegs",
+       [tmpl](const Value& a) {
+         const auto legs = template_legs(tmpl(a[0]), doubles(a[1]), a[2].as_double(), a[3].as_double(), a[4].as_bool());
+         return legs ? json_of(*legs) : std::string("null");
+       }},
+      {"submissionOrder", [](const Value& a) { return json_of(submission_order(builder_legs(a[0]))); }},
       {"writesOptions", [](const Value& a) { return boolean(writes_options(builder_legs(a[0]))); }},
       {"legsProblem",
        [](const Value& a) {
@@ -508,7 +515,9 @@ std::map<std::string, Port> lab_ports() {
 }  // namespace
 
 TEST_CASE("web parity: strategies.ts (templates, legs, submission order, orders, held long)") {
-  replay("strategies", strategy_ports());
+  auto ports = strategy_ports();
+  ports.merge(wave1_strategy_ports());
+  replay("strategies", ports);
 }
 
 TEST_CASE("web parity: combos.ts (log, legs followed through events, premium, R, grouped trades)") {

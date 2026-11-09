@@ -10,6 +10,8 @@
 namespace tradelab::desktop::view {
 
 void paint_scene(RPainter* painter, const game::ChartScene& scene);
+// The settings' colorblind palette for the drawn charts, payoffs and heatmaps (gains blue, losses orange).
+void set_scene_colorblind(bool on);
 void paint_payoff(RPainter* painter, const game::OptionTicketView& v, float width, float height);
 
 }  // namespace tradelab::desktop::view

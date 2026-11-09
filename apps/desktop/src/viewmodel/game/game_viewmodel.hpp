@@ -417,6 +417,9 @@ class GameViewModel {
   [[nodiscard]] std::vector<OrderLeg> live_orders() const;
   [[nodiscard]] std::optional<ComboTif> live_tif() const;
   [[nodiscard]] std::optional<std::string> live_uncovered() const;
+  [[nodiscard]] std::string uncovered_name(const std::vector<OrderLeg>& orders) const;
+  void live_roll_view(const Texts& t, const ComboStatus& st, LiveView& v) const;
+  void live_adjust_view(const Texts& t, const ComboStatus& st, LiveView& v) const;
   void send_live();
 };
 

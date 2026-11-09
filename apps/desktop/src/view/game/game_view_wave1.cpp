@@ -47,6 +47,12 @@ std::string lines(const std::vector<std::string>& items) {
   return out;
 }
 
+std::string dotted(const std::vector<std::string>& cells) {
+  std::string out;
+  for (const auto& c : cells) out += (out.empty() ? "" : " \xC2\xB7 ") + c;
+  return out;
+}
+
 std::string marked(bool on, const std::string& text) { return (on ? "\xE2\x96\xB8 " : "") + text; }
 
 std::string heatmap_name(std::string_view prefix, std::string_view part) { return std::string(prefix) + "-" + std::string(part); }
@@ -358,16 +364,8 @@ void GameView::apply_portfolio(const game::Texts& t) {
   set_label(find(w::kPortfolioEmpty), v.empty);
   set_visible(find(w::kPortfolioEmpty), !v.empty.empty());
   std::vector<game::Line> rows;
-  if (!v.rows.empty()) {
-    std::string head;
-    for (const auto& h : v.header) head += (head.empty() ? "" : " \xC2\xB7 ") + h;
-    rows.push_back({head, game::Tone::Muted});
-  }
-  for (std::size_t i = 0; i < v.rows.size(); ++i) {
-    std::string line;
-    for (const auto& c : v.rows[i]) line += (line.empty() ? "" : " \xC2\xB7 ") + c;
-    rows.push_back({line, v.row_tones.at(i)});
-  }
+  if (!v.rows.empty()) rows.push_back({dotted(v.header), game::Tone::Muted});
+  for (std::size_t i = 0; i < v.rows.size(); ++i) rows.push_back({dotted(v.rows[i]), v.row_tones.at(i)});
   portfolio_rows_ = LineList(find(w::kPortfolioRows), 12);
   portfolio_rows_.set(rows);
   set_label(find(w::kPortfolioPerUnit), v.per_unit);
@@ -421,16 +419,22 @@ int GameView::heatmap_event(Rid widget, const REvent* e, const std::optional<gam
     m.touch();
     return e->type == R_EVENT_MOUSE_DOWN ? R_TRUE : R_FALSE;
   }
-  if (e->type != R_EVENT_KEY_DOWN) return R_FALSE;
-  const std::size_t rows = v.cells.size();
-  const std::size_t cols = v.cells.front().size();
-  if (e->key == R_KEY_LEFT && m.heatmap_focus_p > 0) --m.heatmap_focus_p;
-  else if (e->key == R_KEY_RIGHT && m.heatmap_focus_p + 1 < cols) ++m.heatmap_focus_p;
-  else if (e->key == R_KEY_UP && m.heatmap_focus_t > 0) --m.heatmap_focus_t;
-  else if (e->key == R_KEY_DOWN && m.heatmap_focus_t + 1 < rows) ++m.heatmap_focus_t;
-  else return R_FALSE;
+  if (e->type != R_EVENT_KEY_DOWN || !heatmap_key(e->key, v.cells.size(), v.cells.front().size())) return R_FALSE;
   m.touch();
   return R_TRUE;
+}
+
+// The arrow keys move the focused cell inside the grid; false for any other key.
+bool GameView::heatmap_key(int key, std::size_t rows, std::size_t cols) {
+  GameViewModel& m = vm();
+  const auto step = [](std::size_t& at, int delta, std::size_t n) {
+    const auto next = static_cast<long>(at) + delta;
+    if (next >= 0 && next < static_cast<long>(n)) at = static_cast<std::size_t>(next);
+  };
+  if (key == R_KEY_LEFT || key == R_KEY_RIGHT) step(m.heatmap_focus_p, key == R_KEY_LEFT ? -1 : 1, cols);
+  else if (key == R_KEY_UP || key == R_KEY_DOWN) step(m.heatmap_focus_t, key == R_KEY_UP ? -1 : 1, rows);
+  else return false;
+  return true;
 }
 
 int GameView::on_builder_heatmap_event(Rid widget, const REvent* e, void* self) {

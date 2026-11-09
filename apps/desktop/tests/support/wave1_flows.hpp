@@ -108,18 +108,20 @@ inline void flow_planned_trail(App& app, Driver& d, Terminal& t, const Wave1Shot
   t.advance();
   REQUIRE(t.g().position.qty > 0);
   REQUIRE(vm.trail_notice().has_value());
-  CHECK(vm.trail_notice()->text.find("1,5") != std::string::npos);
+  CHECK(vm.trail_notice()->text.find(fmt::fmt_price("1.50000000", vm.texts().locale())) != std::string::npos);
   if (shot) shot("w1-trail-notice");
   REQUIRE(d.click(w1::kTrailNoticePlace));
   CHECK(vm.ticket.protect_tab == game::ProtectTab::Trail);
   CHECK(vm.ticket.prot_trail == "1,5");
-  CHECK(d.text(w1::kTrailRule).find(",") != std::string::npos);
+  CHECK(d.text(w1::kTrailRule) != vm.texts().tr("ticket.trailExplain"));  // the rule with the engine's first trigger
   REQUIRE(d.click(names::game::kProtect));
   REQUIRE(d.idle());
   const Order* trail = find_order(t.g(), "trailing_stop");
   REQUIRE(trail != nullptr);
   CHECK(trail->trail_distance_text.rfind("1.5", 0) == 0);
   CHECK_FALSE(vm.trail_notice().has_value());
+  Rwidget_scroll_into_view(d.widget(w1::kTrailRule));
+  d.frames(2);
   if (shot) shot("w1-trailing-placed");
 }
 
@@ -149,6 +151,8 @@ inline void flow_calendar(App& app, Driver& d, Terminal& t, const Wave1Shot& sho
   REQUIRE(d.until([&] { return vm.builder_heatmap().has_value(); }));
   CHECK(vm.builder_heatmap()->prices.size() == 21);
   d.frames(2);
+  Rwidget_scroll_into_view(d.widget("game-builder-heatmap-view"));
+  d.frames(2);
   if (shot) shot("w1-builder-heatmap");
   submit_combo(app, d);
   t.advance();
@@ -159,6 +163,8 @@ inline void flow_calendar(App& app, Driver& d, Terminal& t, const Wave1Shot& sho
   REQUIRE(d.until([&] { return vm.live_view().shown && !vm.live_view().held.empty(); }));
   REQUIRE(d.click(w1::kLiveHedge));
   d.until([&] { return vm.live_view().can_send || !vm.live_view().hedge_none.empty(); });
+  Rwidget_scroll_into_view(d.widget(w1::kLiveSend));
+  d.frames(2);
   if (shot) shot("w1-adjust");
   if (vm.live_view().can_send) {
     REQUIRE(d.click(w1::kLiveSend));
@@ -179,6 +185,9 @@ inline void flow_calendar(App& app, Driver& d, Terminal& t, const Wave1Shot& sho
   CHECK_FALSE(vm.portfolio_view().no_limits.empty());  // no built-in mission declares limits before m18
   d.frames(2);
   if (shot) shot("w1-portfolio");
+  Rwidget_scroll_into_view(d.widget("game-portfolio-heatmap-view"));
+  d.frames(2);
+  if (shot) shot("w1-portfolio-heatmap");
   REQUIRE(d.click(w1::kPortfolioClose));
   CHECK(vm.modal() == game::Modal::None);
   // The roll: the near short bought back and sold again on a later expiry, one tagged submission.
@@ -187,6 +196,8 @@ inline void flow_calendar(App& app, Driver& d, Terminal& t, const Wave1Shot& sho
   REQUIRE(d.click("game-live-roll-c1"));
   REQUIRE(d.until([&] { return vm.live_view().can_send; }));
   CHECK_FALSE(vm.live_view().totals.empty());
+  Rwidget_scroll_into_view(d.widget(w1::kLiveSend));
+  d.frames(2);
   if (shot) shot("w1-roll");
   REQUIRE(d.click(w1::kLiveSend));
   if (vm.modal() == game::Modal::Confirm) REQUIRE(d.click(w1::kConfirmYes));

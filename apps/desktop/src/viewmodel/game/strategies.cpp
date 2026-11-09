@@ -342,6 +342,17 @@ std::vector<AnalysisLeg> position_legs(const GameState& g) {
   return out;
 }
 
+namespace {
+
+// A limit leg of the dry run: its premium and the combo's time in force (D2).
+void write_limit(storage::JsonWriter& w, const AnalysisLeg& l) {
+  if (l.premium) w.field("type", "limit").field("premium", *l.premium);
+  if (!l.tif.empty()) w.field("tif", l.tif);
+  if (l.tif == "bars") w.field("tifBars", l.tif_bars);
+}
+
+}  // namespace
+
 std::string legs_json(const std::vector<AnalysisLeg>& legs) {
   storage::JsonWriter w;
   w.begin_array();
@@ -352,9 +363,7 @@ std::string legs_json(const std::vector<AnalysisLeg>& legs) {
     w.field("side", l.buy ? "buy" : "sell").field("qty", l.qty);
     if (l.entry) w.field("entry", *l.entry);
     if (l.stop) w.field("stop", *l.stop);
-    if (l.premium) w.field("type", "limit").field("premium", *l.premium);
-    if (!l.tif.empty()) w.field("tif", l.tif);
-    if (l.tif == "bars") w.field("tifBars", l.tif_bars);
+    write_limit(w, l);
     w.end_object();
   }
   return w.end_array().text();

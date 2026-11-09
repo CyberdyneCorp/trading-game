@@ -105,6 +105,20 @@ std::string next_combo_id(const std::vector<ComboRecord>& combos) {
   return "c" + std::to_string(top + 1);
 }
 
+namespace {
+
+// One tagged action into its combo's submission (the opening's legs mirrored on the record).
+void add_tagged(ComboRecord& rec, const json::Value& a, int step) {
+  ComboSubmission& sub = submission_of(rec, submission_key(a, step));
+  if (a["k"].as_string() == "cancel") sub.withdrawn = true;
+  else sub.legs.push_back(leg_of(a));
+  if (sub.kind != SubmissionKind::Open) return;
+  rec.legs = sub.legs;
+  rec.withdrawn = sub.withdrawn;
+}
+
+}  // namespace
+
 std::vector<ComboRecord> combos_from_log(const std::vector<std::string>& log, int start_step) {
   std::vector<ComboRecord> out;
   std::map<std::string, std::size_t> index;
@@ -113,19 +127,12 @@ std::vector<ComboRecord> combos_from_log(const std::vector<std::string>& log, in
     if (!relevant(line)) continue;
     const auto a = json::parse(line);
     if (!a) continue;
-    const std::string k = (*a)["k"].as_string();
-    if (k == "adv") step += static_cast<int>((*a)["n"].as_int());
+    if ((*a)["k"].as_string() == "adv") step += static_cast<int>((*a)["n"].as_int());
     const std::string id = (*a)["combo"].as_string();
     if (id.empty()) continue;
     auto [it, fresh] = index.try_emplace(id, out.size());
     if (fresh) out.push_back({id, (*a)["strategy"].as_string("custom"), step, {}, false, {}});
-    ComboRecord& rec = out[it->second];
-    ComboSubmission& sub = submission_of(rec, submission_key(*a, step));
-    if (k == "cancel") sub.withdrawn = true;
-    else sub.legs.push_back(leg_of(*a));
-    if (sub.kind != SubmissionKind::Open) continue;
-    rec.legs = sub.legs;
-    rec.withdrawn = sub.withdrawn;
+    add_tagged(out[it->second], *a, step);
   }
   return out;
 }

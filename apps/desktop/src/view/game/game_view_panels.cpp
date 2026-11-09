@@ -203,39 +203,44 @@ void GameView::apply_rail(const game::Texts& t, const GameState& g) {
   set_label(find(n::kRailObjectives), objectives);
 }
 
-void GameView::apply_orders(const game::Texts& t, const GameState& g) {
+// One row per working order: the OCO pick, its text and Cancel.
+void GameView::build_order_rows(const game::Texts& t, const std::vector<game::OrderRow>& rows) {
   const Rid box = find(n::kOrders);
+  clear_rows(box, order_rows_);
+  for (const auto& r : rows) {
+    const Rid row = Rwidget_create(R_WIDGET_HBOX);
+    // D7: tick two working orders to link them one-cancels-the-other.
+    const Rid pick = Rcheckbox_create("");
+    const int pick_id = r.id;
+    Rwidget_set_name(pick, (std::string(names::wave1::kOrderPickPrefix) + std::to_string(pick_id)).c_str());
+    Rwidget_set_accessible_name(pick, t.tr("orders.select", {{"id", std::to_string(pick_id)}}).c_str());
+    cb_.check(pick, [this, pick_id](bool on) {
+      if (on != vm().link_picked(pick_id)) vm().toggle_link_pick(pick_id);
+    });
+    Rwidget_add_child(row, pick);
+    const Rid label = Rlabel_create("");
+    Rlabel_set_text_size(label, 12);
+    Rlabel_set_wrap(label, R_TRUE);  // the middle column is narrow at 1024x768
+    Rwidget_add_child(row, label);
+    Rslot_set_fill(label, 1);
+    const Rid cancel = Rbutton_create(t.tr("orders.cancel").c_str());
+    const int id = r.id;
+    cb_.click(cancel, [this, id] { vm().cancel_order(id); });
+    Rwidget_set_name(cancel, ("game-order-cancel-" + std::to_string(id)).c_str());
+    Rwidget_add_child(row, cancel);
+    Rwidget_add_child(box, row);
+    order_rows_.push_back(row);
+  }
+}
+
+void GameView::apply_orders(const game::Texts& t, const GameState& g) {
   const auto rows = game::order_rows(t, g, vm().series_names());
   set_visible(find(n::kOrdersNone), rows.empty());
   std::vector<int> ids;
   for (const auto& r : rows) ids.push_back(r.id);
   if (ids != order_ids_ || order_rows_.size() != rows.size()) {
-    clear_rows(box, order_rows_);
     order_ids_ = ids;
-    for (const auto& r : rows) {
-      const Rid row = Rwidget_create(R_WIDGET_HBOX);
-      // D7: tick two working orders to link them one-cancels-the-other.
-      const Rid pick = Rcheckbox_create("");
-      const int pick_id = r.id;
-      Rwidget_set_name(pick, (std::string(names::wave1::kOrderPickPrefix) + std::to_string(pick_id)).c_str());
-      Rwidget_set_accessible_name(pick, t.tr("orders.select", {{"id", std::to_string(pick_id)}}).c_str());
-      cb_.check(pick, [this, pick_id](bool on) {
-        if (on != vm().link_picked(pick_id)) vm().toggle_link_pick(pick_id);
-      });
-      Rwidget_add_child(row, pick);
-      const Rid label = Rlabel_create("");
-      Rlabel_set_text_size(label, 12);
-      Rlabel_set_wrap(label, R_TRUE);  // the middle column is narrow at 1024x768
-      Rwidget_add_child(row, label);
-      Rslot_set_fill(label, 1);
-      const Rid cancel = Rbutton_create(t.tr("orders.cancel").c_str());
-      const int id = r.id;
-      cb_.click(cancel, [this, id] { vm().cancel_order(id); });
-      Rwidget_set_name(cancel, ("game-order-cancel-" + std::to_string(id)).c_str());
-      Rwidget_add_child(row, cancel);
-      Rwidget_add_child(box, row);
-      order_rows_.push_back(row);
-    }
+    build_order_rows(t, rows);
   }
   for (std::size_t i = 0; i < rows.size() && i < order_rows_.size(); ++i) {
     const Rid pick = Rwidget_get_child(order_rows_[i], 0);

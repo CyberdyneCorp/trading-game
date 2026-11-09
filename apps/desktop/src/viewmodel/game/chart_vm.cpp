@@ -44,7 +44,7 @@ std::string order_label(const Order& o, const std::vector<Order>& orders, Locale
   if (o.type == "stop_market") kind = "STOP";
   else if (o.type == "trailing_stop") kind = trail_label(o, L);
   else if (o.type == "take_profit") kind = "TP";
-  const std::string link = link_mark(o, orders);
+  const std::string link = link_mark_shown(o, orders);
   return kind + " #" + std::to_string(o.id) + (link.empty() ? "" : " " + link);
 }
 

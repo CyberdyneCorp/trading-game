@@ -105,6 +105,11 @@ std::string link_mark(const Order& o, const std::vector<Order>& orders) {
   return p != nullptr ? "\xE2\x9B\x93#" + std::to_string(p->id) : std::string();
 }
 
+std::string link_mark_shown(const Order& o, const std::vector<Order>& orders) {
+  const Order* p = link_partner(o, orders);
+  return p != nullptr ? "OCO\xE2\x86\x94#" + std::to_string(p->id) : std::string();
+}
+
 std::optional<BestClose> best_close(const std::vector<double>& closes, int placed_step, bool exit_sell) {
   std::optional<BestClose> best;
   for (std::size_t i = static_cast<std::size_t>(std::max(0, placed_step)); i < closes.size(); ++i) {

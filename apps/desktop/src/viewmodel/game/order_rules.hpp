@@ -57,6 +57,8 @@ std::string link_problem(const Order& a, const Order& b);
 const Order* link_partner(const Order& o, const std::vector<Order>& orders);
 // The link mark on an order and its chart line: "⛓#3" names the partner; "" without one.
 std::string link_mark(const Order& o, const std::vector<Order>& orders);
+// The same mark as the desktop draws it: "OCO↔#3" (the bundled fonts have no chain glyph).
+std::string link_mark_shown(const Order& o, const std::vector<Order>& orders);
 
 // ---- trailing stop (D10) ----
 

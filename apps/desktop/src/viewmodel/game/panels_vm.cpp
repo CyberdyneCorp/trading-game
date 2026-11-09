@@ -126,7 +126,7 @@ std::string tif_tag(const Texts& t, const Order& o) {
 
 // D7: the partner of a player-built OCO link ("[⛓#3]").
 std::string link_tag(const Order& o, const std::vector<Order>& orders) {
-  const std::string mark = link_mark(o, orders);
+  const std::string mark = link_mark_shown(o, orders);
   return mark.empty() ? std::string() : "  [" + mark + "]";
 }
 

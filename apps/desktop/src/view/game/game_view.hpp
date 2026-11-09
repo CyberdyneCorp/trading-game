@@ -75,6 +75,7 @@ class GameView {
   void apply_chain(const game::Texts& t, const GameState& g);
   void apply_rail(const game::Texts& t, const GameState& g);
   void apply_orders(const game::Texts& t, const GameState& g);
+  void build_order_rows(const game::Texts& t, const std::vector<game::OrderRow>& rows);
   void apply_advisor(const game::Texts& t, const GameState& g);
   void apply_lists(const game::Texts& t, const GameState& g);
   void apply_modal(const game::Texts& t, const GameState& g);
@@ -115,6 +116,7 @@ class GameView {
   void apply_portfolio(const game::Texts& t);
   void paint_heatmap(RPainter* painter, float width, float height, const std::optional<game::WhatIfHeatmap>& map);
   int heatmap_event(Rid widget, const REvent* e, const std::optional<game::WhatIfHeatmap>& map);
+  bool heatmap_key(int key, std::size_t rows, std::size_t cols);
   static void on_builder_heatmap_paint(Rid widget, RPainter* painter, float width, float height, void* self);
   static void on_portfolio_heatmap_paint(Rid widget, RPainter* painter, float width, float height, void* self);
   static int on_builder_heatmap_event(Rid widget, const REvent* e, void* self);
