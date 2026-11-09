@@ -777,6 +777,7 @@ Where the desktop build (tasks W1-D1–D5) departs from or adds to the web's:
   - the desktop logged a skipped plan with confidence 50 (the web 0) and planned risks with `%.2f` (2,625 → 2,62, the web's `toFixed` 2,63): the engine hashes plans, so the same inputs ended on different state digests. Fills named the side in English in a PT-BR feed;
   - the chart's best-close text sat under the ticket's ENTRY? label; the trailing line's label now names the best close and the marker has no text. The desktop measured right-aligned scene texts with another font than the one drawing them, so long labels ran under the price axis;
   - the web's Academy builder listed the four two-expiry templates, which build no legs on a single-expiry lesson market.
+  - desktop layout: a live combo's legs were cut by the panel at 1280x800 (the row now wraps them above its buttons), and the protect tab "▸ Trailing •" was cut; the m07 playtest still clicked the percent switch without opening the trailing tab.
 - **Left open.** A planned trailing stop does not count as the ticket's planned risk (the ticket says "No stop" until it is placed); counting the first trigger would change the plan's logged risk and is a product decision. The gamma of a 1% move is a magnitude (the engine's D4 risk block), so the total does not tell long from short gamma; the rows do. W1-D5's Linux captures and W1-W8's end-to-end risk-limit warning wait as before.
 
 ## Risks / Trade-offs
