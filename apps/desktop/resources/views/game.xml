@@ -28,7 +28,7 @@
                 </HBox>
                 <!-- A mistake retry names the moment it restarts at, never what happened after it (design
                      D18); a daily challenge says so (D16). Collapsed otherwise. -->
-                <Label Name="game-mistake-banner" Class="attention" Wrap="true" AccessibleRole="Status" Visibility="Collapsed"/>
+                <Label Name="game-mistake-banner" Class="attention" Wrap="true" Visibility="Collapsed"/>
                 <Label Name="game-daily-banner" Class="info" Wrap="true" Visibility="Collapsed"/>
             </VBox>
         </Border>

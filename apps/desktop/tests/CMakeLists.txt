@@ -86,7 +86,8 @@ set_tests_properties(desktop_golden PROPERTIES LABELS golden)
 add_executable(tradelab_desktop_headless_tests main.cpp headless/test_headless.cpp headless/test_game_headless.cpp
   headless/test_headless_shell.cpp headless/test_headless_flows.cpp headless/test_headless_academy.cpp
   headless/test_headless_strategies.cpp headless/test_headless_run_files.cpp headless/test_headless_wave1.cpp
-  headless/test_headless_wave2.cpp)
+  headless/test_headless_wave2.cpp
+  headless/test_headless_practice.cpp)
 target_include_directories(tradelab_desktop_headless_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(tradelab_desktop_headless_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(tradelab_desktop_headless_tests PRIVATE tradelab_desktop_view)

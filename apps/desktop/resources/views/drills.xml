@@ -21,7 +21,7 @@
             <VBox Spacing="8">
                 <HBox Spacing="12">
                     <Label Name="drills-position" Class="muted" Wrap="true" Slot.Fill="1"/>
-                    <Label Name="drills-clock" Class="muted" AccessibleRole="Status"/>
+                    <Label Name="drills-clock" Class="muted"/>
                 </HBox>
                 <Label Name="drills-prompt" Wrap="true" TextSize="17"/>
                 <WrapBox Name="drills-choices" Spacing="8">
