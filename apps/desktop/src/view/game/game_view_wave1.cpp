@@ -54,6 +54,9 @@ std::string dotted(const std::vector<std::string>& cells) {
 }
 
 std::string marked(bool on, const std::string& text) { return (on ? "\xE2\x96\xB8 " : "") + text; }
+// A protect tab: three share the ticket's width, so the marker takes no space of its own (playtest: the
+// trailing tab's "Trailing" with its filled dot was cut at 1280x800).
+std::string tab_marked(bool on, const std::string& text) { return (on ? "\xE2\x96\xB8" : "") + text; }
 
 std::string heatmap_name(std::string_view prefix, std::string_view part) { return std::string(prefix) + "-" + std::string(part); }
 
@@ -182,9 +185,9 @@ void GameView::apply_wave1_ticket(const game::Texts& t, const game::TicketView& 
   Rwidget_set_accessible_name(plan, t.tr(pct ? "ticket.trailPct" : "ticket.trail").c_str());
   set_label(find(w::kPlanTrailNote), v.trail_planned);
   const auto tab = m.ticket.protect_tab;
-  ui::set_text(find(w::kTabStop), marked(tab == game::ProtectTab::Stop, v.tabs.at(0)));
-  ui::set_text(find(w::kTabTrail), marked(tab == game::ProtectTab::Trail, v.tabs.at(1)));
-  ui::set_text(find(w::kTabTarget), marked(tab == game::ProtectTab::Target, v.tabs.at(2)));
+  ui::set_text(find(w::kTabStop), tab_marked(tab == game::ProtectTab::Stop, v.tabs.at(0)));
+  ui::set_text(find(w::kTabTrail), tab_marked(tab == game::ProtectTab::Trail, v.tabs.at(1)));
+  ui::set_text(find(w::kTabTarget), tab_marked(tab == game::ProtectTab::Target, v.tabs.at(2)));
   Rwidget_set_accessible_name(find(w::kTabs), t.tr("ticket.protect").c_str());
   set_visible(find(w::kStopGroup), tab == game::ProtectTab::Stop);
   set_visible(find(w::kTrailGroup), tab == game::ProtectTab::Trail);
@@ -278,20 +281,25 @@ void GameView::apply_live(const game::Texts& t) {
     live_key_ = key;
     clear_rows(find(w::kLiveCombos), live_rows_);
     for (const auto& c : combos) {
-      const Rid row = Rwidget_create(R_WIDGET_WRAP_BOX);
+      // The structure's legs on their own wrapped line, its buttons under it (playtest: in a wrap box
+      // the label kept its natural width and was cut by the panel at 1280x800).
+      const Rid row = Rwidget_create(R_WIDGET_VBOX);
       const Rid label = Rlabel_create(c.text.c_str());
       Rlabel_set_text_size(label, 12);
       Rlabel_set_wrap(label, R_TRUE);
       Rwidget_add_child(row, label);
+      Rslot_set_fill(label, 1);
+      const Rid buttons = Rwidget_create(R_WIDGET_HBOX);
       const Rid roll = Rbutton_create(("\xE2\x9F\xB3 " + t.tr("roll.button")).c_str());
       Rwidget_set_name(roll, ("game-live-roll-" + c.id).c_str());
       const std::string id = c.id;
       cb_.click(roll, [this, id] { vm().open_roll(id); });
-      Rwidget_add_child(row, roll);
+      Rwidget_add_child(buttons, roll);
       const Rid adjust = Rbutton_create(t.tr("adjust.button").c_str());
       Rwidget_set_name(adjust, ("game-live-adjust-" + c.id).c_str());
       cb_.click(adjust, [this, id] { vm().open_adjust(id); });
-      Rwidget_add_child(row, adjust);
+      Rwidget_add_child(buttons, adjust);
+      Rwidget_add_child(row, buttons);
       Rwidget_add_child(find(w::kLiveCombos), row);
       live_rows_.push_back(row);
     }

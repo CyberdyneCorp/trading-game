@@ -361,7 +361,7 @@ void TicketViewModel::order_rules(const Texts& t, const GameState& g, const Calc
   const bool trail_set = trail_by_pct ? !prot_trail_pct.empty() : !prot_trail.empty();
   const std::array<std::pair<const char*, bool>, 3> tabs = {
       {{"ticket.tab.stop", !prot_stop.empty()}, {"ticket.tab.trail", trail_set}, {"ticket.tab.target", !prot_tp.empty()}}};
-  for (const auto& [key, filled] : tabs) v.tabs.push_back(t.tr(key) + (filled ? " \xE2\x80\xA2" : ""));
+  for (const auto& [key, filled] : tabs) v.tabs.push_back(t.tr(key) + (filled ? "\xE2\x80\xA2" : ""));
   if (c.pos_qty == 0) return;
   const bool exit_sell = c.pos_qty > 0;
   const std::string close = fmt::price_to_tick(c.last, c.tick);

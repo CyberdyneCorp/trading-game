@@ -418,6 +418,7 @@ class GameViewModel {
   };
   std::optional<Live> live_;
   void apply_hedge();
+  void on_live_before(int ticket, const std::string& text);
   [[nodiscard]] std::optional<ComboStatus> live_status() const;
   [[nodiscard]] std::vector<OrderLeg> live_orders() const;
   [[nodiscard]] std::optional<ComboTif> live_tif() const;

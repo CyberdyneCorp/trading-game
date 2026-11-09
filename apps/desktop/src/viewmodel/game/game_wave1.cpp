@@ -444,6 +444,13 @@ std::optional<ComboTif> GameViewModel::live_tif() const {
   return std::nullopt;
 }
 
+// The holdings' what-if of this state: a pending "Add hedge" is sized from it.
+void GameViewModel::on_live_before(int ticket, const std::string& text) {
+  if (!live_ticket_.current(ticket) || !live_) return;
+  live_->before = whatif_from_json(text).value;
+  if (live_->before && live_->hedge_pending) apply_hedge();
+}
+
 // The engine's dry run of the orders and the what-if of the holdings before and after them.
 void GameViewModel::refresh_live() {
   if (!live_ || !state_) return;
@@ -454,11 +461,7 @@ void GameViewModel::refresh_live() {
   const auto tk = live_ticket_.next(preview + after + "|" + std::to_string(state_->step) + "|" + std::to_string(state_->events.size()));
   if (!tk) return;
   const int t = *tk;
-  engine_.analyze(AnalysisKind::RunWhatIf, before, guarded([t](GameViewModel& vm, const std::string& text) {
-                    if (!vm.live_ticket_.current(t) || !vm.live_) return;
-                    vm.live_->before = whatif_from_json(text).value;
-                    if (vm.live_->before && vm.live_->hedge_pending) vm.apply_hedge();
-                  }));
+  engine_.analyze(AnalysisKind::RunWhatIf, before, guarded([t](GameViewModel& vm, const std::string& text) { vm.on_live_before(t, text); }));
   if (orders.empty()) return;
   engine_.analyze(AnalysisKind::ComboPreview, preview, guarded([t](GameViewModel& vm, const std::string& text) {
                     if (vm.live_ticket_.current(t) && vm.live_) vm.live_->preview = preview_from_json(text);

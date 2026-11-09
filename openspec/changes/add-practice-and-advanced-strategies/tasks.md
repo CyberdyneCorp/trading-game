@@ -155,7 +155,7 @@ Suggested PRs, in order:
 
 ### W1-X. Playtest and cross-check
 
-- [ ] W1-X1 Same numbers: one m16 seed and one m17 seed, played with the same actions on web and desktop, must give identical results for:
+- [x] W1-X1 Same numbers: one m16 seed and one m17 seed, played with the same actions on web and desktop, must give identical results for:
   - an IOC limit condor;
   - an OCO pair;
   - a calendar on m17 built, rolled and adjusted;
@@ -163,9 +163,9 @@ Suggested PRs, in order:
   - the portfolio totals;
   - the final digests.
 
-  Recorded in the design.
-- [ ] W1-X2 Playtest of both clients (PT-BR and en; web at 1024 and 1440 px, desktop at 1280x800 and 1024x768): every new control as a new player, the numbers checked by hand (a calendar's debit and horizon breakevens, a roll's net premium, `gamma1pct` from the shown gamma, a hedge quantity). Fixes come with regression tests.
-- [ ] W1-X3 `openspec validate --all --strict`; complexity within targets; only the documented state-digest change, with event digests unchanged; root README, `docs/product-spec.md` (orders, builder, portfolio) and the engine README.
+  Recorded in the design ("As built: wave 1 cross-check and playtest"): an IOC limit condor (nothing filled) and an OCO pair on m16, a calendar built, rolled and hedged on m17, its heatmap cells, the portfolio totals, the debriefs and both final digests identical.
+- [x] W1-X2 Playtest of both clients (PT-BR and en; web at 1024 and 1440 px, desktop at 1280x800 and 1024x768): every new control as a new player, the numbers checked by hand (a calendar's debit and horizon breakevens, a roll's net premium, `gamma1pct` from the shown gamma, a hedge quantity). Fixes come with regression tests.
+- [x] W1-X3 `openspec validate --all --strict`; complexity within targets; only the documented state-digest change, with event digests unchanged; root README, `docs/product-spec.md` (orders, builder, portfolio) and the engine README.
 
 ## Wave 2: missions m18–m25
 
