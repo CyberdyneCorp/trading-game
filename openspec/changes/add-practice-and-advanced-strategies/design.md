@@ -780,6 +780,40 @@ Where the desktop build (tasks W1-D1–D5) departs from or adds to the web's:
   - desktop layout: a live combo's legs were cut by the panel at 1280x800 (the row now wraps them above its buttons), and the protect tab "▸ Trailing •" was cut; the m07 playtest still clicked the percent switch without opening the trailing tab.
 - **Left open.** A planned trailing stop does not count as the ticket's planned risk (the ticket says "No stop" until it is placed); counting the first trigger would change the plan's logged risk and is a product decision. The gamma of a 1% move is a magnitude (the engine's D4 risk block), so the total does not tell long from short gamma; the rows do. W1-D5's Linux captures and W1-W8's end-to-end risk-limit warning wait as before.
 
+### As built: wave 2 engine and web (W2-E, W2-W)
+
+Where the build departs from or adds to D11–D14 and D20:
+
+- **Generator (D11).** No G5: every market uses v5 capabilities. Departures from the D11 table, found while tuning the bands:
+  - m18's chain has no anchors (a Level anchor made the hedged result bimodal: the band-hedged standard deviation exceeded the unhedged one); chop `iv_mult` 0.75, quiet 1.25, visits of 70–140 bars so most seeds sit in one regime.
+  - m19's unwind is a G1 state (crowded first, then an unwind of negative funding, upward drift and squeezes) rather than a drawn event.
+  - m20's IV ramp is two segments (`iv_mult` 1.4, then 1.8, both with `vol_decay` 0.93) and the event's `iv_mult` 0.6 over a post-release segment of 0.8.
+  - m24's next leg and m25's reversal are one-visit G1 chains (70/30): a random-direction segment cannot be tilted against a rally, because segment drift also moves the fair value.
+  - m23's denial jumps on 3 bars only, so following the headline stays under the 72% realism band.
+- **Bands (D12), as tested in `test_mission_learnability_d.cpp`**, with the reference players' choices recorded (no band was widened):
+  - m18: the band hedger rehedges when |delta| exceeds 40% of the contracts; ratio = realized volatility over the hold against the call's IV at entry. Measured: ratio ≥ 1.2 in 24 seeds, band-hedged wins 20 (83%); ratio ≤ 0.85 in 30, loses in all 30; standard deviation 160 against 301; every-bar fees 2.0x the band's.
+  - m19: hedged carry of 30 units on the last expiry held to the end; "flip seeds" are those whose reveal holds the unwind state. No unwind: 27/27 positive; unwind: 21/33 negative, liquidated at 5x in 11/33 (33%), at 2x in 0; the unhedged short loses in 45%.
+  - m20: "early" buys at the announcement on the **last** expiry (more vega, less theta; on the first expiry theta ate the IV bid) and sells the bar before; "holding through" sells 3 bars after the release; the "move" is |close 3 bars after − close the bar before| against the late straddle's ask. IV crushed in 60/60; early-sell beats early-hold in 51; big moves 20/23 win, others 30/37 lose; early-sell loses in 20%.
+  - m21: "loss at the near expiry" is the equity at the near expiry step, bound by the debit plus the settlement fee and the far long's bid below its mid. Near the strike 21/30 win (70%, at the band); beyond three steps 14/14 lose; no margin call at 20 contracts.
+  - m22: the managed plan trails with a stop moved to max(breakeven, best close − 2 ATR); "trend-far seeds" are those where the 2R target is reached before the stop (24 seeds; all-out better in 21). Managed win rate 50% against 38%; standard deviation of R 1.10 against 1.47.
+  - m23: the reference setup is a close above the 20-bar high; the revenge player re-enters long at once at twice the size; the cooled player waits 3 bars, then the next close beyond the 20-bar range, normal size; both close 30 bars later. Cooled better in 43/60 (72%).
+  - m24: planned = the first close 1 ATR above the 20-bar high with the stop at the 20-bar low; chase = the first close after 4 rising closes more than 2 ATR above SMA(20), stop 2 ATR; both held 50 bars. Planned better in 38/58 (65.5%, at the band); the chase wins in 43%.
+  - m25: the add is twice the quantity, once the close is 0.75 ATR below the entry ("worst seed ≥ 2x worse" needs more than an equal add: an equal add to the same stop risks at most 1.5x). Single ≥ averaging in 46 (77%); averaging better in 14 (23%); worst seed −279 against −116.
+  - Buy-and-hold is positive in 40–65% of each mission's seeds; the realism bands hold over the 25 missions.
+- **Goldens.** One each at seed 2026, except m25 at 2027 (the first seed whose dip reaches 1 ATR below the entry, so the golden shows `averaging_down`).
+- **Scoring v14 (D13).**
+  - Perpetual entries decided while option contracts are held are hedges (m18, m19) and are left out of the three bias rules; without it every rehedge of a straddle read as averaging down.
+  - `revenge_trade` compares planned risks when both trades have a plan and quantities otherwise, and fires for any losing close (a stop, a manual close or a target), as D13 states.
+  - `averaging_down`'s limit is the first entry's planned risk, else the risk before the add; the stop is the add's bracket stop, else the nearest reduce-only stop working at its decision.
+  - `risk_limit_exceeded` rebuilds the holdings and wallet at each close from the events (no new state, digest or checkpoint field) and values them with the D4 risk block; a test compares it with the live risk block at every close.
+  - Episodes match the perpetual trade rows one to one; MFE/MAE are measured from the first entry for the largest size held, only with a planned risk.
+  - Comparison names with explicit JSON names: `hedged_every_4`, `hedged_carry_5x`, `hedged_carry_2x`, `all_out_2r`. m20's rows use their own timing anchors (the announcement, one bar before the release) whatever the basis; m22's rows are played by their own trade rule and always on the reference basis.
+- **Web.**
+  - The calendar spread's tutorial art is `calendarSpread` (`calendar` is the economic calendar of m09, m11, m12). Psychology cards use `cooldown`, `plan` and `risk` (there is no `journal` art).
+  - The debrief reads the m22–m25 objectives from the episodes and bias findings (`objectiveChecks.ts`); m18–m21's objectives are not judged there.
+  - Two art labels fixed on the way (both on origin/main): the straddle's "strike" sat on "breakeven" in PT-BR, and the trailing art's TRAIL sat on a candle.
+  - The API keeps both campaign orders; a leg fits either, and a campaign is complete when its legs cover one order they all fit.
+
 ## Risks / Trade-offs
 
 - **Policy v18 changes every frozen state digest.** This is mitigated by an event-digest equality test, the documented history and the policy cache. Replays of v17 runs depend on the cache being built in CI (`TRADELAB_REQUIRE_POLICY_CACHE=1`).

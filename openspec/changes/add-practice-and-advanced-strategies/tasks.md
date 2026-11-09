@@ -171,13 +171,13 @@ Suggested PRs, in order:
 
 ### W2-E. Engine
 
-- [ ] W2-E1 Generator specs and missions m18–m25 (design D11, D12) in `missions.cpp`, needs W1-E3, W1-E6 and W1-E7:
+- [x] W2-E1 Generator specs and missions m18–m25 (design D11, D12) in `missions.cpp`, needs W1-E3, W1-E6 and W1-E7:
   - existing capabilities only (`kGeneratorVersion` stays 5, or a recorded G5 decision);
   - chains, margin flags, risk limits, objectives (new `ObjectiveCode`s), reveal labels;
   - one golden each, with every earlier golden's event digest unchanged;
   - rubrics (two questions each, `reviewed: false`) with the D12 numbers.
-- [ ] W2-E2 Learnability and realism, needs E1: `tests/test_mission_learnability_d.cpp` with the D12 bands (reference players in `tests/learnability.hpp`: band hedger, carry holder at 2× and 5×, event straddle timings, calendar, managed exits, cooled-down / planned / single-entry players and their trap counterparts), realism pooled over 25 missions, `tools/market_study.py` rows. Record tuning as "As built"; bands are never widened silently.
-- [ ] W2-E3 Scoring v14, report-only (design D13), needs E1:
+- [x] W2-E2 Learnability and realism, needs E1: `tests/test_mission_learnability_d.cpp` with the D12 bands (reference players in `tests/learnability.hpp`: band hedger, carry holder at 2× and 5×, event straddle timings, calendar, managed exits, cooled-down / planned / single-entry players and their trap counterparts), realism pooled over 25 missions, `tools/market_study.py` rows. Record tuning as "As built"; bands are never widened silently.
+- [x] W2-E3 Scoring v14, report-only (design D13), needs E1:
   - `revenge_trade`, `fomo_entry` and `averaging_down` findings with evidence;
   - `debrief.episodes`;
   - `risk_limit_exceeded`;
@@ -188,12 +188,12 @@ Suggested PRs, in order:
   - no look-ahead;
   - comparison rows reproduce scripted runs;
   - every existing golden's score is byte-identical.
-- [ ] W2-E4 IDL and bindings for the scoring v14 shapes (`FindingCode`s, `ComparisonStrategy`s, episodes); Python tests; engine README (scoring v14, m18–m25, history line).
+- [x] W2-E4 IDL and bindings for the scoring v14 shapes (`FindingCode`s, `ComparisonStrategy`s, episodes); Python tests; engine README (scoring v14, m18–m25, history line).
 
 ### W2-W. Web
 
-- [ ] W2-W0 Progress v4 (design D20), with every key: the campaign `order` snapshot, `drillReviews`, `drillHistory`, `dailyChallenges`, `guessHistory`; `migrateProgress` from v1–v3. Unit tests: migration, and an active pre-v4 campaign keeps its 17-mission order.
-- [ ] W2-W1 Curriculum (design D14), needs W0:
+- [x] W2-W0 Progress v4 (design D20), with every key: the campaign `order` snapshot, `drillReviews`, `drillHistory`, `dailyChallenges`, `guessHistory`; `migrateProgress` from v1–v3. Unit tests: migration, and an active pre-v4 campaign keeps its 17-mission order.
+- [x] W2-W1 Curriculum (design D14), needs W0:
   - the `management`, `advanced` (elective, `campaign: false`) and `psychology` stages;
   - the 21-mission campaign order;
   - elective assessment from finished non-assisted free-play and daily runs;
@@ -203,14 +203,14 @@ Suggested PRs, in order:
   - no passed stage becomes locked;
   - no lock the engine cannot enforce;
   - elective missions are never campaign legs.
-- [ ] W2-W2 Lessons (design D12 lesson bullets):
+- [x] W2-W2 Lessons (design D12 lesson bullets):
   - `vol-gamma-scalping`, `carry-funding`, `vol-events`, `options-calendars`, `management-scaling` and `mind-biases`;
   - PT-BR and en;
   - new check kinds `hedge`, `scalp`, `calendar`, `scale` (with `trail` from W1-W3);
   - option numbers only as engine `whatif` checks (`academyEngine.test.ts`, `test_academy_numbers.py`);
   - no mission id.
-- [ ] W2-W3 Glossary terms (about 24): `gamma-scalping`, `delta-neutral`, `rehedge`, `carry`, `basis`, `synthetic-forward`, `put-call-parity`, `implied-move`, `event-volatility`, `term-structure`, `scale-in`, `scale-out`, `breakeven-stop`, `partial-take-profit`, `averaging-down`, `cooldown` and the wave 1 terms not yet added; examples with checks.
-- [ ] W2-W4 Missions on the web, needs W2-E1 and W2-E3:
+- [x] W2-W3 Glossary terms (about 24): `gamma-scalping`, `delta-neutral`, `rehedge`, `carry`, `basis`, `synthetic-forward`, `put-call-parity`, `implied-move`, `event-volatility`, `term-structure`, `scale-in`, `scale-out`, `breakeven-stop`, `partial-take-profit`, `averaging-down`, `cooldown` and the wave 1 terms not yet added; examples with checks.
+- [x] W2-W4 Missions on the web, needs W2-E1 and W2-E3:
   - `missions.ts` texts;
   - tutorial cards with the new art (`scalp`, `carry`, `parity`, `crush`, `calendar`, `scale`, `trail`, `cooldown`), 3–5 cards each, no spoiler words;
   - `lessons.ts` texts checked against the rubrics;
@@ -218,7 +218,7 @@ Suggested PRs, in order:
   - the debrief's bias findings with evidence, the episodes view and the comparison rows.
 
   E2E: each of m18–m25 played to the debrief (`e2e/missions-batch-d.spec.ts`).
-- [ ] W2-W5 Web README (missions, stages, progress v4).
+- [x] W2-W5 Web README (missions, stages, progress v4).
 
 ### W2-D. Desktop
 
